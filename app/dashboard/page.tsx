@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { LogoMark } from "../components/LogoMark";
 import { SignOutButton } from "./SignOutButton";
+import styles from "./dashboard.module.css";
 
 /**
- * Placeholder trénerského dashboardu — potvrdzuje, že auth flow funguje end-to-end.
- * Skutočný dashboard (klienti, tréningy, AI) je samostatná dizajnová aj implementačná úloha
- * (viď DESIGN.md "Open decisions").
+ * Prvá skutočná chránená obrazovka trénera — zoznam vlastných klientov z DB (RLS: trainer_id = auth.uid()).
+ * Pridávanie klientov / invite flow ešte nie je postavené (viď DESIGN.md "Open decisions") —
+ * preto zámerne žiadne tlačidlo "Pridať klienta", ktoré by nič nerobilo.
  */
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -17,27 +19,66 @@ export default async function DashboardPage() {
     redirect("/prihlasenie");
   }
 
-  const name = (user.user_metadata?.full_name as string | undefined) ?? user.email;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, full_name, goal, created_at")
+    .eq("trainer_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const displayName = profile?.full_name ?? profile?.email ?? user.email;
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 16,
-        padding: 24,
-        textAlign: "center",
-      }}
-    >
-      <h1 style={{ fontSize: "2rem" }}>Vitaj, {name}.</h1>
-      <p style={{ color: "var(--paper-dim)", maxWidth: "48ch" }}>
-        Toto je zatiaľ len placeholder — potvrdzuje, že prihlásenie a registrácia cez Supabase
-        fungujú. Skutočný dashboard (klienti, tréningy, AI) je ďalšia úloha.
-      </p>
-      <SignOutButton />
-    </main>
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <div className={`${styles.wrap} ${styles.nav}`}>
+          <div className={styles.brand}>
+            <LogoMark className={styles.logoMark} />
+            FitPilot
+          </div>
+          <SignOutButton />
+        </div>
+      </header>
+
+      <main className={styles.main}>
+        <div className={styles.wrap}>
+          <div className={styles.head}>
+            <div>
+              <h1>Vitaj, {displayName}.</h1>
+              <p>Tvoji klienti — zatiaľ len zoznam, tréningový builder a makrá prídu v ďalšej fáze.</p>
+            </div>
+          </div>
+
+          {clients && clients.length > 0 ? (
+            <div className={styles.roster}>
+              {clients.map((client) => (
+                <div key={client.id} className={styles.clientRow}>
+                  <div>
+                    <div className={styles.clientName}>{client.full_name}</div>
+                    {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
+                  </div>
+                  <span className={styles.clientSince}>
+                    od {new Date(client.created_at).toLocaleDateString("sk-SK")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <h2>Zatiaľ nemáš žiadnych klientov</h2>
+              <p>
+                Pridávanie klientov a pozývacie kódy sú ďalšia úloha na roadmape — táto obrazovka
+                zatiaľ len potvrdzuje, že prihlásenie a databázové pripojenie fungujú end-to-end.
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
