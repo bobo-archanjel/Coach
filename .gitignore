@@ -27,3 +27,7 @@ Thumbs.db
 
 # Supabase local
 .supabase/
+
+# Claude Code / impeccable — machine-local (absolute paths, personal permissions)
+.claude/settings.local.json
+.impeccable/config.local.json

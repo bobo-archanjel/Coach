@@ -7,19 +7,22 @@ AI-native SaaS platforma pre fitness trénerov na slovenskom a českom trhu. Tr�
 ## Štruktúra repozitára
 
 ```
+app/
+  layout.tsx            — root layout, Inter font, metadata
+  globals.css           — design tokeny (DESIGN.md), reset, zdieľané .btn/.bar-rule primitívy
+  page.tsx / page.module.css        — landing page (Persuade)
+  prihlasenie/           — Prihlásenie / Registrácia (Operate), klientská komponenta (tabs, validácia)
+  components/            — zdieľané kusy (LogoMark, RevealOnScroll)
 docs/
   projektbrief.md      — kompletný produktový koncept (moduly, AI, monetizácia, tech stack)
   Design/               — pôvodné obrázky brand kitu (logo, farby, typografia, UI vzory)
-design/
-  fitcoach-landing.html — landing page (Persuade), FitPilot brand systém
-  fitcoach-auth.html    — Prihlásenie / Registrácia (Operate), prepojená s landing page
 PRODUCT.md              — durable produktová pravda (users, positioning, capabilities, brand)
 DESIGN.md               — vizuálny systém (farby, typografia, komponenty, otvorené rozhodnutia)
 ```
 
 `PRODUCT.md` a `DESIGN.md` sú živé dokumenty — aktualizujú sa pri každej väčšej produktovej alebo dizajnovej zmene, nie len pri pushi.
 
-**Next.js app (rozhodnuté 2026-08-27):** pôjde priamo do koreňa repozitára (package.json, `app/`, atď. vedľa `docs/`, `design/`, `PRODUCT.md`, `DESIGN.md` — nie do samostatného podpriečinka). Statické mockupy v `design/` ostávajú ako referencia počas portovania na reálne stránky; keď je stránka plne nahradená Next.js kódom, mockup sa vyhodí.
+**Next.js app** (rozhodnuté 2026-08-27) žije priamo v koreni repozitára. Statické mockupy pôvodne v `design/` (landing + auth) boli 27. 8. 2026 plne nahradené reálnym Next.js kódom podľa dohodnutého pravidla a zložka bola zmazaná — `docs/Design/` (obrázky brand kitu) tým nie je dotknuté.
 
 ## Infra rozhodnutia (bod 0 — pred prvým riadkom Next.js kódu)
 
@@ -34,9 +37,11 @@ DESIGN.md               — vizuálny systém (farby, typografia, komponenty, ot
 | `dev`  | bežná práca — sem sa pushuje najčastejšie |
 | `test` | QA/staging pred nasadením |
 
-## Tech stack (plán)
+## Tech stack
 
-React (Next.js) + Tailwind CSS, mobile-first. Backend: Supabase (Postgres, Auth, Storage, RLS), self-hosted. AI: Claude API, výhradne server-side. Platby: Stripe. Detaily v [docs/projektbrief.md](docs/projektbrief.md).
+React (Next.js 15, App Router, TypeScript) + Tailwind CSS v4, mobile-first. Landing a auth stránky zatiaľ používajú CSS Modules pre vernú 1:1 zhodu s dizajnom; Tailwind je nastavený pre budúce Operate obrazovky (dashboard, klientský portál). Backend: Supabase (Postgres, Auth, Storage, RLS) — zatiaľ cloud projekt pre dev, self-hosted na `nexus` pred produkciou. AI: Claude API, výhradne server-side. Platby: Stripe. Detaily v [docs/projektbrief.md](docs/projektbrief.md).
+
+Lokálny beh: `npm install && npm run dev`.
 
 ## Brand
 
@@ -48,6 +53,7 @@ FitPilot — Signal Coral `#E0402A`, Amber Dot Accent `#E6B23A`, Almost Black `#
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-08-27** — Landing page a Prihlásenie/Registrácia naostro: Next.js 15 (App Router, TS) + Tailwind v4 kostra založená v koreni repa, oba mockupy portované 1:1 (CSS Modules, farebné tokeny z DESIGN.md, Inter cez `next/font/google`, auth ako riadená React komponenta s reálnou validáciou/loading/success stavmi namiesto vanilla JS). Nahradené `design/*.html` mockupy zmazané. Nainštalovaný skill **impeccable** (`/impeccable init` spustený, `PRODUCT.md` potvrdený ako aktuálny, build workflow nastavený na code-first).
 - **2026-08-27** — Bod 0 rozhodnutý: Next.js app pôjde do koreňa repa (`design/` ostáva ako referencia počas portovania), Supabase vývoj na cloud projekte (self-hosted `nexus` presun až pred produkciou), secrets cez `.env.local` podľa novej `.env.local.example` šablóny. Zdokumentované v README sekcii "Infra rozhodnutia".
 - **2026-08-27** — Repozitár napojený na GitHub (`bobo-archanjel/Coach`), založené vetvy `main`/`dev`/`test`, pridaný README s povinnosťou aktualizácie pri každom push.
 - **2026-08-27** — Rebrand na **FitPilot** podľa dodaného brand kitu (logo, farby, Inter typografia, zaoblené UI, ikonové dlaždice) — aplikované na landing page aj auth stránku.
