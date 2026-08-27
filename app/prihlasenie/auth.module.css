@@ -358,6 +358,11 @@
   border: 1px solid var(--moss);
   color: #a9d3b8;
 }
+.formStatus.error {
+  background: rgba(239, 106, 82, 0.12);
+  border-color: var(--error);
+  color: var(--error);
+}
 
 .dividerRow {
   display: flex;

@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
+import { createClient } from "@/lib/supabase/client";
 import styles from "./auth.module.css";
 
 const ErrorIcon = () => (
@@ -51,6 +53,8 @@ function validate(form: HTMLFormElement, fieldNames: string[]) {
 }
 
 export default function AuthPage() {
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
   useEffect(() => {
@@ -62,14 +66,33 @@ export default function AuthPage() {
   const [loginInvalid, setLoginInvalid] = useState<Record<string, boolean>>({});
   const [loginShowPassword, setLoginShowPassword] = useState(false);
   const [loginStatus, setLoginStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const { invalid, hasInvalid } = validate(e.currentTarget, ["email", "password"]);
+    setLoginError(null);
+    const form = e.currentTarget;
+    const { invalid, hasInvalid } = validate(form, ["email", "password"]);
     setLoginInvalid(invalid);
     if (hasInvalid) return;
+
     setLoginStatus("loading");
-    setTimeout(() => setLoginStatus("success"), 1100);
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setLoginStatus("idle");
+      setLoginError(
+        error.message === "Invalid login credentials"
+          ? "Nesprávny e-mail alebo heslo."
+          : error.message
+      );
+      return;
+    }
+    setLoginStatus("success");
+    router.push("/dashboard");
+    router.refresh();
   }
 
   // ---- register form state ----
@@ -77,15 +100,45 @@ export default function AuthPage() {
   const [registerInvalid, setRegisterInvalid] = useState<Record<string, boolean>>({});
   const [registerShowPassword, setRegisterShowPassword] = useState(false);
   const [registerStatus, setRegisterStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerNeedsConfirm, setRegisterNeedsConfirm] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const { invalid, hasInvalid } = validate(e.currentTarget, ["name", "email", "password", "terms"]);
+    setRegisterError(null);
+    const form = e.currentTarget;
+    const { invalid, hasInvalid } = validate(form, ["name", "email", "password", "terms"]);
     setRegisterInvalid(invalid);
     if (hasInvalid) return;
+
     setRegisterStatus("loading");
-    setTimeout(() => setRegisterStatus("success"), 1100);
+    const name = (form.elements.namedItem("name") as HTMLInputElement).value;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name, role: "trainer" } },
+    });
+    if (error) {
+      setRegisterStatus("idle");
+      setRegisterError(
+        error.message === "User already registered" ? "Tento e-mail už je zaregistrovaný." : error.message
+      );
+      return;
+    }
+
+    setRegisterStatus("success");
+    if (data.session) {
+      // Potvrdenie e-mailu je v projekte vypnuté — session je aktívna hneď.
+      router.push("/dashboard");
+      router.refresh();
+    } else {
+      // Predvolené nastavenie Supabase: treba potvrdiť e-mail skôr, než vznikne session.
+      setRegisterNeedsConfirm(true);
+    }
   }
 
   function clearFieldError(
@@ -249,6 +302,12 @@ export default function AuthPage() {
                     Prihlásenie prebehlo úspešne. Presmerúvam na dashboard…
                   </div>
                 )}
+                {loginError && (
+                  <div className={`${styles.formStatus} ${styles.error}`} role="alert">
+                    <ErrorIcon />
+                    {loginError}
+                  </div>
+                )}
               </form>
 
               <p className={styles.switchLine}>
@@ -368,10 +427,22 @@ export default function AuthPage() {
                   <span>{registerStatus === "loading" ? "Vytváram účet…" : "Začať skúšobné obdobie"}</span>
                 </button>
 
-                {registerStatus === "success" && (
+                {registerStatus === "success" && !registerNeedsConfirm && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
                     Účet vytvorený. Presmerúvam na nastavenie profilu…
+                  </div>
+                )}
+                {registerStatus === "success" && registerNeedsConfirm && (
+                  <div className={styles.formStatus} role="status">
+                    <SuccessIcon />
+                    Účet vytvorený. Skontroluj si e-mail a potvrď registráciu, potom sa môžeš prihlásiť.
+                  </div>
+                )}
+                {registerError && (
+                  <div className={`${styles.formStatus} ${styles.error}`} role="alert">
+                    <ErrorIcon />
+                    {registerError}
                   </div>
                 )}
               </form>
