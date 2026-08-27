@@ -1,19 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AddDayForm } from "./AddDayForm";
-import { AddExerciseForm } from "./AddExerciseForm";
+import { PlanBuilder } from "./PlanBuilder";
 import styles from "../../dashboard.module.css";
-
-interface WorkoutExercise {
-  exercise_id: string;
-  exercise_name: string;
-  sets: number;
-  reps: string;
-  load_kg: number | null;
-  tempo: string | null;
-  rest_seconds: number | null;
-}
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -39,10 +28,8 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
 
   const [{ data: days }, { data: exercises }] = await Promise.all([
     supabase.from("workout_days").select("id, day_number, name, exercises").eq("plan_id", planId).order("day_number"),
-    supabase.from("exercises").select("id, name").order("name"),
+    supabase.from("exercises").select("id, name, muscle_group").order("name"),
   ]);
-
-  const nextDayNumber = (days?.length ?? 0) + 1;
 
   return (
     <>
@@ -60,52 +47,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
         </div>
       </div>
 
-      <div className={styles.workoutList} style={{ marginBottom: 24 }}>
-        {days && days.length > 0 ? (
-          days.map((day) => {
-            const dayExercises = (day.exercises as unknown as WorkoutExercise[]) ?? [];
-            return (
-              <div key={day.id} className={styles.card}>
-                <h3>{day.name}</h3>
-                {dayExercises.length > 0 ? (
-                  <div className={styles.workoutBlock} style={{ marginBottom: 14 }}>
-                    {dayExercises.map((ex, i) => (
-                      <div key={i} className={styles.exerciseRow}>
-                        <span className={styles.exIdx}>{i + 1}</span>
-                        <span className={styles.exName}>{ex.exercise_name}</span>
-                        <span className={styles.exLoad}>
-                          {ex.sets}× {ex.reps}
-                          {ex.load_kg ? ` @ ${ex.load_kg} kg` : ""}
-                        </span>
-                        <span className={styles.exRest}>
-                          {ex.tempo ? `tempo ${ex.tempo}` : ""}
-                          {ex.tempo && ex.rest_seconds ? " · " : ""}
-                          {ex.rest_seconds ? `pauza ${ex.rest_seconds}s` : ""}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className={styles.noWorkouts} style={{ marginBottom: 14 }}>
-                    Žiadne cviky v tomto dni zatiaľ.
-                  </p>
-                )}
-                <AddExerciseForm dayId={day.id} planId={planId} exercises={exercises ?? []} />
-              </div>
-            );
-          })
-        ) : (
-          <div className={styles.emptyState}>
-            <h2>Zatiaľ žiadne dni</h2>
-            <p>Pridaj prvý deň nižšie.</p>
-          </div>
-        )}
-      </div>
-
-      <div className={styles.card}>
-        <h3>Pridať deň</h3>
-        <AddDayForm planId={planId} nextDayNumber={nextDayNumber} />
-      </div>
+      <PlanBuilder planId={planId} days={days ?? []} library={exercises ?? []} />
     </>
   );
 }

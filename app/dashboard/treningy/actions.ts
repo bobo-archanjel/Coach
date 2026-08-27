@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +9,18 @@ export interface ActionState {
   error: string | null;
 }
 
-const initialOk: ActionState = { error: null };
+const ok: ActionState = { error: null };
+
+export interface WorkoutExerciseEntry {
+  entry_id: string;
+  exercise_id: string;
+  exercise_name: string;
+  sets: number;
+  reps: string;
+  load_kg: number | null;
+  tempo: string | null;
+  rest_seconds: number | null;
+}
 
 export async function createPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
@@ -54,25 +66,20 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
   if (error) return { error: error.message };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
-  return initialOk;
+  return ok;
 }
 
+/** Klik na cvik v knižnici → pridá ho do aktívneho dňa s rozumnými defaultmi (rovno editovateľné). */
 export async function addExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
 
   const dayId = formData.get("day_id") as string | null;
   const planId = formData.get("plan_id") as string | null;
   const exerciseId = formData.get("exercise_id") as string | null;
-  const sets = Number(formData.get("sets"));
-  const reps = (formData.get("reps") as string | null)?.trim() ?? "";
-  const loadRaw = (formData.get("load_kg") as string | null)?.trim();
-  const tempo = (formData.get("tempo") as string | null)?.trim() || null;
-  const restRaw = (formData.get("rest_seconds") as string | null)?.trim();
 
-  if (!dayId || !planId) return { error: "Chýba ID dňa." };
+  if (!dayId) return { error: "Najprv vytvor alebo vyber deň." };
+  if (!planId) return { error: "Chýba ID plánu." };
   if (!exerciseId) return { error: "Vyber cvik." };
-  if (!Number.isFinite(sets) || sets < 1) return { error: "Zadaj počet sérií." };
-  if (!reps) return { error: "Zadaj opakovania." };
 
   const { data: exercise } = await supabase.from("exercises").select("name").eq("id", exerciseId).maybeSingle();
   if (!exercise) return { error: "Cvik sa nenašiel." };
@@ -80,23 +87,89 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
   if (!day) return { error: "Deň sa nenašiel." };
 
-  const newEntry = {
+  const newEntry: WorkoutExerciseEntry = {
+    entry_id: randomUUID(),
     exercise_id: exerciseId,
     exercise_name: exercise.name,
-    sets,
-    reps,
-    load_kg: loadRaw ? Number(loadRaw) : null,
-    tempo,
-    rest_seconds: restRaw ? Number(restRaw) : null,
+    sets: 3,
+    reps: "10",
+    load_kg: null,
+    tempo: null,
+    rest_seconds: 90,
   };
 
-  const updatedExercises = [...(Array.isArray(day.exercises) ? day.exercises : []), newEntry];
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const { error } = await supabase
+    .from("workout_days")
+    .update({ exercises: [...current, newEntry] })
+    .eq("id", dayId);
 
-  const { error } = await supabase.from("workout_days").update({ exercises: updatedExercises }).eq("id", dayId);
   if (error) return { error: error.message };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
-  return initialOk;
+  return ok;
+}
+
+export async function updateExerciseEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const dayId = formData.get("day_id") as string | null;
+  const planId = formData.get("plan_id") as string | null;
+  const entryId = formData.get("entry_id") as string | null;
+  const sets = Number(formData.get("sets"));
+  const reps = (formData.get("reps") as string | null)?.trim() ?? "";
+  const loadRaw = (formData.get("load_kg") as string | null)?.trim();
+  const tempo = (formData.get("tempo") as string | null)?.trim() || null;
+  const restRaw = (formData.get("rest_seconds") as string | null)?.trim();
+
+  if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
+  if (!Number.isFinite(sets) || sets < 1) return { error: "Zadaj počet sérií." };
+  if (!reps) return { error: "Zadaj opakovania." };
+
+  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  if (!day) return { error: "Deň sa nenašiel." };
+
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const updated = current.map((entry) =>
+    entry.entry_id === entryId
+      ? {
+          ...entry,
+          sets,
+          reps,
+          load_kg: loadRaw ? Number(loadRaw) : null,
+          tempo,
+          rest_seconds: restRaw ? Number(restRaw) : null,
+        }
+      : entry
+  );
+
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+export async function removeExerciseEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const dayId = formData.get("day_id") as string | null;
+  const planId = formData.get("plan_id") as string | null;
+  const entryId = formData.get("entry_id") as string | null;
+
+  if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
+
+  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  if (!day) return { error: "Deň sa nenašiel." };
+
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const updated = current.filter((entry) => entry.entry_id !== entryId);
+
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
 }
 
 export async function addCustomExerciseAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -120,5 +193,5 @@ export async function addCustomExerciseAction(_prevState: ActionState, formData:
   if (error) return { error: error.message };
 
   revalidatePath("/dashboard/treningy");
-  return initialOk;
+  return ok;
 }

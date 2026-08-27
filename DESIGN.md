@@ -63,7 +63,9 @@ Operate, Restrained farba (rovnako ako auth). Sidebar navigácia (240px, `--ink-
 
 Klienti sekcia je naostro: formulár "Pridať klienta" (Server Action → INSERT do `clients`, `useActionState` pre pending/error stav) a zoznam/detail čítajú reálne dáta z DB (RLS scoped na `trainer_id`). Status chip aktívny/meškanie bol odstránený zo zoznamu — nebola za ním reálna adherencia dáta (žiadne `workout_logs` zatiaľ), fake stav by klamal.
 
-Tréningy sekcia je tiež naostro: knižnica cvikov (globálna + vlastné cviky trénera), vytvorenie plánu pre klienta, pridávanie dní a cvikov (série/opakovania/záťaž/tempo/pauza) do plánu — `exerciseRow`/`workoutBlock` vizualizácia prevzatá z landing page jazyka. Výživa ostáva honestný `.emptyState` ("ešte nepostavené"), kým nepribudne `meal_plans` tabuľka. `.comingSoon` odznaky ostávajú pri Notifikáciách/Fakturácii v Nastaveniach.
+Tréningy sekcia je naostro. Zoznam plánov (`/dashboard/treningy`) v pôvodnom karta-štýle; detail plánu (`/dashboard/treningy/[planId]`) prešiel druhou iteráciou po spätnej väzbe, že pôvodná forma-na-forme pôsobila neprofesionálne — nahradený **split-view builderom** (knižnica + plátno, zvolené z 3 predložených štruktúr): vľavo sticky knižnica cvikov s vyhľadávaním (klik na cvik = okamžité pridanie do aktívneho dňa s defaultmi 3×10/pauza 90s, rovno pripravené na inline úpravu), vpravo dni ako tabs (aktívny stav vizuálne "zliaty" so panelom pod ním) a zoznam cvikov s inline edit/delete (ceruzka/kôš ikony, `.editForm` prepína riadok priamo na formulár bez modálu). Vlastné vizuálne triedy v `builder.module.css` (samostatný modul pre tento povrch).
+
+Výživa ostáva honestný `.emptyState` ("ešte nepostavené"), kým nepribudne `meal_plans` tabuľka. `.comingSoon` odznaky ostávajú pri Notifikáciách/Fakturácii v Nastaveniach.
 
 ## Open decisions
 
