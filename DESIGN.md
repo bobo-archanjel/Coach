@@ -59,13 +59,15 @@ Operate. Farba Restrained — coral len na primárnej akcii, focus stavoch a odk
 ## Surfaces (pokračovanie)
 
 ### Dashboard trénera (`/dashboard`, `app/dashboard/`)
-Operate, Restrained farba (rovnako ako auth). Zatiaľ len prvý draft — sticky header s logom a odhlásením, `.wrap` kontajner, zoznam klientov ako karty (`.client-row`-štýl, `--ink-2` pozadie, `--steel-line` okraj) alebo `.empty-state` s bodkovaným okrajom keď tréner nemá klientov. Žiadny "Pridať klienta" CTA zatiaľ — invite flow nie je postavený, fake tlačidlo by klamalo. Rozšíriť pri stavbe skutočného tréningového buildera a nutričného modulu.
+Operate, Restrained farba (rovnako ako auth). Sidebar navigácia (240px, `--ink-2` pozadie, zbaľuje sa na horný pruh pod 880px) so 4 sekciami — Klienti, Tréningy, Výživa, Nastavenia — každá vlastná route, aktívny stav cez `aria-current` + `--ink-3` pozadie. Zdieľaný `dashboard.module.css` naprieč sekciami (karty `--ink-2`/`--steel-line`, status chipy aktívny/meškanie, makro-bar a exercise-row vizualizácie prevzaté z landing page jazyka).
+
+Frontend je zatiaľ na mock dátach (`lib/mock/dashboard.ts`) — reálne pridávanie klientov, tréningový builder a jedálničky nie sú postavené, preto žiadne funkčné "Pridať klienta"/"Vytvoriť plán" CTA (len `.comingSoon` odznaky pri Notifikáciách/Fakturácii v Nastaveniach). Auth guard (redirect na `/prihlasenie` bez session) a Nastavenia → Profil sú skutočné Supabase volania, zvyšok obsahu nie.
 
 ## Open decisions
 
 - Logo je vlastná SVG rekonštrukcia z referenčných obrázkov, nie originálny export — nahradiť pri finálnom nasadení.
 - Klientský portál (Operate povrch) ešte nie je navrhnutý — rozšíriť tento súbor pri jeho stavbe, so zachovaním FitPilot systému.
-- Dashboard trénera má zatiaľ len roster-list draft (vyššie) — pridávanie klientov, tréningový builder a nutrícia v ňom ešte chýbajú.
+- Dashboard trénera má teraz plnú navigačnú štruktúru na mock dátach (vyššie) — reálne pridávanie klientov (backend + UI), tréningový builder a zostavovanie jedálničkov v ňom ešte chýbajú.
 - Ceny v cenníku sú orientačné (z brief-u), nie finálne potvrdené.
 - Onboarding flow pre klienta cez pozývací kód (`fitcoach-auth.html`) je len navrhnutý predpoklad — potrebuje potvrdenie.
 - Zabudnuté heslo a e-mailová verifikácia nemajú vlastnú obrazovku — len odkaz z prihlásenia.
