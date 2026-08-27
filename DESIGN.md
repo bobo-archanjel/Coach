@@ -56,10 +56,16 @@ Persuade. Plný Committed farebný rozsah. Pozri `.demo`, `.feature-row`, `.trus
 ### Prihlásenie / Registrácia (`fitcoach-auth.html`)
 Operate. Farba Restrained — coral len na primárnej akcii, focus stavoch a odkazoch. Prepojená obojsmerne s landing page (nav "Prihlásiť sa"/"Vyskúšať zadarmo" → auth stránka; cenníkové CTA a finálne CTA → `#register` deep-link na auth stránke; logo na auth stránke → späť na landing).
 
+## Surfaces (pokračovanie)
+
+### Dashboard trénera (`/dashboard`, `app/dashboard/`)
+Operate, Restrained farba (rovnako ako auth). Zatiaľ len prvý draft — sticky header s logom a odhlásením, `.wrap` kontajner, zoznam klientov ako karty (`.client-row`-štýl, `--ink-2` pozadie, `--steel-line` okraj) alebo `.empty-state` s bodkovaným okrajom keď tréner nemá klientov. Žiadny "Pridať klienta" CTA zatiaľ — invite flow nie je postavený, fake tlačidlo by klamalo. Rozšíriť pri stavbe skutočného tréningového buildera a nutričného modulu.
+
 ## Open decisions
 
 - Logo je vlastná SVG rekonštrukcia z referenčných obrázkov, nie originálny export — nahradiť pri finálnom nasadení.
-- Dashboard trénera a klientský portál (Operate povrchy) ešte nie sú navrhnuté — rozšíriť tento súbor pri ich stavbe, so zachovaním FitPilot systému.
+- Klientský portál (Operate povrch) ešte nie je navrhnutý — rozšíriť tento súbor pri jeho stavbe, so zachovaním FitPilot systému.
+- Dashboard trénera má zatiaľ len roster-list draft (vyššie) — pridávanie klientov, tréningový builder a nutrícia v ňom ešte chýbajú.
 - Ceny v cenníku sú orientačné (z brief-u), nie finálne potvrdené.
 - Onboarding flow pre klienta cez pozývací kód (`fitcoach-auth.html`) je len navrhnutý predpoklad — potrebuje potvrdenie.
 - Zabudnuté heslo a e-mailová verifikácia nemajú vlastnú obrazovku — len odkaz z prihlásenia.
