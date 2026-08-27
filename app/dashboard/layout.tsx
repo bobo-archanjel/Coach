@@ -9,9 +9,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * Auth guard + shell pre celý /dashboard. Sekcie (Klienti/Tréningy/Výživa/Nastavenia)
- * bežia na mock dátach (lib/mock/dashboard.ts) — len prihlásenie/odhlásenie je skutočný
- * Supabase call, zvyšný obsah je frontend-only, kým nebude postavené pridávanie klientov.
+ * Auth guard + shell pre celý /dashboard. Klienti bežia na reálnych Supabase dátach
+ * (tabuľka `clients`, RLS scoped na trainer_id). Tréningy/Výživa sú zatiaľ honestné
+ * "ešte nepostavené" — čakajú na tréningový builder a nutričný modul.
  */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

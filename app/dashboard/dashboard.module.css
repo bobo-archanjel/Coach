@@ -143,6 +143,42 @@
   color: var(--iron-red);
 }
 
+/* ---------- add client form ---------- */
+.addClientForm {
+  margin-bottom: 20px;
+}
+.addClientFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.addClientInput {
+  flex: 1 1 200px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+}
+.addClientInput::placeholder {
+  color: var(--paper-faint);
+}
+.addClientInput:focus {
+  outline: none;
+  border-color: var(--iron-red);
+  background: var(--ink-3);
+}
+.addClientInput:disabled {
+  opacity: 0.6;
+}
+.addClientError {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--error);
+}
+
 /* ---------- client roster ---------- */
 .roster {
   display: grid;
