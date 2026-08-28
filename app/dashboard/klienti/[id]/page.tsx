@@ -23,6 +23,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     notFound();
   }
 
+  const { data: plans } = await supabase
+    .from("workout_plans")
+    .select("id, name, created_at, workout_days(count)")
+    .eq("client_id", id)
+    .order("created_at", { ascending: false });
+
   const memberSince = new Date(client.created_at).toLocaleDateString("sk-SK", {
     day: "numeric",
     month: "long",
@@ -65,10 +71,27 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
 
         <div className={styles.card}>
-          <h3>Tréningy a výživa</h3>
-          <p className={styles.noWorkouts}>
-            Tréningový builder a nutričný modul ešte nie sú postavené — táto sekcia sa naplní,
-            keď pribudnú.
+          <h3>Tréningové plány</h3>
+          {plans && plans.length > 0 ? (
+            <div className={styles.roster}>
+              {plans.map((plan) => {
+                const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+                return (
+                  <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
+                    <div className={styles.clientName}>{plan.name}</div>
+                    <span className={styles.clientSince}>{dayCount} dní</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.noWorkouts}>
+              Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na{" "}
+              <Link href="/dashboard/treningy">Tréningy</Link>.
+            </p>
+          )}
+          <p className={styles.noWorkouts} style={{ marginTop: plans && plans.length > 0 ? 16 : 0 }}>
+            Nutričný modul ešte nie je postavený.
           </p>
         </div>
       </div>
