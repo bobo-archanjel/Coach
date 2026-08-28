@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AddClientForm } from "./AddClientForm";
 import styles from "./dashboard.module.css";
@@ -9,10 +10,16 @@ export default async function ClientsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
+  // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
+  if (!user) {
+    redirect("/prihlasenie");
+  }
+
   const { data: clients } = await supabase
     .from("clients")
     .select("id, full_name, goal, created_at")
-    .eq("trainer_id", user!.id)
+    .eq("trainer_id", user.id)
     .order("created_at", { ascending: false });
 
   return (

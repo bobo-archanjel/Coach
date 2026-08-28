@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreatePlanForm } from "./CreatePlanForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
@@ -10,13 +11,19 @@ export default async function TreningyPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
+  // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
+  if (!user) {
+    redirect("/prihlasenie");
+  }
+
   const [{ data: clients }, { data: exercises }, { data: plans }] = await Promise.all([
-    supabase.from("clients").select("id, full_name").eq("trainer_id", user!.id).order("full_name"),
+    supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
     supabase.from("exercises").select("id, name, muscle_group").order("name"),
     supabase
       .from("workout_plans")
       .select("id, name, created_at, clients(full_name), workout_days(count)")
-      .eq("trainer_id", user!.id)
+      .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
 
