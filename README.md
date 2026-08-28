@@ -53,6 +53,8 @@ FitPilot — Signal Coral `#E0402A`, Amber Dot Accent `#E6B23A`, Almost Black `#
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-08-28** — Odhlásenie v klientskom portáli (`feature/client-side`): `SignOutButton` presunuté z `app/dashboard/` do zdieľanej `app/components/`, nech ho môžu používať obe strany bez krížového importu medzi trénerskou a klientskou vetvou. Zobrazuje sa na `/portal/profil`.
+
 - **2026-08-28** — Opravené presmerovanie po prihlásení + dostavané taby Tréning/Strava v klientskom portáli (`feature/client-side`): prihlásenie posielalo úplne každého na `/dashboard` bez ohľadu na rolu, takže klient skončil na trénerskom dashboarde (opravené — presmerovanie podľa `profiles.role`, symetrický guard doplnený aj do `app/dashboard/layout.tsx`). `/portal/trening` a `/portal/strava` boli len "ComingSoon" placeholder — klient nevidel plán/makrá/jedálniček, ktoré mu tréner nastavil. Teraz `/portal/trening` ukazuje celý aktívny tréningový plán a `/portal/strava` makro cieľ + najnovší jedálniček (nové loadery `getPortalTraining`/`getPortalNutrition` v `lib/portal/data.ts`). Vizuálne zatiaľ znovupoužívajú primitíva karty Dnes (`.panel`, `.exList`), vlastný redizajn nebol súčasťou tejto úlohy.
 
 - **2026-08-28** — Registrácia trénera vs. klienta explicitne rozdelená (`feature/client-side`): predtým bol pozývací kód schovaný za voliteľný "mám kód" prepínač dole pod formulárom — klient, ktorý o ňom nevedel, sa nevedomky zaregistroval ako tréner. Teraz je hneď na začiatku záložky Registrácia segmentovaný prepínač "Som tréner" / "Som klient — mám kód", ktorý mení nadpis, poradie polí (kód je pri klientovi prvé povinné pole) aj text tlačidla. Odstránené mŕtve kusy starého UI (`.dividerRow`, `.inviteToggle`, `.invitePanel`).

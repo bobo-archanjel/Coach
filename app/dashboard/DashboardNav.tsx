@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
-import { SignOutButton } from "./SignOutButton";
+import { SignOutButton } from "../components/SignOutButton";
 import styles from "./dashboard.module.css";
 
 const ClientsIcon = () => (
