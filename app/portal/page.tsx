@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { mockPortal } from "@/lib/mock/portal";
+import type { ReactNode } from "react";
+import { getPortalData } from "@/lib/portal/data";
+import type { PortalData, PortalResult } from "@/lib/portal/types";
+import { ProfileIcon, TrainingIcon } from "./icons";
+import { RetryButton } from "./RetryButton";
 import styles from "./portal.module.css";
 
-/* /portal — domovská obrazovka "Dnes" (Fáza A).
+/* /portal — domovská obrazovka "Dnes".
    Kompozícia "Oblúk tréningového dňa" (seed 7c5000e8): príprava → práca → dozvuk.
-   Mock dáta (lib/mock/portal.ts), žiadny backend, žiadny auth guard.
+   Reálne dáta z Supabase (lib/portal/data.ts, migrácia 0002_workout_portal.sql);
+   auth guard v layout.tsx.
    THESIS: home je priebeh tréningového dňa čítaný zhora nadol, nie mriežka dlaždíc.
    SIGNATURE: prstenec postupu sa pri načítaní vykreslí z 0 na aktuálnu hodnotu. */
 
@@ -13,10 +18,20 @@ const RING_CIRC = 2 * Math.PI * RING_R;
 
 function greeting(name: string, hour: number): string {
   const part = hour < 10 ? "Dobré ráno" : hour < 18 ? "Dobrý deň" : "Dobrý večer";
-  return `${part}, ${name}`;
+  return name ? `${part}, ${name}` : part;
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const FULL_WEEKDAY: Record<string, string> = {
+  Po: "pondelok",
+  Ut: "utorok",
+  St: "streda",
+  Št: "štvrtok",
+  Pi: "piatok",
+  So: "sobota",
+  Ne: "nedeľa",
+};
 
 const ArrowIcon = () => (
   <svg className={styles.startArrow} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -30,11 +45,26 @@ const CheckIcon = () => (
   </svg>
 );
 
+const AlertIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 8.5v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <circle cx="12" cy="16.6" r="0.4" fill="currentColor" stroke="currentColor" strokeWidth="1.2" />
+    <path d="M12 4 3 19.5h18L12 4Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+  </svg>
+);
+
 const MARK_CLASS: Record<string, string> = {
   done: styles.markDone,
   today: styles.markToday,
   upcoming: styles.markUpcoming,
+  missed: styles.markMissed,
   rest: styles.markRest,
+};
+
+const PLATE_CLASS: Record<string, string> = {
+  done: styles.plateOn,
+  missed: styles.plateMissed,
+  rest: styles.plateRest,
 };
 
 function ProgressRing({ done, total }: { done: number; total: number }) {
@@ -42,13 +72,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
   const offset = RING_CIRC * (1 - fraction);
   return (
     <svg className={styles.ring} viewBox="0 0 92 92" style={{ ["--ring-circ" as string]: `${RING_CIRC}` }} aria-hidden="true">
-      <circle
-        className={styles.ringTrack}
-        cx="46"
-        cy="46"
-        r={RING_R}
-        strokeDasharray={RING_CIRC}
-      />
+      <circle className={styles.ringTrack} cx="46" cy="46" r={RING_R} strokeDasharray={RING_CIRC} />
       <circle className={styles.ringStart} cx="46" cy={46 - RING_R} r="4" />
       <circle
         className={styles.ringValue}
@@ -68,17 +92,140 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-export default function PortalHome() {
-  const { clientFirstName, today, hour, coachNote, session, week, streakDays, streakHistory } = mockPortal;
+function Notice({
+  icon,
+  title,
+  children,
+  action,
+  tone = "status",
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+  action?: ReactNode;
+  tone?: "status" | "alert";
+}) {
+  return (
+    <div className={styles.notice} role={tone}>
+      <span className={styles.noticeTile} aria-hidden="true">
+        {icon}
+      </span>
+      <h1>{title}</h1>
+      <p>{children}</p>
+      {action}
+    </div>
+  );
+}
 
-  const d = new Date(today);
-  const dateLabel = cap(d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" }));
+const PREVIEW_DATA: PortalData = {
+  clientFirstName: "Ján",
+  today: "2026-08-28",
+  hour: 8,
+  coachNote: {
+    trainer: "Marek",
+    initials: "M",
+    text: "Dnes ide o techniku, nie o váhu — pri drepe drž tempo 3 s dole a kontrolu v spodnej polohe. Ak koleno pri RDL tlačí, zníž záťaž o 10 kg a napíš mi.",
+  },
+  session: {
+    kind: "training",
+    title: "Deň C — Nohy",
+    focus: "Dolná časť tela + core",
+    durationLabel: "~55 min",
+    completedCount: 0,
+    exercises: [
+      { idx: "A1", name: "Drep s veľkou činkou", scheme: "4 × 6", load: "90 kg", rest: "150 s", tempo: "3-0-1" },
+      { idx: "A2", name: "Rumunský mŕtvy ťah", scheme: "3 × 8", load: "100 kg", rest: "2 min" },
+      { idx: "B1", name: "Predkopávanie na stroji", scheme: "3 × 12", load: "45 kg", rest: "75 s" },
+      { idx: "B2", name: "Zakopávanie v ľahu", scheme: "3 × 12", load: "35 kg", rest: "75 s" },
+      { idx: "C1", name: "Výpony na lýtka v stoji", scheme: "4 × 15", load: "60 kg", rest: "60 s" },
+      { idx: "C2", name: "Plank s výdržou", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s" },
+    ],
+  },
+  week: [
+    { label: "Po", dayNum: 24, state: "done", plan: "Deň A" },
+    { label: "Ut", dayNum: 25, state: "rest", plan: "Voľno" },
+    { label: "St", dayNum: 26, state: "done", plan: "Deň B" },
+    { label: "Št", dayNum: 27, state: "missed", plan: "Deň A" },
+    { label: "Pi", dayNum: 28, state: "today", plan: "Deň C" },
+    { label: "So", dayNum: 29, state: "upcoming", plan: "Deň A" },
+    { label: "Ne", dayNum: 30, state: "rest", plan: "Voľno" },
+  ],
+  streakDays: 12,
+  streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "missed", "done", "rest", "done", "rest"],
+};
+
+/** DEV: ?preview=unlinked|no_plan|error|ok vynúti prázdny/chybový stav bez DB. */
+function previewResult(kind: string): PortalResult | null {
+  if (process.env.NODE_ENV === "production") return null;
+  switch (kind) {
+    case "unlinked":
+      return { state: "unlinked", firstName: "Ján" };
+    case "no_plan":
+      return { state: "no_plan", firstName: "Ján" };
+    case "error":
+      return { state: "error" };
+    case "ok":
+      return { state: "ok", data: PREVIEW_DATA };
+    default:
+      return null;
+  }
+}
+
+export default async function PortalHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ preview?: string }>;
+}) {
+  const { preview } = await searchParams;
+  const result = (preview && previewResult(preview)) || (await getPortalData());
+
+  if (result.state === "error") {
+    return (
+      <Notice
+        icon={<AlertIcon />}
+        title="Nepodarilo sa načítať tvoj deň"
+        tone="alert"
+        action={<RetryButton />}
+      >
+        Skús to o chvíľu znova. Ak to potrvá, napíš svojmu trénerovi.
+      </Notice>
+    );
+  }
+
+  if (result.state === "unlinked") {
+    return (
+      <Notice icon={<ProfileIcon />} title={result.firstName ? `Vitaj, ${result.firstName}` : "Vitaj vo FitPilot"}>
+        Tvoj účet ešte nie je prepojený s trénerom. Prepojenie spraví tréner zo
+        svojej strany — potom sa ti tu zobrazí tvoj plán a dnešný tréning.
+      </Notice>
+    );
+  }
+
+  if (result.state === "no_plan") {
+    return (
+      <Notice
+        icon={<TrainingIcon />}
+        title={result.firstName ? `${result.firstName}, plán je na ceste` : "Plán je na ceste"}
+      >
+        Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví,
+        nájdeš tu dnešný tréning aj prehľad týždňa.
+      </Notice>
+    );
+  }
+
+  return <PortalToday data={result.data} />;
+}
+
+function PortalToday({ data }: { data: PortalData }) {
+  const { clientFirstName, today, hour, coachNote, session, week, streakDays, streakHistory } = data;
+
+  const d = new Date(`${today}T12:00:00Z`);
+  const dateLabel = cap(
+    d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }),
+  );
   const total = session.exercises.length;
 
   const nextDay = week.find((w) => w.state === "upcoming");
-  const nextLabel = nextDay
-    ? new Date(d.getFullYear(), d.getMonth(), nextDay.dayNum).toLocaleDateString("sk-SK", { weekday: "long" })
-    : null;
 
   return (
     <>
@@ -109,19 +256,19 @@ export default function PortalHome() {
             <h2 className={styles.sessionTitle}>Dnes máš voľno</h2>
             <p>
               Žiadny naplánovaný tréning. Doprej telu regeneráciu — ľahká prechádzka alebo strečing
-              podľa chuti. Zajtra ťa čaká {week.find((w) => w.state === "upcoming")?.plan ?? "ďalší blok"}.
+              podľa chuti. Ďalší blok: {nextDay?.plan ?? "čoskoro"}.
             </p>
           </div>
         ) : (
           <>
             <div className={styles.sessionTop}>
-              <ProgressRing done={session.kind === "done" ? total : session.completedCount} total={total} />
+              <ProgressRing done={session.completedCount} total={total} />
               <div>
                 <h2 className={styles.sessionTitle}>{session.title}</h2>
-                <p className={styles.sessionFocus}>{session.focus}</p>
+                {session.focus && <p className={styles.sessionFocus}>{session.focus}</p>}
                 <div className={styles.sessionChips}>
                   <span className={styles.chip}>{total} cvikov</span>
-                  <span className={styles.chip}>{session.durationLabel}</span>
+                  {session.durationLabel && <span className={styles.chip}>{session.durationLabel}</span>}
                 </div>
               </div>
             </div>
@@ -133,17 +280,18 @@ export default function PortalHome() {
             )}
 
             <ol className={styles.exList}>
-              {session.exercises.map((ex) => (
-                <li key={ex.idx} className={styles.exRow}>
+              {session.exercises.map((ex, i) => (
+                <li key={`${ex.idx}-${i}`} className={styles.exRow}>
                   <span className={styles.exIdx}>{ex.idx}</span>
                   <span className={styles.exBody}>
                     <span className={styles.exName}>{ex.name}</span>
                     <span className={styles.exMeta}>
-                      {ex.scheme} · pauza {ex.rest}
-                      {ex.tempo ? ` · tempo ${ex.tempo}` : ""}
+                      {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                   </span>
-                  <span className={styles.exLoad}>{ex.load}</span>
+                  {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
                 </li>
               ))}
             </ol>
@@ -164,11 +312,13 @@ export default function PortalHome() {
           <p className={styles.panelLabel}>Séria</p>
           <div className={styles.streakHead}>
             <span className={styles.streakNum}>{streakDays}</span>
-            <span className={styles.streakUnit}>dní podľa plánu</span>
+            <span className={styles.streakUnit}>
+              {streakDays === 1 ? "deň podľa plánu" : streakDays >= 2 && streakDays <= 4 ? "dni podľa plánu" : "dní podľa plánu"}
+            </span>
           </div>
           <div className={styles.streakPlates} aria-hidden="true">
-            {streakHistory.map((hit, i) => (
-              <span key={i} className={`${styles.plate} ${hit ? styles.plateOn : ""}`} />
+            {streakHistory.map((state, i) => (
+              <span key={i} className={`${styles.plate} ${PLATE_CLASS[state] ?? ""}`} />
             ))}
           </div>
         </div>
@@ -194,9 +344,9 @@ export default function PortalHome() {
         </div>
       </section>
 
-      {nextDay && nextLabel && (
+      {nextDay && (
         <p className={styles.nextUp}>
-          Ďalší tréning · <span>{nextLabel}</span> — {nextDay.plan}
+          Ďalší tréning · <span>{FULL_WEEKDAY[nextDay.label] ?? nextDay.label}</span> — {nextDay.plan}
         </p>
       )}
     </>

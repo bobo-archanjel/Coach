@@ -311,7 +311,7 @@
   font-size: 15px;
   border: none;
   cursor: pointer;
-  background: var(--iron-red);
+  background: var(--iron-red-deep);
   color: var(--paper);
   transition:
     background 0.15s ease,
@@ -319,7 +319,7 @@
     opacity 0.15s ease;
 }
 .btnSubmit:hover:not(:disabled) {
-  background: #ef4c34;
+  background: #b82f1b;
 }
 .btnSubmit:active:not(:disabled) {
   transform: translateY(1px);

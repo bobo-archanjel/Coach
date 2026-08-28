@@ -18,7 +18,9 @@ Farby dodaného kitu sa zhodou okolností takmer presne prekryli s pôvodnou pal
 | `--ink-2` / `--ink-3` | `#1b1a18` / `#262421` | Card Ember — vrstvené panely |
 | `--paper` | `#f3efe6` | Warm Paper Text — primárny text |
 | `--paper-dim` / `--paper-faint` | `#cfc9bd` / `#8f897d` | odvodené sekundárne/terciárne |
-| `--iron-red` | `#e0402a` | Signal Coral — primárny accent, CTA |
+| `--iron-red` | `#e0402a` | Signal Coral — accent, postup, ikonografia, dôraz |
+| `--iron-red-deep` | `#c3341f` | Signal Coral pre plné tlačidlá — Warm Paper naň prejde AA (4.78:1) |
+| `--iron-red-dim` | `#a83322` | tlmený coral — okraje/podčiarknutia na landingu, portálový `missed` stav |
 | `--plate-yellow` | `#e6b23a` | Amber Dot Accent — AI kontext, highlighty |
 | `--steel` / `--steel-line` | `#7f8a95` / `#38352f` | neutrálne dáta, hairline delenia |
 | `--moss` | `#4c7a5e` | úspešný/aktívny stav (sémantické) |
@@ -27,9 +29,13 @@ Strednodobo Persuade povrchy (landing) nesú Committed rozsah farby (coral napri
 
 **Pravidlo jedného accentu.** Coral (`--iron-red`) nesie postup a primárnu akciu; Amber (`--plate-yellow`) nesie kontext trénera a "dnes"; Moss (`--moss`) nesie hotový/splnený stav. Tri role, tri farby — nemiešať (napr. coral nie je "dnes", amber nie je CTA).
 
+**Coral má dva odtiene, jednu identitu.** `--iron-red` (`#e0402a`) na plochách, kde nenesie text — accenty, prstenec postupu, ikony aktívneho stavu, headline dôraz, hairline okraje. `--iron-red-deep` (`#c3341f`) výhradne ako pozadie plných tlačidiel (`.btn-primary`, auth `.btnSubmit`, portálový `.startBtn`), aby Warm Paper label prešiel WCAG AA pre normálny text (4.78:1); hover `#b82f1b`. Nie je to druhá brand farba — je to prístupná verzia tej istej pre text-nesúce plochy.
+
 ## Type
 
 **Inter** (400–900), jediná rodina naprieč celým produktom — nadpisy Bold/ExtraBold (800), text Regular/Medium. Veľké nadpisy majú `letter-spacing: -0.025em` (na portáli pozdrav `-0.03em`), sentence case (nie uppercase). Čísla (makrá, váhy, ceny, série, dátumy) používajú `font-variant-numeric: tabular-nums` na Inter samotnom — žiadny samostatný mono font.
+
+**Výnimka — portálový pozdrav.** `.greeting` používa `clamp(1.5rem, 6vw, 1.85rem)` napriek Operate pravidlu fixných rem veľkostí: je to jediný expresívny nadpis na inak úžitkovom povrchu (osobné privítanie menom), a v 460px-capnutom stĺpci sa rozsah clampu zmestí do ~23–29px. Zámerný brand-moment, nie fluidná typografia naprieč povrchom.
 
 Malé trackované uppercase labely (napr. `.demo-top .who`, `.bubble .tag`, `.position-row .label`, portálový `.panelLabel` na `0.12em`, `.ringCenterSub`) ostávajú ako legitímny mikro-label vzor, nezávislý od headline typografie.
 
@@ -78,18 +84,22 @@ Operate, Restrained farba (rovnako ako auth). Sidebar navigácia (240px, `--ink-
 Frontend je zatiaľ na mock dátach (`lib/mock/dashboard.ts`) — reálne pridávanie klientov, tréningový builder a jedálničky nie sú postavené, preto žiadne funkčné "Pridať klienta"/"Vytvoriť plán" CTA (len `.comingSoon` odznaky pri Notifikáciách/Fakturácii v Nastaveniach). Auth guard (redirect na `/prihlasenie` bez session) a Nastavenia → Profil sú skutočné Supabase volania, zvyšok obsahu nie.
 
 ### Klientsky portál (`/portal`, `app/portal/`)
-Operate, mobile-first, Fáza A Track 2. Farba Restrained: coral len na postupe a primárnej akcii, amber na kontexte trénera / "dnes", moss na hotovom stave. Mock dáta (`lib/mock/portal.ts`), žiadny backend ani auth guard v tejto fáze. FitPilot svet a tokeny nezmenené — povrch konzumuje `app/globals.css` a **nepridáva žiadne nové tokeny**; jediný lokálny stylesheet je `portal.module.css`.
+Operate, mobile-first. Farba Restrained: coral len na postupe a primárnej akcii, amber na kontexte trénera / "dnes", moss na hotovom stave. FitPilot svet a tokeny nezmenené — povrch konzumuje `app/globals.css`; jediný lokálny stylesheet je `portal.module.css`.
+
+**Dáta a prístup:** auth guard v `app/portal/layout.tsx` — bez session → `/prihlasenie`, rola `trainer` → `/dashboard`. Obsah "Dnes" číta reálne Supabase dáta cez `lib/portal/data.ts` (migrácia `supabase/migrations/0002_workout_portal.sql`: `workout_plans` → `workout_days` → `workout_exercises`, `workout_logs`, `coach_notes`, RLS scoped na klienta). Séria aj týždenný pás sa počítajú z `workout_logs` v zóne `Europe/Bratislava`. Demo dáta: `supabase/seed/0001_portal_demo.sql`. `?preview=unlinked|no_plan|error|ok` vynúti stav bez DB (len mimo produkcie).
+
+**Prázdne / chybové stavy** (`Notice`, zdieľaný vizuál s `ComingSoon`: `--ink-3` dlaždica 52px, nadpis `1.4rem`/800, text `--paper-dim`, celoobrazovkovo centrované v shelli): *neprepojený klient* (účet existuje, tréner ho ešte nespároval), *bez plánu* (žiadny aktívny `workout_plan` alebo plán bez dní), *chyba načítania* (+ `.btn-ghost` „Skúsiť znova"). Odklikávanie cvikov Fáza B nepostavila — `completedCount` je `0` (pri stave `done` = počet cvikov).
 
 **Kompozícia "Oblúk tréningového dňa"** (seed `7c5000e8`, direction contract je HTML komentár v `app/portal/layout.tsx`). Home sa číta zhora nadol ako priebeh jednej tréningovej jednotky, nie ako mriežka status-dlaždíc dashboardu:
 
 1. **Príprava** — pozdrav menom (`clamp(1.5rem, 6vw, 1.85rem)` / 800 / `-0.03em`) + dátum + odkaz trénera v amber páse (`rgba(230,178,58,0.08)` pozadie, `rgba(230,178,58,0.24)` okraj, `--radius-m`, iniciálová dlaždica `--ink-3`/`--steel-line` s amber monogramom).
 2. **Práca** — panel dňa: `--ink-2` pozadie, `--steel-line` okraj, `--radius-m`, `padding: 18px`, `--shadow-2`. Vľavo prstenec postupu (viď Components), vpravo názov a fokus dňa + pilulkové chipy. Cviky sú **hairline-oddelené riadky vnútri panela** (`border-top: 1px solid --steel-line`, `min-height: 52px`, grid `28px / 1fr / auto` = index-pilulka / názov+meta / záťaž v amber) — zámerne NIE dlaždicová mriežka dashboardu. Na spodku panela full-width coral CTA "Začať tréning →".
-3. **Dozvuk** — dva `--ink-2` panely: séria (`--iron-red` číslo `2rem`/900 + plate strip: segmenty `--steel-line`, splnené `--iron-red`) a týždenný pás (7-stĺpcová mriežka; dnešná bunka amber okraj + wash; bodky: done = coral, today = väčšia amber, upcoming = steel obrys, rest = krátka steel čiarka). `.panelLabel` = trackovaný uppercase mikro-label (`0.12em`).
+3. **Dozvuk** — dva `--ink-2` panely: séria (`--iron-red` číslo `2rem`/900 + plate strip za posledných 12 dní: odcvičené = `--iron-red`, voľno podľa plánu = `--steel` `opacity: 0.4`, vynechané = `--iron-red-dim` `opacity: 0.6` — pás nesie informáciu, nie jednoliaty coral) a týždenný pás (7-stĺpcová mriežka; dnešná bunka amber okraj + wash; bodky: done = coral, today = väčšia amber, upcoming = steel obrys, missed = dutý `--iron-red-dim` obrys `opacity: 0.9` — tichý, nie výčitka, rest = krátka steel čiarka). `.panelLabel` = trackovaný uppercase mikro-label (`0.12em`).
 4. **Tichý close** — riadok "Ďalší tréning · [deň] — [plán]" v `--paper-faint`.
 
 **Tri stavy session:** `training` (prstenec + zoznam + CTA), `rest` (tichý panel bez prstenca a CTA), `done` (prstenec plný, moss "Tréning hotový" značka, bez CTA).
 
-**Primárne CTA `.startBtn`** rozširuje globálne `.btn.btn-primary` — full-width, centrované, `padding-block: 16px`, **zväčšené na 19px / 800**, aby kontrast Warm Paper na Signal Coral prešiel ako AA large-text (≥3:1). Coral zostáva token-identický s `.btn-primary`; šípka `→` SVG (18px) vpravo podľa arrow-CTA vzoru.
+**Primárne CTA `.startBtn`** rozširuje globálne `.btn.btn-primary` (pozadie `--iron-red-deep`, kontrast AA 4.78:1) — full-width, centrované, `padding-block: 16px`, `19px / 800`: zámerne veľký, palcovo dosiahnuteľný cieľ hlavnej mobilnej akcie, nie kontrastná barlička. Šípka `→` SVG (18px) vpravo podľa arrow-CTA vzoru.
 
 **Ostatné taby** (Tréning / Strava / Chat / Profil) sú zdieľaná `ComingSoon` obrazovka — centrovaná `--ink-3` dlaždica ikony (52px, `--radius-m`), nadpis `1.4rem`/800, amber pilulka "Pripravujeme". Stavajú ich fázy B/C/D.
 
@@ -98,9 +108,9 @@ Operate, mobile-first, Fáza A Track 2. Farba Restrained: coral len na postupe a
 ## Open decisions
 
 - Logo je vlastná SVG rekonštrukcia z referenčných obrázkov, nie originálny export — nahradiť pri finálnom nasadení.
-- **Kontrast `.btn-primary` (Warm Paper na Signal Coral) pri globálnych 15px má ~3.75:1 — pod AA pre normálny text.** Portál to lokálne obchádza zväčšením `.startBtn` na 19px/800 (kvalifikuje ako large-text, ≥3:1). Token-pár coral/paper na malých tlačidlách landing/auth/dashboardu potrebuje samostatný prechod (stmaviť coral, alebo zväčšiť/prefarbiť label) — nie je vyriešené, nie je kanonizované ako prijateľné.
-- Dashboard trénera má teraz plnú navigačnú štruktúru na mock dátach (vyššie) — reálne pridávanie klientov (backend + UI), tréningový builder a zostavovanie jedálničkov v ňom ešte chýbajú.
-- Klientsky portál: Fáza A (`/portal` "Dnes") je postavená na mock dátach (viď Surfaces vyššie), FitPilot systém zachovaný. Chýba backend (workout_logs, client_onboarding), auth guard, odklikávanie cvikov (`completedCount` je natvrdo 0) a taby Tréning/Strava/Chat/Profil (fázy B/C/D).
+- ~~Kontrast `.btn-primary`~~ **Vyriešené 2026-08-28:** plné tlačidlá dostali pozadie `--iron-red-deep` (`#c3341f`, 4.78:1 s Warm Paper), hover `#b82f1b`. Platí pre `.btn-primary` (landing), auth `.btnSubmit`, portálový `.startBtn`. `--iron-red` zostáva pre accenty a postup.
+- Dashboard trénera má teraz plnú navigačnú štruktúru na mock dátach (vyššie) — reálne pridávanie klientov (backend + UI), tréningový builder a zostavovanie jedálničkov v ňom ešte chýbajú. Portálová schéma `workout_plans/days/exercises/logs` (migrácia 0002) je pripravená; trénerský builder do nej ešte nezapisuje.
+- Klientsky portál: „Dnes" číta reálne Supabase dáta (viď Surfaces). Chýba odklikávanie cvikov (`completedCount` je 0 mimo stavu `done`), spárovanie klienta cez pozývací kód (klient sa vie zaregistrovať, ale prepojenie `clients.user_id` zatiaľ robí len seed / manuálne) a taby Tréning/Strava/Chat/Profil (fázy B/C/D).
 - Ceny v cenníku sú orientačné (z brief-u), nie finálne potvrdené.
 - Onboarding flow pre klienta cez pozývací kód (`fitcoach-auth.html`) je len navrhnutý predpoklad — potrebuje potvrdenie.
 - Zabudnuté heslo a e-mailová verifikácia nemajú vlastnú obrazovku — len odkaz z prihlásenia.

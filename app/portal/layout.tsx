@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { PortalNav } from "./PortalNav";
 import styles from "./portal.module.css";
 
@@ -27,7 +29,37 @@ SIGNATURE: prstenec postupu sa pri načítaní poskladá — obkreslí sa ghost 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict,
   DESIGN.md, and every shipping raster carrying its provenance`;
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Auth guard + mobilný shell pre celý /portal. Portál je klientsky povrch:
+ * bez session → /prihlasenie, tréner → /dashboard. Prázdne stavy (neprepojený
+ * klient, chýbajúci plán) rieši samotná obrazovka cez lib/portal/data.ts.
+ *
+ * DEV výnimka: keď beží `next dev` a nie je session (napr. lokálne bez platných
+ * Supabase kľúčov), guard neredirectuje — nech sa dá pozerať povrch cez
+ * `/portal?preview=ok|unlinked|no_plan|error`. V produkcii je guard nepodmienený.
+ */
+const DEV_OPEN = process.env.NODE_ENV !== "production";
+
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    if (!DEV_OPEN) redirect("/prihlasenie");
+  } else {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.role === "trainer") {
+      redirect("/dashboard");
+    }
+  }
+
   return (
     <div className={styles.viewport}>
       <div className={styles.column}>

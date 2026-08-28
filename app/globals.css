@@ -11,6 +11,9 @@
   --paper-faint: #8f897d;
   --iron-red: #e0402a;
   --iron-red-dim: #a83322;
+  /* Coral pre plochy nesúce text (plné tlačidlá) — Warm Paper naň prejde AA (4.78:1).
+     Brandový --iron-red zostáva pre accenty, postup, ikonografiu. Viď DESIGN.md → Color. */
+  --iron-red-deep: #c3341f;
   --plate-yellow: #e6b23a;
   --steel: #7f8a95;
   --steel-line: #38352f;
@@ -166,12 +169,12 @@ p {
   transform: translateY(1px);
 }
 .btn-primary {
-  background: var(--iron-red);
+  background: var(--iron-red-deep);
   color: var(--paper);
   box-shadow: var(--shadow-1);
 }
 .btn-primary:hover {
-  background: #ef4c34;
+  background: #b82f1b;
   box-shadow: var(--shadow-2);
 }
 .btn-ghost {

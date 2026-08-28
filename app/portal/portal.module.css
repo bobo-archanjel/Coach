@@ -276,8 +276,8 @@
   justify-content: center;
   margin-top: 18px;
   padding-block: 16px;
-  /* hlavná akcia obrazovky — väčší label kvalifikuje kontrast Warm Paper / Signal Coral
-     ako "large text" (AA 3:1); coral zostáva jednotný s .btn-primary v celom produkte */
+  /* hlavná akcia mobilnej obrazovky — zámerne väčší, palcovo dosiahnuteľný cieľ.
+     Kontrast rieši --iron-red-deep pozadie zdedené z .btn-primary (AA 4.78:1). */
   font-size: 19px;
   font-weight: 800;
 }
@@ -361,6 +361,14 @@
 .plateOn {
   background: var(--iron-red);
 }
+.plateRest {
+  background: var(--steel);
+  opacity: 0.4;
+}
+.plateMissed {
+  background: var(--iron-red-dim);
+  opacity: 0.6;
+}
 
 .week {
   display: grid;
@@ -411,6 +419,11 @@
 }
 .markUpcoming {
   border: 1.5px solid var(--steel);
+}
+.markMissed {
+  background: transparent;
+  border: 1.5px solid var(--iron-red-dim);
+  opacity: 0.9;
 }
 .markRest {
   width: 8px;
@@ -482,6 +495,47 @@
 .navIcon {
   width: 22px;
   height: 22px;
+}
+
+/* ---------- prázdne stavy "Dnes" (neprepojený klient / bez plánu / chyba) ---------- */
+/* Zdieľa geometriu s .soon (coming-soon obrazovky) — rovnaké optické centrovanie v shelli. */
+.notice {
+  min-height: calc(100dvh - 84px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 40px 24px;
+}
+.noticeTile {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-m);
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  display: grid;
+  place-items: center;
+  color: var(--paper-dim);
+}
+.noticeTile svg {
+  width: 26px;
+  height: 26px;
+}
+.notice h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.notice p {
+  font-size: 13.5px;
+  color: var(--paper-dim);
+  line-height: 1.55;
+  max-width: 32ch;
+}
+.notice :global(.btn) {
+  margin-top: 4px;
 }
 
 /* ---------- coming-soon (Tréning / Strava / Chat / Profil) ---------- */
