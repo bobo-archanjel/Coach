@@ -6,6 +6,16 @@ import styles from "./builder.module.css";
 
 const initialState: ActionState = { error: null };
 
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: "Pondelok" },
+  { value: 2, label: "Utorok" },
+  { value: 3, label: "Streda" },
+  { value: 4, label: "Štvrtok" },
+  { value: 5, label: "Piatok" },
+  { value: 6, label: "Sobota" },
+  { value: 7, label: "Nedeľa" },
+];
+
 export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDayNumber: number }) {
   const [adding, setAdding] = useState(false);
   const [state, formAction, pending] = useActionState(addDayAction, initialState);
@@ -39,6 +49,14 @@ export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDa
         disabled={pending}
         className={styles.addDayInput}
       />
+      <select name="weekday" disabled={pending} className={styles.addDayInput} defaultValue="" aria-label="Deň v týždni">
+        <option value="">Bez pevného dňa</option>
+        {WEEKDAY_OPTIONS.map((w) => (
+          <option key={w.value} value={w.value}>
+            {w.label}
+          </option>
+        ))}
+      </select>
       <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
         {pending ? "…" : "Pridať"}
       </button>

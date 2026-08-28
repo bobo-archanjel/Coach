@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
 import { AddDayInline } from "./AddDayInline";
+import { DayWeekdaySelect } from "./DayWeekdaySelect";
 import type { WorkoutExerciseEntry } from "../actions";
 import styles from "./builder.module.css";
 
@@ -11,6 +12,7 @@ interface Day {
   id: string;
   day_number: number;
   name: string;
+  weekday: number | null;
   exercises: WorkoutExerciseEntry[];
 }
 
@@ -59,6 +61,7 @@ export function PlanBuilder({
         </div>
 
         <div className={styles.dayPanel}>
+          {activeDay && <DayWeekdaySelect dayId={activeDay.id} planId={planId} weekday={activeDay.weekday} />}
           {activeDay ? (
             activeDay.exercises.length > 0 ? (
               activeDay.exercises.map((entry) => (

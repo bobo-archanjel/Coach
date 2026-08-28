@@ -52,6 +52,8 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
   const planId = formData.get("plan_id") as string | null;
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const dayNumber = Number(formData.get("day_number"));
+  const weekdayRaw = formData.get("weekday") as string | null;
+  const weekday = weekdayRaw ? Number(weekdayRaw) : null;
 
   if (!planId) return { error: "Chýba ID plánu." };
   if (!name) return { error: "Zadaj názov dňa." };
@@ -60,8 +62,33 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
     plan_id: planId,
     day_number: Number.isFinite(dayNumber) ? dayNumber : 1,
     name,
+    // weekday = ktorý deň v týždni sa cvičí (1 pondelok … 7 nedeľa) — klientský
+    // portál (/portal "Dnes") ním určuje, čo je dnešný tréning. Bez neho portál
+    // vždy ukáže "voľno", aj keď má plán reálne dni.
+    weekday: weekday && weekday >= 1 && weekday <= 7 ? weekday : null,
     exercises: [],
   });
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+/** Zmena dňa v týždni pre existujúci deň plánu (klient ho v portáli uvidí ako "dnes" v ten deň). */
+export async function setDayWeekdayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const dayId = formData.get("day_id") as string | null;
+  const planId = formData.get("plan_id") as string | null;
+  const weekdayRaw = formData.get("weekday") as string | null;
+  const weekday = weekdayRaw ? Number(weekdayRaw) : null;
+
+  if (!dayId || !planId) return { error: "Chýba identifikátor dňa." };
+
+  const { error } = await supabase
+    .from("workout_days")
+    .update({ weekday: weekday && weekday >= 1 && weekday <= 7 ? weekday : null })
+    .eq("id", dayId);
 
   if (error) return { error: error.message };
 
