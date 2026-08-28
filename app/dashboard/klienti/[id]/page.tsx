@@ -23,7 +23,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     notFound();
   }
 
-  const [{ data: plans }, { data: nutrition }] = await Promise.all([
+  const [{ data: plans }, { data: nutrition }, { data: logs }] = await Promise.all([
     supabase
       .from("workout_plans")
       .select("id, name, created_at, workout_days(count)")
@@ -34,6 +34,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       .select("calories_target, protein_g, carbs_g, fat_g")
       .eq("client_id", id)
       .maybeSingle(),
+    supabase
+      .from("workout_logs")
+      .select("id, performed_on, workout_days(name)")
+      .eq("client_id", id)
+      .order("performed_on", { ascending: false })
+      .limit(8),
   ]);
 
   const memberSince = new Date(client.created_at).toLocaleDateString("sk-SK", {
@@ -122,6 +128,31 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <p className={styles.noWorkouts}>
                 Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${id}`}>vypočítať teraz</Link>.
               </p>
+            )}
+          </div>
+
+          <div className={styles.card}>
+            <h3>Posledná aktivita</h3>
+            {logs && logs.length > 0 ? (
+              <div className={styles.roster}>
+                {logs.map((log) => {
+                  const dayName = (log.workout_days as unknown as { name: string } | null)?.name ?? "Tréning";
+                  const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "numeric",
+                    timeZone: "UTC",
+                  });
+                  return (
+                    <div key={log.id} className={styles.clientCard}>
+                      <div className={styles.clientName}>{dayName}</div>
+                      <span className={styles.clientSince}>{performedOn}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
             )}
           </div>
         </div>

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getPortalData } from "@/lib/portal/data";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { ProfileIcon, TrainingIcon } from "./icons";
+import { LogWorkoutButton } from "./LogWorkoutButton";
 import { AlertIcon, Notice } from "./Notice";
 import { RetryButton } from "./RetryButton";
 import styles from "./portal.module.css";
@@ -32,12 +32,6 @@ const FULL_WEEKDAY: Record<string, string> = {
   So: "sobota",
   Ne: "nedeľa",
 };
-
-const ArrowIcon = () => (
-  <svg className={styles.startArrow} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
@@ -99,6 +93,7 @@ const PREVIEW_DATA: PortalData = {
     focus: "Silový 3× týždenne",
     durationLabel: "",
     completedCount: 0,
+    dayId: "preview-day-c",
     exercises: [
       { idx: "1", name: "Drep s veľkou činkou", scheme: "4 × 6", load: "90 kg", rest: "150 s", tempo: "3-0-1" },
       { idx: "2", name: "Rumunský mŕtvy ťah", scheme: "3 × 8", load: "100 kg", rest: "2 min" },
@@ -263,12 +258,7 @@ function PortalToday({ data }: { data: PortalData }) {
               ))}
             </ol>
 
-            {session.kind === "training" && (
-              <Link href="/portal/trening" className={`btn btn-primary ${styles.startBtn}`}>
-                Začať tréning
-                <ArrowIcon />
-              </Link>
-            )}
+            {session.kind === "training" && session.dayId && <LogWorkoutButton dayId={session.dayId} />}
           </>
         )}
       </section>

@@ -43,6 +43,8 @@ export interface TodaySession {
   exercises: PortalExercise[];
   /** koľko cvikov je odškrtnutých (0 kým Fáza B nepostaví odklikávanie) */
   completedCount: number;
+  /** id dnešného workout_day (na zápis workout_logs pri "Ukončiť tréning"), null pri rest dni */
+  dayId: string | null;
 }
 
 export interface PortalData {

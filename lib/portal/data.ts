@@ -208,6 +208,7 @@ export async function getPortalData(): Promise<PortalResult> {
         durationLabel: "",
         exercises: [],
         completedCount: 0,
+        dayId: null,
       };
     } else {
       const exList = parseEntries(todayDay.exercises).map((e, i) => toPortalExercise(e, i));
@@ -219,6 +220,7 @@ export async function getPortalData(): Promise<PortalResult> {
         durationLabel: "",
         exercises: exList,
         completedCount: loggedToday ? exList.length : 0,
+        dayId: todayDay.id,
       };
     }
 
