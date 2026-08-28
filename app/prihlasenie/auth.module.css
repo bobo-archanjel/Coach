@@ -157,11 +157,12 @@
     background 0.15s ease,
     color 0.15s ease;
 }
-.tabBtn[aria-selected="true"] {
+.tabBtn[aria-selected="true"],
+.tabBtn[aria-pressed="true"] {
   background: var(--ink-4);
   color: var(--paper);
 }
-.tabBtn:hover:not([aria-selected="true"]) {
+.tabBtn:hover:not([aria-selected="true"]):not([aria-pressed="true"]) {
   color: var(--paper-dim);
 }
 
@@ -363,59 +364,6 @@
   background: rgba(239, 106, 82, 0.12);
   border-color: var(--error);
   color: var(--error);
-}
-
-.dividerRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 26px 0;
-  color: var(--paper-faint);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.dividerRow::before,
-.dividerRow::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--steel-line);
-}
-
-.inviteToggle {
-  background: transparent;
-  border: 1px dashed var(--steel-line);
-  color: var(--paper-dim);
-  font-size: 13.5px;
-  font-weight: 600;
-  padding: 12px 14px;
-  border-radius: var(--radius-s);
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.inviteToggle:hover {
-  border-color: var(--paper-faint);
-  color: var(--paper);
-}
-.chevronOpen {
-  transform: rotate(180deg);
-}
-.invitePanel {
-  margin-top: 14px;
-  padding: 16px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-}
-.invitePanel p {
-  font-size: 13px;
-  color: var(--paper-faint);
-  margin-bottom: 12px;
 }
 
 .switchLine {

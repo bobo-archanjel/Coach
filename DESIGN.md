@@ -76,6 +76,8 @@ Persuade. Plný Committed farebný rozsah. Pozri `.demo`, `.feature-row`, `.trus
 ### Prihlásenie / Registrácia (`fitcoach-auth.html`)
 Operate. Farba Restrained — coral len na primárnej akcii, focus stavoch a odkazoch. Prepojená obojsmerne s landing page (nav "Prihlásiť sa"/"Vyskúšať zadarmo" → auth stránka; cenníkové CTA a finálne CTA → `#register` deep-link na auth stránke; logo na auth stránke → späť na landing).
 
+Záložka Registrácia má **explicitný segmentovaný prepínač** hneď na začiatku — "Som tréner" / "Som klient — mám kód" (`.tabs`/`.tabBtn`, rovnaký vizuál ako vonkajšie záložky Prihlásiť sa/Registrácia, `aria-pressed` namiesto `aria-selected` keďže nejde o skutočný tablist). Voľba mení nadpis/podtext, pridáva pole pozývacieho kódu ako prvé povinné pole a mení text tlačidla. Predtým bol kód skrytý za voliteľný toggle dole pod formulárom — klient bez znalosti tohto UI prvku sa nevedomky zaregistroval ako tréner (opravené 2026-08-28).
+
 ## Surfaces (pokračovanie)
 
 ### Dashboard trénera (`/dashboard`, `app/dashboard/`)
