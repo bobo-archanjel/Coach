@@ -20,7 +20,7 @@ PRODUCT.md              — durable produktová pravda (users, positioning, capa
 DESIGN.md               — vizuálny systém (farby, typografia, komponenty, otvorené rozhodnutia)
 ```
 
-`PRODUCT.md` a `DESIGN.md` sú živé dokumenty — aktualizujú sa pri každej väčšej produktovej alebo dizajnovej zmene, nie len pri pushi.
+`PRODUCT.md` a `DESIGN.md` sú živé dokumenty — aktualizujú sa pri každej väčšej produktovej alebo dizajnovej zmene, nie len pri pushi. `ROADMAP.md` rovnako — rozdeľuje zvyšnú prácu medzi Track "Tréner" a Track "Klient".
 
 **Next.js app** (rozhodnuté 2026-08-27) žije priamo v koreni repozitára. Statické mockupy pôvodne v `design/` (landing + auth) boli 27. 8. 2026 plne nahradené reálnym Next.js kódom podľa dohodnutého pravidla a zložka bola zmazaná — `docs/Design/` (obrázky brand kitu) tým nie je dotknuté.
 
@@ -52,6 +52,8 @@ FitPilot — Signal Coral `#E0402A`, Amber Dot Accent `#E6B23A`, Almost Black `#
 ## Novinky
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
+
+- **2026-08-28** — `feature/client-side` (obsahuje aj celý `feature/trener`) zlúčená do `dev` čistým fast-forwardom — obe vetvy tejto session (tréner aj klient track) sú teraz súčasťou `dev`. Pridaný `ROADMAP.md`: rozdeľuje zvyšnú prácu na Track "Tréner" (Fáza B tréningu, notifikácie, logo) a Track "Klient" (food diary, obojsmerný chat, progres tracking), AI funkcie (chat, generátor plánov) vedome odložené na koniec. Obsahuje aj tabuľku číslovania migrácií (ďalšie voľné číslo `0007`) a zoznam zdieľaných/prierezových položiek (main branch cleanup, zabudnuté heslo, self-hosted presun, platby).
 
 - **2026-08-28** — Portál prešiel na rotačný model dní namiesto pevného rozvrhu (`feature/client-side`): predošlá oprava dňa v týždni (`workout_days.weekday`) predpokladala, že tréner klientovi napevno pripne dni na konkrétne dni v týždni — po spätnej väzbe, že klient si má vyberať kedy cvičí, je to nahradené rotáciou (`lib/portal/data.ts`): "ďalší tréning" = nasledujúci nedokončený deň v poradí plánu, nezávisle od kalendára. Zrušené: `DayWeekdaySelect` v builderi (deň v týždni sa už nikde nenastavuje, `weekday` stĺpec ostáva v DB nepoužívaný), stav `"rest"` na karte Dnes, "séria podľa rozvrhu" (nahradená jednoduchým súčtom "Odcvičené spolu"), týždenný pás už ukazuje len skutočnú aktivitu (nie plánované/vynechané dni).
 
