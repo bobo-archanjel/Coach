@@ -62,10 +62,13 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className={styles.viewport}>
+      {/* Sibling ku .column (nie vnorená) — nad 880px sa stáva ľavým sidebarom
+          v CSS grid .viewport, presne ako app/dashboard/layout.tsx. Pod 880px
+          ostáva position:fixed bottom nav, DOM poradie tam nehrá rolu. */}
+      <PortalNav />
       <div className={styles.column}>
         <div hidden aria-hidden="true" dangerouslySetInnerHTML={{ __html: `<!--\n${DIRECTION_CONTRACT}\n-->` }} />
         <main className={styles.main}>{children}</main>
-        <PortalNav />
       </div>
     </div>
   );
