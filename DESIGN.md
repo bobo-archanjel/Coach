@@ -48,6 +48,7 @@ Portál (`/portal`) má **responzívny shell rovnakým vzorom ako dashboard tré
 ## Components
 
 - **Logo mark** (`.logo-mark`) — vlastná SVG rekonštrukcia dodaného loga (dva pruhy + dart trojuholník, gradient coral→amber). Nie je pixel-presná kópia originálnych brand kit súborov — nahradiť skutočným exportom pri produkčnom nasadení.
+- **Favicon** (2026-08-28) — `docs/Design/favicon.png` (reálny brand kit export, 1254×1254 RGBA) preškálovaný na 256×256 do `app/icon.png`; Next.js App Router ho automaticky deteguje a vygeneruje `<link rel="icon">` bez zásahu do `layout.tsx`. `LogoMark.tsx` (SVG rekonštrukcia v UI) ostáva zatiaľ nezmenený — to je samostatná položka v `ROADMAP.md`.
 - **Icon tiles** (`.icon-tile`) — ikony funkcií teraz sedia v tmavej zaoblenej dlaždici (44×46px, `--ink-3` pozadie, `--steel-line` okraj), podľa ikonového jazyka z brand kitu.
 - **Kreslený ikonový set** (`app/portal/icons.tsx`) — vlastné SVG, viewBox 24, jednotný stroke 1.7 pre líniové ikony, `currentColor` (coral v aktívnom stave). Žiadny icon font, žiadna externá knižnica; rozšíriteľný pattern pre ďalšie mobilné povrchy.
 - Zaoblenie zjemnené podľa kitu: `--radius-s: 9px`, `--radius-m: 12px` (predtým 3px/6px, industriálne ostré). Malé kruhové/pilulkové prvky (chipy, streak segmenty, plate strip) používajú `border-radius: 999px`.
