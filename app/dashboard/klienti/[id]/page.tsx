@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -36,7 +37,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       .maybeSingle(),
     supabase
       .from("workout_logs")
-      .select("id, performed_on, workout_days(name)")
+      .select("id, performed_on, entries, workout_days(name)")
       .eq("client_id", id)
       .order("performed_on", { ascending: false })
       .limit(8),
@@ -143,11 +144,33 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     month: "numeric",
                     timeZone: "UTC",
                   });
+                  const entries = Array.isArray(log.entries) ? (log.entries as LoggedExercise[]) : [];
                   return (
-                    <div key={log.id} className={styles.clientCard}>
-                      <div className={styles.clientName}>{dayName}</div>
-                      <span className={styles.clientSince}>{performedOn}</span>
-                    </div>
+                    <details key={log.id} className={styles.logDetails}>
+                      <summary className={styles.logSummary}>
+                        <span className={styles.clientName}>{dayName}</span>
+                        <span className={styles.clientSince}>{performedOn}</span>
+                      </summary>
+                      {entries.length > 0 ? (
+                        <div className={styles.logExercises}>
+                          {entries.map((ex, i) => (
+                            <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.logExerciseRow}>
+                              <p className={styles.logExerciseTitle}>{ex.name}</p>
+                              <ol className={styles.logSetList}>
+                                {ex.sets.map((s, j) => (
+                                  <li key={j}>
+                                    {s.reps != null ? `${s.reps} op.` : "—"}
+                                    {s.weight != null ? ` × ${s.weight} kg` : ""}
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className={styles.noWorkouts}>Klient nezadal skutočné hodnoty (len odklikol tréning).</p>
+                      )}
+                    </details>
                   );
                 })}
               </div>

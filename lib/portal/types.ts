@@ -29,6 +29,25 @@ export interface PortalExercise {
   rest: string;
   /** tempo, voliteľné */
   tempo?: string;
+  /** entry_id z workout_days.exercises — kľúč pre zápis skutočných hodnôt do workout_logs.entries (Fáza B) */
+  entryId: string | null;
+  /** plánovaný počet sérií z buildera — koľko riadkov sa predvyplní vo formulári "Ukončiť tréning" */
+  plannedSets: number;
+  /** plánované opakovania ako placeholder v riadku série, napr. "6" alebo "8-10" */
+  plannedReps: string | null;
+}
+
+/** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B). */
+export interface LoggedSet {
+  reps: number | null;
+  weight: number | null;
+}
+
+/** Skutočné hodnoty jedného cviku v rámci workout_logs.entries (Fáza B). */
+export interface LoggedExercise {
+  entryId: string | null;
+  name: string;
+  sets: LoggedSet[];
 }
 
 export interface CoachNote {
