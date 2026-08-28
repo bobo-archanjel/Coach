@@ -134,16 +134,19 @@ export function AddFoodDiaryEntry({
         <>
           <div className={styles.gramRow}>
             <span className={styles.gramPicked}>{picked.name}</span>
-            <input
-              className={styles.gramInput}
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={5000}
-              value={grams}
-              onChange={(e) => setGrams(e.target.value)}
-              aria-label="Gramáž"
-            />
+            <label className={styles.gramField}>
+              <input
+                className={styles.gramInput}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={5000}
+                value={grams}
+                onChange={(e) => setGrams(e.target.value)}
+                aria-label="Gramáž v gramoch"
+              />
+              <span className={styles.gramUnit}>g</span>
+            </label>
             <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={submitPicked}>
               {pending ? "…" : "Pridať"}
             </button>

@@ -975,7 +975,7 @@
 }
 .gramRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 84px auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
 }
@@ -986,9 +986,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.gramField {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.gramUnit {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper-faint);
+}
 .gramInput {
-  width: 100%;
-  padding: 9px 10px;
+  width: 58px;
+  padding: 9px 8px;
   font-size: 16px;
   text-align: right;
   background: var(--ink-2);
@@ -996,6 +1006,13 @@
   border-radius: var(--radius-s);
   color: var(--paper);
   font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.gramInput::-webkit-outer-spin-button,
+.gramInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .gramInput:focus-visible {
   outline: 2px solid var(--plate-yellow);
