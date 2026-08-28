@@ -1,52 +1,80 @@
 import Link from "next/link";
-import { mockClients } from "@/lib/mock/dashboard";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { CreatePlanForm } from "./CreatePlanForm";
+import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
 import styles from "../dashboard.module.css";
 
-export default function TreningyPage() {
-  const withWorkouts = mockClients.filter((c) => c.recentWorkouts.length > 0);
+export default async function TreningyPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
+  // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
+  if (!user) {
+    redirect("/prihlasenie");
+  }
+
+  const [{ data: clients }, { data: exercises }, { data: plans }] = await Promise.all([
+    supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
+    supabase.from("exercises").select("id, name, muscle_group").order("name"),
+    supabase
+      .from("workout_plans")
+      .select("id, name, created_at, clients(full_name), workout_days(count)")
+      .eq("trainer_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   return (
     <>
       <div className={styles.pageHead}>
         <h1>Tréningy</h1>
-        <p>Posledné odcvičené tréningy naprieč klientmi. Tréningový builder (zostavovanie plánov) je ďalšia úloha.</p>
+        <p>Zostav plán klientovi — knižnica cvikov, dni, série a opakovania.</p>
       </div>
 
-      <div className={styles.clientSectionGrid}>
-        {withWorkouts.map((client) => (
-          <div key={client.id} className={styles.clientSection}>
-            <div className={styles.clientSectionHead}>
-              <div>
-                <span className={styles.clientName}>{client.name}</span>
-                <span className={styles.clientGoal} style={{ marginLeft: 8 }}>
-                  {client.goal}
-                </span>
-              </div>
-              <Link href={`/dashboard/klienti/${client.id}`}>Detail klienta →</Link>
-            </div>
+      <div className={styles.card} style={{ marginBottom: 20 }}>
+        <h3>Nový plán</h3>
+        <CreatePlanForm clients={clients ?? []} />
+      </div>
 
-            <div className={styles.workoutList}>
-              {client.recentWorkouts.slice(0, 1).map((workout) => (
-                <div key={workout.day + workout.date} className={styles.workoutBlock}>
-                  <div className={styles.workoutDay}>
-                    <span>{workout.day}</span>
-                    <span className={styles.workoutDate}>
-                      {new Date(workout.date).toLocaleDateString("sk-SK")}
-                    </span>
-                  </div>
-                  {workout.exercises.map((ex) => (
-                    <div key={ex.idx} className={styles.exerciseRow}>
-                      <span className={styles.exIdx}>{ex.idx}</span>
-                      <span className={styles.exName}>{ex.name}</span>
-                      <span className={styles.exLoad}>{ex.load}</span>
-                      <span className={styles.exRest}>{ex.rest}</span>
-                    </div>
-                  ))}
+      {plans && plans.length > 0 ? (
+        <div className={styles.roster} style={{ marginBottom: 28 }}>
+          {plans.map((plan) => {
+            const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
+            const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+            return (
+              <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
+                <div>
+                  <div className={styles.clientName}>{plan.name}</div>
+                  <div className={styles.clientGoal}>{clientName}</div>
                 </div>
-              ))}
-            </div>
+                <span className={styles.clientSince}>{dayCount} dní</span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <div className={styles.emptyState} style={{ marginBottom: 28 }}>
+          <h2>Zatiaľ žiadne plány</h2>
+          <p>Vytvor prvý plán vyššie.</p>
+        </div>
+      )}
+
+      <div className={styles.card}>
+        <h3>Knižnica cvikov ({exercises?.length ?? 0})</h3>
+        <AddCustomExerciseForm />
+        {exercises && exercises.length > 0 && (
+          <div className={styles.tagList} style={{ marginTop: 14 }}>
+            {exercises.map((ex) => (
+              <span key={ex.id}>
+                {ex.name}
+                {ex.muscle_group ? ` · ${ex.muscle_group}` : ""}
+              </span>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </>
   );

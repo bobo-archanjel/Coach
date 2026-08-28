@@ -25,7 +25,7 @@ Prvý skutočne AI-native, natívne slovenský/český nástroj pre fitness tré
 
 ## Operating Context
 
-- Tréner pracuje na desktope (admin panel) — vytvára a upravuje plány, kontroluje viacero klientov naraz.
+- **Aktualizované 2026-08-28** (upresnenie od používateľa): appka smeruje primárne na telefón pre obe role, nielen klienta. Tréner síce môže plánovať aj pri počítači, ale bežne kontroluje klientov, upravuje plán alebo makrá priebežne z telefónu — desktop nie je predpokladaný primárny kontext, len jeden z podporovaných.
 - Klient používa appku prevažne na mobile, často priamo v posilňovni pri cvičení — nízke trenie, rýchle odklikávanie je kritické.
 - AI volania idú výhradne cez server-side endpoint, nikdy priamo z frontendu.
 - Tréner má vždy finálne slovo nad AI návrhom — appka nikdy neposiela AI výstup klientovi bez schválenia trénerom.
@@ -58,7 +58,7 @@ Používateľ dodal obrázky brand kitu (logo varianty, app icon, web bannery, f
 ## Product Principles
 
 1. Tréner je vždy v kontrole — AI navrhuje, tréner schvaľuje; appka nikdy neobchádza jeho rozhodnutie.
-2. Klientský zážitok musí byť mobile-first a nízkotrenový — odcvičenie tréningu a logovanie stravy sa deje v reálnom čase v posilňovni.
+2. Celá appka je mobile-first, nielen klientská časť — trénerský dashboard sa navrhuje primárne pre telefón (desktop je bonus, nie predpoklad). Klientský zážitok navyše musí byť nízkotrenový — odcvičenie tréningu a logovanie stravy sa deje v reálnom čase v posilňovni.
 3. Nutrícia je rovnocenná tréningu, nie príveska funkcia.
 4. Natívna slovenčina/čeština a jasná, transparentná cena sú súčasť diferenciácie, nie len technický detail.
 5. Zdravotné hranice AI sú tvrdé pravidlo — eskalácia na trénera pri bolesti/zranení, nikdy diagnostika.

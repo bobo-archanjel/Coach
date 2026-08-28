@@ -23,17 +23,32 @@
   flex-direction: column;
   gap: 28px;
 }
+/* Mobile-first appka: pod 880px sa sidebar zmenší na tenký top bar (brand + odhlásenie)
+   a hlavná navigácia (.navList nižšie) sa oddelí do fixnej bottom tab bar — palcom
+   dosiahnuteľná, podľa natívnych mobilných zvyklostí namiesto desktopového sidebaru. */
 @media (max-width: 880px) {
   .sidebar {
-    position: static;
-    height: auto;
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Výživa
+       bez profilov) dal iný výsledok než pri stránkach so scrollbarom — scrollbar
+       (Windows) uberá ~15-17px šírky, čo mierne mení, ako sa vojde "Odhlásiť sa"
+       vedľa loga, a bar tak vychádzal inak vysoký podľa stránky. Pevná výška to rieši. */
+    height: 56px;
     flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
     border-right: none;
     border-bottom: 1px solid var(--steel-line);
-    padding: 12px 16px;
-    gap: 16px;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .sidebarFoot :global(.btn) {
+    padding: 8px 14px;
+    font-size: 13px;
+    white-space: nowrap;
   }
 }
 
@@ -45,6 +60,8 @@
   font-size: 18px;
   letter-spacing: -0.02em;
   text-decoration: none;
+  white-space: nowrap;
+  flex: none;
 }
 .logoMark {
   width: 16px;
@@ -56,11 +73,20 @@
   display: grid;
   gap: 3px;
 }
+/* Fixná bottom tab bar na mobile — vytiahnutá z normálneho toku sidebaru (position: fixed),
+   takže .sidebar nad ňou zostáva len tenký top bar s brandom a odhlásením. */
 @media (max-width: 880px) {
   .navList {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
     display: flex;
-    gap: 4px;
-    overflow-x: auto;
+    gap: 0;
+    background: var(--ink-2);
+    border-top: 1px solid var(--steel-line);
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
   }
 }
 .navLink {
@@ -92,6 +118,25 @@
   height: 17px;
   flex: none;
 }
+/* Bottom tab bar položky: ikona nad labelom, min. 44px výška na dotyk (palec). */
+@media (max-width: 880px) {
+  .navLink {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px;
+    min-height: 48px;
+    font-size: 10.5px;
+    text-align: center;
+    white-space: normal;
+    border-radius: var(--radius-s);
+  }
+  .navIcon {
+    width: 20px;
+    height: 20px;
+  }
+}
 
 .sidebarFoot {
   margin-top: auto;
@@ -110,6 +155,12 @@
 }
 .content {
   padding-block: clamp(28px, 5vw, 48px);
+}
+/* Priestor pre fixnú bottom tab bar (.navList na mobile), nech posledná karta nie je pod ňou. */
+@media (max-width: 880px) {
+  .content {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .pageHead {
@@ -141,6 +192,53 @@
 .statusChip.late {
   background: rgba(224, 64, 42, 0.14);
   color: var(--iron-red);
+}
+
+/* ---------- add client form ---------- */
+.addClientForm {
+  margin-bottom: 20px;
+}
+.addClientFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.addClientInput {
+  flex: 1 1 200px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+}
+@media (max-width: 640px) {
+  .addClientFields {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .addClientInput {
+    /* 16px = iOS Safari nezoomuje pri focuse; menšie písmo v inpute to spúšťa. */
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+}
+.addClientInput::placeholder {
+  color: var(--paper-faint);
+}
+.addClientInput:focus {
+  outline: none;
+  border-color: var(--iron-red);
+  background: var(--ink-3);
+}
+.addClientInput:disabled {
+  opacity: 0.6;
+}
+.addClientError {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--error);
 }
 
 /* ---------- client roster ---------- */
@@ -405,6 +503,20 @@
 }
 .clientSectionHead a:hover {
   color: var(--paper);
+}
+
+/* ---------- tag list (knižnica cvikov) ---------- */
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tagList span {
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  color: var(--paper-dim);
 }
 
 /* ---------- nastavenia ---------- */

@@ -1,63 +1,65 @@
 import Link from "next/link";
-import { mockClients } from "@/lib/mock/dashboard";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import styles from "../dashboard.module.css";
 
-function pct(pair: [number, number]) {
-  return Math.min(100, Math.round((pair[0] / pair[1]) * 100));
+interface NutritionSummary {
+  calories_target: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
 }
 
-export default function VyzivaPage() {
+export default async function VyzivaPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
+  // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
+  if (!user) {
+    redirect("/prihlasenie");
+  }
+
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, full_name, nutrition_profiles(calories_target, protein_g, carbs_g, fat_g)")
+    .eq("trainer_id", user.id)
+    .order("full_name");
+
   return (
     <>
       <div className={styles.pageHead}>
         <h1>Výživa</h1>
-        <p>Plnenie makier za dnešný deň naprieč klientmi. Zostavovanie jedálničkov je ďalšia úloha.</p>
+        <p>BMR/TDEE výpočet a makro cieľ pre každého klienta.</p>
       </div>
 
-      <div className={styles.clientSectionGrid}>
-        {mockClients.map((client) => (
-          <div key={client.id} className={styles.clientSection}>
-            <div className={styles.clientSectionHead}>
-              <span className={styles.clientName}>{client.name}</span>
-              <Link href={`/dashboard/klienti/${client.id}`}>Detail klienta →</Link>
-            </div>
-
-            <div className={styles.macroBarRow}>
-              <div className={styles.macroTop}>
-                <span>Bielkoviny</span>
-                <span className={styles.macroVal}>
-                  {client.macros.protein[0]} / {client.macros.protein[1]} g
-                </span>
-              </div>
-              <div className={styles.macroTrack}>
-                <div className={`${styles.macroFill} ${styles.protein}`} style={{ width: `${pct(client.macros.protein)}%` }} />
-              </div>
-            </div>
-            <div className={styles.macroBarRow} style={{ marginTop: 12 }}>
-              <div className={styles.macroTop}>
-                <span>Sacharidy</span>
-                <span className={styles.macroVal}>
-                  {client.macros.carbs[0]} / {client.macros.carbs[1]} g
-                </span>
-              </div>
-              <div className={styles.macroTrack}>
-                <div className={`${styles.macroFill} ${styles.carbs}`} style={{ width: `${pct(client.macros.carbs)}%` }} />
-              </div>
-            </div>
-            <div className={styles.macroBarRow} style={{ marginTop: 12 }}>
-              <div className={styles.macroTop}>
-                <span>Tuky</span>
-                <span className={styles.macroVal}>
-                  {client.macros.fat[0]} / {client.macros.fat[1]} g
-                </span>
-              </div>
-              <div className={styles.macroTrack}>
-                <div className={`${styles.macroFill} ${styles.fat}`} style={{ width: `${pct(client.macros.fat)}%` }} />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {clients && clients.length > 0 ? (
+        <div className={styles.roster}>
+          {clients.map((client) => {
+            const profile = (client.nutrition_profiles as unknown as NutritionSummary[] | null)?.[0] ?? null;
+            return (
+              <Link key={client.id} href={`/dashboard/vyziva/${client.id}`} className={styles.clientCard}>
+                <div>
+                  <div className={styles.clientName}>{client.full_name}</div>
+                  <div className={styles.clientGoal}>
+                    {profile
+                      ? `${profile.protein_g} B · ${profile.carbs_g} S · ${profile.fat_g} T (g)`
+                      : "Makro cieľ zatiaľ nenastavený"}
+                  </div>
+                </div>
+                <span className={styles.clientSince}>{profile ? `${profile.calories_target} kcal` : "—"}</span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <div className={styles.emptyState}>
+          <h2>Zatiaľ žiadni klienti</h2>
+          <p>Pridaj klienta na stránke Klienti a potom mu tu nastav makro cieľ.</p>
+        </div>
+      )}
     </>
   );
 }

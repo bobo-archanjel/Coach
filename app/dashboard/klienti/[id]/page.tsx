@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMockClient } from "@/lib/mock/dashboard";
+import { createClient } from "@/lib/supabase/server";
 import styles from "../../dashboard.module.css";
-
-const STATUS_LABEL: Record<string, string> = {
-  active: "aktívny",
-  late: "meškanie",
-};
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -16,13 +11,32 @@ const BackIcon = () => (
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const client = getMockClient(id);
+  const supabase = await createClient();
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, full_name, goal, notes, invite_code, created_at")
+    .eq("id", id)
+    .maybeSingle();
 
   if (!client) {
     notFound();
   }
 
-  const memberSince = new Date(client.memberSince).toLocaleDateString("sk-SK", {
+  const [{ data: plans }, { data: nutrition }] = await Promise.all([
+    supabase
+      .from("workout_plans")
+      .select("id, name, created_at, workout_days(count)")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("nutrition_profiles")
+      .select("calories_target, protein_g, carbs_g, fat_g")
+      .eq("client_id", id)
+      .maybeSingle(),
+  ]);
+
+  const memberSince = new Date(client.created_at).toLocaleDateString("sk-SK", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -37,107 +51,79 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
       <div className={styles.detailHead}>
         <div>
-          <h1>{client.name}</h1>
-          <div className={styles.clientGoal}>{client.goal}</div>
+          <h1>{client.full_name}</h1>
+          {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
         </div>
-        <span className={`${styles.statusChip} ${styles[client.status]}`}>{STATUS_LABEL[client.status]}</span>
       </div>
 
       <div className={styles.detailGrid}>
-        <div className={styles.cardStack}>
-          <div className={styles.card}>
-            <h3>Informácie</h3>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Klient od</span>
-              <span className={styles.infoValue}>{memberSince}</span>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Posledný log</span>
-              <span className={styles.infoValue}>{client.lastLogLabel}</span>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Poznámky</span>
-              {client.notes ? (
-                <span className={styles.infoValue}>{client.notes}</span>
-              ) : (
-                <span className={styles.notesEmpty}>Žiadne poznámky</span>
-              )}
-            </div>
+        <div className={styles.card}>
+          <h3>Informácie</h3>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Klient od</span>
+            <span className={styles.infoValue}>{memberSince}</span>
           </div>
-
-          <div className={styles.card}>
-            <h3>Makrá dnes</h3>
-            <div className={styles.macroBarRow}>
-              <div className={styles.macroTop}>
-                <span>Bielkoviny</span>
-                <span className={styles.macroVal}>
-                  {client.macros.protein[0]} / {client.macros.protein[1]} g
-                </span>
-              </div>
-              <div className={styles.macroTrack}>
-                <div
-                  className={`${styles.macroFill} ${styles.protein}`}
-                  style={{ width: `${Math.min(100, (client.macros.protein[0] / client.macros.protein[1]) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <div className={styles.macroBarRow} style={{ marginTop: 14 }}>
-              <div className={styles.macroTop}>
-                <span>Sacharidy</span>
-                <span className={styles.macroVal}>
-                  {client.macros.carbs[0]} / {client.macros.carbs[1]} g
-                </span>
-              </div>
-              <div className={styles.macroTrack}>
-                <div
-                  className={`${styles.macroFill} ${styles.carbs}`}
-                  style={{ width: `${Math.min(100, (client.macros.carbs[0] / client.macros.carbs[1]) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <div className={styles.macroBarRow} style={{ marginTop: 14 }}>
-              <div className={styles.macroTop}>
-                <span>Tuky</span>
-                <span className={styles.macroVal}>
-                  {client.macros.fat[0]} / {client.macros.fat[1]} g
-                </span>
-              </div>
-              <div className={styles.macroTrack}>
-                <div
-                  className={`${styles.macroFill} ${styles.fat}`}
-                  style={{ width: `${Math.min(100, (client.macros.fat[0] / client.macros.fat[1]) * 100)}%` }}
-                />
-              </div>
-            </div>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Pozývací kód</span>
+            <span className={styles.infoValue}>{client.invite_code}</span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Poznámky</span>
+            {client.notes ? (
+              <span className={styles.infoValue}>{client.notes}</span>
+            ) : (
+              <span className={styles.notesEmpty}>Žiadne poznámky</span>
+            )}
           </div>
         </div>
 
-        <div className={styles.card}>
-          <h3>Posledné tréningy</h3>
-          {client.recentWorkouts.length > 0 ? (
-            <div className={styles.workoutList}>
-              {client.recentWorkouts.map((workout) => (
-                <div key={workout.day + workout.date} className={styles.workoutBlock}>
-                  <div className={styles.workoutDay}>
-                    <span>{workout.day}</span>
-                    <span className={styles.workoutDate}>
-                      {new Date(workout.date).toLocaleDateString("sk-SK")}
-                    </span>
-                  </div>
-                  {workout.exercises.map((ex) => (
-                    <div key={ex.idx} className={styles.exerciseRow}>
-                      <span className={styles.exIdx}>{ex.idx}</span>
-                      <span className={styles.exName}>{ex.name}</span>
-                      <span className={styles.exLoad}>{ex.load}</span>
-                      <span className={styles.exRest}>{ex.rest}</span>
-                    </div>
-                  ))}
+        <div className={styles.cardStack}>
+          <div className={styles.card}>
+            <h3>Tréningové plány</h3>
+            {plans && plans.length > 0 ? (
+              <div className={styles.roster}>
+                {plans.map((plan) => {
+                  const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+                  return (
+                    <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
+                      <div className={styles.clientName}>{plan.name}</div>
+                      <span className={styles.clientSince}>{dayCount} dní</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.noWorkouts}>
+                Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na{" "}
+                <Link href="/dashboard/treningy">Tréningy</Link>.
+              </p>
+            )}
+          </div>
+
+          <div className={styles.card}>
+            <h3>Makro cieľ</h3>
+            {nutrition ? (
+              <>
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Kalorický cieľ</span>
+                  <span className={styles.infoValue}>{nutrition.calories_target} kcal/deň</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className={styles.noWorkouts}>Žiadne odcvičené tréningy zatiaľ nezaznamenané.</p>
-          )}
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Makrá</span>
+                  <span className={styles.infoValue}>
+                    {nutrition.protein_g} g B · {nutrition.carbs_g} g S · {nutrition.fat_g} g T
+                  </span>
+                </div>
+                <Link href={`/dashboard/vyziva/${id}`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
+                  Upraviť →
+                </Link>
+              </>
+            ) : (
+              <p className={styles.noWorkouts}>
+                Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${id}`}>vypočítať teraz</Link>.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </>
