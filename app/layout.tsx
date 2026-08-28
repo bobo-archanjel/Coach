@@ -28,7 +28,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="sk">
+    // suppressHydrationWarning: niektoré browser extensions (napr. prekladače) vkladajú
+    // vlastné atribúty do <html> pred hydratáciou (napr. webcrx-bridged) — nie je to náš bug.
+    <html lang="sk" suppressHydrationWarning>
       <body className={inter.variable}>{children}</body>
     </html>
   );
