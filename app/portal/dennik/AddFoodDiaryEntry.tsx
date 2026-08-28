@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, type MealSlot } from "@/lib/meals";
 import type { PortalFoodOption } from "@/lib/portal/types";
 import { addFoodLogAction, type ActionState } from "../actions";
@@ -74,7 +74,7 @@ export function AddFoodDiaryEntry({
     setSlot(s);
     setJustAdded(null);
     setAttempted(option.name);
-    formAction(buildFormData(option, s, option.plannedGrams ?? 100));
+    startTransition(() => formAction(buildFormData(option, s, option.plannedGrams ?? 100)));
   }
 
   /** Položka z knižnice — gramáž nepoznáme, doplň ju pred zápisom. */
@@ -88,7 +88,7 @@ export function AddFoodDiaryEntry({
     if (!picked) return;
     const g = Number(grams);
     setAttempted(picked.name);
-    formAction(buildFormData(picked, slot, Number.isFinite(g) ? g : 0));
+    startTransition(() => formAction(buildFormData(picked, slot, Number.isFinite(g) ? g : 0)));
   }
 
   if (!open) {
