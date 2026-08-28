@@ -20,20 +20,18 @@ type DayRow = {
   day_number: number;
   weekday: number | null;
   name: string;
-  focus: string | null;
-  duration_min: number | null;
+  exercises: unknown;
 };
 
-type ExerciseRow = {
-  day_id: string;
-  position: number;
-  label: string | null;
-  name: string;
-  sets: number | null;
-  reps: string | null;
-  load: string | null;
-  rest_seconds: number | null;
-  tempo: string | null;
+/** Tvar cviku v workout_days.exercises (JSONB), viď app/dashboard/treningy/actions.ts. */
+type ExerciseEntry = {
+  entry_id?: string;
+  exercise_name?: string;
+  sets?: number | null;
+  reps?: string | null;
+  load_kg?: number | null;
+  tempo?: string | null;
+  rest_seconds?: number | null;
 };
 
 /** Aktuálny deň v zóne Europe/Bratislava, nezávislý od zóny servera. */
@@ -79,33 +77,41 @@ function firstNameOf(full: string | null | undefined): string | null {
   return n.split(/\s+/)[0];
 }
 
-function restLabel(seconds: number | null): string {
+function restLabel(seconds: number | null | undefined): string {
   if (!seconds || seconds <= 0) return "";
   if (seconds >= 120 && seconds % 60 === 0) return `${seconds / 60} min`;
   return `${seconds} s`;
 }
 
-function scheme(sets: number | null, reps: string | null): string {
+function scheme(sets: number | null | undefined, reps: string | null | undefined): string {
   if (sets && reps) return `${sets} × ${reps}`;
   if (reps) return reps;
   if (sets) return `${sets} série`;
   return "";
 }
 
-function toPortalExercise(row: ExerciseRow, fallbackIdx: number): PortalExercise {
+function toPortalExercise(entry: ExerciseEntry, position: number): PortalExercise {
   return {
-    idx: (row.label ?? String(fallbackIdx)).trim(),
-    name: row.name,
-    scheme: scheme(row.sets, row.reps),
-    load: (row.load ?? "").trim(),
-    rest: restLabel(row.rest_seconds),
-    tempo: row.tempo ?? undefined,
+    idx: String(position + 1),
+    name: (entry.exercise_name ?? "Cvik").trim(),
+    scheme: scheme(entry.sets, entry.reps),
+    load: entry.load_kg != null ? `${entry.load_kg} kg` : "vlastná váha",
+    rest: restLabel(entry.rest_seconds),
+    tempo: entry.tempo ?? undefined,
   };
+}
+
+function parseEntries(raw: unknown): ExerciseEntry[] {
+  return Array.isArray(raw) ? (raw as ExerciseEntry[]) : [];
 }
 
 /**
  * Načíta domovskú obrazovku portálu ("Dnes") pre prihláseného klienta.
  * Auth guard (session + rola) rieši app/portal/layout.tsx — sem prídeme s klientom.
+ *
+ * Schéma: workout_plans / workout_days z 0002_workout_builder (cviky ako JSONB
+ * v workout_days.exercises), workout_logs / coach_notes / workout_days.weekday z 0003.
+ * "Aktívny" plán = najnovší plán klienta.
  */
 export async function getPortalData(): Promise<PortalResult> {
   try {
@@ -139,7 +145,6 @@ export async function getPortalData(): Promise<PortalResult> {
       .from("workout_plans")
       .select("id, name")
       .eq("client_id", client.id)
-      .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -149,7 +154,7 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const { data: dayRows, error: daysErr } = await supabase
       .from("workout_days")
-      .select("id, day_number, weekday, name, focus, duration_min")
+      .select("id, day_number, weekday, name, exercises")
       .eq("plan_id", plan.id)
       .order("day_number", { ascending: true });
 
@@ -157,22 +162,6 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const days = (dayRows ?? []) as DayRow[];
     if (days.length === 0) return { state: "no_plan", firstName: firstName ?? "" };
-
-    const dayIds = days.map((d) => d.id);
-    const { data: exRows, error: exErr } = await supabase
-      .from("workout_exercises")
-      .select("day_id, position, label, name, sets, reps, load, rest_seconds, tempo")
-      .in("day_id", dayIds)
-      .order("position", { ascending: true });
-
-    if (exErr) return { state: "error", message: exErr.message };
-
-    const exercisesByDay = new Map<string, ExerciseRow[]>();
-    for (const row of (exRows ?? []) as ExerciseRow[]) {
-      const list = exercisesByDay.get(row.day_id) ?? [];
-      list.push(row);
-      exercisesByDay.set(row.day_id, list);
-    }
 
     const { isoDate, hour, base } = todayInTz();
     const todayWeekday = isoWeekday(base);
@@ -212,14 +201,13 @@ export async function getPortalData(): Promise<PortalResult> {
         completedCount: 0,
       };
     } else {
-      const exList = (exercisesByDay.get(todayDay.id) ?? []).map((r, i) =>
-        toPortalExercise(r, i + 1),
-      );
+      const exList = parseEntries(todayDay.exercises).map((e, i) => toPortalExercise(e, i));
       session = {
         kind: loggedToday ? "done" : "training",
         title: todayDay.name,
-        focus: todayDay.focus ?? "",
-        durationLabel: todayDay.duration_min ? `~${todayDay.duration_min} min` : "",
+        // Builder nemá "focus" dňa — pod názov dňa dáme aspoň názov plánu ako kontext.
+        focus: plan.name ?? "",
+        durationLabel: "",
         exercises: exList,
         completedCount: loggedToday ? exList.length : 0,
       };
@@ -254,7 +242,7 @@ export async function getPortalData(): Promise<PortalResult> {
     for (let i = 1; i <= STREAK_LOOKBACK_DAYS; i++) {
       const date = addDays(base, -i);
       const planDay = dayByWeekday.get(isoWeekday(date)) ?? null;
-      if (!planDay) continue; // rest deň nereťaz nelomí
+      if (!planDay) continue; // rest deň sériu nelomí
       const dateStr = iso(date);
       const done = logKeys.has(`${planDay.id}|${dateStr}`) || loggedDates.has(dateStr);
       if (done) streakDays++;
