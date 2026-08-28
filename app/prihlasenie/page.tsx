@@ -116,11 +116,14 @@ export default function AuthPage() {
     const name = (form.elements.namedItem("name") as HTMLInputElement).value;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+    const inviteInput = form.elements.namedItem("invite") as HTMLInputElement | null;
+    const invite = inviteOpen ? inviteInput?.value.trim() || "" : "";
+    const isClientSignup = invite.length > 0;
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name, role: "trainer" } },
+      options: { data: { full_name: name, role: isClientSignup ? "client" : "trainer" } },
     });
     if (error) {
       setRegisterStatus("idle");
@@ -130,15 +133,38 @@ export default function AuthPage() {
       return;
     }
 
-    setRegisterStatus("success");
-    if (data.session) {
-      // Potvrdenie e-mailu je v projekte vypnuté — session je aktívna hneď.
-      router.push("/dashboard");
-      router.refresh();
-    } else {
+    if (!data.session) {
       // Predvolené nastavenie Supabase: treba potvrdiť e-mail skôr, než vznikne session.
+      // Pozývací kód sa v tomto prípade nespáruje hneď — spáruje sa až pri ďalšom
+      // prihlásení, kým to nepokryje samostatný krok (viď TODO nižšie).
+      setRegisterStatus("success");
       setRegisterNeedsConfirm(true);
+      return;
     }
+
+    // Potvrdenie e-mailu je v projekte vypnuté — session je aktívna hneď.
+    if (isClientSignup) {
+      const { error: claimError } = await supabase.rpc("claim_client_by_invite", { p_invite_code: invite });
+      if (claimError) {
+        setRegisterStatus("idle");
+        setRegisterError(
+          claimError.message === "invalid_invite_code"
+            ? "Tento pozývací kód neexistuje. Over si ho u svojho trénera."
+            : claimError.message === "already_claimed"
+              ? "Tento pozývací kód je už použitý iným účtom."
+              : `Účet je vytvorený, ale spárovanie zlyhalo: ${claimError.message}`
+        );
+        return;
+      }
+      setRegisterStatus("success");
+      router.push("/portal");
+      router.refresh();
+      return;
+    }
+
+    setRegisterStatus("success");
+    router.push("/dashboard");
+    router.refresh();
   }
 
   function clearFieldError(
@@ -422,15 +448,48 @@ export default function AuthPage() {
                   )}
                 </div>
 
-                <button type="submit" className={`${styles.btnSubmit} ${registerStatus === "success" ? styles.success : ""}`} disabled={registerStatus === "loading"}>
+                <div className={styles.dividerRow}>alebo</div>
+
+                <button
+                  type="button"
+                  className={styles.inviteToggle}
+                  aria-expanded={inviteOpen}
+                  aria-controls="invite-panel"
+                  onClick={() => setInviteOpen((v) => !v)}
+                >
+                  <span>Som klient a mám pozývací kód</span>
+                  <ChevronIcon open={inviteOpen} />
+                </button>
+                {inviteOpen && (
+                  <div className={styles.invitePanel} id="invite-panel">
+                    <p>Kód nájdeš v pozvánke od svojho trénera. Účet sa naň spáruje hneď pri registrácii.</p>
+                    <div className={styles.field} style={{ marginBottom: 0 }}>
+                      <label htmlFor="invite-code">Pozývací kód</label>
+                      <input id="invite-code" name="invite" type="text" placeholder="napr. MK-7Q2X" autoComplete="off" />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className={`${styles.btnSubmit} ${registerStatus === "success" ? styles.success : ""}`}
+                  style={{ marginTop: 20 }}
+                  disabled={registerStatus === "loading"}
+                >
                   {registerStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{registerStatus === "loading" ? "Vytváram účet…" : "Začať skúšobné obdobie"}</span>
+                  <span>
+                    {registerStatus === "loading"
+                      ? "Vytváram účet…"
+                      : inviteOpen
+                        ? "Pripojiť sa k trénerovi"
+                        : "Začať skúšobné obdobie"}
+                  </span>
                 </button>
 
                 {registerStatus === "success" && !registerNeedsConfirm && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Účet vytvorený. Presmerúvam na nastavenie profilu…
+                    Účet vytvorený. Presmerúvam…
                   </div>
                 )}
                 {registerStatus === "success" && registerNeedsConfirm && (
@@ -446,31 +505,6 @@ export default function AuthPage() {
                   </div>
                 )}
               </form>
-
-              <div className={styles.dividerRow}>alebo</div>
-
-              <button
-                type="button"
-                className={styles.inviteToggle}
-                aria-expanded={inviteOpen}
-                aria-controls="invite-panel"
-                onClick={() => setInviteOpen((v) => !v)}
-              >
-                <span>Som klient a mám pozývací kód</span>
-                <ChevronIcon open={inviteOpen} />
-              </button>
-              {inviteOpen && (
-                <div className={styles.invitePanel} id="invite-panel">
-                  <p>Kód nájdeš v pozvánke od svojho trénera. Klientske účty sa nezakladajú samostatne.</p>
-                  <div className={styles.field} style={{ marginBottom: 12 }}>
-                    <label htmlFor="invite-code">Pozývací kód</label>
-                    <input id="invite-code" name="invite" type="text" placeholder="napr. MK-7Q2X" autoComplete="off" />
-                  </div>
-                  <button type="button" className={styles.btnSubmit} style={{ background: "var(--ink-4)" }}>
-                    Overiť kód
-                  </button>
-                </div>
-              )}
 
               <p className={styles.switchLine}>
                 Už máš účet?{" "}
