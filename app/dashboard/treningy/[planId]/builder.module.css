@@ -4,9 +4,17 @@
   gap: 20px;
   align-items: start;
 }
+/* Na mobile ide plátno (aktívny deň) prvé — tréner ho vidí bez scrollovania cez celú
+   knižnicu cvikov. Knižnica je pod ním a defaultne zbalená (viď .library/.libraryBody). */
 @media (max-width: 760px) {
   .builderGrid {
     grid-template-columns: 1fr;
+  }
+  .canvas {
+    order: 1;
+  }
+  .library {
+    order: 2;
   }
 }
 
@@ -28,12 +36,48 @@
     overflow-y: auto;
   }
 }
+.libraryToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.libraryChevron {
+  display: none;
+  flex: none;
+  color: var(--paper-faint);
+  transition: transform 0.15s ease;
+}
+.libraryChevronOpen {
+  transform: rotate(180deg);
+}
 .libraryHead {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--paper-faint);
+}
+.libraryBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .libraryChevron {
+    display: block;
+  }
+  .libraryBody.collapsed {
+    display: none;
+  }
 }
 .librarySearch {
   width: 100%;
@@ -44,6 +88,17 @@
   font-size: 13.5px;
   padding: 9px 12px;
   border-radius: var(--radius-s);
+}
+@media (max-width: 760px) {
+  .librarySearch,
+  .customExerciseInput {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+  .libraryItem {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
 }
 .librarySearch::placeholder {
   color: var(--paper-faint);
@@ -183,6 +238,17 @@
   border-radius: var(--radius-s);
   width: 200px;
 }
+@media (max-width: 760px) {
+  .addDayForm {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .addDayInput {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+}
 
 .dayPanel {
   background: var(--ink-2);
@@ -242,18 +308,65 @@
   color: var(--paper);
   border-color: var(--paper-faint);
 }
+/* Cvik na mobile: meno+akcie hore (grid), zhrnutie a meta pod tým na plnú šírku —
+   namiesto vecí natlačených do jedného riadku. Ikonky na 44px kvôli dotyku prstom. */
+@media (max-width: 760px) {
+  .exerciseRow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 10px;
+    row-gap: 5px;
+  }
+  .exerciseName {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+  .rowActions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .exerciseSummary,
+  .exerciseMeta {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+  .iconBtn {
+    width: 44px;
+    height: 44px;
+  }
+}
 
 .editForm {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 14px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
   background: var(--ink);
   border: 1px solid var(--iron-red-dim);
   border-radius: var(--radius-s);
 }
-.editForm input {
+.editName {
+  font-weight: 700;
+}
+.editGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.editFieldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--paper-faint);
+}
+.editField input {
   background: var(--ink-2);
   border: 1px solid var(--steel-line);
   color: var(--paper);
@@ -261,25 +374,55 @@
   font-size: 13px;
   padding: 7px 9px;
   border-radius: var(--radius-s);
+  width: 100%;
 }
 .editFieldSets {
-  width: 56px;
+  width: 64px;
 }
 .editFieldReps {
-  width: 90px;
+  width: 96px;
 }
 .editFieldLoad {
-  width: 80px;
+  width: 86px;
 }
 .editFieldTempo {
-  width: 90px;
+  width: 96px;
 }
 .editFieldRest {
-  width: 80px;
+  width: 86px;
 }
-.editName {
-  font-weight: 700;
-  flex: 1 1 100%;
+.editActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+/* Na mobile: 2-stĺpcový grid s viditeľnými labelmi namiesto natlačených neoznačených
+   políčok, 44px vstupy na dotyk, akcie na plnú šírku dole. */
+@media (max-width: 760px) {
+  .editGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .editFieldSets,
+  .editFieldReps,
+  .editFieldLoad,
+  .editFieldTempo,
+  .editFieldRest {
+    width: auto;
+  }
+  .editField input {
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .editActions {
+    flex-wrap: wrap;
+  }
+  .editActions button {
+    flex: 1;
+    min-height: 44px;
+  }
 }
 
 .emptyDay {

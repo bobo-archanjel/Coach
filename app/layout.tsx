@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -12,6 +12,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "FitPilot",
   description: "AI-native platforma pre fitness trénerov a ich klientov — tréning, výživa, komunikácia, rast.",
+};
+
+// viewportFit: "cover" umožňuje env(safe-area-inset-*) — potrebné pre fixnú
+// bottom tab bar na dashboarde (notch/home indicator na telefónoch).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

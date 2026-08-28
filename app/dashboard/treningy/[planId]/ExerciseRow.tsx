@@ -38,17 +38,36 @@ export function ExerciseRow({ entry, dayId, planId }: { entry: WorkoutExerciseEn
         <input type="hidden" name="plan_id" value={planId} readOnly />
         <input type="hidden" name="entry_id" value={entry.entry_id} readOnly />
         <span className={styles.editName}>{entry.exercise_name}</span>
-        <input name="sets" type="number" min={1} defaultValue={entry.sets} className={styles.editFieldSets} aria-label="Série" required />
-        <input name="reps" type="text" defaultValue={entry.reps} className={styles.editFieldReps} aria-label="Opakovania" required />
-        <input name="load_kg" type="number" step="0.5" defaultValue={entry.load_kg ?? ""} className={styles.editFieldLoad} aria-label="Záťaž kg" placeholder="kg" />
-        <input name="tempo" type="text" defaultValue={entry.tempo ?? ""} className={styles.editFieldTempo} aria-label="Tempo" placeholder="tempo" />
-        <input name="rest_seconds" type="number" defaultValue={entry.rest_seconds ?? ""} className={styles.editFieldRest} aria-label="Pauza (s)" placeholder="pauza s" />
-        <button type="submit" className="btn btn-primary btn-sm" disabled={updatePending}>
-          {updatePending ? "Ukladám…" : "Uložiť"}
-        </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)} disabled={updatePending}>
-          Zrušiť
-        </button>
+        <div className={styles.editGrid}>
+          <label className={`${styles.editField} ${styles.editFieldSets}`}>
+            <span className={styles.editFieldLabel}>Série</span>
+            <input name="sets" type="number" min={1} defaultValue={entry.sets} required />
+          </label>
+          <label className={`${styles.editField} ${styles.editFieldReps}`}>
+            <span className={styles.editFieldLabel}>Opakovania</span>
+            <input name="reps" type="text" defaultValue={entry.reps} required />
+          </label>
+          <label className={`${styles.editField} ${styles.editFieldLoad}`}>
+            <span className={styles.editFieldLabel}>Záťaž (kg)</span>
+            <input name="load_kg" type="number" step="0.5" defaultValue={entry.load_kg ?? ""} placeholder="—" />
+          </label>
+          <label className={`${styles.editField} ${styles.editFieldTempo}`}>
+            <span className={styles.editFieldLabel}>Tempo</span>
+            <input name="tempo" type="text" defaultValue={entry.tempo ?? ""} placeholder="—" />
+          </label>
+          <label className={`${styles.editField} ${styles.editFieldRest}`}>
+            <span className={styles.editFieldLabel}>Pauza (s)</span>
+            <input name="rest_seconds" type="number" defaultValue={entry.rest_seconds ?? ""} placeholder="—" />
+          </label>
+        </div>
+        <div className={styles.editActions}>
+          <button type="submit" className="btn btn-primary btn-sm" disabled={updatePending}>
+            {updatePending ? "Ukladám…" : "Uložiť"}
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)} disabled={updatePending}>
+            Zrušiť
+          </button>
+        </div>
         {updateState.error && <p className={styles.formError}>{updateState.error}</p>}
       </form>
     );

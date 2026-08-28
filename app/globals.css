@@ -187,3 +187,11 @@ p {
   padding: 10px 18px;
   font-size: 14px;
 }
+@media (max-width: 640px) {
+  /* .btn-sm sa v dashboarde/builderi používa v drvivej väčšine akčných tlačidiel —
+     na mobile nesmie klesnúť pod ~44px dotykovú výšku. */
+  .btn-sm {
+    padding: 13px 18px;
+    font-size: 14.5px;
+  }
+}

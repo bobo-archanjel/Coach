@@ -67,6 +67,16 @@ Tréningy sekcia je naostro. Zoznam plánov (`/dashboard/treningy`) v pôvodnom 
 
 Výživa je naostro (BMR/TDEE + makro cieľ, `0004_nutrition.sql`): `/dashboard/vyziva` je zoznam klientov (`.roster`/`.clientCard` znovupoužité) s náhľadom makier alebo "zatiaľ nenastavený"; `/dashboard/vyziva/[clientId]` má formulár vstupov (pohlavie/vek/váha/výška/aktivita/cieľ, `.addClientForm` vzor) a vedľa výsledok — BMR, TDEE, kalorický cieľ a tri `.macroBarRow` vizualizácie (bielkoviny/sacharidy/tuky, percento z celkových kalórií). Výpočet (`lib/nutrition.ts`, Mifflin-St Jeor) beží live v prehliadači ako náhľad pri písaní aj server-side pri uložení (server je zdroj pravdy, klient len ukazuje). Detail klienta (`/dashboard/klienti/[id]`) má tretiu kartu s aktuálnym makro cieľom a odkazom na úpravu; jedálničky (meal plans, food diary) ostávajú budúca úloha. `.comingSoon` odznaky ostávajú pri Notifikáciách/Fakturácii v Nastaveniach.
 
+## Responsive / mobile-first pass (2026-08-28)
+
+Appka smeruje primárne na telefón pre obe role (upresnené v PRODUCT.md Operating Context) — toto bol prvý kompletný responzívny pass cez celý trénerský frontend, adaptačný (`impeccable adapt`), nie redesign vzhľadu.
+
+- **Dashboard shell** (`dashboard.module.css`, `DashboardNav.tsx`): pod 880px sa hlavná navigácia (`.navList`) odpojí z toku sidebaru (`position: fixed`) a stane sa **fixnou bottom tab bar** (ikona nad labelom, `env(safe-area-inset-bottom)` pre notch) — nie horizontálny scroll top bar ako predtým. Sidebar nad ňou ostáva len tenký sticky top bar s brandom a odhlásením. `.content` má pridaný `padding-bottom`, aby posledná karta nebola pod lištou. `app/layout.tsx` má `viewport.viewportFit: "cover"`, nech `env(safe-area-inset-*)` reálne funguje.
+- **Tréningový builder** (`builder.module.css`, `[planId]/*.tsx`): na mobile ide **plátno (aktívny deň) prvé** (`order`), knižnica cvikov je pod ním a **defaultne zbalená** (`ExerciseLibrary` toggle so šípkou) — tréner nescrolluje cez celú knižnicu, kým sa dostane k dňu. `.exerciseRow` je na mobile grid (meno+akcie hore, zhrnutie/meta pod tým na celú šírku) namiesto natlačeného jedného riadku. `.editForm` dostal viditeľné labely (predtým len `aria-label`) a 2-stĺpcový grid namiesto neoznačených úzkych políčok vedľa seba.
+- **Dotykové ciele:** ikonové tlačidlá (`.iconBtn` edit/delete) 28px → 44px na mobile; `.btn-sm` (used naprieč celým dashboardom) dostal min. výšku ~44px pod 640px; bottom-tab položky min. 48px.
+- **iOS zoom bug:** všetky `<input>`/`<select>`/`<textarea>` pod 16px font-size (auth `.field input`, `.addClientInput`, knižnica/deň/edit polia v builderi) spôsobovali na iOS Safari automatický zoom pri focuse — zjednotené na 16px na mobile (auth stránka rovno natrvalo, keďže rozdiel 15→16px je vizuálne zanedbateľný).
+- Landing page a auth mali už rozumné breakpointy z prvej iterácie — dotknuté len pri konkrétnom náleze (input font-size), nie prerobené.
+
 ## Open decisions
 
 - Logo je vlastná SVG rekonštrukcia z referenčných obrázkov, nie originálny export — nahradiť pri finálnom nasadení.

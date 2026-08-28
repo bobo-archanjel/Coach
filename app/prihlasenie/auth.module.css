@@ -196,7 +196,8 @@
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
-  font-size: 15px;
+  /* 16px = iOS Safari nezoomuje pri focuse; menšie písmo v inpute to spúšťa. */
+  font-size: 16px;
   padding: 12px 14px;
   border-radius: var(--radius-s);
   transition:
@@ -232,8 +233,8 @@
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   background: transparent;
