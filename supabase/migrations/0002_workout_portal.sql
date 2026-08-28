@@ -2,6 +2,12 @@
 --   workout_plans → workout_days → workout_exercises, workout_logs, coach_notes.
 -- Zdroj tvaru: docs/projektbrief.md (riadky 85-88). Nadväzuje na 0001_profiles_clients.sql.
 -- Spustiť v Supabase Dashboard → SQL Editor → New query → vložiť celý súbor → Run.
+--
+-- Ak predošlý pokus spadol v polovici a tabuľky ostali v zlom stave, najprv spusti
+-- tento cleanup (tabuľky sú nové, dáta v nich nie sú), potom celý súbor odznova:
+--   drop table if exists public.coach_notes, public.workout_logs, public.workout_exercises,
+--     public.workout_days, public.workout_plans cascade;
+--   drop function if exists public.is_own_client(uuid), public.is_trainer_of_client(uuid);
 
 -- ============================================================
 --  Pomocné funkcie pre RLS (SECURITY DEFINER → neobchádzajú RLS rekurzívne cez clients)
@@ -52,6 +58,12 @@ create table if not exists public.workout_plans (
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Doplniť stĺpce, ak `workout_plans` ostala z čiastočne prebehnutého pokusu (create table sa preskočil).
+alter table public.workout_plans add column if not exists created_by uuid references public.profiles (id) on delete set null;
+alter table public.workout_plans add column if not exists name text;
+alter table public.workout_plans add column if not exists is_active boolean not null default true;
+alter table public.workout_plans add column if not exists created_at timestamptz not null default now();
 
 create index if not exists workout_plans_client_id_idx on public.workout_plans (client_id);
 -- Najviac jeden aktívny plán na klienta.
@@ -137,6 +149,9 @@ alter table public.workout_logs      enable row level security;
 alter table public.coach_notes       enable row level security;
 
 -- ---------- workout_plans ----------
+drop policy if exists "workout_plans_select"        on public.workout_plans;
+drop policy if exists "workout_plans_write_trainer" on public.workout_plans;
+
 create policy "workout_plans_select"
   on public.workout_plans for select
   to authenticated
@@ -149,6 +164,9 @@ create policy "workout_plans_write_trainer"
   with check (public.is_trainer_of_client(client_id));
 
 -- ---------- workout_days ----------
+drop policy if exists "workout_days_select"        on public.workout_days;
+drop policy if exists "workout_days_write_trainer" on public.workout_days;
+
 create policy "workout_days_select"
   on public.workout_days for select
   to authenticated
@@ -171,6 +189,9 @@ create policy "workout_days_write_trainer"
   ));
 
 -- ---------- workout_exercises ----------
+drop policy if exists "workout_exercises_select"        on public.workout_exercises;
+drop policy if exists "workout_exercises_write_trainer" on public.workout_exercises;
+
 create policy "workout_exercises_select"
   on public.workout_exercises for select
   to authenticated
@@ -196,6 +217,11 @@ create policy "workout_exercises_write_trainer"
   ));
 
 -- ---------- workout_logs ----------
+drop policy if exists "workout_logs_select"        on public.workout_logs;
+drop policy if exists "workout_logs_insert_client" on public.workout_logs;
+drop policy if exists "workout_logs_update_client" on public.workout_logs;
+drop policy if exists "workout_logs_delete"        on public.workout_logs;
+
 create policy "workout_logs_select"
   on public.workout_logs for select
   to authenticated
@@ -218,6 +244,9 @@ create policy "workout_logs_delete"
   using (public.is_own_client(client_id) or public.is_trainer_of_client(client_id));
 
 -- ---------- coach_notes ----------
+drop policy if exists "coach_notes_select"        on public.coach_notes;
+drop policy if exists "coach_notes_write_trainer" on public.coach_notes;
+
 create policy "coach_notes_select"
   on public.coach_notes for select
   to authenticated
