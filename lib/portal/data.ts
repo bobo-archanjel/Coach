@@ -4,7 +4,12 @@ import type {
   CoachNote,
   DayCellState,
   PortalData,
+  PortalDiaryData,
+  PortalDiaryEntry,
+  PortalDiaryGroup,
+  PortalDiaryResult,
   PortalExercise,
+  PortalFoodOption,
   PortalMealDay,
   PortalMealEntry,
   PortalMealGroup,
@@ -434,6 +439,182 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
     }
 
     const data: PortalNutritionData = { macroGoal, mealPlanName, mealDays };
+    return { state: "ok", data };
+  } catch (err) {
+    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+  }
+}
+
+type FoodLogRow = {
+  id: string;
+  meal_slot: MealSlot;
+  food_name: string;
+  grams: number;
+  kcal_100g: number;
+  protein_100g: number;
+  carbs_100g: number;
+  fat_100g: number;
+};
+
+type FoodRow = {
+  id: string;
+  name: string;
+  kcal_100g: number;
+  protein_100g: number;
+  carbs_100g: number;
+  fat_100g: number;
+};
+
+/**
+ * Denník — čo klient dnes zjedol, oproti makro cieľu. Plus knižnica potravín
+ * (globálna + trénerova) na vyhľadávanie a položky z najnovšieho jedálnička na
+ * rýchle pridanie. Zápis: app/portal/actions.ts (addFoodLogAction / removeFoodLogAction).
+ */
+export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { state: "error", message: "Session vypršala." };
+
+    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    if (clientErr) return { state: "error", message: clientErr.message };
+    if (!client) return { state: "unlinked", firstName };
+
+    const { isoDate, hour } = todayInTz();
+
+    const [
+      { data: profile, error: profileErr },
+      { data: logRows, error: logErr },
+      { data: foodRows, error: foodErr },
+      { data: plan, error: planErr },
+    ] = await Promise.all([
+      supabase
+        .from("nutrition_profiles")
+        .select("bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
+        .eq("client_id", client.id)
+        .maybeSingle(),
+      supabase
+        .from("food_logs")
+        .select("id, meal_slot, food_name, grams, kcal_100g, protein_100g, carbs_100g, fat_100g")
+        .eq("client_id", client.id)
+        .eq("eaten_on", isoDate)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("foods")
+        .select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g")
+        .order("name", { ascending: true }),
+      supabase
+        .from("meal_plans")
+        .select("id")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (profileErr) return { state: "error", message: profileErr.message };
+    if (logErr) return { state: "error", message: logErr.message };
+    if (foodErr) return { state: "error", message: foodErr.message };
+    if (planErr) return { state: "error", message: planErr.message };
+
+    const goal = profile
+      ? {
+          bmr: profile.bmr,
+          tdee: profile.tdee,
+          caloriesTarget: profile.calories_target,
+          proteinG: profile.protein_g,
+          carbsG: profile.carbs_g,
+          fatG: profile.fat_g,
+        }
+      : null;
+
+    // ---------- dnešné záznamy → skupiny podľa jedla dňa + súčty ----------
+    const scaled = ((logRows ?? []) as FoodLogRow[]).map((r) => ({
+      row: r,
+      macros: scaleFoodMacros(
+        {
+          kcal_100g: r.kcal_100g,
+          protein_100g: r.protein_100g,
+          carbs_100g: r.carbs_100g,
+          fat_100g: r.fat_100g,
+        },
+        r.grams,
+      ),
+    }));
+
+    const groups: PortalDiaryGroup[] = MEAL_SLOT_ORDER.map((slot) => {
+      const items = scaled.filter(({ row }) => row.meal_slot === slot);
+      const entries: PortalDiaryEntry[] = items.map(({ row, macros }) => ({
+        id: row.id,
+        slot,
+        name: row.food_name,
+        grams: row.grams,
+        kcal: macros.kcal,
+        proteinG: macros.proteinG,
+        carbsG: macros.carbsG,
+        fatG: macros.fatG,
+      }));
+      return {
+        slot,
+        slotLabel: MEAL_SLOT_LABELS[slot],
+        entries,
+        kcal: sumMacros(items.map(({ macros }) => macros)).kcal,
+      };
+    }).filter((g) => g.entries.length > 0);
+
+    const totals = sumMacros(scaled.map(({ macros }) => macros));
+
+    // ---------- knižnica potravín ----------
+    const library: PortalFoodOption[] = ((foodRows ?? []) as FoodRow[]).map((f) => ({
+      foodId: f.id,
+      name: f.name,
+      kcal100g: f.kcal_100g,
+      protein100g: f.protein_100g,
+      carbs100g: f.carbs_100g,
+      fat100g: f.fat_100g,
+    }));
+
+    // ---------- položky z trénerovho jedálnička na rýchle pridanie ----------
+    const planFoods: PortalFoodOption[] = [];
+    if (plan) {
+      const { data: dayRows } = await supabase
+        .from("meal_days")
+        .select("meals")
+        .eq("plan_id", plan.id)
+        .order("day_number", { ascending: true });
+
+      const seen = new Set<string>();
+      for (const day of dayRows ?? []) {
+        const entries = (Array.isArray(day.meals) ? day.meals : []) as MealEntryRow[];
+        for (const e of entries) {
+          const key = `${e.food_name ?? ""}|${e.meal_slot ?? ""}`;
+          if (!e.food_name || seen.has(key)) continue;
+          seen.add(key);
+          planFoods.push({
+            foodId: null,
+            name: e.food_name,
+            kcal100g: e.kcal_100g ?? 0,
+            protein100g: e.protein_100g ?? 0,
+            carbs100g: e.carbs_100g ?? 0,
+            fat100g: e.fat_100g ?? 0,
+            plannedGrams: e.grams ?? 100,
+            plannedSlot: e.meal_slot,
+          });
+        }
+      }
+    }
+
+    const data: PortalDiaryData = {
+      today: isoDate,
+      hour,
+      goal,
+      groups,
+      totals,
+      planFoods,
+      library,
+    };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };

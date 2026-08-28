@@ -12,7 +12,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Stav k 2026-08-28
 
-**Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava, rotácia dní), odklikávanie tréningu Fáza A (existencia záznamu = splnené), mobile-first responzívny dizajn na oboch stranách.
+**Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava/Denník, rotácia dní), odklikávanie tréningu Fáza A (existencia záznamu = splnené), food diary klienta (`/portal/dennik`, `0007`), mobile-first responzívny dizajn na oboch stranách.
 
 **Číslovanie migrácií — ďalšie voľné číslo je `0007`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
@@ -24,7 +24,8 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0004 | `nutrition.sql` | Tréner |
 | 0005 | `meal_plans.sql` | Tréner |
 | 0006 | `client_invite_claim.sql` | Klient |
-| 0007+ | — voľné — | dohodnúť |
+| 0007 | `food_logs.sql` | Klient |
+| 0008+ | — voľné — | dohodnúť |
 
 ---
 
@@ -38,7 +39,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Track "Klient"
 
-1. **Food diary** — klient loguje, čo skutočne zjedol, oproti makro cieľu (ktorý už má). Analogické Fáze B, len na strane výživy. Nová tabuľka (napr. `food_logs`) → nová migrácia.
+1. ~~**Food diary**~~ **HOTOVO 2026-08-28** — `/portal/dennik` (6. tab): klient loguje z knižnice potravín (+ rýchle pridanie z trénerovho jedálnička), vidí dnešný príjem oproti makro cieľu. Migrácia `0007_food_logs.sql`. Follow-up: karta „adherencia stravy" na strane trénera (analogicky ku karte aktivity tréningu).
 2. **Chat tréner↔klient (obojsmerný)** — teraz je len jednosmerný odkaz trénera (`coach_notes`, zobrazený v karte Dnes). Skutočný chat je väčšia vec (realtime alebo aspoň refresh-based vlákno) — rozmyslieť si rozsah pred štartom.
 3. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Závisí od Fázy B (potrebuje skutočné odcvičené hodnoty, nie len "splnené/nesplnené").
 4. *(neskôr, po AI bloku)* AI chat pre klienta — **zdravotné hranice sú tvrdé pravidlo** (Product Principle #5): eskalácia na trénera pri bolesti/zranení, nikdy diagnostika. Toto sa musí navrhnúť *pri* stavbe chatu, nie dolepiť dodatočne.

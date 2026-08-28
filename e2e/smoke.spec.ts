@@ -121,23 +121,21 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.locator("ol li")).toHaveCount(6);
     await expect(page.getByText("Drep s veľkou činkou")).toBeVisible();
 
-    // CTA
-    const start = page.getByRole("link", { name: /Začať tréning/i });
+    // odklikávanie tréningu (Fáza A) — lokálny prepínač, potom "Ukončiť tréning"
+    const start = page.getByRole("button", { name: /Začať tréning/i });
     await expect(start).toBeVisible();
+    await start.click();
+    await expect(page.getByRole("button", { name: /Ukončiť tréning/i })).toBeVisible();
 
-    // séria + týždeň
-    await expect(page.getByText("SÉRIA")).toBeVisible();
-    await expect(page.getByText("TENTO TÝŽDEŇ")).toBeVisible();
+    // dozvuk + týždeň
+    await expect(page.getByText("Odcvičené spolu")).toBeVisible();
+    await expect(page.getByText("Tento týždeň")).toBeVisible();
 
-    // spodná navigácia — 5 položiek
-    await expect(page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link")).toHaveCount(5);
+    // spodná navigácia — 6 položiek
+    await expect(page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link")).toHaveCount(6);
 
     // ring SVG
     await expect(page.locator("svg text", { hasText: "0/6" })).toBeVisible();
-
-    // CTA naviguje
-    await start.click();
-    await expect(page).toHaveURL(/\/portal\/trening/);
 
     expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
   });
@@ -145,7 +143,7 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
   test("preview=unlinked — neprepojený klient, bez CTA", async ({ page }) => {
     await page.goto("/portal?preview=unlinked");
     await expect(page.getByText(/nie je prepojený s trénerom/i)).toBeVisible();
-    await expect(page.getByRole("link", { name: /Začať tréning/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Začať tréning/i })).toHaveCount(0);
   });
 
   test("preview=no_plan — plán je na ceste", async ({ page }) => {
@@ -168,6 +166,7 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     for (const [label, url] of [
       ["Tréning", /\/portal\/trening/],
       ["Strava", /\/portal\/strava/],
+      ["Denník", /\/portal\/dennik/],
       ["Chat", /\/portal\/chat/],
       ["Profil", /\/portal\/profil/],
     ] as const) {
@@ -184,10 +183,44 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
       await expect(page.getByText(/Pripravujeme/i)).toBeVisible();
     }
   });
+
+  test("Denník: príjem vs cieľ, jedlá dňa, pridávanie jedla", async ({ page }) => {
+    const errs: string[] = [];
+    page.on("pageerror", (e) => errs.push(e.message));
+    await page.goto("/portal/dennik?preview=ok");
+
+    // hero: dnešný príjem + makro bary
+    await expect(page.getByText("DNEŠNÝ PRÍJEM")).toBeVisible();
+    await expect(page.getByText("Bielkoviny")).toBeVisible();
+    await expect(page.getByText(/\/ 2350 kcal/)).toBeVisible();
+
+    // zapísané jedlá dňa
+    await expect(page.getByText("RAŇAJKY")).toBeVisible();
+    await expect(page.getByText("Ovsené vločky")).toBeVisible();
+
+    // pridávanie jedla — rozbalí sa panel, dá sa vybrať jedlo dňa aj potravina
+    await page.getByRole("button", { name: /Pridať jedlo/i }).click();
+    await expect(page.getByRole("button", { name: "Obed", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("tab", { name: "Knižnica" }).click();
+    await page.getByLabel("Hľadať potravinu").fill("vaj");
+    await expect(page.getByRole("button", { name: /Vajcia \(celé\)/ })).toBeVisible();
+    await page.getByRole("button", { name: /Vajcia \(celé\)/ }).click();
+    // po výbere je gramáž a "Pridať"
+    await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeVisible();
+
+    expect(errs, errs.join("\n")).toEqual([]);
+  });
+
+  test("Denník: chyba a neprepojený stav", async ({ page }) => {
+    await page.goto("/portal/dennik?preview=error");
+    await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať denník/i })).toBeVisible();
+    await page.goto("/portal/dennik?preview=unlinked");
+    await expect(page.getByText(/nie je prepojený s trénerom/i)).toBeVisible();
+  });
 });
 
-test.describe("Portál — mobilný shell", () => {
-  test("bez horizontálneho scrollu, fixná spodná nav", async ({ page }) => {
+test.describe("Portál — shell", () => {
+  test("bez horizontálneho scrollu; nav fixná na mobile / sidebar na desktope", async ({ page, viewport }) => {
     await page.goto("/portal?preview=ok");
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -197,6 +230,7 @@ test.describe("Portál — mobilný shell", () => {
     const navPosition = await page
       .getByRole("navigation", { name: /Klientsky portál/i })
       .evaluate((el) => getComputedStyle(el).position);
-    expect(navPosition).toBe("fixed");
+    // f29fa92: pod 880px fixná bottom bar, nad ňou statický sidebar
+    expect(navPosition).toBe((viewport?.width ?? 0) >= 880 ? "static" : "fixed");
   });
 });

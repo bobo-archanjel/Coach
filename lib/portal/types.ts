@@ -1,6 +1,8 @@
 // Typy klientskeho portálu /portal. Naplnené reálnymi Supabase dátami v lib/portal/data.ts
 // (migrácia supabase/migrations/0002_workout_portal.sql). Viď DESIGN.md → Surfaces → Klientsky portál.
 
+import type { MealSlot } from "@/lib/meals";
+
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
 // si sám vyberá kedy cvičí, "ďalší tréning" je vždy nasledujúci nedokončený deň
 // v poradí (lib/portal/data.ts). Preto tu niet "missed" (vynechaný podľa rozvrhu)
@@ -131,5 +133,56 @@ export interface PortalNutritionData {
 
 export type PortalNutritionResult =
   | { state: "ok"; data: PortalNutritionData }
+  | { state: "unlinked"; firstName: string | null }
+  | { state: "error"; message?: string };
+
+// ---------- Denník (čo klient skutočne zjedol dnes) ----------
+
+/** Jedna položka na výber v pridávaní jedla — z knižnice `foods` alebo z trénerovho plánu. */
+export interface PortalFoodOption {
+  foodId: string | null;
+  name: string;
+  kcal100g: number;
+  protein100g: number;
+  carbs100g: number;
+  fat100g: number;
+  /** len pri "z plánu" — koľko gramov tréner naplánoval a v ktorom jedle dňa */
+  plannedGrams?: number;
+  plannedSlot?: MealSlot;
+}
+
+export interface PortalDiaryEntry {
+  id: string;
+  slot: MealSlot;
+  name: string;
+  grams: number;
+  kcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+export interface PortalDiaryGroup {
+  slot: MealSlot;
+  slotLabel: string;
+  entries: PortalDiaryEntry[];
+  kcal: number;
+}
+
+export interface PortalDiaryData {
+  today: string; // ISO (YYYY-MM-DD), Europe/Bratislava
+  /** hodina dňa 0-23 — na predvolený výber jedla dňa pri pridávaní */
+  hour: number;
+  goal: PortalMacroGoal | null;
+  groups: PortalDiaryGroup[];
+  totals: { kcal: number; proteinG: number; carbsG: number; fatG: number };
+  /** položky z najnovšieho trénerovho jedálnička na rýchle pridanie */
+  planFoods: PortalFoodOption[];
+  /** celá knižnica potravín (globálna + trénerove vlastné) na vyhľadávanie */
+  library: PortalFoodOption[];
+}
+
+export type PortalDiaryResult =
+  | { state: "ok"; data: PortalDiaryData }
   | { state: "unlinked"; firstName: string | null }
   | { state: "error"; message?: string };

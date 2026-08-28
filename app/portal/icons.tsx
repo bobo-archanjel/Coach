@@ -37,6 +37,14 @@ export const FoodIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+export const DiaryIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="5" y="3.5" width="14" height="17" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M8.5 3.5v17" stroke="currentColor" strokeWidth="1.3" />
+    <path d="M11 8.5h5.5M11 12h5.5M11 15.5h3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
 export const ChatIcon = ({ className }: IconProps) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path

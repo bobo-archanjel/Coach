@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
-import { TodayIcon, TrainingIcon, FoodIcon, ChatIcon, ProfileIcon } from "./icons";
+import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, ProfileIcon } from "./icons";
 import styles from "./portal.module.css";
 
 const NAV_ITEMS = [
   { href: "/portal", label: "Dnes", Icon: TodayIcon, match: (p: string) => p === "/portal" },
   { href: "/portal/trening", label: "Tréning", Icon: TrainingIcon, match: (p: string) => p.startsWith("/portal/trening") },
   { href: "/portal/strava", label: "Strava", Icon: FoodIcon, match: (p: string) => p.startsWith("/portal/strava") },
+  { href: "/portal/dennik", label: "Denník", Icon: DiaryIcon, match: (p: string) => p.startsWith("/portal/dennik") },
   { href: "/portal/chat", label: "Chat", Icon: ChatIcon, match: (p: string) => p.startsWith("/portal/chat") },
   { href: "/portal/profil", label: "Profil", Icon: ProfileIcon, match: (p: string) => p.startsWith("/portal/profil") },
 ];

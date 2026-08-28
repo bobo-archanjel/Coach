@@ -2,11 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { MEAL_SLOT_ORDER } from "@/lib/meals";
 
 export interface ActionState {
   error: string | null;
 }
 const ok: ActionState = { error: null };
+
+/** Klient prepojený s prihláseným používateľom, alebo null. */
+async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
 
 /**
  * "Ukončiť tréning" — Fáza A (existencia záznamu v workout_logs = deň splnený,
@@ -47,5 +64,83 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   }
 
   revalidatePath("/portal");
+  return ok;
+}
+
+/**
+ * Denník — pridať zjedenú potravinu. Klient posiela food_id + gramáž + jedlo dňa;
+ * makrá na 100 g si server dotiahne z `foods` (autoritatívne), a ak už potravina
+ * neexistuje, použije snapshot poslaný klientom (napr. položka z plánu). RLS
+ * (food_logs_insert_own_client) drží, že klient zapisuje len do vlastného denníka.
+ */
+export async function addFoodLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const foodId = (formData.get("food_id") as string | null) || null;
+  const name = ((formData.get("food_name") as string | null) ?? "").trim();
+  const slot = (formData.get("meal_slot") as string | null) ?? "";
+  const grams = Number(formData.get("grams"));
+
+  if (!MEAL_SLOT_ORDER.includes(slot as (typeof MEAL_SLOT_ORDER)[number])) return { error: "Vyber jedlo dňa." };
+  if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: "Zadaj gramáž (1–5000 g)." };
+
+  // Autoritatívne makrá z DB; fallback na snapshot z formulára.
+  let macros = {
+    kcal_100g: Number(formData.get("kcal_100g")) || 0,
+    protein_100g: Number(formData.get("protein_100g")) || 0,
+    carbs_100g: Number(formData.get("carbs_100g")) || 0,
+    fat_100g: Number(formData.get("fat_100g")) || 0,
+  };
+  let foodName = name;
+
+  if (foodId) {
+    const { data: food } = await supabase
+      .from("foods")
+      .select("name, kcal_100g, protein_100g, carbs_100g, fat_100g")
+      .eq("id", foodId)
+      .maybeSingle();
+    if (food) {
+      macros = {
+        kcal_100g: food.kcal_100g,
+        protein_100g: food.protein_100g,
+        carbs_100g: food.carbs_100g,
+        fat_100g: food.fat_100g,
+      };
+      foodName = food.name;
+    }
+  }
+
+  if (!foodName) return { error: "Chýba názov potraviny." };
+
+  const { error } = await supabase.from("food_logs").insert({
+    client_id: clientId,
+    meal_slot: slot,
+    food_id: foodId,
+    food_name: foodName,
+    grams,
+    ...macros,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal/dennik");
+  return ok;
+}
+
+/** Denník — odobrať záznam (RLS: food_logs_delete_own_client). */
+export async function removeFoodLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const id = formData.get("entry_id") as string | null;
+  if (!id) return { error: "Chýba identifikátor záznamu." };
+
+  const { error } = await supabase.from("food_logs").delete().eq("id", id).eq("client_id", clientId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal/dennik");
   return ok;
 }
