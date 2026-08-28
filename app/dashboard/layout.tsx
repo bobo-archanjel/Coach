@@ -23,6 +23,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/prihlasenie");
   }
 
+  // Symetrický guard k app/portal/layout.tsx (ten posiela trénera na /dashboard) —
+  // klient sa sem doteraz vedel dostať priamou URL bez presmerovania na svoj portál.
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role === "client") {
+    redirect("/portal");
+  }
+
   return (
     <div className={styles.shell}>
       <DashboardNav />

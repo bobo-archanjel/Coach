@@ -74,7 +74,7 @@ export default function AuthPage() {
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoginStatus("idle");
       setLoginError(
@@ -84,8 +84,12 @@ export default function AuthPage() {
       );
       return;
     }
+
     setLoginStatus("success");
-    router.push("/dashboard");
+    // Presmerovanie podľa role — predtým išlo vždy na /dashboard, takže klient
+    // po prihlásení skončil (nesprávne) na trénerskom dashboarde.
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+    router.push(profile?.role === "client" ? "/portal" : "/dashboard");
     router.refresh();
   }
 

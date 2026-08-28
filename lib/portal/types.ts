@@ -65,3 +65,66 @@ export type PortalResult =
   | { state: "unlinked"; firstName: string | null }
   | { state: "no_plan"; firstName: string }
   | { state: "error"; message?: string };
+
+// ---------- Tréning (celý plán, nie len dnešok) ----------
+
+export interface PortalTrainingDay {
+  id: string;
+  name: string;
+  exercises: PortalExercise[];
+}
+
+export interface PortalTrainingData {
+  planName: string;
+  days: PortalTrainingDay[];
+}
+
+export type PortalTrainingResult =
+  | { state: "ok"; data: PortalTrainingData }
+  | { state: "unlinked"; firstName: string | null }
+  | { state: "no_plan" }
+  | { state: "error"; message?: string };
+
+// ---------- Strava (makro cieľ + jedálniček) ----------
+
+export interface PortalMacroGoal {
+  bmr: number;
+  tdee: number;
+  caloriesTarget: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+export interface PortalMealEntry {
+  name: string;
+  grams: number;
+  kcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+export interface PortalMealGroup {
+  /** už lokalizovaný label, napr. "Raňajky" */
+  slotLabel: string;
+  entries: PortalMealEntry[];
+}
+
+export interface PortalMealDay {
+  id: string;
+  name: string;
+  groups: PortalMealGroup[];
+  totalKcal: number;
+}
+
+export interface PortalNutritionData {
+  macroGoal: PortalMacroGoal | null;
+  mealPlanName: string | null;
+  mealDays: PortalMealDay[];
+}
+
+export type PortalNutritionResult =
+  | { state: "ok"; data: PortalNutritionData }
+  | { state: "unlinked"; firstName: string | null }
+  | { state: "error"; message?: string };

@@ -1,10 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
+import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type {
   CoachNote,
   DayCellState,
   PortalData,
   PortalExercise,
+  PortalMealDay,
+  PortalMealEntry,
+  PortalMealGroup,
+  PortalNutritionData,
+  PortalNutritionResult,
   PortalResult,
+  PortalTrainingData,
+  PortalTrainingDay,
+  PortalTrainingResult,
   StreakDayState,
   TodaySession,
   WeekDay,
@@ -307,5 +316,178 @@ export async function getPortalData(): Promise<PortalResult> {
       state: "error",
       message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní.",
     };
+  }
+}
+
+/** Nájde klienta prepojeného s prihláseným používateľom (rovnaká logika ako v getPortalData). */
+async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const { data: client, error } = await supabase
+    .from("clients")
+    .select("id, full_name")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
+  return { client, firstName, error };
+}
+
+/**
+ * Celý aktuálny tréningový plán klienta (všetky dni, nie len dnešok) — pre kartu Tréning.
+ * "Aktívny" plán = najnovší, rovnaká konvencia ako getPortalData.
+ */
+export async function getPortalTraining(): Promise<PortalTrainingResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { state: "error", message: "Session vypršala." };
+
+    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    if (clientErr) return { state: "error", message: clientErr.message };
+    if (!client) return { state: "unlinked", firstName };
+
+    const { data: plan, error: planErr } = await supabase
+      .from("workout_plans")
+      .select("id, name")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (planErr) return { state: "error", message: planErr.message };
+    if (!plan) return { state: "no_plan" };
+
+    const { data: dayRows, error: daysErr } = await supabase
+      .from("workout_days")
+      .select("id, name, exercises")
+      .eq("plan_id", plan.id)
+      .order("day_number", { ascending: true });
+    if (daysErr) return { state: "error", message: daysErr.message };
+
+    const days: PortalTrainingDay[] = (dayRows ?? []).map((d) => ({
+      id: d.id,
+      name: d.name,
+      exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
+    }));
+
+    if (days.length === 0) return { state: "no_plan" };
+
+    const data: PortalTrainingData = { planName: plan.name, days };
+    return { state: "ok", data };
+  } catch (err) {
+    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+  }
+}
+
+/** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/vyziva/jedalnicek/actions.ts. */
+type MealEntryRow = {
+  entry_id?: string;
+  food_name?: string;
+  meal_slot?: MealSlot;
+  grams?: number;
+  kcal_100g?: number;
+  protein_100g?: number;
+  carbs_100g?: number;
+  fat_100g?: number;
+};
+
+/**
+ * Makro cieľ (BMR/TDEE/makrá) a najnovší jedálniček klienta — pre kartu Strava.
+ * Obe časti sú nezávislé (klient môže mať jedno bez druhého), preto jediný "no_plan"
+ * stav nedáva zmysel — každá časť má vlastný empty-state priamo v UI.
+ */
+export async function getPortalNutrition(): Promise<PortalNutritionResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { state: "error", message: "Session vypršala." };
+
+    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    if (clientErr) return { state: "error", message: clientErr.message };
+    if (!client) return { state: "unlinked", firstName };
+
+    const [{ data: profile, error: profileErr }, { data: plan, error: planErr }] = await Promise.all([
+      supabase
+        .from("nutrition_profiles")
+        .select("bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
+        .eq("client_id", client.id)
+        .maybeSingle(),
+      supabase
+        .from("meal_plans")
+        .select("id, name")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (profileErr) return { state: "error", message: profileErr.message };
+    if (planErr) return { state: "error", message: planErr.message };
+
+    const macroGoal = profile
+      ? {
+          bmr: profile.bmr,
+          tdee: profile.tdee,
+          caloriesTarget: profile.calories_target,
+          proteinG: profile.protein_g,
+          carbsG: profile.carbs_g,
+          fatG: profile.fat_g,
+        }
+      : null;
+
+    let mealPlanName: string | null = null;
+    let mealDays: PortalMealDay[] = [];
+
+    if (plan) {
+      mealPlanName = plan.name;
+      const { data: dayRows, error: daysErr } = await supabase
+        .from("meal_days")
+        .select("id, name, meals")
+        .eq("plan_id", plan.id)
+        .order("day_number", { ascending: true });
+      if (daysErr) return { state: "error", message: daysErr.message };
+
+      mealDays = (dayRows ?? []).map((d) => {
+        const entries = (Array.isArray(d.meals) ? d.meals : []) as MealEntryRow[];
+        const scaled = entries.map((e) => ({
+          entry: e,
+          macros: scaleFoodMacros(
+            {
+              kcal_100g: e.kcal_100g ?? 0,
+              protein_100g: e.protein_100g ?? 0,
+              carbs_100g: e.carbs_100g ?? 0,
+              fat_100g: e.fat_100g ?? 0,
+            },
+            e.grams ?? 0,
+          ),
+        }));
+
+        const groups: PortalMealGroup[] = MEAL_SLOT_ORDER.map((slot) => {
+          const items = scaled.filter(({ entry }) => entry.meal_slot === slot);
+          const mealEntries: PortalMealEntry[] = items.map(({ entry, macros }) => ({
+            name: entry.food_name ?? "Potravina",
+            grams: entry.grams ?? 0,
+            kcal: macros.kcal,
+            proteinG: macros.proteinG,
+            carbsG: macros.carbsG,
+            fatG: macros.fatG,
+          }));
+          return { slotLabel: MEAL_SLOT_LABELS[slot], entries: mealEntries };
+        }).filter((g) => g.entries.length > 0);
+
+        const totalKcal = sumMacros(scaled.map(({ macros }) => macros)).kcal;
+
+        return { id: d.id, name: d.name, groups, totalKcal };
+      });
+    }
+
+    const data: PortalNutritionData = { macroGoal, mealPlanName, mealDays };
+    return { state: "ok", data };
+  } catch (err) {
+    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
   }
 }

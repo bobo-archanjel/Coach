@@ -1,8 +1,8 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { getPortalData } from "@/lib/portal/data";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { ProfileIcon, TrainingIcon } from "./icons";
+import { AlertIcon, Notice } from "./Notice";
 import { RetryButton } from "./RetryButton";
 import styles from "./portal.module.css";
 
@@ -45,14 +45,6 @@ const CheckIcon = () => (
   </svg>
 );
 
-const AlertIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 8.5v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    <circle cx="12" cy="16.6" r="0.4" fill="currentColor" stroke="currentColor" strokeWidth="1.2" />
-    <path d="M12 4 3 19.5h18L12 4Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-  </svg>
-);
-
 const MARK_CLASS: Record<string, string> = {
   done: styles.markDone,
   today: styles.markToday,
@@ -89,31 +81,6 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
         CVIKOV
       </text>
     </svg>
-  );
-}
-
-function Notice({
-  icon,
-  title,
-  children,
-  action,
-  tone = "status",
-}: {
-  icon: ReactNode;
-  title: string;
-  children: ReactNode;
-  action?: ReactNode;
-  tone?: "status" | "alert";
-}) {
-  return (
-    <div className={styles.notice} role={tone}>
-      <span className={styles.noticeTile} aria-hidden="true">
-        {icon}
-      </span>
-      <h1>{title}</h1>
-      <p>{children}</p>
-      {action}
-    </div>
   );
 }
 
