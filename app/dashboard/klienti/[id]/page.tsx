@@ -23,11 +23,18 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     notFound();
   }
 
-  const { data: plans } = await supabase
-    .from("workout_plans")
-    .select("id, name, created_at, workout_days(count)")
-    .eq("client_id", id)
-    .order("created_at", { ascending: false });
+  const [{ data: plans }, { data: nutrition }] = await Promise.all([
+    supabase
+      .from("workout_plans")
+      .select("id, name, created_at, workout_days(count)")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("nutrition_profiles")
+      .select("calories_target, protein_g, carbs_g, fat_g")
+      .eq("client_id", id)
+      .maybeSingle(),
+  ]);
 
   const memberSince = new Date(client.created_at).toLocaleDateString("sk-SK", {
     day: "numeric",
@@ -70,29 +77,53 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </div>
         </div>
 
-        <div className={styles.card}>
-          <h3>Tréningové plány</h3>
-          {plans && plans.length > 0 ? (
-            <div className={styles.roster}>
-              {plans.map((plan) => {
-                const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
-                return (
-                  <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
-                    <div className={styles.clientName}>{plan.name}</div>
-                    <span className={styles.clientSince}>{dayCount} dní</span>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={styles.noWorkouts}>
-              Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na{" "}
-              <Link href="/dashboard/treningy">Tréningy</Link>.
-            </p>
-          )}
-          <p className={styles.noWorkouts} style={{ marginTop: plans && plans.length > 0 ? 16 : 0 }}>
-            Nutričný modul ešte nie je postavený.
-          </p>
+        <div className={styles.cardStack}>
+          <div className={styles.card}>
+            <h3>Tréningové plány</h3>
+            {plans && plans.length > 0 ? (
+              <div className={styles.roster}>
+                {plans.map((plan) => {
+                  const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+                  return (
+                    <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
+                      <div className={styles.clientName}>{plan.name}</div>
+                      <span className={styles.clientSince}>{dayCount} dní</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.noWorkouts}>
+                Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na{" "}
+                <Link href="/dashboard/treningy">Tréningy</Link>.
+              </p>
+            )}
+          </div>
+
+          <div className={styles.card}>
+            <h3>Makro cieľ</h3>
+            {nutrition ? (
+              <>
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Kalorický cieľ</span>
+                  <span className={styles.infoValue}>{nutrition.calories_target} kcal/deň</span>
+                </div>
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Makrá</span>
+                  <span className={styles.infoValue}>
+                    {nutrition.protein_g} g B · {nutrition.carbs_g} g S · {nutrition.fat_g} g T
+                  </span>
+                </div>
+                <Link href={`/dashboard/vyziva/${id}`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
+                  Upraviť →
+                </Link>
+              </>
+            ) : (
+              <p className={styles.noWorkouts}>
+                Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${id}`}>vypočítať teraz</Link>.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </>

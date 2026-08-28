@@ -65,13 +65,13 @@ Klienti sekcia je naostro: formulár "Pridať klienta" (Server Action → INSERT
 
 Tréningy sekcia je naostro. Zoznam plánov (`/dashboard/treningy`) v pôvodnom karta-štýle; detail plánu (`/dashboard/treningy/[planId]`) prešiel druhou iteráciou po spätnej väzbe, že pôvodná forma-na-forme pôsobila neprofesionálne — nahradený **split-view builderom** (knižnica + plátno, zvolené z 3 predložených štruktúr): vľavo sticky knižnica cvikov s vyhľadávaním (klik na cvik = okamžité pridanie do aktívneho dňa s defaultmi 3×10/pauza 90s, rovno pripravené na inline úpravu), vpravo dni ako tabs (aktívny stav vizuálne "zliaty" so panelom pod ním) a zoznam cvikov s inline edit/delete (ceruzka/kôš ikony, `.editForm` prepína riadok priamo na formulár bez modálu). Vlastné vizuálne triedy v `builder.module.css` (samostatný modul pre tento povrch).
 
-Výživa ostáva honestný `.emptyState` ("ešte nepostavené"), kým nepribudne `meal_plans` tabuľka. `.comingSoon` odznaky ostávajú pri Notifikáciách/Fakturácii v Nastaveniach.
+Výživa je naostro (BMR/TDEE + makro cieľ, `0004_nutrition.sql`): `/dashboard/vyziva` je zoznam klientov (`.roster`/`.clientCard` znovupoužité) s náhľadom makier alebo "zatiaľ nenastavený"; `/dashboard/vyziva/[clientId]` má formulár vstupov (pohlavie/vek/váha/výška/aktivita/cieľ, `.addClientForm` vzor) a vedľa výsledok — BMR, TDEE, kalorický cieľ a tri `.macroBarRow` vizualizácie (bielkoviny/sacharidy/tuky, percento z celkových kalórií). Výpočet (`lib/nutrition.ts`, Mifflin-St Jeor) beží live v prehliadači ako náhľad pri písaní aj server-side pri uložení (server je zdroj pravdy, klient len ukazuje). Detail klienta (`/dashboard/klienti/[id]`) má tretiu kartu s aktuálnym makro cieľom a odkazom na úpravu; jedálničky (meal plans, food diary) ostávajú budúca úloha. `.comingSoon` odznaky ostávajú pri Notifikáciách/Fakturácii v Nastaveniach.
 
 ## Open decisions
 
 - Logo je vlastná SVG rekonštrukcia z referenčných obrázkov, nie originálny export — nahradiť pri finálnom nasadení.
 - Klientský portál (Operate povrch) ešte nie je navrhnutý — rozšíriť tento súbor pri jeho stavbe, so zachovaním FitPilot systému.
-- Dashboard trénera: Klienti aj Tréningy sú naostro (vyššie); zostavovanie jedálničkov (Výživa) ešte chýba.
+- Dashboard trénera: Klienti, Tréningy aj Výživa (makro cieľ) sú naostro (vyššie); zostavovanie jedálničkov a food diary ešte chýba.
 - Ceny v cenníku sú orientačné (z brief-u), nie finálne potvrdené.
 - Onboarding flow pre klienta cez pozývací kód (`fitcoach-auth.html`) je len navrhnutý predpoklad — potrebuje potvrdenie.
 - Zabudnuté heslo a e-mailová verifikácia nemajú vlastnú obrazovku — len odkaz z prihlásenia.
