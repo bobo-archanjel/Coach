@@ -46,6 +46,7 @@ export default async function PortalLayout({ children }: { children: React.React
     data: { user },
   } = await supabase.auth.getUser();
 
+  let chatUnread = false;
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
@@ -58,6 +59,14 @@ export default async function PortalLayout({ children }: { children: React.React
     if (profile?.role === "trainer") {
       redirect("/dashboard");
     }
+
+    // neprečítaná správa od trénera → bodka na tabe Chat (RLS scopuje na vlákno klienta)
+    const { count } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("sender", "trainer")
+      .is("read_at", null);
+    chatUnread = (count ?? 0) > 0;
   }
 
   return (
@@ -65,7 +74,7 @@ export default async function PortalLayout({ children }: { children: React.React
       {/* Sibling ku .column (nie vnorená) — nad 880px sa stáva ľavým sidebarom
           v CSS grid .viewport, presne ako app/dashboard/layout.tsx. Pod 880px
           ostáva position:fixed bottom nav, DOM poradie tam nehrá rolu. */}
-      <PortalNav />
+      <PortalNav chatUnread={chatUnread} />
       <div className={styles.column}>
         <div hidden aria-hidden="true" dangerouslySetInnerHTML={{ __html: `<!--\n${DIRECTION_CONTRACT}\n-->` }} />
         <main className={styles.main}>{children}</main>

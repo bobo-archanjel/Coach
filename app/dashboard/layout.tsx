@@ -13,6 +13,11 @@ export const metadata: Metadata = {
  * (tabuľka `clients`, RLS scoped na trainer_id). Tréningy/Výživa sú zatiaľ honestné
  * "ešte nepostavené" — čakajú na tréningový builder a nutričný modul.
  */
+/** DEV: `next dev` bez session (lokál bez platných Supabase kľúčov) — nechá prejsť,
+    nech sa dajú pozerať povrchy cez `?preview=`. V produkcii guard nepodmienený.
+    Symetrické s app/portal/layout.tsx. */
+const DEV_OPEN = process.env.NODE_ENV !== "production";
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {
@@ -20,14 +25,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/prihlasenie");
-  }
-
-  // Symetrický guard k app/portal/layout.tsx (ten posiela trénera na /dashboard) —
-  // klient sa sem doteraz vedel dostať priamou URL bez presmerovania na svoj portál.
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (profile?.role === "client") {
-    redirect("/portal");
+    if (!DEV_OPEN) redirect("/prihlasenie");
+  } else {
+    // Symetrický guard k app/portal/layout.tsx (ten posiela trénera na /dashboard) —
+    // klient sa sem doteraz vedel dostať priamou URL bez presmerovania na svoj portál.
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (profile?.role === "client") {
+      redirect("/portal");
+    }
   }
 
   return (

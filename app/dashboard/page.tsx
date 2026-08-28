@@ -22,6 +22,15 @@ export default async function ClientsPage() {
     .eq("trainer_id", user.id)
     .order("created_at", { ascending: false });
 
+  // neprečítané správy od klientov → odznak pri klientovi (RLS scopuje na klientov trénera)
+  const { data: unreadRows } = await supabase
+    .from("messages")
+    .select("client_id")
+    .eq("sender", "client")
+    .is("read_at", null);
+  const unread = new Map<string, number>();
+  for (const r of unreadRows ?? []) unread.set(r.client_id, (unread.get(r.client_id) ?? 0) + 1);
+
   return (
     <>
       <div className={styles.pageHead}>
@@ -33,17 +42,27 @@ export default async function ClientsPage() {
 
       {clients && clients.length > 0 ? (
         <div className={styles.roster}>
-          {clients.map((client) => (
-            <Link key={client.id} href={`/dashboard/klienti/${client.id}`} className={styles.clientCard}>
-              <div>
-                <div className={styles.clientName}>{client.full_name}</div>
-                {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
-              </div>
-              <span className={styles.clientSince}>
-                od {new Date(client.created_at).toLocaleDateString("sk-SK")}
-              </span>
-            </Link>
-          ))}
+          {clients.map((client) => {
+            const n = unread.get(client.id) ?? 0;
+            return (
+              <Link key={client.id} href={`/dashboard/klienti/${client.id}`} className={styles.clientCard}>
+                <div>
+                  <div className={styles.clientName}>{client.full_name}</div>
+                  {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
+                </div>
+                <span className={styles.clientMeta}>
+                  {n > 0 && (
+                    <span className={styles.unreadPill} title={`${n} neprečítaných správ`}>
+                      {n} {n === 1 ? "správa" : n >= 2 && n <= 4 ? "správy" : "správ"}
+                    </span>
+                  )}
+                  <span className={styles.clientSince}>
+                    od {new Date(client.created_at).toLocaleDateString("sk-SK")}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className={styles.emptyState}>

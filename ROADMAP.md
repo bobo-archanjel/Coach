@@ -12,7 +12,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Stav k 2026-08-28
 
-**Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava/Denník, rotácia dní), odklikávanie tréningu Fáza A (existencia záznamu = splnené), food diary klienta (`/portal/dennik`, `0007`), mobile-first responzívny dizajn na oboch stranách.
+**Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava/Denník/Chat, rotácia dní), odklikávanie tréningu Fáza A (existencia záznamu = splnené), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), mobile-first responzívny dizajn na oboch stranách.
 
 **Číslovanie migrácií — ďalšie voľné číslo je `0007`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
@@ -25,7 +25,8 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0005 | `meal_plans.sql` | Tréner |
 | 0006 | `client_invite_claim.sql` | Klient |
 | 0007 | `food_logs.sql` | Klient |
-| 0008+ | — voľné — | dohodnúť |
+| 0008 | `messages.sql` | Klient |
+| 0009+ | — voľné — | dohodnúť |
 
 ---
 
@@ -40,7 +41,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 ## Track "Klient"
 
 1. ~~**Food diary**~~ **HOTOVO 2026-08-28** — `/portal/dennik` (6. tab): klient loguje z knižnice potravín (+ rýchle pridanie z trénerovho jedálnička), vidí dnešný príjem oproti makro cieľu. Migrácia `0007_food_logs.sql`. Follow-up: karta „adherencia stravy" na strane trénera (analogicky ku karte aktivity tréningu).
-2. **Chat tréner↔klient (obojsmerný)** — teraz je len jednosmerný odkaz trénera (`coach_notes`, zobrazený v karte Dnes). Skutočný chat je väčšia vec (realtime alebo aspoň refresh-based vlákno) — rozmyslieť si rozsah pred štartom.
+2. ~~**Chat tréner↔klient (obojsmerný)**~~ **HOTOVO 2026-08-28** — `messages` (`0008`), jedno vlákno na klienta, **refresh-based** (poll ~12 s kým je karta viditeľná + na focus, Server Actions revalidujú — bez Realtime, upgrade neskôr bez zmeny schémy). Klient: `/portal/chat` (bodka na tabe pri neprečítanej správe). Tréner: karta „Správy" na `/dashboard/klienti/[id]` + odznak počtu neprečítaných v zozname klientov. `coach_notes` ostáva samostatný (dnešný odkaz na karte Dnes). Zdieľaný `app/components/ChatThread.tsx`. Follow-up: `/dashboard/spravy` inbox (teraz sa píše len z detailu klienta), Realtime.
 3. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Závisí od Fázy B (potrebuje skutočné odcvičené hodnoty, nie len "splnené/nesplnené").
 4. *(neskôr, po AI bloku)* AI chat pre klienta — **zdravotné hranice sú tvrdé pravidlo** (Product Principle #5): eskalácia na trénera pri bolesti/zranení, nikdy diagnostika. Toto sa musí navrhnúť *pri* stavbe chatu, nie dolepiť dodatočne.
 

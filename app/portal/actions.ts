@@ -144,3 +144,39 @@ export async function removeFoodLogAction(_prevState: ActionState, formData: For
   revalidatePath("/portal/dennik");
   return ok;
 }
+
+/** Chat — klient odošle správu trénerovi (RLS messages_insert, sender='client'). */
+export async function sendClientMessageAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const body = ((formData.get("body") as string | null) ?? "").trim();
+  if (!body) return { error: "Prázdna správa." };
+  if (body.length > 4000) return { error: "Správa je príliš dlhá (max 4000 znakov)." };
+
+  const { error } = await supabase.from("messages").insert({
+    client_id: clientId,
+    sender: "client",
+    sender_id: user.id,
+    body,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal/chat");
+  return ok;
+}
+
+/** Chat — označí správy od trénera ako prečítané (volané pri otvorení / návrate na kartu). */
+export async function markClientChatSeenAction(): Promise<void> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return;
+  const { error } = await supabase.rpc("mark_messages_read", { p_client_id: clientId });
+  if (!error) revalidatePath("/portal", "layout");
+}

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ChatThread } from "@/app/components/ChatThread";
 import styles from "../../dashboard.module.css";
+import { markTrainerChatSeenAction, sendTrainerMessageAction } from "../actions";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -9,8 +11,53 @@ const BackIcon = () => (
   </svg>
 );
 
-export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+// DEV náhľad karty Správy bez session (?preview=chat) — trénerská polovica chatu.
+const CHAT_PREVIEW = [
+  { id: "c1", sender: "trainer" as const, body: "Ahoj Ján! Ako šlo dnešné nohy?", createdAt: new Date(Date.now() - 27 * 3600_000).toISOString() },
+  { id: "c2", sender: "client" as const, body: "Zdravím, celkom dobre. Drep 4×6 na 92 kg, posledná séria ťažká.", createdAt: new Date(Date.now() - 26 * 3600_000).toISOString() },
+  { id: "c3", sender: "trainer" as const, body: "Super progres. Nabudúce nechaj 92 a pridaj jednu rozcvičovaciu sériu navyše.", createdAt: new Date(Date.now() - 2 * 3600_000).toISOString() },
+  { id: "c4", sender: "client" as const, body: "Ok, dík!", createdAt: new Date(Date.now() - 1.5 * 3600_000).toISOString() },
+];
+
+export default async function ClientDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ preview?: string }>;
+}) {
   const { id } = await params;
+  const { preview } = await searchParams;
+
+  if (preview === "chat" && process.env.NODE_ENV !== "production") {
+    return (
+      <>
+        <Link href="/dashboard" className={styles.backLink}>
+          <BackIcon />
+          Späť na klientov
+        </Link>
+        <div className={styles.detailHead}>
+          <div>
+            <h1>Ján Novák</h1>
+          </div>
+        </div>
+        <div className={styles.card} style={{ maxWidth: 560 }}>
+          <h3>Správy</h3>
+          <ChatThread
+            messages={CHAT_PREVIEW}
+            mySide="trainer"
+            sendAction={sendTrainerMessageAction}
+            extraFields={{ client_id: id }}
+            emptyTitle="Zatiaľ žiadne správy"
+            emptyText="Napíš klientovi prvú správu."
+            placeholder="Správa pre Jána…"
+            embedded
+          />
+        </div>
+      </>
+    );
+  }
+
   const supabase = await createClient();
 
   const { data: client } = await supabase
@@ -23,7 +70,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     notFound();
   }
 
-  const [{ data: plans }, { data: nutrition }, { data: logs }] = await Promise.all([
+  const [{ data: plans }, { data: nutrition }, { data: logs }, { data: msgRows }] = await Promise.all([
     supabase
       .from("workout_plans")
       .select("id, name, created_at, workout_days(count)")
@@ -40,7 +87,21 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       .eq("client_id", id)
       .order("performed_on", { ascending: false })
       .limit(8),
+    supabase
+      .from("messages")
+      .select("id, sender, body, created_at")
+      .eq("client_id", id)
+      .order("created_at", { ascending: true })
+      .limit(300),
   ]);
+
+  const firstName = client.full_name.split(/\s+/)[0];
+  const messages = (msgRows ?? []).map((m) => ({
+    id: m.id as string,
+    sender: m.sender as "trainer" | "client",
+    body: m.body as string,
+    createdAt: m.created_at as string,
+  }));
 
   const memberSince = new Date(client.created_at).toLocaleDateString("sk-SK", {
     day: "numeric",
@@ -129,6 +190,21 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${id}`}>vypočítať teraz</Link>.
               </p>
             )}
+          </div>
+
+          <div className={styles.card}>
+            <h3>Správy</h3>
+            <ChatThread
+              messages={messages}
+              mySide="trainer"
+              sendAction={sendTrainerMessageAction}
+              extraFields={{ client_id: id }}
+              onSeen={markTrainerChatSeenAction.bind(null, id)}
+              emptyTitle="Zatiaľ žiadne správy"
+              emptyText={`Napíš ${firstName}ovi prvú správu — spätná väzba k tréningu, úprava plánu, čokoľvek.`}
+              placeholder={`Správa pre ${firstName}a…`}
+              embedded
+            />
           </div>
 
           <div className={styles.card}>

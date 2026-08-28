@@ -22,7 +22,7 @@ const NAV_ITEMS = [
  * je vtedy sidebar kontajner, .navBrand a .navFoot (odhlásenie) sa zobrazia len tu,
  * kým na mobile ostávajú skryté (bottom bar má na ne príliš málo miesta).
  */
-export function PortalNav() {
+export function PortalNav({ chatUnread = false }: { chatUnread?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -35,6 +35,7 @@ export function PortalNav() {
       <nav className={styles.nav} aria-label="Klientsky portál">
         {NAV_ITEMS.map(({ href, label, Icon, match }) => {
           const active = match(pathname);
+          const showDot = href === "/portal/chat" && chatUnread && !active;
           return (
             <Link
               key={href}
@@ -42,8 +43,12 @@ export function PortalNav() {
               className={`${styles.navItem} ${active ? styles.navItemActive : ""}`}
               aria-current={active ? "page" : undefined}
             >
-              <Icon className={styles.navIcon} />
+              <span className={styles.navIconWrap}>
+                <Icon className={styles.navIcon} />
+                {showDot && <span className={styles.navDot} aria-hidden="true" />}
+              </span>
               {label}
+              {showDot && <span className={styles.srOnly}> (nová správa)</span>}
             </Link>
           );
         })}

@@ -3,6 +3,9 @@ import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type Mea
 import type {
   CoachNote,
   DayCellState,
+  PortalChatData,
+  PortalChatMessage,
+  PortalChatResult,
   PortalData,
   PortalDiaryData,
   PortalDiaryEntry,
@@ -615,6 +618,56 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
       planFoods,
       library,
     };
+    return { state: "ok", data };
+  } catch (err) {
+    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+  }
+}
+
+/**
+ * Chat klienta s trénerom — jedno vlákno na klienta. Pri načítaní označí správy
+ * od trénera ako prečítané (RPC mark_messages_read). Refresh-based: ChatThread
+ * polluje router.refresh(), Server Actions revalidujú /portal/chat.
+ */
+export async function getPortalChat(): Promise<PortalChatResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { state: "error", message: "Session vypršala." };
+
+    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    if (clientErr) return { state: "error", message: clientErr.message };
+    if (!client) return { state: "unlinked", firstName };
+
+    // Označenie prečítaného rieši markClientChatSeenAction (mount / focus), nie render.
+    const [{ data: rows, error: msgErr }, { data: cRow }] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("id, sender, body, created_at")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: true })
+        .limit(300),
+      supabase.from("clients").select("trainer_id").eq("id", client.id).maybeSingle(),
+    ]);
+
+    if (msgErr) return { state: "error", message: msgErr.message };
+
+    const messages: PortalChatMessage[] = (rows ?? []).map((m) => ({
+      id: m.id,
+      sender: m.sender as "trainer" | "client",
+      body: m.body,
+      createdAt: m.created_at,
+    }));
+
+    let trainerName = "tréner";
+    if (cRow?.trainer_id) {
+      const { data: t } = await supabase.from("profiles").select("full_name").eq("id", cRow.trainer_id).maybeSingle();
+      trainerName = firstNameOf(t?.full_name) ?? "tréner";
+    }
+
+    const data: PortalChatData = { messages, trainerName };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };

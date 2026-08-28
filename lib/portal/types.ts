@@ -186,3 +186,22 @@ export type PortalDiaryResult =
   | { state: "ok"; data: PortalDiaryData }
   | { state: "unlinked"; firstName: string | null }
   | { state: "error"; message?: string };
+
+// ---------- Chat tréner ↔ klient ----------
+
+export interface PortalChatMessage {
+  id: string;
+  sender: "trainer" | "client";
+  body: string;
+  createdAt: string; // ISO
+}
+
+export interface PortalChatData {
+  messages: PortalChatMessage[];
+  trainerName: string;
+}
+
+export type PortalChatResult =
+  | { state: "ok"; data: PortalChatData }
+  | { state: "unlinked"; firstName: string | null }
+  | { state: "error"; message?: string };
