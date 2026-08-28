@@ -23,15 +23,12 @@ function greeting(name: string, hour: number): string {
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const FULL_WEEKDAY: Record<string, string> = {
-  Po: "pondelok",
-  Ut: "utorok",
-  St: "streda",
-  Št: "štvrtok",
-  Pi: "piatok",
-  So: "sobota",
-  Ne: "nedeľa",
-};
+/** 1 tréning, 2-4 tréningy, 5+ tréningov (slovenská plurálna zhoda). */
+function sessionUnit(n: number): string {
+  if (n === 1) return "tréning";
+  if (n >= 2 && n <= 4) return "tréningy";
+  return "tréningov";
+}
 
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
@@ -42,14 +39,11 @@ const CheckIcon = () => (
 const MARK_CLASS: Record<string, string> = {
   done: styles.markDone,
   today: styles.markToday,
-  upcoming: styles.markUpcoming,
-  missed: styles.markMissed,
-  rest: styles.markRest,
+  none: styles.markRest,
 };
 
 const PLATE_CLASS: Record<string, string> = {
   done: styles.plateOn,
-  missed: styles.plateMissed,
   rest: styles.plateRest,
 };
 
@@ -104,16 +98,16 @@ const PREVIEW_DATA: PortalData = {
     ],
   },
   week: [
-    { label: "Po", dayNum: 24, state: "done", plan: "Deň A" },
-    { label: "Ut", dayNum: 25, state: "rest", plan: "Voľno" },
-    { label: "St", dayNum: 26, state: "done", plan: "Deň B" },
-    { label: "Št", dayNum: 27, state: "missed", plan: "Deň A" },
-    { label: "Pi", dayNum: 28, state: "today", plan: "Deň C" },
-    { label: "So", dayNum: 29, state: "upcoming", plan: "Deň A" },
-    { label: "Ne", dayNum: 30, state: "rest", plan: "Voľno" },
+    { label: "Po", dayNum: 24, state: "done" },
+    { label: "Ut", dayNum: 25, state: "none" },
+    { label: "St", dayNum: 26, state: "done" },
+    { label: "Št", dayNum: 27, state: "none" },
+    { label: "Pi", dayNum: 28, state: "today" },
+    { label: "So", dayNum: 29, state: "none" },
+    { label: "Ne", dayNum: 30, state: "none" },
   ],
-  streakDays: 12,
-  streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "missed", "done", "rest", "done", "rest"],
+  totalSessions: 12,
+  streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
 };
 
 /** DEV: ?preview=unlinked|no_plan|error|ok vynúti prázdny/chybový stav bez DB. */
@@ -179,15 +173,13 @@ export default async function PortalHome({
 }
 
 function PortalToday({ data }: { data: PortalData }) {
-  const { clientFirstName, today, hour, coachNote, session, week, streakDays, streakHistory } = data;
+  const { clientFirstName, today, hour, coachNote, session, week, totalSessions, streakHistory } = data;
 
   const d = new Date(`${today}T12:00:00Z`);
   const dateLabel = cap(
     d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }),
   );
   const total = session.exercises.length;
-
-  const nextDay = week.find((w) => w.state === "upcoming");
 
   return (
     <>
@@ -211,67 +203,53 @@ function PortalToday({ data }: { data: PortalData }) {
         )}
       </section>
 
-      {/* 2 · práca */}
-      <section className={styles.session} aria-label="Dnešný tréning">
-        {session.kind === "rest" ? (
-          <div className={styles.sessionQuiet}>
-            <h2 className={styles.sessionTitle}>Dnes máš voľno</h2>
-            <p>
-              Žiadny naplánovaný tréning. Doprej telu regeneráciu — ľahká prechádzka alebo strečing
-              podľa chuti. Ďalší blok: {nextDay?.plan ?? "čoskoro"}.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className={styles.sessionTop}>
-              <ProgressRing done={session.completedCount} total={total} />
-              <div>
-                <h2 className={styles.sessionTitle}>{session.title}</h2>
-                {session.focus && <p className={styles.sessionFocus}>{session.focus}</p>}
-                <div className={styles.sessionChips}>
-                  <span className={styles.chip}>{total} cvikov</span>
-                  {session.durationLabel && <span className={styles.chip}>{session.durationLabel}</span>}
-                </div>
-              </div>
+      {/* 2 · práca — ďalší tréning v poradí (rotácia, nie pevný rozvrh podľa dňa v týždni) */}
+      <section className={styles.session} aria-label="Ďalší tréning">
+        <div className={styles.sessionTop}>
+          <ProgressRing done={session.completedCount} total={total} />
+          <div>
+            <h2 className={styles.sessionTitle}>{session.title}</h2>
+            {session.focus && <p className={styles.sessionFocus}>{session.focus}</p>}
+            <div className={styles.sessionChips}>
+              <span className={styles.chip}>{total} cvikov</span>
+              {session.durationLabel && <span className={styles.chip}>{session.durationLabel}</span>}
             </div>
+          </div>
+        </div>
 
-            {session.kind === "done" && (
-              <p className={styles.doneMark}>
-                <CheckIcon /> Tréning hotový — dobrá práca
-              </p>
-            )}
-
-            <ol className={styles.exList}>
-              {session.exercises.map((ex, i) => (
-                <li key={`${ex.idx}-${i}`} className={styles.exRow}>
-                  <span className={styles.exIdx}>{ex.idx}</span>
-                  <span className={styles.exBody}>
-                    <span className={styles.exName}>{ex.name}</span>
-                    <span className={styles.exMeta}>
-                      {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  </span>
-                  {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
-                </li>
-              ))}
-            </ol>
-
-            {session.kind === "training" && session.dayId && <LogWorkoutButton dayId={session.dayId} />}
-          </>
+        {session.kind === "done" && (
+          <p className={styles.doneMark}>
+            <CheckIcon /> Dnes už odcvičené — ďalší tréning nájdeš tu, keď budeš pripravený
+          </p>
         )}
+
+        <ol className={styles.exList}>
+          {session.exercises.map((ex, i) => (
+            <li key={`${ex.idx}-${i}`} className={styles.exRow}>
+              <span className={styles.exIdx}>{ex.idx}</span>
+              <span className={styles.exBody}>
+                <span className={styles.exName}>{ex.name}</span>
+                <span className={styles.exMeta}>
+                  {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              </span>
+              {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
+            </li>
+          ))}
+        </ol>
+
+        {session.kind === "training" && session.dayId && <LogWorkoutButton dayId={session.dayId} />}
       </section>
 
       {/* 3 · dozvuk */}
       <section className={styles.after} aria-label="Prehľad">
         <div className={styles.panel}>
-          <p className={styles.panelLabel}>Séria</p>
+          <p className={styles.panelLabel}>Odcvičené spolu</p>
           <div className={styles.streakHead}>
-            <span className={styles.streakNum}>{streakDays}</span>
-            <span className={styles.streakUnit}>
-              {streakDays === 1 ? "deň podľa plánu" : streakDays >= 2 && streakDays <= 4 ? "dni podľa plánu" : "dní podľa plánu"}
-            </span>
+            <span className={styles.streakNum}>{totalSessions}</span>
+            <span className={styles.streakUnit}>{sessionUnit(totalSessions)}</span>
           </div>
           <div className={styles.streakPlates} aria-hidden="true">
             {streakHistory.map((state, i) => (
@@ -291,21 +269,14 @@ function PortalToday({ data }: { data: PortalData }) {
               >
                 <span className={styles.weekDay}>{day.label}</span>
                 <span className={styles.weekMark}>
-                  <span className={day.state === "rest" ? MARK_CLASS.rest : `${styles.weekDot} ${MARK_CLASS[day.state]}`} />
+                  <span className={`${styles.weekDot} ${MARK_CLASS[day.state]}`} />
                 </span>
                 <span className={styles.weekNum}>{day.dayNum}</span>
-                <span className={styles.weekPlan}>{day.plan}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
-
-      {nextDay && (
-        <p className={styles.nextUp}>
-          Ďalší tréning · <span>{FULL_WEEKDAY[nextDay.label] ?? nextDay.label}</span> — {nextDay.plan}
-        </p>
-      )}
     </>
   );
 }

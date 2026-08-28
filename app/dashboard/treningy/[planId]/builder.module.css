@@ -261,37 +261,6 @@
   min-height: 160px;
 }
 
-.weekdayForm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 12px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--steel-line);
-}
-.weekdayLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--paper-faint);
-}
-.weekdayLabel select {
-  background: var(--ink);
-  border: 1px solid var(--steel-line);
-  color: var(--paper);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: normal;
-  padding: 6px 10px;
-  border-radius: var(--radius-s);
-}
-
 .exerciseRow {
   display: flex;
   align-items: center;

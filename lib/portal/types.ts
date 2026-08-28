@@ -1,18 +1,21 @@
 // Typy klientskeho portálu /portal. Naplnené reálnymi Supabase dátami v lib/portal/data.ts
 // (migrácia supabase/migrations/0002_workout_portal.sql). Viď DESIGN.md → Surfaces → Klientsky portál.
 
-export type DayCellState = "done" | "today" | "upcoming" | "rest" | "missed";
+// Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
+// si sám vyberá kedy cvičí, "ďalší tréning" je vždy nasledujúci nedokončený deň
+// v poradí (lib/portal/data.ts). Preto tu niet "missed" (vynechaný podľa rozvrhu)
+// ani "upcoming" (naplánovaný na budúci deň) — len či sa v ten kalendárny deň
+// odcvičilo, alebo nie.
+export type DayCellState = "done" | "today" | "none";
 
-/** Stav dňa v páse "Séria" — odcvičené / voľno podľa plánu / vynechané. */
-export type StreakDayState = "done" | "rest" | "missed";
+/** Stav dňa v páse histórie — odcvičil / neodcvičil (bez väzby na rozvrh). */
+export type StreakDayState = "done" | "rest";
 
 export interface WeekDay {
   /** Po, Ut, St … */
   label: string;
   dayNum: number;
   state: DayCellState;
-  /** krátky plán dňa, napr. "Deň A" alebo "Voľno" */
-  plan: string;
 }
 
 export interface PortalExercise {
@@ -35,15 +38,15 @@ export interface CoachNote {
 }
 
 export interface TodaySession {
-  /** training = bežný deň, rest = voľno, done = dnes už odcvičené */
-  kind: "training" | "rest" | "done";
+  /** training = pripravený ďalší tréning v poradí, done = dnes už odcvičené */
+  kind: "training" | "done";
   title: string;
   focus: string;
   durationLabel: string;
   exercises: PortalExercise[];
-  /** koľko cvikov je odškrtnutých (0 kým Fáza B nepostaví odklikávanie) */
+  /** koľko cvikov je odškrtnutých (0 kým Fáza B nepostaví per-cvik odklikávanie) */
   completedCount: number;
-  /** id dnešného workout_day (na zápis workout_logs pri "Ukončiť tréning"), null pri rest dni */
+  /** id workout_day na zápis workout_logs pri "Ukončiť tréning" */
   dayId: string | null;
 }
 
@@ -55,8 +58,8 @@ export interface PortalData {
   coachNote: CoachNote | null;
   session: TodaySession;
   week: WeekDay[];
-  /** dní za sebou podľa plánu (rest dni sériu nelámu) */
-  streakDays: number;
+  /** koľko tréningov klient v tomto pláne odcvičil spolu (rotácia dní, nie fixný rozvrh) */
+  totalSessions: number;
   /** posledných 12 dní pred dneškom, najstarší prvý */
   streakHistory: StreakDayState[];
 }

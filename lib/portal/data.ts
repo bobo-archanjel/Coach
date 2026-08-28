@@ -22,12 +22,10 @@ import type {
 const TZ = "Europe/Bratislava";
 const WEEKDAY_LABELS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"]; // index 0 = pondelok
 const HISTORY_DAYS = 12;
-const STREAK_LOOKBACK_DAYS = 90;
 
 type DayRow = {
   id: string;
   day_number: number;
-  weekday: number | null;
   name: string;
   exercises: unknown;
 };
@@ -73,11 +71,6 @@ function addDays(d: Date, n: number): Date {
 
 function iso(d: Date): string {
   return d.toISOString().slice(0, 10);
-}
-
-/** "Deň C — Nohy" → "Deň C"; "Kardio" → "Kardio". */
-function shortPlanLabel(name: string): string {
-  return name.split(/\s[—–-]\s/)[0].trim() || name;
 }
 
 function firstNameOf(full: string | null | undefined): string | null {
@@ -163,7 +156,7 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const { data: dayRows, error: daysErr } = await supabase
       .from("workout_days")
-      .select("id, day_number, weekday, name, exercises")
+      .select("id, day_number, name, exercises")
       .eq("plan_id", plan.id)
       .order("day_number", { ascending: true });
 
@@ -174,105 +167,58 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const { isoDate, hour, base } = todayInTz();
     const todayWeekday = isoWeekday(base);
-    const historyStart = iso(addDays(base, -STREAK_LOOKBACK_DAYS));
 
+    const dayIds = days.map((d) => d.id);
     const { data: logRows, error: logErr } = await supabase
       .from("workout_logs")
       .select("workout_day_id, performed_on")
       .eq("client_id", client.id)
-      .gte("performed_on", historyStart)
+      .in("workout_day_id", dayIds)
       .order("performed_on", { ascending: false });
 
     if (logErr) return { state: "error", message: logErr.message };
 
-    const logKeys = new Set(
-      (logRows ?? []).map((l) => `${l.workout_day_id ?? "?"}|${l.performed_on}`),
-    );
-    const loggedDates = new Set((logRows ?? []).map((l) => l.performed_on));
+    const logs = logRows ?? [];
+    const loggedDates = new Set(logs.map((l) => l.performed_on));
+    const doneToday = loggedDates.has(isoDate);
 
-    const dayByWeekday = new Map<number, DayRow>();
-    for (const d of days) if (d.weekday) dayByWeekday.set(d.weekday, d);
+    // ---------- rotácia: ďalší nedokončený deň v poradí (nie pevný rozvrh) ----------
+    // Klient si sám vyberá kedy cvičí — deň nie je pripnutý na konkrétny deň
+    // v týždni. "Ďalší tréning" = deň nasledujúci po naposledy odcvičenom podľa
+    // poradia v pláne (day_number), cyklicky. Bez histórie = prvý deň plánu.
+    const mostRecent = logs[0] ?? null;
+    const lastIdx = mostRecent ? days.findIndex((d) => d.id === mostRecent.workout_day_id) : -1;
+    const nextDay = lastIdx === -1 ? days[0] : days[(lastIdx + 1) % days.length];
 
-    // ---------- dnešná session ----------
-    const todayDay = dayByWeekday.get(todayWeekday) ?? null;
-    const loggedToday = todayDay
-      ? logKeys.has(`${todayDay.id}|${isoDate}`) || loggedDates.has(isoDate)
-      : false;
+    const exList = parseEntries(nextDay.exercises).map((e, i) => toPortalExercise(e, i));
+    const session: TodaySession = {
+      kind: doneToday ? "done" : "training",
+      title: nextDay.name,
+      // Builder nemá "focus" dňa — pod názov dňa dáme aspoň názov plánu ako kontext.
+      focus: plan.name ?? "",
+      durationLabel: "",
+      exercises: exList,
+      completedCount: doneToday ? exList.length : 0,
+      dayId: nextDay.id,
+    };
 
-    let session: TodaySession;
-    if (!todayDay) {
-      session = {
-        kind: "rest",
-        title: "Dnes máš voľno",
-        focus: "",
-        durationLabel: "",
-        exercises: [],
-        completedCount: 0,
-        dayId: null,
-      };
-    } else {
-      const exList = parseEntries(todayDay.exercises).map((e, i) => toPortalExercise(e, i));
-      session = {
-        kind: loggedToday ? "done" : "training",
-        title: todayDay.name,
-        // Builder nemá "focus" dňa — pod názov dňa dáme aspoň názov plánu ako kontext.
-        focus: plan.name ?? "",
-        durationLabel: "",
-        exercises: exList,
-        completedCount: loggedToday ? exList.length : 0,
-        dayId: todayDay.id,
-      };
-    }
-
-    // ---------- týždenný pás (Po–Ne aktuálneho týždňa) ----------
+    // ---------- týždenný pás (Po–Ne aktuálneho týždňa) — prehľad aktivity, nie rozvrh ----------
     const monday = addDays(base, -(todayWeekday - 1));
     const week: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
       const date = addDays(monday, i);
-      const wd = i + 1;
-      const planDay = dayByWeekday.get(wd) ?? null;
       const dateStr = iso(date);
-
-      let state: DayCellState;
-      if (wd === todayWeekday) state = "today";
-      else if (!planDay) state = "rest";
-      else if (date < base) {
-        const done = logKeys.has(`${planDay.id}|${dateStr}`) || loggedDates.has(dateStr);
-        state = done ? "done" : "missed";
-      } else state = "upcoming";
-
-      return {
-        label: WEEKDAY_LABELS[i],
-        dayNum: date.getUTCDate(),
-        state,
-        plan: planDay ? shortPlanLabel(planDay.name) : "Voľno",
-      };
+      const state: DayCellState = dateStr === isoDate ? "today" : loggedDates.has(dateStr) ? "done" : "none";
+      return { label: WEEKDAY_LABELS[i], dayNum: date.getUTCDate(), state };
     });
 
-    // ---------- séria + história ----------
-    let streakDays = 0;
-    for (let i = 1; i <= STREAK_LOOKBACK_DAYS; i++) {
-      const date = addDays(base, -i);
-      const planDay = dayByWeekday.get(isoWeekday(date)) ?? null;
-      if (!planDay) continue; // rest deň sériu nelomí
-      const dateStr = iso(date);
-      const done = logKeys.has(`${planDay.id}|${dateStr}`) || loggedDates.has(dateStr);
-      if (done) streakDays++;
-      else break;
-    }
-    if (session.kind === "done") streakDays++;
-
+    // ---------- história (posledných 12 dní pred dneškom) ----------
     const streakHistory: StreakDayState[] = [];
     for (let i = HISTORY_DAYS; i >= 1; i--) {
       const date = addDays(base, -i);
-      const planDay = dayByWeekday.get(isoWeekday(date)) ?? null;
-      if (!planDay) {
-        streakHistory.push("rest");
-        continue;
-      }
-      const dateStr = iso(date);
-      const done = logKeys.has(`${planDay.id}|${dateStr}`) || loggedDates.has(dateStr);
-      streakHistory.push(done ? "done" : "missed");
+      streakHistory.push(loggedDates.has(iso(date)) ? "done" : "rest");
     }
+
+    const totalSessions = logs.length;
 
     // ---------- odkaz trénera ----------
     let coachNote: CoachNote | null = null;
@@ -308,7 +254,7 @@ export async function getPortalData(): Promise<PortalResult> {
       coachNote,
       session,
       week,
-      streakDays,
+      totalSessions,
       streakHistory,
     };
 
