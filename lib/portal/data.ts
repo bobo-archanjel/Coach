@@ -108,6 +108,9 @@ function toPortalExercise(entry: ExerciseEntry, position: number): PortalExercis
     load: entry.load_kg != null ? `${entry.load_kg} kg` : "vlastná váha",
     rest: restLabel(entry.rest_seconds),
     tempo: entry.tempo ?? undefined,
+    entryId: entry.entry_id ?? null,
+    plannedSets: entry.sets && entry.sets > 0 ? entry.sets : 1,
+    plannedReps: entry.reps ?? null,
   };
 }
 
