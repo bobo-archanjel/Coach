@@ -65,13 +65,20 @@
 .chatPage {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  /* flex:none (nie flex:1): .main (rodič) nemá pevnú výšku, takže by sa
+     flex-basis:0% z "flex:1" prepočítalo na "content" a explicitná height
+     nižšie by sa pri layoute ignorovala — box by narástol podľa obsahu.
+     height (nie min-height) + min-height:0 zaklapne vlákno na dostupnú výšku
+     bez ohľadu na počet správ, inak composer pri dlhšej histórii odíde pod
+     fold a k poľu na písanie sa nedá dostať bez scrollovania celej appky. */
+  flex: none;
   width: 100%;
-  min-height: calc(100dvh - 118px - env(safe-area-inset-bottom));
+  height: calc(100dvh - 118px - env(safe-area-inset-bottom));
+  min-height: 0;
 }
 @media (min-width: 880px) {
   .chatPage {
-    min-height: calc(100dvh - 150px);
+    height: calc(100dvh - 150px);
     max-width: 640px;
   }
 }
