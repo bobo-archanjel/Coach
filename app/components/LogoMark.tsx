@@ -1,5 +1,6 @@
 import Image from "next/image";
 import logoMark from "@/public/brand/logo-mark.png";
+import logoWordmark from "@/public/brand/logo-wordmark.png";
 
 /**
  * FitPilot logo mark — skutočný export z brand kitu (`docs/Design/logo.png`,
@@ -19,4 +20,14 @@ export function LogoMark({ className }: { className?: string }) {
       style={{ objectFit: "contain" }}
     />
   );
+}
+
+/**
+ * FitPilot wordmark — mark + názov "FitPilot" ako jeden obrázok (`docs/Design/FitPilot_Logo.png`,
+ * preškálovaný na 600×200 v `public/brand/logo-wordmark.png`). Na rozdiel od `LogoMark` (len značka,
+ * text vedľa nej píše volajúci ako HTML v Inter) je tu text súčasťou rastra — použiť tam, kde má byť
+ * brand jeden kompaktný celok (top-left po prihlásení), nie oddelené ikona+text.
+ */
+export function LogoWordmark({ className }: { className?: string }) {
+  return <Image src={logoWordmark} alt="FitPilot" className={className} style={{ objectFit: "contain" }} />;
 }

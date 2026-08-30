@@ -55,17 +55,13 @@
 .sidebarBrand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: -0.02em;
   text-decoration: none;
-  white-space: nowrap;
   flex: none;
 }
-.logoMark {
-  width: 16px;
-  height: 19px;
+/* Mark + "FitPilot" ako jeden obrázok (LogoWordmark) — pomer strán zdroja ~3:1. */
+.brandLogo {
+  width: auto;
+  height: 22px;
   flex: none;
 }
 

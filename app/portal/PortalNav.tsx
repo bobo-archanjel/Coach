@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark } from "../components/LogoMark";
+import { LogoWordmark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, ProfileIcon } from "./icons";
 import styles from "./portal.module.css";
@@ -28,8 +28,7 @@ export function PortalNav({ chatUnread = false }: { chatUnread?: boolean }) {
   return (
     <aside className={styles.navShell}>
       <Link href="/portal" className={styles.navBrand}>
-        <LogoMark className={styles.navLogo} />
-        FitPilot
+        <LogoWordmark className={styles.brandLogo} />
       </Link>
 
       <nav className={styles.nav} aria-label="Klientsky portál">

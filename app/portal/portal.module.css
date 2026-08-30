@@ -608,17 +608,13 @@
   .navBrand {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-weight: 800;
-    font-size: 17px;
-    letter-spacing: -0.02em;
-    color: var(--paper);
     text-decoration: none;
   }
 }
-.navLogo {
-  width: 14px;
-  height: 17px;
+/* Mark + "FitPilot" ako jeden obrázok (LogoWordmark) — pomer strán zdroja ~3:1. */
+.brandLogo {
+  width: auto;
+  height: 20px;
   flex: none;
 }
 
