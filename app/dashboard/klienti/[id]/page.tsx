@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
+import { getNutritionAdherence } from "@/lib/dashboard/adherence";
 import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
 import { markTrainerChatSeenAction, sendTrainerMessageAction } from "../actions";
@@ -11,6 +12,12 @@ const BackIcon = () => (
     <path d="M9 3 4 7l5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+/** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
+function adherenceToneClass(pct: number | null): string {
+  if (pct == null) return styles.adherenceNone;
+  return pct >= 85 && pct <= 115 ? styles.adherenceGood : styles.adherenceOff;
+}
 
 // DEV náhľad karty Správy bez session (?preview=chat) — trénerská polovica chatu.
 const CHAT_PREVIEW = [
@@ -71,7 +78,7 @@ export default async function ClientDetailPage({
     notFound();
   }
 
-  const [{ data: plans }, { data: nutrition }, { data: logs }, { data: msgRows }] = await Promise.all([
+  const [{ data: plans }, { data: nutrition }, { data: logs }, { data: msgRows }, adherence] = await Promise.all([
     supabase
       .from("workout_plans")
       .select("id, name, created_at, workout_days(count)")
@@ -94,6 +101,7 @@ export default async function ClientDetailPage({
       .eq("client_id", id)
       .order("created_at", { ascending: true })
       .limit(300),
+    getNutritionAdherence(id),
   ]);
 
   const firstName = client.full_name.split(/\s+/)[0];
@@ -203,6 +211,35 @@ export default async function ClientDetailPage({
             ) : (
               <p className={styles.noWorkouts}>
                 Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${id}`}>vypočítať teraz</Link>.
+              </p>
+            )}
+          </div>
+
+          <div className={styles.card}>
+            <h3>Adherencia stravy</h3>
+            {adherence?.hasGoal ? (
+              <>
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Dnes</span>
+                  <span className={styles.infoValue}>
+                    {adherence.todayKcal} / {adherence.kcalGoal} kcal · <strong>{adherence.todayPct}&nbsp;%</strong> z cieľa
+                  </span>
+                </div>
+                <div className={styles.adherenceStrip} aria-hidden="true">
+                  {adherence.days.map((day, i) => (
+                    <div key={i} className={styles.adherenceDay}>
+                      <span className={`${styles.adherenceDot} ${adherenceToneClass(day.pct)}`} />
+                      <span className={styles.adherenceDayLabel}>{day.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className={styles.adherenceHint}>Posledných 7 dní · zelená = 85–115 % cieľa, sivá = bez záznamu.</p>
+              </>
+            ) : (
+              <p className={styles.noWorkouts}>
+                {adherence
+                  ? "Klient zatiaľ nemá nastavený makro cieľ — adherenciu nevieme vypočítať."
+                  : "Adherenciu sa nepodarilo načítať."}
               </p>
             )}
           </div>
