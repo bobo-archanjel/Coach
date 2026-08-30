@@ -1,0 +1,219 @@
+/* Zdieľané vlákno správ tréner ↔ klient. Používa sa v /portal/chat (klient)
+   aj na /dashboard/klienti/[id] (tréner). Farby z app/globals.css tokenov. */
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.thread.fill {
+  flex: 1;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 2px 12px;
+}
+/* krátke vlákno drž pri spodku (nad composerom), nie hore s mŕtvym pásom */
+.scroll::before {
+  content: "";
+  margin-top: auto;
+}
+.scroll:focus-visible {
+  outline: 2px solid var(--plate-yellow);
+  outline-offset: -2px;
+  border-radius: var(--radius-s);
+}
+.scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--ink-3);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 8px;
+}
+.group {
+  display: contents;
+}
+
+/* embedded (v karte na dashboarde) — pevná výška, krátke vlákno pri spodku.
+   flex:none prebíja základné .scroll{flex:1}: .thread tu (bez .fill) nemá
+   pevnú výšku, takže by sa flex-basis:0% prepočítalo na "content" a
+   explicitná height nižšie by sa pri layoute ignorovala — rovnaký bug ako
+   pri .chatPage v app/portal/portal.module.css (viď README 2026-08-30). */
+.embedded .scroll {
+  flex: none;
+  height: 360px;
+}
+
+.daySep {
+  align-self: center;
+  margin: 10px 0 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  background: var(--ink-3);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+}
+.row.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.row.theirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.row + .row {
+  margin-top: 3px;
+}
+/* medzera medzi blokmi od rôznych odosielateľov */
+.row.turn {
+  margin-top: 12px;
+}
+
+.bubble {
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mine .bubble {
+  background: color-mix(in srgb, var(--iron-red) 22%, var(--ink-2));
+  border: 1px solid color-mix(in srgb, var(--iron-red) 30%, var(--steel-line));
+  border-bottom-right-radius: 5px;
+  color: var(--paper);
+}
+.theirs .bubble {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-bottom-left-radius: 5px;
+  color: var(--paper);
+}
+.row.pending .bubble {
+  opacity: 0.55;
+}
+
+.meta {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 30px 20px;
+}
+.emptyTile {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-m);
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-dim);
+}
+.emptyTile svg {
+  width: 24px;
+  height: 24px;
+}
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+}
+.emptyHint {
+  font-size: 13px;
+  color: var(--paper-faint);
+  line-height: 1.5;
+  max-width: 34ch;
+}
+
+/* ---------- composer ---------- */
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--steel-line);
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  max-height: 120px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: 12px;
+  color: var(--paper);
+}
+.input::placeholder {
+  color: var(--paper-faint);
+}
+.input:focus-visible {
+  outline: 2px solid var(--plate-yellow);
+  outline-offset: 2px;
+}
+.send {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 12px;
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.send:hover:not(:disabled) {
+  background: #b82f1b;
+}
+.send:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.send:disabled {
+  background: var(--ink-3);
+  color: var(--paper-faint);
+  cursor: not-allowed;
+}
+.send svg {
+  width: 20px;
+  height: 20px;
+}
+.error {
+  font-size: 12px;
+  color: var(--error);
+  padding-top: 6px;
+}

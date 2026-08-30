@@ -1,0 +1,437 @@
+.builderGrid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+/* Na mobile ide plátno (aktívny deň) prvé — tréner ho vidí bez scrollovania cez celú
+   knižnicu cvikov. Knižnica je pod ním a defaultne zbalená (viď .library/.libraryBody). */
+@media (max-width: 760px) {
+  .builderGrid {
+    grid-template-columns: 1fr;
+  }
+  .canvas {
+    order: 1;
+  }
+  .library {
+    order: 2;
+  }
+}
+
+/* ---------- library sidebar ---------- */
+.library {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (min-width: 761px) {
+  .library {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+}
+.libraryToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.libraryChevron {
+  display: none;
+  flex: none;
+  color: var(--paper-faint);
+  transition: transform 0.15s ease;
+}
+.libraryChevronOpen {
+  transform: rotate(180deg);
+}
+.libraryHead {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+}
+.libraryBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .libraryChevron {
+    display: block;
+  }
+  .libraryBody.collapsed {
+    display: none;
+  }
+}
+.librarySearch {
+  width: 100%;
+  background: var(--ink);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 9px 12px;
+  border-radius: var(--radius-s);
+}
+@media (max-width: 760px) {
+  .librarySearch,
+  .customExerciseInput {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+  .libraryItem {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}
+.librarySearch::placeholder {
+  color: var(--paper-faint);
+}
+.librarySearch:focus {
+  outline: none;
+  border-color: var(--iron-red);
+}
+.libraryList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.libraryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+.libraryItem:hover:not(:disabled) {
+  background: var(--ink-3);
+  border-color: var(--steel-line);
+}
+.libraryItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.libraryItemMuscle {
+  color: var(--paper-faint);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.libraryEmpty {
+  color: var(--paper-faint);
+  font-size: 13px;
+}
+.libraryHint {
+  color: var(--paper-faint);
+  font-size: 12px;
+}
+.customExerciseForm {
+  border-top: 1px solid var(--steel-line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.customExerciseInput {
+  background: var(--ink);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+}
+.customExerciseInput::placeholder {
+  color: var(--paper-faint);
+}
+
+/* ---------- canvas ---------- */
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dayTabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--steel-line);
+}
+.dayTab {
+  padding: 9px 16px;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper-dim);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dayTab:hover {
+  color: var(--paper);
+}
+.dayTabActive {
+  background: var(--ink-2);
+  border-color: var(--steel-line);
+  border-bottom-color: var(--ink-2);
+  color: var(--paper);
+  transform: translateY(1px);
+}
+.addDayTab {
+  padding: 9px 14px;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  background: transparent;
+  border: 1px dashed var(--steel-line);
+  color: var(--paper-faint);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.addDayTab:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+.addDayForm {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.addDayInput {
+  background: var(--ink);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: var(--radius-s);
+  width: 200px;
+}
+@media (max-width: 760px) {
+  .addDayForm {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .addDayInput {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+}
+
+.dayPanel {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 160px;
+}
+
+.exerciseRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--ink);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  font-size: 13.5px;
+}
+.exerciseName {
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
+}
+.exerciseSummary {
+  font-variant-numeric: tabular-nums;
+  color: var(--plate-yellow);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.exerciseMeta {
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-faint);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.rowActions {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.iconBtn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.iconBtn:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+/* Cvik na mobile: meno+akcie hore (grid), zhrnutie a meta pod tým na plnú šírku —
+   namiesto vecí natlačených do jedného riadku. Ikonky na 44px kvôli dotyku prstom. */
+@media (max-width: 760px) {
+  .exerciseRow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 10px;
+    row-gap: 5px;
+  }
+  .exerciseName {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+  .rowActions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .exerciseSummary,
+  .exerciseMeta {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+  .iconBtn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--ink);
+  border: 1px solid var(--iron-red-dim);
+  border-radius: var(--radius-s);
+}
+.editName {
+  font-weight: 700;
+}
+.editGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.editFieldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--paper-faint);
+}
+.editField input {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border-radius: var(--radius-s);
+  width: 100%;
+}
+.editFieldSets {
+  width: 64px;
+}
+.editFieldReps {
+  width: 96px;
+}
+.editFieldLoad {
+  width: 86px;
+}
+.editFieldTempo {
+  width: 96px;
+}
+.editFieldRest {
+  width: 86px;
+}
+.editActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+/* Na mobile: 2-stĺpcový grid s viditeľnými labelmi namiesto natlačených neoznačených
+   políčok, 44px vstupy na dotyk, akcie na plnú šírku dole. */
+@media (max-width: 760px) {
+  .editGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .editFieldSets,
+  .editFieldReps,
+  .editFieldLoad,
+  .editFieldTempo,
+  .editFieldRest {
+    width: auto;
+  }
+  .editField input {
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .editActions {
+    flex-wrap: wrap;
+  }
+  .editActions button {
+    flex: 1;
+    min-height: 44px;
+  }
+}
+
+.emptyDay {
+  color: var(--paper-faint);
+  font-size: 13.5px;
+}
+
+.formError {
+  font-size: 12px;
+  color: var(--error);
+  margin: 0;
+}

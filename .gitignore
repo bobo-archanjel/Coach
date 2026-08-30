@@ -28,6 +28,17 @@ Thumbs.db
 # Supabase local
 .supabase/
 
-# Claude Code / impeccable — machine-local (absolute paths, personal permissions)
+# Claude Code / impeccable — machine-local (absolute paths, personal permissions, global skill installs)
 .claude/settings.local.json
+.claude/skills/
+.claude/agents/impeccable-*
 .impeccable/config.local.json
+.impeccable/questions/
+.impeccable/review/
+.impeccable/mocks/
+
+# TS build info
+tsconfig.tsbuildinfo
+
+/test-results/
+/playwright-report/

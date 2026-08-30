@@ -33,12 +33,6 @@ const EyeIcon = () => (
   </svg>
 );
 
-const ChevronIcon = ({ open }: { open: boolean }) => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={open ? styles.chevronOpen : undefined}>
-    <path d="M4 5.5l3 3 3-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 function validate(form: HTMLFormElement, fieldNames: string[]) {
   const invalid: Record<string, boolean> = {};
   let hasInvalid = false;
@@ -80,7 +74,7 @@ export default function AuthPage() {
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoginStatus("idle");
       setLoginError(
@@ -90,8 +84,12 @@ export default function AuthPage() {
       );
       return;
     }
+
     setLoginStatus("success");
-    router.push("/dashboard");
+    // Presmerovanie podľa role — predtým išlo vždy na /dashboard, takže klient
+    // po prihlásení skončil (nesprávne) na trénerskom dashboarde.
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+    router.push(profile?.role === "client" ? "/portal" : "/dashboard");
     router.refresh();
   }
 
@@ -102,13 +100,17 @@ export default function AuthPage() {
   const [registerStatus, setRegisterStatus] = useState<"idle" | "loading" | "success">("idle");
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [registerNeedsConfirm, setRegisterNeedsConfirm] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
+  // Explicitná voľba namiesto skrytého "mám kód" prepínača — inak sa klient bez
+  // povšimnutia zaregistruje ako tréner, keď netuší, že má hľadať niečo iné.
+  const [registerRole, setRegisterRole] = useState<"trainer" | "client">("trainer");
+  const isClientSignup = registerRole === "client";
 
   async function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setRegisterError(null);
     const form = e.currentTarget;
-    const { invalid, hasInvalid } = validate(form, ["name", "email", "password", "terms"]);
+    const fieldNames = isClientSignup ? ["invite", "name", "email", "password", "terms"] : ["name", "email", "password", "terms"];
+    const { invalid, hasInvalid } = validate(form, fieldNames);
     setRegisterInvalid(invalid);
     if (hasInvalid) return;
 
@@ -116,11 +118,12 @@ export default function AuthPage() {
     const name = (form.elements.namedItem("name") as HTMLInputElement).value;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+    const invite = isClientSignup ? (form.elements.namedItem("invite") as HTMLInputElement).value.trim() : "";
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name, role: "trainer" } },
+      options: { data: { full_name: name, role: isClientSignup ? "client" : "trainer" } },
     });
     if (error) {
       setRegisterStatus("idle");
@@ -130,15 +133,38 @@ export default function AuthPage() {
       return;
     }
 
-    setRegisterStatus("success");
-    if (data.session) {
-      // Potvrdenie e-mailu je v projekte vypnuté — session je aktívna hneď.
-      router.push("/dashboard");
-      router.refresh();
-    } else {
+    if (!data.session) {
       // Predvolené nastavenie Supabase: treba potvrdiť e-mail skôr, než vznikne session.
+      // Pozývací kód sa v tomto prípade nespáruje hneď — spáruje sa až pri ďalšom
+      // prihlásení, kým to nepokryje samostatný krok (viď TODO nižšie).
+      setRegisterStatus("success");
       setRegisterNeedsConfirm(true);
+      return;
     }
+
+    // Potvrdenie e-mailu je v projekte vypnuté — session je aktívna hneď.
+    if (isClientSignup) {
+      const { error: claimError } = await supabase.rpc("claim_client_by_invite", { p_invite_code: invite });
+      if (claimError) {
+        setRegisterStatus("idle");
+        setRegisterError(
+          claimError.message === "invalid_invite_code"
+            ? "Tento pozývací kód neexistuje. Over si ho u svojho trénera."
+            : claimError.message === "already_claimed"
+              ? "Tento pozývací kód je už použitý iným účtom."
+              : `Účet je vytvorený, ale spárovanie zlyhalo: ${claimError.message}`
+        );
+        return;
+      }
+      setRegisterStatus("success");
+      router.push("/portal");
+      router.refresh();
+      return;
+    }
+
+    setRegisterStatus("success");
+    router.push("/dashboard");
+    router.refresh();
   }
 
   function clearFieldError(
@@ -321,16 +347,70 @@ export default function AuthPage() {
 
           {activeTab === "register" && (
             <section id="panel-register" role="tabpanel" aria-labelledby="tab-register">
+              <div className={styles.tabs} role="group" aria-label="Registrujem sa ako">
+                <button
+                  type="button"
+                  className={styles.tabBtn}
+                  aria-pressed={!isClientSignup}
+                  onClick={() => setRegisterRole("trainer")}
+                >
+                  Som tréner
+                </button>
+                <button
+                  type="button"
+                  className={styles.tabBtn}
+                  aria-pressed={isClientSignup}
+                  onClick={() => setRegisterRole("client")}
+                >
+                  Som klient — mám kód
+                </button>
+              </div>
+
               <div className={styles.authHead}>
-                <h2>
-                  Začni skúšobné
-                  <br />
-                  obdobie
-                </h2>
-                <p>14 dní zadarmo pre trénerov, bez viazanosti a bez karty.</p>
+                {isClientSignup ? (
+                  <>
+                    <h2>
+                      Pripoj sa
+                      <br />k trénerovi
+                    </h2>
+                    <p>Vlož pozývací kód od svojho trénera a vytvor si účet.</p>
+                  </>
+                ) : (
+                  <>
+                    <h2>
+                      Začni skúšobné
+                      <br />
+                      obdobie
+                    </h2>
+                    <p>14 dní zadarmo pre trénerov, bez viazanosti a bez karty.</p>
+                  </>
+                )}
               </div>
 
               <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit}>
+                {isClientSignup && (
+                  <div className={styles.field}>
+                    <label htmlFor="invite-code">Pozývací kód</label>
+                    <input
+                      id="invite-code"
+                      name="invite"
+                      type="text"
+                      placeholder="napr. MK-7Q2X"
+                      autoComplete="off"
+                      required
+                      aria-invalid={registerInvalid.invite}
+                      onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
+                    />
+                    {registerInvalid.invite && (
+                      <span className={styles.fieldError}>
+                        <ErrorIcon />
+                        Vlož kód, ktorý si dostal od svojho trénera.
+                      </span>
+                    )}
+                    <span className={styles.fieldHint}>Kód nájdeš v pozvánke od trénera.</span>
+                  </div>
+                )}
+
                 <div className={styles.field}>
                   <label htmlFor="reg-name">Meno a priezvisko</label>
                   <input
@@ -422,15 +502,25 @@ export default function AuthPage() {
                   )}
                 </div>
 
-                <button type="submit" className={`${styles.btnSubmit} ${registerStatus === "success" ? styles.success : ""}`} disabled={registerStatus === "loading"}>
+                <button
+                  type="submit"
+                  className={`${styles.btnSubmit} ${registerStatus === "success" ? styles.success : ""}`}
+                  disabled={registerStatus === "loading"}
+                >
                   {registerStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{registerStatus === "loading" ? "Vytváram účet…" : "Začať skúšobné obdobie"}</span>
+                  <span>
+                    {registerStatus === "loading"
+                      ? "Vytváram účet…"
+                      : isClientSignup
+                        ? "Pripojiť sa k trénerovi"
+                        : "Začať skúšobné obdobie"}
+                  </span>
                 </button>
 
                 {registerStatus === "success" && !registerNeedsConfirm && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Účet vytvorený. Presmerúvam na nastavenie profilu…
+                    Účet vytvorený. Presmerúvam…
                   </div>
                 )}
                 {registerStatus === "success" && registerNeedsConfirm && (
@@ -446,31 +536,6 @@ export default function AuthPage() {
                   </div>
                 )}
               </form>
-
-              <div className={styles.dividerRow}>alebo</div>
-
-              <button
-                type="button"
-                className={styles.inviteToggle}
-                aria-expanded={inviteOpen}
-                aria-controls="invite-panel"
-                onClick={() => setInviteOpen((v) => !v)}
-              >
-                <span>Som klient a mám pozývací kód</span>
-                <ChevronIcon open={inviteOpen} />
-              </button>
-              {inviteOpen && (
-                <div className={styles.invitePanel} id="invite-panel">
-                  <p>Kód nájdeš v pozvánke od svojho trénera. Klientske účty sa nezakladajú samostatne.</p>
-                  <div className={styles.field} style={{ marginBottom: 12 }}>
-                    <label htmlFor="invite-code">Pozývací kód</label>
-                    <input id="invite-code" name="invite" type="text" placeholder="napr. MK-7Q2X" autoComplete="off" />
-                  </div>
-                  <button type="button" className={styles.btnSubmit} style={{ background: "var(--ink-4)" }}>
-                    Overiť kód
-                  </button>
-                </div>
-              )}
 
               <p className={styles.switchLine}>
                 Už máš účet?{" "}
