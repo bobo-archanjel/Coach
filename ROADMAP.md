@@ -12,7 +12,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Stav k 2026-08-28
 
-**Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava/Denník/Chat, rotácia dní), odklikávanie tréningu Fáza A (existencia záznamu = splnené), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), mobile-first responzívny dizajn na oboch stranách.
+**Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava/Denník/Chat, rotácia dní), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha, nielen splnené/nesplnené), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočný favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách.
 
 **Číslovanie migrácií — ďalšie voľné číslo je `0007`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
@@ -32,17 +32,16 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Track "Tréner"
 
-1. **Fáza B tréningu — per-cvik odškrtávanie + skutočné hodnoty**
-   Teraz "odcvičil" = prázdny záznam v `workout_logs` (existencia = splnené). `workout_logs.entries` (jsonb, `[{entry_id, sets:[{reps,weight}]}]`) **už existuje v DB** (0003), stačí appka: pri "Ukončiť tréning" nech klient zadá skutočné série/opakovania/váhu ku každému cviku namiesto prázdneho poľa; tréner to potom vidí v karte "Posledná aktivita" na detaile klienta (teraz len dátum + názov dňa). Žiadna nová migrácia.
-2. **Notifikácie trénerovi** — e-mail/prehľad o klientoch, ktorí meškajú s tréningom alebo logovaním. Pravdepodobne nová tabuľka (queue/preferencie) → rezervovať migračné číslo vopred.
-3. **Skutočné logo assety** namiesto SVG rekonštrukcie (`app/components/LogoMark.tsx`) — čaká sa na finálny export z brand kitu.
+1. ~~**Fáza B tréningu — per-cvik odškrtávanie + skutočné hodnoty**~~ **HOTOVO 2026-08-28** (branch `feature/trener-training`, zmergované do `dev`) — pri "Ukončiť tréning" klient zadáva skutočné série/opakovania/váhu ku každému cviku (predvyplnené podľa plánu z buildera), tréner ich vidí v rozbaliteľnom detaile karty "Posledná aktivita". `workout_logs.entries` (jsonb, 0003) sa už reálne využíva. Žiadna nová migrácia.
+2. ~~**Notifikácie trénerovi**~~ **HOTOVO 2026-08-28** — v appke (bez e-mailu, bez novej migrácie): `/dashboard` počíta priamo z `workout_plans`/`workout_logs`, klient bez odklikaného tréningu 5+ dní dostane status chip "meškanie" a objaví sa v alert paneli nad zoznamom klientov. E-mailové zhrnutie ostáva placeholder "čoskoro" v Nastaveniach.
+3. ~~**Skutočné logo assety**~~ **ČIASTOČNE HOTOVO 2026-08-28** — favicon (`app/icon.png`, brand kit export) hotový. `LogoMark.tsx` (SVG rekonštrukcia v UI) ostáva zatiaľ nezmenený — samostatná položka, čaká sa na ďalšie assety z brand kitu.
 4. *(neskôr, po AI bloku)* AI generátor plánov pre trénera.
 
 ## Track "Klient"
 
 1. ~~**Food diary**~~ **HOTOVO 2026-08-28** — `/portal/dennik` (6. tab): klient loguje z knižnice potravín (+ rýchle pridanie z trénerovho jedálnička), vidí dnešný príjem oproti makro cieľu. Migrácia `0007_food_logs.sql`. Follow-up: karta „adherencia stravy" na strane trénera (analogicky ku karte aktivity tréningu).
 2. ~~**Chat tréner↔klient (obojsmerný)**~~ **HOTOVO 2026-08-28** — `messages` (`0008`), jedno vlákno na klienta, **refresh-based** (poll ~12 s kým je karta viditeľná + na focus, Server Actions revalidujú — bez Realtime, upgrade neskôr bez zmeny schémy). Klient: `/portal/chat` (bodka na tabe pri neprečítanej správe). Tréner: karta „Správy" na `/dashboard/klienti/[id]` + odznak počtu neprečítaných v zozname klientov. `coach_notes` ostáva samostatný (dnešný odkaz na karte Dnes). Zdieľaný `app/components/ChatThread.tsx`. Follow-up: `/dashboard/spravy` inbox (teraz sa píše len z detailu klienta), Realtime.
-3. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Závisí od Fázy B (potrebuje skutočné odcvičené hodnoty, nie len "splnené/nesplnené").
+3. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Fáza B (skutočné odcvičené hodnoty) je už hotová vyššie — táto položka je teraz odblokovaná.
 4. *(neskôr, po AI bloku)* AI chat pre klienta — **zdravotné hranice sú tvrdé pravidlo** (Product Principle #5): eskalácia na trénera pri bolesti/zranení, nikdy diagnostika. Toto sa musí navrhnúť *pri* stavbe chatu, nie dolepiť dodatočne.
 
 ## Zdieľané / potrebuje koordináciu
