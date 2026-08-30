@@ -27,7 +27,8 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0007 | `food_logs.sql` | Klient |
 | 0008 | `messages.sql` | Klient |
 | 0009 | `client_basics.sql` (vek/váha/výška na `clients`) | Tréner |
-| 0010+ | — voľné — | dohodnúť |
+| 0010 | `client_own_workouts.sql` (vlastné tréningy klienta, `clients.active_plan_id`, `ensure_self_client`/`set_active_plan` RPC) | Klient |
+| 0011+ | — voľné — | dohodnúť |
 
 ---
 
@@ -42,8 +43,9 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 1. ~~**Food diary**~~ **HOTOVO 2026-08-28** — `/portal/dennik` (6. tab): klient loguje z knižnice potravín (+ rýchle pridanie z trénerovho jedálnička), vidí dnešný príjem oproti makro cieľu. Migrácia `0007_food_logs.sql`. Follow-up: karta „adherencia stravy" na strane trénera (analogicky ku karte aktivity tréningu).
 2. ~~**Chat tréner↔klient (obojsmerný)**~~ **HOTOVO 2026-08-28** — `messages` (`0008`), jedno vlákno na klienta, **refresh-based** (poll ~12 s kým je karta viditeľná + na focus, Server Actions revalidujú — bez Realtime, upgrade neskôr bez zmeny schémy). Klient: `/portal/chat` (bodka na tabe pri neprečítanej správe). Tréner: karta „Správy" na `/dashboard/klienti/[id]` + odznak počtu neprečítaných v zozname klientov. `coach_notes` ostáva samostatný (dnešný odkaz na karte Dnes). Zdieľaný `app/components/ChatThread.tsx`. Follow-up: `/dashboard/spravy` inbox (teraz sa píše len z detailu klienta), Realtime.
-3. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Fáza B (skutočné odcvičené hodnoty) je už hotová vyššie — táto položka je teraz odblokovaná.
-4. *(neskôr, po AI bloku)* AI chat pre klienta — **zdravotné hranice sú tvrdé pravidlo** (Product Principle #5): eskalácia na trénera pri bolesti/zranení, nikdy diagnostika. Toto sa musí navrhnúť *pri* stavbe chatu, nie dolepiť dodatočne.
+3. ~~**Vlastný tréning klienta**~~ **HOTOVO 2026-08-30** (branch `feature/stopwatch`) — klient si v sekcii Tréning vytvorí vlastný tréning (aj bez trénera): naklikanie cvikov z globálnej knižnice alebo voľným textom, dni, série/opakovania/váha/pauza/tempo, uloží jedným ťukom. `/portal/trening` je teraz zoznam plánov (od trénera aj vlastné) — ťuk nastaví plán ako aktívny (`clients.active_plan_id`, null → najnovší) a ten riadi kartu Dnes presne ako plán od trénera (Začať tréning, stopky, logovanie). Plná editácia aj zmazanie vlastného plánu. Migrácia `0010_client_own_workouts.sql` (uvoľní `clients.trainer_id` a `workout_plans.trainer_id` na nullable pre self-klienta, `ensure_self_client` + `set_active_plan` security-definer RPC, klientské CUD RLS na `workout_plans`/`workout_days`).
+4. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Fáza B (skutočné odcvičené hodnoty) je už hotová vyššie — táto položka je teraz odblokovaná.
+5. *(neskôr, po AI bloku)* AI chat pre klienta — **zdravotné hranice sú tvrdé pravidlo** (Product Principle #5): eskalácia na trénera pri bolesti/zranení, nikdy diagnostika. Toto sa musí navrhnúť *pri* stavbe chatu, nie dolepiť dodatočne.
 
 ## Zdieľané / potrebuje koordináciu
 

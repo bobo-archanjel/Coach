@@ -3,6 +3,8 @@ import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type Mea
 import type {
   CoachNote,
   DayCellState,
+  ExerciseOption,
+  PlanSource,
   PortalChatData,
   PortalChatMessage,
   PortalChatResult,
@@ -18,8 +20,8 @@ import type {
   PortalMealGroup,
   PortalNutritionData,
   PortalNutritionResult,
+  PortalPlan,
   PortalResult,
-  PortalTrainingData,
   PortalTrainingDay,
   PortalTrainingResult,
   StreakDayState,
@@ -41,6 +43,7 @@ type DayRow = {
 /** Tvar cviku v workout_days.exercises (JSONB), viď app/dashboard/treningy/actions.ts. */
 type ExerciseEntry = {
   entry_id?: string;
+  exercise_id?: string | null;
   exercise_name?: string;
   sets?: number | null;
   reps?: string | null;
@@ -111,6 +114,9 @@ function toPortalExercise(entry: ExerciseEntry, position: number): PortalExercis
     entryId: entry.entry_id ?? null,
     plannedSets: entry.sets && entry.sets > 0 ? entry.sets : 1,
     plannedReps: entry.reps ?? null,
+    exerciseId: entry.exercise_id ?? null,
+    loadKg: entry.load_kg ?? null,
+    restSeconds: entry.rest_seconds ?? null,
   };
 }
 
@@ -143,7 +149,7 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const { data: client, error: clientErr } = await supabase
       .from("clients")
-      .select("id, full_name")
+      .select("id, full_name, active_plan_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true })
       .limit(1)
@@ -154,15 +160,29 @@ export async function getPortalData(): Promise<PortalResult> {
     const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
     if (!client) return { state: "unlinked", firstName };
 
-    const { data: plan, error: planErr } = await supabase
-      .from("workout_plans")
-      .select("id, name")
-      .eq("client_id", client.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (planErr) return { state: "error", message: planErr.message };
+    // "Aktívny" plán = clients.active_plan_id (klient si ho volí v sekcii Tréning),
+    // inak najnovší plán (spätne kompatibilné). Platí pre plán od trénera aj vlastný.
+    let plan: { id: string; name: string } | null = null;
+    if (client.active_plan_id) {
+      const { data } = await supabase
+        .from("workout_plans")
+        .select("id, name")
+        .eq("id", client.active_plan_id)
+        .eq("client_id", client.id)
+        .maybeSingle();
+      plan = data ?? null;
+    }
+    if (!plan) {
+      const { data, error: planErr } = await supabase
+        .from("workout_plans")
+        .select("id, name")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (planErr) return { state: "error", message: planErr.message };
+      plan = data ?? null;
+    }
     if (!plan) return { state: "no_plan", firstName: firstName ?? "" };
 
     const { data: dayRows, error: daysErr } = await supabase
@@ -283,7 +303,7 @@ async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
   const { data: client, error } = await supabase
     .from("clients")
-    .select("id, full_name")
+    .select("id, full_name, active_plan_id")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -294,8 +314,12 @@ async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>
 }
 
 /**
- * Celý aktuálny tréningový plán klienta (všetky dni, nie len dnešok) — pre kartu Tréning.
- * "Aktívny" plán = najnovší, rovnaká konvencia ako getPortalData.
+ * Zoznam tréningových plánov klienta pre sekciu Tréning — plány od trénera aj
+ * vlastné (`workout_plans.trainer_id is null` ⇔ vytvoril klient). Každý plán nesie
+ * všetky svoje dni; "aktívny" (riadi kartu Dnes) je `clients.active_plan_id`, inak
+ * najnovší. Vracia aj globálnu knižnicu cvikov pre builder vlastného tréningu.
+ * Klient bez `clients` riadku (bez trénera, ešte nič nevytvoril) → prázdny zoznam,
+ * builder ostáva dostupný (self riadok vznikne pri prvom uložení).
  */
 export async function getPortalTraining(): Promise<PortalTrainingResult> {
   try {
@@ -305,37 +329,72 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     } = await supabase.auth.getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
-    if (clientErr) return { state: "error", message: clientErr.message };
-    if (!client) return { state: "unlinked", firstName };
-
-    const { data: plan, error: planErr } = await supabase
-      .from("workout_plans")
-      .select("id, name")
-      .eq("client_id", client.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (planErr) return { state: "error", message: planErr.message };
-    if (!plan) return { state: "no_plan" };
-
-    const { data: dayRows, error: daysErr } = await supabase
-      .from("workout_days")
-      .select("id, name, exercises")
-      .eq("plan_id", plan.id)
-      .order("day_number", { ascending: true });
-    if (daysErr) return { state: "error", message: daysErr.message };
-
-    const days: PortalTrainingDay[] = (dayRows ?? []).map((d) => ({
-      id: d.id,
-      name: d.name,
-      exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
+    const { data: libRows, error: libErr } = await supabase
+      .from("exercises")
+      .select("id, name, muscle_group")
+      .is("trainer_id", null)
+      .order("name", { ascending: true });
+    if (libErr) return { state: "error", message: libErr.message };
+    const exerciseLibrary: ExerciseOption[] = (libRows ?? []).map((e) => ({
+      id: e.id,
+      name: e.name,
+      muscleGroup: e.muscle_group ?? null,
     }));
 
-    if (days.length === 0) return { state: "no_plan" };
+    const { client, error: clientErr } = await getLinkedClient(supabase, user.id);
+    if (clientErr) return { state: "error", message: clientErr.message };
 
-    const data: PortalTrainingData = { planName: plan.name, days };
-    return { state: "ok", data };
+    if (!client) {
+      return { state: "ok", data: { plans: [], activePlanId: null, exerciseLibrary } };
+    }
+
+    const { data: planRows, error: planErr } = await supabase
+      .from("workout_plans")
+      .select("id, name, trainer_id, created_at")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: true });
+    if (planErr) return { state: "error", message: planErr.message };
+
+    const planList = planRows ?? [];
+    const newestId = planList.length > 0 ? planList[planList.length - 1].id : null;
+    const activePlanId =
+      client.active_plan_id && planList.some((p) => p.id === client.active_plan_id)
+        ? client.active_plan_id
+        : newestId;
+
+    let plans: PortalPlan[] = [];
+    if (planList.length > 0) {
+      const { data: dayRows, error: daysErr } = await supabase
+        .from("workout_days")
+        .select("id, plan_id, name, exercises, day_number")
+        .in(
+          "plan_id",
+          planList.map((p) => p.id),
+        )
+        .order("day_number", { ascending: true });
+      if (daysErr) return { state: "error", message: daysErr.message };
+
+      const daysByPlan = new Map<string, PortalTrainingDay[]>();
+      for (const d of (dayRows ?? []) as (DayRow & { plan_id: string })[]) {
+        const list = daysByPlan.get(d.plan_id) ?? [];
+        list.push({
+          id: d.id,
+          name: d.name,
+          exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
+        });
+        daysByPlan.set(d.plan_id, list);
+      }
+
+      plans = planList.map((p) => ({
+        id: p.id,
+        name: p.name,
+        source: (p.trainer_id ? "trainer" : "client") as PlanSource,
+        isActive: p.id === activePlanId,
+        days: daysByPlan.get(p.id) ?? [],
+      }));
+    }
+
+    return { state: "ok", data: { plans, activePlanId, exerciseLibrary } };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
   }
