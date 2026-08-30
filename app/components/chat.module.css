@@ -43,8 +43,13 @@
   display: contents;
 }
 
-/* embedded (v karte na dashboarde) — pevná výška, krátke vlákno pri spodku */
+/* embedded (v karte na dashboarde) — pevná výška, krátke vlákno pri spodku.
+   flex:none prebíja základné .scroll{flex:1}: .thread tu (bez .fill) nemá
+   pevnú výšku, takže by sa flex-basis:0% prepočítalo na "content" a
+   explicitná height nižšie by sa pri layoute ignorovala — rovnaký bug ako
+   pri .chatPage v app/portal/portal.module.css (viď README 2026-08-30). */
 .embedded .scroll {
+  flex: none;
   height: 360px;
 }
 
