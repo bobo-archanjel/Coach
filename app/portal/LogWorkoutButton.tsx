@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import type { PortalExercise } from "@/lib/portal/types";
 import { finishWorkoutAction, type ActionState } from "./actions";
 import styles from "./portal.module.css";
+import { isWorkoutStarted, markWorkoutStarted } from "./workoutSession";
 
 const initialState: ActionState = { error: null };
 
@@ -47,9 +48,20 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   );
   const [state, formAction, pending] = useActionState(finishWorkoutAction, initialState);
 
+  // Prepnutie tabu v portáli remountuje túto kartu — obnov "tréning začatý" z
+  // localStorage, nech sa formulár nezbalí len preto, že sa klient pozrel na Chat.
+  useEffect(() => {
+    if (isWorkoutStarted(dayId)) setStarted(true);
+  }, [dayId]);
+
+  const beginWorkout = () => {
+    setStarted(true);
+    markWorkoutStarted(dayId); // zapíše príznak + emituje event pre WorkoutStopwatch
+  };
+
   if (!started) {
     return (
-      <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={() => setStarted(true)}>
+      <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={beginWorkout}>
         Začať tréning
         <ArrowIcon />
       </button>

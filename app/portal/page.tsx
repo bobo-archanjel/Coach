@@ -4,6 +4,7 @@ import { ProfileIcon, TrainingIcon } from "./icons";
 import { LogWorkoutButton } from "./LogWorkoutButton";
 import { AlertIcon, Notice } from "./Notice";
 import { RetryButton } from "./RetryButton";
+import { WorkoutStopwatch } from "./WorkoutStopwatch";
 import styles from "./portal.module.css";
 
 /* /portal — domovská obrazovka "Dnes".
@@ -244,6 +245,12 @@ function PortalToday({ data }: { data: PortalData }) {
           <LogWorkoutButton dayId={session.dayId} exercises={session.exercises} />
         )}
       </section>
+
+      {/* Plávajúce stopky / časovač pauzy — ikona dole sa objaví po "Začať tréning",
+          zmizne po ukončení. Fixne pozicované, miesto v strome je len logické. */}
+      {session.dayId && (
+        <WorkoutStopwatch dayId={session.dayId} finished={session.kind === "done"} />
+      )}
 
       {/* 3 · dozvuk */}
       <section className={styles.after} aria-label="Prehľad">

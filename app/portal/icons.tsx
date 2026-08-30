@@ -57,6 +57,14 @@ export const ChatIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+export const StopwatchIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="13.5" r="7.5" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M12 13.5V9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M9.5 2.8h5M12 2.8V6M18.4 7.6l1.5-1.5M17.2 6.4l1.2 1.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export const ProfileIcon = ({ className }: IconProps) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="8.4" r="3.6" stroke="currentColor" strokeWidth="1.7" />
