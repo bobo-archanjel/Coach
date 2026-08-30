@@ -14,7 +14,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 **Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava/Denník/Chat, rotácia dní), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha, nielen splnené/nesplnené), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočný favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách.
 
-**Číslovanie migrácií — ďalšie voľné číslo je `0007`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
+**Číslovanie migrácií — ďalšie voľné číslo je `0010`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
 | # | Súbor | Track |
 |---|---|---|
@@ -26,7 +26,8 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0006 | `client_invite_claim.sql` | Klient |
 | 0007 | `food_logs.sql` | Klient |
 | 0008 | `messages.sql` | Klient |
-| 0009+ | — voľné — | dohodnúť |
+| 0009 | `client_basics.sql` (vek/váha/výška na `clients`) | Tréner |
+| 0010+ | — voľné — | dohodnúť |
 
 ---
 

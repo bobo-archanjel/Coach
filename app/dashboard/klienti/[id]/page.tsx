@@ -63,7 +63,7 @@ export default async function ClientDetailPage({
 
   const { data: client } = await supabase
     .from("clients")
-    .select("id, full_name, goal, notes, invite_code, created_at")
+    .select("id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm")
     .eq("id", id)
     .maybeSingle();
 
@@ -135,6 +135,20 @@ export default async function ClientDetailPage({
             <span className={styles.infoLabel}>Pozývací kód</span>
             <span className={styles.infoValue}>{client.invite_code}</span>
           </div>
+          {(client.age || client.weight_kg || client.height_cm) && (
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Vek / váha / výška</span>
+              <span className={styles.infoValue}>
+                {[
+                  client.age ? `${client.age} rokov` : null,
+                  client.weight_kg ? `${client.weight_kg} kg` : null,
+                  client.height_cm ? `${client.height_cm} cm` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </div>
+          )}
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Poznámky</span>
             {client.notes ? (

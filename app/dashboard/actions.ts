@@ -41,11 +41,27 @@ export async function addClientAction(
     return { error: "Meno klienta je povinné." };
   }
 
+  // Voliteľné základné údaje — na rozdiel od nutrition_profiles (0004) nie sú
+  // povinné ani validované na rozsah v appke, len na DB check constraint
+  // (0009_client_basics.sql); prázdne pole = null, nie 0.
+  const parseOptionalNumber = (key: string) => {
+    const raw = (formData.get(key) as string | null)?.trim();
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+  const age = parseOptionalNumber("age");
+  const weightKg = parseOptionalNumber("weight_kg");
+  const heightCm = parseOptionalNumber("height_cm");
+
   const { error } = await supabase.from("clients").insert({
     trainer_id: user.id,
     full_name: fullName,
     goal,
     notes,
+    age,
+    weight_kg: weightKg,
+    height_cm: heightCm,
     invite_code: generateInviteCode(fullName),
   });
 

@@ -37,6 +37,40 @@ export function AddClientForm() {
           disabled={pending}
           className={styles.addClientInput}
         />
+      </div>
+      <div className={styles.addClientFieldsRow}>
+        <input
+          name="age"
+          type="number"
+          inputMode="numeric"
+          placeholder="Vek"
+          min={1}
+          max={119}
+          disabled={pending}
+          className={styles.addClientInputSm}
+        />
+        <input
+          name="weight_kg"
+          type="number"
+          inputMode="decimal"
+          placeholder="Váha (kg)"
+          min={1}
+          step="0.1"
+          disabled={pending}
+          className={styles.addClientInputSm}
+        />
+        <input
+          name="height_cm"
+          type="number"
+          inputMode="decimal"
+          placeholder="Výška (cm)"
+          min={1}
+          step="0.1"
+          disabled={pending}
+          className={styles.addClientInputSm}
+        />
+      </div>
+      <div className={styles.addClientFields}>
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
           {pending ? "Pridávam…" : "Pridať klienta"}
         </button>

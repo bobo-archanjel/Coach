@@ -202,8 +202,21 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-bottom: 10px;
 }
-.addClientInput {
+.addClientFieldsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.addClientInput,
+.addClientInputSm {
+  /* flex-basis 200px je šírkový rozmer pre desktop (row) layout — pod 640px sa
+     .addClientFields prepína na flex-direction:column, kde by tá istá hodnota
+     ako flex-basis určovala VÝŠKU (main-axis v column je vertikálny), takže
+     polia narástli na ~200px vysoké boxy namiesto textového riadku. Mobile
+     media query nižšie preto basis resetuje na auto. */
   flex: 1 1 200px;
   background: var(--ink-2);
   border: 1px solid var(--steel-line);
@@ -213,27 +226,59 @@
   padding: 10px 14px;
   border-radius: var(--radius-s);
 }
+.addClientInputSm {
+  /* grow:0 (nie zdedené 1) — sú to krátke číselné polia, na širšom desktope
+     nemajú dôvod naťahovať sa na plnú šírku riadku ako meno/cieľ. Na mobile
+     to mobile media query nižšie prebije späť na rovnomerné vyplnenie riadku. */
+  flex: 0 1 110px;
+}
 @media (max-width: 640px) {
-  .addClientFields {
+  .addClientFields,
+  .addClientFieldsRow {
     flex-direction: column;
     align-items: stretch;
   }
-  .addClientInput {
+  .addClientFieldsRow {
+    flex-direction: row;
+  }
+  .addClientInput,
+  .addClientInputSm {
+    /* auto namiesto zdedeného basis (200px/110px) — pozri komentár vyššie. */
+    flex-basis: auto;
     /* 16px = iOS Safari nezoomuje pri focuse; menšie písmo v inpute to spúšťa. */
     font-size: 16px;
     padding: 12px 14px;
   }
+  .addClientFieldsRow .addClientInputSm {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 10px;
+  }
 }
-.addClientInput::placeholder {
+.addClientInput::placeholder,
+.addClientInputSm::placeholder {
   color: var(--paper-faint);
 }
-.addClientInput:focus {
+.addClientInput:focus,
+.addClientInputSm:focus {
   outline: none;
   border-color: var(--iron-red);
   background: var(--ink-3);
 }
-.addClientInput:disabled {
+.addClientInput:disabled,
+.addClientInputSm:disabled {
   opacity: 0.6;
+}
+/* number input spinnery: vlastný chevron by bol viac práce než hodnota pre
+   voliteľné, zriedka menené polia — schované, nie štylizované (rovnaký
+   vzor ako gramáž v dennníku, README 2026-08-28). */
+.addClientInputSm::-webkit-outer-spin-button,
+.addClientInputSm::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.addClientInputSm[type="number"] {
+  -moz-appearance: textfield;
 }
 .addClientError {
   margin-top: 8px;
