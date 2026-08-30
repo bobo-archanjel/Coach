@@ -1779,7 +1779,8 @@
   margin-right: auto;
 }
 .trGhostBtn,
-.trDangerBtn {
+.trDangerBtn,
+.trStartBtn {
   padding: 8px 13px;
   border-radius: var(--radius-s);
   font-size: 13px;
@@ -1789,6 +1790,24 @@
     background 0.15s ease,
     border-color 0.15s ease,
     opacity 0.15s ease;
+}
+.trStartBtn {
+  margin-right: auto;
+  border: 1px solid transparent;
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  font-weight: 800;
+  box-shadow: var(--shadow-1);
+}
+.trStartBtn:hover {
+  background: #b82f1b;
+}
+.trStartBtn:active {
+  transform: translateY(1px);
+}
+.trStartBtn:disabled {
+  opacity: 0.55;
+  cursor: progress;
 }
 .trGhostBtn {
   background: transparent;

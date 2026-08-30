@@ -22,7 +22,6 @@ export interface DraftExercise {
   sets: number;
   reps: string;
   loadKg: number | null;
-  tempo: string | null;
   restSeconds: number | null;
 }
 export interface DraftDay {
@@ -45,7 +44,6 @@ type CleanEntry = {
   sets: number;
   reps: string;
   load_kg: number | null;
-  tempo: string | null;
   rest_seconds: number | null;
 };
 
@@ -83,7 +81,6 @@ function cleanEntries(raw: unknown): CleanEntry[] {
         sets: clampInt(x.sets, 1, 20, 3),
         reps: cleanText(x.reps, 20) || "10",
         load_kg: optionalNum(x.loadKg, 0, 1000),
-        tempo: cleanText(x.tempo, 15) || null,
         rest_seconds: rest === null ? null : Math.round(rest),
       };
     })

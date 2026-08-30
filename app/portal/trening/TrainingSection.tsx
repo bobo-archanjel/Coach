@@ -80,6 +80,22 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     });
   };
 
+  // "Začať tréning" — nastaví plán ako aktívny a prejde na kartu Dnes, kde beží
+  // presne ten istý štart tréningu ako pri pláne od trénera (Začať tréning →
+  // formulár sérií + plávajúce stopky, logovanie cez finishWorkoutAction).
+  const startPlan = (plan: PortalPlan) => {
+    setError(null);
+    if (plan.isActive) {
+      router.push("/portal");
+      return;
+    }
+    startTransition(async () => {
+      const res = await setActivePlanAction(plan.id);
+      if (res.error) setError(res.error);
+      else router.push("/portal");
+    });
+  };
+
   if (mode === "build") {
     return (
       <ClientPlanBuilder library={exerciseLibrary} initial={editing} onCancel={closeBuilder} onSaved={onSaved} />
@@ -173,44 +189,54 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                       ))
                     )}
 
-                    {plan.source === "client" && (
-                      <div className={styles.trPlanActions}>
-                        {confirmDelete === plan.id ? (
-                          <>
-                            <span className={styles.trConfirmText}>Naozaj zmazať tento tréning?</span>
-                            <button
-                              type="button"
-                              className={styles.trDangerBtn}
-                              onClick={() => removePlan(plan.id)}
-                              disabled={pending}
-                            >
-                              Zmazať
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.trGhostBtn}
-                              onClick={() => setConfirmDelete(null)}
-                              disabled={pending}
-                            >
-                              Nie
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(plan)}>
-                              Upraviť
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.trGhostBtn}
-                              onClick={() => setConfirmDelete(plan.id)}
-                            >
-                              Zmazať
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <div className={styles.trPlanActions}>
+                      {confirmDelete === plan.id ? (
+                        <>
+                          <span className={styles.trConfirmText}>Naozaj zmazať tento tréning?</span>
+                          <button
+                            type="button"
+                            className={styles.trDangerBtn}
+                            onClick={() => removePlan(plan.id)}
+                            disabled={pending}
+                          >
+                            Zmazať
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.trGhostBtn}
+                            onClick={() => setConfirmDelete(null)}
+                            disabled={pending}
+                          >
+                            Nie
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className={styles.trStartBtn}
+                            onClick={() => startPlan(plan)}
+                            disabled={pending}
+                          >
+                            Začať tréning
+                          </button>
+                          {plan.source === "client" && (
+                            <>
+                              <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(plan)}>
+                                Upraviť
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.trGhostBtn}
+                                onClick={() => setConfirmDelete(plan.id)}
+                              >
+                                Zmazať
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </li>

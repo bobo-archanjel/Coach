@@ -25,7 +25,6 @@ type BEx = {
   sets: string;
   reps: string;
   loadKg: string;
-  tempo: string;
   restSeconds: string;
 };
 type BDay = { key: string; id: string | null; name: string; exercises: BEx[] };
@@ -47,7 +46,7 @@ const TrashIcon = () => (
 );
 
 function newExercise(name: string, exerciseId: string | null): BEx {
-  return { key: uid(), exerciseId, name, sets: "3", reps: "10", loadKg: "", tempo: "", restSeconds: "90" };
+  return { key: uid(), exerciseId, name, sets: "3", reps: "10", loadKg: "", restSeconds: "90" };
 }
 
 function fromInitial(initial: PortalPlan): BDay[] {
@@ -63,7 +62,6 @@ function fromInitial(initial: PortalPlan): BDay[] {
       sets: String(e.plannedSets),
       reps: e.plannedReps ?? "10",
       loadKg: e.loadKg != null ? String(e.loadKg) : "",
-      tempo: e.tempo ?? "",
       restSeconds: e.restSeconds != null ? String(e.restSeconds) : "",
     })),
   }));
@@ -161,7 +159,6 @@ export function ClientPlanBuilder({
             sets: Number(e.sets) || 3,
             reps: e.reps.trim() || "10",
             loadKg: e.loadKg.trim() === "" ? null : Number(e.loadKg),
-            tempo: e.tempo.trim() || null,
             restSeconds: e.restSeconds.trim() === "" ? null : Number(e.restSeconds),
           })),
       })),
@@ -312,15 +309,6 @@ export function ClientPlanBuilder({
                             placeholder="—"
                           />
                         </label>
-                        <label className={styles.trField}>
-                          <span>Tempo</span>
-                          <input
-                            type="text"
-                            value={ex.tempo}
-                            onChange={(e) => patchExercise(activeDay.key, ex.key, { tempo: e.target.value })}
-                            placeholder="napr. 3-0-1"
-                          />
-                        </label>
                       </div>
                     ) : (
                       <p className={styles.trExMeta}>
@@ -328,7 +316,6 @@ export function ClientPlanBuilder({
                           `${ex.sets || "3"} × ${ex.reps || "10"}`,
                           ex.loadKg.trim() && `${ex.loadKg} kg`,
                           ex.restSeconds.trim() && `pauza ${ex.restSeconds} s`,
-                          ex.tempo.trim() && `tempo ${ex.tempo}`,
                         ]
                           .filter(Boolean)
                           .join(" · ")}
