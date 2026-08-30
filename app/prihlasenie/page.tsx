@@ -89,8 +89,53 @@ export default function AuthPage() {
     // Presmerovanie podľa role — predtým išlo vždy na /dashboard, takže klient
     // po prihlásení skončil (nesprávne) na trénerskom dashboarde.
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+
+    // Doklaimovanie pozývacieho kódu, ak zostal nespárovaný z registrácie — nastane
+    // vtedy, keď má projekt zapnuté povinné potvrdenie e-mailu (Supabase Dashboard →
+    // Authentication → Sign In / Providers → Email → "Confirm email"): pri signUp ešte
+    // nebola session, takže claim_client_by_invite sa vtedy nedal zavolať. Kód sme si
+    // uložili do user_metadata pri registrácii (viď handleRegisterSubmit) — tu ho
+    // skúsime doklaimovať; RPC je idempotentné pre toho istého používateľa, takže
+    // opakované volanie pri každom prihlásení nič nepokazí.
+    const inviteCode = data.user.user_metadata?.invite_code as string | undefined;
+    if (profile?.role === "client" && inviteCode) {
+      await supabase.rpc("claim_client_by_invite", { p_invite_code: inviteCode });
+    }
+
     router.push(profile?.role === "client" ? "/portal" : "/dashboard");
     router.refresh();
+  }
+
+  // ---- zabudnuté heslo ----
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const forgotFormRef = useRef<HTMLFormElement>(null);
+  const [forgotInvalid, setForgotInvalid] = useState(false);
+  const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
+  async function handleForgotSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setForgotError(null);
+    const form = e.currentTarget;
+    const emailEl = form.elements.namedItem("email") as HTMLInputElement;
+    if (!emailEl.checkValidity()) {
+      setForgotInvalid(true);
+      return;
+    }
+    setForgotInvalid(false);
+    setForgotStatus("loading");
+    const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value, {
+      redirectTo: `${window.location.origin}/prihlasenie/nove-heslo`,
+    });
+    // Supabase úmyselne nehlási, či e-mail v systéme existuje (ochrana pred
+    // enumeráciou účtov) — správa je preto vždy rovnaká, aj pri chybe siete
+    // necháme používateľa skúsiť znova cez formError, ale neprezrádzame existenciu.
+    if (error) {
+      setForgotStatus("idle");
+      setForgotError(error.message);
+      return;
+    }
+    setForgotStatus("success");
   }
 
   // ---- register form state ----
@@ -123,7 +168,16 @@ export default function AuthPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name, role: isClientSignup ? "client" : "trainer" } },
+      options: {
+        data: {
+          full_name: name,
+          role: isClientSignup ? "client" : "trainer",
+          // Uložené pre prípad, že projekt vyžaduje potvrdenie e-mailu — vtedy tu
+          // ešte nie je session na zavolanie claim_client_by_invite, doklaimuje sa
+          // pri prvom prihlásení (viď handleLoginSubmit).
+          ...(isClientSignup ? { invite_code: invite } : {}),
+        },
+      },
     });
     if (error) {
       setRegisterStatus("idle");
@@ -241,13 +295,16 @@ export default function AuthPage() {
               role="tab"
               aria-selected={activeTab === "register"}
               aria-controls="panel-register"
-              onClick={() => setActiveTab("register")}
+              onClick={() => {
+                setActiveTab("register");
+                setForgotOpen(false);
+              }}
             >
               Registrácia
             </button>
           </div>
 
-          {activeTab === "login" && (
+          {activeTab === "login" && !forgotOpen && (
             <section id="panel-login" role="tabpanel" aria-labelledby="tab-login">
               <div className={styles.authHead}>
                 <h2>Vitaj späť</h2>
@@ -312,9 +369,9 @@ export default function AuthPage() {
                     <input type="checkbox" name="remember" />
                     Zapamätať si ma
                   </label>
-                  <a href="#" className={styles.link}>
+                  <button type="button" className={styles.link} onClick={() => setForgotOpen(true)}>
                     Zabudnuté heslo?
-                  </a>
+                  </button>
                 </div>
 
                 <button type="submit" className={`${styles.btnSubmit} ${loginStatus === "success" ? styles.success : ""}`} disabled={loginStatus === "loading"}>
@@ -340,6 +397,65 @@ export default function AuthPage() {
                 Nemáš ešte účet?{" "}
                 <button type="button" className={styles.link} onClick={() => setActiveTab("register")}>
                   Vytvoriť účet
+                </button>
+              </p>
+            </section>
+          )}
+
+          {activeTab === "login" && forgotOpen && (
+            <section id="panel-forgot" role="tabpanel" aria-labelledby="tab-login">
+              <div className={styles.authHead}>
+                <h2>Zabudnuté heslo</h2>
+                <p>Zadaj e-mail, pošleme ti naň odkaz na nastavenie nového hesla.</p>
+              </div>
+
+              <form ref={forgotFormRef} noValidate onSubmit={handleForgotSubmit}>
+                <div className={styles.field}>
+                  <label htmlFor="forgot-email">E-mail</label>
+                  <input
+                    id="forgot-email"
+                    name="email"
+                    type="email"
+                    placeholder="tvoj@email.sk"
+                    autoComplete="email"
+                    required
+                    aria-invalid={forgotInvalid}
+                    onChange={(e) => forgotInvalid && e.currentTarget.checkValidity() && setForgotInvalid(false)}
+                  />
+                  {forgotInvalid && (
+                    <span className={styles.fieldError}>
+                      <ErrorIcon />
+                      Zadaj platnú e-mailovú adresu.
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className={`${styles.btnSubmit} ${forgotStatus === "success" ? styles.success : ""}`}
+                  disabled={forgotStatus === "loading"}
+                >
+                  {forgotStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
+                  <span>{forgotStatus === "loading" ? "Odosielam…" : "Poslať odkaz na reset"}</span>
+                </button>
+
+                {forgotStatus === "success" && (
+                  <div className={styles.formStatus} role="status">
+                    <SuccessIcon />
+                    Ak účet s týmto e-mailom existuje, poslali sme naň odkaz na reset hesla.
+                  </div>
+                )}
+                {forgotError && (
+                  <div className={`${styles.formStatus} ${styles.error}`} role="alert">
+                    <ErrorIcon />
+                    {forgotError}
+                  </div>
+                )}
+              </form>
+
+              <p className={styles.switchLine}>
+                <button type="button" className={styles.link} onClick={() => setForgotOpen(false)}>
+                  ← Späť na prihlásenie
                 </button>
               </p>
             </section>
