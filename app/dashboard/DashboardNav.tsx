@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark } from "../components/LogoMark";
+import { LogoWordmark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
 import styles from "./dashboard.module.css";
 
@@ -62,8 +62,7 @@ export function DashboardNav() {
   return (
     <aside className={styles.sidebar}>
       <Link href="/dashboard" className={styles.sidebarBrand}>
-        <LogoMark className={styles.logoMark} />
-        FitPilot
+        <LogoWordmark className={styles.brandLogo} />
       </Link>
 
       <nav className={styles.navList} aria-label="Trénerský dashboard">

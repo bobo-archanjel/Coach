@@ -36,7 +36,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 1. ~~**Fáza B tréningu — per-cvik odškrtávanie + skutočné hodnoty**~~ **HOTOVO 2026-08-28** (branch `feature/trener-training`, zmergované do `dev`) — pri "Ukončiť tréning" klient zadáva skutočné série/opakovania/váhu ku každému cviku (predvyplnené podľa plánu z buildera), tréner ich vidí v rozbaliteľnom detaile karty "Posledná aktivita". `workout_logs.entries` (jsonb, 0003) sa už reálne využíva. Žiadna nová migrácia.
 2. ~~**Notifikácie trénerovi**~~ **HOTOVO 2026-08-28** — v appke (bez e-mailu, bez novej migrácie): `/dashboard` počíta priamo z `workout_plans`/`workout_logs`, klient bez odklikaného tréningu 5+ dní dostane status chip "meškanie" a objaví sa v alert paneli nad zoznamom klientov. E-mailové zhrnutie ostáva placeholder "čoskoro" v Nastaveniach.
-3. ~~**Skutočné logo assety**~~ **ČIASTOČNE HOTOVO 2026-08-28** — favicon (`app/icon.png`, brand kit export) hotový. `LogoMark.tsx` (SVG rekonštrukcia v UI) ostáva zatiaľ nezmenený — samostatná položka, čaká sa na ďalšie assety z brand kitu.
+3. ~~**Skutočné logo assety**~~ **HOTOVO 2026-08-30** (branch `feature/identita`) — favicon (`app/icon.png`) hotový od 28.8.; teraz aj `LogoMark.tsx` nahradený skutočným exportom (`docs/Design/logo.png` → `public/brand/logo-mark.png`, cez `next/image`) namiesto SVG rekonštrukcie, použitý na landing headeri/footeri, dashboard sidebari, portál sidebari aj auth stránke. `FitPilot_Logo.png` (mark+wordmark) a `long_logo.png` (+ tagline) sú tiež dodané, zatiaľ nepoužité (existujúci vzor mark-ako-obrázok + "FitPilot" ako HTML text v Inter sa zachoval).
 4. *(neskôr, po AI bloku)* AI generátor plánov pre trénera.
 
 ## Track "Klient"
