@@ -37,6 +37,10 @@ export interface PortalExercise {
   plannedSets: number;
   /** plánované opakovania ako placeholder v riadku série, napr. "6" alebo "8-10" */
   plannedReps: string | null;
+  /** surové hodnoty pre builder vlastného tréningu (úprava existujúceho plánu) */
+  exerciseId: string | null;
+  loadKg: number | null;
+  restSeconds: number | null;
 }
 
 /** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B). */
@@ -92,7 +96,7 @@ export type PortalResult =
   | { state: "no_plan"; firstName: string }
   | { state: "error"; message?: string };
 
-// ---------- Tréning (celý plán, nie len dnešok) ----------
+// ---------- Tréning (zoznam plánov klienta — od trénera aj vlastné) ----------
 
 export interface PortalTrainingDay {
   id: string;
@@ -100,15 +104,33 @@ export interface PortalTrainingDay {
   exercises: PortalExercise[];
 }
 
-export interface PortalTrainingData {
-  planName: string;
+/** Zdroj plánu: od trénera, alebo si ho klient vytvoril sám. */
+export type PlanSource = "trainer" | "client";
+
+export interface PortalPlan {
+  id: string;
+  name: string;
+  source: PlanSource;
+  /** true pre plán, ktorý riadi kartu Dnes (clients.active_plan_id, inak najnovší) */
+  isActive: boolean;
   days: PortalTrainingDay[];
+}
+
+export interface PortalTrainingData {
+  plans: PortalPlan[];
+  activePlanId: string | null;
+  /** globálna knižnica cvikov pre builder vlastného tréningu */
+  exerciseLibrary: ExerciseOption[];
+}
+
+export interface ExerciseOption {
+  id: string;
+  name: string;
+  muscleGroup: string | null;
 }
 
 export type PortalTrainingResult =
   | { state: "ok"; data: PortalTrainingData }
-  | { state: "unlinked"; firstName: string | null }
-  | { state: "no_plan" }
   | { state: "error"; message?: string };
 
 // ---------- Strava (makro cieľ + jedálniček) ----------

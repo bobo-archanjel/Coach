@@ -99,7 +99,7 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
+  if (!client) return { error: "Nepodarilo sa nájsť tvoj profil." };
 
   const { error } = await supabase.from("workout_logs").insert({
     client_id: client.id,
