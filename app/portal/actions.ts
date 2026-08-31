@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
+import { getPortalWeek } from "@/lib/portal/data";
 import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
-import type { PortalFoodOption } from "@/lib/portal/types";
+import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
 
 export interface ActionState {
   error: string | null;
@@ -27,6 +28,11 @@ export async function searchOnlineFoodAction(query: string): Promise<{ error: st
 export async function getExerciseDetailAction(exerciseId: string): Promise<ExerciseDetail | null> {
   const supabase = await createClient();
   return fetchExerciseDetail(supabase, exerciseId);
+}
+
+/** Pás „Tento týždeň" — načíta iný (spravidla minulý) týždeň pri listovaní. */
+export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeekResult> {
+  return getPortalWeek(mondayIso);
 }
 
 /** Klient prepojený s prihláseným používateľom, alebo null. */

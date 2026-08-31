@@ -151,6 +151,41 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
   });
 
+  test("Tento týždeň: listovanie týždňami + náhľad odcvičeného dňa", async ({ page }) => {
+    const errs: string[] = [];
+    page.on("pageerror", (e) => errs.push(e.message));
+    await page.goto("/portal?preview=ok");
+
+    // pager: dopredu je na aktuálnom týždni zakázané, dozadu povolené
+    await expect(page.getByRole("button", { name: /Nasledujúci týždeň/i })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /Predchádzajúci týždeň/i })).toBeEnabled();
+
+    // ťuk na deň so záznamom (Po 24 v preview) → náhľad s cvikmi
+    await page.getByRole("button", { name: /pondelok 24\..*zobraziť odcvičený tréning/i }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Tlak na lavičke")).toBeVisible();
+    await expect(dialog.getByText("8 op. × 70 kg").first()).toBeVisible();
+
+    // Escape zavrie
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    // deň označený ako hotový bez zapísaných sérií (St 26 v preview)
+    await page.getByRole("button", { name: /streda 26\..*zobraziť odcvičený tréning/i }).click();
+    await expect(page.getByRole("dialog").getByText(/bez zápisu skutočných sérií/i)).toBeVisible();
+    await page.getByRole("button", { name: "Zavrieť", exact: true }).click();
+
+    // deň bez tréningu nie je klikateľný (Ut 25)
+    await expect(page.getByRole("button", { name: /utorok 25\./i })).toHaveCount(0);
+
+    // listovanie dozadu: bez session (preview) → chybová poznámka + retry, nie pád
+    await page.getByRole("button", { name: /Predchádzajúci týždeň/i }).click();
+    await expect(page.getByRole("button", { name: "Skúsiť znova", exact: true })).toBeVisible();
+
+    expect(errs, errs.join("\n")).toEqual([]);
+  });
+
   test("preview=unlinked — neprepojený klient, bez CTA", async ({ page }) => {
     await page.goto("/portal?preview=unlinked");
     await expect(page.getByText(/nie je prepojený s trénerom/i)).toBeVisible();

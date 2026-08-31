@@ -549,13 +549,34 @@
   flex-direction: column;
   align-items: center;
   gap: 7px;
+  width: 100%;
   padding: 8px 2px;
   border-radius: var(--radius-s);
   border: 1px solid transparent;
+  background: none;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 .weekCellToday {
   border-color: rgba(230, 178, 58, 0.4);
   background: rgba(230, 178, 58, 0.07);
+}
+.weekCellClickable {
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+.weekCellClickable:hover {
+  border-color: var(--steel-line);
+  background: var(--ink-3);
+}
+.weekCellToday.weekCellClickable:hover {
+  border-color: rgba(230, 178, 58, 0.55);
+  background: rgba(230, 178, 58, 0.11);
+}
+.weekCellClickable:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 1px;
 }
 .weekDay {
   font-size: 11px;
@@ -592,11 +613,282 @@
   border-radius: 999px;
   background: var(--steel-line);
 }
+.markFuture {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--steel-line);
+  opacity: 0.5;
+}
 .weekNum {
   font-size: 11px;
   font-weight: 700;
   color: var(--paper-dim);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- pás Tento týždeň: hlavička + listovanie týždňami (WeekHistory) ---------- */
+.weekHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.weekHead .panelLabel {
+  margin-bottom: 0;
+}
+.weekPager {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.weekRange {
+  min-width: 96px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.weekNav {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+  transition: color 0.14s ease, border-color 0.14s ease;
+}
+.weekNav:hover:not(:disabled) {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+.weekNav:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 1px;
+}
+.weekNav:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.weekLoading {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.14s ease;
+}
+.weekNote {
+  margin-top: 11px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--paper-faint);
+}
+.weekRetry {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--iron-red);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.weekRetry:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 2px;
+}
+
+/* ---------- náhľad odcvičeného tréningu (WeekHistory → SessionDialog) ---------- */
+.whScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: rgba(9, 8, 8, 0.6);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+  animation: whFade 0.15s ease both;
+}
+.whPanel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 84;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(84vh, 640px);
+  overflow-y: auto;
+  padding: 18px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-2);
+  animation: whPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (max-width: 520px) {
+  .whPanel {
+    left: 0;
+    top: auto;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    max-height: 82vh;
+    border-radius: var(--radius-m) var(--radius-m) 0 0;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    animation-name: whSheetIn;
+  }
+}
+.whHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.whTitle {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+}
+.whSub {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}
+.whClose {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -4px 0 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--ink-3);
+  color: var(--paper-dim);
+  cursor: pointer;
+  transition: color 0.14s ease;
+}
+.whClose:hover {
+  color: var(--paper);
+}
+.whClose:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 1px;
+}
+.whBody {
+  display: grid;
+  gap: 16px;
+}
+.whSession + .whSession {
+  border-top: 1px solid var(--steel-line);
+  padding-top: 16px;
+}
+.whSessionHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.whSessionHead:empty {
+  display: none;
+}
+.whSessionName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.whPlan {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--paper-dim);
+}
+.whExList {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.whExRow + .whExRow {
+  border-top: 1px solid var(--steel-line);
+  padding-top: 12px;
+}
+.whExName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper);
+  margin-bottom: 6px;
+}
+.whSetList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+}
+.whSetList li {
+  background: var(--ink-3);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.whSetList .whSetEmpty {
+  background: none;
+  padding: 3px 0;
+  color: var(--paper-faint);
+}
+.whNoEntries {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--moss);
+}
+@keyframes whFade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes whPanelIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 8px));
+  }
+}
+@keyframes whSheetIn {
+  from {
+    transform: translateY(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .whScrim,
+  .whPanel {
+    animation: none;
+  }
 }
 /* ---------- nav: bottom tab bar (mobile) / sidebar (desktop) ---------- */
 /* .navShell je len wrapper — na mobile neviditeľný ako layout prvok (position:fixed

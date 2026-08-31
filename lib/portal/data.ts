@@ -4,7 +4,11 @@ import type {
   CoachNote,
   DayCellState,
   ExerciseOption,
+  LoggedExerciseView,
+  LoggedSessionView,
+  LoggedSetView,
   PlanSource,
+  PortalWeekResult,
   PortalChatData,
   PortalChatMessage,
   PortalChatResult,
@@ -27,11 +31,15 @@ import type {
   StreakDayState,
   TodaySession,
   WeekDay,
+  WeekView,
 } from "./types";
 
 const TZ = "Europe/Bratislava";
 const WEEKDAY_LABELS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"]; // index 0 = pondelok
+const MONTH_ABBR = ["jan", "feb", "mar", "apr", "máj", "jún", "júl", "aug", "sep", "okt", "nov", "dec"];
 const HISTORY_DAYS = 12;
+/** Ako ďaleko dozadu sa dá listovať v páse „Tento týždeň" (≈ 1 rok). */
+const WEEK_HISTORY_FLOOR_DAYS = 371;
 
 type DayRow = {
   id: string;
@@ -84,6 +92,21 @@ function iso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Pondelok týždňa, do ktorého spadá `d` (UTC-poludnie základ z todayInTz/parse). */
+function mondayOf(d: Date): Date {
+  return addDays(d, -(isoWeekday(d) - 1));
+}
+
+/** „18. – 24. aug" (jeden mesiac) alebo „30. aug – 5. sep" (na prelome). */
+function weekRangeLabel(monday: Date): string {
+  const sunday = addDays(monday, 6);
+  const m1 = MONTH_ABBR[monday.getUTCMonth()];
+  const m2 = MONTH_ABBR[sunday.getUTCMonth()];
+  const d1 = monday.getUTCDate();
+  const d2 = sunday.getUTCDate();
+  return m1 === m2 ? `${d1}. – ${d2}. ${m2}` : `${d1}. ${m1} – ${d2}. ${m2}`;
+}
+
 function firstNameOf(full: string | null | undefined): string | null {
   const n = (full ?? "").trim();
   if (!n) return null;
@@ -122,6 +145,105 @@ function toPortalExercise(entry: ExerciseEntry, position: number): PortalExercis
 
 function parseEntries(raw: unknown): ExerciseEntry[] {
   return Array.isArray(raw) ? (raw as ExerciseEntry[]) : [];
+}
+
+/**
+ * Prečíta workout_logs.entries do pohľadu histórie. Odolné voči obom tvarom, ktoré
+ * v DB reálne existujú: nové logy `{entryId, name, sets}` (finishWorkoutAction) aj
+ * staršie / seed logy bez zápisu (`[]`) alebo v snake tvare `{exercise_name}`.
+ */
+function parseLoggedExercises(raw: unknown): LoggedExerciseView[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((e): LoggedExerciseView | null => {
+      if (!e || typeof e !== "object") return null;
+      const x = e as Record<string, unknown>;
+      const rawName =
+        (typeof x.name === "string" && x.name) || (typeof x.exercise_name === "string" && x.exercise_name) || "";
+      const name = rawName.trim() || "Cvik";
+      const setsRaw = Array.isArray(x.sets) ? x.sets : [];
+      const sets = setsRaw
+        .map((s): LoggedSetView | null => {
+          if (!s || typeof s !== "object") return null;
+          const r = s as Record<string, unknown>;
+          const reps = typeof r.reps === "number" && Number.isFinite(r.reps) ? r.reps : null;
+          const weight = typeof r.weight === "number" && Number.isFinite(r.weight) ? r.weight : null;
+          if (reps === null && weight === null) return null;
+          return { reps, weight };
+        })
+        .filter((s): s is LoggedSetView => s !== null);
+      return { name, sets };
+    })
+    .filter((e): e is LoggedExerciseView => e !== null);
+}
+
+/**
+ * Zostaví jeden týždeň pre pás „Tento týždeň" — Po–Ne, s odcvičenými tréningmi
+ * v každom dni (na klik v UI, viď app/portal/WeekHistory.tsx). Počíta so **všetkými**
+ * plánmi klienta (od trénera aj vlastnými), nie len s aktívnym. Žiadna migrácia —
+ * číta workout_logs + workout_days, oboje má klient cez RLS z 0002/0003.
+ */
+async function buildWeekView(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clientId: string,
+  monday: Date,
+  todayIso: string,
+): Promise<WeekView> {
+  const startIso = iso(monday);
+  const endIso = iso(addDays(monday, 6));
+
+  const { data: logRows } = await supabase
+    .from("workout_logs")
+    .select("workout_day_id, performed_on, entries")
+    .eq("client_id", clientId)
+    .gte("performed_on", startIso)
+    .lte("performed_on", endIso)
+    .order("performed_on", { ascending: true });
+
+  const logs = logRows ?? [];
+
+  // Názvy dní + plánov len pre tie workout_day_id, ktoré v tomto týždni padli.
+  const dayIds = [...new Set(logs.map((l) => l.workout_day_id).filter(Boolean))] as string[];
+  const dayMeta = new Map<string, { dayName: string; planName: string | null }>();
+  if (dayIds.length > 0) {
+    const { data: dayRows } = await supabase
+      .from("workout_days")
+      .select("id, name, workout_plans(name)")
+      .in("id", dayIds);
+    for (const d of dayRows ?? []) {
+      const planName = (d.workout_plans as unknown as { name: string } | null)?.name ?? null;
+      dayMeta.set(d.id as string, { dayName: (d.name as string)?.trim() || "Tréning", planName });
+    }
+  }
+
+  const byDate = new Map<string, LoggedSessionView[]>();
+  for (const l of logs) {
+    const meta = dayMeta.get(l.workout_day_id as string);
+    const list = byDate.get(l.performed_on as string) ?? [];
+    list.push({
+      dayName: meta?.dayName ?? "Tréning",
+      planName: meta?.planName ?? null,
+      exercises: parseLoggedExercises(l.entries),
+    });
+    byDate.set(l.performed_on as string, list);
+  }
+
+  const days: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(monday, i);
+    const dISO = iso(date);
+    const sessions = byDate.get(dISO) ?? [];
+    const state: DayCellState =
+      dISO === todayIso ? "today" : sessions.length > 0 ? "done" : dISO > todayIso ? "future" : "none";
+    return { label: WEEKDAY_LABELS[i], dayNum: date.getUTCDate(), iso: dISO, state, sessions };
+  });
+
+  const currentMondayIso = iso(mondayOf(new Date(`${todayIso}T12:00:00Z`)));
+  return {
+    mondayIso: startIso,
+    rangeLabel: weekRangeLabel(monday),
+    isCurrentWeek: startIso === currentMondayIso,
+    days,
+  };
 }
 
 /**
@@ -197,7 +319,6 @@ export async function getPortalData(): Promise<PortalResult> {
     if (days.length === 0) return { state: "no_plan", firstName: firstName ?? "" };
 
     const { isoDate, hour, base } = todayInTz();
-    const todayWeekday = isoWeekday(base);
 
     const dayIds = days.map((d) => d.id);
     const { data: logRows, error: logErr } = await supabase
@@ -233,14 +354,8 @@ export async function getPortalData(): Promise<PortalResult> {
       dayId: nextDay.id,
     };
 
-    // ---------- týždenný pás (Po–Ne aktuálneho týždňa) — prehľad aktivity, nie rozvrh ----------
-    const monday = addDays(base, -(todayWeekday - 1));
-    const week: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
-      const date = addDays(monday, i);
-      const dateStr = iso(date);
-      const state: DayCellState = dateStr === isoDate ? "today" : loggedDates.has(dateStr) ? "done" : "none";
-      return { label: WEEKDAY_LABELS[i], dayNum: date.getUTCDate(), state };
-    });
+    // ---------- týždenný pás (Po–Ne) — prehľad aktivity + história na klik (WeekHistory) ----------
+    const week = await buildWeekView(supabase, client.id, mondayOf(base), isoDate);
 
     // ---------- história (posledných 12 dní pred dneškom) ----------
     const streakHistory: StreakDayState[] = [];
@@ -311,6 +426,42 @@ async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>
 
   const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
   return { client, firstName, error };
+}
+
+/**
+ * Jeden týždeň pre pás „Tento týždeň" — volané zo servera pri listovaní dozadu
+ * (app/portal/actions.ts → WeekHistory). `mondayIso` sa normalizuje na pondelok,
+ * budúce týždne sa zrezávajú na aktuálny, dozadu je strop ≈ 1 rok.
+ */
+export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult> {
+  try {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(mondayIso)) return { state: "error", message: "Neplatný týždeň." };
+    const parsed = new Date(`${mondayIso}T12:00:00Z`);
+    if (Number.isNaN(parsed.getTime())) return { state: "error", message: "Neplatný týždeň." };
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { state: "error", message: "Session vypršala." };
+
+    const { client, error } = await getLinkedClient(supabase, user.id);
+    if (error) return { state: "error", message: error.message };
+    if (!client) return { state: "error", message: "Účet ešte nie je prepojený." };
+
+    const { isoDate, base } = todayInTz();
+    const currentMonday = mondayOf(base);
+    const floor = addDays(currentMonday, -WEEK_HISTORY_FLOOR_DAYS);
+
+    let monday = mondayOf(parsed);
+    if (iso(monday) > iso(currentMonday)) monday = currentMonday;
+    if (iso(monday) < iso(floor)) monday = floor;
+
+    const week = await buildWeekView(supabase, client.id, monday, isoDate);
+    return { state: "ok", week };
+  } catch (err) {
+    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+  }
 }
 
 /**
