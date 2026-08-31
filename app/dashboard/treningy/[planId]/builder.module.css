@@ -144,6 +144,31 @@
   font-size: 11px;
   white-space: nowrap;
 }
+.libraryItemRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.libraryItemForm {
+  flex: 1;
+  min-width: 0;
+}
+.libraryItemInfo {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.libraryItemInfo:hover {
+  color: var(--paper);
+  border-color: var(--steel-line);
+}
 .libraryEmpty {
   color: var(--paper-faint);
   font-size: 13px;
@@ -276,6 +301,24 @@
   flex: 1;
   min-width: 0;
 }
+.exerciseNameBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.exerciseNameBtn:hover .exerciseName {
+  text-decoration: underline;
+  text-decoration-color: var(--steel-line);
+}
 .exerciseSummary {
   font-variant-numeric: tabular-nums;
   color: var(--plate-yellow);
@@ -317,7 +360,7 @@
     column-gap: 10px;
     row-gap: 5px;
   }
-  .exerciseName {
+  .exerciseNameBtn {
     grid-column: 1;
     grid-row: 1;
     align-self: center;

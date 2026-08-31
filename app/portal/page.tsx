@@ -2,6 +2,7 @@ import { getPortalData } from "@/lib/portal/data";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { ProfileIcon, TrainingIcon } from "./icons";
 import { LogWorkoutButton } from "./LogWorkoutButton";
+import { ExercisePreviewList } from "./ExercisePreviewList";
 import { AlertIcon, Notice } from "./Notice";
 import { RetryButton } from "./RetryButton";
 import { WorkoutStopwatch } from "./WorkoutStopwatch";
@@ -224,22 +225,7 @@ function PortalToday({ data }: { data: PortalData }) {
           </p>
         )}
 
-        <ol className={styles.exList}>
-          {session.exercises.map((ex, i) => (
-            <li key={`${ex.idx}-${i}`} className={styles.exRow}>
-              <span className={styles.exIdx}>{ex.idx}</span>
-              <span className={styles.exBody}>
-                <span className={styles.exName}>{ex.name}</span>
-                <span className={styles.exMeta}>
-                  {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              </span>
-              {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
-            </li>
-          ))}
-        </ol>
+        <ExercisePreviewList exercises={session.exercises} />
 
         {session.kind === "training" && session.dayId && (
           <LogWorkoutButton dayId={session.dayId} exercises={session.exercises} />

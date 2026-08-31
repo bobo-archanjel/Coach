@@ -126,7 +126,11 @@ export interface PortalTrainingData {
 export interface ExerciseOption {
   id: string;
   name: string;
+  /** slovenský preklad názvu, ak existuje (Free Exercise DB import) — inak zobraz `name` */
+  nameSk: string | null;
   muscleGroup: string | null;
+  /** prvý obrázok cviku (miniatúra) — externé URL, Free Exercise DB */
+  imageUrl: string | null;
 }
 
 export type PortalTrainingResult =

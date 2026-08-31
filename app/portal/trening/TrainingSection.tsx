@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { PortalPlan, PortalTrainingData } from "@/lib/portal/types";
 import { deleteClientPlanAction, setActivePlanAction } from "./actions";
 import { ClientPlanBuilder } from "./ClientPlanBuilder";
+import { ExercisePreviewList } from "../ExercisePreviewList";
 import styles from "../portal.module.css";
 
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
@@ -166,22 +167,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                         <div key={day.id} className={styles.trDay}>
                           <p className={styles.panelLabel}>{day.name}</p>
                           {day.exercises.length > 0 ? (
-                            <ol className={styles.exList}>
-                              {day.exercises.map((ex, i) => (
-                                <li key={`${ex.idx}-${i}`} className={styles.exRow}>
-                                  <span className={styles.exIdx}>{ex.idx}</span>
-                                  <span className={styles.exBody}>
-                                    <span className={styles.exName}>{ex.name}</span>
-                                    <span className={styles.exMeta}>
-                                      {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
-                                        .filter(Boolean)
-                                        .join(" · ")}
-                                    </span>
-                                  </span>
-                                  {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
-                                </li>
-                              ))}
-                            </ol>
+                            <ExercisePreviewList exercises={day.exercises} />
                           ) : (
                             <p className={styles.trEmptyDay}>Žiadne cviky.</p>
                           )}

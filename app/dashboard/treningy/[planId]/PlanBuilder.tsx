@@ -5,6 +5,7 @@ import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
 import { AddDayInline } from "./AddDayInline";
 import type { WorkoutExerciseEntry } from "../actions";
+import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "./builder.module.css";
 
 interface Day {
@@ -21,7 +22,7 @@ export function PlanBuilder({
 }: {
   planId: string;
   days: Day[];
-  library: { id: string; name: string; muscle_group: string | null }[];
+  library: ExerciseLibraryRow[];
 }) {
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
 
@@ -62,7 +63,7 @@ export function PlanBuilder({
           {activeDay ? (
             activeDay.exercises.length > 0 ? (
               activeDay.exercises.map((entry) => (
-                <ExerciseRow key={entry.entry_id} entry={entry} dayId={activeDay.id} planId={planId} />
+                <ExerciseRow key={entry.entry_id} entry={entry} dayId={activeDay.id} planId={planId} library={library} />
               ))
             ) : (
               <p className={styles.emptyDay}>

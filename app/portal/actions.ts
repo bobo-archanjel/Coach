@@ -3,11 +3,31 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
+import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
+import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
+import type { PortalFoodOption } from "@/lib/portal/types";
 
 export interface ActionState {
   error: string | null;
 }
 const ok: ActionState = { error: null };
+
+/** Živé vyhľadávanie značkových potravín (Open Food Facts, Fáza C) pre denník. */
+export async function searchOnlineFoodAction(query: string): Promise<{ error: string | null; results: PortalFoodOption[] }> {
+  try {
+    const results = await searchOpenFoodFacts(query);
+    return { error: null, results };
+  } catch (err) {
+    console.error("searchOnlineFoodAction:", err);
+    return { error: "Vyhľadávanie momentálne nefunguje, skús to o chvíľu.", results: [] };
+  }
+}
+
+/** Detail cviku (obrázky + inštrukcie z Free Exercise DB) pre náhľadový modal klienta. */
+export async function getExerciseDetailAction(exerciseId: string): Promise<ExerciseDetail | null> {
+  const supabase = await createClient();
+  return fetchExerciseDetail(supabase, exerciseId);
+}
 
 /** Klient prepojený s prihláseným používateľom, alebo null. */
 async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {

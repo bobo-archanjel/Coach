@@ -3,8 +3,13 @@
 import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, type MealSlot } from "@/lib/meals";
 import type { PortalFoodOption } from "@/lib/portal/types";
-import { addFoodLogAction, type ActionState } from "../actions";
+import { addFoodLogAction, searchOnlineFoodAction, type ActionState } from "../actions";
 import styles from "../portal.module.css";
+
+/** Ako dlho čakať po poslednom stlačení klávesy, kým sa spustí online vyhľadávanie
+    (Open Food Facts) — nech nevoláme API pri každom písmene. */
+const SEARCH_DEBOUNCE_MS = 500;
+const MIN_QUERY_LEN = 3;
 
 const initialState: ActionState = { error: null };
 
@@ -42,12 +47,43 @@ export function AddFoodDiaryEntry({
 }) {
   const [open, setOpen] = useState(false);
   const [slot, setSlot] = useState<MealSlot>(slotForHour(hour));
-  const [source, setSource] = useState<"library" | "plan">(planFoods.length > 0 ? "plan" : "library");
+  const [source, setSource] = useState<"library" | "plan" | "online">(planFoods.length > 0 ? "plan" : "library");
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<PortalFoodOption | null>(null);
   const [grams, setGrams] = useState("100");
   const [attempted, setAttempted] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
+
+  // Online vyhľadávanie (Open Food Facts) — nezávislé od knižnice, volá sa naživo
+  // s odstupom po dopísaní, nech to nie je kontraproduktívne (zbytočné volania pri
+  // každom znaku, žiadny dopad na rýchlosť lokálnej knižnice/plánu).
+  const [onlineQuery, setOnlineQuery] = useState("");
+  const [onlineResults, setOnlineResults] = useState<PortalFoodOption[]>([]);
+  const [onlineLoading, setOnlineLoading] = useState(false);
+  const [onlineError, setOnlineError] = useState<string | null>(null);
+  const onlineSeq = useRef(0);
+
+  useEffect(() => {
+    if (source !== "online") return;
+    const q = onlineQuery.trim();
+    if (q.length < MIN_QUERY_LEN) {
+      setOnlineResults([]);
+      setOnlineError(null);
+      setOnlineLoading(false);
+      return;
+    }
+    setOnlineLoading(true);
+    const seq = ++onlineSeq.current;
+    const timer = setTimeout(() => {
+      searchOnlineFoodAction(q).then((res) => {
+        if (onlineSeq.current !== seq) return; // medzitým prišiel novší dopyt
+        setOnlineLoading(false);
+        setOnlineError(res.error);
+        setOnlineResults(res.results);
+      });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [onlineQuery, source]);
 
   const [state, formAction, pending] = useActionState(addFoodLogAction, initialState);
   const wasPending = useRef(false);
@@ -110,6 +146,8 @@ export function AddFoodDiaryEntry({
             setOpen(false);
             setPicked(null);
             setJustAdded(null);
+            setOnlineQuery("");
+            setOnlineResults([]);
           }}
         >
           Zavrieť
@@ -158,8 +196,8 @@ export function AddFoodDiaryEntry({
         </>
       ) : (
         <>
-          {planFoods.length > 0 && (
-            <div className={styles.sourceTabs} role="tablist" aria-label="Zdroj potraviny">
+          <div className={styles.sourceTabs} role="tablist" aria-label="Zdroj potraviny">
+            {planFoods.length > 0 && (
               <button
                 type="button"
                 role="tab"
@@ -169,17 +207,26 @@ export function AddFoodDiaryEntry({
               >
                 Z jedálnička
               </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={source === "library"}
-                className={`${styles.sourceTab} ${source === "library" ? styles.sourceTabActive : ""}`}
-                onClick={() => setSource("library")}
-              >
-                Knižnica
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={source === "library"}
+              className={`${styles.sourceTab} ${source === "library" ? styles.sourceTabActive : ""}`}
+              onClick={() => setSource("library")}
+            >
+              Knižnica
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={source === "online"}
+              className={`${styles.sourceTab} ${source === "online" ? styles.sourceTabActive : ""}`}
+              onClick={() => setSource("online")}
+            >
+              Značky (online)
+            </button>
+          </div>
 
           {source === "library" && (
             <input
@@ -191,39 +238,73 @@ export function AddFoodDiaryEntry({
               aria-label="Hľadať potravinu"
             />
           )}
+          {source === "online" && (
+            <input
+              className={styles.foodSearch}
+              type="search"
+              placeholder="Napíš názov produktu, napr. „Rajo maslo“…"
+              value={onlineQuery}
+              onChange={(e) => setOnlineQuery(e.target.value)}
+              aria-label="Hľadať značkový produkt online"
+              autoFocus
+            />
+          )}
 
-          <ul className={styles.foodList}>
-            {source === "plan"
-              ? planFoods.map((option, i) => (
-                  <li key={`${option.name}-${i}`}>
-                    <button
-                      type="button"
-                      className={styles.foodPick}
-                      disabled={pending}
-                      onClick={() => logFromPlan(option)}
-                    >
-                      <span className={styles.foodPickName}>{option.name}</span>
-                      <span className={styles.foodPickMacro}>
-                        + {option.plannedGrams ?? 100} g
-                        {option.plannedSlot ? ` · ${MEAL_SLOT_LABELS[option.plannedSlot]}` : ""}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              : filtered.map((option, i) => (
-                  <li key={`${option.name}-${i}`}>
-                    <button type="button" className={styles.foodPick} onClick={() => pickFromLibrary(option)}>
-                      <span className={styles.foodPickName}>{option.name}</span>
-                      <span className={styles.foodPickMacro}>{Math.round(option.kcal100g)} kcal / 100 g</span>
-                    </button>
-                  </li>
-                ))}
-            {(source === "plan" ? planFoods : filtered).length === 0 && (
-              <li className={styles.foodEmpty}>
-                {source === "library" ? "Nič sa nenašlo." : "Tréner ti nezostavil jedálniček."}
-              </li>
-            )}
-          </ul>
+          {source === "online" ? (
+            <ul className={styles.foodList}>
+              {onlineResults.map((option, i) => (
+                <li key={`${option.name}-${i}`}>
+                  <button type="button" className={styles.foodPick} onClick={() => pickFromLibrary(option)}>
+                    <span className={styles.foodPickName}>{option.name}</span>
+                    <span className={styles.foodPickMacro}>{Math.round(option.kcal100g)} kcal / 100 g</span>
+                  </button>
+                </li>
+              ))}
+              {onlineQuery.trim().length < MIN_QUERY_LEN && (
+                <li className={styles.foodEmpty}>Napíš aspoň {MIN_QUERY_LEN} znaky.</li>
+              )}
+              {onlineQuery.trim().length >= MIN_QUERY_LEN && onlineLoading && (
+                <li className={styles.foodEmpty}>Hľadám…</li>
+              )}
+              {onlineQuery.trim().length >= MIN_QUERY_LEN && !onlineLoading && !onlineError && onlineResults.length === 0 && (
+                <li className={styles.foodEmpty}>Nič sa nenašlo — skús iný názov.</li>
+              )}
+              {onlineError && <li className={styles.foodEmpty}>{onlineError}</li>}
+            </ul>
+          ) : (
+            <ul className={styles.foodList}>
+              {source === "plan"
+                ? planFoods.map((option, i) => (
+                    <li key={`${option.name}-${i}`}>
+                      <button
+                        type="button"
+                        className={styles.foodPick}
+                        disabled={pending}
+                        onClick={() => logFromPlan(option)}
+                      >
+                        <span className={styles.foodPickName}>{option.name}</span>
+                        <span className={styles.foodPickMacro}>
+                          + {option.plannedGrams ?? 100} g
+                          {option.plannedSlot ? ` · ${MEAL_SLOT_LABELS[option.plannedSlot]}` : ""}
+                        </span>
+                      </button>
+                    </li>
+                  ))
+                : filtered.map((option, i) => (
+                    <li key={`${option.name}-${i}`}>
+                      <button type="button" className={styles.foodPick} onClick={() => pickFromLibrary(option)}>
+                        <span className={styles.foodPickName}>{option.name}</span>
+                        <span className={styles.foodPickMacro}>{Math.round(option.kcal100g)} kcal / 100 g</span>
+                      </button>
+                    </li>
+                  ))}
+              {(source === "plan" ? planFoods : filtered).length === 0 && (
+                <li className={styles.foodEmpty}>
+                  {source === "library" ? "Nič sa nenašlo." : "Tréner ti nezostavil jedálniček."}
+                </li>
+              )}
+            </ul>
+          )}
 
           {state.error && <p className={styles.addError}>{state.error}</p>}
           {justAdded && !state.error && (

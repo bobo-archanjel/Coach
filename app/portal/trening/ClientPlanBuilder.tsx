@@ -2,7 +2,10 @@
 
 import { useMemo, useState, useTransition } from "react";
 import type { ExerciseOption, PortalPlan } from "@/lib/portal/types";
-import { saveClientPlanAction, type PlanDraft } from "./actions";
+import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
+import { displayExerciseName, type ExerciseDetail } from "@/lib/exercises";
+import { ExerciseThumb } from "@/app/components/ExerciseThumb";
+import { ExerciseDetailModal } from "@/app/components/ExerciseDetailModal";
 import styles from "../portal.module.css";
 
 /* Builder vlastného tréningu klienta — plne klientský draft, uloží sa jedným
@@ -89,6 +92,19 @@ export function ClientPlanBuilder({
   const [editKey, setEditKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [detailFor, setDetailFor] = useState<{ id: string; name: string } | null>(null);
+  const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
+  const [, startDetailTransition] = useTransition();
+
+  const openDetail = (exerciseId: string | null, name: string) => {
+    if (!exerciseId) return;
+    setDetailFor({ id: exerciseId, name });
+    setDetail(undefined);
+    startDetailTransition(async () => {
+      const d = await getExerciseDetailAction(exerciseId);
+      setDetail(d);
+    });
+  };
 
   // activeKey init sa vyhodnotí len raz — ak je prázdny, spadni na prvý deň.
   const activeDay = days.find((d) => d.key === activeKey) ?? days[0] ?? null;
@@ -97,7 +113,12 @@ export function ClientPlanBuilder({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = q
-      ? library.filter((e) => e.name.toLowerCase().includes(q) || e.muscleGroup?.toLowerCase().includes(q))
+      ? library.filter(
+          (e) =>
+            e.name.toLowerCase().includes(q) ||
+            e.nameSk?.toLowerCase().includes(q) ||
+            e.muscleGroup?.toLowerCase().includes(q),
+        )
       : library;
     return base.slice(0, 40);
   }, [library, query]);
@@ -247,7 +268,18 @@ export function ClientPlanBuilder({
                   <li key={ex.key} className={styles.trExItem}>
                     <div className={styles.trExHead}>
                       <span className={styles.exIdx}>{i + 1}</span>
-                      <span className={styles.trExName}>{ex.name}</span>
+                      {ex.exerciseId ? (
+                        <button
+                          type="button"
+                          className={`${styles.exBodyBtn} ${styles.trExHeadBtn}`}
+                          onClick={() => openDetail(ex.exerciseId, ex.name)}
+                        >
+                          <ExerciseThumb src={library.find((l) => l.id === ex.exerciseId)?.imageUrl ?? null} alt="" size={24} />
+                          <span className={styles.trExName}>{ex.name}</span>
+                        </button>
+                      ) : (
+                        <span className={styles.trExName}>{ex.name}</span>
+                      )}
                       <button
                         type="button"
                         className={styles.trIconBtn}
@@ -343,9 +375,10 @@ export function ClientPlanBuilder({
                     key={e.id}
                     type="button"
                     className={styles.trPickerItem}
-                    onClick={() => addExercise(e.name, e.id)}
+                    onClick={() => addExercise(displayExerciseName(e.name, e.nameSk), e.id)}
                   >
-                    <span>{e.name}</span>
+                    <ExerciseThumb src={e.imageUrl} alt="" size={26} />
+                    <span className={styles.trPickerItemLabel}>{displayExerciseName(e.name, e.nameSk)}</span>
                     {e.muscleGroup && <span className={styles.trPickerMuscle}>{e.muscleGroup}</span>}
                   </button>
                 ))}
@@ -390,6 +423,10 @@ export function ClientPlanBuilder({
       <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
         {pending ? "Ukladám…" : initial ? "Uložiť zmeny" : "Uložiť tréning"}
       </button>
+
+      {detailFor && (
+        <ExerciseDetailModal detail={detail} fallbackName={detailFor.name} onClose={() => setDetailFor(null)} />
+      )}
     </section>
   );
 }
