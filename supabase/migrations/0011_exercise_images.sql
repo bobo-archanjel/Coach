@@ -19,6 +19,9 @@ alter table public.exercises
   add column if not exists external_id text,
   add column if not exists name_sk text;
 
+-- Obyčajný (nie čiastočný) unique index — Supabase upsert(onConflict: "external_id")
+-- vyžaduje index bez WHERE predikátu, aby vedel odvodiť conflict target.
+-- Viacero riadkov s external_id = null je aj tak v poriadku (NULL sa v unique
+-- indexe nikdy nepovažuje za rovný inému NULL) — vlastné cviky trénerov ho majú null.
 create unique index if not exists exercises_external_id_idx
-  on public.exercises (external_id)
-  where external_id is not null;
+  on public.exercises (external_id);
