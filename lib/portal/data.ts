@@ -4,6 +4,7 @@ import type {
   CoachNote,
   DayCellState,
   ExerciseOption,
+  LoggedExercise,
   PlanSource,
   PortalChatData,
   PortalChatMessage,
@@ -202,7 +203,7 @@ export async function getPortalData(): Promise<PortalResult> {
     const dayIds = days.map((d) => d.id);
     const { data: logRows, error: logErr } = await supabase
       .from("workout_logs")
-      .select("workout_day_id, performed_on")
+      .select("workout_day_id, performed_on, entries")
       .eq("client_id", client.id)
       .in("workout_day_id", dayIds)
       .order("performed_on", { ascending: false });
@@ -213,24 +214,46 @@ export async function getPortalData(): Promise<PortalResult> {
     const loggedDates = new Set(logs.map((l) => l.performed_on));
     const doneToday = loggedDates.has(isoDate);
 
-    // ---------- rotácia: ďalší nedokončený deň v poradí (nie pevný rozvrh) ----------
-    // Klient si sám vyberá kedy cvičí — deň nie je pripnutý na konkrétny deň
-    // v týždni. "Ďalší tréning" = deň nasledujúci po naposledy odcvičenom podľa
-    // poradia v pláne (day_number), cyklicky. Bez histórie = prvý deň plánu.
-    const mostRecent = logs[0] ?? null;
-    const lastIdx = mostRecent ? days.findIndex((d) => d.id === mostRecent.workout_day_id) : -1;
-    const nextDay = lastIdx === -1 ? days[0] : days[(lastIdx + 1) % days.length];
+    // ---------- ktorý deň zobraziť ----------
+    // Dokončené dni, nie celý plán naraz: klient odklikáva jednotlivé dni tréningu
+    // (workout_logs má riadok na deň, nie na plán). Kým je dnešný deň hotový, karta
+    // zostáva na NOM — nesmie ticho preskočiť na ďalší v poradí len preto, že sa
+    // deň zmenil vo výpočte (predtým sa "ďalší" počítal z posledného logu vôbec,
+    // takže hneď po dokončení ukazoval iný deň než ten, čo sa práve odcvičil —
+    // vyzeralo to, akoby sa "zaškrtol" celý tréning namiesto jedného dňa). Rotácia
+    // na ďalší nedokončený deň nastane až zajtra, keď dnešok ešte nemá záznam.
+    const todaysLog = doneToday ? (logs.find((l) => l.performed_on === isoDate) ?? null) : null;
+    let targetDay: DayRow;
+    if (todaysLog) {
+      targetDay = days.find((d) => d.id === todaysLog.workout_day_id) ?? days[0];
+    } else {
+      // Klient si sám vyberá kedy cvičí — deň nie je pripnutý na konkrétny deň
+      // v týždni. "Ďalší tréning" = deň nasledujúci po naposledy odcvičenom podľa
+      // poradia v pláne (day_number), cyklicky. Bez histórie = prvý deň plánu.
+      const mostRecent = logs[0] ?? null;
+      const lastIdx = mostRecent ? days.findIndex((d) => d.id === mostRecent.workout_day_id) : -1;
+      targetDay = lastIdx === -1 ? days[0] : days[(lastIdx + 1) % days.length];
+    }
 
-    const exList = parseEntries(nextDay.exercises).map((e, i) => toPortalExercise(e, i));
+    const exList = parseEntries(targetDay.exercises).map((e, i) => toPortalExercise(e, i));
+    // Po dokončení sa namiesto plánovaných cvikov ukazuje to, čo klient skutočne
+    // zadal (Fáza B) — "vrátiť sa do tréningu" má zmysel len ak vidí svoje dáta,
+    // nie znovu ten istý plán, ktorý mu ešte len je pripravený. Bez zadaných
+    // hodnôt (len odklikol, entries: []) ostáva fallback na plánované cviky.
+    const loggedExercises: LoggedExercise[] | null =
+      todaysLog && Array.isArray(todaysLog.entries) && todaysLog.entries.length > 0
+        ? (todaysLog.entries as LoggedExercise[])
+        : null;
     const session: TodaySession = {
       kind: doneToday ? "done" : "training",
-      title: nextDay.name,
+      title: targetDay.name,
       // Builder nemá "focus" dňa — pod názov dňa dáme aspoň názov plánu ako kontext.
       focus: plan.name ?? "",
       durationLabel: "",
       exercises: exList,
+      loggedExercises,
       completedCount: doneToday ? exList.length : 0,
-      dayId: nextDay.id,
+      dayId: targetDay.id,
     };
 
     // ---------- týždenný pás (Po–Ne aktuálneho týždňa) — prehľad aktivity, nie rozvrh ----------

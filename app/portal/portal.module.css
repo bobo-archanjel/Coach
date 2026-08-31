@@ -463,6 +463,41 @@
   color: var(--moss);
 }
 
+/* "Vrátiť sa do tréningu" — skutočne zadané hodnoty namiesto plánu, keď je deň hotový. */
+.doneExercises {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+.doneExerciseRow {
+  padding-top: 10px;
+  border-top: 1px solid var(--steel-line);
+}
+.doneExerciseRow:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+.doneExerciseTitle {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.doneSetList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  list-style: none;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+}
+.doneSetList li {
+  background: var(--ink-3);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
 /* ---------- 3 · dozvuk: séria + týždeň ---------- */
 .after {
   display: grid;
@@ -1276,6 +1311,44 @@
     right: 24px;
     bottom: calc(92px + env(safe-area-inset-bottom));
   }
+}
+
+/* Potvrdenie "Ukončiť tréning" — zdieľa .swScrim (dim pozadie) a swPanelIn animáciu
+   s panelom stopiek, ale je centrované (blokujúci dialóg), nie ukotvené v rohu ako FAB. */
+.confirmPanel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 64;
+  width: min(360px, calc(100vw - 32px));
+  padding: 20px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-2);
+  animation: swPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.confirmTitle {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+}
+.confirmBody {
+  margin-top: 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+.confirmActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+}
+.confirmActions .swBtnGhost {
+  order: 2;
 }
 
 .swHead {

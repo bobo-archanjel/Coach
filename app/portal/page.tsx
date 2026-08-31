@@ -89,6 +89,7 @@ const PREVIEW_DATA: PortalData = {
     durationLabel: "",
     completedCount: 0,
     dayId: "preview-day-c",
+    loggedExercises: null,
     exercises: [
       { idx: "1", name: "Drep s veľkou činkou", scheme: "4 × 6", load: "90 kg", rest: "150 s", tempo: "3-0-1", entryId: "p1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 90, restSeconds: 150 },
       { idx: "2", name: "Rumunský mŕtvy ťah", scheme: "3 × 8", load: "100 kg", rest: "2 min", entryId: "p2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 100, restSeconds: 120 },
@@ -111,7 +112,7 @@ const PREVIEW_DATA: PortalData = {
   streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
 };
 
-/** DEV: ?preview=unlinked|no_plan|error|ok vynúti prázdny/chybový stav bez DB. */
+/** DEV: ?preview=unlinked|no_plan|error|ok|done vynúti prázdny/chybový/hotový stav bez DB. */
 function previewResult(kind: string): PortalResult | null {
   if (process.env.NODE_ENV === "production") return null;
   switch (kind) {
@@ -123,6 +124,22 @@ function previewResult(kind: string): PortalResult | null {
       return { state: "error" };
     case "ok":
       return { state: "ok", data: PREVIEW_DATA };
+    case "done":
+      return {
+        state: "ok",
+        data: {
+          ...PREVIEW_DATA,
+          session: {
+            ...PREVIEW_DATA.session,
+            kind: "done",
+            completedCount: PREVIEW_DATA.session.exercises.length,
+            loggedExercises: [
+              { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
+              { entryId: "p2", name: "Rumunský mŕtvy ťah", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
+            ],
+          },
+        },
+      };
     default:
       return null;
   }
@@ -220,26 +237,47 @@ function PortalToday({ data }: { data: PortalData }) {
 
         {session.kind === "done" && (
           <p className={styles.doneMark}>
-            <CheckIcon /> Dnes už odcvičené — ďalší tréning nájdeš tu, keď budeš pripravený
+            <CheckIcon /> Tento tréning máš dnes hotový — vrátiš sa sem kedykoľvek, kým je dnešný deň
           </p>
         )}
 
-        <ol className={styles.exList}>
-          {session.exercises.map((ex, i) => (
-            <li key={`${ex.idx}-${i}`} className={styles.exRow}>
-              <span className={styles.exIdx}>{ex.idx}</span>
-              <span className={styles.exBody}>
-                <span className={styles.exName}>{ex.name}</span>
-                <span className={styles.exMeta}>
-                  {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
-                    .filter(Boolean)
-                    .join(" · ")}
+        {session.kind === "done" && session.loggedExercises ? (
+          // Vrátiť sa do tréningu = vidieť to, čo si naozaj zapísal (Fáza B),
+          // nie znovu ponúkaný plán — inak by "hotovo" a zoznam pod tým vyzerali,
+          // akoby ešte len čakal na odcvičenie.
+          <div className={styles.doneExercises}>
+            {session.loggedExercises.map((ex, i) => (
+              <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.doneExerciseRow}>
+                <p className={styles.doneExerciseTitle}>{ex.name}</p>
+                <ol className={styles.doneSetList}>
+                  {ex.sets.map((s, j) => (
+                    <li key={j}>
+                      {s.reps != null ? `${s.reps} op.` : "—"}
+                      {s.weight != null ? ` × ${s.weight} kg` : ""}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <ol className={styles.exList}>
+            {session.exercises.map((ex, i) => (
+              <li key={`${ex.idx}-${i}`} className={styles.exRow}>
+                <span className={styles.exIdx}>{ex.idx}</span>
+                <span className={styles.exBody}>
+                  <span className={styles.exName}>{ex.name}</span>
+                  <span className={styles.exMeta}>
+                    {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
                 </span>
-              </span>
-              {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
-            </li>
-          ))}
-        </ol>
+                {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
+              </li>
+            ))}
+          </ol>
+        )}
 
         {session.kind === "training" && session.dayId && (
           <LogWorkoutButton dayId={session.dayId} exercises={session.exercises} />

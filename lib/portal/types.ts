@@ -69,7 +69,14 @@ export interface TodaySession {
   focus: string;
   durationLabel: string;
   exercises: PortalExercise[];
-  /** koľko cvikov je odškrtnutých (0 kým Fáza B nepostaví per-cvik odklikávanie) */
+  /**
+   * Skutočne zadané hodnoty (Fáza B), keď je `kind: "done"` — "vrátiť sa do
+   * tréningu" ukazuje toto namiesto `exercises` (plánu), nech klient vidí, čo
+   * naozaj zapísal. `null` keď deň ešte nie je hotový, alebo klient nezadal
+   * žiadne hodnoty (len odklikol) — vtedy sa použije `exercises` ako fallback.
+   */
+  loggedExercises: LoggedExercise[] | null;
+  /** koľko cvikov je odškrtnutých (0 kým Fáza B nepostaví per-cvik odškrtávanie) */
   completedCount: number;
   /** id workout_day na zápis workout_logs pri "Ukončiť tréning" */
   dayId: string | null;
