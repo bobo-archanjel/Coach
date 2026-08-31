@@ -497,6 +497,37 @@
   border-radius: 999px;
   padding: 3px 9px;
 }
+.editValuesBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 9px 14px;
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper-dim);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.editValuesBtn:hover {
+  border-color: var(--paper-faint);
+  color: var(--paper);
+}
+.editActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.editActions .swBtnGhost,
+.editActions .swBtnPrimary {
+  flex: 1;
+  padding: 12px 14px;
+}
 
 /* ---------- 3 · dozvuk: séria + týždeň ---------- */
 .after {

@@ -1,5 +1,6 @@
 import { getPortalData } from "@/lib/portal/data";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
+import { DoneWorkoutView } from "./DoneWorkoutView";
 import { ProfileIcon, TrainingIcon } from "./icons";
 import { LogWorkoutButton } from "./LogWorkoutButton";
 import { AlertIcon, Notice } from "./Notice";
@@ -241,25 +242,11 @@ function PortalToday({ data }: { data: PortalData }) {
           </p>
         )}
 
-        {session.kind === "done" && session.loggedExercises ? (
-          // Vrátiť sa do tréningu = vidieť to, čo si naozaj zapísal (Fáza B),
-          // nie znovu ponúkaný plán — inak by "hotovo" a zoznam pod tým vyzerali,
-          // akoby ešte len čakal na odcvičenie.
-          <div className={styles.doneExercises}>
-            {session.loggedExercises.map((ex, i) => (
-              <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.doneExerciseRow}>
-                <p className={styles.doneExerciseTitle}>{ex.name}</p>
-                <ol className={styles.doneSetList}>
-                  {ex.sets.map((s, j) => (
-                    <li key={j}>
-                      {s.reps != null ? `${s.reps} op.` : "—"}
-                      {s.weight != null ? ` × ${s.weight} kg` : ""}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
+        {session.kind === "done" && session.dayId ? (
+          // Vrátiť sa do tréningu = vidieť (a prípadne opraviť) to, čo si naozaj
+          // zapísal (Fáza B), nie znovu ponúkaný plán — inak by "hotovo" a zoznam
+          // pod tým vyzerali, akoby ešte len čakal na odcvičenie.
+          <DoneWorkoutView dayId={session.dayId} exercises={session.exercises} loggedExercises={session.loggedExercises} />
         ) : (
           <ol className={styles.exList}>
             {session.exercises.map((ex, i) => (
