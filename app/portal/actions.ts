@@ -3,11 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
+import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 
 export interface ActionState {
   error: string | null;
 }
 const ok: ActionState = { error: null };
+
+/** Detail cviku (obrázky + inštrukcie z Free Exercise DB) pre náhľadový modal klienta. */
+export async function getExerciseDetailAction(exerciseId: string): Promise<ExerciseDetail | null> {
+  const supabase = await createClient();
+  return fetchExerciseDetail(supabase, exerciseId);
+}
 
 /** Klient prepojený s prihláseným používateľom, alebo null. */
 async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {

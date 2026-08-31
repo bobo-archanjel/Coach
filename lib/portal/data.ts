@@ -331,14 +331,16 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
 
     const { data: libRows, error: libErr } = await supabase
       .from("exercises")
-      .select("id, name, muscle_group")
+      .select("id, name, name_sk, muscle_group, image_url")
       .is("trainer_id", null)
       .order("name", { ascending: true });
     if (libErr) return { state: "error", message: libErr.message };
     const exerciseLibrary: ExerciseOption[] = (libRows ?? []).map((e) => ({
       id: e.id,
       name: e.name,
+      nameSk: e.name_sk ?? null,
       muscleGroup: e.muscle_group ?? null,
+      imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
     }));
 
     const { client, error: clientErr } = await getLinkedClient(supabase, user.id);

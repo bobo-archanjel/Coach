@@ -3,6 +3,7 @@
 import { useMemo, useState, useActionState } from "react";
 import { addCustomExerciseAction, type ActionState } from "../actions";
 import { LibraryItem } from "./LibraryItem";
+import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "./builder.module.css";
 
 const initialState: ActionState = { error: null };
@@ -18,7 +19,7 @@ export function ExerciseLibrary({
   activeDayId,
   planId,
 }: {
-  exercises: { id: string; name: string; muscle_group: string | null }[];
+  exercises: ExerciseLibraryRow[];
   activeDayId: string | null;
   planId: string;
 }) {
@@ -32,7 +33,10 @@ export function ExerciseLibrary({
     const q = query.trim().toLowerCase();
     if (!q) return exercises;
     return exercises.filter(
-      (ex) => ex.name.toLowerCase().includes(q) || ex.muscle_group?.toLowerCase().includes(q)
+      (ex) =>
+        ex.name.toLowerCase().includes(q) ||
+        ex.name_sk?.toLowerCase().includes(q) ||
+        ex.muscle_group?.toLowerCase().includes(q)
     );
   }, [exercises, query]);
 
