@@ -16,7 +16,11 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
 
   const { data: plan } = await supabase
     .from("workout_plans")
-    .select("id, name, client_id, clients(full_name)")
+    // Explicitná FK: odkedy má `clients` aj `active_plan_id → workout_plans`
+    // (0010_client_own_workouts.sql), je vzťah workout_plans↔clients nejednoznačný
+    // a plain `clients(...)` embed padá na PGRST201 (a maybeSingle() to potichu
+    // zmení na "nenájdené" — celá stránka detailu plánu bola nedostupná).
+    .select("id, name, client_id, clients!workout_plans_client_id_fkey(full_name)")
     .eq("id", planId)
     .maybeSingle();
 
