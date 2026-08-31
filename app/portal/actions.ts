@@ -17,7 +17,8 @@ export async function searchOnlineFoodAction(query: string): Promise<{ error: st
   try {
     const results = await searchOpenFoodFacts(query);
     return { error: null, results };
-  } catch {
+  } catch (err) {
+    console.error("searchOnlineFoodAction:", err);
     return { error: "Vyhľadávanie momentálne nefunguje, skús to o chvíľu.", results: [] };
   }
 }

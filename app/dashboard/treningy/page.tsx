@@ -22,7 +22,10 @@ export default async function TreningyPage() {
     supabase.from("exercises").select("id, name, muscle_group").order("name"),
     supabase
       .from("workout_plans")
-      .select("id, name, created_at, clients(full_name), workout_days(count)")
+      // Explicitná FK — viď poznámku v [planId]/page.tsx (clients.active_plan_id
+      // robí plain `clients(...)` embed nejednoznačným, celý zoznam plánov by inak
+      // vždy vyzeral prázdny).
+      .select("id, name, created_at, clients!workout_plans_client_id_fkey(full_name), workout_days(count)")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
