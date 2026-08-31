@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useActionState, useEffect, useRef } from "react";
-import { updateExerciseEntryAction, removeExerciseEntryAction, type ActionState, type WorkoutExerciseEntry } from "../actions";
+import { useState, useActionState, useEffect, useRef, useTransition } from "react";
+import {
+  updateExerciseEntryAction,
+  removeExerciseEntryAction,
+  getExerciseDetailAction,
+  type ActionState,
+  type WorkoutExerciseEntry,
+} from "../actions";
+import type { ExerciseDetail, ExerciseLibraryRow } from "@/lib/exercises";
+import { ExerciseThumb } from "@/app/components/ExerciseThumb";
+import { ExerciseDetailModal } from "@/app/components/ExerciseDetailModal";
 import styles from "./builder.module.css";
 
 const initialState: ActionState = { error: null };
@@ -18,11 +27,35 @@ const TrashIcon = () => (
   </svg>
 );
 
-export function ExerciseRow({ entry, dayId, planId }: { entry: WorkoutExerciseEntry; dayId: string; planId: string }) {
+export function ExerciseRow({
+  entry,
+  dayId,
+  planId,
+  library,
+}: {
+  entry: WorkoutExerciseEntry;
+  dayId: string;
+  planId: string;
+  library: ExerciseLibraryRow[];
+}) {
   const [editing, setEditing] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState(updateExerciseEntryAction, initialState);
   const [removeState, removeAction, removePending] = useActionState(removeExerciseEntryAction, initialState);
   const wasPending = useRef(false);
+  const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
+  const [showDetail, setShowDetail] = useState(false);
+  const [, startTransition] = useTransition();
+
+  const libEntry = library.find((l) => l.id === entry.exercise_id) ?? null;
+
+  const openDetail = () => {
+    setShowDetail(true);
+    setDetail(undefined);
+    startTransition(async () => {
+      const d = await getExerciseDetailAction(entry.exercise_id);
+      setDetail(d);
+    });
+  };
 
   useEffect(() => {
     if (wasPending.current && !updatePending && !updateState.error) {
@@ -75,7 +108,10 @@ export function ExerciseRow({ entry, dayId, planId }: { entry: WorkoutExerciseEn
 
   return (
     <div className={styles.exerciseRow}>
-      <span className={styles.exerciseName}>{entry.exercise_name}</span>
+      <button type="button" className={styles.exerciseNameBtn} onClick={openDetail}>
+        <ExerciseThumb src={libEntry?.image_url[0] ?? null} alt="" size={26} />
+        <span className={styles.exerciseName}>{entry.exercise_name}</span>
+      </button>
       <span className={styles.exerciseSummary}>
         {entry.sets}× {entry.reps}
         {entry.load_kg ? ` @ ${entry.load_kg} kg` : ""}
@@ -99,6 +135,9 @@ export function ExerciseRow({ entry, dayId, planId }: { entry: WorkoutExerciseEn
         </form>
       </div>
       {removeState.error && <p className={styles.formError}>{removeState.error}</p>}
+      {showDetail && (
+        <ExerciseDetailModal detail={detail} fallbackName={entry.exercise_name} onClose={() => setShowDetail(false)} />
+      )}
     </div>
   );
 }

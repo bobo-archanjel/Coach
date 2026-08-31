@@ -288,6 +288,23 @@
 .exBody {
   min-width: 0;
 }
+.exBodyBtn {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.exBodyBtn:hover .exName {
+  text-decoration: underline;
+  text-decoration-color: var(--steel-line);
+}
 .exIdx {
   width: 26px;
   height: 26px;
@@ -1995,6 +2012,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.trExHeadBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
 .trExMeta {
   font-size: 11.5px;
   color: var(--paper-faint);
@@ -2128,9 +2152,12 @@
   border-color: var(--paper-dim);
   background: var(--ink-3);
 }
-.trPickerItem span:first-child {
+.trPickerItemLabel {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .trPickerMuscle {
   font-size: 11px;

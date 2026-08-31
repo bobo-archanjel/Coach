@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 
 /* Vlastný tréning klienta — vytvorenie / úprava / zmazanie / prepnutie aktívneho.
    Klientské plány: workout_plans.trainer_id IS NULL (viď 0010_client_own_workouts.sql).
@@ -14,6 +15,12 @@ export interface ActionState {
   planId?: string;
 }
 const ok: ActionState = { error: null };
+
+/** Detail cviku (obrázky + inštrukcie) pre náhľad v builderi vlastného tréningu. */
+export async function getExerciseDetailAction(exerciseId: string): Promise<ExerciseDetail | null> {
+  const supabase = await createClient();
+  return fetchExerciseDetail(supabase, exerciseId);
+}
 
 export interface DraftExercise {
   entryId?: string;

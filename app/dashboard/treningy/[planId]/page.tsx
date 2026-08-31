@@ -28,7 +28,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
 
   const [{ data: days }, { data: exercises }] = await Promise.all([
     supabase.from("workout_days").select("id, day_number, name, exercises").eq("plan_id", planId).order("day_number"),
-    supabase.from("exercises").select("id, name, muscle_group").order("name"),
+    supabase.from("exercises").select("id, name, name_sk, muscle_group, image_url").order("name"),
   ]);
 
   return (
