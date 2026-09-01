@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import type { PortalExercise } from "@/lib/portal/types";
 import { finishWorkoutAction, type ActionState } from "./actions";
 import styles from "./portal.module.css";
@@ -43,10 +43,23 @@ function initialRows(ex: PortalExercise): SetRow[] {
  */
 export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercises: PortalExercise[] }) {
   const [started, setStarted] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const [rows, setRows] = useState<Record<number, SetRow[]>>(() =>
     Object.fromEntries(exercises.map((ex, i) => [i, initialRows(ex)])),
   );
   const [state, formAction, pending] = useActionState(finishWorkoutAction, initialState);
+
+  // Esc zavrie potvrdenie (= "Pokračovať", nie "Ukončiť") — bezpečný default pre
+  // klávesnicu, rovnaké správanie ako panel stopiek.
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmOpen]);
 
   // Prepnutie tabu v portáli remountuje túto kartu — obnov "tréning začatý" z
   // localStorage, nech sa formulár nezbalí len preto, že sa klient pozrel na Chat.
@@ -95,7 +108,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   }));
 
   return (
-    <form action={formAction} className={styles.logForm}>
+    <form ref={formRef} action={formAction} className={styles.logForm}>
       <input type="hidden" name="day_id" value={dayId} readOnly />
       <input type="hidden" name="entries" value={JSON.stringify(entriesPayload)} readOnly />
 
@@ -144,11 +157,51 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
         </div>
       ))}
 
-      <button type="submit" className={`btn btn-primary ${styles.startBtn}`} disabled={pending}>
+      <button
+        type="button"
+        className={`btn btn-primary ${styles.startBtn}`}
+        disabled={pending}
+        onClick={() => setConfirmOpen(true)}
+      >
         {pending ? "Ukladám…" : "Ukončiť tréning"}
       </button>
       {state.error && (
         <p style={{ color: "var(--error)", fontSize: 12, marginTop: 8, textAlign: "center" }}>{state.error}</p>
+      )}
+
+      {confirmOpen && (
+        <>
+          <button
+            type="button"
+            className={styles.swScrim}
+            aria-label="Zavrieť"
+            onClick={() => setConfirmOpen(false)}
+          />
+          <div className={styles.confirmPanel} role="alertdialog" aria-modal="true" aria-labelledby="finish-confirm-title">
+            <p id="finish-confirm-title" className={styles.confirmTitle}>
+              Ukončiť tréning?
+            </p>
+            <p className={styles.confirmBody}>
+              Zapíšeme dnešné série presne tak, ako si ich zadal. Ak si to ešte nedokončil, radšej pokračuj —
+              po ukončení sa už nedá tréning znova začať, len sa naň pozrieť.
+            </p>
+            <div className={styles.confirmActions}>
+              <button type="button" className={styles.swBtnGhost} onClick={() => setConfirmOpen(false)}>
+                Pokračovať v tréningu
+              </button>
+              <button
+                type="button"
+                className={styles.swBtnPrimary}
+                onClick={() => {
+                  setConfirmOpen(false);
+                  formRef.current?.requestSubmit();
+                }}
+              >
+                Áno, ukončiť
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </form>
   );

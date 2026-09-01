@@ -145,6 +145,51 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
 }
 
 /**
+ * "Upraviť hodnoty" — klient po dokončení dňa zistí, že sa preklikol alebo si
+ * zle zapamätal váhu, a opraví si zapísané série (bez znovuotvorenia celého
+ * "Začať/Ukončiť" flow — deň už je splnený, mení sa len obsah `entries`).
+ * RLS `workout_logs_update_own_client` (0003) toto klientovi už dovoľuje.
+ * Cieľový riadok = najnovší log pre (klient, deň) — táto akcia sa volá len
+ * z pohľadu na DNEŠNÝ dokončený deň, takže je to vždy dnešný záznam bez
+ * nutnosti duplikovať výpočet "dnešného dátumu" v TZ Europe/Bratislava.
+ */
+export async function updateWorkoutLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const dayId = formData.get("day_id") as string | null;
+  if (!dayId) return { error: "Chýba deň tréningu." };
+
+  let entries: IncomingExercise[] = [];
+  const rawEntries = formData.get("entries") as string | null;
+  if (rawEntries) {
+    try {
+      entries = sanitizeEntries(JSON.parse(rawEntries));
+    } catch {
+      entries = [];
+    }
+  }
+
+  const { data: existing, error: findErr } = await supabase
+    .from("workout_logs")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("workout_day_id", dayId)
+    .order("performed_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (findErr) return { error: findErr.message };
+  if (!existing) return { error: "Nenašiel sa žiadny záznam na úpravu — skús obnoviť stránku." };
+
+  const { error } = await supabase.from("workout_logs").update({ entries }).eq("id", existing.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal");
+  return ok;
+}
+
+/**
  * Denník — pridať zjedenú potravinu. Klient posiela food_id + gramáž + jedlo dňa;
  * makrá na 100 g si server dotiahne z `foods` (autoritatívne), a ak už potravina
  * neexistuje, použije snapshot poslaný klientom (napr. položka z plánu). RLS
