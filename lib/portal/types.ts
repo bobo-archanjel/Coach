@@ -6,19 +6,58 @@ import type { MealSlot } from "@/lib/meals";
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
 // si sám vyberá kedy cvičí, "ďalší tréning" je vždy nasledujúci nedokončený deň
 // v poradí (lib/portal/data.ts). Preto tu niet "missed" (vynechaný podľa rozvrhu)
-// ani "upcoming" (naplánovaný na budúci deň) — len či sa v ten kalendárny deň
-// odcvičilo, alebo nie.
-export type DayCellState = "done" | "today" | "none";
+// — len či sa v ten kalendárny deň odcvičilo (`done`), alebo nie (`none`);
+// `future` je deň, ktorý ešte len príde (relevantné pri prezeraní minulých týždňov).
+export type DayCellState = "done" | "today" | "future" | "none";
 
 /** Stav dňa v páse histórie — odcvičil / neodcvičil (bez väzby na rozvrh). */
 export type StreakDayState = "done" | "rest";
+
+/** Jedna skutočne odcvičená séria v histórii (workout_logs.entries). */
+export interface LoggedSetView {
+  reps: number | null;
+  weight: number | null;
+}
+
+/** Jeden cvik s odcvičenými sériami — pohľad do histórie, bez väzieb na builder. */
+export interface LoggedExerciseView {
+  name: string;
+  sets: LoggedSetView[];
+}
+
+/** Jeden odcvičený tréning v konkrétny deň (jeden riadok workout_logs). */
+export interface LoggedSessionView {
+  /** názov dňa z workout_days, alebo "Tréning" ak deň medzitým zanikol */
+  dayName: string;
+  planName: string | null;
+  /** skutočné hodnoty; prázdne pri starších (Fáza A) záznamoch bez zápisu sérií */
+  exercises: LoggedExerciseView[];
+}
 
 export interface WeekDay {
   /** Po, Ut, St … */
   label: string;
   dayNum: number;
+  /** kalendárny dátum bunky, YYYY-MM-DD */
+  iso: string;
   state: DayCellState;
+  /** odcvičené tréningy v tento kalendárny deň (zvyčajne 0 – 1, zriedka viac) */
+  sessions: LoggedSessionView[];
 }
+
+/** Týždeň pre pás „Tento týždeň" — aktuálny aj ktorýkoľvek minulý (WeekHistory). */
+export interface WeekView {
+  /** pondelok tohto týždňa, YYYY-MM-DD */
+  mondayIso: string;
+  /** ľudský rozsah týždňa, napr. „18. – 24. aug" */
+  rangeLabel: string;
+  isCurrentWeek: boolean;
+  days: WeekDay[];
+}
+
+export type PortalWeekResult =
+  | { state: "ok"; week: WeekView }
+  | { state: "error"; message?: string };
 
 export interface PortalExercise {
   idx: string;
@@ -82,7 +121,7 @@ export interface PortalData {
   hour: number;
   coachNote: CoachNote | null;
   session: TodaySession;
-  week: WeekDay[];
+  week: WeekView;
   /** koľko tréningov klient v tomto pláne odcvičil spolu (rotácia dní, nie fixný rozvrh) */
   totalSessions: number;
   /** posledných 12 dní pred dneškom, najstarší prvý */

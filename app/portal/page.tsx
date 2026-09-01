@@ -6,6 +6,7 @@ import { ExercisePreviewList } from "./ExercisePreviewList";
 import { AlertIcon, Notice } from "./Notice";
 import { RetryButton } from "./RetryButton";
 import { WorkoutStopwatch } from "./WorkoutStopwatch";
+import { WeekHistory } from "./WeekHistory";
 import styles from "./portal.module.css";
 
 /* /portal — domovská obrazovka "Dnes".
@@ -37,12 +38,6 @@ const CheckIcon = () => (
     <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-
-const MARK_CLASS: Record<string, string> = {
-  done: styles.markDone,
-  today: styles.markToday,
-  none: styles.markRest,
-};
 
 const PLATE_CLASS: Record<string, string> = {
   done: styles.plateOn,
@@ -99,15 +94,42 @@ const PREVIEW_DATA: PortalData = {
       { idx: "6", name: "Plank s výdržou", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s", entryId: "p6", plannedSets: 3, plannedReps: "45 s", exerciseId: null, loadKg: null, restSeconds: 45 },
     ],
   },
-  week: [
-    { label: "Po", dayNum: 24, state: "done" },
-    { label: "Ut", dayNum: 25, state: "none" },
-    { label: "St", dayNum: 26, state: "done" },
-    { label: "Št", dayNum: 27, state: "none" },
-    { label: "Pi", dayNum: 28, state: "today" },
-    { label: "So", dayNum: 29, state: "none" },
-    { label: "Ne", dayNum: 30, state: "none" },
-  ],
+  week: {
+    mondayIso: "2026-08-24",
+    rangeLabel: "24. – 30. aug",
+    isCurrentWeek: true,
+    days: [
+      {
+        label: "Po",
+        dayNum: 24,
+        iso: "2026-08-24",
+        state: "done",
+        sessions: [
+          {
+            dayName: "Deň A — Tlak",
+            planName: "Silový 3× týždenne",
+            exercises: [
+              { name: "Tlak na lavičke", sets: [{ reps: 8, weight: 70 }, { reps: 8, weight: 70 }, { reps: 6, weight: 75 }] },
+              { name: "Tlak nad hlavu", sets: [{ reps: 10, weight: 35 }, { reps: 9, weight: 35 }, { reps: 8, weight: 35 }] },
+              { name: "Bicepsový zdvih", sets: [{ reps: 12, weight: 14 }, { reps: 11, weight: 14 }] },
+            ],
+          },
+        ],
+      },
+      { label: "Ut", dayNum: 25, iso: "2026-08-25", state: "none", sessions: [] },
+      {
+        label: "St",
+        dayNum: 26,
+        iso: "2026-08-26",
+        state: "done",
+        sessions: [{ dayName: "Deň B — Ťah", planName: "Silový 3× týždenne", exercises: [] }],
+      },
+      { label: "Št", dayNum: 27, iso: "2026-08-27", state: "none", sessions: [] },
+      { label: "Pi", dayNum: 28, iso: "2026-08-28", state: "today", sessions: [] },
+      { label: "So", dayNum: 29, iso: "2026-08-29", state: "future", sessions: [] },
+      { label: "Ne", dayNum: 30, iso: "2026-08-30", state: "future", sessions: [] },
+    ],
+  },
   totalSessions: 12,
   streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
 };
@@ -253,24 +275,7 @@ function PortalToday({ data }: { data: PortalData }) {
           </div>
         </div>
 
-        <div className={styles.panel}>
-          <p className={styles.panelLabel}>Tento týždeň</p>
-          <div className={styles.week}>
-            {week.map((day) => (
-              <div
-                key={day.label}
-                className={`${styles.weekCell} ${day.state === "today" ? styles.weekCellToday : ""}`}
-                aria-current={day.state === "today" ? "date" : undefined}
-              >
-                <span className={styles.weekDay}>{day.label}</span>
-                <span className={styles.weekMark}>
-                  <span className={`${styles.weekDot} ${MARK_CLASS[day.state]}`} />
-                </span>
-                <span className={styles.weekNum}>{day.dayNum}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <WeekHistory initial={week} />
       </section>
     </>
   );
