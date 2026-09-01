@@ -10,11 +10,11 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ---
 
-## Stav k 2026-08-28
+## Stav k 2026-09-01
 
-**Hotovo:** auth (obe role, pozývací kód), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky), klientský portál (Dnes/Tréning/Strava/Denník/Chat, rotácia dní), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha, nielen splnené/nesplnené), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočný favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách.
+**Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat, rotácia dní), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)** — viď sekciu nižšie.
 
-**Číslovanie migrácií — ďalšie voľné číslo je `0010`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
+**Číslovanie migrácií — ďalšie voľné číslo je `0013`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
 | # | Súbor | Track |
 |---|---|---|
@@ -28,7 +28,9 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0008 | `messages.sql` | Klient |
 | 0009 | `client_basics.sql` (vek/váha/výška na `clients`) | Tréner |
 | 0010 | `client_own_workouts.sql` (vlastné tréningy klienta, `clients.active_plan_id`, `ensure_self_client`/`set_active_plan` RPC) | Klient |
-| 0011+ | — voľné — | dohodnúť |
+| 0011 | `exercise_images.sql` (obrázky/inštrukcie/SK preklad na `exercises`) | Zdieľané |
+| 0012 | `food_external_id.sql` (`foods.external_id` pre idempotentný import) | Zdieľané |
+| 0013+ | — voľné — | dohodnúť |
 
 ---
 
@@ -47,10 +49,20 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 4. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Fáza B (skutočné odcvičené hodnoty) je už hotová vyššie — táto položka je teraz odblokovaná.
 5. *(neskôr, po AI bloku)* AI chat pre klienta — **zdravotné hranice sú tvrdé pravidlo** (Product Principle #5): eskalácia na trénera pri bolesti/zranení, nikdy diagnostika. Toto sa musí navrhnúť *pri* stavbe chatu, nie dolepiť dodatočne.
 
+## Globálne knižnice (cviky, potraviny) — používajú obe strany
+
+~~**Fáza A — Cviky s obrázkami**~~ **HOTOVO 2026-09-01** (`feature/macro-exercise` → `dev`) — knižnica cvikov rozšírená z 10 na 876 (Free Exercise DB, Unlicense), obrázky ako externé URL (žiadne kopírovanie do Storage), kroky cvičenia, ~150 najbežnejších preložených do SK. Klik na cvik (knižnica aj po pridaní do dňa/plánu) otvorí detail s obrázkami — dashboard builder aj klientský portál. Migrácia `0011`, jednorazový import `scripts/import-exercises.mjs`.
+
+~~**Fáza B — Potraviny**~~ **HOTOVO 2026-09-01** (`features/macro-exercise/foodData` → `dev`) — knižnica potravín rozšírená z 10 na 83 surových/nespracovaných potravín (USDA FoodData Central) so SK názvami. Migrácia `0012`, import `scripts/import-foods.mjs`. **Otvorené:** ďalšie rozšírenie nad 83 položiek — zatiaľ nerozhodnuté, či a o koľko.
+
+~~**Fáza C — Live vyhľadávanie značiek**~~ **HOTOVO 2026-09-01** — tretí tab "Značky (online)" v `/portal/dennik`, živé vyhľadávanie cez Open Food Facts (SK/CZ produkty uprednostnené), bez novej migrácie/kešovania. `lib/openFoodFacts.ts`.
+
+**Follow-up nájdený počas testovania (opravené v rámci tej istej vetvy, netýka sa knižníc):** kritický bug PGRST201 — detail tréningového plánu vracal 404 a zoznam plánov bol vždy prázdny (nejednoznačná FK relácia `workout_plans↔clients` odkedy `0010` pridalo `clients.active_plan_id`). Opravené v `app/dashboard/treningy/page.tsx` a `[planId]/page.tsx`.
+
 ## Zdieľané / potrebuje koordináciu
 
 - **Vyčistiť `main` branch** — stále obsahuje znovu-zavlečený `.claude/skills/impeccable/` bloat z priameho PR mergu (`feature/insert-client` → `main`, obišlo `dev`). Nahlásené skôr, zatiaľ neopravené. Netreba na to čakať s ďalšou prácou (`dev` je čistý), ale treba to niekedy dobehnúť pred prvým reálnym tagom/release.
-- ~~**Zabudnuté heslo / e-mailová verifikácia**~~ **HOTOVO 2026-08-30** (branch `feature/verification-adherencia`) — "Zabudnuté heslo?" je funkčný inline panel (`supabase.auth.resetPasswordForEmail`), nová stránka `/prihlasenie/nove-heslo` na nastavenie nového hesla z e-mailového odkazu. Registrácia klienta cez pozývací kód opravená pre prípad zapnutého povinného potvrdenia e-mailu (kód sa doklaimuje pri prvom prihlásení, nie len pri signUp). **Vyžaduje manuálny krok v Supabase Dashboarde** (appka to spraviť nevie): zapnúť "Confirm email" v Authentication → Providers → Email, a pridať `<url>/prihlasenie/nove-heslo` do Redirect URLs.
+- ~~**Zabudnuté heslo / e-mailová verifikácia**~~ **HOTOVO 2026-08-30** (branch `feature/verification-adherencia`) — "Zabudnuté heslo?" je funkčný inline panel (`supabase.auth.resetPasswordForEmail`), nová stránka `/prihlasenie/nove-heslo` na nastavenie nového hesla z e-mailového odkazu. Registrácia klienta cez pozývací kód opravená pre prípad zapnutého povinného potvrdenia e-mailu (kód sa doklaimuje pri prvom prihlásení, nie len pri signUp). Manuálne kroky v Supabase Dashboarde ("Confirm email" v Authentication → Providers → Email, redirect URL `<url>/prihlasenie/nove-heslo`) **potvrdené hotové 2026-09-01**.
 - **Self-hosted Supabase presun** (z cloud dev projektu na `nexus`, rovnaká architektúra ako `crm.vanasenior.sk`) — úloha **pred produkčným nasadením**, nie teraz.
 - **Platby (Stripe)**, **kalendár**, **fakturačná/biznis vrstva**, **white-label** — explicitne mimo MVP podľa `PRODUCT.md`, riešiť až keď je zvyšok hotový.
 
