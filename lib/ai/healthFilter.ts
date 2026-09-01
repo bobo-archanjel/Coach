@@ -56,8 +56,43 @@ export const HEALTH_ESCALATION_REPLY =
   "Pri bolesti, zranení alebo inom zdravotnom probléme ti nedokážem poradiť — to patrí do rúk tvojho trénera, nie AI. " +
   "Dal/a som mu o tom hneď vedieť v správach, ozve sa ti. Ak ide o akútny stav, neváhaj a vyhľadaj lekársku pomoc.";
 
-/** Text vložený ako systémová správa do reálneho tréner↔klient vlákna. */
+/** Text vložený ako systémová správa do reálneho tréner↔klient vlákna (akútna téma — hard block). */
 export function buildEscalationNoticeForTrainer(clientMessage: string): string {
   const trimmed = clientMessage.length > 300 ? `${clientMessage.slice(0, 300)}…` : clientMessage;
   return `⚠️ AI asistent upozorňuje: klient v AI chate spomenul možnú bolesť/zranenie: „${trimmed}“ — odporúčame ozvať sa mu čo najskôr.`;
+}
+
+const EXERCISE_SWAP_KEYWORDS = [
+  "iný cvik",
+  "iny cvik",
+  "aký cvik",
+  "aky cvik",
+  "namiesto",
+  "nahrad",
+  "zamen",
+  "vymen",
+  "alternat",
+  "navrhni cvik",
+  "navrhneš",
+  "navrhnes",
+  "cvik namiesto",
+] as const;
+
+/**
+ * True, ak klient popri zdravotnej zmienke (bolesť/nepohodlie) žiada rovno o
+ * náhradu konkrétneho cviku — legitímna, bežná požiadavka (Product rozhodnutie:
+ * "klient sa môže spýtať na výmenu cviku kvôli bolesti, len nechceme aby rieši
+ * bežné veci s AI ako bolesti/prečo to bolí"). V tomto prípade AI SMIE odpovedať
+ * (viď lib/ai/exerciseAlternatives.ts), len z reálnej knižnice cvikov a bez
+ * komentovania samotnej bolesti/diagnózy — tréner dostane tiché FYI, nie alarm.
+ */
+export function hasExerciseSwapIntent(text: string): boolean {
+  const lower = text.toLowerCase();
+  return EXERCISE_SWAP_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+/** Tiché FYI pre trénera (nie alarm) — bežná výmena cviku kvôli nepohodliu, nie akútna téma. */
+export function buildSoftExerciseNoticeForTrainer(clientMessage: string): string {
+  const trimmed = clientMessage.length > 300 ? `${clientMessage.slice(0, 300)}…` : clientMessage;
+  return `ℹ️ AI Kouč: klient spomenul nepohodlie a poprosil o náhradu cviku: „${trimmed}“ — AI mu navrhla alternatívu z knižnice cvikov, over prosím že mu sedí.`;
 }

@@ -15,26 +15,41 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
 import { getMacroContext } from "./macroContext";
-import { needsHealthEscalation, HEALTH_ESCALATION_REPLY, buildEscalationNoticeForTrainer } from "./healthFilter";
+import {
+  needsHealthEscalation,
+  hasExerciseSwapIntent,
+  HEALTH_ESCALATION_REPLY,
+  buildEscalationNoticeForTrainer,
+  buildSoftExerciseNoticeForTrainer,
+} from "./healthFilter";
+import { findExerciseAlternatives, type ExerciseCandidate } from "./exerciseAlternatives";
 import { isChatRateLimited, AI_CHAT_DAILY_LIMIT } from "./rateLimit";
 
 const HISTORY_WINDOW = 12; // posledných N správ poslaných modelu — nie celá história (minimalizácia dát + náklady)
 const MAX_REPLY_TOKENS = 500;
 
 export type SendChatResult =
-  | { status: "ok"; reply: string }
+  /** `escalated` na "ok" = mäkké FYI trénerovi (bežná výmena cviku kvôli nepohodliu), nie hard block. */
+  | { status: "ok"; reply: string; escalated?: boolean }
+  /** hard block — akútna zdravotná téma bez žiadosti o náhradu cviku, žiadne volanie modelu. */
   | { status: "escalated"; reply: string }
   | { status: "rate_limited"; reply: string }
   | { status: "not_configured"; reply: string }
   | { status: "error"; reply: string };
 
-function buildSystemPrompt(): string {
-  return [
+function buildSystemPrompt(exerciseSwapGuard: boolean): string {
+  const lines = [
     "Si AI Kouč vo fitness aplikácii FitPilot. Rozprávaš sa priamo s klientom trénera, po slovensky, stručne a vecne.",
     "Tvoja úloha: pomôcť s výživou (čo a koľko zjesť podľa cieľa) a s tréningom (napr. alternatívy cvikov) — VÝHRADNE na základe dát, ktoré ti pošle appka v tejto správe. Nikdy si nevymýšľaj čísla makier, potraviny ani cviky, ktoré ti neboli poskytnuté.",
-    "Zdravotné témy (bolesť, zranenie, diagnóza) NIKDY neriešiš — appka ich zachytáva skôr, než sa k tebe dostanú, ale ak by sa aj tak objavila zmienka o bolesti/zranení, okamžite odporuč konzultáciu s trénerom a nič neradenie k tomu nepridávaj.",
+    "Zdravotné témy (bolesť, zranenie, diagnóza, čo s tým robiť) NIKDY neriešiš — appka väčšinu zachytáva skôr, než sa k tebe dostanú, ale ak by sa aj tak objavila zmienka o bolesti/zranení bez žiadosti o náhradu cviku, okamžite odporuč konzultáciu s trénerom a nič k tomu neradíš.",
     "Neradíš nič mimo fitness/výživy tejto appky. Odpovedaj krátko (2-5 viet), konkrétne, bez dlhých úvodov.",
-  ].join("\n");
+  ];
+  if (exerciseSwapGuard) {
+    lines.push(
+      "Klient spomenul nepohodlie/bolesť SPOLU so žiadosťou o náhradu konkrétneho cviku — to SMIEŠ vybaviť: navrhni 2-3 alternatívy VÝHRADNE zo zoznamu skutočných cvikov nižšie, nič iné si nevymýšľaj. Samotnú bolesť/jej príčinu/závažnosť vôbec nekomentuj a nediagnostikuj — len jednou vetou odporuč, nech dá vedieť trénerovi, ak nepohodlie pretrváva.",
+    );
+  }
+  return lines.join("\n");
 }
 
 interface ChatMessageRow {
@@ -55,7 +70,12 @@ export async function sendAiChatMessage(
   const { trainerId, clientId, userText, history } = params;
 
   // ---------- 1. zdravotný pre-filter ----------
-  if (needsHealthEscalation(userText)) {
+  const healthTrigger = needsHealthEscalation(userText);
+  const swapIntent = hasExerciseSwapIntent(userText);
+
+  // Akútna zdravotná téma BEZ žiadosti o náhradu cviku → hard block, žiadne
+  // volanie modelu. So žiadosťou o náhradu → mäkká cesta nižšie (bod 3b).
+  if (healthTrigger && !swapIntent) {
     const { error } = await supabase.rpc("insert_ai_escalation_message", {
       p_client_id: clientId,
       p_body: buildEscalationNoticeForTrainer(userText),
@@ -94,14 +114,40 @@ export async function sendAiChatMessage(
     ? `Aktuálny čas zodpovedá jedlu dňa: ${context.currentMealSlotLabel} (hodina ${context.currentHour}).`
     : `Aktuálna hodina: ${context.currentHour} — mimo bežných časov jedla.`;
 
+  // ---------- 3b. reálne cviky z knižnice, ak klient žiada náhradu (Krok 5) ----------
+  let exerciseBlock = "";
+  if (swapIntent) {
+    let candidates: { matched: ExerciseCandidate | null; alternatives: ExerciseCandidate[] };
+    try {
+      candidates = await findExerciseAlternatives(supabase, userText);
+    } catch (err) {
+      console.error("findExerciseAlternatives:", err instanceof Error ? err.message : err);
+      candidates = { matched: null, alternatives: [] };
+    }
+    const { matched, alternatives } = candidates;
+    const nameOf = (c: ExerciseCandidate) => c.nameSk?.trim() || c.name;
+    if (matched && alternatives.length > 0) {
+      exerciseBlock =
+        `Klient pravdepodobne myslí cvik "${nameOf(matched)}" (svalová partia: ${matched.muscleGroup}). ` +
+        `Skutočné cviky rovnakej partie z knižnice — vyber 2-3 najvhodnejšie, NIKDY nenavrhuj cvik mimo tohto zoznamu:\n` +
+        alternatives.map((a) => `- ${nameOf(a)}`).join("\n");
+    } else if (matched) {
+      exerciseBlock = `Klient pravdepodobne myslí cvik "${nameOf(matched)}", ale appka nenašla iné cviky rovnakej partie — priznaj to a odporuč spýtať sa trénera na konkrétnu alternatívu.`;
+    } else {
+      exerciseBlock =
+        "Klient žiada o náhradu cviku, ale appka si nie je istá, ktorý cvik myslí — opýtaj sa ho, ktorý presne cvik chce nahradiť, nič nehádaj.";
+    }
+  }
+
   const anthropic = getAnthropicClient();
   const recent = history.slice(-HISTORY_WINDOW);
+  const softEscalation = healthTrigger && swapIntent;
 
   try {
     const response = await anthropic.messages.create({
       model: AI_MODEL.CHAT,
       max_tokens: MAX_REPLY_TOKENS,
-      system: `${buildSystemPrompt()}\n\n${contextBlock}\n${timeBlock}`,
+      system: [buildSystemPrompt(softEscalation), contextBlock, timeBlock, exerciseBlock].filter(Boolean).join("\n\n"),
       messages: [...recent.map((m) => ({ role: m.role, content: m.content })), { role: "user" as const, content: userText }],
     });
 
@@ -117,7 +163,16 @@ export async function sendAiChatMessage(
       outputTokens: response.usage.output_tokens,
     });
 
-    return { status: "ok", reply };
+    // mäkké FYI trénerovi — bežná výmena cviku kvôli nepohodliu, nie alarm (viď healthFilter.ts)
+    if (softEscalation) {
+      const { error } = await supabase.rpc("insert_ai_escalation_message", {
+        p_client_id: clientId,
+        p_body: buildSoftExerciseNoticeForTrainer(userText),
+      });
+      if (error) console.error("insert_ai_escalation_message (soft):", error.message);
+    }
+
+    return { status: "ok", reply, escalated: softEscalation };
   } catch (err) {
     console.error("sendAiChatMessage (Claude call):", err instanceof Error ? err.message : err);
     return { status: "error", reply: "Nastala chyba pri odpovedi AI. Skús to prosím znova." };

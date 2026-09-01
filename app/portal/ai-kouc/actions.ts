@@ -88,7 +88,7 @@ export async function sendAiKoucMessageAction(
     conversation_id: conversationId,
     role: "assistant",
     content: result.reply,
-    escalated: result.status === "escalated",
+    escalated: result.status === "escalated" || (result.status === "ok" && result.escalated === true),
   });
   if (insertAssistantErr) return { error: insertAssistantErr.message };
 

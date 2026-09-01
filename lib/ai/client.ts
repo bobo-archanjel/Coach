@@ -31,7 +31,14 @@ export function getAnthropicClient(): Anthropic {
     );
   }
   if (!cached) {
-    cached = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    // "Identity-linked" API kľúče (Console → API Keys s "Linked account") vyžadujú
+    // aj hlavičku anthropic-workspace-id — inak API vráti 400. Klasické (staršie)
+    // workspace kľúče tento env nepotrebujú, tak je to voliteľné.
+    const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
+    cached = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      defaultHeaders: workspaceId ? { "anthropic-workspace-id": workspaceId } : undefined,
+    });
   }
   return cached;
 }
