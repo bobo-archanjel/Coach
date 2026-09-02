@@ -1123,6 +1123,94 @@
   }
 }
 
+/* ---------- GDPR — notifikácia o zmazaní na karte Dnes (0013_client_deletion.sql) ---------- */
+.deletionNotice {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.deletionNoticeTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.deletionNoticeText {
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.deletionNoticeLink {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--paper);
+  text-decoration: underline;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+/* ---------- ukončenie spolupráce — banner na karte Dnes (0015_client_cooperation_pause.sql) ---------- */
+.cooperationNotice {
+  position: relative;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 14px 34px 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cooperationNoticeTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.cooperationNoticeText {
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.cooperationNoticeClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.cooperationNoticeClose:hover {
+  background: var(--ink-3);
+  color: var(--paper);
+}
+
+/* ---------- GDPR — zmazanie vlastných dát (0013_client_deletion.sql) ---------- */
+.dzText {
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  margin-bottom: 12px;
+}
+.dzActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dzError {
+  color: var(--iron-red);
+  font-size: 12.5px;
+  margin-top: 10px;
+}
+
 /* ---------- prázdne stavy "Dnes" (neprepojený klient / bez plánu / chyba) ---------- */
 /* Zdieľa geometriu s .soon (coming-soon obrazovky) — rovnaké optické centrovanie v shelli. */
 .notice {

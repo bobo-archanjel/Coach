@@ -121,6 +121,17 @@ export interface TodaySession {
   dayId: string | null;
 }
 
+/** Klient je v GDPR grace period (0013_client_deletion.sql) — banner na karte Dnes. */
+export interface PortalDeletionNotice {
+  requestedBy: "trainer" | "client";
+  requestedAt: string; // ISO timestamptz
+}
+
+/** Tréner ukončil spoluprácu (0015_client_cooperation_pause.sql) — banner na karte Dnes. */
+export interface PortalCooperationNotice {
+  endedAt: string; // ISO timestamptz
+}
+
 export interface PortalData {
   clientFirstName: string;
   today: string; // ISO (YYYY-MM-DD), v zóne Europe/Bratislava
@@ -133,6 +144,10 @@ export interface PortalData {
   totalSessions: number;
   /** posledných 12 dní pred dneškom, najstarší prvý */
   streakHistory: StreakDayState[];
+  /** null, kým nie je podaná žiadosť o zmazanie klienta (viď DeleteAccountSection na /portal/profil) */
+  deletionNotice: PortalDeletionNotice | null;
+  /** null, kým tréner neukončil spoluprácu (0015) — na rozdiel od deletionNotice dáta ostávajú */
+  cooperationEndedNotice: PortalCooperationNotice | null;
 }
 
 /** Výsledok načítania portálu — buď dáta, alebo dôvod prázdneho stavu. */
@@ -282,7 +297,8 @@ export type PortalDiaryResult =
 
 export interface PortalChatMessage {
   id: string;
-  sender: "trainer" | "client";
+  /** "system" = automatická správa (napr. GDPR zmazanie, 0014), nepatrí ani trénerovi ani klientovi */
+  sender: "trainer" | "client" | "system";
   body: string;
   createdAt: string; // ISO
 }

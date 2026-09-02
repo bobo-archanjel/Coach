@@ -272,7 +272,9 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const { data: client, error: clientErr } = await supabase
       .from("clients")
-      .select("id, full_name, active_plan_id")
+      .select(
+        "id, full_name, active_plan_id, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by",
+      )
       .eq("user_id", user.id)
       .order("created_at", { ascending: true })
       .limit(1)
@@ -425,6 +427,19 @@ export async function getPortalData(): Promise<PortalResult> {
       week,
       totalSessions,
       streakHistory,
+      deletionNotice: client.deletion_requested_at
+        ? { requestedBy: client.deletion_requested_by as "trainer" | "client", requestedAt: client.deletion_requested_at }
+        : null,
+      // Zmazanie má prednosť pred bannerom o ukončení spolupráce — je naliehavejšie
+      // (end_client_cooperation aj tak ended_at nikdy nenastaví popri deletion_requested_at).
+      // Klient banner zavrie (dismiss_cooperation_notice) — dokým sa spolupráca znova
+      // neukončí (nové ended_at je vtedy novšie než dismissed_at).
+      cooperationEndedNotice:
+        client.ended_at &&
+        !client.deletion_requested_at &&
+        (!client.ended_notice_dismissed_at || client.ended_notice_dismissed_at < client.ended_at)
+          ? { endedAt: client.ended_at }
+          : null,
     };
 
     return { state: "ok", data };
@@ -894,7 +909,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
 
     const messages: PortalChatMessage[] = (rows ?? []).map((m) => ({
       id: m.id,
-      sender: m.sender as "trainer" | "client",
+      sender: m.sender as "trainer" | "client" | "system",
       body: m.body,
       createdAt: m.created_at,
     }));

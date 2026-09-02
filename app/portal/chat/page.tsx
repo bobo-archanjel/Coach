@@ -40,6 +40,12 @@ const PREVIEW: PortalChatResult = {
         body: "Jasné, dík!",
         createdAt: new Date(Date.now() - 3 * 3600_000).toISOString(),
       },
+      {
+        id: "m5",
+        sender: "system",
+        body: "Tréner ťa odstránil z portfólia. Tvoje tréningy, výživa, denník aj správy sa natrvalo vymažú o 30 dní, pokiaľ zmazanie nezruší.",
+        createdAt: new Date(Date.now() - 1 * 3600_000).toISOString(),
+      },
     ],
   },
 };

@@ -7,9 +7,121 @@ import styles from "./dashboard.module.css";
 /** Koľko dní bez odklikaného tréningu už znamená "mešká" (Track "Tréner" #2, ROADMAP.md). */
 const LATE_THRESHOLD_DAYS = 5;
 
+/** Grace period pred hard delete (0013_client_deletion.sql, pg_cron `purge_deleted_clients`). */
+const DELETION_GRACE_DAYS = 30;
+
 type ClientStatus = { label: string; days: number; tone: "active" | "late" } | null;
 
-export default async function ClientsPage() {
+/** Klient s ukončenou spoluprácou (0015) — dáta ostávajú, spolupráca sa dá obnoviť. */
+const ENDED_LABEL = "spolupráca ukončená";
+
+/** Dátum, kedy sa klient natrvalo zmaže (deletion_requested_at + grace period), sk-SK formát. */
+function purgeDateLabel(requestedAt: string): string {
+  const purgeDate = new Date(new Date(requestedAt).getTime() + DELETION_GRACE_DAYS * 86_400_000);
+  return purgeDate.toLocaleDateString("sk-SK");
+}
+
+// DEV náhľad zoznamu klientov bez DB (?preview=deletion) — overuje presun na spodok,
+// stlmený vzhľad a badge dátumu zmazania pre klienta v GDPR grace period (0013), aj
+// medzistupeň ukončenej spolupráce (0015 — nad klientmi na zmazanie, dáta ostávajú).
+const DELETION_PREVIEW = [
+  {
+    id: "p-active",
+    full_name: "Aktívny Adam",
+    goal: "Naberanie",
+    created_at: "2026-06-01",
+    ended_at: null as string | null,
+    deletion_requested_at: null as string | null,
+  },
+  {
+    id: "p-late",
+    full_name: "Meškajúca Mária",
+    goal: "Chudnutie",
+    created_at: "2026-05-01",
+    ended_at: null as string | null,
+    deletion_requested_at: null as string | null,
+  },
+  {
+    id: "p-ended",
+    full_name: "Odídený Ivan",
+    goal: "Kondícia",
+    created_at: "2026-03-01",
+    ended_at: new Date(Date.now() - 10 * 86_400_000).toISOString(),
+    deletion_requested_at: null as string | null,
+  },
+  {
+    id: "p-deleting",
+    full_name: "Zmazaná Zuzana",
+    goal: "Kondícia",
+    created_at: "2026-04-01",
+    ended_at: null as string | null,
+    deletion_requested_at: new Date(Date.now() - 5 * 86_400_000).toISOString(),
+  },
+];
+
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+  const { preview } = await searchParams;
+
+  if (preview === "deletion" && process.env.NODE_ENV !== "production") {
+    const rosterClients = [
+      ...DELETION_PREVIEW.filter((c) => !c.ended_at && !c.deletion_requested_at),
+      ...DELETION_PREVIEW.filter((c) => c.ended_at && !c.deletion_requested_at),
+      ...DELETION_PREVIEW.filter((c) => c.deletion_requested_at),
+    ];
+    return (
+      <>
+        <div className={styles.pageHead}>
+          <h1>Klienti</h1>
+          <p>{DELETION_PREVIEW.length} klientov v starostlivosti — kliknutím otvoríš detail.</p>
+        </div>
+        <div className={styles.alertPanel} role="status">
+          <p className={styles.alertPanelTitle}>1 klient mešká s tréningom</p>
+          <ul className={styles.alertPanelList}>
+            <li>
+              <span>Meškajúca Mária</span>
+              <span>9 dní bez tréningu</span>
+            </li>
+          </ul>
+        </div>
+        <div className={styles.roster}>
+          {rosterClients.map((client) => {
+            const pendingDeletion = Boolean(client.deletion_requested_at);
+            const ended = Boolean(client.ended_at) && !pendingDeletion;
+            return (
+              <div
+                key={client.id}
+                className={`${styles.clientCard} ${
+                  pendingDeletion ? styles.clientCardPendingDeletion : ended ? styles.clientCardEnded : ""
+                }`}
+              >
+                <div>
+                  <div className={styles.clientName}>{client.full_name}</div>
+                  {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
+                </div>
+                <span className={styles.clientMeta}>
+                  {pendingDeletion ? (
+                    <span className={styles.deletionChip}>
+                      Zmaže sa {purgeDateLabel(client.deletion_requested_at!)}
+                    </span>
+                  ) : ended ? (
+                    <span className={`${styles.statusChip} ${styles.ended}`}>{ENDED_LABEL}</span>
+                  ) : client.id === "p-late" ? (
+                    <span className={`${styles.statusChip} ${styles.late}`}>9 dní bez tréningu</span>
+                  ) : (
+                    <span className={`${styles.statusChip} ${styles.active}`}>aktívny</span>
+                  )}
+                  <span className={styles.clientSince}>
+                    od {new Date(client.created_at).toLocaleDateString("sk-SK")}
+                  </span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,7 +135,7 @@ export default async function ClientsPage() {
 
   const { data: clients } = await supabase
     .from("clients")
-    .select("id, full_name, goal, created_at")
+    .select("id, full_name, goal, created_at, ended_at, deletion_requested_at")
     .eq("trainer_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -78,7 +190,21 @@ export default async function ClientsPage() {
     }
   }
 
-  const lateClients = (clients ?? []).filter((c) => statusByClient.get(c.id)?.tone === "late");
+  // Klient označený na zmazanie (0013) alebo s ukončenou spoluprácou (0015) sa už
+  // nekvalifikuje na upozornenie o meškaní — nie je aktuálne v aktívnej starostlivosti.
+  const lateClients = (clients ?? []).filter(
+    (c) => statusByClient.get(c.id)?.tone === "late" && !c.ended_at && !c.deletion_requested_at,
+  );
+
+  // Aktívni klienti hore (pôvodné poradie podľa created_at desc), pod nimi klienti
+  // s ukončenou spoluprácou (0015 — dáta ostávajú, dá sa obnoviť), úplne na spodku
+  // klienti na zmazanie (0013) — filter trikrát namiesto sort, nech sa nestratí
+  // stabilné poradie v rámci každej skupiny.
+  const rosterClients = [
+    ...(clients ?? []).filter((c) => !c.ended_at && !c.deletion_requested_at),
+    ...(clients ?? []).filter((c) => c.ended_at && !c.deletion_requested_at),
+    ...(clients ?? []).filter((c) => c.deletion_requested_at),
+  ];
 
   return (
     <>
@@ -105,13 +231,21 @@ export default async function ClientsPage() {
 
       <AddClientForm />
 
-      {clients && clients.length > 0 ? (
+      {rosterClients.length > 0 ? (
         <div className={styles.roster}>
-          {clients.map((client) => {
+          {rosterClients.map((client) => {
             const n = unread.get(client.id) ?? 0;
             const status = statusByClient.get(client.id);
+            const pendingDeletion = Boolean(client.deletion_requested_at);
+            const ended = Boolean(client.ended_at) && !pendingDeletion;
             return (
-              <Link key={client.id} href={`/dashboard/klienti/${client.id}`} className={styles.clientCard}>
+              <Link
+                key={client.id}
+                href={`/dashboard/klienti/${client.id}`}
+                className={`${styles.clientCard} ${
+                  pendingDeletion ? styles.clientCardPendingDeletion : ended ? styles.clientCardEnded : ""
+                }`}
+              >
                 <div>
                   <div className={styles.clientName}>{client.full_name}</div>
                   {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
@@ -122,7 +256,15 @@ export default async function ClientsPage() {
                       {n} {n === 1 ? "správa" : n >= 2 && n <= 4 ? "správy" : "správ"}
                     </span>
                   )}
-                  {status && <span className={`${styles.statusChip} ${styles[status.tone]}`}>{status.label}</span>}
+                  {pendingDeletion ? (
+                    <span className={styles.deletionChip}>
+                      Zmaže sa {purgeDateLabel(client.deletion_requested_at!)}
+                    </span>
+                  ) : ended ? (
+                    <span className={`${styles.statusChip} ${styles.ended}`}>{ENDED_LABEL}</span>
+                  ) : (
+                    status && <span className={`${styles.statusChip} ${styles[status.tone]}`}>{status.label}</span>
+                  )}
                   <span className={styles.clientSince}>
                     od {new Date(client.created_at).toLocaleDateString("sk-SK")}
                   </span>

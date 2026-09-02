@@ -189,6 +189,11 @@
   background: rgba(224, 64, 42, 0.14);
   color: var(--iron-red);
 }
+.statusChip.ended {
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-faint);
+}
 
 /* ---------- add client form ---------- */
 .addClientForm {
@@ -378,6 +383,36 @@
   border: 1px solid color-mix(in srgb, var(--iron-red) 40%, var(--steel-line));
   color: var(--paper);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- klient na zmazanie (0013_client_deletion.sql, GDPR grace period) ---------- */
+.clientCardPendingDeletion {
+  opacity: 0.55;
+}
+.clientCardPendingDeletion:hover {
+  opacity: 0.8;
+  border-color: var(--steel-line);
+  background: var(--ink-2);
+}
+
+/* ---------- klient s ukončenou spoluprácou (0015) — dáta ostávajú, dá sa obnoviť ---------- */
+.clientCardEnded {
+  opacity: 0.75;
+}
+.clientCardEnded:hover {
+  opacity: 1;
+}
+.deletionChip {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-faint);
   font-variant-numeric: tabular-nums;
 }
 
@@ -627,6 +662,23 @@
 .noWorkouts {
   color: var(--paper-faint);
   font-size: 13.5px;
+}
+
+/* ---------- GDPR — zmazanie klienta (0013_client_deletion.sql) ---------- */
+.dangerText {
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  margin-bottom: 12px;
+}
+.dangerActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dangerError {
+  color: var(--iron-red);
+  font-size: 12.5px;
+  margin-top: 10px;
 }
 
 /* ---------- macro viz ---------- */

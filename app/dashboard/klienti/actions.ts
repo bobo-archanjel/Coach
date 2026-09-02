@@ -57,3 +57,43 @@ export async function markTrainerChatSeenAction(clientId: string): Promise<void>
     revalidatePath("/dashboard");
   }
 }
+
+/** Ukončenie spolupráce (nie GDPR výmaz) — dáta ostávajú, dá sa kedykoľvek obnoviť (0015). */
+export async function endClientCooperationAction(clientId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("end_client_cooperation", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/klienti/${clientId}`);
+  revalidatePath("/dashboard");
+  return ok;
+}
+
+/** Obnovenie ukončenej spolupráce (0015). */
+export async function resumeClientCooperationAction(clientId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("resume_client_cooperation", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/klienti/${clientId}`);
+  revalidatePath("/dashboard");
+  return ok;
+}
+
+/** GDPR — tréner požiada o zmazanie klienta (30-dňová grace period, 0013_client_deletion.sql). */
+export async function requestClientDeletionAction(clientId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/klienti/${clientId}`);
+  revalidatePath("/dashboard");
+  return ok;
+}
+
+/** GDPR — zrušenie žiadosti o zmazanie počas grace period. */
+export async function cancelClientDeletionAction(clientId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/klienti/${clientId}`);
+  revalidatePath("/dashboard");
+  return ok;
+}

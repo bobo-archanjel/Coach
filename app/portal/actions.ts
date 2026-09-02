@@ -35,6 +35,39 @@ export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeek
   return getPortalWeek(mondayIso);
 }
 
+/** GDPR — klient požiada o zmazanie vlastných dát (30-dňová grace period, 0013_client_deletion.sql). */
+export async function requestOwnDeletionAction(): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath("/portal/profil");
+  return ok;
+}
+
+/** GDPR — zrušenie žiadosti o zmazanie počas grace period. */
+export async function cancelOwnDeletionAction(): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath("/portal/profil");
+  return ok;
+}
+
+/** Zavretie banneru o ukončenej spolupráci na karte Dnes (0015_client_cooperation_pause.sql). */
+export async function dismissCooperationNoticeAction(): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  const { error } = await supabase.rpc("dismiss_cooperation_notice", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath("/portal");
+  return ok;
+}
+
 /** Klient prepojený s prihláseným používateľom, alebo null. */
 async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
   const {

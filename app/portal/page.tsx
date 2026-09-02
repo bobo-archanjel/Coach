@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getPortalData } from "@/lib/portal/data";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { DoneWorkoutView } from "./DoneWorkoutView";
@@ -5,6 +6,7 @@ import { ProfileIcon, TrainingIcon } from "./icons";
 import { LogWorkoutButton } from "./LogWorkoutButton";
 import { ExercisePreviewList } from "./ExercisePreviewList";
 import { AlertIcon, Notice } from "./Notice";
+import { CooperationNotice } from "./CooperationNotice";
 import { RetryButton } from "./RetryButton";
 import { WorkoutStopwatch } from "./WorkoutStopwatch";
 import { WeekHistory } from "./WeekHistory";
@@ -134,9 +136,11 @@ const PREVIEW_DATA: PortalData = {
   },
   totalSessions: 12,
   streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
+  deletionNotice: null,
+  cooperationEndedNotice: null,
 };
 
-/** DEV: ?preview=unlinked|no_plan|error|ok|done vynúti prázdny/chybový/hotový stav bez DB. */
+/** DEV: ?preview=unlinked|no_plan|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
 function previewResult(kind: string): PortalResult | null {
   if (process.env.NODE_ENV === "production") return null;
   switch (kind) {
@@ -162,6 +166,30 @@ function previewResult(kind: string): PortalResult | null {
               { entryId: "p2", name: "Rumunský mŕtvy ťah", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
             ],
           },
+        },
+      };
+    case "deletion":
+      return {
+        state: "ok",
+        data: {
+          ...PREVIEW_DATA,
+          deletionNotice: { requestedBy: "trainer", requestedAt: new Date(Date.now() - 5 * 86_400_000).toISOString() },
+        },
+      };
+    case "deletion_self":
+      return {
+        state: "ok",
+        data: {
+          ...PREVIEW_DATA,
+          deletionNotice: { requestedBy: "client", requestedAt: new Date(Date.now() - 5 * 86_400_000).toISOString() },
+        },
+      };
+    case "ended":
+      return {
+        state: "ok",
+        data: {
+          ...PREVIEW_DATA,
+          cooperationEndedNotice: { endedAt: new Date(Date.now() - 2 * 86_400_000).toISOString() },
         },
       };
     default:
@@ -214,8 +242,25 @@ export default async function PortalHome({
   return <PortalToday data={result.data} />;
 }
 
+/** Dátum trvalého zmazania (deletion_requested_at + 30 dní grace period, 0013), sk-SK formát. */
+function purgeDateLabel(requestedAt: string): string {
+  const purgeDate = new Date(new Date(requestedAt).getTime() + 30 * 86_400_000);
+  return purgeDate.toLocaleDateString("sk-SK");
+}
+
 function PortalToday({ data }: { data: PortalData }) {
-  const { clientFirstName, today, hour, coachNote, session, week, totalSessions, streakHistory } = data;
+  const {
+    clientFirstName,
+    today,
+    hour,
+    coachNote,
+    session,
+    week,
+    totalSessions,
+    streakHistory,
+    deletionNotice,
+    cooperationEndedNotice,
+  } = data;
 
   const d = new Date(`${today}T12:00:00Z`);
   const dateLabel = cap(
@@ -225,6 +270,25 @@ function PortalToday({ data }: { data: PortalData }) {
 
   return (
     <>
+      {deletionNotice && (
+        <div className={styles.deletionNotice} role="status">
+          <p className={styles.deletionNoticeTitle}>
+            {deletionNotice.requestedBy === "trainer" ? "Odstránený/á z portfólia trénera" : "Zmazanie dát prebieha"}
+          </p>
+          <p className={styles.deletionNoticeText}>
+            {deletionNotice.requestedBy === "trainer"
+              ? "Tréner ťa odstránil zo svojho portfólia. Tvoje tréningy, výživa, denník aj správy sa natrvalo vymažú"
+              : "Požiadal/a si o zmazanie svojich dát — vymažú sa"}{" "}
+            {purgeDateLabel(deletionNotice.requestedAt)}, pokiaľ zmazanie nezrušíš.
+          </p>
+          <Link href="/portal/profil" className={styles.deletionNoticeLink}>
+            Spravovať v Profile →
+          </Link>
+        </div>
+      )}
+
+      {!deletionNotice && cooperationEndedNotice && <CooperationNotice />}
+
       {/* 1 · príprava */}
       <section className={styles.prep} aria-label="Dnešný deň">
         <div>

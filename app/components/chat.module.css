@@ -118,6 +118,30 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* automatické správy (GDPR zmazanie/zrušenie, 0014) — centrovaná poznámka, nie bublina
+   žiadnej strany: sender "system" nepatrí ani trénerovi, ani klientovi. */
+.systemRow {
+  align-self: center;
+  max-width: 90%;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.systemNote {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--paper-dim);
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  padding: 8px 12px;
+}
+.systemRow .meta {
+  margin-top: 4px;
+}
+
 .empty {
   flex: 1;
   display: flex;
