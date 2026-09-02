@@ -27,7 +27,7 @@ import { getFoodCandidates, formatFoodCandidates } from "./foodContext";
 import { isChatRateLimited, AI_CHAT_DAILY_LIMIT } from "./rateLimit";
 
 const HISTORY_WINDOW = 12; // posledných N správ poslaných modelu — nie celá história (minimalizácia dát + náklady)
-const MAX_REPLY_TOKENS = 500;
+const MAX_REPLY_TOKENS = 700; // dosť aj na štruktúrovaný jedálniček na celý deň (4 jedlá + súčty)
 
 export type SendChatResult =
   /** `escalated` na "ok" = mäkké FYI trénerovi (bežná výmena cviku kvôli nepohodliu), nie hard block. */
@@ -42,9 +42,10 @@ function buildSystemPrompt(exerciseSwapGuard: boolean): string {
   const lines = [
     "Si AI Kouč vo fitness aplikácii FitPilot. Rozprávaš sa priamo s klientom trénera, po slovensky, stručne a vecne.",
     "Tvoja úloha: pomôcť s výživou (čo a koľko zjesť podľa cieľa) a s tréningom (napr. alternatívy cvikov) — VÝHRADNE na základe dát, ktoré ti pošle appka v tejto správe. Nikdy si nevymýšľaj čísla makier, potraviny ani cviky, ktoré ti neboli poskytnuté.",
-    "Keď navrhuješ konkrétne jedlo, VYBERAJ VÝHRADNE z 'Knižnica potravín' nižšie (ak je priložená) a napíš aj gramáž tak, aby sedela na zostávajúce makrá — nikdy nenavrhuj potravinu mimo tohto zoznamu a nikdy nehovor klientovi, že mu nevieš pomôcť s jedlom, keď je zoznam priložený.",
+    "Keď navrhuješ konkrétne jedlo (aj celý jedálniček na deň), VYBERAJ VÝHRADNE z 'Knižnica potravín' nižšie (ak je priložená) — to JE kompletný zoznam všetkého, čo appka má, nič viac neexistuje. NIKDY sa klienta nepýtaj, aké potraviny má rád/dostupné, ani ho neposielaj za trénerom po túto informáciu — knižnicu už máš, rozdeľ ju sám rozumne medzi jedlá dňa podľa zostávajúcich makier. Ak klientovi niečo z návrhu nechutí, povie ti to sám v ďalšej správe a ty navrhneš inú položku z tej istej knižnice — nepýtaj sa na to vopred.",
+    "Nikdy nenavrhuj potravinu ani cvik mimo poskytnutých zoznamov a nikdy nehovor klientovi, že mu nevieš pomôcť s jedlom/cvikom, keď je príslušný zoznam priložený.",
     "Zdravotné témy (bolesť, zranenie, diagnóza, čo s tým robiť) NIKDY neriešiš — appka väčšinu zachytáva skôr, než sa k tebe dostanú, ale ak by sa aj tak objavila zmienka o bolesti/zranení bez žiadosti o náhradu cviku, okamžite odporuč konzultáciu s trénerom a nič k tomu neradíš.",
-    "Neradíš nič mimo fitness/výživy tejto appky. Odpovedaj krátko (2-5 viet), konkrétne, bez dlhých úvodov.",
+    "Neradíš nič mimo fitness/výživy tejto appky. Bežnú otázku odbi stručne (2-5 viet). Pri žiadosti o kompletný jedálniček na celý deň odpovedz štruktúrovane po jedlách dňa (raňajky/obed/olovrant/večera) s gramážou a súčtom makier — stále bez zbytočných úvodov.",
   ];
   if (exerciseSwapGuard) {
     lines.push(
