@@ -23,6 +23,7 @@ import {
   buildSoftExerciseNoticeForTrainer,
 } from "./healthFilter";
 import { findExerciseAlternatives, type ExerciseCandidate } from "./exerciseAlternatives";
+import { getFoodCandidates, formatFoodCandidates } from "./foodContext";
 import { isChatRateLimited, AI_CHAT_DAILY_LIMIT } from "./rateLimit";
 
 const HISTORY_WINDOW = 12; // posledných N správ poslaných modelu — nie celá história (minimalizácia dát + náklady)
@@ -41,6 +42,7 @@ function buildSystemPrompt(exerciseSwapGuard: boolean): string {
   const lines = [
     "Si AI Kouč vo fitness aplikácii FitPilot. Rozprávaš sa priamo s klientom trénera, po slovensky, stručne a vecne.",
     "Tvoja úloha: pomôcť s výživou (čo a koľko zjesť podľa cieľa) a s tréningom (napr. alternatívy cvikov) — VÝHRADNE na základe dát, ktoré ti pošle appka v tejto správe. Nikdy si nevymýšľaj čísla makier, potraviny ani cviky, ktoré ti neboli poskytnuté.",
+    "Keď navrhuješ konkrétne jedlo, VYBERAJ VÝHRADNE z 'Knižnica potravín' nižšie (ak je priložená) a napíš aj gramáž tak, aby sedela na zostávajúce makrá — nikdy nenavrhuj potravinu mimo tohto zoznamu a nikdy nehovor klientovi, že mu nevieš pomôcť s jedlom, keď je zoznam priložený.",
     "Zdravotné témy (bolesť, zranenie, diagnóza, čo s tým robiť) NIKDY neriešiš — appka väčšinu zachytáva skôr, než sa k tebe dostanú, ale ak by sa aj tak objavila zmienka o bolesti/zranení bez žiadosti o náhradu cviku, okamžite odporuč konzultáciu s trénerom a nič k tomu neradíš.",
     "Neradíš nič mimo fitness/výživy tejto appky. Odpovedaj krátko (2-5 viet), konkrétne, bez dlhých úvodov.",
   ];
@@ -114,6 +116,21 @@ export async function sendAiChatMessage(
     ? `Aktuálny čas zodpovedá jedlu dňa: ${context.currentMealSlotLabel} (hodina ${context.currentHour}).`
     : `Aktuálna hodina: ${context.currentHour} — mimo bežných časov jedla.`;
 
+  // ---------- 3a. reálne potraviny z knižnice, ak má klient makro cieľ (Krok 6) ----------
+  // Knižnica má len ~80-100 položiek — pošle sa celá vždy, keď má zmysel (klient
+  // môže potrebovať jedlo v ktorejkoľvek správe), nie len pri detegovanej "food" téme.
+  let foodBlock = "";
+  if (context.hasGoal) {
+    try {
+      const foods = await getFoodCandidates(supabase, trainerId);
+      if (foods.length > 0) {
+        foodBlock = `Knižnica potravín (vyber VÝHRADNE z tohto zoznamu, uveď aj gramáž):\n${formatFoodCandidates(foods)}`;
+      }
+    } catch (err) {
+      console.error("getFoodCandidates:", err instanceof Error ? err.message : err);
+    }
+  }
+
   // ---------- 3b. reálne cviky z knižnice, ak klient žiada náhradu (Krok 5) ----------
   let exerciseBlock = "";
   if (swapIntent) {
@@ -147,7 +164,7 @@ export async function sendAiChatMessage(
     const response = await anthropic.messages.create({
       model: AI_MODEL.CHAT,
       max_tokens: MAX_REPLY_TOKENS,
-      system: [buildSystemPrompt(softEscalation), contextBlock, timeBlock, exerciseBlock].filter(Boolean).join("\n\n"),
+      system: [buildSystemPrompt(softEscalation), contextBlock, timeBlock, foodBlock, exerciseBlock].filter(Boolean).join("\n\n"),
       messages: [...recent.map((m) => ({ role: m.role, content: m.content })), { role: "user" as const, content: userText }],
     });
 
