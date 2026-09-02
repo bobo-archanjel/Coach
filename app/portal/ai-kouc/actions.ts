@@ -95,3 +95,30 @@ export async function sendAiKoucMessageAction(
   revalidatePath("/portal/ai-kouc");
   return ok;
 }
+
+/**
+ * Vymaže celú AI konverzáciu klienta (cascade zmaže aj ai_messages, 0014) a
+ * začne odznova. Bežná potreba ("chcem čistý začiatok") aj GDPR právo na
+ * vymazanie (Art. 17) — klient má vlastnú kontrolu bez nutnosti žiadať podporu.
+ */
+export async function resetAiKoucConversationAction(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!client) return;
+
+  const { error } = await supabase.from("ai_conversations").delete().eq("client_id", client.id);
+  if (error) console.error("resetAiKoucConversationAction:", error.message);
+
+  revalidatePath("/portal/ai-kouc");
+}

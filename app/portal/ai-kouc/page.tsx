@@ -1,6 +1,6 @@
 import { ChatThread } from "../../components/ChatThread";
 import { getPortalAiChat } from "@/lib/portal/data";
-import { sendAiKoucMessageAction } from "./actions";
+import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "./actions";
 import { AlertIcon, Notice } from "../Notice";
 import { ProfileIcon } from "../icons";
 import { RetryButton } from "../RetryButton";
@@ -47,9 +47,20 @@ export default async function AiKoucPage() {
     createdAt: m.createdAt,
   }));
 
+  const hasMessages = result.data.messages.length > 0;
+
   return (
     <div className={styles.chatPage}>
-      <h1 className={styles.chatTitle}>AI Kouč</h1>
+      <div className={styles.aiKoucHead}>
+        <h1 className={styles.chatTitle}>AI Kouč</h1>
+        {hasMessages && (
+          <form action={resetAiKoucConversationAction}>
+            <button type="submit" className={styles.aiKoucResetBtn}>
+              Začať odznova
+            </button>
+          </form>
+        )}
+      </div>
       <p className={styles.aiKoucNotice}>
         Rozprávaš sa s AI asistentom, nie s trénerom priamo. Tvoj tréner vidí túto konverzáciu (transparentne, aby ti
         vedel lepšie pomôcť) — pri zmienke o bolesti/zranení ho AI Kouč automaticky upozorní.
