@@ -598,11 +598,18 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       // badge „Hotovo" v zozname dní tréningu.
       const { data: doneRows, error: doneErr } = await supabase
         .from("workout_logs")
-        .select("workout_day_id")
+        .select("workout_day_id, performed_on")
         .eq("client_id", client.id)
         .in("workout_day_id", dayIds.length > 0 ? dayIds : [""]);
       if (doneErr) return { state: "error", message: doneErr.message };
       const doneIds = new Set((doneRows ?? []).map((r) => r.workout_day_id));
+      // Bez tohto rozlíšenia by deň odcvičený pred týždňami (len "niekedy hotový")
+      // dostal rovnaké akčné tlačidlo ako deň odcvičený DNES — "Začať tréning" by
+      // po kliku skončil na karte Dnes v už-hotovom stave namiesto formulára sérií.
+      const { isoDate: todayIso } = todayInTz();
+      const doneTodayIds = new Set(
+        (doneRows ?? []).filter((r) => r.performed_on === todayIso).map((r) => r.workout_day_id),
+      );
 
       const daysByPlan = new Map<string, PortalTrainingDay[]>();
       for (const d of (dayRows ?? []) as (DayRow & { plan_id: string })[]) {
@@ -612,6 +619,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
           name: d.name,
           exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
           done: doneIds.has(d.id),
+          doneToday: doneTodayIds.has(d.id),
         });
         daysByPlan.set(d.plan_id, list);
       }

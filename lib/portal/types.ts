@@ -165,6 +165,8 @@ export interface PortalTrainingDay {
   exercises: PortalExercise[];
   /** klient tento deň už niekedy odcvičil (aspoň 1 záznam vo workout_logs) — badge „Hotovo" v zozname dní */
   done: boolean;
+  /** klient tento deň odcvičil DNES — rozhoduje, či akčné tlačidlo ponúka "Začať" alebo "Upraviť" */
+  doneToday: boolean;
 }
 
 /** Zdroj plánu: od trénera, alebo si ho klient vytvoril sám. */

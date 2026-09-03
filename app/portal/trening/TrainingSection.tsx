@@ -9,9 +9,13 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import styles from "../portal.module.css";
 
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
-   Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a tlačidlo
-   "Začať tréning" — až to nastaví plán ako aktívny, ktorý potom karta Dnes
-   berie ako "dnešný tréning" presne ako plán od trénera. */
+   Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a akčné
+   tlačidlo — nastaví plán (a tento deň) ako aktívny, ktorý potom karta Dnes
+   berie ako "dnešný tréning" presne ako plán od trénera. Ak je deň už DNES
+   odcvičený ("doneToday", odlišné od "niekedy odcvičený" badge "Hotovo"),
+   tlačidlo namiesto "Začať tréning" ponúka "Upraviť tréning" — klik aj tak
+   vedie na kartu Dnes, len tam už čaká hotový deň s "Upraviť hodnoty", nie
+   prázdny formulár sérií. */
 
 const PlusIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -22,6 +26,18 @@ const PlusIcon = () => (
 const ChevronIcon = ({ className }: { className?: string }) => (
   <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const PencilIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M4 20l1-4.2L15.6 5.2a1.5 1.5 0 0 1 2.1 0l1.1 1.1a1.5 1.5 0 0 1 0 2.1L8.2 19l-4.2 1Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -200,7 +216,13 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             onClick={() => startPlan(plan, selectedDay.id)}
                             disabled={pending}
                           >
-                            Začať tréning
+                            {selectedDay.doneToday ? (
+                              <>
+                                <PencilIcon /> Upraviť tréning
+                              </>
+                            ) : (
+                              "Začať tréning"
+                            )}
                           </button>
                         </div>
                       </>

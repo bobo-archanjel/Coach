@@ -31,6 +31,7 @@ const PREVIEW: PortalTrainingData = {
           id: "d1",
           name: "Deň A — Tlak",
           done: true,
+          doneToday: true,
           exercises: [
             { idx: "1", name: "Bench press", scheme: "4 × 6", load: "80 kg", rest: "150 s", tempo: "2-0-1", entryId: "e1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 80, restSeconds: 150 },
             { idx: "2", name: "Tlaky nad hlavu", scheme: "3 × 8", load: "45 kg", rest: "120 s", entryId: "e2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 45, restSeconds: 120 },
@@ -39,7 +40,8 @@ const PREVIEW: PortalTrainingData = {
         {
           id: "d2",
           name: "Deň B — Ťah",
-          done: false,
+          done: true,
+          doneToday: false,
           exercises: [
             { idx: "1", name: "Mŕtvy ťah", scheme: "3 × 5", load: "120 kg", rest: "180 s", entryId: "e3", plannedSets: 3, plannedReps: "5", exerciseId: null, loadKg: 120, restSeconds: 180 },
             { idx: "2", name: "Zhyby", scheme: "4 × 8", load: "vlastná váha", rest: "90 s", entryId: "e4", plannedSets: 4, plannedReps: "8", exerciseId: null, loadKg: null, restSeconds: 90 },
@@ -57,6 +59,7 @@ const PREVIEW: PortalTrainingData = {
           id: "d3",
           name: "Rozcvička",
           done: false,
+          doneToday: false,
           exercises: [
             { idx: "1", name: "Plank", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s", entryId: "e5", plannedSets: 3, plannedReps: "45 s", exerciseId: null, loadKg: null, restSeconds: 45 },
           ],
