@@ -956,3 +956,40 @@
   justify-content: space-between;
   gap: 12px;
 }
+
+/* ---------- loading skeleton (Next.js loading.tsx pre /dashboard/*) ---------- */
+.skeletonWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.skeletonBlock {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+.skeletonHead {
+  height: 36px;
+  width: 45%;
+  border: none;
+  background: transparent;
+}
+.skeletonCard {
+  height: 120px;
+}
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeletonBlock {
+    animation: none;
+    opacity: 0.7;
+  }
+}

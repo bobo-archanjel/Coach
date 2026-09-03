@@ -96,20 +96,19 @@ export default async function ClientDetailPage({
 
   const supabase = await createClient();
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select(
-      "id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
-    )
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!client) {
-    notFound();
-  }
-
-  const [{ data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, volumeTrend] =
+  // `client` samotný nie je vstupom pre žiadny z ostatných dopytov (všetky berú
+  // `id` z route parametra priamo) — predtým čakal na svoj round-trip, kým sa
+  // spustilo zvyšných 8. Beží teraz v tej istej dávke; ak klient neexistuje,
+  // ostatné vrátia prázdno/null a zahodia sa spolu s `notFound()` nižšie.
+  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, volumeTrend] =
     await Promise.all([
+      supabase
+        .from("clients")
+        .select(
+          "id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
+        )
+        .eq("id", id)
+        .maybeSingle(),
       supabase
         .from("workout_plans")
         .select("id, name, created_at, workout_days(count)")
@@ -132,6 +131,10 @@ export default async function ClientDetailPage({
       getAllStrengthProgress(id),
       getVolumeTrend(id),
     ]);
+
+  if (!client) {
+    notFound();
+  }
 
   const firstName = client.full_name.split(/\s+/)[0];
 

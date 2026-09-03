@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { CreatePlanForm } from "./CreatePlanForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
+import { ExerciseLibraryList } from "./ExerciseLibraryList";
 import styles from "../dashboard.module.css";
 
 export default async function TreningyPage() {
@@ -17,9 +18,11 @@ export default async function TreningyPage() {
     redirect("/prihlasenie");
   }
 
-  const [{ data: clients }, { data: exercises }, { data: plans }] = await Promise.all([
+  const [{ data: clients }, { count: exerciseCount }, { data: plans }] = await Promise.all([
     supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
-    supabase.from("exercises").select("id, name, muscle_group").order("name"),
+    // Len počet pre hlavičku — celé riadky (~900, aj muscle_group) sa ťahajú až na
+    // požiadanie v ExerciseLibraryList (defaultne zbalené), nie pri každom načítaní.
+    supabase.from("exercises").select("id", { count: "exact", head: true }),
     supabase
       .from("workout_plans")
       // Explicitná FK — viď poznámku v [planId]/page.tsx (clients.active_plan_id
@@ -69,18 +72,9 @@ export default async function TreningyPage() {
       )}
 
       <div className={styles.card}>
-        <h3>Knižnica cvikov ({exercises?.length ?? 0})</h3>
+        <h3>Knižnica cvikov ({exerciseCount ?? 0})</h3>
         <AddCustomExerciseForm />
-        {exercises && exercises.length > 0 && (
-          <div className={styles.tagList} style={{ marginTop: 14 }}>
-            {exercises.map((ex) => (
-              <span key={ex.id}>
-                {ex.name}
-                {ex.muscle_group ? ` · ${ex.muscle_group}` : ""}
-              </span>
-            ))}
-          </div>
-        )}
+        {(exerciseCount ?? 0) > 0 && <ExerciseLibraryList count={exerciseCount ?? 0} />}
       </div>
     </>
   );

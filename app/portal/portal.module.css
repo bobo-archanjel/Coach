@@ -2806,3 +2806,43 @@
   border-color: color-mix(in srgb, var(--iron-red) 40%, transparent);
   font-weight: 700;
 }
+
+/* ---------- loading skeleton (Next.js loading.tsx pre /portal/*) ---------- */
+.skeletonWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.skeletonBlock {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+.skeletonHead {
+  height: 64px;
+  width: 70%;
+  border: none;
+  background: transparent;
+}
+.skeletonPanel {
+  height: 220px;
+}
+.skeletonPanelSmall {
+  height: 96px;
+}
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeletonBlock {
+    animation: none;
+    opacity: 0.7;
+  }
+}
