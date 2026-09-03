@@ -9,8 +9,9 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import styles from "../portal.module.css";
 
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
-   Ťuk na plán = rozbalí dni a (ak ešte nie je) nastaví ho ako aktívny — potom
-   ho karta Dnes berie ako "dnešný tréning" presne ako plán od trénera. */
+   Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a tlačidlo
+   "Začať tréning" — až to nastaví plán ako aktívny, ktorý potom karta Dnes
+   berie ako "dnešný tréning" presne ako plán od trénera. */
 
 const PlusIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -30,6 +31,12 @@ function dayWord(n: number): string {
   return "dní";
 }
 
+function exWord(n: number): string {
+  if (n === 1) return "cvik";
+  if (n >= 2 && n <= 4) return "cviky";
+  return "cvikov";
+}
+
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const router = useRouter();
   const { plans, exerciseLibrary } = data;
@@ -37,6 +44,10 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState<PortalPlan | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(data.activePlanId);
+  // Vybraný deň v rámci rozbaleného tréningu — samostatný krok pred zobrazením
+  // cvikov a tlačidla "Začať tréning" (predtým sa všetky dni so všetkými cvikmi
+  // vypísali naraz, pôsobilo to chaoticky).
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -55,18 +66,22 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     router.refresh();
   };
 
+  // Ťuk na tréning len rozbalí/zbalí zoznam jeho dní — nemení, čo beží na karte
+  // Dnes. Aktívny plán sa nastaví až pri "Začať tréning" pre konkrétny deň.
   const tapPlan = (plan: PortalPlan) => {
     setError(null);
-    if (plan.isActive) {
-      setExpandedId((id) => (id === plan.id ? null : plan.id));
-      return;
-    }
-    setExpandedId(plan.id);
-    startTransition(async () => {
-      const res = await setActivePlanAction(plan.id);
-      if (res.error) setError(res.error);
-      else router.refresh();
-    });
+    setSelectedDayId(null);
+    setExpandedId((id) => (id === plan.id ? null : plan.id));
+  };
+
+  const selectDay = (dayId: string) => {
+    setError(null);
+    setSelectedDayId(dayId);
+  };
+
+  const backToDays = () => {
+    setError(null);
+    setSelectedDayId(null);
   };
 
   const removePlan = (planId: string) => {
@@ -81,17 +96,15 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     });
   };
 
-  // "Začať tréning" — nastaví plán ako aktívny a prejde na kartu Dnes, kde beží
-  // presne ten istý štart tréningu ako pri pláne od trénera (Začať tréning →
-  // formulár sérií + plávajúce stopky, logovanie cez finishWorkoutAction).
-  const startPlan = (plan: PortalPlan) => {
+  // "Začať tréning" — nastaví plán aj presne tento deň ako aktívny (0022: bez
+  // dayId by karta Dnes aj tak dopočítala "ďalší deň v rotácii" sama, čo sa
+  // nemusí zhodovať s dňom, ktorý si tu klient vybral a odcvičil) a prejde na
+  // kartu Dnes, kde beží ten istý flow ako pri pláne od trénera (formulár sérií
+  // + plávajúce stopky, logovanie cez finishWorkoutAction).
+  const startPlan = (plan: PortalPlan, dayId: string) => {
     setError(null);
-    if (plan.isActive) {
-      router.push("/portal");
-      return;
-    }
     startTransition(async () => {
-      const res = await setActivePlanAction(plan.id);
+      const res = await setActivePlanAction(plan.id, dayId);
       if (res.error) setError(res.error);
       else router.push("/portal");
     });
@@ -134,6 +147,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         <ul className={styles.trPlanList}>
           {plans.map((plan) => {
             const expanded = expandedId === plan.id;
+            const selectedDay = expanded && selectedDayId ? (plan.days.find((d) => d.id === selectedDayId) ?? null) : null;
             return (
               <li key={plan.id} className={`${styles.trPlan} ${plan.isActive ? styles.trPlanActive : ""}`}>
                 <button
@@ -162,67 +176,95 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                   <div className={styles.trPlanBody}>
                     {plan.days.length === 0 ? (
                       <p className={styles.trEmptyDay}>Tento tréning nemá žiadne dni.</p>
-                    ) : (
-                      plan.days.map((day) => (
-                        <div key={day.id} className={styles.trDay}>
-                          <p className={styles.panelLabel}>{day.name}</p>
-                          {day.exercises.length > 0 ? (
-                            <ExercisePreviewList exercises={day.exercises} />
+                    ) : selectedDay ? (
+                      <>
+                        <button type="button" className={styles.trDayBack} onClick={backToDays}>
+                          <ChevronIcon className={styles.trDayBackIcon} /> Všetky dni
+                        </button>
+                        <div className={styles.trDay}>
+                          <p className={styles.panelLabel}>
+                            {selectedDay.name}
+                            {selectedDay.done && <span className={styles.trDoneBadge}>Hotovo</span>}
+                          </p>
+                          {selectedDay.exercises.length > 0 ? (
+                            <ExercisePreviewList exercises={selectedDay.exercises} />
                           ) : (
                             <p className={styles.trEmptyDay}>Žiadne cviky.</p>
                           )}
                         </div>
-                      ))
-                    )}
 
-                    <div className={styles.trPlanActions}>
-                      {confirmDelete === plan.id ? (
-                        <>
-                          <span className={styles.trConfirmText}>Naozaj zmazať tento tréning?</span>
-                          <button
-                            type="button"
-                            className={styles.trDangerBtn}
-                            onClick={() => removePlan(plan.id)}
-                            disabled={pending}
-                          >
-                            Zmazať
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.trGhostBtn}
-                            onClick={() => setConfirmDelete(null)}
-                            disabled={pending}
-                          >
-                            Nie
-                          </button>
-                        </>
-                      ) : (
-                        <>
+                        <div className={styles.trPlanActions}>
                           <button
                             type="button"
                             className={styles.trStartBtn}
-                            onClick={() => startPlan(plan)}
+                            onClick={() => startPlan(plan, selectedDay.id)}
                             disabled={pending}
                           >
                             Začať tréning
                           </button>
-                          {plan.source === "client" && (
-                            <>
-                              <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(plan)}>
-                                Upraviť
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <ul className={styles.trDayList}>
+                          {plan.days.map((day) => (
+                            <li key={day.id}>
+                              <button type="button" className={styles.trDayBtn} onClick={() => selectDay(day.id)}>
+                                <span className={styles.trDayBtnName}>{day.name}</span>
+                                <span className={styles.trDayBtnMeta}>
+                                  <span className={`${styles.trDoneBadge} ${!day.done ? styles.trDoneBadgeHidden : ""}`}>
+                                    Hotovo
+                                  </span>
+                                  <span className={styles.chip}>
+                                    {day.exercises.length} {exWord(day.exercises.length)}
+                                  </span>
+                                  <ChevronIcon className={styles.trDayBtnChevron} />
+                                </span>
                               </button>
-                              <button
-                                type="button"
-                                className={styles.trGhostBtn}
-                                onClick={() => setConfirmDelete(plan.id)}
-                              >
-                                Zmazať
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {plan.source === "client" && (
+                          <div className={styles.trPlanActions}>
+                            {confirmDelete === plan.id ? (
+                              <>
+                                <span className={styles.trConfirmText}>Naozaj zmazať tento tréning?</span>
+                                <button
+                                  type="button"
+                                  className={styles.trDangerBtn}
+                                  onClick={() => removePlan(plan.id)}
+                                  disabled={pending}
+                                >
+                                  Zmazať
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.trGhostBtn}
+                                  onClick={() => setConfirmDelete(null)}
+                                  disabled={pending}
+                                >
+                                  Nie
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(plan)}>
+                                  Upraviť
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.trGhostBtn}
+                                  onClick={() => setConfirmDelete(plan.id)}
+                                >
+                                  Zmazať
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </li>
@@ -232,7 +274,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       )}
 
       {plans.length > 1 && (
-        <p className={styles.trHint}>Ťukni na tréning a nastaví sa ako aktívny — ten sa potom zobrazuje na karte Dnes.</p>
+        <p className={styles.trHint}>Ťukni na tréning a vyber si deň — „Začať tréning“ ho nastaví ako aktívny na karte Dnes.</p>
       )}
     </section>
   );

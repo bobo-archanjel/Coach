@@ -14,7 +14,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 **Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat/AI Kouč, rotácia dní, história týždňov), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)**, **AI Kouč pre klienta** — viď sekcie nižšie.
 
-**Číslovanie migrácií — ďalšie voľné číslo je `0018`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
+**Číslovanie migrácií — ďalšie voľné číslo je `0023`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
 | # | Súbor | Track |
 |---|---|---|
@@ -35,7 +35,12 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0015 | `ai_escalation.sql` (sender `system` na `messages`, eskalácia trénerovi) | Zdieľané |
 | 0016 | `ai_conversation_delete.sql` (RLS delete pre "Začať odznova") | Zdieľané |
 | 0017 | `ai_chat_private.sql` (zúženie RLS — tréner nemá prístup k AI chatu) | Zdieľané |
-| 0018+ | — voľné — | dohodnúť |
+| 0018 | `client_deletion.sql` (GDPR výmaz, `feature/gdpr-retention` — pôvodne 0013, prečíslované pri mergi kvôli kolízii s AI Kočom) | Klient |
+| 0019 | `deletion_chat_notice.sql` (systémová správa o GDPR zmazaní, `feature/gdpr-retention` — pôvodne 0014) | Klient |
+| 0020 | `client_cooperation_pause.sql` (ukončenie spolupráce bez straty dát, `feature/gdpr-retention` — pôvodne 0015) | Klient |
+| 0021 | `workout_plan_publish.sql` (koncept/publikovanie tréningového plánu, `feature/gdpr-retention` — pôvodne 0016) | Tréner |
+| 0022 | `active_day_override.sql` (explicitný výber dňa má prednosť pred rotáciou, `feature/gdpr-retention` — pôvodne 0017) | Klient |
+| 0023+ | — voľné — | dohodnúť |
 
 ---
 

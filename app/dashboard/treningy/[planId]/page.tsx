@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PlanBuilder } from "./PlanBuilder";
+import { PublishControl } from "./PublishControl";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -20,7 +21,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
     // (0010_client_own_workouts.sql), je vzťah workout_plans↔clients nejednoznačný
     // a plain `clients(...)` embed padá na PGRST201 (a maybeSingle() to potichu
     // zmení na "nenájdené" — celá stránka detailu plánu bola nedostupná).
-    .select("id, name, client_id, clients!workout_plans_client_id_fkey(full_name)")
+    .select("id, name, client_id, published, clients!workout_plans_client_id_fkey(full_name)")
     .eq("id", planId)
     .maybeSingle();
 
@@ -49,6 +50,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
         </div>
+        <PublishControl planId={planId} published={plan.published} />
       </div>
 
       <PlanBuilder planId={planId} days={days ?? []} library={exercises ?? []} />

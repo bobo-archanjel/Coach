@@ -35,6 +35,39 @@ export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeek
   return getPortalWeek(mondayIso);
 }
 
+/** GDPR — klient požiada o zmazanie vlastných dát (30-dňová grace period, 0013_client_deletion.sql). */
+export async function requestOwnDeletionAction(): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath("/portal/profil");
+  return ok;
+}
+
+/** GDPR — zrušenie žiadosti o zmazanie počas grace period. */
+export async function cancelOwnDeletionAction(): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath("/portal/profil");
+  return ok;
+}
+
+/** Zavretie banneru o ukončenej spolupráci na karte Dnes (0015_client_cooperation_pause.sql). */
+export async function dismissCooperationNoticeAction(): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  const { error } = await supabase.rpc("dismiss_cooperation_notice", { p_client_id: clientId });
+  if (error) return { error: error.message };
+  revalidatePath("/portal");
+  return ok;
+}
+
 /** Klient prepojený s prihláseným používateľom, alebo null. */
 async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
   const {
@@ -136,11 +169,19 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   if (error) {
     // unique index (client_id, workout_day_id, performed_on) — dnes už zapísané,
     // netreba to hlásiť ako chybu (napr. druhý klik po pomalej sieti).
-    if (error.code === "23505") return ok;
-    return { error: error.message };
+    if (error.code !== "23505") return { error: error.message };
   }
 
-  revalidatePath("/portal");
+  // Deň je zalogovaný (nanovo alebo už bol dnes skôr) — explicitný výber dňa
+  // zo sekcie Tréning (clients.active_day_id, 0022) sa tým spotreboval, ďalší
+  // štart nech opäť rieši prirodzená rotácia dní (lib/portal/data.ts). RPC, lebo
+  // klient nemá priamu UPDATE RLS na `clients` (len tréner, 0001).
+  await supabase.rpc("clear_active_day_if_matches", { p_day_id: dayId });
+
+  // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
+  // pre badge "Hotovo" (lib/portal/data.ts) — bez "layout" ostal cache tej stránky
+  // po dokončení tréningu na karte Dnes stále starý.
+  revalidatePath("/portal", "layout");
   return ok;
 }
 
@@ -185,7 +226,7 @@ export async function updateWorkoutLogAction(_prevState: ActionState, formData: 
   const { error } = await supabase.from("workout_logs").update({ entries }).eq("id", existing.id);
   if (error) return { error: error.message };
 
-  revalidatePath("/portal");
+  revalidatePath("/portal", "layout");
   return ok;
 }
 

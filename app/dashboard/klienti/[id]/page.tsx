@@ -6,6 +6,7 @@ import { getNutritionAdherence } from "@/lib/dashboard/adherence";
 import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
 import { markTrainerChatSeenAction, sendTrainerMessageAction } from "../actions";
+import { DangerZone } from "./DangerZone";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -70,7 +71,9 @@ export default async function ClientDetailPage({
 
   const { data: client } = await supabase
     .from("clients")
-    .select("id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm")
+    .select(
+      "id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -107,7 +110,7 @@ export default async function ClientDetailPage({
   const firstName = client.full_name.split(/\s+/)[0];
   const messages = (msgRows ?? []).map((m) => ({
     id: m.id as string,
-    sender: m.sender as "trainer" | "client",
+    sender: m.sender as "trainer" | "client" | "system",
     body: m.body as string,
     createdAt: m.created_at as string,
   }));
@@ -305,6 +308,14 @@ export default async function ClientDetailPage({
               <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
             )}
           </div>
+
+          <DangerZone
+            clientId={id}
+            firstName={firstName}
+            endedAt={client.ended_at}
+            deletionRequestedAt={client.deletion_requested_at}
+            deletionRequestedBy={client.deletion_requested_by}
+          />
         </div>
       </div>
     </>

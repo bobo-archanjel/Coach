@@ -275,7 +275,9 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const { data: client, error: clientErr } = await supabase
       .from("clients")
-      .select("id, full_name, active_plan_id")
+      .select(
+        "id, full_name, active_plan_id, active_day_id, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by",
+      )
       .eq("user_id", user.id)
       .order("created_at", { ascending: true })
       .limit(1)
@@ -289,12 +291,15 @@ export async function getPortalData(): Promise<PortalResult> {
     // "Aktívny" plán = clients.active_plan_id (klient si ho volí v sekcii Tréning),
     // inak najnovší plán (spätne kompatibilné). Platí pre plán od trénera aj vlastný.
     let plan: { id: string; name: string } | null = null;
+    // published: false = tréner ešte plán len rozostavuje (0021) — dovtedy sa
+    // klientovi nesmie ukázať, ani ako "aktívny", ani ako "najnovší".
     if (client.active_plan_id) {
       const { data } = await supabase
         .from("workout_plans")
         .select("id, name")
         .eq("id", client.active_plan_id)
         .eq("client_id", client.id)
+        .eq("published", true)
         .maybeSingle();
       plan = data ?? null;
     }
@@ -303,6 +308,7 @@ export async function getPortalData(): Promise<PortalResult> {
         .from("workout_plans")
         .select("id, name")
         .eq("client_id", client.id)
+        .eq("published", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -336,20 +342,31 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const logs = logRows ?? [];
     const loggedDates = new Set(logs.map((l) => l.performed_on));
-    const doneToday = loggedDates.has(isoDate);
+    // Viac dní sa dá odcvičiť aj v ten istý kalendárny deň (unique index je na
+    // (client_id, workout_day_id, performed_on), nie len performed_on) — preto
+    // mapa podľa dňa, nie jeden "dnešný log" pre celý plán.
+    const logsTodayByDay = new Map(logs.filter((l) => l.performed_on === isoDate).map((l) => [l.workout_day_id, l]));
 
     // ---------- ktorý deň zobraziť ----------
-    // Dokončené dni, nie celý plán naraz: klient odklikáva jednotlivé dni tréningu
-    // (workout_logs má riadok na deň, nie na plán). Kým je dnešný deň hotový, karta
-    // zostáva na NOM — nesmie ticho preskočiť na ďalší v poradí len preto, že sa
-    // deň zmenil vo výpočte (predtým sa "ďalší" počítal z posledného logu vôbec,
-    // takže hneď po dokončení ukazoval iný deň než ten, čo sa práve odcvičil —
-    // vyzeralo to, akoby sa "zaškrtol" celý tréning namiesto jedného dňa). Rotácia
-    // na ďalší nedokončený deň nastane až zajtra, keď dnešok ešte nemá záznam.
-    const todaysLog = doneToday ? (logs.find((l) => l.performed_on === isoDate) ?? null) : null;
+    const activeDayOverride = client.active_day_id ? (days.find((d) => d.id === client.active_day_id) ?? null) : null;
     let targetDay: DayRow;
-    if (todaysLog) {
-      targetDay = days.find((d) => d.id === todaysLog.workout_day_id) ?? days[0];
+    if (activeDayOverride) {
+      // Klient si v sekcii Tréning explicitne vybral konkrétny deň a stlačil
+      // "Začať tréning" (clients.active_day_id, RPC set_active_plan, 0022) — má
+      // prednosť pred čímkoľvek nižšie (aj pred "dnes už niečo hotové", inak by
+      // sa druhý tréning v ten istý deň nedal vôbec spustiť). Spotrebuje sa
+      // (vynuluje) po zalogovaní v finishWorkoutAction, odvtedy rieši rotácia.
+      targetDay = activeDayOverride;
+    } else if (logsTodayByDay.size > 0) {
+      // Dokončené dni, nie celý plán naraz: klient odklikáva jednotlivé dni
+      // tréningu (workout_logs má riadok na deň, nie na plán). Kým je dnešný
+      // deň hotový, karta zostáva na NOM — nesmie ticho preskočiť na ďalší v
+      // poradí len preto, že sa deň zmenil vo výpočte (predtým sa "ďalší"
+      // počítal z posledného logu vôbec, takže hneď po dokončení ukazoval iný
+      // deň než ten, čo sa práve odcvičil). Rotácia na ďalší nedokončený deň
+      // nastane až zajtra, keď dnešok ešte nemá záznam.
+      const todaysDayId = logs.find((l) => l.performed_on === isoDate)!.workout_day_id;
+      targetDay = days.find((d) => d.id === todaysDayId) ?? days[0];
     } else {
       // Klient si sám vyberá kedy cvičí — deň nie je pripnutý na konkrétny deň
       // v týždni. "Ďalší tréning" = deň nasledujúci po naposledy odcvičenom podľa
@@ -359,14 +376,20 @@ export async function getPortalData(): Promise<PortalResult> {
       targetDay = lastIdx === -1 ? days[0] : days[(lastIdx + 1) % days.length];
     }
 
+    // "Hotovo" platí pre KONKRÉTNY zobrazený deň, nie pre "niečo dnes hotové" —
+    // inak by override na ešte neodcvičený deň (vyššie) omylom zdedil "done" z
+    // iného dňa dokončeného skôr v ten istý deň.
+    const todaysLogForTarget = logsTodayByDay.get(targetDay.id) ?? null;
+    const doneToday = todaysLogForTarget !== null;
+
     const exList = parseEntries(targetDay.exercises).map((e, i) => toPortalExercise(e, i));
     // Po dokončení sa namiesto plánovaných cvikov ukazuje to, čo klient skutočne
     // zadal (Fáza B) — "vrátiť sa do tréningu" má zmysel len ak vidí svoje dáta,
     // nie znovu ten istý plán, ktorý mu ešte len je pripravený. Bez zadaných
     // hodnôt (len odklikol, entries: []) ostáva fallback na plánované cviky.
     const loggedExercises: LoggedExercise[] | null =
-      todaysLog && Array.isArray(todaysLog.entries) && todaysLog.entries.length > 0
-        ? (todaysLog.entries as LoggedExercise[])
+      todaysLogForTarget && Array.isArray(todaysLogForTarget.entries) && todaysLogForTarget.entries.length > 0
+        ? (todaysLogForTarget.entries as LoggedExercise[])
         : null;
     const session: TodaySession = {
       kind: doneToday ? "done" : "training",
@@ -428,6 +451,19 @@ export async function getPortalData(): Promise<PortalResult> {
       week,
       totalSessions,
       streakHistory,
+      deletionNotice: client.deletion_requested_at
+        ? { requestedBy: client.deletion_requested_by as "trainer" | "client", requestedAt: client.deletion_requested_at }
+        : null,
+      // Zmazanie má prednosť pred bannerom o ukončení spolupráce — je naliehavejšie
+      // (end_client_cooperation aj tak ended_at nikdy nenastaví popri deletion_requested_at).
+      // Klient banner zavrie (dismiss_cooperation_notice) — dokým sa spolupráca znova
+      // neukončí (nové ended_at je vtedy novšie než dismissed_at).
+      cooperationEndedNotice:
+        client.ended_at &&
+        !client.deletion_requested_at &&
+        (!client.ended_notice_dismissed_at || client.ended_notice_dismissed_at < client.ended_at)
+          ? { endedAt: client.ended_at }
+          : null,
     };
 
     return { state: "ok", data };
@@ -527,15 +563,19 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       return { state: "ok", data: { plans: [], activePlanId: null, exerciseLibrary } };
     }
 
+    // published: false = trénerov koncept (0021) — v klientovom zozname sa nezobrazí,
+    // kým ho tréner výslovne nepotvrdí (vlastné plány klienta majú default true).
+    // Najnovší prvý — nový tréning od trénera (alebo vlastný) má byť hneď navrchu.
     const { data: planRows, error: planErr } = await supabase
       .from("workout_plans")
       .select("id, name, trainer_id, created_at")
       .eq("client_id", client.id)
-      .order("created_at", { ascending: true });
+      .eq("published", true)
+      .order("created_at", { ascending: false });
     if (planErr) return { state: "error", message: planErr.message };
 
     const planList = planRows ?? [];
-    const newestId = planList.length > 0 ? planList[planList.length - 1].id : null;
+    const newestId = planList.length > 0 ? planList[0].id : null;
     const activePlanId =
       client.active_plan_id && planList.some((p) => p.id === client.active_plan_id)
         ? client.active_plan_id
@@ -553,6 +593,17 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
         .order("day_number", { ascending: true });
       if (daysErr) return { state: "error", message: daysErr.message };
 
+      const dayIds = (dayRows ?? []).map((d) => d.id);
+      // Ktoré dni má klient už niekedy odcvičené (aspoň jeden záznam v histórii) —
+      // badge „Hotovo" v zozname dní tréningu.
+      const { data: doneRows, error: doneErr } = await supabase
+        .from("workout_logs")
+        .select("workout_day_id")
+        .eq("client_id", client.id)
+        .in("workout_day_id", dayIds.length > 0 ? dayIds : [""]);
+      if (doneErr) return { state: "error", message: doneErr.message };
+      const doneIds = new Set((doneRows ?? []).map((r) => r.workout_day_id));
+
       const daysByPlan = new Map<string, PortalTrainingDay[]>();
       for (const d of (dayRows ?? []) as (DayRow & { plan_id: string })[]) {
         const list = daysByPlan.get(d.plan_id) ?? [];
@@ -560,6 +611,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
           id: d.id,
           name: d.name,
           exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
+          done: doneIds.has(d.id),
         });
         daysByPlan.set(d.plan_id, list);
       }
@@ -897,7 +949,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
 
     const messages: PortalChatMessage[] = (rows ?? []).map((m) => ({
       id: m.id,
-      sender: m.sender as "trainer" | "client",
+      sender: m.sender as "trainer" | "client" | "system",
       body: m.body,
       createdAt: m.created_at,
     }));

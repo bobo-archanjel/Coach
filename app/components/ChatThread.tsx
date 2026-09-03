@@ -15,7 +15,8 @@ import styles from "./chat.module.css";
 
 export type ChatMessage = {
   id: string;
-  sender: "trainer" | "client";
+  /** "system" = automatická správa (napr. GDPR zmazanie, 0019), nepatrí ani trénerovi ani klientovi */
+  sender: "trainer" | "client" | "system";
   body: string;
   createdAt: string; // ISO
 };
@@ -181,6 +182,19 @@ export function ChatThread({
             const pendingRow = m._pending === true;
             // čas len na poslednej bubline súvislej série od toho istého odosielateľa
             const endOfTurn = !next || next.sender !== m.sender || dayLabel(next.createdAt) !== dayLabel(m.createdAt);
+
+            if (m.sender === "system") {
+              return (
+                <div key={m.id} className={styles.group}>
+                  {newDay && <div className={styles.daySep}>{dayLabel(m.createdAt)}</div>}
+                  <div className={styles.systemRow}>
+                    <p className={styles.systemNote}>{m.body}</p>
+                    <span className={styles.meta}>{timeOf(m.createdAt)}</span>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={m.id} className={styles.group}>
                 {newDay && <div className={styles.daySep}>{dayLabel(m.createdAt)}</div>}

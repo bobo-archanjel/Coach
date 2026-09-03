@@ -61,11 +61,11 @@ export default async function PortalLayout({ children }: { children: React.React
       redirect("/dashboard");
     }
 
-    // neprečítaná správa od trénera → bodka na tabe Chat (RLS scopuje na vlákno klienta)
+    // neprečítaná správa od trénera ALEBO systémová (napr. GDPR zmazanie, 0019) → bodka na tabe Chat
     const { count } = await supabase
       .from("messages")
       .select("id", { count: "exact", head: true })
-      .eq("sender", "trainer")
+      .in("sender", ["trainer", "system"])
       .is("read_at", null);
     chatUnread = (count ?? 0) > 0;
 

@@ -1166,6 +1166,94 @@
   }
 }
 
+/* ---------- GDPR — notifikácia o zmazaní na karte Dnes (0013_client_deletion.sql) ---------- */
+.deletionNotice {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.deletionNoticeTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.deletionNoticeText {
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.deletionNoticeLink {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--paper);
+  text-decoration: underline;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+/* ---------- ukončenie spolupráce — banner na karte Dnes (0015_client_cooperation_pause.sql) ---------- */
+.cooperationNotice {
+  position: relative;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 14px 34px 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cooperationNoticeTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.cooperationNoticeText {
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.cooperationNoticeClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.cooperationNoticeClose:hover {
+  background: var(--ink-3);
+  color: var(--paper);
+}
+
+/* ---------- GDPR — zmazanie vlastných dát (0013_client_deletion.sql) ---------- */
+.dzText {
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  margin-bottom: 12px;
+}
+.dzActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dzError {
+  color: var(--iron-red);
+  font-size: 12.5px;
+  margin-top: 10px;
+}
+
 /* ---------- prázdne stavy "Dnes" (neprepojený klient / bez plánu / chyba) ---------- */
 /* Zdieľa geometriu s .soon (coming-soon obrazovky) — rovnaké optické centrovanie v shelli. */
 .notice {
@@ -1710,7 +1798,7 @@
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-m);
   box-shadow: var(--shadow-2);
-  animation: swPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: confirmPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .confirmTitle {
   font-size: 17px;
@@ -2018,6 +2106,21 @@
     transform: translateY(0);
   }
 }
+/* .confirmPanel je centrované cez transform: translate(-50%, -50%) (na rozdiel od
+   .swPanel, ktoré je ukotvené v rohu) — swPanelIn by tento statický transform počas
+   celej animácie prepísal na translateY(...), takže dialóg strácal centrovanie a
+   vyčnieval mimo viewport. Vlastná keyframe animácia preto centrovací transform
+   zachováva (rovnaký vzor ako .whPanel/whPanelIn). */
+@keyframes confirmPanelIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 10px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
 @keyframes swFade {
   from {
     opacity: 0;
@@ -2169,6 +2272,25 @@
   gap: 6px;
   align-items: center;
 }
+.trDoneBadge {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(76, 122, 94, 0.18);
+  color: #8fc6a7;
+}
+.panelLabel .trDoneBadge {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+/* Odznak sa v zozname dní vykresľuje vždy (aj nehotový deň), len skrytý —
+   nech "X cvikov" a šípka stoja v rovnakom stĺpci pre všetky riadky. */
+.trDoneBadgeHidden {
+  visibility: hidden;
+}
 .trActivePill {
   font-size: 10.5px;
   font-weight: 700;
@@ -2200,6 +2322,71 @@
 .trPlanBody {
   padding: 4px 15px 14px;
   border-top: 1px solid var(--steel-line);
+}
+.trDayList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+}
+.trDayBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: var(--radius-s);
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.trDayBtn:hover {
+  border-color: var(--paper-dim);
+  background: var(--ink-2);
+}
+.trDayBtnName {
+  font-size: 14px;
+  font-weight: 700;
+}
+.trDayBtnMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+/* Pevná šírka — počet cvikov má rôzne dlhý text ("4 cviky" vs. "10 cvikov"), bez
+   toho by sa odznak Hotovo v každom riadku posúval o pár px inde. */
+.trDayBtnMeta .chip {
+  min-width: 68px;
+  text-align: center;
+}
+.trDayBtnChevron {
+  color: var(--paper-faint);
+  transform: rotate(-90deg);
+}
+.trDayBack {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--paper-dim);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.trDayBack:hover {
+  color: var(--paper);
+}
+.trDayBackIcon {
+  transform: rotate(90deg);
 }
 .trDay + .trDay {
   margin-top: 14px;

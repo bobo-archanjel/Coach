@@ -25,7 +25,7 @@ export default async function TreningyPage() {
       // Explicitná FK — viď poznámku v [planId]/page.tsx (clients.active_plan_id
       // robí plain `clients(...)` embed nejednoznačným, celý zoznam plánov by inak
       // vždy vyzeral prázdny).
-      .select("id, name, created_at, clients!workout_plans_client_id_fkey(full_name), workout_days(count)")
+      .select("id, name, created_at, published, clients!workout_plans_client_id_fkey(full_name), workout_days(count)")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
@@ -50,7 +50,10 @@ export default async function TreningyPage() {
             return (
               <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
                 <div>
-                  <div className={styles.clientName}>{plan.name}</div>
+                  <div className={styles.clientName}>
+                    {plan.name}
+                    {!plan.published && <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>Koncept</span>}
+                  </div>
                   <div className={styles.clientGoal}>{clientName}</div>
                 </div>
                 <span className={styles.clientSince}>{dayCount} dní</span>
