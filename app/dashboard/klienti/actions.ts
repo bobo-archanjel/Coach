@@ -41,6 +41,7 @@ export async function sendTrainerMessageAction(_prevState: ActionState, formData
 
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/spravy");
   return ok;
 }
 
@@ -55,6 +56,7 @@ export async function markTrainerChatSeenAction(clientId: string): Promise<void>
   if (!error) {
     revalidatePath(`/dashboard/klienti/${clientId}`);
     revalidatePath("/dashboard");
+    revalidatePath("/dashboard/spravy");
   }
 }
 

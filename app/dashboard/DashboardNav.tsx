@@ -37,6 +37,18 @@ const NutritionIcon = () => (
   </svg>
 );
 
+const MessagesIcon = () => (
+  <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M4.5 6.5A2.5 2.5 0 0 1 7 4h10a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 17 16H9l-4 3.2V16H7a2.5 2.5 0 0 1-2.5-2.5v-7Z"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+    />
+    <path d="M8.5 9.2h7M8.5 12h4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
 const SettingsIcon = () => (
   <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
@@ -53,10 +65,11 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/vyziva", label: "Výživa", Icon: NutritionIcon, match: (p: string) => p.startsWith("/dashboard/vyziva") },
+  { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, match: (p: string) => p.startsWith("/dashboard/spravy") },
   { href: "/dashboard/nastavenia", label: "Nastavenia", Icon: SettingsIcon, match: (p: string) => p.startsWith("/dashboard/nastavenia") },
 ];
 
-export function DashboardNav() {
+export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -68,6 +81,7 @@ export function DashboardNav() {
       <nav className={styles.navList} aria-label="Trénerský dashboard">
         {NAV_ITEMS.map(({ href, label, Icon, match }) => {
           const active = match(pathname);
+          const showBadge = href === "/dashboard/spravy" && unreadCount > 0;
           return (
             <Link
               key={href}
@@ -77,6 +91,11 @@ export function DashboardNav() {
             >
               <Icon />
               {label}
+              {showBadge && (
+                <span className={styles.navBadge} aria-label={`${unreadCount} neprečítaných správ`}>
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           );
         })}

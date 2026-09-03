@@ -114,9 +114,22 @@
   height: 17px;
   flex: none;
 }
+.navBadge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--iron-red) 22%, var(--ink-3));
+  border: 1px solid color-mix(in srgb, var(--iron-red) 40%, var(--steel-line));
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
 /* Bottom tab bar položky: ikona nad labelom, min. 44px výška na dotyk (palec). */
 @media (max-width: 880px) {
   .navLink {
+    position: relative;
     flex: 1;
     flex-direction: column;
     justify-content: center;
@@ -131,6 +144,15 @@
   .navIcon {
     width: 20px;
     height: 20px;
+  }
+  /* Na bottom-bare je odznak malá dlaždica v rohu ikony, nie tretí riadok textu. */
+  .navBadge {
+    position: absolute;
+    top: 2px;
+    right: 10px;
+    margin-left: 0;
+    font-size: 10px;
+    padding: 0 5px;
   }
 }
 
@@ -616,6 +638,48 @@
 .cardStack {
   display: grid;
   gap: 16px;
+}
+
+/* ---------- /dashboard/spravy — centrálna schránka správ (ROADMAP.md follow-up) ---------- */
+.inboxGrid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .inboxGrid {
+    grid-template-columns: 1fr;
+  }
+  /* Vybraná konverzácia → na mobile ukáž len vlákno (nie zoznam pod ním);
+     na desktope ostávajú oba stĺpce vždy viditeľné, toto pravidlo tam nedopadá. */
+  .inboxGrid[data-has-selection="true"] .inboxList {
+    display: none;
+  }
+}
+.inboxList .roster {
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+.inboxRow {
+  align-items: start;
+}
+.inboxRowActive {
+  border-color: var(--iron-red);
+  background: var(--ink-3);
+}
+.inboxThread {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+}
+.inboxBackLink {
+  display: none;
+}
+@media (max-width: 860px) {
+  .inboxBackLink {
+    display: inline-flex;
+  }
 }
 
 .infoRow {
