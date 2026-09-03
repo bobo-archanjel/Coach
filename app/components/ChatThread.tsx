@@ -69,6 +69,7 @@ export function ChatThread({
   pollMs = 12_000,
   extraFields,
   onSeen,
+  readOnly = false,
 }: {
   messages: ChatMessage[];
   mySide: "trainer" | "client";
@@ -83,6 +84,8 @@ export function ChatThread({
   extraFields?: Record<string, string>;
   /** označí správy od protistrany ako prečítané — volané pri otvorení a návrate na kartu */
   onSeen?: () => void | Promise<void>;
+  /** len na čítanie — skryje composer (napr. tréner nahliadajúci do AI Kouč transkriptu klienta). */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(sendAction, initialState);
@@ -203,25 +206,27 @@ export function ChatThread({
         )}
       </div>
 
-      <form className={styles.composer} onSubmit={submit}>
-        <textarea
-          ref={inputRef}
-          className={styles.input}
-          rows={1}
-          value={text}
-          placeholder={placeholder}
-          onChange={(e) => {
-            setText(e.target.value);
-            grow();
-          }}
-          onKeyDown={onKeyDown}
-          aria-label="Napísať správu"
-        />
-        <button type="submit" className={styles.send} disabled={pending || !text.trim()} aria-label="Odoslať">
-          <SendIcon />
-        </button>
-      </form>
-      {state.error && <p className={styles.error}>{state.error}</p>}
+      {!readOnly && (
+        <form className={styles.composer} onSubmit={submit}>
+          <textarea
+            ref={inputRef}
+            className={styles.input}
+            rows={1}
+            value={text}
+            placeholder={placeholder}
+            onChange={(e) => {
+              setText(e.target.value);
+              grow();
+            }}
+            onKeyDown={onKeyDown}
+            aria-label="Napísať správu"
+          />
+          <button type="submit" className={styles.send} disabled={pending || !text.trim()} aria-label="Odoslať">
+            <SendIcon />
+          </button>
+        </form>
+      )}
+      {!readOnly && state.error && <p className={styles.error}>{state.error}</p>}
     </div>
   );
 }

@@ -9,6 +9,9 @@ import type {
   LoggedSessionView,
   LoggedSetView,
   PlanSource,
+  PortalAiChatData,
+  PortalAiChatMessage,
+  PortalAiChatResult,
   PortalWeekResult,
   PortalChatData,
   PortalChatMessage,
@@ -441,7 +444,7 @@ async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
   const { data: client, error } = await supabase
     .from("clients")
-    .select("id, full_name, active_plan_id")
+    .select("id, full_name, active_plan_id, trainer_id")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -906,6 +909,58 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     }
 
     const data: PortalChatData = { messages, trainerName };
+    return { state: "ok", data };
+  } catch (err) {
+    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+  }
+}
+
+/**
+ * AI Kouč (AI blok, Krok 4b) — história AI chatu klienta. Dostupné len klientom
+ * s prideleným trénerom (self-klienti "no_trainer", dohodnuté vopred — bez
+ * trénera by eskalácia pri zdravotnej téme nemala kam ísť). Konverzácia sa
+ * lazy zakladá až pri prvej odoslanej správe (app/portal/ai-kouc/actions.ts),
+ * takže tu jej neexistencia nie je chyba — len prázdny zoznam správ.
+ */
+export async function getPortalAiChat(): Promise<PortalAiChatResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { state: "error", message: "Session vypršala." };
+
+    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    if (clientErr) return { state: "error", message: clientErr.message };
+    if (!client) return { state: "unlinked", firstName };
+    if (!client.trainer_id) return { state: "no_trainer" };
+
+    const { data: conv, error: convErr } = await supabase
+      .from("ai_conversations")
+      .select("id")
+      .eq("client_id", client.id)
+      .maybeSingle();
+    if (convErr) return { state: "error", message: convErr.message };
+
+    if (!conv) return { state: "ok", data: { messages: [] } satisfies PortalAiChatData };
+
+    const { data: rows, error: msgErr } = await supabase
+      .from("ai_messages")
+      .select("id, role, content, escalated, created_at")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: true })
+      .limit(300);
+    if (msgErr) return { state: "error", message: msgErr.message };
+
+    const messages: PortalAiChatMessage[] = (rows ?? []).map((m) => ({
+      id: m.id,
+      role: m.role as "user" | "assistant",
+      body: m.content,
+      createdAt: m.created_at,
+      escalated: m.escalated ?? false,
+    }));
+
+    const data: PortalAiChatData = { messages };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };

@@ -65,6 +65,18 @@ export const StopwatchIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+export const AiIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 3.5 13.6 8.4 18.5 10 13.6 11.6 12 16.5 10.4 11.6 5.5 10 10.4 8.4 12 3.5Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+    />
+    <path d="M18.5 15.5 19.4 18.1 22 19 19.4 19.9 18.5 22.5 17.6 19.9 15 19 17.6 18.1 18.5 15.5Z" fill="currentColor" />
+  </svg>
+);
+
 export const ProfileIcon = ({ className }: IconProps) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="8.4" r="3.6" stroke="currentColor" strokeWidth="1.7" />

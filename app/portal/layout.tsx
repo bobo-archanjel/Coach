@@ -47,6 +47,7 @@ export default async function PortalLayout({ children }: { children: React.React
   } = await supabase.auth.getUser();
 
   let chatUnread = false;
+  let aiKoucVisible = false;
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
@@ -67,6 +68,16 @@ export default async function PortalLayout({ children }: { children: React.React
       .eq("sender", "trainer")
       .is("read_at", null);
     chatUnread = (count ?? 0) > 0;
+
+    // AI Kouč len pre klientov s prideleným trénerom (dohodnuté v Kroku 4b).
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("trainer_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    aiKoucVisible = Boolean(clientRow?.trainer_id);
   }
 
   return (
@@ -74,7 +85,7 @@ export default async function PortalLayout({ children }: { children: React.React
       {/* Sibling ku .column (nie vnorená) — nad 880px sa stáva ľavým sidebarom
           v CSS grid .viewport, presne ako app/dashboard/layout.tsx. Pod 880px
           ostáva position:fixed bottom nav, DOM poradie tam nehrá rolu. */}
-      <PortalNav chatUnread={chatUnread} />
+      <PortalNav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} />
       <div className={styles.column}>
         <div hidden aria-hidden="true" dangerouslySetInnerHTML={{ __html: `<!--\n${DIRECTION_CONTRACT}\n-->` }} />
         <main className={styles.main}>{children}</main>

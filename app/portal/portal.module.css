@@ -90,6 +90,46 @@
   flex: none;
 }
 
+.aiKoucHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: none;
+  margin-bottom: 8px;
+}
+.aiKoucHead .chatTitle {
+  margin-bottom: 0;
+}
+.aiKoucResetBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.aiKoucResetBtn:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+
+/* GDPR transparentnosť — trvalý nápis nad AI chatom, nie skryté v podmienkach. */
+.aiKoucNotice {
+  flex: none;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--paper-faint);
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
 /* ---------- 1 · príprava: pozdrav + odkaz trénera ---------- */
 .prep {
   display: flex;
@@ -1002,7 +1042,10 @@
   max-width: 460px;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  /* auto namiesto pevného repeat(N, 1fr) — počet položiek sa mení podľa
+     aiKoucVisible (6 bez AI Kouča, 7 s ním), grid sa má prispôsobiť sám. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   background: color-mix(in srgb, var(--ink-2) 92%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--steel-line);

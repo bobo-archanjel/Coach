@@ -296,3 +296,24 @@ export type PortalChatResult =
   | { state: "ok"; data: PortalChatData }
   | { state: "unlinked"; firstName: string | null }
   | { state: "error"; message?: string };
+
+// ---------- AI Kouč (AI blok, Krok 4b) ----------
+
+export interface PortalAiChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  body: string;
+  createdAt: string; // ISO
+  escalated?: boolean;
+}
+
+export interface PortalAiChatData {
+  messages: PortalAiChatMessage[];
+}
+
+export type PortalAiChatResult =
+  | { state: "ok"; data: PortalAiChatData }
+  | { state: "unlinked"; firstName: string | null }
+  /** klient nemá prideleného trénera (self-klient) — AI Kouč zatiaľ funguje len s trénerom priradeným. */
+  | { state: "no_trainer" }
+  | { state: "error"; message?: string };
