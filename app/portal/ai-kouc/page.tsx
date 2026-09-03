@@ -7,10 +7,11 @@ import { RetryButton } from "../RetryButton";
 import styles from "../portal.module.css";
 
 /* /portal/ai-kouc — AI Kouč (AI blok, Krok 4b). Samostatný tab vedľa Chat
-   (človek ↔ tréner), aby bolo jasné, čo je AI a čo živý tréner. GDPR: tréner
-   má do tejto konverzácie transparentný read-only náhľad (AI Kouč karta na
-   /dashboard/klienti/[id]) — musí to byť viditeľne oznámené tu, nie len v
-   podmienkach používania. */
+   (človek ↔ tréner), aby bolo jasné, čo je AI a čo živý tréner. GDPR oprava:
+   toto je SÚKROMNÁ konverzácia klient↔AI — tréner k nej nemá prístup ani na
+   úrovni RLS (0017_ai_chat_private.sql). Pri zdravotnej téme/žiadosti o
+   náhradu cviku dostane tréner len krátku správu v skutočnom chate (Krok 4/5),
+   nikdy celý AI transkript — to musí byť viditeľne oznámené tu. */
 
 export default async function AiKoucPage() {
   const result = await getPortalAiChat();
@@ -62,8 +63,9 @@ export default async function AiKoucPage() {
         )}
       </div>
       <p className={styles.aiKoucNotice}>
-        Rozprávaš sa s AI asistentom, nie s trénerom priamo. Tvoj tréner vidí túto konverzáciu (transparentne, aby ti
-        vedel lepšie pomôcť) — pri zmienke o bolesti/zranení ho AI Kouč automaticky upozorní.
+        Rozprávaš sa s AI asistentom, nie s trénerom priamo — táto konverzácia je súkromná, tréner ju nevidí. Pri
+        zmienke o bolesti/zranení alebo žiadosti o náhradu cviku dostane tréner len krátku správu v Správach, nikdy
+        celý tento chat.
       </p>
       <ChatThread
         messages={messages}

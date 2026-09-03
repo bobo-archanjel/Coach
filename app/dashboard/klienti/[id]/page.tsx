@@ -78,7 +78,7 @@ export default async function ClientDetailPage({
     notFound();
   }
 
-  const [{ data: plans }, { data: nutrition }, { data: logs }, { data: msgRows }, { data: aiConv }, adherence] = await Promise.all([
+  const [{ data: plans }, { data: nutrition }, { data: logs }, { data: msgRows }, adherence] = await Promise.all([
     supabase
       .from("workout_plans")
       .select("id, name, created_at, workout_days(count)")
@@ -101,25 +101,8 @@ export default async function ClientDetailPage({
       .eq("client_id", id)
       .order("created_at", { ascending: true })
       .limit(300),
-    supabase.from("ai_conversations").select("id").eq("client_id", id).maybeSingle(),
     getNutritionAdherence(id),
   ]);
-
-  let aiMessages: { id: string; sender: "trainer" | "client"; body: string; createdAt: string }[] = [];
-  if (aiConv) {
-    const { data: aiRows } = await supabase
-      .from("ai_messages")
-      .select("id, role, content, created_at")
-      .eq("conversation_id", aiConv.id)
-      .order("created_at", { ascending: true })
-      .limit(300);
-    aiMessages = (aiRows ?? []).map((m) => ({
-      id: m.id as string,
-      sender: (m.role === "user" ? "client" : "trainer") as "trainer" | "client",
-      body: m.content as string,
-      createdAt: m.created_at as string,
-    }));
-  }
 
   const firstName = client.full_name.split(/\s+/)[0];
   const messages = (msgRows ?? []).map((m) => ({
@@ -272,23 +255,6 @@ export default async function ClientDetailPage({
               emptyTitle="Zatiaľ žiadne správy"
               emptyText={`Napíš ${firstName}ovi prvú správu — spätná väzba k tréningu, úprava plánu, čokoľvek.`}
               placeholder={`Správa pre ${firstName}a…`}
-              embedded
-            />
-          </div>
-
-          <div className={styles.card}>
-            <h3>AI Kouč</h3>
-            <p className={styles.noWorkouts} style={{ marginBottom: 8 }}>
-              Transparentný náhľad AI chatu klienta — len na čítanie. Pri zmienke o bolesti/zranení dostaneš aj
-              samostatnú správu vyššie v Správach.
-            </p>
-            <ChatThread
-              messages={aiMessages}
-              mySide="trainer"
-              sendAction={sendTrainerMessageAction}
-              readOnly
-              emptyTitle="Zatiaľ žiadna AI konverzácia"
-              emptyText={`${firstName} sa zatiaľ nepýtal/a AI Kouča.`}
               embedded
             />
           </div>
