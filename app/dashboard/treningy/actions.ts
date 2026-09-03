@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
+import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
 
 export interface ActionState {
   error: string | null;
@@ -228,4 +229,92 @@ export async function addCustomExerciseAction(_prevState: ActionState, formData:
 
   revalidatePath("/dashboard/treningy");
   return ok;
+}
+
+const PLAN_GOALS: PlanGoal[] = ["chudnutie", "hypertrofia", "sila", "kondicia"];
+const PLAN_EXPERIENCES: PlanExperience[] = ["zaciatocnik", "stredne_pokrocily", "pokrocily"];
+const PLAN_EQUIPMENT: PlanEquipment[] = ["plna_posilnovna", "domace_vybavenie", "len_telo"];
+
+/**
+ * AI generátor plánu (Track "Tréner" bod 4/5, ROADMAP.md). Vytvorí bežný
+ * koncept (`published: false`, presne ako ručne vytvorený plán, 0021) a
+ * presmeruje do existujúceho PlanBuilderu na plnú editáciu pred publikovaním
+ * — draft-then-approve bez potreby novej tabuľky.
+ */
+export async function generatePlanWithAiAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const clientId = formData.get("client_id") as string | null;
+  const goal = formData.get("goal") as string | null;
+  const experience = formData.get("experience") as string | null;
+  const equipment = formData.get("equipment") as string | null;
+  const daysPerWeek = Number(formData.get("days_per_week"));
+
+  if (!clientId) return { error: "Vyber klienta." };
+  if (!goal || !PLAN_GOALS.includes(goal as PlanGoal)) return { error: "Vyber cieľ." };
+  if (!experience || !PLAN_EXPERIENCES.includes(experience as PlanExperience)) return { error: "Vyber skúsenosť klienta." };
+  if (!equipment || !PLAN_EQUIPMENT.includes(equipment as PlanEquipment)) return { error: "Vyber dostupné vybavenie." };
+  if (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) return { error: "Zadaj počet dní 1-7." };
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, full_name")
+    .eq("id", clientId)
+    .eq("trainer_id", user.id)
+    .maybeSingle();
+  if (!client) return { error: "Klient sa nenašiel." };
+
+  const result = await generateWorkoutPlan(supabase, {
+    trainerId: user.id,
+    clientId,
+    goal: goal as PlanGoal,
+    daysPerWeek,
+    experience: experience as PlanExperience,
+    equipment: equipment as PlanEquipment,
+  });
+  if ("error" in result) return { error: result.error };
+
+  const goalLabelSk: Record<PlanGoal, string> = {
+    chudnutie: "Chudnutie",
+    hypertrofia: "Hypertrofia",
+    sila: "Sila",
+    kondicia: "Kondícia",
+  };
+  const { data: newPlan, error: planErr } = await supabase
+    .from("workout_plans")
+    .insert({
+      client_id: clientId,
+      trainer_id: user.id,
+      name: `AI plán — ${goalLabelSk[goal as PlanGoal]}`,
+      published: false,
+    })
+    .select("id")
+    .single();
+  if (planErr || !newPlan) return { error: planErr?.message ?? "Plán sa nepodarilo vytvoriť." };
+
+  const dayRows = result.plan.days.map((day, i) => ({
+    plan_id: newPlan.id,
+    day_number: i + 1,
+    name: day.name,
+    exercises: day.exercises.map((ex) => ({
+      entry_id: randomUUID(),
+      exercise_id: ex.exerciseId,
+      exercise_name: ex.exerciseName,
+      sets: ex.sets,
+      reps: ex.reps,
+      load_kg: null,
+      tempo: null,
+      rest_seconds: ex.restSeconds,
+    })) satisfies WorkoutExerciseEntry[],
+  }));
+
+  const { error: daysErr } = await supabase.from("workout_days").insert(dayRows);
+  if (daysErr) return { error: daysErr.message };
+
+  revalidatePath("/dashboard/treningy");
+  redirect(`/dashboard/treningy/${newPlan.id}`);
 }
