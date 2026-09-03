@@ -1,3 +1,5 @@
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type {
@@ -639,22 +641,45 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
   }
 }
 
-/** Globálna knižnica cvikov pre builder vlastného tréningu — na požiadanie, viď getPortalTraining vyššie. */
+/**
+ * Globálna knižnica cvikov (`trainer_id is null`) pre builder vlastného tréningu
+ * klienta — na požiadanie, viď getPortalTraining vyššie. Identická pre úplne
+ * každého klienta (žiadny trénerov vlastný cvik sem nepatrí, na rozdiel od
+ * trénerovho vlastného builderu) a v appke ju nemá ako runtime akciu meniť
+ * (vzniká len jednorazovým importom, `scripts/import-exercises.mjs`) — bezpečné
+ * cache-ovať naprieč VŠETKÝMI požiadavkami na hodinu (`unstable_cache`), nie len
+ * v rámci jednej session. Zmerané: 886 riadkov / ~300 kB / 200-650 ms na dopyt —
+ * s cache-om zaplatí tento round-trip len prvý klient za hodinu, nie každý.
+ * Cookie-free anon klient priamo (nie `lib/supabase/server.ts`), lebo
+ * `unstable_cache` zakazuje `cookies()`/dynamické API vo vnútri; RLS
+ * (`exercises_select_global_or_own`) global riadky beztak povoľuje bez session.
+ */
+const getGlobalExerciseLibrary = unstable_cache(
+  async (): Promise<ExerciseOption[]> => {
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+    const { data: libRows, error } = await supabase
+      .from("exercises")
+      .select("id, name, name_sk, muscle_group, image_url")
+      .is("trainer_id", null)
+      .order("name", { ascending: true });
+    if (error) return [];
+    return (libRows ?? []).map((e) => ({
+      id: e.id,
+      name: e.name,
+      nameSk: e.name_sk ?? null,
+      muscleGroup: e.muscle_group ?? null,
+      imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
+    }));
+  },
+  ["portal-global-exercise-library"],
+  { revalidate: 3600 },
+);
+
 export async function getExerciseLibrary(): Promise<ExerciseOption[]> {
-  const supabase = await createClient();
-  const { data: libRows, error } = await supabase
-    .from("exercises")
-    .select("id, name, name_sk, muscle_group, image_url")
-    .is("trainer_id", null)
-    .order("name", { ascending: true });
-  if (error) return [];
-  return (libRows ?? []).map((e) => ({
-    id: e.id,
-    name: e.name,
-    nameSk: e.name_sk ?? null,
-    muscleGroup: e.muscle_group ?? null,
-    imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
-  }));
+  return getGlobalExerciseLibrary();
 }
 
 /** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/vyziva/jedalnicek/actions.ts. */
