@@ -453,6 +453,20 @@
   font-size: 12px;
   color: var(--paper-faint);
 }
+.adherenceWindowRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--steel-line);
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.adherenceWindowRow strong {
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------- Posledná aktivita: rozbaliteľný detail skutočných hodnôt (Fáza B) ---------- */
 .logDetails {
@@ -613,6 +627,18 @@
   font-size: 1.05rem;
   margin-bottom: 12px;
 }
+/* Podnadpis vnútri väčšej zloženej karty (napr. Analytika, Trekovanie jedálnička —
+   viacero pôvodne samostatných kariet spojených do jednej, feature/progress-analyst). */
+.cardSubhead {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+  margin: 20px 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--steel-line);
+}
 .cardStack {
   display: grid;
   gap: 16px;
@@ -697,6 +723,89 @@
 .noWorkouts {
   color: var(--paper-faint);
   font-size: 13.5px;
+}
+
+/* ---------- LineChart (Progres a analýza, feature/progress-analyst) ---------- */
+.chartWrap {
+  position: relative;
+}
+.chartSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+.chartEmpty {
+  color: var(--paper-faint);
+  font-size: 13.5px;
+  padding: 24px 0;
+  text-align: center;
+}
+.chartLastLabel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  line-height: 1.3;
+}
+.chartLastDate {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+.chartTooltip {
+  position: absolute;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  padding: 5px 9px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-1);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.chartTooltip strong {
+  font-variant-numeric: tabular-nums;
+}
+.chartTooltip span {
+  color: var(--paper-faint);
+}
+.chartRange {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.measurementsToggle {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 10px;
+  color: var(--paper-faint);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.measurementsToggle:hover {
+  color: var(--paper);
+}
+.chartHint {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--paper-faint);
 }
 
 /* ---------- GDPR — zmazanie klienta (0013_client_deletion.sql) ---------- */

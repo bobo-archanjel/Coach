@@ -97,3 +97,58 @@ export async function cancelClientDeletionAction(clientId: string): Promise<Acti
   revalidatePath("/dashboard");
   return ok;
 }
+
+function optionalNum(v: FormDataEntryValue | null, min: number, max: number): number | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Progres — tréner zapíše meranie klienta (váha + obvody, 0023_body_metrics.sql).
+ * Jeden záznam na deň (unique client_id+measured_on) — druhé meranie ten istý
+ * deň prepíše prvé (upsert), nie duplicitný riadok.
+ */
+export async function addBodyMetricAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const clientId = (formData.get("client_id") as string | null) ?? "";
+  if (!clientId) return { error: "Chýba klient." };
+
+  const measuredOn = (formData.get("measured_on") as string | null) || new Date().toISOString().slice(0, 10);
+  const weightKg = optionalNum(formData.get("weight_kg"), 20, 400);
+  const waistCm = optionalNum(formData.get("waist_cm"), 20, 250);
+  const chestCm = optionalNum(formData.get("chest_cm"), 20, 250);
+  const hipsCm = optionalNum(formData.get("hips_cm"), 20, 250);
+  const armCm = optionalNum(formData.get("arm_cm"), 5, 100);
+  const thighCm = optionalNum(formData.get("thigh_cm"), 5, 150);
+
+  if (weightKg == null && waistCm == null && chestCm == null && hipsCm == null && armCm == null && thighCm == null) {
+    return { error: "Zadaj aspoň jednu hodnotu." };
+  }
+
+  const { error } = await supabase.from("body_metrics").upsert(
+    {
+      client_id: clientId,
+      trainer_id: user.id,
+      measured_on: measuredOn,
+      weight_kg: weightKg,
+      waist_cm: waistCm,
+      chest_cm: chestCm,
+      hips_cm: hipsCm,
+      arm_cm: armCm,
+      thigh_cm: thighCm,
+    },
+    { onConflict: "client_id,measured_on" },
+  );
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/klienti/${clientId}`);
+  revalidatePath("/dashboard/analytika");
+  return ok;
+}
