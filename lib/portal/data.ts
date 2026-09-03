@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type {
   CoachNote,
@@ -264,24 +264,22 @@ export async function getPortalData(): Promise<PortalResult> {
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    const { data: client, error: clientErr } = await supabase
-      .from("clients")
-      .select(
-        "id, full_name, active_plan_id, active_day_id, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by",
-      )
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    // Nezávislé dopyty — paralelne (rovnaký dôvod ako getLinkedClient nižšie).
+    const [{ data: profile }, { data: client, error: clientErr }] = await Promise.all([
+      supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("clients")
+        .select(
+          "id, full_name, active_plan_id, active_day_id, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by",
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
     if (clientErr) return { state: "error", message: clientErr.message };
 
@@ -477,14 +475,19 @@ export async function getPortalData(): Promise<PortalResult> {
 
 /** Nájde klienta prepojeného s prihláseným používateľom (rovnaká logika ako v getPortalData). */
 async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
-  const { data: client, error } = await supabase
-    .from("clients")
-    .select("id, full_name, active_plan_id, trainer_id")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Nezávislé dopyty (profil a klient sa nepotrebujú navzájom) — paralelne, nie
+  // jeden po druhom; volané z takmer každej portálovej stránky, takže sekvenčný
+  // pár tu bol zbytočný round-trip navyše na každú navigáciu.
+  const [{ data: profile }, { data: client, error }] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+    supabase
+      .from("clients")
+      .select("id, full_name, active_plan_id, trainer_id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
   return { client, firstName, error };
@@ -504,7 +507,7 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, error } = await getLinkedClient(supabase, user.id);
@@ -539,14 +542,19 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { data: libRows, error: libErr } = await supabase
-      .from("exercises")
-      .select("id, name, name_sk, muscle_group, image_url")
-      .is("trainer_id", null)
-      .order("name", { ascending: true });
+    // Knižnica cvikov a klientov záznam sa navzájom nepotrebujú — paralelne.
+    const [libResult, linkedResult] = await Promise.all([
+      supabase
+        .from("exercises")
+        .select("id, name, name_sk, muscle_group, image_url")
+        .is("trainer_id", null)
+        .order("name", { ascending: true }),
+      getLinkedClient(supabase, user.id),
+    ]);
+    const { data: libRows, error: libErr } = libResult;
     if (libErr) return { state: "error", message: libErr.message };
     const exerciseLibrary: ExerciseOption[] = (libRows ?? []).map((e) => ({
       id: e.id,
@@ -556,7 +564,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
     }));
 
-    const { client, error: clientErr } = await getLinkedClient(supabase, user.id);
+    const { client, error: clientErr } = linkedResult;
     if (clientErr) return { state: "error", message: clientErr.message };
 
     if (!client) {
@@ -661,7 +669,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
@@ -779,7 +787,7 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
@@ -935,7 +943,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
@@ -987,7 +995,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);

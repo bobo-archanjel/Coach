@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview, type ClientAnalyticsRow } from "@/lib/dashboard/analytics";
 import styles from "../dashboard.module.css";
 
@@ -55,7 +55,7 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUser();
     if (!user) redirect("/prihlasenie");
 
     const { data: clients } = await supabase

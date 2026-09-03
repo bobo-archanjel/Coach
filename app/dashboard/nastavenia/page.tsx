@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getTrainerAiUsageSummary } from "@/lib/ai/usageSummary";
 import styles from "../dashboard.module.css";
 
@@ -8,7 +8,7 @@ export default async function NastaveniaPage() {
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";

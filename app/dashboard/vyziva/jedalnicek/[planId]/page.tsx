@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { MealPlanBuilder } from "./MealPlanBuilder";
 import styles from "../../../dashboard.module.css";
 
@@ -15,7 +15,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/prihlasenie");

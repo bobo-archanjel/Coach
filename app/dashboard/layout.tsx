@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { DashboardNav } from "./DashboardNav";
 import styles from "./dashboard.module.css";
 
@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");

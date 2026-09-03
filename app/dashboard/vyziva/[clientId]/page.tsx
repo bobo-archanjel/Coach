@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { NutritionForm } from "./NutritionForm";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
 import styles from "../../dashboard.module.css";
@@ -16,7 +16,7 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/prihlasenie");
