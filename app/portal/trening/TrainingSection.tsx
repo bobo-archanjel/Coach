@@ -2,11 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalPlan, PortalTrainingData } from "@/lib/portal/types";
 import { deleteClientPlanAction, getExerciseLibraryAction, setActivePlanAction } from "./actions";
-import { ClientPlanBuilder } from "./ClientPlanBuilder";
 import { ExercisePreviewList } from "../ExercisePreviewList";
 import styles from "../portal.module.css";
+
+// Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
+// naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
+// existujúce plány. Vlastný chunk, stiahne sa až pri "Vlastný tréning"/"Upraviť".
+const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) => m.ClientPlanBuilder), {
+  loading: () => <p className={styles.trEmptyDay}>Načítavam…</p>,
+});
 
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
    Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a akčné

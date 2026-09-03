@@ -1,11 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import type { PortalExercise } from "@/lib/portal/types";
 import { getExerciseDetailAction } from "./actions";
 import type { ExerciseDetail } from "@/lib/exercises";
-import { ExerciseDetailModal } from "@/app/components/ExerciseDetailModal";
 import styles from "./portal.module.css";
+
+// Modal (obrázky + kroky cvičenia) sa otvorí len na klik na konkrétny cvik —
+// vlastný chunk namiesto toho, aby bol súčasťou karty Dnes/zoznamu tréningov
+// pre všetkých, ktorí sa naň nikdy nepozrú.
+const ExerciseDetailModal = dynamic(() =>
+  import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
+);
 
 /**
  * Zoznam cvikov dňa (plán od trénera aj vlastný) — každý cvik sa dá rozkliknúť
