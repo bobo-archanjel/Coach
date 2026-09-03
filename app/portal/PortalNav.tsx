@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoWordmark } from "../components/LogoMark";
@@ -35,13 +36,37 @@ export function PortalNav({
   const pathname = usePathname();
   const items = aiKoucVisible ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== "/portal/ai-kouc");
 
+  // Mobilná klávesnica: `.nav` je `position: fixed; bottom: 0` voči layoutovému
+  // viewportu, ktorý sa pri otvorení klávesnice nezmenší rovnako spoľahlivo vo
+  // všetkých mobilných prehliadačoch ako vizuálny viewport — bar potom vie
+  // prekrývať composer (napr. v Chate) alebo sa vznášať nad klávesnicou.
+  // `visualViewport` je presnejší signál "klávesnica je otvorená" než čokoľvek
+  // odvodené z CSS jednotiek (dvh/svh) naprieč prehliadačmi.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      // 150px hranica nad bežným výkyvom pri schovaní/zobrazení adresového
+      // riadku v mobilných prehliadačoch — klávesnica uberie oveľa viac.
+      setKeyboardOpen(window.innerHeight - vv.height > 150);
+    };
+    vv.addEventListener("resize", onResize);
+    onResize();
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <aside className={styles.navShell}>
       <Link href="/portal" className={styles.navBrand}>
         <LogoWordmark className={styles.brandLogo} />
       </Link>
 
-      <nav className={styles.nav} aria-label="Klientsky portál">
+      <nav
+        className={`${styles.nav} ${keyboardOpen ? styles.navKeyboardHidden : ""}`}
+        aria-label="Klientsky portál"
+        aria-hidden={keyboardOpen || undefined}
+      >
         {items.map(({ href, label, Icon, match }) => {
           const active = match(pathname);
           const showDot = href === "/portal/chat" && chatUnread && !active;

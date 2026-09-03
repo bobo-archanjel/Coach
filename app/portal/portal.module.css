@@ -1066,6 +1066,14 @@
     padding-bottom: 0;
   }
 }
+@media (max-width: 879px) {
+  /* Skryté, kým je otvorená mobilná klávesnica (PortalNav.tsx, visualViewport) —
+     fixný bar inak vie prekrývať composer (napr. Chat) alebo sa vznášať nad
+     klávesnicou, keďže sleduje layoutový, nie vizuálny viewport. */
+  .navKeyboardHidden {
+    display: none;
+  }
+}
 .navItem {
   display: flex;
   flex-direction: column;
