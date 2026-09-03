@@ -266,17 +266,22 @@ export async function deleteClientPlanAction(planId: string): Promise<ActionStat
   return ok;
 }
 
-/** Prepne, ktorý plán klienta riadi kartu Dnes (od trénera aj vlastný). */
-export async function setActivePlanAction(planId: string): Promise<ActionState> {
+/**
+ * Prepne, ktorý plán klienta riadi kartu Dnes (od trénera aj vlastný). Voliteľný
+ * `dayId` (0017) nastaví aj konkrétny deň v rámci plánu — bez neho karta Dnes
+ * ostáva pri automatickej rotácii dní (lib/portal/data.ts).
+ */
+export async function setActivePlanAction(planId: string, dayId?: string): Promise<ActionState> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
 
-  const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId });
+  const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId, p_day_id: dayId ?? null });
   if (error) {
     if (error.message.includes("plan_not_found")) return { error: "Tréning sa nenašiel." };
+    if (error.message.includes("day_not_found")) return { error: "Deň sa nenašiel." };
     return { error: error.message };
   }
 

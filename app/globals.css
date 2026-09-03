@@ -32,6 +32,14 @@
 
 html {
   scroll-behavior: smooth;
+  /* Bez tohto sa pri raste obsahu (napr. rozbalenie tréningu) objaví vertikálny
+     scrollbar a celá stránka sa o jeho šírku "zúži" — a späť "rozšíri" pri
+     zbalení. `scrollbar-gutter` samo nestačí (slabá/neskorá podpora v Safari) —
+     `overflow-y: scroll` je staršia, ale univerzálne podporovaná poistka: núti
+     prehliadač držať miesto na scrollbar rezervované vždy, nech je obsah
+     akokoľvek vysoký. */
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -151,6 +159,7 @@ p {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 13px 24px;
   border-radius: var(--radius-s);

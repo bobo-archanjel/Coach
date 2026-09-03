@@ -163,6 +163,8 @@ export interface PortalTrainingDay {
   id: string;
   name: string;
   exercises: PortalExercise[];
+  /** klient tento deň už niekedy odcvičil (aspoň 1 záznam vo workout_logs) — badge „Hotovo" v zozname dní */
+  done: boolean;
 }
 
 /** Zdroj plánu: od trénera, alebo si ho klient vytvoril sám. */

@@ -44,7 +44,9 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
 
   const { data, error } = await supabase
     .from("workout_plans")
-    .insert({ client_id: clientId, trainer_id: user.id, name })
+    // Nový plán je koncept (published: false), kým ho tréner výslovne nepotvrdí
+    // tlačidlom "Potvrdiť a uložiť" — dovtedy ho klient v portáli nevidí.
+    .insert({ client_id: clientId, trainer_id: user.id, name, published: false })
     .select("id")
     .single();
 
@@ -52,6 +54,31 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
 
   revalidatePath("/dashboard/treningy");
   redirect(`/dashboard/treningy/${data.id}`);
+}
+
+/** Potvrdenie/koncept plánu — kým je `published: false`, klient ho v portáli nevidí. */
+export async function setPlanPublishedAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const planId = formData.get("plan_id") as string | null;
+  const published = formData.get("published") === "true";
+  if (!planId) return { error: "Chýba ID plánu." };
+
+  const { error } = await supabase
+    .from("workout_plans")
+    .update({ published })
+    .eq("id", planId)
+    .eq("trainer_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  revalidatePath("/dashboard/treningy");
+  return ok;
 }
 
 export async function addDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {

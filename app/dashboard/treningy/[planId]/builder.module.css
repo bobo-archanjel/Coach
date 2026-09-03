@@ -173,13 +173,47 @@
   color: var(--paper-faint);
   font-size: 13px;
 }
+.libraryPager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.libraryPagerBtn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.libraryPagerBtn:hover:not(:disabled) {
+  border-color: var(--paper-dim);
+  background: var(--ink-3);
+}
+.libraryPagerBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.libraryPagerPrev {
+  transform: rotate(180deg);
+}
+.libraryPagerLabel {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-dim);
+}
 .libraryHint {
   color: var(--paper-faint);
   font-size: 12px;
 }
 .customExerciseForm {
-  border-top: 1px solid var(--steel-line);
-  padding-top: 12px;
+  border-bottom: 1px solid var(--steel-line);
+  padding-bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
