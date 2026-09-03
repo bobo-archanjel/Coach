@@ -24,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     data: { user },
   } = await supabase.auth.getUser();
 
+  let unreadCount = 0;
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
@@ -33,11 +34,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (profile?.role === "client") {
       redirect("/portal");
     }
+
+    // Celkový počet neprečítaných správ od klientov → odznak na nav položke "Správy"
+    // (RLS messages_select scopuje na klientov tohto trénera, netreba filtrovať client_id).
+    const { count } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("sender", "client")
+      .is("read_at", null);
+    unreadCount = count ?? 0;
   }
 
   return (
     <div className={styles.shell}>
-      <DashboardNav />
+      <DashboardNav unreadCount={unreadCount} />
       <main className={styles.content}>
         <div className={styles.wrap}>{children}</div>
       </main>
