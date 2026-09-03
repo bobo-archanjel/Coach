@@ -6,20 +6,13 @@ import { getBodyMetrics, getAllStrengthProgress, getVolumeTrend } from "@/lib/da
 import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
 import { DangerZone } from "./DangerZone";
-import { BodyMetricsCard } from "./BodyMetricsCard";
-import { StrengthVolumeCard } from "./StrengthVolumeCard";
+import { AnalyticsPanel } from "./AnalyticsPanel";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
     <path d="M9 3 4 7l5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-
-/** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
-function adherenceToneClass(pct: number | null): string {
-  if (pct == null) return styles.adherenceNone;
-  return pct >= 85 && pct <= 115 ? styles.adherenceGood : styles.adherenceOff;
-}
 
 // DEV náhľad Progresu bez session (?preview=progress) — váha/sila/objem + rozšírená adherencia.
 function daysAgoIso(n: number): string {
@@ -68,79 +61,35 @@ export default async function ClientDetailPage({
             <h1>{empty ? "Nový Norbert" : "Ján Novák"}</h1>
           </div>
         </div>
-        <div className={styles.detailGrid}>
-          <div />
-          <div className={styles.cardStack}>
-            <div className={styles.card}>
-              <h3>Trekovanie jedálnička</h3>
-              {!empty ? (
-                <>
-                  <h4 className={styles.cardSubhead}>Makro cieľ</h4>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>Kalorický cieľ</span>
-                    <span className={styles.infoValue}>2400 kcal/deň</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>Makrá</span>
-                    <span className={styles.infoValue}>180 g B · 260 g S · 75 g T</span>
-                  </div>
-                  <Link href="#" className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
-                    Upraviť →
-                  </Link>
-
-                  <h4 className={styles.cardSubhead}>Adherencia stravy</h4>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>Dnes</span>
-                    <span className={styles.infoValue}>
-                      2180 / 2400 kcal · <strong>91&nbsp;%</strong> z cieľa
-                    </span>
-                  </div>
-                  <div className={styles.adherenceStrip} aria-hidden="true">
-                    {[92, 78, null, 105, 88, 60, 91].map((pct, i) => (
-                      <div key={i} className={styles.adherenceDay}>
-                        <span className={`${styles.adherenceDot} ${adherenceToneClass(pct)}`} />
-                        <span className={styles.adherenceDayLabel}>{["Po", "Ut", "St", "Št", "Pi", "So", "Ne"][i]}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className={styles.adherenceHint}>Posledných 7 dní · zelená = 85–115 % cieľa, sivá = bez záznamu.</p>
-                  <div className={styles.adherenceWindowRow}>
-                    <span>
-                      30 dní: <strong>76&nbsp;%</strong>
-                    </span>
-                    <span>
-                      90 dní: <strong>71&nbsp;%</strong>
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <p className={styles.noWorkouts}>
-                  Makro cieľ zatiaľ nenastavený — <Link href="#">vypočítať teraz</Link>. Bez cieľa sa nedá počítať ani
-                  adherencia stravy.
-                </p>
-              )}
-            </div>
-
-            <div className={styles.card}>
-              <h3>Analytika</h3>
-              <h4 className={styles.cardSubhead}>Adherencia tréningu</h4>
-              <div className={styles.adherenceWindowRow}>
-                <span>
-                  30 dní: <strong>{empty ? 0 : 73}&nbsp;%</strong>
-                </span>
-                <span>
-                  90 dní: <strong>{empty ? 0 : 68}&nbsp;%</strong>
-                </span>
-              </div>
-              <BodyMetricsCard clientId={id} entries={empty ? [] : PROGRESS_PREVIEW_METRICS} />
-              <StrengthVolumeCard
-                exerciseNames={empty ? [] : PROGRESS_PREVIEW_STRENGTH.names}
-                byExercise={empty ? {} : PROGRESS_PREVIEW_STRENGTH.byExercise}
-                volumePoints={empty ? [] : PROGRESS_PREVIEW_VOLUME}
-              />
-            </div>
-          </div>
-        </div>
+        <AnalyticsPanel
+          clientId={id}
+          nutrition={empty ? null : { calories_target: 2400, protein_g: 180, carbs_g: 260, fat_g: 75 }}
+          adherence={
+            empty
+              ? null
+              : {
+                  hasGoal: true,
+                  kcalGoal: 2400,
+                  todayKcal: 2180,
+                  todayPct: 91,
+                  days: [92, 78, null, 105, 88, 60, 91].map((pct, i) => ({
+                    label: ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"][i],
+                    dateNum: i + 1,
+                    pct,
+                  })),
+                  window30: { pct: 76, onTrackDays: 23, totalDays: 30 },
+                  window90: { pct: 71, onTrackDays: 64, totalDays: 90 },
+                }
+          }
+          trainingAdherence={{
+            window30: { pct: empty ? 0 : 73, trainedDays: empty ? 0 : 22, totalDays: 30 },
+            window90: { pct: empty ? 0 : 68, trainedDays: empty ? 0 : 61, totalDays: 90 },
+          }}
+          bodyMetrics={empty ? [] : PROGRESS_PREVIEW_METRICS}
+          strengthNames={empty ? [] : PROGRESS_PREVIEW_STRENGTH.names}
+          strengthByExercise={empty ? {} : PROGRESS_PREVIEW_STRENGTH.byExercise}
+          volumePoints={empty ? [] : PROGRESS_PREVIEW_VOLUME}
+        />
       </>
     );
   }
@@ -206,6 +155,17 @@ export default async function ClientDetailPage({
         </div>
       </div>
 
+      <AnalyticsPanel
+        clientId={id}
+        nutrition={nutrition}
+        adherence={adherence}
+        trainingAdherence={trainingAdherence}
+        bodyMetrics={bodyMetrics ?? []}
+        strengthNames={strengthProgress?.names ?? []}
+        strengthByExercise={strengthProgress?.byExercise ?? {}}
+        volumePoints={volumeTrend ?? []}
+      />
+
       <div className={styles.detailGrid}>
         <div className={styles.card}>
           <h3>Informácie</h3>
@@ -262,92 +222,6 @@ export default async function ClientDetailPage({
                 <Link href="/dashboard/treningy">Tréningy</Link>.
               </p>
             )}
-          </div>
-
-          <div className={styles.card}>
-            <h3>Trekovanie jedálnička</h3>
-            {nutrition ? (
-              <>
-                <h4 className={styles.cardSubhead}>Makro cieľ</h4>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Kalorický cieľ</span>
-                  <span className={styles.infoValue}>{nutrition.calories_target} kcal/deň</span>
-                </div>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Makrá</span>
-                  <span className={styles.infoValue}>
-                    {nutrition.protein_g} g B · {nutrition.carbs_g} g S · {nutrition.fat_g} g T
-                  </span>
-                </div>
-                <Link href={`/dashboard/vyziva/${id}`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
-                  Upraviť →
-                </Link>
-
-                {adherence?.hasGoal && (
-                  <>
-                    <h4 className={styles.cardSubhead}>Adherencia stravy</h4>
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Dnes</span>
-                      <span className={styles.infoValue}>
-                        {adherence.todayKcal} / {adherence.kcalGoal} kcal · <strong>{adherence.todayPct}&nbsp;%</strong> z cieľa
-                      </span>
-                    </div>
-                    <div className={styles.adherenceStrip} aria-hidden="true">
-                      {adherence.days.map((day, i) => (
-                        <div key={i} className={styles.adherenceDay}>
-                          <span className={`${styles.adherenceDot} ${adherenceToneClass(day.pct)}`} />
-                          <span className={styles.adherenceDayLabel}>{day.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className={styles.adherenceHint}>Posledných 7 dní · zelená = 85–115 % cieľa, sivá = bez záznamu.</p>
-                    <div className={styles.adherenceWindowRow}>
-                      <span>
-                        30 dní: <strong>{adherence.window30.pct}&nbsp;%</strong>
-                      </span>
-                      <span>
-                        90 dní: <strong>{adherence.window90.pct}&nbsp;%</strong>
-                      </span>
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <p className={styles.noWorkouts}>
-                Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${id}`}>vypočítať teraz</Link>. Bez cieľa sa
-                nedá počítať ani adherencia stravy.
-              </p>
-            )}
-          </div>
-
-          <div className={styles.card}>
-            <h3>Analytika</h3>
-            <h4 className={styles.cardSubhead}>Adherencia tréningu</h4>
-            {trainingAdherence ? (
-              <>
-                <div className={styles.adherenceWindowRow}>
-                  <span>
-                    30 dní: <strong>{trainingAdherence.window30.pct}&nbsp;%</strong> ({trainingAdherence.window30.trainedDays}/
-                    {trainingAdherence.window30.totalDays} dní)
-                  </span>
-                  <span>
-                    90 dní: <strong>{trainingAdherence.window90.pct}&nbsp;%</strong> ({trainingAdherence.window90.trainedDays}/
-                    {trainingAdherence.window90.totalDays} dní)
-                  </span>
-                </div>
-                <p className={styles.adherenceHint}>% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</p>
-              </>
-            ) : (
-              <p className={styles.noWorkouts}>Adherenciu tréningu sa nepodarilo načítať.</p>
-            )}
-
-            <BodyMetricsCard clientId={id} entries={bodyMetrics ?? []} />
-
-            <StrengthVolumeCard
-              exerciseNames={strengthProgress?.names ?? []}
-              byExercise={strengthProgress?.byExercise ?? {}}
-              volumePoints={volumeTrend ?? []}
-            />
           </div>
 
           <div className={styles.card}>

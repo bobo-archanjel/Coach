@@ -808,6 +808,37 @@
   color: var(--paper-faint);
 }
 
+/* ---------- Analytika — tlačidlo pod menom klienta (feature/progress-analyst) ---------- */
+.analyticsToggleWrap {
+  margin-bottom: 28px;
+}
+.analyticsToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.analyticsToggleBtn:hover {
+  border-color: var(--paper-dim);
+  background: var(--ink-3);
+}
+.analyticsToggleIcon {
+  color: var(--paper-faint);
+  transition: transform 0.15s ease;
+}
+.analyticsToggleIconOpen {
+  transform: rotate(180deg);
+}
+
 /* ---------- GDPR — zmazanie klienta (0013_client_deletion.sql) ---------- */
 .dangerText {
   color: var(--paper-dim);
