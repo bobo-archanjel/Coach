@@ -1,22 +1,16 @@
-"use client";
+import { signOutAction } from "./actions";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
+/**
+ * Server Component + form action (nie "use client" + browser Supabase SDK —
+ * viď actions.ts) — odhlásenie nepotrebuje žiadny client-side JS, funguje aj
+ * bez hydratácie.
+ */
 export function SignOutButton() {
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
-
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/prihlasenie");
-    router.refresh();
-  }
-
   return (
-    <button type="button" className="btn btn-ghost" onClick={handleSignOut}>
-      Odhlásiť sa
-    </button>
+    <form action={signOutAction}>
+      <button type="submit" className="btn btn-ghost">
+        Odhlásiť sa
+      </button>
+    </form>
   );
 }
