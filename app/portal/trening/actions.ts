@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
+import { getExerciseLibrary } from "@/lib/portal/data";
+import type { ExerciseOption } from "@/lib/portal/types";
 
 /* Vlastný tréning klienta — vytvorenie / úprava / zmazanie / prepnutie aktívneho.
    Klientské plány: workout_plans.trainer_id IS NULL (viď 0010_client_own_workouts.sql).
@@ -20,6 +22,15 @@ const ok: ActionState = { error: null };
 export async function getExerciseDetailAction(exerciseId: string): Promise<ExerciseDetail | null> {
   const supabase = await createClient();
   return fetchExerciseDetail(supabase, exerciseId);
+}
+
+/**
+ * Globálna knižnica cvikov (~900 riadkov) — na požiadanie, len keď klient
+ * skutočne otvorí builder vlastného tréningu (`TrainingSection.openBuilder`),
+ * nie ako súčasť každého načítania /portal/trening (viď lib/portal/data.ts).
+ */
+export async function getExerciseLibraryAction(): Promise<ExerciseOption[]> {
+  return getExerciseLibrary();
 }
 
 export interface DraftExercise {

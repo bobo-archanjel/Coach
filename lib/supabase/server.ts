@@ -45,3 +45,15 @@ export const getUser = cache(async () => {
   const supabase = await createClient();
   return supabase.auth.getUser();
 });
+
+/**
+ * `profiles` riadok pre daného používateľa — layout (role, pre redirect guard)
+ * aj `lib/portal/data.ts` (full_name, pre pozdrav/meno) doťahovali ten istý
+ * riadok samostatne, dvomi round-tripmi za request. `cache()` kľúčovaný podľa
+ * `userId` ich zlúči na jeden dopyt so všetkými stĺpcami, ktoré niekto z nich
+ * potrebuje.
+ */
+export const getProfile = cache(async (userId: string) => {
+  const supabase = await createClient();
+  return supabase.from("profiles").select("role, full_name").eq("id", userId).maybeSingle();
+});

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { PortalNav } from "./PortalNav";
 import styles from "./portal.module.css";
 
@@ -51,11 +51,7 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+    const { data: profile } = await getProfile(user.id);
 
     if (profile?.role === "trainer") {
       redirect("/dashboard");

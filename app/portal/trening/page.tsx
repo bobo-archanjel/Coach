@@ -11,15 +11,6 @@ import { TrainingSection } from "./TrainingSection";
 
 const PREVIEW: PortalTrainingData = {
   activePlanId: "plan-trainer",
-  exerciseLibrary: [
-    { id: "g1", name: "Bench press", nameSk: null, muscleGroup: "hrudník", imageUrl: null },
-    { id: "g2", name: "Drep s činkou", nameSk: null, muscleGroup: "nohy", imageUrl: null },
-    { id: "g3", name: "Mŕtvy ťah", nameSk: null, muscleGroup: "chrbát", imageUrl: null },
-    { id: "g4", name: "Zhyby", nameSk: null, muscleGroup: "chrbát", imageUrl: null },
-    { id: "g5", name: "Tlaky nad hlavu", nameSk: null, muscleGroup: "ramená", imageUrl: null },
-    { id: "g6", name: "Veslovanie v predklone", nameSk: null, muscleGroup: "chrbát", imageUrl: null },
-    { id: "g7", name: "Plank", nameSk: null, muscleGroup: "core", imageUrl: null },
-  ],
   plans: [
     {
       id: "plan-trainer",

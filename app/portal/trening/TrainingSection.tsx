@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { PortalPlan, PortalTrainingData } from "@/lib/portal/types";
-import { deleteClientPlanAction, setActivePlanAction } from "./actions";
+import type { ExerciseOption, PortalPlan, PortalTrainingData } from "@/lib/portal/types";
+import { deleteClientPlanAction, getExerciseLibraryAction, setActivePlanAction } from "./actions";
 import { ClientPlanBuilder } from "./ClientPlanBuilder";
 import { ExercisePreviewList } from "../ExercisePreviewList";
 import styles from "../portal.module.css";
@@ -55,7 +55,7 @@ function exWord(n: number): string {
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const router = useRouter();
-  const { plans, exerciseLibrary } = data;
+  const { plans } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState<PortalPlan | null>(null);
@@ -68,10 +68,23 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Knižnica cvikov (~900 riadkov, cca 300 kB) sa predtým ťahala pri KAŽDOM
+  // načítaní /portal/trening, aj keď väčšina návštev builder vôbec neotvorí —
+  // teraz až tu, na požiadanie, keď klient reálne klikne "Vlastný tréning"/"Upraviť".
+  const [library, setLibrary] = useState<ExerciseOption[]>([]);
+  const [, startLibraryTransition] = useTransition();
+
   const openBuilder = (plan: PortalPlan | null) => {
     setEditing(plan);
     setError(null);
     setMode("build");
+    // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
+    // otvorenie buildera v rámci tej istej návštevy /portal/trening).
+    if (library.length === 0) {
+      startLibraryTransition(async () => {
+        setLibrary(await getExerciseLibraryAction());
+      });
+    }
   };
   const closeBuilder = () => {
     setMode("list");
@@ -128,7 +141,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
   if (mode === "build") {
     return (
-      <ClientPlanBuilder library={exerciseLibrary} initial={editing} onCancel={closeBuilder} onSaved={onSaved} />
+      <ClientPlanBuilder library={library} initial={editing} onCancel={closeBuilder} onSaved={onSaved} />
     );
   }
 

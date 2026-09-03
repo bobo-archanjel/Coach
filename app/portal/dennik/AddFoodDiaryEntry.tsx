@@ -1,9 +1,9 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, type MealSlot } from "@/lib/meals";
 import type { PortalFoodOption } from "@/lib/portal/types";
-import { addFoodLogAction, searchOnlineFoodAction, type ActionState } from "../actions";
+import { addFoodLogAction, getFoodLibraryAction, searchOnlineFoodAction, type ActionState } from "../actions";
 import styles from "../portal.module.css";
 
 /** Ako dlho čakať po poslednom stlačení klávesy, kým sa spustí online vyhľadávanie
@@ -38,14 +38,25 @@ function buildFormData(option: PortalFoodOption, slot: MealSlot, grams: number):
 
 export function AddFoodDiaryEntry({
   planFoods,
-  library,
   hour,
 }: {
   planFoods: PortalFoodOption[];
-  library: PortalFoodOption[];
   hour: number;
 }) {
   const [open, setOpen] = useState(false);
+  // Knižnica potravín (~80 riadkov) sa predtým ťahala pri KAŽDOM načítaní denníka,
+  // aj keď je tento panel defaultne zbalený — teraz na požiadanie, len keď klient
+  // panel reálne otvorí (rovnaký dôvod ako knižnica cvikov v TrainingSection).
+  const [library, setLibrary] = useState<PortalFoodOption[]>([]);
+  const [, startLibraryTransition] = useTransition();
+  const openPanel = () => {
+    setOpen(true);
+    if (library.length === 0) {
+      startLibraryTransition(async () => {
+        setLibrary(await getFoodLibraryAction());
+      });
+    }
+  };
   const [slot, setSlot] = useState<MealSlot>(slotForHour(hour));
   const [source, setSource] = useState<"library" | "plan" | "online">(planFoods.length > 0 ? "plan" : "library");
   const [query, setQuery] = useState("");
@@ -129,7 +140,7 @@ export function AddFoodDiaryEntry({
 
   if (!open) {
     return (
-      <button type="button" className={`btn btn-ghost ${styles.addToggle}`} onClick={() => setOpen(true)}>
+      <button type="button" className={`btn btn-ghost ${styles.addToggle}`} onClick={openPanel}>
         + Pridať jedlo
       </button>
     );

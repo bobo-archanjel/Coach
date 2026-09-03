@@ -1,4 +1,4 @@
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type {
   CoachNote,
@@ -268,8 +268,10 @@ export async function getPortalData(): Promise<PortalResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     // Nezávislé dopyty — paralelne (rovnaký dôvod ako getLinkedClient nižšie).
+    // `getProfile` je request-cache-ovaný — layout /portal už tento riadok
+    // doťahoval kvôli role guardu, tu je to teda de facto zadarmo.
     const [{ data: profile }, { data: client, error: clientErr }] = await Promise.all([
-      supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+      getProfile(user.id),
       supabase
         .from("clients")
         .select(
@@ -401,8 +403,18 @@ export async function getPortalData(): Promise<PortalResult> {
       dayId: targetDay.id,
     };
 
-    // ---------- týždenný pás (Po–Ne) — prehľad aktivity + história na klik (WeekHistory) ----------
-    const week = await buildWeekView(supabase, client.id, mondayOf(base), isoDate);
+    // Týždenný pás a odkaz trénera sa navzájom nepotrebujú — paralelne namiesto
+    // čakania na celý (dvoj-dopytový) buildWeekView pred začatím coach_notes.
+    const [week, { data: note }] = await Promise.all([
+      buildWeekView(supabase, client.id, mondayOf(base), isoDate),
+      supabase
+        .from("coach_notes")
+        .select("body, trainer_id")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
     // ---------- história (posledných 12 dní pred dneškom) ----------
     const streakHistory: StreakDayState[] = [];
@@ -415,14 +427,6 @@ export async function getPortalData(): Promise<PortalResult> {
 
     // ---------- odkaz trénera ----------
     let coachNote: CoachNote | null = null;
-    const { data: note } = await supabase
-      .from("coach_notes")
-      .select("body, trainer_id")
-      .eq("client_id", client.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
     if (note?.body) {
       let trainerName = "tréner";
       if (note.trainer_id) {
@@ -477,9 +481,11 @@ export async function getPortalData(): Promise<PortalResult> {
 async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   // Nezávislé dopyty (profil a klient sa nepotrebujú navzájom) — paralelne, nie
   // jeden po druhom; volané z takmer každej portálovej stránky, takže sekvenčný
-  // pár tu bol zbytočný round-trip navyše na každú navigáciu.
+  // pár tu bol zbytočný round-trip navyše na každú navigáciu. `getProfile` je
+  // navyše request-cache-ovaný — ak layout už profil tohto usera doťahoval
+  // (kvôli role guardu), táto vetva ho dostane zadarmo.
   const [{ data: profile }, { data: client, error }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+    getProfile(userId),
     supabase
       .from("clients")
       .select("id, full_name, active_plan_id, trainer_id")
@@ -533,9 +539,14 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
  * Zoznam tréningových plánov klienta pre sekciu Tréning — plány od trénera aj
  * vlastné (`workout_plans.trainer_id is null` ⇔ vytvoril klient). Každý plán nesie
  * všetky svoje dni; "aktívny" (riadi kartu Dnes) je `clients.active_plan_id`, inak
- * najnovší. Vracia aj globálnu knižnicu cvikov pre builder vlastného tréningu.
- * Klient bez `clients` riadku (bez trénera, ešte nič nevytvoril) → prázdny zoznam,
- * builder ostáva dostupný (self riadok vznikne pri prvom uložení).
+ * najnovší. Klient bez `clients` riadku (bez trénera, ešte nič nevytvoril) →
+ * prázdny zoznam, builder ostáva dostupný (self riadok vznikne pri prvom uložení).
+ *
+ * Globálna knižnica cvikov (~900 riadkov, cca 300 kB) sa sem predtým doťahovala
+ * vždy, aj keď klient len otvoril zoznam plánov a builder vôbec nepoužil —
+ * najťažší dopyt na stránke pre niečo, čo väčšina návštev nepotrebuje. Teraz ju
+ * ťahá `getExerciseLibraryAction` (`./actions.ts`) až keď klient reálne otvorí
+ * builder (`TrainingSection.openBuilder`), nie ako súčasť tejto funkcie.
  */
 export async function getPortalTraining(): Promise<PortalTrainingResult> {
   try {
@@ -545,30 +556,11 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    // Knižnica cvikov a klientov záznam sa navzájom nepotrebujú — paralelne.
-    const [libResult, linkedResult] = await Promise.all([
-      supabase
-        .from("exercises")
-        .select("id, name, name_sk, muscle_group, image_url")
-        .is("trainer_id", null)
-        .order("name", { ascending: true }),
-      getLinkedClient(supabase, user.id),
-    ]);
-    const { data: libRows, error: libErr } = libResult;
-    if (libErr) return { state: "error", message: libErr.message };
-    const exerciseLibrary: ExerciseOption[] = (libRows ?? []).map((e) => ({
-      id: e.id,
-      name: e.name,
-      nameSk: e.name_sk ?? null,
-      muscleGroup: e.muscle_group ?? null,
-      imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
-    }));
-
-    const { client, error: clientErr } = linkedResult;
+    const { client, error: clientErr } = await getLinkedClient(supabase, user.id);
     if (clientErr) return { state: "error", message: clientErr.message };
 
     if (!client) {
-      return { state: "ok", data: { plans: [], activePlanId: null, exerciseLibrary } };
+      return { state: "ok", data: { plans: [], activePlanId: null } };
     }
 
     // published: false = trénerov koncept (0021) — v klientovom zozname sa nezobrazí,
@@ -641,10 +633,28 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       }));
     }
 
-    return { state: "ok", data: { plans, activePlanId, exerciseLibrary } };
+    return { state: "ok", data: { plans, activePlanId } };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
   }
+}
+
+/** Globálna knižnica cvikov pre builder vlastného tréningu — na požiadanie, viď getPortalTraining vyššie. */
+export async function getExerciseLibrary(): Promise<ExerciseOption[]> {
+  const supabase = await createClient();
+  const { data: libRows, error } = await supabase
+    .from("exercises")
+    .select("id, name, name_sk, muscle_group, image_url")
+    .is("trainer_id", null)
+    .order("name", { ascending: true });
+  if (error) return [];
+  return (libRows ?? []).map((e) => ({
+    id: e.id,
+    name: e.name,
+    nameSk: e.name_sk ?? null,
+    muscleGroup: e.muscle_group ?? null,
+    imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
+  }));
 }
 
 /** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/vyziva/jedalnicek/actions.ts. */
@@ -778,9 +788,12 @@ type FoodRow = {
 };
 
 /**
- * Denník — čo klient dnes zjedol, oproti makro cieľu. Plus knižnica potravín
- * (globálna + trénerova) na vyhľadávanie a položky z najnovšieho jedálnička na
- * rýchle pridanie. Zápis: app/portal/actions.ts (addFoodLogAction / removeFoodLogAction).
+ * Denník — čo klient dnes zjedol, oproti makro cieľu, plus položky z najnovšieho
+ * jedálnička na rýchle pridanie. Zápis: app/portal/actions.ts (addFoodLogAction /
+ * removeFoodLogAction). Knižnica potravín na vyhľadávanie (`getFoodLibrary`
+ * nižšie) sa sem predtým ťahala vždy, hoci panel "Pridať jedlo" je defaultne
+ * zbalený (`AddFoodDiaryEntry` `open=false`) — teraz na požiadanie cez
+ * `getFoodLibraryAction`, rovnaký dôvod ako knižnica cvikov v `getPortalTraining`.
  */
 export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
   try {
@@ -799,7 +812,6 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
     const [
       { data: profile, error: profileErr },
       { data: logRows, error: logErr },
-      { data: foodRows, error: foodErr },
       { data: plan, error: planErr },
     ] = await Promise.all([
       supabase
@@ -814,10 +826,6 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
         .eq("eaten_on", isoDate)
         .order("created_at", { ascending: true }),
       supabase
-        .from("foods")
-        .select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g")
-        .order("name", { ascending: true }),
-      supabase
         .from("meal_plans")
         .select("id")
         .eq("client_id", client.id)
@@ -828,7 +836,6 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
 
     if (profileErr) return { state: "error", message: profileErr.message };
     if (logErr) return { state: "error", message: logErr.message };
-    if (foodErr) return { state: "error", message: foodErr.message };
     if (planErr) return { state: "error", message: planErr.message };
 
     const goal = profile
@@ -878,16 +885,6 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
 
     const totals = sumMacros(scaled.map(({ macros }) => macros));
 
-    // ---------- knižnica potravín ----------
-    const library: PortalFoodOption[] = ((foodRows ?? []) as FoodRow[]).map((f) => ({
-      foodId: f.id,
-      name: f.name,
-      kcal100g: f.kcal_100g,
-      protein100g: f.protein_100g,
-      carbs100g: f.carbs_100g,
-      fat100g: f.fat_100g,
-    }));
-
     // ---------- položky z trénerovho jedálnička na rýchle pridanie ----------
     const planFoods: PortalFoodOption[] = [];
     if (plan) {
@@ -925,12 +922,29 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
       groups,
       totals,
       planFoods,
-      library,
     };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
   }
+}
+
+/** Knižnica potravín (globálna + trénerove vlastné, RLS) na vyhľadávanie — na požiadanie, viď getPortalFoodDiary vyššie. */
+export async function getFoodLibrary(): Promise<PortalFoodOption[]> {
+  const supabase = await createClient();
+  const { data: foodRows, error } = await supabase
+    .from("foods")
+    .select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g")
+    .order("name", { ascending: true });
+  if (error) return [];
+  return ((foodRows ?? []) as FoodRow[]).map((f) => ({
+    foodId: f.id,
+    name: f.name,
+    kcal100g: f.kcal_100g,
+    protein100g: f.protein_100g,
+    carbs100g: f.carbs_100g,
+    fat100g: f.fat_100g,
+  }));
 }
 
 /**

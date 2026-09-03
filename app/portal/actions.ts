@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
-import { getPortalWeek } from "@/lib/portal/data";
+import { getFoodLibrary, getPortalWeek } from "@/lib/portal/data";
 import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
 import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
 
@@ -33,6 +33,15 @@ export async function getExerciseDetailAction(exerciseId: string): Promise<Exerc
 /** Pás „Tento týždeň" — načíta iný (spravidla minulý) týždeň pri listovaní. */
 export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeekResult> {
   return getPortalWeek(mondayIso);
+}
+
+/**
+ * Knižnica potravín pre vyhľadávanie v denníku — na požiadanie, len keď klient
+ * otvorí panel "Pridať jedlo" (`AddFoodDiaryEntry`, defaultne zbalený), nie ako
+ * súčasť každého načítania /portal/dennik (viď lib/portal/data.ts).
+ */
+export async function getFoodLibraryAction(): Promise<PortalFoodOption[]> {
+  return getFoodLibrary();
 }
 
 /** GDPR — klient požiada o zmazanie vlastných dát (30-dňová grace period, 0013_client_deletion.sql). */
@@ -160,23 +169,27 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
     .maybeSingle();
   if (!client) return { error: "Nepodarilo sa nájsť tvoj profil." };
 
-  const { error } = await supabase.from("workout_logs").insert({
-    client_id: client.id,
-    workout_day_id: dayId,
-    entries,
-  });
+  // Insert a RPC sa navzájom nepotrebujú (RPC len čistí `active_day_id` podľa
+  // dayId, nie podľa výsledku insertu) — paralelne namiesto čakania jedného na
+  // druhé, ušetrí jeden round-trip priamo v ceste "klik na Ukončiť tréning".
+  const [{ error }] = await Promise.all([
+    supabase.from("workout_logs").insert({
+      client_id: client.id,
+      workout_day_id: dayId,
+      entries,
+    }),
+    // Deň je zalogovaný (nanovo alebo už bol dnes skôr) — explicitný výber dňa
+    // zo sekcie Tréning (clients.active_day_id, 0022) sa tým spotreboval, ďalší
+    // štart nech opäť rieši prirodzená rotácia dní (lib/portal/data.ts). RPC, lebo
+    // klient nemá priamu UPDATE RLS na `clients` (len tréner, 0001).
+    supabase.rpc("clear_active_day_if_matches", { p_day_id: dayId }),
+  ]);
 
   if (error) {
     // unique index (client_id, workout_day_id, performed_on) — dnes už zapísané,
     // netreba to hlásiť ako chybu (napr. druhý klik po pomalej sieti).
     if (error.code !== "23505") return { error: error.message };
   }
-
-  // Deň je zalogovaný (nanovo alebo už bol dnes skôr) — explicitný výber dňa
-  // zo sekcie Tréning (clients.active_day_id, 0022) sa tým spotreboval, ďalší
-  // štart nech opäť rieši prirodzená rotácia dní (lib/portal/data.ts). RPC, lebo
-  // klient nemá priamu UPDATE RLS na `clients` (len tréner, 0001).
-  await supabase.rpc("clear_active_day_if_matches", { p_day_id: dayId });
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
   // pre badge "Hotovo" (lib/portal/data.ts) — bez "layout" ostal cache tej stránky

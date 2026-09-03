@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient, getUser } from "@/lib/supabase/server";
+import { getProfile, getUser } from "@/lib/supabase/server";
 import { DashboardNav } from "./DashboardNav";
 import styles from "./dashboard.module.css";
 
@@ -19,7 +19,6 @@ export const metadata: Metadata = {
 const DEV_OPEN = process.env.NODE_ENV !== "production";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
   const {
     data: { user },
   } = await getUser();
@@ -29,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } else {
     // Symetrický guard k app/portal/layout.tsx (ten posiela trénera na /dashboard) —
     // klient sa sem doteraz vedel dostať priamou URL bez presmerovania na svoj portál.
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profile } = await getProfile(user.id);
     if (profile?.role === "client") {
       redirect("/portal");
     }

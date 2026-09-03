@@ -184,8 +184,6 @@ export interface PortalPlan {
 export interface PortalTrainingData {
   plans: PortalPlan[];
   activePlanId: string | null;
-  /** globálna knižnica cvikov pre builder vlastného tréningu */
-  exerciseLibrary: ExerciseOption[];
 }
 
 export interface ExerciseOption {
@@ -288,8 +286,6 @@ export interface PortalDiaryData {
   totals: { kcal: number; proteinG: number; carbsG: number; fatG: number };
   /** položky z najnovšieho trénerovho jedálnička na rýchle pridanie */
   planFoods: PortalFoodOption[];
-  /** celá knižnica potravín (globálna + trénerove vlastné) na vyhľadávanie */
-  library: PortalFoodOption[];
 }
 
 export type PortalDiaryResult =
