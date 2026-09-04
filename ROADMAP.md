@@ -1,6 +1,6 @@
 # FitPilot — Roadmap
 
-Živý dokument — aktualizuje sa, keď sa mení plán, nie len pri pushi (rovnako ako `PRODUCT.md`/`DESIGN.md`). AI chat pre klienta ("AI Kouč") je hotový — viď sekciu **AI blok** nižšie. AI generátor plánov pre trénera zostáva **vedome odložený**.
+Živý dokument — aktualizuje sa, keď sa mení plán, nie len pri pushi (rovnako ako `PRODUCT.md`/`DESIGN.md`). AI chat pre klienta ("AI Kouč") aj AI generátor tréningových plánov pre trénera sú hotové — viď sekciu **AI blok** nižšie.
 
 ## Ako čítať tento dokument
 
@@ -12,7 +12,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Stav k 2026-09-02
 
-**Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat/AI Kouč, rotácia dní, história týždňov), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)**, **AI Kouč pre klienta** — viď sekcie nižšie.
+**Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat/AI Kouč, rotácia dní, história týždňov), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based), vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)**, **AI Kouč pre klienta a AI generátor tréningových plánov pre trénera** — viď sekcie nižšie.
 
 **Číslovanie migrácií — ďalšie voľné číslo je `0023`.** Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
@@ -49,14 +49,15 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 1. ~~**Fáza B tréningu — per-cvik odškrtávanie + skutočné hodnoty**~~ **HOTOVO 2026-08-28** (branch `feature/trener-training`, zmergované do `dev`) — pri "Ukončiť tréning" klient zadáva skutočné série/opakovania/váhu ku každému cviku (predvyplnené podľa plánu z buildera), tréner ich vidí v rozbaliteľnom detaile karty "Posledná aktivita". `workout_logs.entries` (jsonb, 0003) sa už reálne využíva. Žiadna nová migrácia.
 2. ~~**Notifikácie trénerovi**~~ **HOTOVO 2026-08-28** — v appke (bez e-mailu, bez novej migrácie): `/dashboard` počíta priamo z `workout_plans`/`workout_logs`, klient bez odklikaného tréningu 5+ dní dostane status chip "meškanie" a objaví sa v alert paneli nad zoznamom klientov. E-mailové zhrnutie ostáva placeholder "čoskoro" v Nastaveniach.
 3. ~~**Skutočné logo assety**~~ **HOTOVO 2026-08-30** (branch `feature/identita`) — favicon (`app/icon.png`) hotový od 28.8.; teraz aj `LogoMark.tsx` nahradený skutočným exportom (`docs/Design/logo.png` → `public/brand/logo-mark.png`, cez `next/image`) namiesto SVG rekonštrukcie, použitý na landing headeri/footeri, dashboard sidebari, portál sidebari aj auth stránke. `FitPilot_Logo.png` (mark+wordmark) a `long_logo.png` (+ tagline) sú tiež dodané, zatiaľ nepoužité (existujúci vzor mark-ako-obrázok + "FitPilot" ako HTML text v Inter sa zachoval).
-4. **AI generátor tréningových plánov pre trénera** — základ AI bloku (Anthropic SDK, `ai_usage`, draft-then-approve princípy) je hotový vďaka AI Koučovi nižšie, samotný generátor plánov ešte nezačatý.
+4. ~~**AI generátor tréningových plánov pre trénera**~~ **HOTOVO 2026-09-03** (branch `feature/AI-plans`) — nová karta "AI generátor plánu" na `/dashboard/treningy`: tréner zadá klienta, cieľ, počet dní, skúsenosť a vybavenie, Claude Sonnet navrhne rozdelenie na dni + cviky VÝHRADNE z reálnej knižnice (876 cvikov, kandidáti naprieč všetkými svalovými partiami, ~15 na partiu). Vytvorí bežný koncept (`workout_plans.published = false`, rovnaký mechanizmus ako 0021) a presmeruje priamo do existujúceho PlanBuilderu na plnú editáciu pred publikovaním — **žiadna nová tabuľka** (`ai_drafts` sa ukázala zbytočná, koncept/publikovanie z 0021 už presne toto rieši). `lib/ai/planGenerator.ts`. Pozn.: `strict: true` + JSON schema `enum` na ~200+ exercise_id zlyhávalo na API strane ("schema too complex") — namiesto toho prompt + serverová filtrácia neplatných ID po odpovedi (rovnaký vzor ako `exerciseAlternatives.ts`).
+5. **Analytika naprieč klientmi** (`/dashboard/analytika`) — viď sekciu **Progres a analýza** nižšie. Nezačaté.
 
 ## Track "Klient"
 
 1. ~~**Food diary**~~ **HOTOVO 2026-08-28** — `/portal/dennik` (6. tab): klient loguje z knižnice potravín (+ rýchle pridanie z trénerovho jedálnička), vidí dnešný príjem oproti makro cieľu. Migrácia `0007_food_logs.sql`. ~~Follow-up: karta „adherencia stravy" na strane trénera~~ **HOTOVO 2026-08-30** (branch `feature/verification-adherencia`) — nová karta na `/dashboard/klienti/[id]`: dnešný % z kalorického cieľa + 7-dňový pás bodiek. `lib/dashboard/adherence.ts`, žiadna nová migrácia (RLS na `food_logs` to už dovoľovala).
 2. ~~**Chat tréner↔klient (obojsmerný)**~~ **HOTOVO 2026-08-28** — `messages` (`0008`), jedno vlákno na klienta, **refresh-based** (poll ~12 s kým je karta viditeľná + na focus, Server Actions revalidujú — bez Realtime, upgrade neskôr bez zmeny schémy). Klient: `/portal/chat` (bodka na tabe pri neprečítanej správe). Tréner: karta „Správy" na `/dashboard/klienti/[id]` + odznak počtu neprečítaných v zozname klientov. `coach_notes` ostáva samostatný (dnešný odkaz na karte Dnes). Zdieľaný `app/components/ChatThread.tsx`. ~~Follow-up: `/dashboard/spravy` inbox~~ **HOTOVO 2026-09-03** (branch `feature/spravy-inbox`) — centrálna schránka všetkých vlákien naraz, zoradená podľa poslednej aktivity, s náhľadom poslednej správy a odznakom neprečítaných (aj v sidebar nave). Výber vlákna cez `?client=<id>`, dvojstĺpcový layout na desktope, na mobile sa po výbere skryje zoznam (len vlákno + "Späť"). Žiadna nová migrácia/logika písania — znovupoužíva `sendTrainerMessageAction`/`markTrainerChatSeenAction`/`ChatThread`. Realtime zostáva otvorené.
 3. ~~**Vlastný tréning klienta**~~ **HOTOVO 2026-08-30** (branch `feature/stopwatch`) — klient si v sekcii Tréning vytvorí vlastný tréning (aj bez trénera): naklikanie cvikov z globálnej knižnice alebo voľným textom, dni, série/opakovania/váha/pauza/tempo, uloží jedným ťukom. `/portal/trening` je teraz zoznam plánov (od trénera aj vlastné) — ťuk nastaví plán ako aktívny (`clients.active_plan_id`, null → najnovší) a ten riadi kartu Dnes presne ako plán od trénera (Začať tréning, stopky, logovanie). Plná editácia aj zmazanie vlastného plánu. Migrácia `0010_client_own_workouts.sql` (uvoľní `clients.trainer_id` a `workout_plans.trainer_id` na nullable pre self-klienta, `ensure_self_client` + `set_active_plan` security-definer RPC, klientské CUD RLS na `workout_plans`/`workout_days`).
-4. **Progres tracking** — grafy váhy/výkonov v čase, prípadne foto porovnania. Fáza B (skutočné odcvičené hodnoty) je už hotová vyššie — táto položka je teraz odblokovaná.
+4. **Progres tracking** — viď sekciu **Progres a analýza** nižšie (kompletný návrh systému). Fáza B (skutočné odcvičené hodnoty) je už hotová vyššie — táto položka je teraz odblokovaná, zatiaľ nezačatá.
    - ~~**História týždňov v páse „Tento týždeň"**~~ **HOTOVO 2026-08-31** (branch `feature/week-history`, cez impeccable) — prvý krok k spätnému pohľadu: pás na karte Dnes sa dá prelistovať na minulé týždne (šípky, strop ≈ 1 rok) a ťuk na odcvičený deň otvorí náhľad toho, čo klient v ten deň spravil (série/opakovania/váha z `workout_logs.entries`; pri Fáze A záznamoch „bez zápisu sérií"). Bez migrácie — `lib/portal/data.ts` (`buildWeekView`, `getPortalWeek`) číta `workout_logs`/`workout_days` naprieč všetkými plánmi klienta. Grafy váhy/výkonov v čase ešte chýbajú.
 5. ~~**AI chat pre klienta ("AI Kouč")**~~ **HOTOVO 2026-09-02** — viď sekciu **AI blok** nižšie.
 
@@ -83,7 +84,43 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 - **Prehľad nákladov pre trénera** — karta "AI náklady" v `/dashboard/nastavenia` (`lib/ai/pricing.ts`, `usageSummary.ts`), orientačný odhad dnes/7 dní podľa cenníka modelu; záväzný limit sa nastavuje v Anthropic Console.
 - Migrácie `0013`–`0017`, ďalšie voľné číslo `0018`.
 
-**Otvorené:** AI generátor tréningových plánov pre trénera (Track "Tréner" bod 4) — draft-then-approve na reálnych `exercise_id`, zatiaľ nezačaté.
+~~**Otvorené:** AI generátor tréningových plánov pre trénera~~ **HOTOVO 2026-09-03** — viď Track "Tréner" bod 4 vyššie.
+
+## Progres a analýza (tréner aj klient)
+
+**Návrh, zatiaľ nezačaté.** Cieľ: tréner vidí progres klientov (jedného aj naprieč všetkými), klient vidí vlastný progres vo svojom portáli.
+
+**1. Čo už máme (dá sa použiť bez čokoľvek meniť):**
+
+| Zdroj | Čo z neho vyťažiť |
+|---|---|
+| `workout_logs.entries` (skutočné odcvičené série/opakovania/váha na deň) | Silový progres per cvik, tréningový objem v čase |
+| `food_logs` | Adherencia stravy — dnes máme len 7-dňový pás bodiek u trénera, dá sa predĺžiť na graf |
+| `nutrition_profiles` | Aktuálny makro cieľ (na porovnanie s realitou) |
+
+**2. Čo chýba — jediná nová vec:** história telesnej hmotnosti. `clients.weight_kg` aj `nutrition_profiles.weight_kg` sú len jedno číslo (posledná/vstupná hodnota), nie časový rad — bez novej tabuľky sa nedá nakresliť graf váhy v čase.
+
+- **`body_metrics`** (nová migrácia, ďalšie voľné číslo `0023`): `client_id`, `measured_on` (dátum), `weight_kg`, voliteľne `body_fat_pct`, poznámka. Zapisuje si klient sám (rýchly formulár, jedno pole — presne ako rýchle pridanie do denníka), tréner má len read-only. RLS rovnaký vzor ako `food_logs`.
+- Silový progres a objem netreba ukladať nikam nové — počíta sa za behu z už existujúcich `workout_logs`.
+
+**3. Kde sa to zobrazí:**
+
+*Tréner — dve úrovne:*
+- **Per klient** (nová karta "Progres" na `/dashboard/klienti/[id]`, vedľa Adherencie): graf váhy, graf sily pre vybraný cvik (dropdown len z cvikov, ktoré klient reálne odcvičil), tréningový objem po týždňoch, adherencia stravy natiahnutá na 30/90 dní.
+- **Naprieč všetkými klientmi** — nová stránka `/dashboard/analytika`: tabuľka, riadok = klient, stĺpce = posledný tréning, adherencia %, trend váhy (šípka hore/dole), aby tréner na jeden pohľad videl, kto stagnuje/rizikový.
+
+*Klient — vlastný progres:* namiesto úplne nového 8. tabu (mobilná navigácia má už 7 položiek) zabudovať Progres do existujúcich tabov — sekcia v "Strava" (váha + adherencia) a sekcia v "Tréning" (sila + objem). Rovnaké grafové komponenty ako u trénera (jeden zdieľaný `ProgressChart`), len scoped na seba.
+
+**4. Grafy — technická voľba:** malé datasety per klient, netreba ťažkú knižnicu. **Recharts** (rýchla integrácia do klientských komponentov) alebo čisté SVG (`polyline`, bez závislosti) — rozhodnúť pri štarte fázy.
+
+**5. Fázovanie:**
+1. `body_metrics` + rýchly zápis váhy (klient)
+2. Graf váhy (klient aj tréner)
+3. Silový progres z `workout_logs` (bez novej DB)
+4. Tréningový objem v čase
+5. Rozšírená adherencia stravy (30/90 dní, graf namiesto bodiek)
+6. Agregovaný `/dashboard/analytika` prehľad naprieč klientmi
+7. *(voliteľné, neskôr)* fotoprogres — vyžaduje Supabase Storage a rozhodnutie o kvóte (rovnaký 2GB free-tier problém ako pri cvikoch), riešiť samostatne až keď je toto hotové
 
 ## Zdieľané / potrebuje koordináciu
 
@@ -96,5 +133,5 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Čo je vedome mimo tohto plánu (zatiaľ)
 
-- AI generátor plánov pre trénera — viď AI blok vyššie, nezačaté.
-- Pokročilé reporty nad rámec základného progres trackingu.
+- Progres a analýza (grafy váhy/sily/objemu, agregovaný prehľad trénera) — viď sekciu vyššie, návrh hotový, implementácia nezačatá.
+- Fotoprogres (porovnanie fotiek v čase) — vyžaduje Supabase Storage, rieši sa až po základných grafoch (viď sekcia Progres a analýza, bod 7).

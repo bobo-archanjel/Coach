@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreatePlanForm } from "./CreatePlanForm";
+import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
 import styles from "../dashboard.module.css";
 
@@ -40,6 +41,11 @@ export default async function TreningyPage() {
       <div className={styles.card} style={{ marginBottom: 20 }}>
         <h3>Nový plán</h3>
         <CreatePlanForm clients={clients ?? []} />
+      </div>
+
+      <div className={styles.card} style={{ marginBottom: 20 }}>
+        <h3>AI generátor plánu</h3>
+        <AiPlanGeneratorForm clients={clients ?? []} />
       </div>
 
       {plans && plans.length > 0 ? (
