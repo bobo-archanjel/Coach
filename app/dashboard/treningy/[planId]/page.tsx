@@ -55,8 +55,11 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
         <PublishControl planId={planId} published={plan.published} />
       </div>
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <SaveTemplateForm kind="workout" planId={planId} defaultName={plan.name} />
+        <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
+          Stiahnuť PDF
+        </a>
       </div>
 
       <PlanBuilder planId={planId} days={days ?? []} library={exercises ?? []} />

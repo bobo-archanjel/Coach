@@ -43,6 +43,15 @@ export function AnalyticsPanel({
 }) {
   return (
     <div className={styles.cardStack}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <a href={`/api/export/progress/${clientId}/pdf`} className="btn btn-ghost btn-sm">
+          Stiahnuť PDF
+        </a>
+        <a href={`/api/export/progress/${clientId}/csv`} className="btn btn-ghost btn-sm">
+          Stiahnuť CSV (merania)
+        </a>
+      </div>
+
       <ProgressSummaryCard clientId={clientId} />
 
       <div className={styles.card}>
