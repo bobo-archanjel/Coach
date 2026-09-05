@@ -49,6 +49,16 @@ const MessagesIcon = () => (
   </svg>
 );
 
+const CalendarIcon = () => (
+  <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M3.5 9.5h17M8 3v3.5M16 3v3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <circle cx="8.3" cy="13.2" r="1.1" fill="currentColor" />
+    <circle cx="12" cy="13.2" r="1.1" fill="currentColor" />
+    <circle cx="8.3" cy="16.6" r="1.1" fill="currentColor" />
+  </svg>
+);
+
 const TemplatesIcon = () => (
   <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <rect x="5" y="3.5" width="11" height="14" rx="1.6" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
@@ -73,6 +83,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/vyziva", label: "Výživa", Icon: NutritionIcon, match: (p: string) => p.startsWith("/dashboard/vyziva") },
+  { href: "/dashboard/kalendar", label: "Kalendár", Icon: CalendarIcon, match: (p: string) => p.startsWith("/dashboard/kalendar") },
   { href: "/dashboard/sablony", label: "Šablóny", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/dashboard/sablony") },
   { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, match: (p: string) => p.startsWith("/dashboard/spravy") },
   { href: "/dashboard/nastavenia", label: "Nastavenia", Icon: SettingsIcon, match: (p: string) => p.startsWith("/dashboard/nastavenia") },

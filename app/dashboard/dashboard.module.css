@@ -1207,6 +1207,42 @@
   }
 }
 
+/* ---------- /dashboard/kalendar — agenda termínov (feature/planing-groupMessage) ---------- */
+.appointmentList {
+  display: grid;
+  gap: 8px;
+}
+.appointmentRow {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+}
+.appointmentTime {
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+}
+.appointmentBody {
+  min-width: 0;
+}
+@media (max-width: 480px) {
+  .appointmentRow {
+    grid-template-columns: 44px 1fr;
+    row-gap: 8px;
+  }
+  .appointmentRow > button,
+  .appointmentRow > div:last-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
 /* ---------- /dashboard/sablony — šablóny plánov a jedálničkov (feature/progress-AI-sablona) ---------- */
 .templateFilterRow {
   display: flex;

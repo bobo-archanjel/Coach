@@ -29,6 +29,20 @@ function greeting(name: string, hour: number): string {
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/** "dnes o 18:00" / "zajtra o 9:30" / "streda 10.9. o 8:00" — appointments (0026). */
+function appointmentWhenLabel(startsAtIso: string): string {
+  const start = new Date(startsAtIso);
+  const now = new Date();
+  const sameDay = start.toDateString() === now.toDateString();
+  const tomorrow = new Date(now.getTime() + 86_400_000);
+  const isTomorrow = start.toDateString() === tomorrow.toDateString();
+  const time = start.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return `dnes o ${time}`;
+  if (isTomorrow) return `zajtra o ${time}`;
+  const dayLabel = start.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "numeric" });
+  return `${dayLabel} o ${time}`;
+}
+
 /** 1 tréning, 2-4 tréningy, 5+ tréningov (slovenská plurálna zhoda). */
 function sessionUnit(n: number): string {
   if (n === 1) return "tréning";
@@ -138,6 +152,7 @@ const PREVIEW_DATA: PortalData = {
   streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
   deletionNotice: null,
   cooperationEndedNotice: null,
+  nextAppointment: { title: "Konzultácia — kontrola techniky", startsAt: new Date(Date.now() + 2 * 86_400_000).toISOString() },
   bodyMetrics: [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
     measuredOn: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10),
     weightKg: 88 - i * 1.1,
@@ -271,6 +286,7 @@ function PortalToday({ data }: { data: PortalData }) {
     deletionNotice,
     cooperationEndedNotice,
     bodyMetrics,
+    nextAppointment,
   } = data;
 
   const d = new Date(`${today}T12:00:00Z`);
@@ -316,6 +332,15 @@ function PortalToday({ data }: { data: PortalData }) {
               <p className={styles.noteFrom}>Tréner {coachNote.trainer}</p>
               <p className={styles.noteText}>{coachNote.text}</p>
             </div>
+          </div>
+        )}
+
+        {nextAppointment && (
+          <div className={styles.appointmentNotice}>
+            <span className={styles.appointmentDot} aria-hidden="true" />
+            <p>
+              Najbližší termín: <strong>{nextAppointment.title}</strong> — {appointmentWhenLabel(nextAppointment.startsAt)}
+            </p>
           </div>
         )}
       </section>

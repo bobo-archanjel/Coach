@@ -410,7 +410,7 @@ export async function getPortalData(): Promise<PortalResult> {
     // paralelne namiesto čakania na celý (dvoj-dopytový) buildWeekView pred
     // začatím ostatných. getBodyMetrics má vlastný createClient() (cache()-ovaný,
     // žiadny extra round-trip na auth), len jeden indexovaný dopyt navyše.
-    const [week, { data: note }, bodyMetrics] = await Promise.all([
+    const [week, { data: note }, bodyMetrics, { data: nextAppt }] = await Promise.all([
       buildWeekView(supabase, client.id, mondayOf(base), isoDate),
       supabase
         .from("coach_notes")
@@ -420,6 +420,14 @@ export async function getPortalData(): Promise<PortalResult> {
         .limit(1)
         .maybeSingle(),
       getBodyMetrics(client.id),
+      supabase
+        .from("appointments")
+        .select("title, starts_at")
+        .eq("client_id", client.id)
+        .gte("starts_at", new Date().toISOString())
+        .order("starts_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     // ---------- história (posledných 12 dní pred dneškom) ----------
@@ -473,6 +481,7 @@ export async function getPortalData(): Promise<PortalResult> {
           ? { endedAt: client.ended_at }
           : null,
       bodyMetrics: bodyMetrics ?? [],
+      nextAppointment: nextAppt ? { title: nextAppt.title, startsAt: nextAppt.starts_at } : null,
     };
 
     return { state: "ok", data };
