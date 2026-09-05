@@ -10,8 +10,6 @@ interface ActionState {
 }
 const initialState: ActionState = { error: null };
 
-const HISTORY_VISIBLE = 5;
-
 function dateLabel(iso: string): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
 }
@@ -39,13 +37,14 @@ function extrasSummary(e: BodyMetricEntry): string {
  * RLS/akcia: `addOwnBodyMetricAction` (0024_body_metrics_client_write.sql).
  * `history` prichádza už zo servera (getPortalData, súčasť Promise.all) —
  * po uložení ju obnoví revalidatePath("/portal","layout") v akcii, žiadny
- * ďalší fetch tu netreba.
+ * ďalší fetch tu netreba. Zoznam sa vždy renderuje celý (žiadne "Zobraziť
+ * všetky" prepínanie dĺžky) — nad 3 záznamy `.metricHistoryList` interne
+ * skroluje (max-height), aby karta Dnes nerástla donekonečna.
  */
 export function BodyMetricForm({ today, history }: { today: string; history: BodyMetricEntry[] }) {
   const [state, formAction, pending] = useActionState(addOwnBodyMetricAction, initialState);
   const [open, setOpen] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(false);
-  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Zavrieť len po úspešnom uložení — pri okamžitom zatvorení pri submite by
   // prípadná chybová hláška zmizla skôr, než ju klient stihne prečítať.
@@ -57,7 +56,6 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
 
   // Najnovšie prvé — `history` zo servera je najstaršie prvé (rovnaký tvar ako graf).
   const recent = useMemo(() => [...history].reverse(), [history]);
-  const visible = showAllHistory ? recent : recent.slice(0, HISTORY_VISIBLE);
 
   return (
     <>
@@ -113,23 +111,20 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
 
       {recent.length > 0 && (
         <div className={styles.metricHistory}>
-          {visible.map((e) => {
-            const extras = extrasSummary(e);
-            return (
-              <div key={e.measuredOn} className={styles.metricHistoryRow}>
-                <div className={styles.metricHistoryMain}>
-                  <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn)}</span>
-                  <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${e.weightKg} kg` : "—"}</span>
+          <div className={styles.metricHistoryList}>
+            {recent.map((e) => {
+              const extras = extrasSummary(e);
+              return (
+                <div key={e.measuredOn} className={styles.metricHistoryRow}>
+                  <div className={styles.metricHistoryMain}>
+                    <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn)}</span>
+                    <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${e.weightKg} kg` : "—"}</span>
+                  </div>
+                  {extras && <p className={styles.metricHistoryExtra}>{extras}</p>}
                 </div>
-                {extras && <p className={styles.metricHistoryExtra}>{extras}</p>}
-              </div>
-            );
-          })}
-          {recent.length > HISTORY_VISIBLE && (
-            <button type="button" className={styles.metricToggle} onClick={() => setShowAllHistory((s) => !s)}>
-              {showAllHistory ? "Zobraziť menej" : `Zobraziť všetky (${recent.length})`}
-            </button>
-          )}
+              );
+            })}
+          </div>
         </div>
       )}
     </>

@@ -1797,9 +1797,15 @@
 
 .metricHistory {
   margin-top: 14px;
+}
+/* Nad 3 záznamy karta neroztiahnie výšku donekonečna — zoznam sa capne na
+   ~3 riadky a skroluje interne (scrollbar tému preberá z globals.css). */
+.metricHistoryList {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-height: 190px;
+  overflow-y: auto;
 }
 .metricHistoryRow {
   padding: 9px 2px;
@@ -1829,11 +1835,6 @@
   font-size: 11px;
   line-height: 1.4;
 }
-.metricHistory .metricToggle {
-  margin-top: 8px;
-  text-align: center;
-}
-
 /* ---------- plávajúce stopky / časovač pauzy (WorkoutStopwatch) ---------- */
 /* Objaví sa po "Začať tréning", zmizne po ukončení. Fixne pozicované nad spodnou
    navigáciou; svet portálu nezmenený — coral nesie bežiaci stav a primárnu akciu,
