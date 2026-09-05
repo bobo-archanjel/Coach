@@ -141,9 +141,9 @@ const PREVIEW_DATA: PortalData = {
   bodyMetrics: [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
     measuredOn: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10),
     weightKg: 88 - i * 1.1,
-    waistCm: i === 6 ? 88 : null,
-    chestCm: null,
-    hipsCm: null,
+    waistCm: i === 6 || i === 0 ? 88 - i * 0.5 : null,
+    chestCm: i === 6 ? 102 : null,
+    hipsCm: i === 6 ? 98 : null,
     armCm: null,
     thighCm: null,
     note: null,

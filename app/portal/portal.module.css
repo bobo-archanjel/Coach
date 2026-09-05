@@ -1779,16 +1779,18 @@
   gap: 2px;
 }
 .metricHistoryRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: baseline;
-  gap: 8px;
   padding: 9px 2px;
   border-top: 1px solid var(--steel-line);
   font-size: 12.5px;
 }
 .metricHistoryRow:first-child {
   border-top: none;
+}
+.metricHistoryMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
 }
 .metricHistoryDate {
   color: var(--paper-faint);
@@ -1799,9 +1801,10 @@
   text-align: right;
 }
 .metricHistoryExtra {
+  margin-top: 3px;
   color: var(--paper-faint);
   font-size: 11px;
-  white-space: nowrap;
+  line-height: 1.4;
 }
 .metricHistory .metricToggle {
   margin-top: 8px;

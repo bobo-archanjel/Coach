@@ -16,15 +16,19 @@ function dateLabel(iso: string): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
-/** 1 obvod, 2-4 obvody, 5+ obvodov. */
-function extrasLabel(n: number): string {
-  if (n === 0) return "";
-  const word = n === 1 ? "obvod" : n <= 4 ? "obvody" : "obvodov";
-  return `+ ${n} ${word}`;
-}
+const EXTRA_FIELDS: { key: keyof BodyMetricEntry; label: string }[] = [
+  { key: "waistCm", label: "Pás" },
+  { key: "chestCm", label: "Hrudník" },
+  { key: "hipsCm", label: "Boky" },
+  { key: "armCm", label: "Paža" },
+  { key: "thighCm", label: "Stehno" },
+];
 
-function countExtras(e: BodyMetricEntry): number {
-  return [e.waistCm, e.chestCm, e.hipsCm, e.armCm, e.thighCm].filter((v) => v != null).length;
+/** "Pás 82 cm · Boky 95 cm" — len zadané obvody, v poradí ako vo formulári. */
+function extrasSummary(e: BodyMetricEntry): string {
+  return EXTRA_FIELDS.filter(({ key }) => e[key] != null)
+    .map(({ key, label }) => `${label} ${e[key]} cm`)
+    .join(" · ");
 }
 
 /**
@@ -110,12 +114,14 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
       {recent.length > 0 && (
         <div className={styles.metricHistory}>
           {visible.map((e) => {
-            const extras = countExtras(e);
+            const extras = extrasSummary(e);
             return (
               <div key={e.measuredOn} className={styles.metricHistoryRow}>
-                <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn)}</span>
-                <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${e.weightKg} kg` : "—"}</span>
-                {extras > 0 && <span className={styles.metricHistoryExtra}>{extrasLabel(extras)}</span>}
+                <div className={styles.metricHistoryMain}>
+                  <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn)}</span>
+                  <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${e.weightKg} kg` : "—"}</span>
+                </div>
+                {extras && <p className={styles.metricHistoryExtra}>{extras}</p>}
               </div>
             );
           })}
