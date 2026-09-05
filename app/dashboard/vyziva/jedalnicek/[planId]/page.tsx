@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { MealPlanBuilder } from "./MealPlanBuilder";
+import { SaveTemplateForm } from "../../../sablony/SaveTemplateForm";
 import styles from "../../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -49,6 +50,10 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
         </div>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <SaveTemplateForm kind="meal" planId={planId} defaultName={plan.name} />
       </div>
 
       <MealPlanBuilder planId={planId} days={days ?? []} library={foods ?? []} />

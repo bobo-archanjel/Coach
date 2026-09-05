@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
+import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 
 export interface ActionState {
   error: string | null;
@@ -248,7 +249,6 @@ export async function addCustomExerciseAction(_prevState: ActionState, formData:
   return ok;
 }
 
-const PLAN_GOALS: PlanGoal[] = ["chudnutie", "hypertrofia", "sila", "kondicia"];
 const PLAN_EXPERIENCES: PlanExperience[] = ["zaciatocnik", "stredne_pokrocily", "pokrocily"];
 const PLAN_EQUIPMENT: PlanEquipment[] = ["plna_posilnovna", "domace_vybavenie", "len_telo"];
 
@@ -295,18 +295,12 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   });
   if ("error" in result) return { error: result.error };
 
-  const goalLabelSk: Record<PlanGoal, string> = {
-    chudnutie: "Chudnutie",
-    hypertrofia: "Hypertrofia",
-    sila: "Sila",
-    kondicia: "Kondícia",
-  };
   const { data: newPlan, error: planErr } = await supabase
     .from("workout_plans")
     .insert({
       client_id: clientId,
       trainer_id: user.id,
-      name: `AI plán — ${goalLabelSk[goal as PlanGoal]}`,
+      name: `AI plán — ${PLAN_GOAL_LABEL_SK[goal as PlanGoal]}`,
       published: false,
     })
     .select("id")

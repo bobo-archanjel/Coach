@@ -6,6 +6,7 @@ import type { NutritionAdherence, TrainingAdherence } from "@/lib/dashboard/adhe
 import type { BodyMetricEntry, StrengthPoint } from "@/lib/dashboard/bodyMetrics";
 import { BodyMetricsCard } from "./BodyMetricsCard";
 import { StrengthCard } from "./StrengthCard";
+import { ProgressSummaryCard } from "./ProgressSummaryCard";
 import styles from "../../dashboard.module.css";
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -61,6 +62,8 @@ export function AnalyticsPanel({
 
       {open && (
         <div className={styles.cardStack} style={{ marginTop: 16 }}>
+          <ProgressSummaryCard clientId={clientId} />
+
           <div className={styles.card}>
             <h3>Analytika</h3>
             <h4 className={styles.cardSubhead}>Adherencia tréningu</h4>

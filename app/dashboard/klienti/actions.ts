@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { generateProgressSummary } from "@/lib/ai/progressSummary";
 
 export interface ActionState {
   error: string | null;
@@ -98,5 +99,48 @@ export async function cancelClientDeletionAction(clientId: string): Promise<Acti
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
+}
+
+export interface ProgressSummaryState {
+  summary: string | null;
+  error: string | null;
+}
+const noSummary: ProgressSummaryState = { summary: null, error: null };
+
+/**
+ * AI sumarizácia progresu (on-demand, žiadny cron) — viď lib/ai/progressSummary.ts.
+ * Ownership klienta sa overuje TU (rovnaký vzor ako ostatné akcie) predtým, než sa
+ * čokoľvek pošle modelu — `generateProgressSummary` samo autorizáciu nerobí.
+ */
+export async function generateProgressSummaryAction(
+  _prevState: ProgressSummaryState,
+  formData: FormData,
+): Promise<ProgressSummaryState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ...noSummary, error: "Nie si prihlásený." };
+
+  const clientId = (formData.get("client_id") as string | null) ?? "";
+  if (!clientId) return { ...noSummary, error: "Chýba klient." };
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, full_name, goal")
+    .eq("id", clientId)
+    .eq("trainer_id", user.id)
+    .maybeSingle();
+  if (!client) return { ...noSummary, error: "Tento klient nepatrí tebe." };
+
+  const result = await generateProgressSummary(supabase, {
+    trainerId: user.id,
+    clientId,
+    clientName: client.full_name,
+    clientGoal: client.goal,
+  });
+
+  if (result.status === "ok") return { summary: result.summary, error: null };
+  return { summary: null, error: result.summary };
 }
 
