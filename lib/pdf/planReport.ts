@@ -1,6 +1,6 @@
 // FitPilot — export tréningového plánu do PDF (feature/export-dat).
 
-import { createPdfContext, PdfWriter, truncate } from "./document";
+import { createPdfContext, PdfWriter, truncate, type TableColumn } from "./document";
 
 export interface PlanReportExercise {
   exerciseName: string;
@@ -22,6 +22,14 @@ export interface PlanReportInput {
   days: PlanReportDay[];
 }
 
+const COLUMNS: TableColumn[] = [
+  { text: "Cvik", width: 220 },
+  { text: "Série", width: 55 },
+  { text: "Opakovania", width: 90 },
+  { text: "Záťaž", width: 75 },
+  { text: "Pauza", width: 65, align: "right" },
+];
+
 function restLabel(sec: number | null): string {
   if (sec == null) return "—";
   return sec >= 60 ? `${Math.round((sec / 60) * 10) / 10} min` : `${sec} s`;
@@ -29,46 +37,33 @@ function restLabel(sec: number | null): string {
 
 export async function generatePlanPdf(input: PlanReportInput): Promise<Uint8Array> {
   const ctx = await createPdfContext();
-  const w = new PdfWriter(ctx, input.planName);
+  const w = new PdfWriter(ctx);
 
   w.heading(truncate(input.planName, 60));
-  w.text(`Klient: ${input.clientName}`, { dim: true });
-  w.text(`Vygenerované: ${new Date().toLocaleDateString("sk-SK")}`, { dim: true });
-  w.spacer(6);
+  w.meta(`Klient: ${input.clientName}  ·  Vygenerované: ${new Date().toLocaleDateString("sk-SK")}`);
 
   if (input.days.length === 0) {
-    w.text("Plán zatiaľ nemá žiadne dni.");
+    w.text("Plán zatiaľ nemá žiadne dni.", { dim: true });
   }
 
   for (const day of input.days) {
-    w.divider();
-    w.subheading(truncate(day.name, 70));
+    w.section(truncate(day.name, 70));
 
     if (day.exercises.length === 0) {
       w.text("Žiadne cviky.", { dim: true });
       continue;
     }
 
-    w.row(
-      [
-        { text: "Cvik", width: 220, bold: true },
-        { text: "Série", width: 60, bold: true },
-        { text: "Opakovania", width: 90, bold: true },
-        { text: "Záťaž", width: 80, bold: true },
-        { text: "Pauza", width: 60, bold: true },
-      ],
-      { dim: true },
+    w.table(
+      COLUMNS,
+      day.exercises.map((ex) => [
+        truncate(ex.exerciseName, 34),
+        String(ex.sets),
+        ex.reps,
+        ex.loadKg != null ? `${ex.loadKg} kg` : "—",
+        restLabel(ex.restSeconds),
+      ]),
     );
-
-    for (const ex of day.exercises) {
-      w.row([
-        { text: truncate(ex.exerciseName, 34), width: 220 },
-        { text: String(ex.sets), width: 60 },
-        { text: ex.reps, width: 90 },
-        { text: ex.loadKg != null ? `${ex.loadKg} kg` : "—", width: 80 },
-        { text: restLabel(ex.restSeconds), width: 60 },
-      ]);
-    }
   }
 
   return w.bytes();
