@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getProfile, getUser } from "@/lib/supabase/server";
+import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { DashboardNav } from "./DashboardNav";
 import styles from "./dashboard.module.css";
 
@@ -36,6 +36,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     // Celkový počet neprečítaných správ od klientov → odznak na nav položke "Správy"
     // (RLS messages_select scopuje na klientov tohto trénera, netreba filtrovať client_id).
+    // createClient() je cache()-ovaný (lib/supabase/server.ts) — v rámci tohto requestu
+    // len zdieľa inštanciu s getUser() vyššie, žiadny extra round-trip na auth.
+    const supabase = await createClient();
     const { count } = await supabase
       .from("messages")
       .select("id", { count: "exact", head: true })
