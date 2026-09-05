@@ -1103,3 +1103,49 @@
     opacity: 0.7;
   }
 }
+
+/* ---------- /dashboard/sablony — šablóny plánov a jedálničkov (feature/progress-AI-sablona) ---------- */
+.templateRoster {
+  display: grid;
+  gap: 10px;
+}
+/* Vlastná karta namiesto .clientCard — tá je grid s pevným "1fr auto" (link + chip
+   vpravo), zatiaľ čo šablóna potrebuje stĺpec: hlavička + form na "Použiť" pod sebou. */
+.templateCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+}
+.templateHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.templateHeadActions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.templateApplyForm {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.templateApplyForm select {
+  flex: 1;
+  min-width: 160px;
+}
+@media (max-width: 480px) {
+  .templateApplyForm {
+    flex-direction: column;
+  }
+  .templateApplyForm select,
+  .templateApplyForm button {
+    width: 100%;
+  }
+}

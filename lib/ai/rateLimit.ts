@@ -47,3 +47,34 @@ export async function isChatRateLimited(supabase: SupabaseClient, clientId: stri
 }
 
 export const AI_CHAT_DAILY_LIMIT = dailyLimit;
+
+const DEFAULT_PROGRESS_SUMMARY_DAILY_LIMIT = 5;
+
+function progressSummaryDailyLimit(): number {
+  const raw = process.env.AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_CLIENT;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PROGRESS_SUMMARY_DAILY_LIMIT;
+}
+
+/**
+ * True = pre tohto klienta bol dnes už vyčerpaný limit AI zhrnutí progresu.
+ * Tréner klika na tlačidlo sám (nie automatizované), ale bez limitu by opakované
+ * klikanie vedelo natočiť zbytočné náklady — nízky limit stačí, zhrnutie sa
+ * počíta z rovnakých dát znova a znova v priebehu jedného dňa.
+ */
+export async function isProgressSummaryRateLimited(supabase: SupabaseClient, clientId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .eq("kind", "progress_summary")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    console.error("isProgressSummaryRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= progressSummaryDailyLimit();
+}
+
+export const AI_PROGRESS_SUMMARY_DAILY_LIMIT = progressSummaryDailyLimit;

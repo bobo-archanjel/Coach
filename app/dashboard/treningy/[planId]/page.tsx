@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PlanBuilder } from "./PlanBuilder";
 import { PublishControl } from "./PublishControl";
+import { SaveTemplateForm } from "../../sablony/SaveTemplateForm";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -52,6 +53,10 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
           </div>
         </div>
         <PublishControl planId={planId} published={plan.published} />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <SaveTemplateForm kind="workout" planId={planId} defaultName={plan.name} />
       </div>
 
       <PlanBuilder planId={planId} days={days ?? []} library={exercises ?? []} />

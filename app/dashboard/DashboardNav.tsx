@@ -49,6 +49,14 @@ const MessagesIcon = () => (
   </svg>
 );
 
+const TemplatesIcon = () => (
+  <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="5" y="3.5" width="11" height="14" rx="1.6" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
+    <rect x="8" y="6.5" width="11" height="14" rx="1.6" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M10.7 11h5M10.7 14.3h5M10.7 17.6h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>
+);
+
 const SettingsIcon = () => (
   <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
@@ -65,6 +73,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/vyziva", label: "Výživa", Icon: NutritionIcon, match: (p: string) => p.startsWith("/dashboard/vyziva") },
+  { href: "/dashboard/sablony", label: "Šablóny", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/dashboard/sablony") },
   { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, match: (p: string) => p.startsWith("/dashboard/spravy") },
   { href: "/dashboard/nastavenia", label: "Nastavenia", Icon: SettingsIcon, match: (p: string) => p.startsWith("/dashboard/nastavenia") },
 ];
