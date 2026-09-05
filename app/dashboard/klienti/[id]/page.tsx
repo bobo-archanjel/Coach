@@ -7,6 +7,7 @@ import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
+import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -59,33 +60,43 @@ export default async function ClientDetailPage({
             <h1>{empty ? "Nový Norbert" : "Ján Novák"}</h1>
           </div>
         </div>
-        <AnalyticsPanel
-          clientId={id}
-          nutrition={empty ? null : { calories_target: 2400, protein_g: 180, carbs_g: 260, fat_g: 75 }}
-          adherence={
-            empty
-              ? null
-              : {
-                  hasGoal: true,
-                  kcalGoal: 2400,
-                  todayKcal: 2180,
-                  todayPct: 91,
-                  days: [92, 78, null, 105, 88, 60, 91].map((pct, i) => ({
-                    label: ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"][i],
-                    dateNum: i + 1,
-                    pct,
-                  })),
-                  window30: { pct: 76, onTrackDays: 23, totalDays: 30 },
-                  window90: { pct: 71, onTrackDays: 64, totalDays: 90 },
-                }
-          }
-          trainingAdherence={{
-            window30: { pct: empty ? 0 : 73, trainedDays: empty ? 0 : 22, totalDays: 30 },
-            window90: { pct: empty ? 0 : 68, trainedDays: empty ? 0 : 61, totalDays: 90 },
-          }}
-          bodyMetrics={empty ? [] : PROGRESS_PREVIEW_METRICS}
-          strengthNames={empty ? [] : PROGRESS_PREVIEW_STRENGTH.names}
-          strengthByExercise={empty ? {} : PROGRESS_PREVIEW_STRENGTH.byExercise}
+        <ClientDetailTabs
+          sections={[
+            {
+              id: "analytika",
+              label: "Analytika",
+              content: (
+                <AnalyticsPanel
+                  clientId={id}
+                  nutrition={empty ? null : { calories_target: 2400, protein_g: 180, carbs_g: 260, fat_g: 75 }}
+                  adherence={
+                    empty
+                      ? null
+                      : {
+                          hasGoal: true,
+                          kcalGoal: 2400,
+                          todayKcal: 2180,
+                          todayPct: 91,
+                          days: [92, 78, null, 105, 88, 60, 91].map((pct, i) => ({
+                            label: ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"][i],
+                            dateNum: i + 1,
+                            pct,
+                          })),
+                          window30: { pct: 76, onTrackDays: 23, totalDays: 30 },
+                          window90: { pct: 71, onTrackDays: 64, totalDays: 90 },
+                        }
+                  }
+                  trainingAdherence={{
+                    window30: { pct: empty ? 0 : 73, trainedDays: empty ? 0 : 22, totalDays: 30 },
+                    window90: { pct: empty ? 0 : 68, trainedDays: empty ? 0 : 61, totalDays: 90 },
+                  }}
+                  bodyMetrics={empty ? [] : PROGRESS_PREVIEW_METRICS}
+                  strengthNames={empty ? [] : PROGRESS_PREVIEW_STRENGTH.names}
+                  strengthByExercise={empty ? {} : PROGRESS_PREVIEW_STRENGTH.byExercise}
+                />
+              ),
+            },
+          ]}
         />
       </>
     );
@@ -140,31 +151,11 @@ export default async function ClientDetailPage({
     year: "numeric",
   });
 
-  return (
-    <>
-      <Link href="/dashboard" className={styles.backLink}>
-        <BackIcon />
-        Späť na klientov
-      </Link>
-
-      <div className={styles.detailHead}>
-        <div>
-          <h1>{client.full_name}</h1>
-          {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
-        </div>
-      </div>
-
-      <AnalyticsPanel
-        clientId={id}
-        nutrition={nutrition}
-        adherence={adherence}
-        trainingAdherence={trainingAdherence}
-        bodyMetrics={bodyMetrics ?? []}
-        strengthNames={strengthProgress?.names ?? []}
-        strengthByExercise={strengthProgress?.byExercise ?? {}}
-      />
-
-      <div className={styles.detailGrid}>
+  const sections: ClientDetailSection[] = [
+    {
+      id: "info",
+      label: "Info",
+      content: (
         <div className={styles.card}>
           <h3>Informácie</h3>
           <div className={styles.infoRow}>
@@ -197,87 +188,129 @@ export default async function ClientDetailPage({
               <span className={styles.notesEmpty}>Žiadne poznámky</span>
             )}
           </div>
+
+          <div style={{ marginTop: 20 }}>
+            <DangerZone
+              clientId={id}
+              firstName={firstName}
+              endedAt={client.ended_at}
+              deletionRequestedAt={client.deletion_requested_at}
+              deletionRequestedBy={client.deletion_requested_by}
+            />
+          </div>
         </div>
+      ),
+    },
+    {
+      id: "analytika",
+      label: "Analytika",
+      content: (
+        <AnalyticsPanel
+          clientId={id}
+          nutrition={nutrition}
+          adherence={adherence}
+          trainingAdherence={trainingAdherence}
+          bodyMetrics={bodyMetrics ?? []}
+          strengthNames={strengthProgress?.names ?? []}
+          strengthByExercise={strengthProgress?.byExercise ?? {}}
+        />
+      ),
+    },
+    {
+      id: "treningy",
+      label: "Tréningy",
+      content: (
+        <div className={styles.card}>
+          <h3>Tréningové plány</h3>
+          {plans && plans.length > 0 ? (
+            <div className={styles.roster}>
+              {plans.map((plan) => {
+                const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+                return (
+                  <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
+                    <div className={styles.clientName}>{plan.name}</div>
+                    <span className={styles.clientSince}>{dayCount} dní</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.noWorkouts}>
+              Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <Link href="/dashboard/treningy">Tréningy</Link>.
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "aktivita",
+      label: "Aktivita",
+      content: (
+        <div className={styles.card}>
+          <h3>Posledná aktivita</h3>
+          {logs && logs.length > 0 ? (
+            <div className={styles.roster}>
+              {logs.map((log) => {
+                const dayName = (log.workout_days as unknown as { name: string } | null)?.name ?? "Tréning";
+                const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "numeric",
+                  timeZone: "UTC",
+                });
+                const entries = Array.isArray(log.entries) ? (log.entries as LoggedExercise[]) : [];
+                return (
+                  <details key={log.id} className={styles.logDetails}>
+                    <summary className={styles.logSummary}>
+                      <span className={styles.clientName}>{dayName}</span>
+                      <span className={styles.clientSince}>{performedOn}</span>
+                    </summary>
+                    {entries.length > 0 ? (
+                      <div className={styles.logExercises}>
+                        {entries.map((ex, i) => (
+                          <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.logExerciseRow}>
+                            <p className={styles.logExerciseTitle}>{ex.name}</p>
+                            <ol className={styles.logSetList}>
+                              {ex.sets.map((s, j) => (
+                                <li key={j}>
+                                  {s.reps != null ? `${s.reps} op.` : "—"}
+                                  {s.weight != null ? ` × ${s.weight} kg` : ""}
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className={styles.noWorkouts}>Klient nezadal skutočné hodnoty (len odklikol tréning).</p>
+                    )}
+                  </details>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
+          )}
+        </div>
+      ),
+    },
+  ];
 
-        <div className={styles.cardStack}>
-          <div className={styles.card}>
-            <h3>Tréningové plány</h3>
-            {plans && plans.length > 0 ? (
-              <div className={styles.roster}>
-                {plans.map((plan) => {
-                  const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
-                  return (
-                    <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
-                      <div className={styles.clientName}>{plan.name}</div>
-                      <span className={styles.clientSince}>{dayCount} dní</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={styles.noWorkouts}>
-                Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na{" "}
-                <Link href="/dashboard/treningy">Tréningy</Link>.
-              </p>
-            )}
-          </div>
+  return (
+    <>
+      <Link href="/dashboard" className={styles.backLink}>
+        <BackIcon />
+        Späť na klientov
+      </Link>
 
-          <div className={styles.card}>
-            <h3>Posledná aktivita</h3>
-            {logs && logs.length > 0 ? (
-              <div className={styles.roster}>
-                {logs.map((log) => {
-                  const dayName = (log.workout_days as unknown as { name: string } | null)?.name ?? "Tréning";
-                  const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "numeric",
-                    timeZone: "UTC",
-                  });
-                  const entries = Array.isArray(log.entries) ? (log.entries as LoggedExercise[]) : [];
-                  return (
-                    <details key={log.id} className={styles.logDetails}>
-                      <summary className={styles.logSummary}>
-                        <span className={styles.clientName}>{dayName}</span>
-                        <span className={styles.clientSince}>{performedOn}</span>
-                      </summary>
-                      {entries.length > 0 ? (
-                        <div className={styles.logExercises}>
-                          {entries.map((ex, i) => (
-                            <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.logExerciseRow}>
-                              <p className={styles.logExerciseTitle}>{ex.name}</p>
-                              <ol className={styles.logSetList}>
-                                {ex.sets.map((s, j) => (
-                                  <li key={j}>
-                                    {s.reps != null ? `${s.reps} op.` : "—"}
-                                    {s.weight != null ? ` × ${s.weight} kg` : ""}
-                                  </li>
-                                ))}
-                              </ol>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className={styles.noWorkouts}>Klient nezadal skutočné hodnoty (len odklikol tréning).</p>
-                      )}
-                    </details>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
-            )}
-          </div>
-
-          <DangerZone
-            clientId={id}
-            firstName={firstName}
-            endedAt={client.ended_at}
-            deletionRequestedAt={client.deletion_requested_at}
-            deletionRequestedBy={client.deletion_requested_by}
-          />
+      <div className={styles.detailHead}>
+        <div>
+          <h1>{client.full_name}</h1>
+          {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
         </div>
       </div>
+
+      <ClientDetailTabs sections={sections} />
     </>
   );
 }

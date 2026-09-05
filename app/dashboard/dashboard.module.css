@@ -1104,6 +1104,109 @@
   }
 }
 
+/* ---------- /dashboard/klienti/[id] — sekcie namiesto jedného dlhého scrollu (feature/planing-groupMessage) ---------- */
+.clientDetailLayout {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.clientSubNav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: sticky;
+  top: 20px;
+}
+.clientSubNavItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--paper-faint);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.clientSubNavItem:hover {
+  color: var(--paper);
+  background: var(--ink-3);
+}
+.clientSubNavItemActive {
+  color: var(--paper);
+  background: var(--ink-2);
+  border-color: var(--steel-line);
+}
+.clientSubNavMobile {
+  display: none;
+}
+/* Grid child s tabuľkami/dlhými kartami nesmie roztiahnuť stĺpec nad jeho šírku. */
+.clientDetailContent {
+  min-width: 0;
+}
+@media (max-width: 880px) {
+  .clientDetailLayout {
+    display: block;
+  }
+  .clientSubNav {
+    display: none;
+  }
+  .clientSubNavMobile {
+    display: block;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .clientSubNavMobileTrigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--steel-line);
+    background: var(--ink-2);
+    color: var(--paper);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .clientSubNavMobileMenu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--steel-line);
+    background: var(--ink-2);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  }
+  .clientSubNavMobileItem {
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: var(--radius-s);
+    border: none;
+    background: transparent;
+    color: var(--paper-faint);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .clientSubNavMobileItemActive {
+    color: var(--paper);
+    background: var(--ink-3);
+  }
+}
+
 /* ---------- /dashboard/sablony — šablóny plánov a jedálničkov (feature/progress-AI-sablona) ---------- */
 .templateFilterRow {
   display: flex;
