@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
 import { sendTrainerMessageAction, markTrainerChatSeenAction } from "../klienti/actions";
+import { SpravyView } from "./SpravyView";
 import styles from "../dashboard.module.css";
 
 /* /dashboard/spravy — centrálna schránka správ (Track "Klient" bod 2, follow-up
@@ -131,62 +132,67 @@ export default async function SpravyPage({
           <p>Keď ti klient napíše, alebo mu napíšeš z jeho detailu, objaví sa tu.</p>
         </div>
       ) : (
-        <div className={styles.inboxGrid} data-has-selection={selectedClientId ? "true" : "false"}>
-          <div className={`${styles.card} ${styles.inboxList}`}>
-            <div className={styles.roster}>
-              {threads.map((t) => {
-                const active = t.id === selectedClientId;
-                return (
-                  <Link
-                    key={t.id}
-                    href={`/dashboard/spravy?client=${t.id}`}
-                    className={`${styles.clientCard} ${styles.inboxRow} ${active ? styles.inboxRowActive : ""}`}
-                  >
-                    <div>
-                      <div className={styles.clientName}>{t.name}</div>
-                      <div className={styles.clientGoal}>{t.last ? previewOf(t.last) : "Zatiaľ žiadna správa"}</div>
-                    </div>
-                    <div className={styles.clientMeta}>
-                      {t.unread > 0 && (
-                        <span className={styles.unreadPill} title={`${t.unread} neprečítaných správ`}>
-                          {t.unread}
-                        </span>
-                      )}
-                      {t.last && <span className={styles.clientSince}>{timeLabel(t.last.created_at)}</span>}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className={`${styles.card} ${styles.inboxThread}`}>
-            {selectedClientId && selectedName ? (
-              <>
-                <Link href="/dashboard/spravy" className={`${styles.backLink} ${styles.inboxBackLink}`}>
-                  ← Späť na zoznam
-                </Link>
-                <h3>{selectedName}</h3>
-                <ChatThread
-                  messages={selectedMessages}
-                  mySide="trainer"
-                  sendAction={sendTrainerMessageAction}
-                  extraFields={{ client_id: selectedClientId }}
-                  onSeen={markTrainerChatSeenAction.bind(null, selectedClientId)}
-                  emptyTitle="Zatiaľ žiadne správy"
-                  emptyText={`Napíš ${selectedName.split(/\s+/)[0]}ovi prvú správu.`}
-                  placeholder={`Správa pre ${selectedName.split(/\s+/)[0]}a…`}
-                  embedded
-                />
-              </>
-            ) : (
-              <div className={styles.emptyState} style={{ border: "none", padding: "clamp(24px, 6vw, 48px)" }}>
-                <h2>Vyber konverzáciu</h2>
-                <p>Klikni na klienta vľavo a otvor jeho vlákno.</p>
+        <SpravyView
+          clients={(clients ?? []).map((c) => ({ id: c.id, full_name: c.full_name }))}
+          inboxContent={
+            <div className={styles.inboxGrid} data-has-selection={selectedClientId ? "true" : "false"}>
+              <div className={`${styles.card} ${styles.inboxList}`}>
+                <div className={styles.roster}>
+                  {threads.map((t) => {
+                    const active = t.id === selectedClientId;
+                    return (
+                      <Link
+                        key={t.id}
+                        href={`/dashboard/spravy?client=${t.id}`}
+                        className={`${styles.clientCard} ${styles.inboxRow} ${active ? styles.inboxRowActive : ""}`}
+                      >
+                        <div>
+                          <div className={styles.clientName}>{t.name}</div>
+                          <div className={styles.clientGoal}>{t.last ? previewOf(t.last) : "Zatiaľ žiadna správa"}</div>
+                        </div>
+                        <div className={styles.clientMeta}>
+                          {t.unread > 0 && (
+                            <span className={styles.unreadPill} title={`${t.unread} neprečítaných správ`}>
+                              {t.unread}
+                            </span>
+                          )}
+                          {t.last && <span className={styles.clientSince}>{timeLabel(t.last.created_at)}</span>}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div className={`${styles.card} ${styles.inboxThread}`}>
+                {selectedClientId && selectedName ? (
+                  <>
+                    <Link href="/dashboard/spravy" className={`${styles.backLink} ${styles.inboxBackLink}`}>
+                      ← Späť na zoznam
+                    </Link>
+                    <h3>{selectedName}</h3>
+                    <ChatThread
+                      messages={selectedMessages}
+                      mySide="trainer"
+                      sendAction={sendTrainerMessageAction}
+                      extraFields={{ client_id: selectedClientId }}
+                      onSeen={markTrainerChatSeenAction.bind(null, selectedClientId)}
+                      emptyTitle="Zatiaľ žiadne správy"
+                      emptyText={`Napíš ${selectedName.split(/\s+/)[0]}ovi prvú správu.`}
+                      placeholder={`Správa pre ${selectedName.split(/\s+/)[0]}a…`}
+                      embedded
+                    />
+                  </>
+                ) : (
+                  <div className={styles.emptyState} style={{ border: "none", padding: "clamp(24px, 6vw, 48px)" }}>
+                    <h2>Vyber konverzáciu</h2>
+                    <p>Klikni na klienta vľavo a otvor jeho vlákno.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          }
+        />
       )}
     </>
   );

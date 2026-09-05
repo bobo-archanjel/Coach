@@ -102,6 +102,12 @@ export interface CoachNote {
   text: string;
 }
 
+/** Najbližší nadchádzajúci termín klienta (appointments, 0026) — karta na Dnes. */
+export interface PortalNextAppointment {
+  title: string;
+  startsAt: string; // ISO timestamptz
+}
+
 export interface TodaySession {
   /** training = pripravený ďalší tréning v poradí, done = dnes už odcvičené */
   kind: "training" | "done";
@@ -151,6 +157,8 @@ export interface PortalData {
   cooperationEndedNotice: PortalCooperationNotice | null;
   /** História vlastných meraní (BodyMetricForm), najstaršie prvé — rovnaký tvar ako trénerov graf. */
   bodyMetrics: BodyMetricEntry[];
+  /** Najbližší budúci termín (appointments, 0026), null = žiadny naplánovaný. */
+  nextAppointment: PortalNextAppointment | null;
 }
 
 /** Výsledok načítania portálu — buď dáta, alebo dôvod prázdneho stavu. */

@@ -151,6 +151,29 @@
   margin-top: 5px;
 }
 
+/* Najbližší termín (appointments, 0026) — jednoriadkové upozornenie, nie plná karta. */
+.appointmentNotice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.appointmentNotice p {
+  margin: 0;
+}
+.appointmentDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--iron-red);
+  flex: none;
+}
+
 .coachNote {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);

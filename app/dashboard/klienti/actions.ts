@@ -46,6 +46,48 @@ export async function sendTrainerMessageAction(_prevState: ActionState, formData
   return ok;
 }
 
+export interface BulkMessageState {
+  error: string | null;
+  sentCount: number | null;
+}
+const MAX_BULK_RECIPIENTS = 200;
+
+/**
+ * Hromadná správa (feature/planing-groupMessage) — jeden batch INSERT namiesto
+ * N samostatných requestov (jeden na klienta by bol zbytočný N-násobný round-trip).
+ * Ownership sa overuje explicitne pre všetky vybrané ID naraz (nie per-riadok) —
+ * ak niektoré ID nepatrí trénerovi (napr. upravené DevTools), jednoducho sa
+ * vynechá namiesto pádu celej akcie.
+ */
+export async function bulkSendTrainerMessageAction(_prevState: BulkMessageState, formData: FormData): Promise<BulkMessageState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený.", sentCount: null };
+
+  const clientIds = formData.getAll("client_id").map(String).filter(Boolean);
+  const body = ((formData.get("body") as string | null) ?? "").trim();
+
+  if (clientIds.length === 0) return { error: "Vyber aspoň jedného klienta.", sentCount: null };
+  if (clientIds.length > MAX_BULK_RECIPIENTS) return { error: `Naraz sa dá poslať max ${MAX_BULK_RECIPIENTS} klientom.`, sentCount: null };
+  if (!body) return { error: "Prázdna správa.", sentCount: null };
+  if (body.length > 4000) return { error: "Správa je príliš dlhá (max 4000 znakov).", sentCount: null };
+
+  const { data: owned } = await supabase.from("clients").select("id").eq("trainer_id", user.id).in("id", clientIds);
+  const ownedIds = (owned ?? []).map((c) => c.id);
+  if (ownedIds.length === 0) return { error: "Žiadny z vybraných klientov nepatrí tebe.", sentCount: null };
+
+  const rows = ownedIds.map((clientId) => ({ client_id: clientId, sender: "trainer" as const, sender_id: user.id, body }));
+  const { error } = await supabase.from("messages").insert(rows);
+  if (error) return { error: error.message, sentCount: null };
+
+  revalidatePath("/dashboard/spravy");
+  revalidatePath("/dashboard/klienti/[id]", "page");
+  revalidatePath("/dashboard");
+  return { error: null, sentCount: ownedIds.length };
+}
+
 /** Chat — tréner označí správy od klienta ako prečítané (pri otvorení detailu / návrate). */
 export async function markTrainerChatSeenAction(clientId: string): Promise<void> {
   const supabase = await createClient();
