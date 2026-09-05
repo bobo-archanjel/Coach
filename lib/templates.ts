@@ -10,6 +10,7 @@
 // ich presúva medzi tabuľkami.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isPlanGoal } from "./planGoals";
 
 export interface TemplateResult {
   error: string | null;
@@ -36,6 +37,7 @@ export async function saveWorkoutPlanAsTemplate(
   trainerId: string,
   planId: string,
   templateName: string,
+  goal?: string | null,
 ): Promise<TemplateResult> {
   const { data: plan } = await supabase.from("workout_plans").select("id, name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle();
   if (!plan) return { error: "Plán sa nenašiel." };
@@ -50,7 +52,7 @@ export async function saveWorkoutPlanAsTemplate(
 
   const { data: template, error: templateErr } = await supabase
     .from("plan_templates")
-    .insert({ trainer_id: trainerId, name: cleanName(templateName, plan.name) })
+    .insert({ trainer_id: trainerId, name: cleanName(templateName, plan.name), goal: isPlanGoal(goal) ? goal : null })
     .select("id")
     .single();
   if (templateErr || !template) return { error: templateErr?.message ?? "Šablónu sa nepodarilo vytvoriť." };

@@ -27,9 +27,10 @@ export async function saveWorkoutTemplateAction(_prevState: ActionState, formDat
 
   const planId = (formData.get("plan_id") as string | null) ?? "";
   const name = (formData.get("name") as string | null) ?? "";
+  const goal = (formData.get("goal") as string | null) ?? null;
   if (!planId) return { error: "Chýba ID plánu." };
 
-  const result = await saveWorkoutPlanAsTemplate(supabase, user.id, planId, name);
+  const result = await saveWorkoutPlanAsTemplate(supabase, user.id, planId, name, goal);
   if (result.error) return result;
 
   revalidatePath("/dashboard/sablony");

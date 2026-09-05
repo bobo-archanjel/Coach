@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { saveWorkoutTemplateAction, saveMealTemplateAction, type ActionState } from "./actions";
+import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
@@ -33,6 +34,16 @@ export function SaveTemplateForm({ kind, planId, defaultName }: { kind: "workout
         />
       ) : (
         <input type="hidden" name="name" value={defaultName} />
+      )}
+      {kind === "workout" && (
+        <select name="goal" disabled={pending} className={styles.addClientInput} defaultValue="" style={{ maxWidth: 170 }}>
+          <option value="">Bez cieľa (filter)</option>
+          {PLAN_GOALS.map((g) => (
+            <option key={g} value={g}>
+              {PLAN_GOAL_LABEL_SK[g]}
+            </option>
+          ))}
+        </select>
       )}
       <button type="submit" className="btn btn-ghost btn-sm" disabled={pending} onClick={() => setSaved(true)}>
         {pending ? "Ukladám…" : "Uložiť ako šablónu"}

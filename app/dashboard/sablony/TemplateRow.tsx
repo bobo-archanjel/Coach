@@ -8,6 +8,7 @@ import {
   deleteMealTemplateAction,
   type ActionState,
 } from "./actions";
+import { PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
@@ -22,12 +23,14 @@ export function TemplateRow({
   templateId,
   name,
   dayCount,
+  goal,
   clients,
 }: {
   kind: "workout" | "meal";
   templateId: string;
   name: string;
   dayCount: number;
+  goal: string | null;
   clients: { id: string; full_name: string }[];
 }) {
   const applyAction = kind === "workout" ? applyWorkoutTemplateAction : applyMealTemplateAction;
@@ -47,7 +50,10 @@ export function TemplateRow({
       <div className={styles.templateHead}>
         <div>
           <div className={styles.clientName}>{name}</div>
-          <span className={styles.clientSince}>{dayCount} dní</span>
+          <span className={styles.clientSince}>
+            {dayCount} dní
+            {isPlanGoal(goal) && <> · {PLAN_GOAL_LABEL_SK[goal]}</>}
+          </span>
         </div>
         <div className={styles.templateHeadActions}>
           {confirmingDelete ? (
