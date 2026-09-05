@@ -4,12 +4,12 @@ import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { DoneWorkoutView } from "./DoneWorkoutView";
 import { ProfileIcon, TrainingIcon } from "./icons";
 import { LogWorkoutButton } from "./LogWorkoutButton";
-import { ExercisePreviewList } from "./ExercisePreviewList";
 import { AlertIcon, Notice } from "./Notice";
 import { CooperationNotice } from "./CooperationNotice";
 import { RetryButton } from "./RetryButton";
 import { WorkoutStopwatch } from "./WorkoutStopwatch";
 import { WeekHistory } from "./WeekHistory";
+import { BodyMetricForm } from "./BodyMetricForm";
 import styles from "./portal.module.css";
 
 /* /portal — domovská obrazovka "Dnes".
@@ -138,6 +138,16 @@ const PREVIEW_DATA: PortalData = {
   streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
   deletionNotice: null,
   cooperationEndedNotice: null,
+  bodyMetrics: [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
+    measuredOn: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10),
+    weightKg: 88 - i * 1.1,
+    waistCm: i === 6 || i === 0 ? 88 - i * 0.5 : null,
+    chestCm: i === 6 ? 102 : null,
+    hipsCm: i === 6 ? 98 : null,
+    armCm: null,
+    thighCm: null,
+    note: null,
+  })),
 };
 
 /** DEV: ?preview=unlinked|no_plan|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
@@ -260,6 +270,7 @@ function PortalToday({ data }: { data: PortalData }) {
     streakHistory,
     deletionNotice,
     cooperationEndedNotice,
+    bodyMetrics,
   } = data;
 
   const d = new Date(`${today}T12:00:00Z`);
@@ -329,14 +340,16 @@ function PortalToday({ data }: { data: PortalData }) {
           </p>
         )}
 
-        {session.kind === "done" && session.dayId ? (
+        {session.kind === "done" && session.dayId && (
           // Vrátiť sa do tréningu = vidieť (a prípadne opraviť) to, čo si naozaj
           // zapísal (Fáza B), nie znovu ponúkaný plán — inak by "hotovo" a zoznam
           // pod tým vyzerali, akoby ešte len čakal na odcvičenie.
           <DoneWorkoutView dayId={session.dayId} exercises={session.exercises} loggedExercises={session.loggedExercises} />
-        ) : (
-          <ExercisePreviewList exercises={session.exercises} />
         )}
+
+        {/* Rozpis cvikov pred začatím sa tu už nezobrazuje (revízia 2026-09) —
+            ten istý zoznam (ExercisePreviewList) vidno v sekcii Tréning, karta Dnes
+            má zostať prehľad (ring, názov, počet cvikov), nie duplicitný rozpis. */}
 
         {session.kind === "training" && session.dayId && (
           <LogWorkoutButton dayId={session.dayId} exercises={session.exercises} />
@@ -362,6 +375,11 @@ function PortalToday({ data }: { data: PortalData }) {
               <span key={i} className={`${styles.plate} ${PLATE_CLASS[state] ?? ""}`} />
             ))}
           </div>
+        </div>
+
+        <div className={styles.panel}>
+          <p className={styles.panelLabel}>Meranie</p>
+          <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
 
         <WeekHistory initial={week} />

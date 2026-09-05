@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { SignOutButton } from "../../components/SignOutButton";
 import { ComingSoon } from "../ComingSoon";
 import { ProfileIcon } from "../icons";
@@ -9,7 +9,7 @@ export default async function ProfilPage() {
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   let deletion: { requestedAt: string | null; requestedBy: "trainer" | "client" | null } | null = null;
   if (user) {

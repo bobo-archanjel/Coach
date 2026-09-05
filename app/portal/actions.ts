@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
-import { getPortalWeek } from "@/lib/portal/data";
+import { getFoodLibrary, getPortalWeek } from "@/lib/portal/data";
 import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
 import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
 
@@ -33,6 +33,15 @@ export async function getExerciseDetailAction(exerciseId: string): Promise<Exerc
 /** Pás „Tento týždeň" — načíta iný (spravidla minulý) týždeň pri listovaní. */
 export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeekResult> {
   return getPortalWeek(mondayIso);
+}
+
+/**
+ * Knižnica potravín pre vyhľadávanie v denníku — na požiadanie, len keď klient
+ * otvorí panel "Pridať jedlo" (`AddFoodDiaryEntry`, defaultne zbalený), nie ako
+ * súčasť každého načítania /portal/dennik (viď lib/portal/data.ts).
+ */
+export async function getFoodLibraryAction(): Promise<PortalFoodOption[]> {
+  return getFoodLibrary();
 }
 
 /** GDPR — klient požiada o zmazanie vlastných dát (30-dňová grace period, 0013_client_deletion.sql). */
@@ -82,6 +91,72 @@ async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>
     .limit(1)
     .maybeSingle();
   return data?.id ?? null;
+}
+
+function optionalNum(v: FormDataEntryValue | null, min: number, max: number): number | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Progres — klient sám zapíše svoje meranie (váha + obvody) na karte Dnes
+ * (`BodyMetricForm`, 0023_body_metrics.sql + 0024 pre klientske INSERT/UPDATE
+ * RLS). Predtým to za klienta zapisoval tréner v dashboarde — presunuté po
+ * revízii 2026-09, tréner meranie už len číta (graf v Analytike). Jeden záznam
+ * na deň (unique client_id+measured_on) — druhé meranie ten istý deň prepíše
+ * prvé (upsert), nie duplicitný riadok. `trainer_id` sa berie z `clients` riadku
+ * klienta, nie od klienta samého — RLS (0024) navyše overí, že sedí.
+ */
+export async function addOwnBodyMetricAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, trainer_id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const measuredOn = (formData.get("measured_on") as string | null) || new Date().toISOString().slice(0, 10);
+  const weightKg = optionalNum(formData.get("weight_kg"), 20, 400);
+  const waistCm = optionalNum(formData.get("waist_cm"), 20, 250);
+  const chestCm = optionalNum(formData.get("chest_cm"), 20, 250);
+  const hipsCm = optionalNum(formData.get("hips_cm"), 20, 250);
+  const armCm = optionalNum(formData.get("arm_cm"), 5, 100);
+  const thighCm = optionalNum(formData.get("thigh_cm"), 5, 150);
+
+  if (weightKg == null && waistCm == null && chestCm == null && hipsCm == null && armCm == null && thighCm == null) {
+    return { error: "Zadaj aspoň jednu hodnotu." };
+  }
+
+  const { error } = await supabase.from("body_metrics").upsert(
+    {
+      client_id: client.id,
+      trainer_id: client.trainer_id,
+      measured_on: measuredOn,
+      weight_kg: weightKg,
+      waist_cm: waistCm,
+      chest_cm: chestCm,
+      hips_cm: hipsCm,
+      arm_cm: armCm,
+      thigh_cm: thighCm,
+    },
+    { onConflict: "client_id,measured_on" },
+  );
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal", "layout");
+  revalidatePath(`/dashboard/klienti/${client.id}`);
+  revalidatePath("/dashboard/analytika");
+  return ok;
 }
 
 /** Tvar jedného riadku, ako ho posiela LogWorkoutButton (JSON v skrytom poli "entries"). */
@@ -160,23 +235,27 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
     .maybeSingle();
   if (!client) return { error: "Nepodarilo sa nájsť tvoj profil." };
 
-  const { error } = await supabase.from("workout_logs").insert({
-    client_id: client.id,
-    workout_day_id: dayId,
-    entries,
-  });
+  // Insert a RPC sa navzájom nepotrebujú (RPC len čistí `active_day_id` podľa
+  // dayId, nie podľa výsledku insertu) — paralelne namiesto čakania jedného na
+  // druhé, ušetrí jeden round-trip priamo v ceste "klik na Ukončiť tréning".
+  const [{ error }] = await Promise.all([
+    supabase.from("workout_logs").insert({
+      client_id: client.id,
+      workout_day_id: dayId,
+      entries,
+    }),
+    // Deň je zalogovaný (nanovo alebo už bol dnes skôr) — explicitný výber dňa
+    // zo sekcie Tréning (clients.active_day_id, 0022) sa tým spotreboval, ďalší
+    // štart nech opäť rieši prirodzená rotácia dní (lib/portal/data.ts). RPC, lebo
+    // klient nemá priamu UPDATE RLS na `clients` (len tréner, 0001).
+    supabase.rpc("clear_active_day_if_matches", { p_day_id: dayId }),
+  ]);
 
   if (error) {
     // unique index (client_id, workout_day_id, performed_on) — dnes už zapísané,
     // netreba to hlásiť ako chybu (napr. druhý klik po pomalej sieti).
     if (error.code !== "23505") return { error: error.message };
   }
-
-  // Deň je zalogovaný (nanovo alebo už bol dnes skôr) — explicitný výber dňa
-  // zo sekcie Tréning (clients.active_day_id, 0022) sa tým spotreboval, ďalší
-  // štart nech opäť rieši prirodzená rotácia dní (lib/portal/data.ts). RPC, lebo
-  // klient nemá priamu UPDATE RLS na `clients` (len tréner, 0001).
-  await supabase.rpc("clear_active_day_if_matches", { p_day_id: dayId });
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
   // pre badge "Hotovo" (lib/portal/data.ts) — bez "layout" ostal cache tej stránky

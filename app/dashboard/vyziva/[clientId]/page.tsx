@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { NutritionForm } from "./NutritionForm";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
 import styles from "../../dashboard.module.css";
@@ -16,23 +16,16 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/prihlasenie");
   }
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select("id, full_name")
-    .eq("id", clientId)
-    .maybeSingle();
-
-  if (!client) {
-    notFound();
-  }
-
-  const [{ data: profile }, { data: mealPlans }] = await Promise.all([
+  // `client` je nezávislý od profile/mealPlans (obe berú clientId priamo) — v tej
+  // istej dávke namiesto čakania na jeho round-trip pred spustením ostatných.
+  const [{ data: client }, { data: profile }, { data: mealPlans }] = await Promise.all([
+    supabase.from("clients").select("id, full_name").eq("id", clientId).maybeSingle(),
     supabase
       .from("nutrition_profiles")
       .select("sex, age, weight_kg, height_cm, activity_level, goal, notes, bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
@@ -44,6 +37,10 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
       .eq("client_id", clientId)
       .order("created_at", { ascending: false }),
   ]);
+
+  if (!client) {
+    notFound();
+  }
 
   return (
     <>

@@ -53,10 +53,13 @@ function seedRows(exercises: PortalExercise[], logged: LoggedExercise[] | null):
 
 /**
  * Zobrazenie dokončeného dňa na karte Dnes — skutočne zadané hodnoty (pilulky),
- * plus "Upraviť hodnoty" pre prípad preklepu/zabudnutej váhy. Editácia nemení
- * "hotový" stav dňa (žiadne znovuotvorenie Začať/Ukončiť) — len prepíše obsah
- * workout_logs.entries cez updateWorkoutLogAction. Bez potvrdzovacieho okna
- * (na rozdiel od Ukončiť tréning) — tu ide o opravu, nie o nezvratný krok.
+ * plus "Upraviť hodnoty" pre prípad preklepu/zabudnutej váhy. Bez zadaných hodnôt
+ * (klient len odklikol) len krátka poznámka — celý plán cvikov už nezobrazujeme
+ * znova (duplicita so sekciou Tréning, revízia 2026-09), forma na doplnenie
+ * hodnôt sa aj tak otvára z `exercises`. Editácia nemení "hotový" stav dňa
+ * (žiadne znovuotvorenie Začať/Ukončiť) — len prepíše obsah workout_logs.entries
+ * cez updateWorkoutLogAction. Bez potvrdzovacieho okna (na rozdiel od Ukončiť
+ * tréning) — tu ide o opravu, nie o nezvratný krok.
  */
 export function DoneWorkoutView({
   dayId,
@@ -104,22 +107,7 @@ export function DoneWorkoutView({
             ))}
           </div>
         ) : (
-          <ol className={styles.exList}>
-            {exercises.map((ex, i) => (
-              <li key={`${ex.idx}-${i}`} className={styles.exRow}>
-                <span className={styles.exIdx}>{ex.idx}</span>
-                <span className={styles.exBody}>
-                  <span className={styles.exName}>{ex.name}</span>
-                  <span className={styles.exMeta}>
-                    {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                </span>
-                {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
-              </li>
-            ))}
-          </ol>
+          <p className={styles.doneNoValues}>Zakliknuté bez zadaných hodnôt — doplň ich nižšie.</p>
         )}
 
         <button type="button" className={styles.editValuesBtn} onClick={startEdit}>

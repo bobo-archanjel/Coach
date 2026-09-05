@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { MealPlanBuilder } from "./MealPlanBuilder";
 import styles from "../../../dashboard.module.css";
 
@@ -15,28 +15,25 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/prihlasenie");
   }
 
-  const { data: plan } = await supabase
-    .from("meal_plans")
-    .select("id, name, client_id, clients(full_name)")
-    .eq("id", planId)
-    .maybeSingle();
+  // `plan`, `days` aj `foods` berú `planId`/nič z route parametra — nezávislé,
+  // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
+  const [{ data: plan }, { data: days }, { data: foods }] = await Promise.all([
+    supabase.from("meal_plans").select("id, name, client_id, clients(full_name)").eq("id", planId).maybeSingle(),
+    supabase.from("meal_days").select("id, day_number, name, meals").eq("plan_id", planId).order("day_number"),
+    supabase.from("foods").select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g").order("name"),
+  ]);
 
   if (!plan) {
     notFound();
   }
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
-
-  const [{ data: days }, { data: foods }] = await Promise.all([
-    supabase.from("meal_days").select("id, day_number, name, meals").eq("plan_id", planId).order("day_number"),
-    supabase.from("foods").select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g").order("name"),
-  ]);
 
   return (
     <>

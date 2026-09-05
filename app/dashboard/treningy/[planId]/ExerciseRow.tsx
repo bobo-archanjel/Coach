@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState, useEffect, useRef, useTransition } from "react";
+import dynamic from "next/dynamic";
 import {
   updateExerciseEntryAction,
   removeExerciseEntryAction,
@@ -10,8 +11,11 @@ import {
 } from "../actions";
 import type { ExerciseDetail, ExerciseLibraryRow } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import { ExerciseDetailModal } from "@/app/components/ExerciseDetailModal";
 import styles from "./builder.module.css";
+
+const ExerciseDetailModal = dynamic(() =>
+  import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
+);
 
 const initialState: ActionState = { error: null };
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { PortalNav } from "./PortalNav";
 import styles from "./portal.module.css";
 
@@ -44,39 +44,38 @@ export default async function PortalLayout({ children }: { children: React.React
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   let chatUnread = false;
   let aiKoucVisible = false;
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+    const { data: profile } = await getProfile(user.id);
 
     if (profile?.role === "trainer") {
       redirect("/dashboard");
     }
 
-    // neprečítaná správa od trénera ALEBO systémová (napr. GDPR zmazanie, 0019) → bodka na tabe Chat
-    const { count } = await supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .in("sender", ["trainer", "system"])
-      .is("read_at", null);
+    // Nezávislé dopyty — paralelne namiesto sekvenčne (dva samostatné round-tripy
+    // na Supabase navyše na KAŽDÚ navigáciu v portáli, predtým čakali jeden na druhý).
+    const [{ count }, { data: clientRow }] = await Promise.all([
+      // neprečítaná správa od trénera ALEBO systémová (napr. GDPR zmazanie, 0019) → bodka na tabe Chat
+      supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .in("sender", ["trainer", "system"])
+        .is("read_at", null),
+      // AI Kouč len pre klientov s prideleným trénerom (dohodnuté v Kroku 4b).
+      supabase
+        .from("clients")
+        .select("trainer_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
     chatUnread = (count ?? 0) > 0;
-
-    // AI Kouč len pre klientov s prideleným trénerom (dohodnuté v Kroku 4b).
-    const { data: clientRow } = await supabase
-      .from("clients")
-      .select("trainer_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
     aiKoucVisible = Boolean(clientRow?.trainer_id);
   }
 

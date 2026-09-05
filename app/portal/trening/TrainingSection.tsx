@@ -2,16 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { PortalPlan, PortalTrainingData } from "@/lib/portal/types";
-import { deleteClientPlanAction, setActivePlanAction } from "./actions";
-import { ClientPlanBuilder } from "./ClientPlanBuilder";
+import dynamic from "next/dynamic";
+import type { ExerciseOption, PortalPlan, PortalTrainingData } from "@/lib/portal/types";
+import { deleteClientPlanAction, getExerciseLibraryAction, setActivePlanAction } from "./actions";
 import { ExercisePreviewList } from "../ExercisePreviewList";
 import styles from "../portal.module.css";
 
+// Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
+// naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
+// existujúce plány. Vlastný chunk, stiahne sa až pri "Vlastný tréning"/"Upraviť".
+const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) => m.ClientPlanBuilder), {
+  loading: () => <p className={styles.trEmptyDay}>Načítavam…</p>,
+});
+
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
-   Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a tlačidlo
-   "Začať tréning" — až to nastaví plán ako aktívny, ktorý potom karta Dnes
-   berie ako "dnešný tréning" presne ako plán od trénera. */
+   Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a akčné
+   tlačidlo — nastaví plán (a tento deň) ako aktívny, ktorý potom karta Dnes
+   berie ako "dnešný tréning" presne ako plán od trénera. Ak je deň už DNES
+   odcvičený ("doneToday", odlišné od "niekedy odcvičený" badge "Hotovo"),
+   tlačidlo namiesto "Začať tréning" ponúka "Upraviť tréning" — klik aj tak
+   vedie na kartu Dnes, len tam už čaká hotový deň s "Upraviť hodnoty", nie
+   prázdny formulár sérií. */
 
 const PlusIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -22,6 +33,18 @@ const PlusIcon = () => (
 const ChevronIcon = ({ className }: { className?: string }) => (
   <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const PencilIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M4 20l1-4.2L15.6 5.2a1.5 1.5 0 0 1 2.1 0l1.1 1.1a1.5 1.5 0 0 1 0 2.1L8.2 19l-4.2 1Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -39,7 +62,7 @@ function exWord(n: number): string {
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const router = useRouter();
-  const { plans, exerciseLibrary } = data;
+  const { plans } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState<PortalPlan | null>(null);
@@ -52,10 +75,23 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Knižnica cvikov (~900 riadkov, cca 300 kB) sa predtým ťahala pri KAŽDOM
+  // načítaní /portal/trening, aj keď väčšina návštev builder vôbec neotvorí —
+  // teraz až tu, na požiadanie, keď klient reálne klikne "Vlastný tréning"/"Upraviť".
+  const [library, setLibrary] = useState<ExerciseOption[]>([]);
+  const [, startLibraryTransition] = useTransition();
+
   const openBuilder = (plan: PortalPlan | null) => {
     setEditing(plan);
     setError(null);
     setMode("build");
+    // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
+    // otvorenie buildera v rámci tej istej návštevy /portal/trening).
+    if (library.length === 0) {
+      startLibraryTransition(async () => {
+        setLibrary(await getExerciseLibraryAction());
+      });
+    }
   };
   const closeBuilder = () => {
     setMode("list");
@@ -112,7 +148,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
   if (mode === "build") {
     return (
-      <ClientPlanBuilder library={exerciseLibrary} initial={editing} onCancel={closeBuilder} onSaved={onSaved} />
+      <ClientPlanBuilder library={library} initial={editing} onCancel={closeBuilder} onSaved={onSaved} />
     );
   }
 
@@ -200,7 +236,13 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             onClick={() => startPlan(plan, selectedDay.id)}
                             disabled={pending}
                           >
-                            Začať tréning
+                            {selectedDay.doneToday ? (
+                              <>
+                                <PencilIcon /> Upraviť tréning
+                              </>
+                            ) : (
+                              "Začať tréning"
+                            )}
                           </button>
                         </div>
                       </>

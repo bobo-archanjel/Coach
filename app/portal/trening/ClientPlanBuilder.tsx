@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalPlan } from "@/lib/portal/types";
 import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
 import { displayExerciseName, type ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import { ExerciseDetailModal } from "@/app/components/ExerciseDetailModal";
 import styles from "../portal.module.css";
+
+const ExerciseDetailModal = dynamic(() =>
+  import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
+);
 
 /* Builder vlastného tréningu klienta — plne klientský draft, uloží sa jedným
    ťukom na "Uložiť". Naklikanie cvikov ako u trénera: výber z globálnej knižnice

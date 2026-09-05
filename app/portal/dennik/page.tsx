@@ -45,7 +45,7 @@ function MacroBar({ label, value, goal }: { label: string; value: number; goal: 
 }
 
 function DiaryView({ data }: { data: PortalDiaryData }) {
-  const { goal, groups, totals, planFoods, library, hour } = data;
+  const { goal, groups, totals, planFoods, hour } = data;
   const kcalGoal = goal?.caloriesTarget ?? null;
   const kcalOver = kcalGoal != null && totals.kcal > kcalGoal;
   const hasEntries = groups.length > 0;
@@ -102,7 +102,7 @@ function DiaryView({ data }: { data: PortalDiaryData }) {
         </div>
       )}
 
-      <AddFoodDiaryEntry planFoods={planFoods} library={library} hour={hour} />
+      <AddFoodDiaryEntry planFoods={planFoods} hour={hour} />
     </section>
   );
 }
@@ -138,13 +138,6 @@ const PREVIEW: PortalDiaryData = {
   planFoods: [
     { foodId: null, name: "Tvaroh (polotučný)", kcal100g: 98, protein100g: 12, carbs100g: 3.5, fat100g: 4.3, plannedGrams: 250, plannedSlot: "vecera" },
     { foodId: null, name: "Losos (surový)", kcal100g: 208, protein100g: 20, carbs100g: 0, fat100g: 13, plannedGrams: 150, plannedSlot: "vecera" },
-  ],
-  library: [
-    { foodId: "l1", name: "Kuracie prsia (surové)", kcal100g: 110, protein100g: 23, carbs100g: 0, fat100g: 1.5 },
-    { foodId: "l2", name: "Ryža basmati (varená)", kcal100g: 130, protein100g: 2.7, carbs100g: 28, fat100g: 0.3 },
-    { foodId: "l3", name: "Ovsené vločky", kcal100g: 375, protein100g: 13, carbs100g: 60, fat100g: 7 },
-    { foodId: "l4", name: "Vajcia (celé)", kcal100g: 155, protein100g: 13, carbs100g: 1.1, fat100g: 11 },
-    { foodId: "l5", name: "Banán", kcal100g: 89, protein100g: 1.1, carbs100g: 23, fat100g: 0.3 },
   ],
 };
 

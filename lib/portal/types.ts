@@ -2,6 +2,7 @@
 // (migrácia supabase/migrations/0002_workout_portal.sql). Viď DESIGN.md → Surfaces → Klientsky portál.
 
 import type { MealSlot } from "@/lib/meals";
+import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
 // si sám vyberá kedy cvičí, "ďalší tréning" je vždy nasledujúci nedokončený deň
@@ -148,6 +149,8 @@ export interface PortalData {
   deletionNotice: PortalDeletionNotice | null;
   /** null, kým tréner neukončil spoluprácu (0020) — na rozdiel od deletionNotice dáta ostávajú */
   cooperationEndedNotice: PortalCooperationNotice | null;
+  /** História vlastných meraní (BodyMetricForm), najstaršie prvé — rovnaký tvar ako trénerov graf. */
+  bodyMetrics: BodyMetricEntry[];
 }
 
 /** Výsledok načítania portálu — buď dáta, alebo dôvod prázdneho stavu. */
@@ -165,6 +168,8 @@ export interface PortalTrainingDay {
   exercises: PortalExercise[];
   /** klient tento deň už niekedy odcvičil (aspoň 1 záznam vo workout_logs) — badge „Hotovo" v zozname dní */
   done: boolean;
+  /** klient tento deň odcvičil DNES — rozhoduje, či akčné tlačidlo ponúka "Začať" alebo "Upraviť" */
+  doneToday: boolean;
 }
 
 /** Zdroj plánu: od trénera, alebo si ho klient vytvoril sám. */
@@ -182,8 +187,6 @@ export interface PortalPlan {
 export interface PortalTrainingData {
   plans: PortalPlan[];
   activePlanId: string | null;
-  /** globálna knižnica cvikov pre builder vlastného tréningu */
-  exerciseLibrary: ExerciseOption[];
 }
 
 export interface ExerciseOption {
@@ -286,8 +289,6 @@ export interface PortalDiaryData {
   totals: { kcal: number; proteinG: number; carbsG: number; fatG: number };
   /** položky z najnovšieho trénerovho jedálnička na rýchle pridanie */
   planFoods: PortalFoodOption[];
-  /** celá knižnica potravín (globálna + trénerove vlastné) na vyhľadávanie */
-  library: PortalFoodOption[];
 }
 
 export type PortalDiaryResult =

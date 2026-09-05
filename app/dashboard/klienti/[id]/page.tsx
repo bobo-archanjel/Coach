@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ChatThread } from "@/app/components/ChatThread";
-import { getNutritionAdherence } from "@/lib/dashboard/adherence";
+import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
+import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
-import { markTrainerChatSeenAction, sendTrainerMessageAction } from "../actions";
 import { DangerZone } from "./DangerZone";
+import { AnalyticsPanel } from "./AnalyticsPanel";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -14,20 +14,28 @@ const BackIcon = () => (
   </svg>
 );
 
-/** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
-function adherenceToneClass(pct: number | null): string {
-  if (pct == null) return styles.adherenceNone;
-  return pct >= 85 && pct <= 115 ? styles.adherenceGood : styles.adherenceOff;
+// DEV náhľad Progresu bez session (?preview=progress) — váha/sila/objem + rozšírená adherencia.
+function daysAgoIso(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 }
-
-// DEV náhľad karty Správy bez session (?preview=chat) — trénerská polovica chatu.
-const CHAT_PREVIEW = [
-  { id: "c1", sender: "trainer" as const, body: "Ahoj Ján! Ako šlo dnešné nohy?", createdAt: new Date(Date.now() - 27 * 3600_000).toISOString() },
-  { id: "c2", sender: "client" as const, body: "Zdravím, celkom dobre. Drep 4×6 na 92 kg, posledná séria ťažká.", createdAt: new Date(Date.now() - 26 * 3600_000).toISOString() },
-  { id: "c3", sender: "trainer" as const, body: "Super progres. Nabudúce nechaj 92 a pridaj jednu rozcvičovaciu sériu navyše.", createdAt: new Date(Date.now() - 2 * 3600_000).toISOString() },
-  { id: "c4", sender: "client" as const, body: "Ok, dík!", createdAt: new Date(Date.now() - 1.5 * 3600_000).toISOString() },
-];
-
+const PROGRESS_PREVIEW_METRICS = [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
+  measuredOn: daysAgoIso(daysAgo),
+  weightKg: 88 - i * 1.1,
+  waistCm: i === 0 || i === 6 ? 94 - i * 0.4 : null,
+  chestCm: null,
+  hipsCm: null,
+  armCm: null,
+  thighCm: null,
+  note: null,
+}));
+const PROGRESS_PREVIEW_STRENGTH = {
+  names: ["Drep s veľkou činkou", "Bench press", "Mŕtvy ťah"],
+  byExercise: {
+    "Drep s veľkou činkou": [60, 45, 31, 17, 3].map((d, i) => ({ date: daysAgoIso(d), bestWeightKg: 80 + i * 5, reps: 6 })),
+    "Bench press": [58, 44, 30, 16, 2].map((d, i) => ({ date: daysAgoIso(d), bestWeightKg: 60 + i * 3, reps: 5 })),
+    "Mŕtvy ťah": [56, 28, 4].map((d, i) => ({ date: daysAgoIso(d), bestWeightKg: 100 + i * 8, reps: 5 })),
+  },
+};
 export default async function ClientDetailPage({
   params,
   searchParams,
@@ -38,7 +46,8 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const { preview } = await searchParams;
 
-  if (preview === "chat" && process.env.NODE_ENV !== "production") {
+  if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV !== "production") {
+    const empty = preview === "progress_empty";
     return (
       <>
         <Link href="/dashboard" className={styles.backLink}>
@@ -47,73 +56,83 @@ export default async function ClientDetailPage({
         </Link>
         <div className={styles.detailHead}>
           <div>
-            <h1>Ján Novák</h1>
+            <h1>{empty ? "Nový Norbert" : "Ján Novák"}</h1>
           </div>
         </div>
-        <div className={styles.card} style={{ maxWidth: 560 }}>
-          <h3>Správy</h3>
-          <ChatThread
-            messages={CHAT_PREVIEW}
-            mySide="trainer"
-            sendAction={sendTrainerMessageAction}
-            extraFields={{ client_id: id }}
-            emptyTitle="Zatiaľ žiadne správy"
-            emptyText="Napíš klientovi prvú správu."
-            placeholder="Správa pre Jána…"
-            embedded
-          />
-        </div>
+        <AnalyticsPanel
+          clientId={id}
+          nutrition={empty ? null : { calories_target: 2400, protein_g: 180, carbs_g: 260, fat_g: 75 }}
+          adherence={
+            empty
+              ? null
+              : {
+                  hasGoal: true,
+                  kcalGoal: 2400,
+                  todayKcal: 2180,
+                  todayPct: 91,
+                  days: [92, 78, null, 105, 88, 60, 91].map((pct, i) => ({
+                    label: ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"][i],
+                    dateNum: i + 1,
+                    pct,
+                  })),
+                  window30: { pct: 76, onTrackDays: 23, totalDays: 30 },
+                  window90: { pct: 71, onTrackDays: 64, totalDays: 90 },
+                }
+          }
+          trainingAdherence={{
+            window30: { pct: empty ? 0 : 73, trainedDays: empty ? 0 : 22, totalDays: 30 },
+            window90: { pct: empty ? 0 : 68, trainedDays: empty ? 0 : 61, totalDays: 90 },
+          }}
+          bodyMetrics={empty ? [] : PROGRESS_PREVIEW_METRICS}
+          strengthNames={empty ? [] : PROGRESS_PREVIEW_STRENGTH.names}
+          strengthByExercise={empty ? {} : PROGRESS_PREVIEW_STRENGTH.byExercise}
+        />
       </>
     );
   }
 
   const supabase = await createClient();
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select(
-      "id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
-    )
-    .eq("id", id)
-    .maybeSingle();
+  // `client` samotný nie je vstupom pre žiadny z ostatných dopytov (všetky berú
+  // `id` z route parametra priamo) — predtým čakal na svoj round-trip, kým sa
+  // spustilo zvyšných 8. Beží teraz v tej istej dávke; ak klient neexistuje,
+  // ostatné vrátia prázdno/null a zahodia sa spolu s `notFound()` nižšie.
+  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress] =
+    await Promise.all([
+      supabase
+        .from("clients")
+        .select(
+          "id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
+        )
+        .eq("id", id)
+        .maybeSingle(),
+      supabase
+        .from("workout_plans")
+        .select("id, name, created_at, workout_days(count)")
+        .eq("client_id", id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("nutrition_profiles")
+        .select("calories_target, protein_g, carbs_g, fat_g")
+        .eq("client_id", id)
+        .maybeSingle(),
+      supabase
+        .from("workout_logs")
+        .select("id, performed_on, entries, workout_days(name)")
+        .eq("client_id", id)
+        .order("performed_on", { ascending: false })
+        .limit(8),
+      getNutritionAdherence(id),
+      getTrainingAdherence(id),
+      getBodyMetrics(id),
+      getAllStrengthProgress(id),
+    ]);
 
   if (!client) {
     notFound();
   }
 
-  const [{ data: plans }, { data: nutrition }, { data: logs }, { data: msgRows }, adherence] = await Promise.all([
-    supabase
-      .from("workout_plans")
-      .select("id, name, created_at, workout_days(count)")
-      .eq("client_id", id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("nutrition_profiles")
-      .select("calories_target, protein_g, carbs_g, fat_g")
-      .eq("client_id", id)
-      .maybeSingle(),
-    supabase
-      .from("workout_logs")
-      .select("id, performed_on, entries, workout_days(name)")
-      .eq("client_id", id)
-      .order("performed_on", { ascending: false })
-      .limit(8),
-    supabase
-      .from("messages")
-      .select("id, sender, body, created_at")
-      .eq("client_id", id)
-      .order("created_at", { ascending: true })
-      .limit(300),
-    getNutritionAdherence(id),
-  ]);
-
   const firstName = client.full_name.split(/\s+/)[0];
-  const messages = (msgRows ?? []).map((m) => ({
-    id: m.id as string,
-    sender: m.sender as "trainer" | "client" | "system",
-    body: m.body as string,
-    createdAt: m.created_at as string,
-  }));
 
   const memberSince = new Date(client.created_at).toLocaleDateString("sk-SK", {
     day: "numeric",
@@ -134,6 +153,16 @@ export default async function ClientDetailPage({
           {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
         </div>
       </div>
+
+      <AnalyticsPanel
+        clientId={id}
+        nutrition={nutrition}
+        adherence={adherence}
+        trainingAdherence={trainingAdherence}
+        bodyMetrics={bodyMetrics ?? []}
+        strengthNames={strengthProgress?.names ?? []}
+        strengthByExercise={strengthProgress?.byExercise ?? {}}
+      />
 
       <div className={styles.detailGrid}>
         <div className={styles.card}>
@@ -191,75 +220,6 @@ export default async function ClientDetailPage({
                 <Link href="/dashboard/treningy">Tréningy</Link>.
               </p>
             )}
-          </div>
-
-          <div className={styles.card}>
-            <h3>Makro cieľ</h3>
-            {nutrition ? (
-              <>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Kalorický cieľ</span>
-                  <span className={styles.infoValue}>{nutrition.calories_target} kcal/deň</span>
-                </div>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Makrá</span>
-                  <span className={styles.infoValue}>
-                    {nutrition.protein_g} g B · {nutrition.carbs_g} g S · {nutrition.fat_g} g T
-                  </span>
-                </div>
-                <Link href={`/dashboard/vyziva/${id}`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
-                  Upraviť →
-                </Link>
-              </>
-            ) : (
-              <p className={styles.noWorkouts}>
-                Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${id}`}>vypočítať teraz</Link>.
-              </p>
-            )}
-          </div>
-
-          <div className={styles.card}>
-            <h3>Adherencia stravy</h3>
-            {adherence?.hasGoal ? (
-              <>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Dnes</span>
-                  <span className={styles.infoValue}>
-                    {adherence.todayKcal} / {adherence.kcalGoal} kcal · <strong>{adherence.todayPct}&nbsp;%</strong> z cieľa
-                  </span>
-                </div>
-                <div className={styles.adherenceStrip} aria-hidden="true">
-                  {adherence.days.map((day, i) => (
-                    <div key={i} className={styles.adherenceDay}>
-                      <span className={`${styles.adherenceDot} ${adherenceToneClass(day.pct)}`} />
-                      <span className={styles.adherenceDayLabel}>{day.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className={styles.adherenceHint}>Posledných 7 dní · zelená = 85–115 % cieľa, sivá = bez záznamu.</p>
-              </>
-            ) : (
-              <p className={styles.noWorkouts}>
-                {adherence
-                  ? "Klient zatiaľ nemá nastavený makro cieľ — adherenciu nevieme vypočítať."
-                  : "Adherenciu sa nepodarilo načítať."}
-              </p>
-            )}
-          </div>
-
-          <div className={styles.card}>
-            <h3>Správy</h3>
-            <ChatThread
-              messages={messages}
-              mySide="trainer"
-              sendAction={sendTrainerMessageAction}
-              extraFields={{ client_id: id }}
-              onSeen={markTrainerChatSeenAction.bind(null, id)}
-              emptyTitle="Zatiaľ žiadne správy"
-              emptyText={`Napíš ${firstName}ovi prvú správu — spätná väzba k tréningu, úprava plánu, čokoľvek.`}
-              placeholder={`Správa pre ${firstName}a…`}
-              embedded
-            />
           </div>
 
           <div className={styles.card}>

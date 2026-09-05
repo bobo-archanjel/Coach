@@ -19,6 +19,23 @@ export async function getExerciseDetailAction(exerciseId: string): Promise<Exerc
   return fetchExerciseDetail(supabase, exerciseId);
 }
 
+export interface ExerciseListItem {
+  id: string;
+  name: string;
+  muscleGroup: string | null;
+}
+
+/**
+ * Celá knižnica cvikov (~900 riadkov) pre zoznam na /dashboard/treningy — predtým
+ * sa ťahala a vypisovala na stránke vždy, teraz na požiadanie (ExerciseLibraryList,
+ * defaultne zbalené, len počet v hlavičke sa počíta priamo pri načítaní stránky).
+ */
+export async function getExerciseLibraryListAction(): Promise<ExerciseListItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("exercises").select("id, name, muscle_group").order("name");
+  return (data ?? []).map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group }));
+}
+
 export interface WorkoutExerciseEntry {
   entry_id: string;
   exercise_id: string;

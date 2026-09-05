@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import styles from "../dashboard.module.css";
 
 interface NutritionSummary {
@@ -14,7 +14,7 @@ export default async function VyzivaPage() {
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
   // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.

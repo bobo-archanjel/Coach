@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { AddClientForm } from "./AddClientForm";
 import styles from "./dashboard.module.css";
 
@@ -125,7 +125,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
   // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
@@ -133,18 +133,17 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     redirect("/prihlasenie");
   }
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, full_name, goal, created_at, ended_at, deletion_requested_at")
-    .eq("trainer_id", user.id)
-    .order("created_at", { ascending: false });
-
-  // neprečítané správy od klientov → odznak pri klientovi (RLS scopuje na klientov trénera)
-  const { data: unreadRows } = await supabase
-    .from("messages")
-    .select("client_id")
-    .eq("sender", "client")
-    .is("read_at", null);
+  // Nezávislé dopyty — zoznam klientov nepotrebuje neprečítané správy (a naopak,
+  // RLS scopuje messages na klientov tohto trénera samo) — paralelne.
+  const [{ data: clients }, { data: unreadRows }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, full_name, goal, created_at, ended_at, deletion_requested_at")
+      .eq("trainer_id", user.id)
+      .order("created_at", { ascending: false }),
+    // neprečítané správy od klientov → odznak pri klientovi
+    supabase.from("messages").select("client_id").eq("sender", "client").is("read_at", null),
+  ]);
   const unread = new Map<string, number>();
   for (const r of unreadRows ?? []) unread.set(r.client_id, (unread.get(r.client_id) ?? 0) + 1);
 
