@@ -2,6 +2,7 @@
 // (migrácia supabase/migrations/0002_workout_portal.sql). Viď DESIGN.md → Surfaces → Klientsky portál.
 
 import type { MealSlot } from "@/lib/meals";
+import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
 // si sám vyberá kedy cvičí, "ďalší tréning" je vždy nasledujúci nedokončený deň
@@ -148,6 +149,8 @@ export interface PortalData {
   deletionNotice: PortalDeletionNotice | null;
   /** null, kým tréner neukončil spoluprácu (0020) — na rozdiel od deletionNotice dáta ostávajú */
   cooperationEndedNotice: PortalCooperationNotice | null;
+  /** História vlastných meraní (BodyMetricForm), najstaršie prvé — rovnaký tvar ako trénerov graf. */
+  bodyMetrics: BodyMetricEntry[];
 }
 
 /** Výsledok načítania portálu — buď dáta, alebo dôvod prázdneho stavu. */

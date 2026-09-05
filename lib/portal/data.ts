@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
+import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type {
   CoachNote,
@@ -405,9 +406,11 @@ export async function getPortalData(): Promise<PortalResult> {
       dayId: targetDay.id,
     };
 
-    // Týždenný pás a odkaz trénera sa navzájom nepotrebujú — paralelne namiesto
-    // čakania na celý (dvoj-dopytový) buildWeekView pred začatím coach_notes.
-    const [week, { data: note }] = await Promise.all([
+    // Týždenný pás, odkaz trénera a história meraní sa navzájom nepotrebujú —
+    // paralelne namiesto čakania na celý (dvoj-dopytový) buildWeekView pred
+    // začatím ostatných. getBodyMetrics má vlastný createClient() (cache()-ovaný,
+    // žiadny extra round-trip na auth), len jeden indexovaný dopyt navyše.
+    const [week, { data: note }, bodyMetrics] = await Promise.all([
       buildWeekView(supabase, client.id, mondayOf(base), isoDate),
       supabase
         .from("coach_notes")
@@ -416,6 +419,7 @@ export async function getPortalData(): Promise<PortalResult> {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      getBodyMetrics(client.id),
     ]);
 
     // ---------- história (posledných 12 dní pred dneškom) ----------
@@ -468,6 +472,7 @@ export async function getPortalData(): Promise<PortalResult> {
         (!client.ended_notice_dismissed_at || client.ended_notice_dismissed_at < client.ended_at)
           ? { endedAt: client.ended_at }
           : null,
+      bodyMetrics: bodyMetrics ?? [],
     };
 
     return { state: "ok", data };

@@ -1772,6 +1772,42 @@
   gap: 8px;
 }
 
+.metricHistory {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.metricHistoryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 2px;
+  border-top: 1px solid var(--steel-line);
+  font-size: 12.5px;
+}
+.metricHistoryRow:first-child {
+  border-top: none;
+}
+.metricHistoryDate {
+  color: var(--paper-faint);
+}
+.metricHistoryWeight {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.metricHistoryExtra {
+  color: var(--paper-faint);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.metricHistory .metricToggle {
+  margin-top: 8px;
+  text-align: center;
+}
+
 /* ---------- plávajúce stopky / časovač pauzy (WorkoutStopwatch) ---------- */
 /* Objaví sa po "Začať tréning", zmizne po ukončení. Fixne pozicované nad spodnou
    navigáciou; svet portálu nezmenený — coral nesie bežiaci stav a primárnu akciu,

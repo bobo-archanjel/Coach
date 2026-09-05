@@ -138,6 +138,16 @@ const PREVIEW_DATA: PortalData = {
   streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
   deletionNotice: null,
   cooperationEndedNotice: null,
+  bodyMetrics: [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
+    measuredOn: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10),
+    weightKg: 88 - i * 1.1,
+    waistCm: i === 6 ? 88 : null,
+    chestCm: null,
+    hipsCm: null,
+    armCm: null,
+    thighCm: null,
+    note: null,
+  })),
 };
 
 /** DEV: ?preview=unlinked|no_plan|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
@@ -260,6 +270,7 @@ function PortalToday({ data }: { data: PortalData }) {
     streakHistory,
     deletionNotice,
     cooperationEndedNotice,
+    bodyMetrics,
   } = data;
 
   const d = new Date(`${today}T12:00:00Z`);
@@ -368,7 +379,7 @@ function PortalToday({ data }: { data: PortalData }) {
 
         <div className={styles.panel}>
           <p className={styles.panelLabel}>Meranie</p>
-          <BodyMetricForm today={today} />
+          <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
 
         <WeekHistory initial={week} />
