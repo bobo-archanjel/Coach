@@ -38,9 +38,18 @@ export function AddAppointmentForm({ clients }: { clients: { id: string; full_na
         <input name="title" type="text" placeholder="Napr. Konzultácia" required maxLength={200} disabled={pending} className={styles.addClientInput} />
       </div>
       <div className={styles.addClientFieldsRow}>
-        <input name="date" type="date" required disabled={pending} className={styles.addClientInputSm} />
-        <input name="time" type="time" required disabled={pending} className={styles.addClientInputSm} />
-        <input name="end_time" type="time" disabled={pending} className={styles.addClientInputSm} title="Voliteľný koniec termínu" />
+        <label className={styles.timeField}>
+          <span className={styles.timeFieldLabel}>Dátum</span>
+          <input name="date" type="date" required disabled={pending} className={styles.addClientInputSm} />
+        </label>
+        <label className={styles.timeField}>
+          <span className={styles.timeFieldLabel}>Od</span>
+          <input name="time" type="time" required disabled={pending} className={styles.addClientInputSm} />
+        </label>
+        <label className={styles.timeField}>
+          <span className={styles.timeFieldLabel}>Do (voliteľné)</span>
+          <input name="end_time" type="time" disabled={pending} className={styles.addClientInputSm} />
+        </label>
       </div>
       <div className={styles.addClientFields}>
         <input name="note" type="text" placeholder="Poznámka (voliteľné)" maxLength={1000} disabled={pending} className={styles.addClientInput} />

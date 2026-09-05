@@ -7,12 +7,14 @@ import styles from "../dashboard.module.css";
 export function AppointmentRow({
   id,
   time,
+  endTime,
   title,
   clientName,
   note,
 }: {
   id: string;
   time: string;
+  endTime: string | null;
   title: string;
   clientName: string;
   note: string | null;
@@ -22,7 +24,10 @@ export function AppointmentRow({
 
   return (
     <div className={styles.appointmentRow}>
-      <span className={styles.appointmentTime}>{time}</span>
+      <span className={styles.appointmentTime}>
+        {time}
+        {endTime && <span className={styles.appointmentTimeEnd}>–{endTime}</span>}
+      </span>
       <div className={styles.appointmentBody}>
         <div className={styles.clientName}>{title}</div>
         <span className={styles.clientSince}>

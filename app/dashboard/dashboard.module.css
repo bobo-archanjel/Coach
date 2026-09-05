@@ -230,6 +230,7 @@
 .addClientFieldsRow {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -255,6 +256,41 @@
      to mobile media query nižšie prebije späť na rovnomerné vyplnenie riadku. */
   flex: 0 1 110px;
 }
+select.addClientInput,
+select.addClientInputSm {
+  /* natívna šípka <select>u bola nalepená na pravom okraji boxu — appearance:none
+     + vlastná šípka s odsadením od kraja to opravuje pre všetky selecty v appke
+     (klient/cieľ/skúsenosti/vybavenie), ktoré túto triedu zdieľajú. */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5.5L7 9.5L11 5.5' stroke='%238f897d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  padding-right: 38px;
+}
+/* Časové polia (Od/Do v AddAppointmentForm) — dva vedľa seba nerozlíšené time
+   inputy pôsobili ako duplicita/chyba; viditeľný label nad každým to rieši
+   bez zásahu do vzhľadu samotného inputu (rovnaký vzor ako .editField v
+   app/dashboard/treningy/[planId]/builder.module.css). */
+.timeField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 0 1 110px;
+}
+.timeField .addClientInputSm {
+  flex: 1 1 auto;
+  width: 100%;
+}
+.timeFieldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--paper-faint);
+}
 @media (max-width: 640px) {
   .addClientFields,
   .addClientFieldsRow {
@@ -272,9 +308,12 @@
     font-size: 16px;
     padding: 12px 14px;
   }
-  .addClientFieldsRow .addClientInputSm {
+  .addClientFieldsRow .addClientInputSm,
+  .addClientFieldsRow .timeField {
     flex: 1 1 0;
     min-width: 0;
+  }
+  .addClientFieldsRow .timeField .addClientInputSm {
     padding-inline: 10px;
   }
 }
@@ -286,7 +325,9 @@
 .addClientInputSm:focus {
   outline: none;
   border-color: var(--iron-red);
-  background: var(--ink-3);
+  /* background-color, nie skratka `background` — tá by na select.addClientInput
+     zmazala background-image (vlastná šípka) nastavenú vyššie. */
+  background-color: var(--ink-3);
 }
 .addClientInput:disabled,
 .addClientInputSm:disabled {
@@ -1276,10 +1317,17 @@
   border-radius: var(--radius-m);
 }
 .appointmentTime {
+  display: flex;
+  flex-direction: column;
   font-weight: 700;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
   color: var(--paper);
+}
+.appointmentTimeEnd {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--paper-faint);
 }
 .appointmentBody {
   min-width: 0;
