@@ -122,34 +122,3 @@ export async function getAllStrengthProgress(
   const names = Object.keys(byExercise).sort((a, b) => a.localeCompare(b, "sk"));
   return { names, byExercise };
 }
-
-export interface VolumePoint {
-  date: string;
-  volumeKg: number;
-}
-
-const VOLUME_HISTORY_LIMIT = 60;
-
-/** Celkový objem (Σ opakovania × váha, naprieč cvikmi) za posledných tréningov. */
-export async function getVolumeTrend(clientId: string): Promise<VolumePoint[] | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("workout_logs")
-    .select("performed_on, entries")
-    .eq("client_id", clientId)
-    .order("performed_on", { ascending: false })
-    .limit(VOLUME_HISTORY_LIMIT);
-  if (error) return null;
-
-  const points: VolumePoint[] = [];
-  for (const row of data ?? []) {
-    let volume = 0;
-    for (const ex of parseEntries(row.entries)) {
-      for (const s of ex.sets ?? []) {
-        if (s.reps != null && s.weight != null) volume += s.reps * s.weight;
-      }
-    }
-    if (volume > 0) points.push({ date: row.performed_on as string, volumeKg: Math.round(volume) });
-  }
-  return points.reverse(); // najstaršie prvé, pre graf
-}

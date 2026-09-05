@@ -93,6 +93,72 @@ async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>
   return data?.id ?? null;
 }
 
+function optionalNum(v: FormDataEntryValue | null, min: number, max: number): number | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Progres — klient sám zapíše svoje meranie (váha + obvody) na karte Dnes
+ * (`BodyMetricForm`, 0023_body_metrics.sql + 0024 pre klientske INSERT/UPDATE
+ * RLS). Predtým to za klienta zapisoval tréner v dashboarde — presunuté po
+ * revízii 2026-09, tréner meranie už len číta (graf v Analytike). Jeden záznam
+ * na deň (unique client_id+measured_on) — druhé meranie ten istý deň prepíše
+ * prvé (upsert), nie duplicitný riadok. `trainer_id` sa berie z `clients` riadku
+ * klienta, nie od klienta samého — RLS (0024) navyše overí, že sedí.
+ */
+export async function addOwnBodyMetricAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, trainer_id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const measuredOn = (formData.get("measured_on") as string | null) || new Date().toISOString().slice(0, 10);
+  const weightKg = optionalNum(formData.get("weight_kg"), 20, 400);
+  const waistCm = optionalNum(formData.get("waist_cm"), 20, 250);
+  const chestCm = optionalNum(formData.get("chest_cm"), 20, 250);
+  const hipsCm = optionalNum(formData.get("hips_cm"), 20, 250);
+  const armCm = optionalNum(formData.get("arm_cm"), 5, 100);
+  const thighCm = optionalNum(formData.get("thigh_cm"), 5, 150);
+
+  if (weightKg == null && waistCm == null && chestCm == null && hipsCm == null && armCm == null && thighCm == null) {
+    return { error: "Zadaj aspoň jednu hodnotu." };
+  }
+
+  const { error } = await supabase.from("body_metrics").upsert(
+    {
+      client_id: client.id,
+      trainer_id: client.trainer_id,
+      measured_on: measuredOn,
+      weight_kg: weightKg,
+      waist_cm: waistCm,
+      chest_cm: chestCm,
+      hips_cm: hipsCm,
+      arm_cm: armCm,
+      thigh_cm: thighCm,
+    },
+    { onConflict: "client_id,measured_on" },
+  );
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal", "layout");
+  revalidatePath(`/dashboard/klienti/${client.id}`);
+  revalidatePath("/dashboard/analytika");
+  return ok;
+}
+
 /** Tvar jedného riadku, ako ho posiela LogWorkoutButton (JSON v skrytom poli "entries"). */
 type IncomingSet = { reps: number | null; weight: number | null };
 type IncomingExercise = { entryId: string | null; name: string; sets: IncomingSet[] };

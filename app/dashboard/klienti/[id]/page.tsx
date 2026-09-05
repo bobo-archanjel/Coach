@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
-import { getBodyMetrics, getAllStrengthProgress, getVolumeTrend } from "@/lib/dashboard/bodyMetrics";
+import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
 import { DangerZone } from "./DangerZone";
@@ -36,8 +36,6 @@ const PROGRESS_PREVIEW_STRENGTH = {
     "Mŕtvy ťah": [56, 28, 4].map((d, i) => ({ date: daysAgoIso(d), bestWeightKg: 100 + i * 8, reps: 5 })),
   },
 };
-const PROGRESS_PREVIEW_VOLUME = [60, 44, 30, 16, 2].map((d, i) => ({ date: daysAgoIso(d), volumeKg: 3200 + i * 340 }));
-
 export default async function ClientDetailPage({
   params,
   searchParams,
@@ -88,7 +86,6 @@ export default async function ClientDetailPage({
           bodyMetrics={empty ? [] : PROGRESS_PREVIEW_METRICS}
           strengthNames={empty ? [] : PROGRESS_PREVIEW_STRENGTH.names}
           strengthByExercise={empty ? {} : PROGRESS_PREVIEW_STRENGTH.byExercise}
-          volumePoints={empty ? [] : PROGRESS_PREVIEW_VOLUME}
         />
       </>
     );
@@ -100,7 +97,7 @@ export default async function ClientDetailPage({
   // `id` z route parametra priamo) — predtým čakal na svoj round-trip, kým sa
   // spustilo zvyšných 8. Beží teraz v tej istej dávke; ak klient neexistuje,
   // ostatné vrátia prázdno/null a zahodia sa spolu s `notFound()` nižšie.
-  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, volumeTrend] =
+  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress] =
     await Promise.all([
       supabase
         .from("clients")
@@ -129,7 +126,6 @@ export default async function ClientDetailPage({
       getTrainingAdherence(id),
       getBodyMetrics(id),
       getAllStrengthProgress(id),
-      getVolumeTrend(id),
     ]);
 
   if (!client) {
@@ -166,7 +162,6 @@ export default async function ClientDetailPage({
         bodyMetrics={bodyMetrics ?? []}
         strengthNames={strengthProgress?.names ?? []}
         strengthByExercise={strengthProgress?.byExercise ?? {}}
-        volumePoints={volumeTrend ?? []}
       />
 
       <div className={styles.detailGrid}>

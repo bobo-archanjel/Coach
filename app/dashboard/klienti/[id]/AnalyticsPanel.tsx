@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { NutritionAdherence, TrainingAdherence } from "@/lib/dashboard/adherence";
-import type { BodyMetricEntry, StrengthPoint, VolumePoint } from "@/lib/dashboard/bodyMetrics";
+import type { BodyMetricEntry, StrengthPoint } from "@/lib/dashboard/bodyMetrics";
 import { BodyMetricsCard } from "./BodyMetricsCard";
-import { StrengthVolumeCard } from "./StrengthVolumeCard";
+import { StrengthCard } from "./StrengthCard";
 import styles from "../../dashboard.module.css";
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -30,7 +30,8 @@ interface NutritionGoal {
 /**
  * Progres a analýza (feature/progress-analyst) — schované za tlačidlom pod menom
  * klienta, nech detail klienta nie je preplnený grafmi na prvý pohľad. Otvára
- * karty "Trekovanie jedálnička" a "Analytika".
+ * karty "Analytika" (tréning + telesné merania) a "Trekovanie jedálnička" — v
+ * tomto poradí (tréning navrchu), keďže tréner sa naň pozerá častejšie.
  */
 export function AnalyticsPanel({
   clientId,
@@ -40,7 +41,6 @@ export function AnalyticsPanel({
   bodyMetrics,
   strengthNames,
   strengthByExercise,
-  volumePoints,
 }: {
   clientId: string;
   nutrition: NutritionGoal | null;
@@ -49,7 +49,6 @@ export function AnalyticsPanel({
   bodyMetrics: BodyMetricEntry[];
   strengthNames: string[];
   strengthByExercise: Record<string, StrengthPoint[]>;
-  volumePoints: VolumePoint[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -62,6 +61,32 @@ export function AnalyticsPanel({
 
       {open && (
         <div className={styles.cardStack} style={{ marginTop: 16 }}>
+          <div className={styles.card}>
+            <h3>Analytika</h3>
+            <h4 className={styles.cardSubhead}>Adherencia tréningu</h4>
+            {trainingAdherence ? (
+              <>
+                <div className={styles.adherenceWindowRow}>
+                  <span>
+                    30 dní: <strong>{trainingAdherence.window30.pct}&nbsp;%</strong> ({trainingAdherence.window30.trainedDays}/
+                    {trainingAdherence.window30.totalDays} dní)
+                  </span>
+                  <span>
+                    90 dní: <strong>{trainingAdherence.window90.pct}&nbsp;%</strong> ({trainingAdherence.window90.trainedDays}/
+                    {trainingAdherence.window90.totalDays} dní)
+                  </span>
+                </div>
+                <p className={styles.adherenceHint}>% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</p>
+              </>
+            ) : (
+              <p className={styles.noWorkouts}>Adherenciu tréningu sa nepodarilo načítať.</p>
+            )}
+
+            <BodyMetricsCard entries={bodyMetrics} />
+
+            <StrengthCard exerciseNames={strengthNames} byExercise={strengthByExercise} />
+          </div>
+
           <div className={styles.card}>
             <h3>Trekovanie jedálnička</h3>
             {nutrition ? (
@@ -116,32 +141,6 @@ export function AnalyticsPanel({
                 nedá počítať ani adherencia stravy.
               </p>
             )}
-          </div>
-
-          <div className={styles.card}>
-            <h3>Analytika</h3>
-            <h4 className={styles.cardSubhead}>Adherencia tréningu</h4>
-            {trainingAdherence ? (
-              <>
-                <div className={styles.adherenceWindowRow}>
-                  <span>
-                    30 dní: <strong>{trainingAdherence.window30.pct}&nbsp;%</strong> ({trainingAdherence.window30.trainedDays}/
-                    {trainingAdherence.window30.totalDays} dní)
-                  </span>
-                  <span>
-                    90 dní: <strong>{trainingAdherence.window90.pct}&nbsp;%</strong> ({trainingAdherence.window90.trainedDays}/
-                    {trainingAdherence.window90.totalDays} dní)
-                  </span>
-                </div>
-                <p className={styles.adherenceHint}>% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</p>
-              </>
-            ) : (
-              <p className={styles.noWorkouts}>Adherenciu tréningu sa nepodarilo načítať.</p>
-            )}
-
-            <BodyMetricsCard clientId={clientId} entries={bodyMetrics} />
-
-            <StrengthVolumeCard exerciseNames={strengthNames} byExercise={strengthByExercise} volumePoints={volumePoints} />
           </div>
         </div>
       )}
