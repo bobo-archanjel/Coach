@@ -422,3 +422,24 @@ export async function markClientChatSeenAction(): Promise<void> {
   const { error } = await supabase.rpc("mark_messages_read", { p_client_id: clientId });
   if (!error) revalidatePath("/portal", "layout");
 }
+
+/**
+ * Chat polling (feature/optimalizacia) — ChatThread predtým volal router.refresh()
+ * (celý round-trip + rerender stránky) každých pollMs, aj keď väčšinu času nepribudla
+ * žiadna nová správa. Táto akcia vráti len ID poslednej správy (jeden riadok,
+ * indexovaný dopyt) — ChatThread ho porovná s tým, čo už má vykreslené, a
+ * router.refresh() zavolá len keď sa naozaj líši.
+ */
+export async function getClientChatMarkerAction(): Promise<string | null> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return null;
+  const { data } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
