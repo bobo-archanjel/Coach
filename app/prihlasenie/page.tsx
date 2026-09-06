@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
 import { createClient } from "@/lib/supabase/client";
+import { checkPassword } from "@/lib/passwordStrength";
+import { loginAction, type LoginState } from "./actions";
 import styles from "./auth.module.css";
+
+const initialLoginState: LoginState = { error: null, redirectTo: null };
 
 const ErrorIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -56,54 +60,35 @@ export default function AuthPage() {
   }, []);
 
   // ---- login form state ----
+  // Prihlásenie ide cez Server Action (./actions.ts, feature/optimalizacia —
+  // security audit): predtým volalo supabase.auth.signInWithPassword priamo z
+  // prehliadača, náš server o pokuse vôbec nevedel (nedal sa rate-limitovať ani
+  // počítať na lockout). Server teraz rozhoduje o výsledku aj presmerovaní.
   const loginFormRef = useRef<HTMLFormElement>(null);
   const [loginInvalid, setLoginInvalid] = useState<Record<string, boolean>>({});
   const [loginShowPassword, setLoginShowPassword] = useState(false);
-  const [loginStatus, setLoginStatus] = useState<"idle" | "loading" | "success">("idle");
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginState, loginFormAction, loginPending] = useActionState(loginAction, initialLoginState);
+  const loginStatus: "idle" | "loading" | "success" = loginPending
+    ? "loading"
+    : loginState.redirectTo
+      ? "success"
+      : "idle";
+  const loginError = loginState.error;
 
-  async function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
+  // Presmerovanie po úspechu — server už rozhodol kam (podľa role), tu len navigujeme.
+  useEffect(() => {
+    if (!loginState.redirectTo) return;
+    router.push(loginState.redirectTo);
+    router.refresh();
+  }, [loginState.redirectTo, router]);
+
+  function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoginError(null);
     const form = e.currentTarget;
     const { invalid, hasInvalid } = validate(form, ["email", "password"]);
     setLoginInvalid(invalid);
     if (hasInvalid) return;
-
-    setLoginStatus("loading");
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
-    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setLoginStatus("idle");
-      setLoginError(
-        error.message === "Invalid login credentials"
-          ? "Nesprávny e-mail alebo heslo."
-          : error.message
-      );
-      return;
-    }
-
-    setLoginStatus("success");
-    // Presmerovanie podľa role — predtým išlo vždy na /dashboard, takže klient
-    // po prihlásení skončil (nesprávne) na trénerskom dashboarde.
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
-
-    // Doklaimovanie pozývacieho kódu, ak zostal nespárovaný z registrácie — nastane
-    // vtedy, keď má projekt zapnuté povinné potvrdenie e-mailu (Supabase Dashboard →
-    // Authentication → Sign In / Providers → Email → "Confirm email"): pri signUp ešte
-    // nebola session, takže claim_client_by_invite sa vtedy nedal zavolať. Kód sme si
-    // uložili do user_metadata pri registrácii (viď handleRegisterSubmit) — tu ho
-    // skúsime doklaimovať; RPC je idempotentné pre toho istého používateľa, takže
-    // opakované volanie pri každom prihlásení nič nepokazí.
-    const inviteCode = data.user.user_metadata?.invite_code as string | undefined;
-    if (profile?.role === "client" && inviteCode) {
-      await supabase.rpc("claim_client_by_invite", { p_invite_code: inviteCode });
-    }
-
-    router.push(profile?.role === "client" ? "/portal" : "/dashboard");
-    router.refresh();
+    startTransition(() => loginFormAction(new FormData(form)));
   }
 
   // ---- zabudnuté heslo ----
@@ -145,6 +130,12 @@ export default function AuthPage() {
   const [registerStatus, setRegisterStatus] = useState<"idle" | "loading" | "success">("idle");
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [registerNeedsConfirm, setRegisterNeedsConfirm] = useState(false);
+  // Živý ukazovateľ sily hesla (feature/optimalizacia, security audit) — kontext
+  // (meno/e-mail) sa reálne vyhodnocuje až pri submite (handleRegisterSubmit má
+  // finálne hodnoty všetkých polí), tu len dĺžka/rozmanitosť pre rýchlu spätnú väzbu.
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerPasswordIssues, setRegisterPasswordIssues] = useState<string[]>([]);
+  const registerPwLive = registerPassword ? checkPassword(registerPassword) : null;
   // Explicitná voľba namiesto skrytého "mám kód" prepínača — inak sa klient bez
   // povšimnutia zaregistruje ako tréner, keď netuší, že má hľadať niečo iné.
   const [registerRole, setRegisterRole] = useState<"trainer" | "client">("trainer");
@@ -159,12 +150,23 @@ export default function AuthPage() {
     setRegisterInvalid(invalid);
     if (hasInvalid) return;
 
-    setRegisterStatus("loading");
     const name = (form.elements.namedItem("name") as HTMLInputElement).value;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     const invite = isClientSignup ? (form.elements.namedItem("invite") as HTMLInputElement).value.trim() : "";
 
+    // Kontrola sily hesla (feature/optimalizacia, security audit) — predtým len
+    // minLength={8} na klientovi, nič nezastavilo "12345678" alebo "password123".
+    const emailLocalPart = email.split("@")[0] ?? "";
+    const pwCheck = checkPassword(password, [name, emailLocalPart]);
+    if (!pwCheck.ok) {
+      setRegisterPasswordIssues(pwCheck.issues);
+      setRegisterInvalid({ ...invalid, password: true });
+      return;
+    }
+    setRegisterPasswordIssues([]);
+
+    setRegisterStatus("loading");
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -206,7 +208,9 @@ export default function AuthPage() {
             ? "Tento pozývací kód neexistuje. Over si ho u svojho trénera."
             : claimError.message === "already_claimed"
               ? "Tento pozývací kód je už použitý iným účtom."
-              : `Účet je vytvorený, ale spárovanie zlyhalo: ${claimError.message}`
+              : claimError.message === "too_many_attempts"
+                ? "Príliš veľa pokusov o spárovanie. Skús to znova o 15 minút."
+                : `Účet je vytvorený, ale spárovanie zlyhalo: ${claimError.message}`
         );
         return;
       }
@@ -579,7 +583,11 @@ export default function AuthPage() {
                       required
                       minLength={8}
                       aria-invalid={registerInvalid.password}
-                      onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
+                      onChange={(e) => {
+                        clearFieldError(e, registerInvalid, setRegisterInvalid);
+                        setRegisterPassword(e.currentTarget.value);
+                        if (registerPasswordIssues.length > 0) setRegisterPasswordIssues([]);
+                      }}
                     />
                     <button
                       type="button"
@@ -590,11 +598,15 @@ export default function AuthPage() {
                       <EyeIcon />
                     </button>
                   </div>
-                  <span className={styles.fieldHint}>Aspoň 8 znakov, odporúčame kombináciu písmen a čísel.</span>
+                  {registerPwLive && !registerInvalid.password ? (
+                    <span className={styles.fieldHint}>Sila hesla: {registerPwLive.label}</span>
+                  ) : (
+                    <span className={styles.fieldHint}>Aspoň 8 znakov, kombinuj písmená aj čísla.</span>
+                  )}
                   {registerInvalid.password && (
                     <span className={styles.fieldError}>
                       <ErrorIcon />
-                      Heslo musí mať aspoň 8 znakov.
+                      {registerPasswordIssues[0] ?? "Heslo musí mať aspoň 8 znakov."}
                     </span>
                   )}
                 </div>

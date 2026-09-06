@@ -71,6 +71,7 @@ export function ChatThread({
   extraFields,
   onSeen,
   readOnly = false,
+  checkNewAction,
 }: {
   messages: ChatMessage[];
   mySide: "trainer" | "client";
@@ -80,6 +81,8 @@ export function ChatThread({
   placeholder?: string;
   fill?: boolean;
   embedded?: boolean;
+  /** 0 vypne polling úplne (napr. AI Kouč — súkromná konverzácia klient↔AI, žiadna
+      druhá strana nemôže pridať správu mimo vlastnej akcie na tejto istej stránke). */
   pollMs?: number;
   /** ďalšie skryté polia do FormData (napr. client_id na trénerskej strane) */
   extraFields?: Record<string, string>;
@@ -87,6 +90,11 @@ export function ChatThread({
   onSeen?: () => void | Promise<void>;
   /** len na čítanie — skryje composer (napr. tréner nahliadajúci do AI Kouč transkriptu klienta). */
   readOnly?: boolean;
+  /** Vráti ID poslednej správy vlákna — lacný dopyt na porovnanie pri polle, nech
+      router.refresh() (celý round-trip + rerender stránky) beží len keď sa vlákno
+      naozaj zmenilo, nie na každý tik. Bez tejto props padá na starší, drahší vzor
+      (vždy refresh) — držané kvôli spätnej kompatibilite, nové použitia by ju mali dať vždy. */
+  checkNewAction?: () => Promise<string | null>;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(sendAction, initialState);
@@ -121,10 +129,31 @@ export function ChatThread({
     };
   }, [onSeen]);
 
-  // refresh-based doručenie: poll kým je karta viditeľná + pri návrate na kartu
+  // Marker poslednej správy, ktorú má stránka aktuálne vykreslenú — aktualizuje sa
+  // pri každej zmene `messages` (vrátane tej, čo príde cez router.refresh() nižšie).
+  const lastMarkerRef = useRef<string | null>(messages[messages.length - 1]?.id ?? null);
   useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState === "visible") router.refresh();
+    lastMarkerRef.current = messages[messages.length - 1]?.id ?? null;
+  }, [messages]);
+
+  // refresh-based doručenie: poll kým je karta viditeľná + pri návrate na kartu.
+  // S `checkNewAction` ide o dvojkrokový poll — lacný dopyt na ID poslednej správy
+  // (jeden indexovaný riadok) namiesto vždy plného router.refresh() (celý round-trip
+  // + rerender stránky, aj keď väčšinu tikov nepribudla žiadna správa). Bez nej
+  // (napr. AI Kouč pri pollMs=0) sa polling úplne vypne.
+  useEffect(() => {
+    if (!pollMs) return;
+    const tick = async () => {
+      if (document.visibilityState !== "visible") return;
+      if (!checkNewAction) {
+        router.refresh();
+        return;
+      }
+      const marker = await checkNewAction().catch(() => lastMarkerRef.current);
+      if (marker !== lastMarkerRef.current) {
+        lastMarkerRef.current = marker;
+        router.refresh();
+      }
     };
     const id = window.setInterval(tick, pollMs);
     document.addEventListener("visibilitychange", tick);
@@ -134,7 +163,7 @@ export function ChatThread({
       document.removeEventListener("visibilitychange", tick);
       window.removeEventListener("focus", tick);
     };
-  }, [router, pollMs]);
+  }, [router, pollMs, checkNewAction]);
 
   function grow() {
     const el = inputRef.current;

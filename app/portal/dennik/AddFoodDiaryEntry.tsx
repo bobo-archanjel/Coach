@@ -1,17 +1,15 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, type MealSlot } from "@/lib/meals";
-import type { PortalFoodOption } from "@/lib/portal/types";
-import { addFoodLogAction, getFoodLibraryAction, searchOnlineFoodAction, type ActionState } from "../actions";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
+import type { PortalDiaryEntry, PortalFoodOption } from "@/lib/portal/types";
+import { getFoodLibraryAction, searchOnlineFoodAction } from "../actions";
 import styles from "../portal.module.css";
 
 /** Ako dlho čakať po poslednom stlačení klávesy, kým sa spustí online vyhľadávanie
     (Open Food Facts) — nech nevoláme API pri každom písmene. */
 const SEARCH_DEBOUNCE_MS = 500;
 const MIN_QUERY_LEN = 3;
-
-const initialState: ActionState = { error: null };
 
 /** Predvolené jedlo dňa podľa hodiny — klient väčšinou loguje to, čo práve zjedol. */
 function slotForHour(hour: number): MealSlot {
@@ -36,12 +34,38 @@ function buildFormData(option: PortalFoodOption, slot: MealSlot, grams: number):
   return fd;
 }
 
+/** Rovnaký prepočet ako server (addFoodLogAction) — dočasný riadok pre optimistic UI,
+    kým sa nepotvrdí skutočným ID z DB. */
+function buildOptimisticEntry(option: PortalFoodOption, slot: MealSlot, grams: number): PortalDiaryEntry {
+  const macros = scaleFoodMacros(
+    { kcal_100g: option.kcal100g, protein_100g: option.protein100g, carbs_100g: option.carbs100g, fat_100g: option.fat100g },
+    grams,
+  );
+  return {
+    id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    slot,
+    name: option.name,
+    grams,
+    kcal: macros.kcal,
+    proteinG: macros.proteinG,
+    carbsG: macros.carbsG,
+    fatG: macros.fatG,
+  };
+}
+
 export function AddFoodDiaryEntry({
   planFoods,
   hour,
+  onAdd,
+  pending,
+  error,
 }: {
   planFoods: PortalFoodOption[];
   hour: number;
+  /** Rodič (DiaryView) spúšťa optimistic pridanie + skutočnú server action v tej istej transition. */
+  onAdd: (fd: FormData, entry: PortalDiaryEntry) => void;
+  pending: boolean;
+  error: string | null;
 }) {
   const [open, setOpen] = useState(false);
   // Knižnica potravín (~80 riadkov) sa predtým ťahala pri KAŽDOM načítaní denníka,
@@ -96,18 +120,17 @@ export function AddFoodDiaryEntry({
     return () => clearTimeout(timer);
   }, [onlineQuery, source]);
 
-  const [state, formAction, pending] = useActionState(addFoodLogAction, initialState);
   const wasPending = useRef(false);
 
   // Po úspešnom pridaní: potvrď, vyčisti výber, panel ostáva otvorený (logovanie celého jedla).
   useEffect(() => {
-    if (wasPending.current && !pending && !state.error) {
+    if (wasPending.current && !pending && !error) {
       setJustAdded(attempted);
       setPicked(null);
       setQuery("");
     }
     wasPending.current = pending;
-  }, [pending, state.error, attempted]);
+  }, [pending, error, attempted]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -118,10 +141,11 @@ export function AddFoodDiaryEntry({
   /** Položka z plánu — gramáž aj jedlo dňa sú známe, zaloguj jedným ťukom. */
   function logFromPlan(option: PortalFoodOption) {
     const s = option.plannedSlot ?? slot;
+    const g = option.plannedGrams ?? 100;
     setSlot(s);
     setJustAdded(null);
     setAttempted(option.name);
-    startTransition(() => formAction(buildFormData(option, s, option.plannedGrams ?? 100)));
+    onAdd(buildFormData(option, s, g), buildOptimisticEntry(option, s, g));
   }
 
   /** Položka z knižnice — gramáž nepoznáme, doplň ju pred zápisom. */
@@ -134,8 +158,9 @@ export function AddFoodDiaryEntry({
   function submitPicked() {
     if (!picked) return;
     const g = Number(grams);
+    const grams_ = Number.isFinite(g) ? g : 0;
     setAttempted(picked.name);
-    startTransition(() => formAction(buildFormData(picked, slot, Number.isFinite(g) ? g : 0)));
+    onAdd(buildFormData(picked, slot, grams_), buildOptimisticEntry(picked, slot, grams_));
   }
 
   if (!open) {
@@ -203,7 +228,7 @@ export function AddFoodDiaryEntry({
           <button type="button" className={styles.sourceTab} style={{ marginTop: 8 }} onClick={() => setPicked(null)}>
             ← iné jedlo
           </button>
-          {state.error && <p className={styles.addError}>{state.error}</p>}
+          {error && <p className={styles.addError}>{error}</p>}
         </>
       ) : (
         <>
@@ -317,8 +342,8 @@ export function AddFoodDiaryEntry({
             </ul>
           )}
 
-          {state.error && <p className={styles.addError}>{state.error}</p>}
-          {justAdded && !state.error && (
+          {error && <p className={styles.addError}>{error}</p>}
+          {justAdded && !error && (
             <p style={{ fontSize: 12, color: "var(--moss)", fontWeight: 600 }}>
               {`„${justAdded}“ pridané do denníka.`}
             </p>

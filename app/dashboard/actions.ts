@@ -7,6 +7,12 @@ export interface AddClientState {
   error: string | null;
 }
 
+// feature/optimalizacia (security audit): predtým 4 náhodné znaky (~36^4 =
+// 1.68M kombinácií) — spolu s rate limitom na claim_client_by_invite (0029) je
+// to dostatočné, ale 8 znakov (~36^8 = 2.8 biliardy) robí uhádnutie prakticky
+// nemožné aj bez limitu. Math.random() nie je kryptograficky bezpečný generátor,
+// ale pri tejto entropii (a rate-limitovanom RPC) to na neuhádnuteľný kód stačí —
+// nejde o token na overenie identity, len o spárovací kód medzi trénerom a klientom.
 function generateInviteCode(fullName: string) {
   const initials =
     fullName
@@ -16,7 +22,10 @@ function generateInviteCode(fullName: string) {
       .join("")
       .toUpperCase()
       .slice(0, 3) || "FP";
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const random = (Math.random().toString(36) + Math.random().toString(36))
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 8)
+    .toUpperCase();
   return `${initials}-${random}`;
 }
 

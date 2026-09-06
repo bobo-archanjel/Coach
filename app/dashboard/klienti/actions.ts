@@ -103,6 +103,28 @@ export async function markTrainerChatSeenAction(clientId: string): Promise<void>
   }
 }
 
+/**
+ * Chat polling (feature/optimalizacia) — pozri getClientChatMarkerAction (app/portal/actions.ts)
+ * pre plné vysvetlenie. ID poslednej správy vlákna namiesto plného router.refresh()
+ * pri každom polle — RLS (messages_select, 0008) aj tak obmedzí výsledok len na
+ * vlákna vlastných klientov, explicitná kontrola tu je len rýchly bailout bez session.
+ */
+export async function getTrainerChatMarkerAction(clientId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !clientId) return null;
+  const { data } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 /** Ukončenie spolupráce (nie GDPR výmaz) — dáta ostávajú, dá sa kedykoľvek obnoviť (0020). */
 export async function endClientCooperationAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
-import { sendTrainerMessageAction, markTrainerChatSeenAction } from "../klienti/actions";
+import { sendTrainerMessageAction, markTrainerChatSeenAction, getTrainerChatMarkerAction } from "../klienti/actions";
 import { SpravyView } from "./SpravyView";
 import styles from "../dashboard.module.css";
 
@@ -177,6 +177,7 @@ export default async function SpravyPage({
                       sendAction={sendTrainerMessageAction}
                       extraFields={{ client_id: selectedClientId }}
                       onSeen={markTrainerChatSeenAction.bind(null, selectedClientId)}
+                      checkNewAction={getTrainerChatMarkerAction.bind(null, selectedClientId)}
                       emptyTitle="Zatiaľ žiadne správy"
                       emptyText={`Napíš ${selectedName.split(/\s+/)[0]}ovi prvú správu.`}
                       placeholder={`Správa pre ${selectedName.split(/\s+/)[0]}a…`}

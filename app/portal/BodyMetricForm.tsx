@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useOptimistic, useState, type FormEvent } from "react";
 import { addOwnBodyMetricAction } from "./actions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 import styles from "./portal.module.css";
@@ -46,6 +46,19 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
   const [open, setOpen] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(false);
 
+  // Okamžite zobrazí zapísané meranie v histórii, bez čakania na round-trip +
+  // revalidatePath. Server má na `measured_on` upsert (rovnaký deň = úprava,
+  // nie duplicita) — optimistic reducer robí to isté: nahradí záznam s rovnakým
+  // dátumom, inak pridá nový. Pri chybe/revalidácii React sám zahodí optimistic
+  // vrstvu a vráti sa na skutočné `history` z props.
+  const [optimisticHistory, addOptimisticEntry] = useOptimistic<BodyMetricEntry[], BodyMetricEntry>(
+    history,
+    (curr, entry) => {
+      const rest = curr.filter((e) => e.measuredOn !== entry.measuredOn);
+      return [...rest, entry].sort((a, b) => a.measuredOn.localeCompare(b.measuredOn));
+    },
+  );
+
   // Zavrieť len po úspešnom uložení — pri okamžitom zatvorení pri submite by
   // prípadná chybová hláška zmizla skôr, než ju klient stihne prečítať.
   useEffect(() => {
@@ -54,13 +67,49 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
     setShowMeasurements(false);
   }, [state]);
 
+  function num(fd: FormData, key: string): number | null {
+    const raw = fd.get(key);
+    if (typeof raw !== "string" || raw.trim() === "") return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const entry: BodyMetricEntry = {
+      measuredOn: (fd.get("measured_on") as string) || today,
+      weightKg: num(fd, "weight_kg"),
+      waistCm: num(fd, "waist_cm"),
+      chestCm: num(fd, "chest_cm"),
+      hipsCm: num(fd, "hips_cm"),
+      armCm: num(fd, "arm_cm"),
+      thighCm: num(fd, "thigh_cm"),
+      note: null,
+    };
+    if (
+      entry.weightKg == null &&
+      entry.waistCm == null &&
+      entry.chestCm == null &&
+      entry.hipsCm == null &&
+      entry.armCm == null &&
+      entry.thighCm == null
+    ) {
+      return; // rovnaká validácia ako server — nech optimistic vrstva nepridá prázdny riadok
+    }
+    startTransition(() => {
+      addOptimisticEntry(entry);
+      formAction(fd);
+    });
+  }
+
   // Najnovšie prvé — `history` zo servera je najstaršie prvé (rovnaký tvar ako graf).
-  const recent = useMemo(() => [...history].reverse(), [history]);
+  const recent = useMemo(() => [...optimisticHistory].reverse(), [optimisticHistory]);
 
   return (
     <>
       {open ? (
-        <form action={formAction} className={styles.addPanel}>
+        <form onSubmit={handleSubmit} className={styles.addPanel}>
           <span className={styles.addPanelLabel}>Nové meranie</span>
 
           <div className={styles.metricRow}>

@@ -75,6 +75,10 @@ export default async function AiKoucPage() {
         emptyText="Napríklad: čo mám zjesť, aby som splnil dnešný cieľ? Alebo: aký cvik mi navrhneš namiesto tohto?"
         placeholder="Napíš AI Kočovi…"
         fill
+        // Súkromná konverzácia klient↔AI (0017) — odpoveď príde synchrónne v tej
+        // istej server action, žiadna druhá strana nemôže pridať správu odinakiaľ.
+        // Polling (feature/optimalizacia) by tu bol len zbytočný pravidelný dopyt navyše.
+        pollMs={0}
       />
     </div>
   );

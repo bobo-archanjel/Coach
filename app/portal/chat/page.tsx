@@ -1,7 +1,7 @@
 import { ChatThread } from "../../components/ChatThread";
 import { getPortalChat } from "@/lib/portal/data";
 import type { PortalChatResult } from "@/lib/portal/types";
-import { markClientChatSeenAction, sendClientMessageAction } from "../actions";
+import { getClientChatMarkerAction, markClientChatSeenAction, sendClientMessageAction } from "../actions";
 import { AlertIcon, Notice } from "../Notice";
 import { ProfileIcon } from "../icons";
 import { RetryButton } from "../RetryButton";
@@ -9,7 +9,8 @@ import styles from "../portal.module.css";
 
 /* /portal/chat — obojsmerné vlákno s trénerom (Track "Klient" bod 2).
    coach_notes (dnešný odkaz na karte Dnes) ostáva samostatný.
-   Refresh-based: ChatThread polluje, sendClientMessageAction revaliduje. */
+   Refresh-based: ChatThread polluje (len lacný marker-check, feature/optimalizacia),
+   sendClientMessageAction revaliduje. */
 
 const PREVIEW: PortalChatResult = {
   state: "ok",
@@ -93,6 +94,7 @@ export default async function ChatPage({
         mySide="client"
         sendAction={sendClientMessageAction}
         onSeen={markClientChatSeenAction}
+        checkNewAction={getClientChatMarkerAction}
         emptyTitle={`Napíš ${trainerName}ovi`}
         emptyText="Otázka k plánu, pocit z tréningu, čokoľvek — tréner ti odpovie sem."
         placeholder={`Správa pre ${trainerName}a…`}

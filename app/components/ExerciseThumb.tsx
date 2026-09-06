@@ -28,7 +28,7 @@ export function ExerciseThumb({ src, alt, size = 32 }: { src: string | null; alt
   }
   return (
     <span className={styles.thumb} style={{ width: size, height: size }}>
-      <Image src={src} alt={alt} fill sizes={`${size}px`} className={styles.thumbImg} unoptimized />
+      <Image src={src} alt={alt} fill sizes={`${size}px`} className={styles.thumbImg} />
     </span>
   );
 }

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
+import { isPlanGenRateLimited, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 
 export interface ActionState {
@@ -284,6 +285,13 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
     .eq("trainer_id", user.id)
     .maybeSingle();
   if (!client) return { error: "Klient sa nenašiel." };
+
+  // Kontrola PRED volaním modelu — nulové náklady pri zamietnutí (rovnaký princíp
+  // ako chat/progress summary, lib/ai/rateLimit.ts). Per tréner, nie per klient —
+  // inak by sa dal limit obísť striedaním klientov.
+  if (await isPlanGenRateLimited(supabase, user.id)) {
+    return { error: `Dosiahol/a si dnešný limit AI generovania plánov (${AI_PLAN_GEN_DAILY_LIMIT()}). Skús to zajtra.` };
+  }
 
   const result = await generateWorkoutPlan(supabase, {
     trainerId: user.id,

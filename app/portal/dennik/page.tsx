@@ -3,109 +3,12 @@ import type { PortalDiaryData, PortalDiaryResult } from "@/lib/portal/types";
 import { AlertIcon, Notice } from "../Notice";
 import { ProfileIcon } from "../icons";
 import { RetryButton } from "../RetryButton";
-import styles from "../portal.module.css";
-import { AddFoodDiaryEntry } from "./AddFoodDiaryEntry";
-import { DiaryRow } from "./DiaryRow";
+import { DiaryView } from "./DiaryView";
 
 /* /portal/dennik — food diary. Klient loguje, čo skutočne zjedol, oproti makro cieľu.
    Protikus k /portal/strava (čo MÁ jesť podľa trénera). Dáta: lib/portal/data.ts,
-   migrácia 0007_food_logs.sql. */
-
-/** Podiel naplnenia (0–1) — min. viditeľný pruh, keď je nejaká hodnota. */
-function fillScale(value: number, goal: number): number {
-  const raw = goal > 0 ? Math.min(1, value / goal) : 0;
-  return raw > 0 ? Math.max(raw, 0.02) : 0;
-}
-
-function MacroBar({ label, value, goal }: { label: string; value: number; goal: number | null }) {
-  // Bez cieľa: len label + hodnota, žiadny pruh (inak by 100% coral pôsobilo ako "splnené").
-  if (goal == null) {
-    return (
-      <div className={styles.macroNoGoal}>
-        <span className={styles.macroLabel}>{label}</span>
-        <span className={styles.macroVal}>{Math.round(value)} g</span>
-      </div>
-    );
-  }
-  const over = value > goal;
-  return (
-    <div className={styles.macro}>
-      <span className={styles.macroLabel}>{label}</span>
-      <span className={styles.macroTrack}>
-        <span
-          className={`${styles.macroFill} ${over ? styles.macroOver : ""}`}
-          style={{ transform: `scaleX(${fillScale(value, goal)})` }}
-        />
-      </span>
-      <span className={`${styles.macroVal} ${over ? styles.macroOver : ""}`}>
-        {Math.round(value)} / {Math.round(goal)} g
-      </span>
-    </div>
-  );
-}
-
-function DiaryView({ data }: { data: PortalDiaryData }) {
-  const { goal, groups, totals, planFoods, hour } = data;
-  const kcalGoal = goal?.caloriesTarget ?? null;
-  const kcalOver = kcalGoal != null && totals.kcal > kcalGoal;
-  const hasEntries = groups.length > 0;
-
-  return (
-    <section className={styles.diary} aria-label="Denník jedla">
-      <div className={`${styles.panel} ${styles.diaryHero}`}>
-        <h1 className={styles.diaryHeading}>Dnešný príjem</h1>
-        <div className={styles.kcalLine}>
-          <span className={`${styles.diaryKcal} ${kcalOver ? styles.macroOver : ""}`}>{totals.kcal}</span>
-          <span className={styles.diaryKcalGoal}>
-            {kcalGoal != null ? `/ ${kcalGoal} kcal` : "kcal spolu"}
-          </span>
-        </div>
-        {kcalGoal != null && (
-          <span className={styles.macroTrack} style={{ marginBottom: 14 }}>
-            <span
-              className={`${styles.macroFill} ${kcalOver ? styles.macroOver : ""}`}
-              style={{ transform: `scaleX(${fillScale(totals.kcal, kcalGoal)})` }}
-            />
-          </span>
-        )}
-        <MacroBar label="Bielkoviny" value={totals.proteinG} goal={goal?.proteinG ?? null} />
-        <MacroBar label="Sacharidy" value={totals.carbsG} goal={goal?.carbsG ?? null} />
-        <MacroBar label="Tuky" value={totals.fatG} goal={goal?.fatG ?? null} />
-        {!goal && (
-          <p className={styles.diaryMeta} style={{ marginTop: 10 }}>
-            Tréner ti zatiaľ nenastavil makro cieľ — zobrazuje sa len súčet zjedeného.
-          </p>
-        )}
-      </div>
-
-      {hasEntries ? (
-        groups.map((group) => (
-          <div key={group.slot} className={styles.panel}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <p className={styles.panelLabel} style={{ marginBottom: 0 }}>
-                {group.slotLabel}
-              </p>
-              <span className={styles.chip}>{group.kcal} kcal</span>
-            </div>
-            <ul className={styles.diaryList}>
-              {group.entries.map((entry) => (
-                <DiaryRow key={entry.id} entry={entry} />
-              ))}
-            </ul>
-          </div>
-        ))
-      ) : (
-        <div className={styles.panel}>
-          <div className={styles.sessionQuiet}>
-            <p>Dnes si si ešte nič nezapísal. Pridaj prvé jedlo nižšie.</p>
-          </div>
-        </div>
-      )}
-
-      <AddFoodDiaryEntry planFoods={planFoods} hour={hour} />
-    </section>
-  );
-}
+   migrácia 0007_food_logs.sql. Render (hero + makro pruhy + zoznam + pridávanie)
+   je v DiaryView.tsx — client component s optimistic UI (feature/optimalizacia). */
 
 // ---------- DEV náhľad bez DB ----------
 const PREVIEW: PortalDiaryData = {
