@@ -77,14 +77,13 @@ export function ExerciseDetailModal({
               <div className={styles.gallery}>
                 <div className={styles.imageFrame}>
                   {/* Externé obrázky z Free Exercise DB (raw.githubusercontent.com) — next/image
-                      remotePatterns whitelist v next.config.ts. */}
+                      remotePatterns whitelist + optimalizácia (WebP, resize) v next.config.ts. */}
                   <Image
                     src={images[imgIdx]}
                     alt={`${title} — krok ${imgIdx + 1}`}
                     fill
                     sizes="(max-width: 600px) 90vw, 420px"
                     className={styles.image}
-                    unoptimized
                   />
                 </div>
                 {images.length > 1 && (

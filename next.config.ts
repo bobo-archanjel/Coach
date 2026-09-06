@@ -11,9 +11,13 @@ const nextConfig: NextConfig = {
   },
   images: {
     // Obrázky cvikov z Free Exercise DB (scripts/import-exercises.mjs) — len
-    // externé URL, žiadne kopírovanie do Supabase Storage. Komponenty ich
-    // renderujú s `unoptimized`, remotePatterns je tu len ako defenzívna poistka.
+    // externé URL, žiadne kopírovanie do Supabase Storage (šetrí 2 GB free
+    // tier). Namiesto `unoptimized` necháme Next optimalizátor stiahnuť
+    // originál raz, zresizovať na skutočne potrebnú veľkosť a skonvertovať
+    // na WebP — menší prenos aj menej requestov na GitHub. Tieto obrázky sa
+    // nikdy nemenia (statická knižnica cvikov), takže dlhý cache TTL je bezpečný.
     remotePatterns: [{ protocol: "https", hostname: "raw.githubusercontent.com" }],
+    minimumCacheTTL: 2678400, // 31 dní
   },
 };
 
