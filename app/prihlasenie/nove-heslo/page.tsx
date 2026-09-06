@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoMark } from "../../components/LogoMark";
 import { createClient } from "@/lib/supabase/client";
+import { checkPassword } from "@/lib/passwordStrength";
 import styles from "../auth.module.css";
 
 const ErrorIcon = () => (
@@ -81,8 +82,9 @@ export default function NewPasswordPage() {
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     const confirm = (form.elements.namedItem("confirm") as HTMLInputElement).value;
 
-    if (password.length < 8) {
-      setError("Heslo musí mať aspoň 8 znakov.");
+    const pwCheck = checkPassword(password);
+    if (!pwCheck.ok) {
+      setError(pwCheck.issues[0]);
       return;
     }
     if (password !== confirm) {

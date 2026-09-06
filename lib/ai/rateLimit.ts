@@ -78,3 +78,35 @@ export async function isProgressSummaryRateLimited(supabase: SupabaseClient, cli
 }
 
 export const AI_PROGRESS_SUMMARY_DAILY_LIMIT = progressSummaryDailyLimit;
+
+const DEFAULT_PLAN_GEN_DAILY_LIMIT = 10;
+
+function planGenDailyLimit(): number {
+  const raw = process.env.AI_PLAN_GEN_DAILY_LIMIT_PER_TRAINER;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PLAN_GEN_DAILY_LIMIT;
+}
+
+/**
+ * True = tréner dnes už vyčerpal limit AI generovania tréningových plánov
+ * (feature/optimalizacia — security audit: chat aj progress summary mali
+ * limit, tento nie, hoci ide o drahšie/väčšie volanie modelu). Počíta sa
+ * per TRÉNER, nie per klient — inak by limit obišiel jednoducho tak, že by
+ * generoval postupne rôznym klientom.
+ */
+export async function isPlanGenRateLimited(supabase: SupabaseClient, trainerId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("trainer_id", trainerId)
+    .eq("kind", "plan_gen")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    console.error("isPlanGenRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= planGenDailyLimit();
+}
+
+export const AI_PLAN_GEN_DAILY_LIMIT = planGenDailyLimit;
