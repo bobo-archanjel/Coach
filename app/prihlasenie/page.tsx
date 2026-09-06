@@ -208,7 +208,9 @@ export default function AuthPage() {
             ? "Tento pozývací kód neexistuje. Over si ho u svojho trénera."
             : claimError.message === "already_claimed"
               ? "Tento pozývací kód je už použitý iným účtom."
-              : `Účet je vytvorený, ale spárovanie zlyhalo: ${claimError.message}`
+              : claimError.message === "too_many_attempts"
+                ? "Príliš veľa pokusov o spárovanie. Skús to znova o 15 minút."
+                : `Účet je vytvorený, ale spárovanie zlyhalo: ${claimError.message}`
         );
         return;
       }
