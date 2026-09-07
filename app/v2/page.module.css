@@ -280,6 +280,84 @@
    ShaderBackdrop (Scene3D) je teraz jediný zdroj ambientnej žiary/pohybu na
    pozadí hero aj final sekcie. */
 
+/* ---------- ProgressRail — fixná koľajnica cez celú stránku ---------- */
+.progressRail {
+  display: none;
+  position: fixed;
+  z-index: 50;
+  left: clamp(16px, 2vw, 30px);
+  top: 50%;
+  transform: translateY(-50%);
+  height: 42vh;
+  min-height: 260px;
+  pointer-events: none;
+}
+@media (min-width: 900px) {
+  .progressRail {
+    display: block;
+  }
+}
+.railTrack {
+  position: relative;
+  width: 2px;
+  height: 100%;
+  margin: 0 auto;
+  background: var(--steel-line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.railFill {
+  position: absolute;
+  inset: 0;
+  transform: scaleY(0);
+  transform-origin: top;
+  background: linear-gradient(var(--iron-red-deep), var(--iron-red));
+}
+.railTicks {
+  position: absolute;
+  inset: 0;
+  width: 2px;
+  margin: 0 auto;
+}
+.railTick {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.railDot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.railLabel {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--paper-faint);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+}
+.railTickActive .railDot {
+  background: var(--iron-red);
+  border-color: var(--iron-red);
+  box-shadow: 0 0 8px rgba(224, 64, 42, 0.6);
+}
+.railTickActive .railLabel {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--paper);
+}
+
 /* ---------- HeroShowcase — reálne screenshoty ako parallax karty ---------- */
 /* Nahrádza tretí zamietnutý 3D centerpiece pokus (atlét → barbell →
    kettlebell) — bezpečnejšia, doslovná "dôkaz appky" kompozícia namiesto

@@ -15,6 +15,7 @@ import { FeatureCard } from "./components/FeatureCard";
 import { CustomCursor } from "./components/CustomCursor";
 import { Marquee } from "./components/Marquee";
 import { HeroShowcase } from "./components/HeroShowcase";
+import { ProgressRail } from "./components/ProgressRail";
 import { sceneState } from "./lib/sceneState";
 import styles from "./page.module.css";
 
@@ -290,6 +291,7 @@ export function V2Experience() {
       <CustomCursor />
       <Preloader />
       <Scene3D />
+      <ProgressRail />
       <div ref={rootRef} className={styles.page}>
         <header className={styles.header}>
           <div className={styles.headerInner}>
