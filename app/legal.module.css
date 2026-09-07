@@ -1,0 +1,130 @@
+/* feature/security#2 — zdieľaný štýl pre jednoduché "Read" stránky: 404,
+   ochrana súkromia, obchodné podmienky. Rovnaký vizuálny jazyk ako auth/landing
+   (tmavé pozadie z globals.css, Inter, bar-rule motív), žiadny nový systém. */
+
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 20px clamp(20px, 5vw, 48px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.logoMark {
+  width: 28px;
+  height: 28px;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px clamp(20px, 5vw, 48px) 80px;
+}
+
+.card {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* 404 — vycentrovaný obsah, nie dlhý text ako právne stránky */
+.notFound {
+  margin: auto;
+  text-align: center;
+  max-width: 440px;
+}
+.notFound h1 {
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  margin-bottom: 8px;
+}
+.notFound p {
+  color: var(--paper-dim);
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  margin-bottom: 18px;
+}
+
+.updated {
+  color: var(--paper-faint);
+  font-size: 13px;
+  margin-bottom: 32px;
+}
+
+.draftNotice {
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--paper-dim);
+  margin-bottom: 36px;
+}
+.draftNotice strong {
+  color: var(--plate-yellow);
+}
+
+.legal h1 {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  margin-bottom: 4px;
+}
+.legal h2 {
+  font-size: 1.15rem;
+  margin: 32px 0 10px;
+  color: var(--paper);
+}
+.legal p,
+.legal li {
+  color: var(--paper-dim);
+  line-height: 1.7;
+  font-size: 15px;
+}
+.legal ul {
+  list-style: disc;
+  padding-left: 22px;
+  margin: 8px 0 16px;
+}
+.legal li {
+  margin-bottom: 6px;
+}
+.legal li::marker {
+  color: var(--iron-red);
+}
+.legal a {
+  color: var(--iron-red);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--paper-faint);
+  font-size: 13px;
+  text-decoration: none;
+  margin-top: 40px;
+}
+.backLink:hover {
+  color: var(--paper);
+}

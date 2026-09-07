@@ -619,8 +619,15 @@ export default function AuthPage() {
                       required
                       onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
                     />
-                    Súhlasím so <a href="#" className={styles.link}>zmluvnými podmienkami</a> a{" "}
-                    <a href="#" className={styles.link}>ochranou súkromia</a>.
+                    Súhlasím s{" "}
+                    <a href="/obchodne-podmienky" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                      obchodnými podmienkami
+                    </a>{" "}
+                    a{" "}
+                    <a href="/ochrana-sukromia" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                      ochranou súkromia
+                    </a>
+                    .
                   </label>
                   {registerInvalid.terms && (
                     <span className={styles.fieldError} style={{ marginLeft: 27 }}>

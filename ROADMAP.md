@@ -147,4 +147,10 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 ## Čo je vedome mimo tohto plánu (zatiaľ)
 
 - Fotoprogres (porovnanie fotiek v čase) — vyžaduje Supabase Storage, rieši sa až keď bude potrebné (viď sekcia Progres a analýza, bod 7).
+  **⚠️ Security checklist pre KEDYKOĽVEK sa pridá upload súborov** (feature/security#2 — appka momentálne nemá ŽIADNY upload, toto je len poznámka nech sa nezabudne, keď fotoprogres príde):
+  - **Validovať skutočný obsah súboru**, nie len príponu/`Content-Type` z requestu (magic bytes — appka by nemala veriť, že `.jpg` naozaj je JPEG).
+  - **Whitelist povolených typov** (napr. len JPEG/PNG/WebP), nikdy blacklist.
+  - **Premenovať súbor pri uložení** (napr. na UUID) — nikdy nedôverovať pôvodnému názvu od klienta.
+  - **Ukladať mimo web rootu appky** — Supabase Storage bucket (nie lokálny disk appky), presne ako sa už teraz vyhýbame kopírovaniu obrázkov cvikov na disk appky.
+  - **Zakázať spúšťanie skriptov** v úložisku (Supabase Storage servuje súbory ako statické assety, nie ako spustiteľný kód — over `Content-Disposition`/`Content-Type` hlavičky pri servovaní, nech prehliadač súbor nikdy needne interpretuje ako HTML/JS).
 - Export dát (PDF/CSV plánu, jedálničku, progresu), hromadné akcie nad kalendárom (opakujúce sa termíny), naplánované odoslanie hromadnej správy na neskôr, push notifikácie (PWA) — zvažované, zatiaľ nezačaté.

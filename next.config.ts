@@ -32,14 +32,19 @@ const nextConfig: NextConfig = {
     // 'unsafe-eval' v dev móde CSP zhodí KAŽDÚ stránku hneď pri hydratácii
     // (zistené e2e sadou po prvom nasadení tejto CSP — 25 zlyhaní namiesto
     // obvyklých 8). Produkčný build eval nepoužíva, tam zostáva prísne.
-    const scriptSrc = process.env.NODE_ENV === "production" ? "'self' 'unsafe-inline'" : "'self' 'unsafe-inline' 'unsafe-eval'";
+    // Plausible (feature/security#2) — script aj beacon idú na ich vlastnú
+    // doménu, treba explicitne povoliť v CSP, inak by script-src/connect-src
+    // tichým zamietnutím zablokoval analytics bez akejkoľvek chyby v konzole.
+    const scriptSrc = process.env.NODE_ENV === "production"
+      ? "'self' 'unsafe-inline' https://plausible.io"
+      : "'self' 'unsafe-inline' 'unsafe-eval' https://plausible.io";
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://raw.githubusercontent.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co https://plausible.io",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
