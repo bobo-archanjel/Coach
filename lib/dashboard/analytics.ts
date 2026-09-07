@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { scaleFoodMacros, sumMacros } from "@/lib/meals";
-import { todayInTz, addDays, iso, ON_TRACK_MIN_PCT, ON_TRACK_MAX_PCT } from "./adherence";
+import { todayInTz, addDays, iso, ON_TRACK_MIN_PCT, ON_TRACK_MAX_PCT, sessionCompletionScore } from "./adherence";
 
 // Agregovaný prehľad naprieč klientmi pre `/dashboard/analytika` (feature/progress-analyst).
 // Štyri dotazy naraz (nie N+1 na klienta) — rovnaký vzor ako "meškajúci klienti" v
@@ -13,6 +13,8 @@ export interface ClientAnalyticsRow {
   nutritionPct90: number | null;
   trainingPct30: number;
   trainingPct90: number;
+  /** % splnenia predpisu plánu za 30 dní (feature/analytika-v2, bod 2); null = žiadny tréning sa nedal ohodnotiť */
+  planCompletionPct30: number | null;
   lastTrainedOn: string | null;
   latestWeightKg: number | null;
   /** zmena váhy v rámci posledných 90 dní (posledné − prvé meranie v okne), null bez ≥2 meraní */
@@ -42,7 +44,7 @@ export async function getClientAnalyticsOverview(clientIds: string[]): Promise<M
       .lte("eaten_on", isoDate),
     supabase
       .from("workout_logs")
-      .select("client_id, performed_on")
+      .select("client_id, performed_on, workout_day_id, entries, workout_days(exercises)")
       .in("client_id", clientIds)
       .gte("performed_on", historyStart)
       .lte("performed_on", isoDate),
@@ -73,10 +75,24 @@ export async function getClientAnalyticsOverview(clientIds: string[]): Promise<M
   }
 
   const trainedDatesByClient = new Map<string, Set<string>>();
+  // Skóre splnenia plánu za posledných 30 dní — jedno číslo za každý odcvičený
+  // tréning, ktorý má naviazaný deň s cvikmi (rovnaká metrika ako getTrainingAdherence).
+  const planScores30ByClient = new Map<string, number[]>();
+  const cutoff30 = iso(addDays(base, -29));
   for (const l of logRows ?? []) {
     const set = trainedDatesByClient.get(l.client_id) ?? new Set<string>();
     set.add(l.performed_on);
     trainedDatesByClient.set(l.client_id, set);
+
+    if (l.performed_on >= cutoff30) {
+      const day = (l.workout_days as unknown as { exercises: unknown } | null) ?? null;
+      const score = day ? sessionCompletionScore(day.exercises, l.entries) : null;
+      if (score != null) {
+        const list = planScores30ByClient.get(l.client_id) ?? [];
+        list.push(score);
+        planScores30ByClient.set(l.client_id, list);
+      }
+    }
   }
 
   const metricsByClient = new Map<string, { date: string; weight: number }[]>();
@@ -115,6 +131,12 @@ export async function getClientAnalyticsOverview(clientIds: string[]): Promise<M
 
     const lastTrainedOn = trainedDates.size > 0 ? [...trainedDates].sort().at(-1)! : null;
 
+    const planScores = planScores30ByClient.get(clientId) ?? [];
+    const planCompletionPct30 =
+      planScores.length > 0
+        ? Math.round((planScores.reduce((a, b) => a + b, 0) / planScores.length) * 100)
+        : null;
+
     const metrics = metricsByClient.get(clientId) ?? [];
     const latestWeightKg = metrics.length > 0 ? metrics[metrics.length - 1].weight : null;
     const weightDeltaKg =
@@ -125,6 +147,7 @@ export async function getClientAnalyticsOverview(clientIds: string[]): Promise<M
       nutritionPct90: nutritionPct(90),
       trainingPct30: trainingPct(30),
       trainingPct90: trainingPct(90),
+      planCompletionPct30,
       lastTrainedOn,
       latestWeightKg,
       weightDeltaKg,

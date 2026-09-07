@@ -30,12 +30,22 @@ const PROGRESS_PREVIEW_METRICS = [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) =>
   note: null,
 }));
 const PROGRESS_PREVIEW_STRENGTH = {
-  names: ["Drep s veľkou činkou", "Bench press", "Mŕtvy ťah"],
+  names: ["Bench press", "Drep s veľkou činkou", "Mŕtvy ťah"],
   byExercise: {
+    // Drep + Mŕtvy ťah: posledný záznam je nové maximum → PR badge.
     "Drep s veľkou činkou": [60, 45, 31, 17, 3].map((d, i) => ({ date: daysAgoIso(d), bestWeightKg: 80 + i * 5, reps: 6 })),
-    "Bench press": [58, 44, 30, 16, 2].map((d, i) => ({ date: daysAgoIso(d), bestWeightKg: 60 + i * 3, reps: 5 })),
     "Mŕtvy ťah": [56, 28, 4].map((d, i) => ({ date: daysAgoIso(d), bestWeightKg: 100 + i * 8, reps: 5 })),
+    // Bench press: posledný tréning bol slabší než predtým → žiadny PR badge.
+    "Bench press": [58, 44, 30, 16, 2].map((d, i) => ({
+      date: daysAgoIso(d),
+      bestWeightKg: [60, 66, 72, 75, 70][i],
+      reps: 5,
+    })),
   },
+  prs: [
+    { exercise: "Drep s veľkou činkou", bestWeightKg: 100, reps: 6, achievedOn: daysAgoIso(3) },
+    { exercise: "Mŕtvy ťah", bestWeightKg: 116, reps: 5, achievedOn: daysAgoIso(4) },
+  ],
 };
 export default async function ClientDetailPage({
   params,
@@ -89,10 +99,15 @@ export default async function ClientDetailPage({
                   trainingAdherence={{
                     window30: { pct: empty ? 0 : 73, trainedDays: empty ? 0 : 22, totalDays: 30 },
                     window90: { pct: empty ? 0 : 68, trainedDays: empty ? 0 : 61, totalDays: 90 },
+                    planCompletion: {
+                      window30: { pct: empty ? null : 81, sessionsScored: empty ? 0 : 11 },
+                      window90: { pct: empty ? null : 77, sessionsScored: empty ? 0 : 34 },
+                    },
                   }}
                   bodyMetrics={empty ? [] : PROGRESS_PREVIEW_METRICS}
                   strengthNames={empty ? [] : PROGRESS_PREVIEW_STRENGTH.names}
                   strengthByExercise={empty ? {} : PROGRESS_PREVIEW_STRENGTH.byExercise}
+                  strengthPRs={empty ? [] : PROGRESS_PREVIEW_STRENGTH.prs}
                 />
               ),
             },
@@ -213,6 +228,7 @@ export default async function ClientDetailPage({
           bodyMetrics={bodyMetrics ?? []}
           strengthNames={strengthProgress?.names ?? []}
           strengthByExercise={strengthProgress?.byExercise ?? {}}
+          strengthPRs={strengthProgress?.prs ?? []}
         />
       ),
     },
