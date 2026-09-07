@@ -356,6 +356,21 @@ select.addClientInputSm {
   font-size: 12.5px;
   color: var(--paper-dim);
 }
+/* Výsledok generovania s varovaním (feature/ai-plan-zameranie) — plán je vytvorený,
+   ale zameranie sa nedotiahlo, tak nepresmerúvame rovno doň. */
+.aiPlanResult {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.aiPlanWarning {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--plate-yellow);
+}
 
 /* ---------- meškajúci klienti: alert panel (Track "Tréner" #2, ROADMAP.md) ---------- */
 .alertPanel {

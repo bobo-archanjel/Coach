@@ -20,7 +20,14 @@ export default async function TreningyPage() {
   }
 
   const [{ data: clients }, { count: exerciseCount }, { data: plans }] = await Promise.all([
-    supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
+    // `nutrition_profiles(sex)` — jediná FK z profilu späť na clients je client_id,
+    // takže embed je jednoznačný (na rozdiel od clients↔workout_plans). Sex sa
+    // vypĺňa len pri výpočte makier, takže pri mnohých klientoch bude null.
+    supabase
+      .from("clients")
+      .select("id, full_name, nutrition_profiles(sex)")
+      .eq("trainer_id", user.id)
+      .order("full_name"),
     // Len počet pre hlavičku — celé riadky (~900, aj muscle_group) sa ťahajú až na
     // požiadanie v ExerciseLibraryList (defaultne zbalené), nie pri každom načítaní.
     supabase.from("exercises").select("id", { count: "exact", head: true }),
@@ -34,6 +41,12 @@ export default async function TreningyPage() {
       .order("created_at", { ascending: false }),
   ]);
 
+  const clientList = (clients ?? []).map((c) => {
+    const profile = c.nutrition_profiles as unknown as { sex: "muz" | "zena" } | { sex: "muz" | "zena" }[] | null;
+    const sex = (Array.isArray(profile) ? profile[0]?.sex : profile?.sex) ?? null;
+    return { id: c.id, full_name: c.full_name, sex };
+  });
+
   return (
     <>
       <div className={styles.pageHead}>
@@ -43,12 +56,12 @@ export default async function TreningyPage() {
 
       <div className={styles.card} style={{ marginBottom: 20 }}>
         <h3>Nový plán</h3>
-        <CreatePlanForm clients={clients ?? []} />
+        <CreatePlanForm clients={clientList} />
       </div>
 
       <div className={styles.card} style={{ marginBottom: 20 }}>
         <h3>AI generátor plánu</h3>
-        <AiPlanGeneratorForm clients={clients ?? []} />
+        <AiPlanGeneratorForm clients={clientList} />
       </div>
 
       {plans && plans.length > 0 ? (

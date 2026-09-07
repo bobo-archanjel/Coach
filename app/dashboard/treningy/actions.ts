@@ -6,11 +6,16 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
+import { PLAN_FOCUSES, type PlanFocus } from "@/lib/ai/planTaxonomy";
 import { isPlanGenRateLimited, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 
 export interface ActionState {
   error: string | null;
+  /** AI generátor: keď deterministická kontrola zamerania niečo nedotiahla, plán sa
+   *  vytvorí, ale nepresmerujeme rovno doň — najprv ukážeme trénerovi varovania. */
+  planId?: string | null;
+  warnings?: string[];
 }
 
 const ok: ActionState = { error: null };
@@ -270,6 +275,9 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   const goal = formData.get("goal") as string | null;
   const experience = formData.get("experience") as string | null;
   const equipment = formData.get("equipment") as string | null;
+  // Zameranie je voliteľné — chýbajúce / neznáme = "vyvážene" (bezpečný fallback).
+  const focusRaw = (formData.get("focus") as string | null) ?? "vyvazene";
+  const focus: PlanFocus = PLAN_FOCUSES.includes(focusRaw as PlanFocus) ? (focusRaw as PlanFocus) : "vyvazene";
   const daysPerWeek = Number(formData.get("days_per_week"));
 
   if (!clientId) return { error: "Vyber klienta." };
@@ -300,6 +308,7 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
     daysPerWeek,
     experience: experience as PlanExperience,
     equipment: equipment as PlanEquipment,
+    focus,
   });
   if ("error" in result) return { error: result.error };
 
@@ -335,5 +344,13 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   if (daysErr) return { error: daysErr.message };
 
   revalidatePath("/dashboard/treningy");
+
+  // Keď deterministická kontrola zamerania nechala varovania, plán existuje, ale
+  // rovno doň nepresmerujeme — tréner nech najprv uvidí, čo nebolo dotiahnuté,
+  // a otvorí koncept sám (link vo formulári).
+  if (result.plan.warnings && result.plan.warnings.length > 0) {
+    return { error: null, planId: newPlan.id, warnings: result.plan.warnings };
+  }
+
   redirect(`/dashboard/treningy/${newPlan.id}`);
 }
