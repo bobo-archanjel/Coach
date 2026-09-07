@@ -14,7 +14,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 **Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat/AI Kouč, rotácia dní, história týždňov), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based) + centrálna schránka (`/dashboard/spravy`) a hromadná správa, vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)**, **AI Kouč pre klienta, AI generátor tréningových plánov a AI sumarizácia progresu pre trénera**, **progres a analýza (per klient aj naprieč všetkými)**, **šablóny plánov**, **kalendár (voľné termíny)**, **detail klienta rozdelený na prehľadné sekcie** — viď sekcie nižšie.
 
-**Číslovanie migrácií — ďalšie voľné číslo je `0032`.** (`0030` = `feature/analytika-v2`, `0031` = `feature/ai-plan-zameranie` — obe ešte nezmergované do `dev` v čase písania; ROADMAP konflikt pri mergi je očakávaný, vyrieši ho druhý v poradí.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
+**Číslovanie migrácií — ďalšie voľné číslo je `0032`.** (`0031` je v `dev` — `feature/ai-plan-zameranie` zmergované 2026-09-07; `0030` = `feature/analytika-v2`, ešte nezmergované.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
 | # | Súbor | Track |
 |---|---|---|
@@ -48,7 +48,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0028 | `login_lockout.sql` (`login_attempts` + security definer funkcie na account lockout, `feature/optimalizacia`) | Zdieľané |
 | 0029 | `invite_claim_lockout.sql` (rate limit priamo v `claim_client_by_invite` — pozývací kód sa dal brute-forcovať, `feature/optimalizacia`) | Zdieľané |
 | 0030 | `ai_usage_roster_summary.sql` (rozšírenie `ai_usage.kind` CHECK o `roster_summary`, `feature/analytika-v2` — ešte nezmergované) | Zdieľané |
-| 0031 | `exercise_equipment.sql` (`exercises.equipment text` — štruktúrovaný filter vybavenia pre AI generátor, `feature/ai-plan-zameranie`) | Tréner |
+| 0031 | `exercise_equipment.sql` (`exercises.equipment text` — štruktúrovaný filter vybavenia pre AI generátor, `feature/ai-plan-zameranie`, zmergované 2026-09-07) — **treba manuálne spustiť v Supabase + re-import `scripts/import-exercises.mjs`** | Tréner |
 | 0032+ | — voľné — | dohodnúť |
 
 ---
