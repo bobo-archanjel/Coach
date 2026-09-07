@@ -209,7 +209,10 @@
   padding: clamp(20px, 5vw, 48px);
   max-width: 720px;
   margin: 0 auto;
-  overflow: hidden;
+  /* Pozn.: žiadne overflow:hidden — HeroShowcase (screenshoty vpravo od
+     textového stĺpca) by inak bol orezaný vlastným rodičom (skutočný bug,
+     zistený screenshotom: karty úplne zmizli, kým .hero mal overflow:hidden
+     ešte z čias, keď tu bývali blur-shape kruhy klipované na okraj sekcie). */
 }
 .heroBadge {
   position: relative;
@@ -276,6 +279,113 @@
    druhý, nesynchronizovaný kurzor; nájdené vo vizuálnej spätnej väzbe).
    ShaderBackdrop (Scene3D) je teraz jediný zdroj ambientnej žiary/pohybu na
    pozadí hero aj final sekcie. */
+
+/* ---------- HeroShowcase — reálne screenshoty ako parallax karty ---------- */
+/* Nahrádza tretí zamietnutý 3D centerpiece pokus (atlét → barbell →
+   kettlebell) — bezpečnejšia, doslovná "dôkaz appky" kompozícia namiesto
+   ďalšieho vymysleného 3D objektu. Desktop-only, rovnaká hranica ako
+   predošlá 3D vrstva (Scene3D vypnutá pod 860px). */
+/* .hero je len tak široký ako text (max-width:640px + margin-left offset,
+   viď @media 860px vyššie) — NIE celá šírka viewportu. `right:` by preto
+   kotvilo kartu priamo na okraj textu (skutočný bug, zistený screenshotom:
+   karty prekrývali nadpis). `left:100%` ju posunie AŽ ZA koniec textového
+   stĺpca. Vlastný, vyšší breakpoint (1180px) — pod ním by sa text + karty
+   nezmestili vedľa seba bez kolízie. */
+.heroShowcase {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 100%;
+  margin-left: clamp(24px, 3vw, 64px);
+  transform: translateY(-50%);
+  width: clamp(260px, 24vw, 360px);
+  height: 400px;
+  pointer-events: none;
+}
+@media (min-width: 1180px) {
+  .heroShowcase {
+    display: block;
+  }
+}
+.showcaseCard {
+  position: absolute;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--steel-line);
+  background: var(--ink-2);
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.65);
+}
+.showcaseCard img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cardMain {
+  width: 60%;
+  top: 8%;
+  left: 20%;
+  z-index: 3;
+}
+.cardChat {
+  width: 44%;
+  top: -2%;
+  right: -4%;
+  z-index: 2;
+  opacity: 0.92;
+}
+.cardDennik {
+  width: 44%;
+  bottom: -4%;
+  left: -6%;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.showcaseBadge {
+  position: absolute;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--paper);
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  padding: 7px 13px;
+  box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.6);
+  animation: showcaseFloat 5s ease-in-out infinite;
+}
+.badgeA {
+  top: 2%;
+  right: 8%;
+  border-color: var(--moss);
+  animation-delay: 0s;
+}
+.badgeB {
+  bottom: 8%;
+  right: 0;
+  border-color: var(--plate-yellow);
+  animation-delay: 1.4s;
+}
+@keyframes showcaseFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .showcaseBadge {
+    animation: none;
+  }
+}
 
 /* ---------- ring (RingStat) ---------- */
 .ringWrap {

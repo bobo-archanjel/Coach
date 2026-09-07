@@ -14,6 +14,7 @@ import { MagneticButton } from "./components/MagneticButton";
 import { FeatureCard } from "./components/FeatureCard";
 import { CustomCursor } from "./components/CustomCursor";
 import { Marquee } from "./components/Marquee";
+import { HeroShowcase } from "./components/HeroShowcase";
 import { sceneState } from "./lib/sceneState";
 import styles from "./page.module.css";
 
@@ -308,6 +309,7 @@ export function V2Experience() {
         <main>
           {/* ---------- HERO ---------- */}
           <section className={`${styles.hero} v2-hero`} data-section>
+            <HeroShowcase />
             <div className={styles.heroBadge}>
               <RingStat value={14} label="dní zadarmo" size={110} />
             </div>

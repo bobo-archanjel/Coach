@@ -26,6 +26,16 @@ const FRAGMENT = /* glsl */ `
   uniform vec2 uMouse;
   uniform vec2 uResolution;
 
+  // Štylizovaný EKG impulz — plochá základňa s ostrým výkyvom raz za periódu.
+  // Fitness/vitals motív v pozadí namiesto čisto abstraktnej HUD mriežky
+  // (na výslovnú žiadosť: pozadie má byť spojené s fitnesom, nie len s AI).
+  float ekgPulse(float x) {
+    float p = fract(x);
+    float spike = smoothstep(0.46, 0.5, p) * smoothstep(0.54, 0.5, p);
+    float dip = smoothstep(0.56, 0.6, p) * smoothstep(0.68, 0.6, p) * 0.35;
+    return spike - dip;
+  }
+
   void main() {
     vec2 uv = vUv;
     vec3 ink = vec3(0.0706, 0.0667, 0.0627);
@@ -56,6 +66,15 @@ const FRAGMENT = /* glsl */ `
     // Jemný scanline (CRT/HUD pocit) + plate-yellow prímes.
     float scan = sin(uv.y * uResolution.y * 0.85 - uTime * 36.0) * 0.5 + 0.5;
     col += yellow * scan * 0.007;
+
+    // EKG "sweep" — tenký pulzujúci pás putujúci zhora nadol, s výkyvom
+    // pripomínajúcim tep srdca. Fitness/vitals motív, nie dominantný prvok.
+    float bandY = fract(uTime * 0.045);
+    float wave = ekgPulse(uv.x * 5.0 + uTime * 0.3);
+    float lineY = bandY + wave * 0.018;
+    float band = smoothstep(0.006, 0.0, abs(uv.y - lineY));
+    float edgeFade = smoothstep(0.0, 0.06, bandY) * smoothstep(1.0, 0.94, bandY);
+    col += iron * band * 0.55 * edgeFade;
 
     // Vinetácia — stred jasnejší, okraje potlačené.
     float vig = smoothstep(0.95, 0.2, distance(uv, vec2(0.5)));
