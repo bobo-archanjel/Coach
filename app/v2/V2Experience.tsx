@@ -15,6 +15,7 @@ import { FeatureCard } from "./components/FeatureCard";
 import { CustomCursor } from "./components/CustomCursor";
 import { Marquee } from "./components/Marquee";
 import { HeroShowcase } from "./components/HeroShowcase";
+import { HeroExtras } from "./components/HeroExtras";
 import { ProgressRail } from "./components/ProgressRail";
 import { sceneState } from "./lib/sceneState";
 import styles from "./page.module.css";
@@ -312,6 +313,7 @@ export function V2Experience() {
           {/* ---------- HERO ---------- */}
           <section className={`${styles.hero} v2-hero`} data-section>
             <HeroShowcase />
+            <HeroExtras />
             <div className={styles.heroBadge}>
               <RingStat value={14} label="dní zadarmo" size={110} />
             </div>

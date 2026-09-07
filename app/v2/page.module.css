@@ -358,6 +358,119 @@
   color: var(--paper);
 }
 
+/* ---------- HeroExtras — vitals monitor + rep counter, voľný priestor vpravo ---------- */
+/* Dopĺňa HeroShowcase (nemení ho) — vlastný, vyšší breakpoint (1400px), nech
+   nekonkuruje kartám v priestore, kde sotva sedia ony samotné. */
+.heroExtras {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  left: 100%;
+  margin-left: 460px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 200px;
+  height: 420px;
+  pointer-events: none;
+}
+@media (min-width: 1400px) {
+  .heroExtras {
+    display: block;
+  }
+}
+.extraCard {
+  position: absolute;
+  width: 190px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+}
+.vitalsCard {
+  top: 0;
+  left: 0;
+}
+.repCard {
+  bottom: 0;
+  left: 10px;
+}
+.vitalsHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--paper-faint);
+  margin-bottom: 8px;
+}
+.vitalsDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--moss);
+  box-shadow: 0 0 6px rgba(76, 122, 94, 0.7);
+  animation: vitalsPulse 1.6s ease-in-out infinite;
+}
+@keyframes vitalsPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.ekgSvg {
+  width: 100%;
+  height: 32px;
+  display: block;
+  margin-bottom: 6px;
+}
+.vitalsBpm {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--paper);
+}
+.vitalsBpm small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  margin-left: 4px;
+}
+.repLabel {
+  display: block;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--paper-faint);
+  margin-bottom: 10px;
+}
+.dumbbellIcon {
+  margin-bottom: 10px;
+}
+.repNum {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--iron-red);
+  font-variant-numeric: tabular-nums;
+}
+.repNum small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--paper-dim);
+  margin-left: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vitalsDot {
+    animation: none;
+  }
+}
+
 /* ---------- HeroShowcase — reálne screenshoty ako parallax karty ---------- */
 /* Nahrádza tretí zamietnutý 3D centerpiece pokus (atlét → barbell →
    kettlebell) — bezpečnejšia, doslovná "dôkaz appky" kompozícia namiesto
