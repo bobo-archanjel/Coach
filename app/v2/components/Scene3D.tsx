@@ -4,19 +4,18 @@ import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Athlete } from "./Athlete";
 import { ParticleField } from "./ParticleField";
+import { ShaderBackdrop } from "./ShaderBackdrop";
 import { sceneState } from "../lib/sceneState";
 import styles from "../page.module.css";
 
 /**
- * Jedna trvalá `fixed` Canvas vrstva za celým obsahom — mocap atlét (coral
- * wireframe) + ambientné particle pole, riadené `sceneState` (nastavuje ho
- * GSAP ScrollTrigger vo V2Experience, nie React state — scéna číta 60×/s,
- * re-render by ju len sekal). Vypnutá úplne na mobile a pri
+ * Jedna trvalá `fixed` Canvas vrstva za celým obsahom — vlastný GLSL HUD-grid
+ * shader (ShaderBackdrop, vizuálny podpis rebuildu #3, "rok 3500"), mocap
+ * atlét (coral wireframe) a ambientné particle pole, riadené `sceneState`
+ * (nastavuje ho GSAP ScrollTrigger vo V2Experience, nie React state — scéna
+ * číta 60×/s, re-render by ju len sekal). Vypnutá úplne na mobile a pri
  * `prefers-reduced-motion` — DOM/GSAP scrollytelling tam beží ďalej bez
- * WebGL nákladu. 3D telefón bol z tejto vrstvy odstránený v tomto rebuilde —
- * appka sa teraz ukazuje cez reálne screenshoty priamo v DOM (feature karty,
- * "ako to funguje" galéria), nie cez ďalší 3D objekt v tej istej scéne;
- * menej vizuálneho súboja o pozornosť s atlétom.
+ * WebGL nákladu.
  */
 export function Scene3D() {
   const [enabled, setEnabled] = useState(false);
@@ -42,6 +41,7 @@ export function Scene3D() {
         <ambientLight intensity={0.7} />
         <directionalLight position={[3, 4, 5]} intensity={1.3} color="#f3efe6" />
         <pointLight position={[-3, -2, 2]} intensity={0.4} color="#e0402a" />
+        <ShaderBackdrop />
         <Suspense fallback={null}>
           <Athlete position={[1.9, -1.15, 0]} />
           <ParticleField />

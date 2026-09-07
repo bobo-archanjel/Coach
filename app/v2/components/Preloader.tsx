@@ -41,6 +41,7 @@ export function Preloader() {
     tl.set(ringRef.current, { strokeDashoffset: CIRC })
       .to(ringRef.current, { strokeDashoffset: 0, duration: 1.0, ease: "power2.inOut" })
       .to(`.${styles.preloaderNum}`, { opacity: 1, duration: 0.2 }, "<")
+      .to(`.${styles.preloaderBoot}`, { opacity: 1, duration: 0.2 }, "<0.1")
       .to(ref.current, { yPercent: -100, duration: 0.6, ease: "power3.inOut" }, "+=0.15");
 
     return () => {
@@ -69,6 +70,7 @@ export function Preloader() {
         />
       </svg>
       <span className={styles.preloaderNum}>FitPilot</span>
+      <span className={styles.preloaderBoot}>SYSTEM READY_</span>
     </div>
   );
 }
