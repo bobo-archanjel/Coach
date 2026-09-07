@@ -365,16 +365,19 @@ export async function generateWorkoutPlan(
       return { error: "AI nevrátila návrh plánu. Skús to prosím znova." };
     }
 
-    const raw = toolUse.input as { days: { name: string; exercises: { exercise_id: string; sets: number; reps: string; rest_seconds: number }[] }[] };
+    const raw = toolUse.input as { days?: { name?: string; exercises?: { exercise_id: string; sets: number; reps: string; rest_seconds: number }[] }[] };
+    if (!Array.isArray(raw.days) || raw.days.length === 0) {
+      return { error: "AI vrátila návrh v neočakávanom tvare. Skús to prosím znova." };
+    }
 
     const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
 
     let days: GeneratedDay[] = raw.days
       .map((d) => ({
-        name: d.name,
+        name: d.name ?? "Tréningový deň",
         // Filter, nie len fallback — cvik s vymysleným ID by v builderi nemal
         // obrázok/inštrukcie a klient by ho nevedel dohľadať.
-        exercises: d.exercises
+        exercises: (Array.isArray(d.exercises) ? d.exercises : [])
           .filter((e) => candidateIds.has(e.exercise_id))
           .map((e) => ({
             exerciseId: e.exercise_id,
@@ -405,7 +408,11 @@ export async function generateWorkoutPlan(
 
     return { plan: { days, warnings: warnings.length > 0 ? warnings : undefined } };
   } catch (err) {
-    console.error("generateWorkoutPlan (Claude call):", err instanceof Error ? err.message : err);
-    return { error: "Nastala chyba pri generovaní plánu. Skús to prosím znova." };
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("generateWorkoutPlan (Claude call):", detail, err);
+    // V deve ukáž skutočnú príčinu priamo v UI — generické „skús znova" pri
+    // internom nástroji trénera nič nerieši.
+    const suffix = process.env.NODE_ENV !== "production" ? ` (detail: ${detail})` : "";
+    return { error: `Nastala chyba pri generovaní plánu. Skús to prosím znova.${suffix}` };
   }
 }
