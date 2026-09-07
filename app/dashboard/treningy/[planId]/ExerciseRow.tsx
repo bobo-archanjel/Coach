@@ -31,16 +31,30 @@ const TrashIcon = () => (
   </svg>
 );
 
+const ChevronIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+    <path d="M2.5 7.5 6 4l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export function ExerciseRow({
   entry,
   dayId,
   planId,
   library,
+  isFirst = false,
+  isLast = false,
+  reorderPending = false,
+  onMove,
 }: {
   entry: WorkoutExerciseEntry;
   dayId: string;
   planId: string;
   library: ExerciseLibraryRow[];
+  isFirst?: boolean;
+  isLast?: boolean;
+  reorderPending?: boolean;
+  onMove?: (direction: "up" | "down") => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState(updateExerciseEntryAction, initialState);
@@ -126,6 +140,28 @@ export function ExerciseRow({
         {entry.rest_seconds ? `pauza ${entry.rest_seconds}s` : ""}
       </span>
       <div className={styles.rowActions}>
+        {onMove && (
+          <div className={styles.reorderBtns}>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              onClick={() => onMove("up")}
+              disabled={isFirst || reorderPending}
+              aria-label="Posunúť cvik vyššie"
+            >
+              <ChevronIcon />
+            </button>
+            <button
+              type="button"
+              className={`${styles.iconBtn} ${styles.reorderDown}`}
+              onClick={() => onMove("down")}
+              disabled={isLast || reorderPending}
+              aria-label="Posunúť cvik nižšie"
+            >
+              <ChevronIcon />
+            </button>
+          </div>
+        )}
         <button type="button" className={styles.iconBtn} onClick={() => setEditing(true)} aria-label="Upraviť cvik">
           <EditIcon />
         </button>
