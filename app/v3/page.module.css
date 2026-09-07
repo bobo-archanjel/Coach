@@ -1,0 +1,458 @@
+/* /v3 — Apple-principles landing variant (feature/front-end).
+   Audit summary (v1 = produkčný landing, v2 = HUD/command-console variant)
+   proti Apple HIG / apple.com marketing pages:
+   - Clarity: v1 aj v2 majú veľa simultánnych prvkov na obrazovku (ikony+
+     tagy+vizualizácie v jednom riadku; v2 navyše HUD rámčeky, ticker, custom
+     kurzor). Apple drží 1 jasný fokus na viewport.
+   - Deference: v2 necháva efekty (shader mriežka, EKG, custom kurzor)
+     súťažiť s obsahom. Apple necháva UI/efekty ustúpiť produktu — veľký
+     screenshot, minimum dekorácie okolo.
+   - Depth: Apple používa depth cez sticky/pinned scroll reveal (obraz drží
+     miesto, text sa mení okolo neho), nie cez 3D vrstvy alebo HUD paralax.
+   - Typografia: v1/v2 majú strednú veľkosť nadpisov (~2-3.4rem). Apple ide
+     výrazne väčšie (4-7rem), s veľmi tesným tracking a vysokým kontrastom.
+   - Farba: v1/v2 používajú farbu pomerne voľne (coral/amber/moss naraz).
+     Apple drží takmer monochromatickú stránku, farba len na 1 akčnom mieste.
+   - Motion: v1 má jednoduchý reveal-on-scroll, v2 má husté simultánne
+     techniky (pin/scrub/parallax/cursor/marquee). Apple motion je jemný,
+     "servírovaný" jeden efekt na sekciu, nikdy viac naraz.
+   Táto varianta preto: veľká typografia, veľkorysý priestor, takmer žiadna
+   dekorácia, jeden sticky "scrollytelling" reveal (CSS position:sticky,
+   žiadny GSAP pin), `motion` (Framer Motion nástupca) pre jemné whileInView
+   fade/slide, farba len na CTA a jednom accent slove na sekciu. */
+
+.page {
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: var(--ink);
+}
+
+/* ---------- nav — trvalé sklenené pozadie (Apple signature) ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(20px, 5vw, 64px);
+  background: rgba(18, 17, 16, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(56, 53, 47, 0.6);
+}
+.navBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--paper);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.navLogo {
+  width: 22px;
+  height: 22px;
+}
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.navPreview {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+
+/* ---------- spoločné ---------- */
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.section {
+  padding: clamp(72px, 14vh, 160px) 0;
+}
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--paper-faint);
+  margin-bottom: 14px;
+}
+.accent {
+  color: var(--iron-red);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 30px;
+  border-radius: 980px; /* Apple pill */
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 17px;
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s ease;
+}
+.btn:hover {
+  background: var(--iron-red);
+  transform: scale(1.03);
+}
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+}
+.btnGhost:hover {
+  background: var(--ink-2);
+  border-color: var(--paper-faint);
+}
+
+/* ---------- HERO ---------- */
+.hero {
+  text-align: center;
+  padding: clamp(90px, 16vh, 170px) 0 clamp(40px, 8vh, 80px);
+}
+.heroKicker {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  letter-spacing: 0.02em;
+  margin-bottom: 22px;
+}
+.heroHeadline {
+  font-size: clamp(2.6rem, 7.2vw, 6.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  max-width: 15ch;
+  margin: 0 auto 28px;
+}
+.heroSub {
+  font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+  color: var(--paper-dim);
+  max-width: 46ch;
+  margin: 0 auto 40px;
+  line-height: 1.5;
+}
+.heroActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.heroShotWrap {
+  margin-top: clamp(56px, 10vh, 100px);
+  display: flex;
+  justify-content: center;
+  padding: 0 clamp(20px, 6vw, 96px);
+}
+.heroShot {
+  width: 100%;
+  max-width: 920px;
+  border-radius: 20px;
+  border: 1px solid var(--steel-line);
+  box-shadow: var(--shadow-2);
+  display: block;
+}
+
+/* ---------- trust bar (honest social proof — no fabricated logos) ---------- */
+.trustBar {
+  padding: 28px 0;
+  border-top: 1px solid var(--steel-line);
+  border-bottom: 1px solid var(--steel-line);
+}
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 28px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--paper-dim);
+  text-align: center;
+}
+.trustDot {
+  color: var(--steel);
+  font-size: 12px;
+}
+
+/* ---------- PROBLEM ---------- */
+.problem {
+  text-align: center;
+}
+.problemStatement {
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  max-width: 20ch;
+  margin: 0 auto 28px;
+  color: var(--paper-dim);
+}
+.problemStatement strong {
+  color: var(--paper);
+  font-weight: 700;
+}
+.problemList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.problemChip {
+  font-size: 13.5px;
+  color: var(--paper-faint);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  padding: 7px 16px;
+  text-decoration: line-through;
+  text-decoration-color: var(--iron-red-dim);
+}
+
+/* ---------- SOLUTION — sticky scrollytelling (CSS position:sticky) ---------- */
+.solutionHead {
+  text-align: center;
+  margin-bottom: clamp(40px, 8vh, 80px);
+}
+.solutionHeadline {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  max-width: 18ch;
+  margin: 0 auto;
+}
+.solutionGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+}
+@media (min-width: 960px) {
+  .solutionGrid {
+    grid-template-columns: 1fr 1.1fr;
+    gap: 0;
+    align-items: start;
+  }
+}
+.solutionSticky {
+  position: relative;
+}
+@media (min-width: 960px) {
+  .solutionSticky {
+    position: sticky;
+    top: 110px;
+    height: fit-content;
+  }
+}
+.solutionShot {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  display: block;
+  border-radius: 18px;
+  border: 1px solid var(--steel-line);
+  box-shadow: var(--shadow-2);
+}
+.solutionSteps {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(56px, 14vh, 140px);
+  padding-top: 20px;
+}
+.solutionStep {
+  max-width: 42ch;
+}
+.solutionStepNum {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--iron-red);
+  margin-bottom: 12px;
+}
+.solutionStepTitle {
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+.solutionStepCopy {
+  color: var(--paper-dim);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ---------- HOW IT WORKS ---------- */
+.howGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 36px;
+  margin-top: 12px;
+}
+@media (min-width: 720px) {
+  .howGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.howStep {
+  text-align: left;
+}
+.howNum {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--iron-red);
+  margin-bottom: 14px;
+}
+.howTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.howCopy {
+  color: var(--paper-dim);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.sectionHeadCenter {
+  text-align: center;
+  margin-bottom: clamp(36px, 6vh, 64px);
+}
+.sectionHeadline {
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  max-width: 18ch;
+  margin: 0 auto;
+}
+
+/* ---------- FAQ ---------- */
+.faqList {
+  max-width: 760px;
+  margin: 0 auto;
+  border-top: 1px solid var(--steel-line);
+}
+.faqItem {
+  border-bottom: 1px solid var(--steel-line);
+}
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 24px 4px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--paper);
+  text-align: left;
+  font-family: inherit;
+}
+.faqIcon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper-faint);
+}
+.faqAnswerWrap {
+  overflow: hidden;
+}
+.faqAnswer {
+  padding: 0 4px 24px;
+  color: var(--paper-dim);
+  font-size: 15.5px;
+  line-height: 1.65;
+  max-width: 62ch;
+}
+
+/* ---------- PRICING (calm, no HUD) ---------- */
+.tierGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 760px) {
+  .tierGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.tierCard {
+  border: 1px solid var(--steel-line);
+  border-radius: 20px;
+  padding: 32px 28px;
+  background: var(--ink-2);
+}
+.tierFeatured {
+  border-color: var(--iron-red);
+  background: var(--ink-3);
+}
+.tierName {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  display: block;
+}
+.tierMeta {
+  color: var(--paper-faint);
+  font-size: 13px;
+  display: block;
+  margin-bottom: 20px;
+}
+.tierPrice {
+  font-size: 2.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: block;
+}
+.tierPer {
+  color: var(--paper-dim);
+  font-size: 13px;
+}
+.pricingNote {
+  text-align: center;
+  font-size: 13px;
+  color: var(--paper-faint);
+  margin-top: -8px;
+  margin-bottom: 36px;
+}
+
+/* ---------- FINAL CTA ---------- */
+.finalCta {
+  text-align: center;
+  padding: clamp(90px, 16vh, 170px) 0;
+}
+.finalHeadline {
+  font-size: clamp(2.2rem, 5.2vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  max-width: 16ch;
+  margin: 0 auto 32px;
+}
+
+/* ---------- footer ---------- */
+.footer {
+  border-top: 1px solid var(--steel-line);
+  padding: 32px clamp(20px, 5vw, 64px) calc(32px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.footer p {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.footer a {
+  color: var(--iron-red);
+}
