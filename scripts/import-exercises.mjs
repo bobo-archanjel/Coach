@@ -90,13 +90,21 @@ async function main() {
   const rows = list.map((ex) => {
     const imageUrls = Array.isArray(ex.images) ? ex.images.map((rel) => `${RAW_BASE}/${rel}`) : [];
     const primary = Array.isArray(ex.primaryMuscles) && ex.primaryMuscles.length > 0 ? ex.primaryMuscles[0] : null;
+    // ex.equipment je skalárny reťazec (barbell/dumbbell/body only/cable/machine/…),
+    // nikdy pole — overené proti dist/exercises.json. Ide do vlastného stĺpca
+    // `equipment` (migrácia 0031), aby ho AI generátor plánu vedel filtrovať
+    // štruktúrovane (lib/ai/planTaxonomy.ts), nie hádaním z názvu cviku. Predtým
+    // sa zahadzovalo ako voľný text do `description` ("Vybavenie: barbell"), kde
+    // ho nič nečítalo — description už nenapĺňame.
+    const equipment = typeof ex.equipment === "string" && ex.equipment.trim() ? ex.equipment.trim() : null;
     return {
       trainer_id: null, // globálna knižnica, viditeľná všetkým trénerom (exercises_select_global_or_own)
       external_id: ex.id,
       name: ex.name,
       name_sk: nameSkMap[ex.name] ?? null,
       muscle_group: primary ? (MUSCLE_SK[primary] ?? primary) : null,
-      description: Array.isArray(ex.equipment) ? null : ex.equipment ? `Vybavenie: ${ex.equipment}` : null,
+      equipment,
+      description: null,
       instructions: Array.isArray(ex.instructions) ? ex.instructions : [],
       image_url: imageUrls,
     };

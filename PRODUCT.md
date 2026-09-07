@@ -34,7 +34,7 @@ Prvý skutočne AI-native, natívne slovenský/český nástroj pre fitness tré
 
 - Dve role s RLS: `trainer`, `client`.
 - Core moduly: správa klientov, tréningový builder (série/opakovania/záťaž/tempo/pauzy), výživa/makrá (BMR/TDEE výpočet, food diary), komunikácia (chat, notifikácie), progres tracking (grafy, foto porovnania), business vrstva (kalendár, fakturácia cez Stripe, multi-klient dashboard).
-- AI moduly: kontextový chat pre klienta (s eskaláciou na trénera pri zdravotných témach, nediagnostikuje), AI asistent pre trénera (generovanie plánov/jedálničkov, sumarizácia progresu, upozornenia na nízku adherenciu).
+- AI moduly: kontextový chat pre klienta (s eskaláciou na trénera pri zdravotných témach, nediagnostikuje), AI asistent pre trénera (generovanie plánov — s ohľadom na cieľ, skúsenosť, dostupné vybavenie a zvolené zameranie podľa pohlavia — / jedálničkov, sumarizácia progresu, upozornenia na nízku adherenciu).
 - MVP rozsah: klienti + tréningový builder + zaraďovanie plánov + food/makro tracking + základný dashboard + AI chat (klient) + AI generátor plánov (tréner). Chat tréner↔klient, notifikácie, pokročilé reporty a platby prichádzajú v neskorších fázach.
 - Monetizácia: SaaS predplatné trénera (nie priama platba od klientov), AI funkcie ako prémiová úroveň s limitom requestov, voliteľne tiered/per-klient pricing, white-label ako neskorší upsell.
 

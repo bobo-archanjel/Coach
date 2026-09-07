@@ -6,11 +6,16 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
+import { PLAN_FOCUSES, type PlanFocus } from "@/lib/ai/planTaxonomy";
 import { isPlanGenRateLimited, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 
 export interface ActionState {
   error: string | null;
+  /** AI generátor: keď deterministická kontrola zamerania niečo nedotiahla, plán sa
+   *  vytvorí, ale nepresmerujeme rovno doň — najprv ukážeme trénerovi varovania. */
+  planId?: string | null;
+  warnings?: string[];
 }
 
 const ok: ActionState = { error: null };
@@ -204,6 +209,43 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
   return ok;
 }
 
+/**
+ * Presun cviku v poradí dňa o jednu pozíciu (hore/dole). Volá sa priamo (nie
+ * cez `<form>`) z PlanBuilderu, ktorý si robí optimistický presun lokálne — táto
+ * akcia len uloží nové poradie do `workout_days.exercises` (jsonb) a zreviduje.
+ * Na okraji zoznamu je no-op (vráti `ok`, žiadny zápis). RLS
+ * (`workout_days_update_own_trainer`) drží, že deň patrí prihlásenému trénerovi.
+ */
+export async function moveExerciseEntryAction(input: {
+  planId: string;
+  dayId: string;
+  entryId: string;
+  direction: "up" | "down";
+}): Promise<ActionState> {
+  const { planId, dayId, entryId, direction } = input;
+  if (!planId || !dayId || !entryId) return { error: "Chýba identifikátor záznamu." };
+
+  const supabase = await createClient();
+  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  if (!day) return { error: "Deň sa nenašiel." };
+
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const idx = current.findIndex((e) => e.entry_id === entryId);
+  if (idx < 0) return { error: "Cvik sa nenašiel." };
+
+  const target = direction === "up" ? idx - 1 : idx + 1;
+  if (target < 0 || target >= current.length) return ok; // už na kraji — nič nemeníme
+
+  const updated = [...current];
+  [updated[idx], updated[target]] = [updated[target], updated[idx]];
+
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
 export async function removeExerciseEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
 
@@ -224,6 +266,37 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
+}
+
+/**
+ * Zmazanie plánu — len kým je koncept (`published: false`). Publikovaný plán
+ * klient vidí v portáli, môže mať naň naviazané `workout_logs` — ten sa takto
+ * nezmaže (tréner ho musí najprv vrátiť do konceptu). `workout_days` idú kaskádou
+ * (FK `on delete cascade`, 0002).
+ */
+export async function deletePlanAction(planId: string): Promise<ActionState> {
+  if (!planId) return { error: "Chýba ID plánu." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const { data: plan } = await supabase
+    .from("workout_plans")
+    .select("id, published")
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .maybeSingle();
+  if (!plan) return { error: "Plán sa nenašiel." };
+  if (plan.published) return { error: "Publikovaný plán sa takto nedá zmazať — najprv ho vráť do konceptu." };
+
+  const { error } = await supabase.from("workout_plans").delete().eq("id", planId).eq("trainer_id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/treningy");
+  redirect("/dashboard/treningy");
 }
 
 export async function addCustomExerciseAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -270,6 +343,9 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   const goal = formData.get("goal") as string | null;
   const experience = formData.get("experience") as string | null;
   const equipment = formData.get("equipment") as string | null;
+  // Zameranie je voliteľné — chýbajúce / neznáme = "vyvážene" (bezpečný fallback).
+  const focusRaw = (formData.get("focus") as string | null) ?? "vyvazene";
+  const focus: PlanFocus = PLAN_FOCUSES.includes(focusRaw as PlanFocus) ? (focusRaw as PlanFocus) : "vyvazene";
   const daysPerWeek = Number(formData.get("days_per_week"));
 
   if (!clientId) return { error: "Vyber klienta." };
@@ -300,6 +376,7 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
     daysPerWeek,
     experience: experience as PlanExperience,
     equipment: equipment as PlanEquipment,
+    focus,
   });
   if ("error" in result) return { error: result.error };
 
@@ -335,5 +412,13 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   if (daysErr) return { error: daysErr.message };
 
   revalidatePath("/dashboard/treningy");
+
+  // Keď deterministická kontrola zamerania nechala varovania, plán existuje, ale
+  // rovno doň nepresmerujeme — tréner nech najprv uvidí, čo nebolo dotiahnuté,
+  // a otvorí koncept sám (link vo formulári).
+  if (result.plan.warnings && result.plan.warnings.length > 0) {
+    return { error: null, planId: newPlan.id, warnings: result.plan.warnings };
+  }
+
   redirect(`/dashboard/treningy/${newPlan.id}`);
 }
