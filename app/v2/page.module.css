@@ -1,6 +1,9 @@
-/* /v2 — "wearable recap" landing variant (feature/security#2). Rovnaká
-   paleta ako hlavný landing (globals.css tokeny), iná kompozícia: readout
-   dlaždice, HR-zóny, prstence namiesto kariet/ikonových dlaždíc. */
+/* /v2 — plne naložený scrollytelling landing (feature/security#2, rebuild #2).
+   Rovnaká paleta ako produkčný landing (globals.css tokeny). Kompozícia:
+   pinned hero, staggered feature grid s cursor-tilt, pinned horizontálna
+   "ako to funguje" galéria, pinned scrubovaný AI chat, jednoduchý cenník,
+   parallax final CTA. Detaily pozri v direction-contract komentári vo
+   V2Experience.tsx. */
 
 .page {
   position: relative;
@@ -45,15 +48,10 @@
   opacity: 0;
 }
 
-/* ---------- hero badge (malý prstenec, nie centerpiece) ---------- */
-.heroBadge {
-  margin-bottom: 24px;
-  opacity: 0;
-  transform: scale(0.85);
-}
-
 /* ---------- header ---------- */
 .header {
+  position: relative;
+  z-index: 2;
   padding: 18px clamp(20px, 5vw, 48px);
   border-bottom: 1px solid var(--steel-line);
 }
@@ -61,7 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1100px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 .brand {
@@ -88,8 +86,9 @@
   padding: 5px 12px;
 }
 
-/* ---------- hero (obrátené: prstenec hore, headline pod ním) ---------- */
+/* ---------- hero ---------- */
 .hero {
+  position: relative;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -99,26 +98,20 @@
   padding: clamp(20px, 5vw, 48px);
   max-width: 720px;
   margin: 0 auto;
+  overflow: hidden;
 }
-/* Nad 860px má 3D atlét vlastnú zónu vpravo (Scene3D/Athlete x-offset) — hero
-   text sa preto posunie doľava, nech sa nikdy nekryjú (predtým centrovaný
-   nadpis priamo cez telo postavy, nečitateľné). Pod 860px je 3D scéna vypnutá
-   (adaptívna stratégia), takže centrovaný text zostáva bezpečný. */
-@media (min-width: 860px) {
-  .hero {
-    align-items: flex-start;
-    text-align: left;
-    max-width: 620px;
-    margin: 0;
-    margin-left: clamp(32px, 7vw, 96px);
-  }
-  .heroCta {
-    align-self: flex-start;
-  }
+.heroBadge {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 24px;
+  opacity: 0;
+  transform: scale(0.85);
 }
 .heroHeadline {
-  font-size: clamp(2rem, 5.5vw, 3.2rem);
-  line-height: 1.1;
+  position: relative;
+  z-index: 1;
+  font-size: clamp(2.1rem, 5.8vw, 3.4rem);
+  line-height: 1.08;
   letter-spacing: -0.025em;
   margin-bottom: 18px;
   overflow: hidden; /* maskuje SplitText char-reveal cez okraj riadku */
@@ -127,6 +120,8 @@
   color: var(--iron-red);
 }
 .heroSub {
+  position: relative;
+  z-index: 1;
   color: var(--paper-dim);
   font-size: clamp(1rem, 2vw, 1.15rem);
   max-width: 52ch;
@@ -135,9 +130,67 @@
   transform: translateY(16px);
 }
 .heroCta {
+  position: relative;
+  z-index: 1;
   align-self: center;
   opacity: 0;
   transform: translateY(16px);
+  display: inline-flex;
+}
+/* Nad 860px má 3D atlét vlastnú zónu vpravo (Scene3D/Athlete x-offset) — hero
+   text sa preto posunie doľava, nech sa nikdy nekryjú. Pod 860px je 3D scéna
+   vypnutá (adaptívna stratégia), takže centrovaný text zostáva bezpečný. */
+@media (min-width: 860px) {
+  .hero {
+    align-items: flex-start;
+    text-align: left;
+    max-width: 640px;
+    margin: 0;
+    margin-left: clamp(32px, 7vw, 96px);
+  }
+  .heroCta {
+    align-self: flex-start;
+  }
+}
+
+/* Parallax dekor v hero/final — dva blur kruhy, rôzna scroll rýchlosť. */
+.heroShape1,
+.heroShape2,
+.finalShape1,
+.finalShape2 {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+.heroShape1 {
+  width: 420px;
+  height: 420px;
+  top: -10%;
+  right: -12%;
+  background: radial-gradient(circle, rgba(224, 64, 42, 0.22), transparent 70%);
+}
+.heroShape2 {
+  width: 300px;
+  height: 300px;
+  bottom: -15%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(230, 178, 58, 0.16), transparent 70%);
+}
+.finalShape1 {
+  width: 380px;
+  height: 380px;
+  top: 0;
+  left: -8%;
+  background: radial-gradient(circle, rgba(224, 64, 42, 0.18), transparent 70%);
+}
+.finalShape2 {
+  width: 260px;
+  height: 260px;
+  bottom: -10%;
+  right: -6%;
+  background: radial-gradient(circle, rgba(76, 122, 94, 0.2), transparent 70%);
 }
 
 /* ---------- ring (RingStat) ---------- */
@@ -188,7 +241,9 @@
 
 /* ---------- sekcie (spoločný rytmus) ---------- */
 .section {
-  max-width: 900px;
+  position: relative;
+  z-index: 1;
+  max-width: 1080px;
   margin: 0 auto;
   padding: clamp(56px, 9vh, 96px) clamp(20px, 5vw, 48px);
 }
@@ -204,141 +259,261 @@
   font-size: clamp(1.6rem, 3.4vw, 2.2rem);
   letter-spacing: -0.02em;
   margin-bottom: 36px;
+  max-width: 22ch;
 }
 
-/* ---------- zóny (HR-zone jazyk) ---------- */
-.zoneList {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-.zoneRow {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-}
-.zoneIndex {
-  font-size: 13px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--paper-faint);
-  padding-top: 4px;
-  flex: none;
-  width: 28px;
-}
-.zoneBody {
-  flex: 1;
-  min-width: 0;
-}
-.zoneBody h3 {
-  font-size: 1.15rem;
-  margin: 12px 0 6px;
-}
-.zoneBody p {
-  color: var(--paper-dim);
-  font-size: 14px;
-  line-height: 1.6;
-  max-width: 60ch;
-}
-.zoneTrack {
-  height: 10px;
-  border-radius: 999px;
-  background: var(--ink-3);
-  overflow: hidden;
-}
-.zoneFill {
-  height: 100%;
-  width: 100%;
-  border-radius: 999px;
-  transform-origin: left;
-}
-.zoneCoral {
-  background: linear-gradient(90deg, var(--iron-red-deep), var(--iron-red));
-}
-.zoneAmber {
-  background: linear-gradient(90deg, var(--iron-red-deep), var(--plate-yellow));
-}
-.zoneMoss {
-  background: linear-gradient(90deg, var(--iron-red-deep), var(--moss));
-}
-
-/* ---------- product (3D telefón v pozadí, transparentné) ---------- */
-.productSection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: clamp(48px, 10vh, 80px);
-  text-align: center;
-}
-.productSection .sectionHead {
-  opacity: 0;
-  max-width: 26ch;
-}
-.productFallbackImg {
-  display: block;
-  width: 100%;
-  max-width: 280px;
-  margin-top: 28px;
-  border-radius: 20px;
-  border: 1px solid var(--steel-line);
-}
-/* Nad 860px preberá tento priestor 3D telefón (Scene3D) — statický obrázok
-   by sa s ním prekrýval. Sekcia tam dostáva plnú výšku pre pin efekt. */
-@media (min-width: 860px) {
-  .productSection {
-    min-height: 100dvh;
-    padding-top: clamp(64px, 14vh, 140px);
-  }
-  .productFallbackImg {
-    display: none;
-  }
-}
-
-/* ---------- AI readout ---------- */
-.aiSection {
-  background: var(--ink-2);
-  border-radius: var(--radius-m);
-}
-.readoutGrid {
+/* ---------- FEATURES: staggered grid + cursor tilt ---------- */
+.featureGrid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
 }
-@media (min-width: 720px) {
-  .readoutGrid {
+@media (min-width: 640px) {
+  .featureGrid {
     grid-template-columns: 1fr 1fr;
   }
 }
-.readoutTile {
-  background: var(--ink-3);
+@media (min-width: 1000px) {
+  .featureGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.featureCard {
+  position: relative;
+  background: var(--ink-2);
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-m);
-  padding: 20px;
+  padding: 24px;
+  transform-style: preserve-3d;
+  will-change: transform;
+  overflow: hidden;
 }
-.readoutLabel {
+.featureCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(224, 64, 42, 0.14), transparent 65%);
+  pointer-events: none;
+}
+.featureCard:hover::before {
+  opacity: 1;
+}
+.featureIndex {
   display: block;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-faint);
+  margin-bottom: 14px;
+}
+.featureCard h3 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+.featureCard p {
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.featureTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.featureTagRow span {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--paper-faint);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.toneCoral .featureIndex {
+  color: var(--iron-red);
+}
+.toneAmber .featureIndex {
+  color: var(--plate-yellow);
+}
+.toneMoss .featureIndex {
+  color: var(--moss);
+}
+.toneSteel .featureIndex {
+  color: var(--steel);
+}
+
+/* ---------- HOW: pinned horizontálna galéria ---------- */
+.howSection {
+  padding: 0;
+}
+.howViewport {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+.howHead {
+  position: relative;
+  z-index: 1;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 48px);
+  width: 100%;
+}
+/* Default: natively horizontally scrollable (reduced-motion + mobile fallback
+   — without this, cards past the viewport edge would be clipped by .page's
+   overflow-x:hidden and permanently unreachable, a real bug caught by
+   screenshot review under prefers-reduced-motion on desktop). The pinned
+   desktop/tablet path (V2Experience.tsx) sets overflow:hidden on this
+   element via ref once it takes over with a scrub-driven transform, so the
+   two scroll mechanisms never fight each other. */
+.howScroller {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.howTrack {
+  display: flex;
+  gap: 24px;
+  padding: 40px clamp(20px, 5vw, 48px) 24px;
+  width: max-content;
+}
+.howCard {
+  flex: none;
+  width: min(78vw, 380px);
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.howStep {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--iron-red);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper-faint);
-  margin-bottom: 10px;
 }
-.readoutQuote {
-  font-size: 15px;
+.howCard h3 {
+  font-size: 1.15rem;
+}
+.howCard p {
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.howShot {
+  border-radius: 12px;
+  border: 1px solid var(--steel-line);
+  width: 100%;
+  display: block;
+  margin-top: auto;
+}
+.howProgress {
+  height: 3px;
+  background: var(--ink-3);
+  border-radius: 999px;
+  overflow: hidden;
+  max-width: 1080px;
+  margin: 0 auto;
+  width: calc(100% - clamp(40px, 10vw, 96px));
+}
+.howProgressFill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--iron-red-deep), var(--iron-red));
+  transform: scaleX(0);
+  transform-origin: left;
+}
+/* Mobile: žiadny scroll-hijack pin — natívny horizontálny scroll so snapom
+   (.howScroller je scrollovateľný defaultne, tu len ladíme rozmery/padding). */
+@media (max-width: 768px) {
+  .howViewport {
+    height: auto;
+    display: block;
+  }
+  .howScroller {
+    scroll-snap-type: x mandatory;
+  }
+  .howTrack {
+    transform: none !important;
+    padding: 24px clamp(20px, 5vw, 48px) 8px;
+  }
+  .howCard {
+    scroll-snap-align: center;
+    width: 82vw;
+  }
+  .howProgress {
+    display: none;
+  }
+}
+
+/* ---------- AI: pinned, scrub-driven "typing" chat ---------- */
+.aiViewport {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--ink-2);
+}
+.aiInner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(40px, 8vh, 80px) clamp(20px, 5vw, 48px);
+  width: 100%;
+}
+.chatList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+.chatBubble {
+  max-width: 82%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(16px);
+}
+.chatClient {
+  align-self: flex-start;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  border-bottom-left-radius: 4px;
+}
+.chatAi {
+  align-self: flex-end;
+  background: var(--iron-red-deep);
   color: var(--paper);
-  margin-bottom: 14px;
-  min-height: 44px;
+  border-bottom-right-radius: 4px;
+}
+.chatTag {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-bottom: 4px;
+}
+.chatText {
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);
 }
 .aiNote {
   font-size: 12px;
   color: var(--paper-faint);
-  margin-top: 20px;
-  text-align: center;
+  margin-top: 24px;
 }
 
-/* ---------- cenník ako tier selector ---------- */
+/* ---------- cenník ako tier selector (jemný fade, žiadny pin/scrub) ---------- */
 .pricingNote {
   font-size: 12px;
   color: var(--paper-faint);
@@ -390,6 +565,7 @@
 
 /* ---------- final CTA ---------- */
 .finalCta {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -397,9 +573,17 @@
   padding: clamp(56px, 10vh, 100px) clamp(20px, 5vw, 48px) clamp(80px, 12vh, 120px);
   max-width: 640px;
   margin: 0 auto;
+  overflow: hidden;
 }
-/* Rovnaký dôvod ako .hero — atlét sa vracia (viď Athlete.tsx visibleSections)
-   posunutý vpravo, final CTA text preto tiež doľava na desktope. */
+.finalContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Atlét sa vracia v tejto sekcii (Athlete visibleSections) posunutý vpravo,
+   final CTA text preto tiež doľava na desktope — rovnaký dôvod ako .hero. */
 @media (min-width: 860px) {
   .finalCta {
     align-items: flex-start;
@@ -407,20 +591,23 @@
     margin: 0;
     margin-left: clamp(32px, 7vw, 96px);
   }
-}
-.finalCta > div {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  .finalContent {
+    align-items: flex-start;
+  }
 }
 .finalHeadline {
-  font-size: clamp(1.6rem, 3.6vw, 2.3rem);
+  position: relative;
+  z-index: 1;
+  font-size: clamp(1.7rem, 3.8vw, 2.4rem);
   margin: 24px 0 28px;
   letter-spacing: -0.02em;
+  overflow: hidden;
 }
 
 /* ---------- footer ---------- */
 .footer {
+  position: relative;
+  z-index: 1;
   border-top: 1px solid var(--steel-line);
   padding: 24px clamp(20px, 5vw, 48px) calc(24px + env(safe-area-inset-bottom));
   text-align: center;
@@ -434,7 +621,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zoneFill {
-    transition: none !important;
+  .heroShape1,
+  .heroShape2,
+  .finalShape1,
+  .finalShape2 {
+    display: none;
+  }
+  .featureCard {
+    transform: none !important;
   }
 }

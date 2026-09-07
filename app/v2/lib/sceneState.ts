@@ -16,5 +16,5 @@ export const sceneState = {
   reducedMotion: false,
 };
 
-export const SECTIONS = ["hero", "zones", "product", "ai", "pricing", "final"] as const;
+export const SECTIONS = ["hero", "features", "how", "ai", "pricing", "final"] as const;
 export type SectionId = (typeof SECTIONS)[number];
