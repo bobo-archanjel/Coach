@@ -820,3 +820,36 @@
     transition: none;
   }
 }
+
+/* ---------- sticky mobile CTA (feature/security#2) ---------- */
+.stickyCta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 12px clamp(16px, 4vw, 24px) calc(12px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--ink-2) 94%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--steel-line);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stickyCtaVisible {
+  transform: translateY(0);
+}
+.stickyCtaBtn {
+  width: 100%;
+  justify-content: center;
+}
+/* Desktop má hero aj final CTA vždy viditeľné bez scrollu — sticky bar by len duplikoval. */
+@media (min-width: 880px) {
+  .stickyCta {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stickyCta {
+    transition: none;
+  }
+}

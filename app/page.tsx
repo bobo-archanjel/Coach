@@ -1,7 +1,22 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
+import { StickyMobileCta } from "./components/StickyMobileCta";
 import styles from "./page.module.css";
+
+// feature/security#2 — vlastný title/description namiesto globálneho defaultu
+// z layout.tsx (ten ostáva fallback pre stránky bez vlastného exportu).
+// Kľúčové slová podľa PRODUCT.md Positioning — SK trh, natívny nástroj pre
+// fitness trénerov, nutrícia ako core funkcia, AI s kontextovou pamäťou.
+export const metadata: Metadata = {
+  // Plain string title PREPÍŠE title.template z layout.tsx (Next metadata
+  // dedičnosť) — brand meno musí byť tu explicitne, nie spoliehať sa na
+  // template. Zistené e2e sadou (test na /FitPilot/i v <title> zlyhal).
+  title: "FitPilot — softvér pre fitness trénerov, tréning a výživa",
+  description:
+    "FitPilot je slovenská appka pre fitness trénerov: správa klientov, tréningové plány, jedálničky a AI kouč s pamäťou klientovho profilu. 14 dní zadarmo.",
+};
 
 const ArrowIcon = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
@@ -742,7 +757,9 @@ export default function LandingPage() {
               <a href="#funkcie">Funkcie</a>
               <a href="#ai">AI</a>
               <a href="#cennik">Cenník</a>
-              <a href="#">Kontakt</a>
+              <a href="mailto:podpora@fitpilot.sk">Kontakt</a>
+              <Link href="/ochrana-sukromia">Ochrana súkromia</Link>
+              <Link href="/obchodne-podmienky">Obchodné podmienky</Link>
             </div>
           </div>
           <p className={styles.fine}>
@@ -751,6 +768,7 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+      <StickyMobileCta />
     </>
   );
 }
