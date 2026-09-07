@@ -115,7 +115,6 @@
   position: relative;
   z-index: 2;
   padding: 18px clamp(20px, 5vw, 48px);
-  border-bottom: 1px solid var(--steel-line);
 }
 .headerInner {
   display: flex;
@@ -166,9 +165,10 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
+  border-top: 1px solid var(--steel-line);
   border-bottom: 1px solid var(--steel-line);
   background: var(--ink-2);
-  padding: 9px 0;
+  padding: 6px 0;
 }
 .marqueeTrack {
   display: flex;
@@ -270,44 +270,12 @@
   }
 }
 
-.heroShape1,
-.heroShape2,
-.finalShape1,
-.finalShape2 {
-  position: absolute;
-  z-index: 0;
-  border-radius: 50%;
-  filter: blur(60px);
-  pointer-events: none;
-}
-.heroShape1 {
-  width: 420px;
-  height: 420px;
-  top: -10%;
-  right: -12%;
-  background: radial-gradient(circle, rgba(224, 64, 42, 0.22), transparent 70%);
-}
-.heroShape2 {
-  width: 300px;
-  height: 300px;
-  bottom: -15%;
-  left: -10%;
-  background: radial-gradient(circle, rgba(230, 178, 58, 0.16), transparent 70%);
-}
-.finalShape1 {
-  width: 380px;
-  height: 380px;
-  top: 0;
-  left: -8%;
-  background: radial-gradient(circle, rgba(224, 64, 42, 0.18), transparent 70%);
-}
-.finalShape2 {
-  width: 260px;
-  height: 260px;
-  bottom: -10%;
-  right: -6%;
-  background: radial-gradient(circle, rgba(76, 122, 94, 0.2), transparent 70%);
-}
+/* Poznámka: DOM/CSS blur "glow" tvary (heroShape/finalShape) boli z tejto
+   verzie odstránené — kolidovali vizuálne s WebGL shader pozadím (dva
+   nezávislé zdroje žiary/gradientu naraz čítali ako "seknuté" pozadie a
+   druhý, nesynchronizovaný kurzor; nájdené vo vizuálnej spätnej väzbe).
+   ShaderBackdrop (Scene3D) je teraz jediný zdroj ambientnej žiary/pohybu na
+   pozadí hero aj final sekcie. */
 
 /* ---------- ring (RingStat) ---------- */
 .ringWrap {
@@ -750,7 +718,6 @@
 .footer {
   position: relative;
   z-index: 1;
-  border-top: 1px solid var(--steel-line);
   padding: 24px clamp(20px, 5vw, 48px) calc(24px + env(safe-area-inset-bottom));
   text-align: center;
 }

@@ -143,17 +143,11 @@ export function V2Experience() {
         .to(`.${styles.heroBadge}`, { opacity: 1, scale: 1 }, "<");
 
       if (!reduced) {
-        ScrollTrigger.create({ trigger: ".v2-hero", start: "top top", end: "+=60%", pin: true });
-        gsap.to(`.${styles.heroShape1}`, {
-          yPercent: -35,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-hero", start: "top top", end: "bottom top", scrub: 0.6 },
-        });
-        gsap.to(`.${styles.heroShape2}`, {
-          yPercent: 45,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-hero", start: "top top", end: "bottom top", scrub: 0.6 },
-        });
+        // Krátky pin — len nech je hero chvíľu na mieste kým doznie reveal,
+        // nie 60% scrollu bez viditeľného pohybu (predtým hlásené ako
+        // "stránka sa na chvíľu zasekne" — headline sa prehráva autoplay,
+        // nie scrub-viazane, takže dlhý pin nemal počas seba čo animovať).
+        ScrollTrigger.create({ trigger: ".v2-hero", start: "top top", end: "+=25%", pin: true });
       }
 
       const waitForReady = () => {
@@ -270,19 +264,6 @@ export function V2Experience() {
         duration: 0.6,
         scrollTrigger: { trigger: ".v2-final", start: "top 70%" },
       });
-      if (!reduced) {
-        gsap.to(`.${styles.finalShape1}`, {
-          yPercent: -30,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-final", start: "top bottom", end: "bottom top", scrub: 0.6 },
-        });
-        gsap.to(`.${styles.finalShape2}`, {
-          yPercent: 40,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-final", start: "top bottom", end: "bottom top", scrub: 0.6 },
-        });
-      }
-
       // ---------- ktorá sekcia je aktívna (pre 3D scénu) — AŽ PO všetkých pinoch ----------
       gsap.utils.toArray<HTMLElement>("[data-section]").forEach((el, i) => {
         ScrollTrigger.create({
@@ -327,8 +308,6 @@ export function V2Experience() {
         <main>
           {/* ---------- HERO ---------- */}
           <section className={`${styles.hero} v2-hero`} data-section>
-            <div className={styles.heroShape1} aria-hidden="true" />
-            <div className={styles.heroShape2} aria-hidden="true" />
             <div className={styles.heroBadge}>
               <RingStat value={14} label="dní zadarmo" size={110} />
             </div>
@@ -437,8 +416,6 @@ export function V2Experience() {
 
           {/* ---------- FINAL ---------- */}
           <section className={`${styles.finalCta} v2-final`} data-section>
-            <div className={styles.finalShape1} aria-hidden="true" />
-            <div className={styles.finalShape2} aria-hidden="true" />
             <div className={`v2-final-content ${styles.finalContent}`}>
               <RingStat value={100} suffix="%" label="v tvojich rukách" sublabel="AI navrhuje, ty rozhoduješ" size={160} />
               <h2 className={`${styles.finalHeadline} v2-final-headline`}>Zdvihni administratívu zo svojich pliec.</h2>
