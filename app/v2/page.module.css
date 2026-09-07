@@ -3,8 +3,53 @@
    dlaždice, HR-zóny, prstence namiesto kariet/ikonových dlaždíc. */
 
 .page {
+  position: relative;
+  z-index: 1;
   min-height: 100dvh;
   overflow-x: hidden;
+}
+
+/* ---------- 3D scéna (fixed, za obsahom) ---------- */
+.sceneLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.sceneLayer canvas {
+  display: block;
+}
+
+/* ---------- preloader ---------- */
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--ink);
+}
+.preloaderRing {
+  width: 64px;
+  height: 64px;
+}
+.preloaderNum {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+  opacity: 0;
+}
+
+/* ---------- hero badge (malý prstenec, nie centerpiece) ---------- */
+.heroBadge {
+  margin-bottom: 24px;
+  opacity: 0;
+  transform: scale(0.85);
 }
 
 /* ---------- header ---------- */
@@ -45,22 +90,38 @@
 
 /* ---------- hero (obrátené: prstenec hore, headline pod ním) ---------- */
 .hero {
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: clamp(48px, 10vh, 96px) clamp(20px, 5vw, 48px) clamp(56px, 10vh, 100px);
+  padding: clamp(20px, 5vw, 48px);
   max-width: 720px;
   margin: 0 auto;
 }
-.heroRing {
-  margin-bottom: 32px;
+/* Nad 860px má 3D atlét vlastnú zónu vpravo (Scene3D/Athlete x-offset) — hero
+   text sa preto posunie doľava, nech sa nikdy nekryjú (predtým centrovaný
+   nadpis priamo cez telo postavy, nečitateľné). Pod 860px je 3D scéna vypnutá
+   (adaptívna stratégia), takže centrovaný text zostáva bezpečný. */
+@media (min-width: 860px) {
+  .hero {
+    align-items: flex-start;
+    text-align: left;
+    max-width: 620px;
+    margin: 0;
+    margin-left: clamp(32px, 7vw, 96px);
+  }
+  .heroCta {
+    align-self: flex-start;
+  }
 }
 .heroHeadline {
   font-size: clamp(2rem, 5.5vw, 3.2rem);
   line-height: 1.1;
   letter-spacing: -0.025em;
   margin-bottom: 18px;
+  overflow: hidden; /* maskuje SplitText char-reveal cez okraj riadku */
 }
 .accent {
   color: var(--iron-red);
@@ -70,9 +131,13 @@
   font-size: clamp(1rem, 2vw, 1.15rem);
   max-width: 52ch;
   margin-bottom: 32px;
+  opacity: 0;
+  transform: translateY(16px);
 }
 .heroCta {
   align-self: center;
+  opacity: 0;
+  transform: translateY(16px);
 }
 
 /* ---------- ring (RingStat) ---------- */
@@ -197,6 +262,39 @@
   background: linear-gradient(90deg, var(--iron-red-deep), var(--moss));
 }
 
+/* ---------- product (3D telefón v pozadí, transparentné) ---------- */
+.productSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: clamp(48px, 10vh, 80px);
+  text-align: center;
+}
+.productSection .sectionHead {
+  opacity: 0;
+  max-width: 26ch;
+}
+.productFallbackImg {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 28px;
+  border-radius: 20px;
+  border: 1px solid var(--steel-line);
+}
+/* Nad 860px preberá tento priestor 3D telefón (Scene3D) — statický obrázok
+   by sa s ním prekrýval. Sekcia tam dostáva plnú výšku pre pin efekt. */
+@media (min-width: 860px) {
+  .productSection {
+    min-height: 100dvh;
+    padding-top: clamp(64px, 14vh, 140px);
+  }
+  .productFallbackImg {
+    display: none;
+  }
+}
+
 /* ---------- AI readout ---------- */
 .aiSection {
   background: var(--ink-2);
@@ -299,6 +397,16 @@
   padding: clamp(56px, 10vh, 100px) clamp(20px, 5vw, 48px) clamp(80px, 12vh, 120px);
   max-width: 640px;
   margin: 0 auto;
+}
+/* Rovnaký dôvod ako .hero — atlét sa vracia (viď Athlete.tsx visibleSections)
+   posunutý vpravo, final CTA text preto tiež doľava na desktope. */
+@media (min-width: 860px) {
+  .finalCta {
+    align-items: flex-start;
+    text-align: left;
+    margin: 0;
+    margin-left: clamp(32px, 7vw, 96px);
+  }
 }
 .finalCta > div {
   display: flex;
