@@ -49,13 +49,23 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
     let deletionRequestedBy: "trainer" | "client" | null = null;
 
     if (user) {
-      const { data: client } = await supabase
-        .from("clients")
-        .select("invite_code, trainer_id, deletion_requested_at, deletion_requested_by")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      const clientQuery = () =>
+        supabase
+          .from("clients")
+          .select("invite_code, trainer_id, deletion_requested_at, deletion_requested_by")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+      let { data: client } = await clientQuery();
+
+      // Poistka: klient bez riadku/kódu (starší účet, alebo vytvorený mimo appky) —
+      // dovytvor ho hneď, idempotentné (feature/registracia-update).
+      if (!client || !client.invite_code) {
+        await supabase.rpc("ensure_self_client");
+        ({ data: client } = await clientQuery());
+      }
 
       if (client) {
         code = client.invite_code;

@@ -178,8 +178,15 @@ export default function AuthPage() {
     });
     if (error) {
       setRegisterStatus("idle");
+      const msg = error.message.toLowerCase();
       setRegisterError(
-        error.message === "User already registered" ? "Tento e-mail už je zaregistrovaný." : error.message
+        error.message === "User already registered"
+          ? "Tento e-mail už je zaregistrovaný."
+          : msg.includes("email rate limit") || msg.includes("rate limit")
+            ? "Priveľa registrácií za krátky čas z tejto adresy. Skús to o chvíľu znova."
+            : msg.includes("password")
+              ? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla."
+              : error.message,
       );
       return;
     }
