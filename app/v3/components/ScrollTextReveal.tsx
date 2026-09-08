@@ -54,10 +54,12 @@ export function ScrollTextReveal({ text, className }: { text: string; className?
         const start = i / words.length;
         const end = (i + 1) / words.length;
         return (
-          <Word key={i} progress={scrollYProgress} range={[start, end]} reduced={reduced}>
-            {w}
+          <span key={i}>
+            <Word progress={scrollYProgress} range={[start, end]} reduced={reduced}>
+              {w}
+            </Word>
             {i < words.length - 1 ? " " : ""}
-          </Word>
+          </span>
         );
       })}
     </p>

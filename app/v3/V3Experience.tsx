@@ -7,7 +7,9 @@ import Lenis from "lenis";
 import { LogoMark } from "../components/LogoMark";
 import { FaqItem } from "./components/FaqItem";
 import { ScrollTextReveal } from "./components/ScrollTextReveal";
-import { SolutionScrolly } from "./components/SolutionScrolly";
+import { FeatureRow } from "./components/FeatureRow";
+import { AiMemoryWeb } from "./components/AiMemoryWeb";
+import { HeroSimple } from "./components/HeroSimple";
 import styles from "./page.module.css";
 
 /*
@@ -40,12 +42,28 @@ import styles from "./page.module.css";
  */
 
 const TIERS = [
-  { tier: "Starter", meta: "do 10 klientov", price: "15–20 €" },
-  { tier: "Pro", meta: "do 50 klientov", price: "40–50 €", featured: true },
-  { tier: "Business", meta: "neobmedzene", price: "80–100 €" },
+  {
+    tier: "Starter",
+    meta: "do 10 klientov",
+    price: "15–20 €",
+    perks: ["Klienti, tréning aj výživa", "Klientský portál a appka", "E-mailová podpora"],
+  },
+  {
+    tier: "Pro",
+    meta: "do 50 klientov",
+    price: "40–50 €",
+    featured: true,
+    perks: ["Všetko zo Starter", "AI generátor plánov", "AI kouč pre klientov", "Prioritná podpora"],
+  },
+  {
+    tier: "Business",
+    meta: "neobmedzene",
+    price: "80–100 €",
+    perks: ["Všetko z Pro", "Neobmedzený počet klientov", "Tímový prístup pre viac trénerov"],
+  },
 ];
 
-const SOLUTION_STEPS = [
+const FEATURES = [
   {
     title: "Klienti a ich história",
     copy: "Kontakty, ciele, zdravotné obmedzenia, história merania — všetko na jednom mieste namiesto zošita a troch appiek.",
@@ -55,11 +73,6 @@ const SOLUTION_STEPS = [
     title: "Tréning aj výživa spolu",
     copy: "Tréningový builder a jedálniček nie sú dve oddelené appky — plán aj makrá zostavíš na jednom mieste, klient ich vidí spolu.",
     shot: "/v2/screens/dennik.png",
-  },
-  {
-    title: "AI, ktorá naozaj pomáha",
-    copy: "AI navrhne prvý draft plánu aj odpoveď klientovi na bežnú otázku — posledné slovo má vždy tréner, nič sa neposiela bez schválenia.",
-    shot: "/v2/screens/chat.png",
   },
 ];
 
@@ -91,19 +104,18 @@ const FAQS = [
 
 export function V3Experience() {
   const reduced = useReducedMotion();
-  const heroRef = useRef<HTMLElement>(null);
-  // Klasický Apple hero parallax: pozadie sa pri odchode z hero hýbe inou
-  // rýchlosťou než obsah (glowY), produktový screenshot navyše mierne
-  // vybledne a zmenší sa, akoby "odchádzal" so sekciou (shotOpacity/shotScale)
-  // — nie jednorazová whileInView animácia, priamo funkcia scroll pozície.
-  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const glowY = useTransform(heroProgress, [0, 1], [0, 160]);
-  const shotOpacity = useTransform(heroProgress, [0, 0.8], [1, 0.2]);
-  const shotScale = useTransform(heroProgress, [0, 1], [1, 0.92]);
-  const shotY = useTransform(heroProgress, [0, 1], [0, -40]);
+
+  const finalRef = useRef<HTMLElement>(null);
+  const { scrollYProgress: finalProgress } = useScroll({ target: finalRef, offset: ["start end", "end end"] });
+  const finalGlowY = useTransform(finalProgress, [0, 1], [40, -40]);
 
   useEffect(() => {
-    if (reduced) return;
+    // `reduced` is `null` until useReducedMotion resolves client-side post-
+    // mount (Motion's documented SSR-safety behaviour) — wait for an actual
+    // `false` rather than treating the transient `null` as "not reduced",
+    // which used to spin up a Lenis instance for a tick even when the
+    // visitor prefers reduced motion.
+    if (reduced !== false) return;
     const lenis = new Lenis({ duration: 1.1, smoothWheel: true });
     let rafId: number;
     const raf = (time: number) => {
@@ -116,6 +128,19 @@ export function V3Experience() {
       lenis.destroy();
     };
   }, [reduced]);
+
+  const staggerParent = {
+    initial: "hidden",
+    whileInView: "show",
+    viewport: { once: true, margin: "-80px" },
+    variants: { hidden: {}, show: { transition: { staggerChildren: 0.14 } } },
+  };
+  const staggerChild = {
+    variants: {
+      hidden: { opacity: 0, y: 28 },
+      show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } },
+    },
+  };
 
   const fadeUp = {
     initial: { opacity: 0, y: 28 },
@@ -141,55 +166,7 @@ export function V3Experience() {
 
       <main>
         {/* ---------- HERO ---------- */}
-        <section ref={heroRef} className={`${styles.wrap} ${styles.hero}`}>
-          <motion.div className={styles.heroGlow} style={{ y: reduced ? 0 : glowY }} aria-hidden="true" suppressHydrationWarning />
-          <motion.p className={styles.heroKicker} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-            FitPilot pre fitness trénerov
-          </motion.p>
-          <motion.h1
-            className={styles.heroHeadline}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] as const }}
-          >
-            Tvoja trénerská prax. <span className={styles.accent}>Konečne pod kontrolou.</span>
-          </motion.h1>
-          <motion.p
-            className={styles.heroSub}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] as const }}
-          >
-            Klienti, tréning, výživa a AI kouč — jedna appka namiesto Excelu, WhatsAppu a troch ďalších nástrojov.
-          </motion.p>
-          <motion.div
-            className={styles.heroActions}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
-          >
-            <Link href="/prihlasenie#register" className={styles.btn}>
-              Začať 14-dňovú skúšku
-            </Link>
-            <a href="#ako-to-funguje" className={`${styles.btn} ${styles.btnGhost}`}>
-              Ako to funguje
-            </a>
-          </motion.div>
-          <motion.div
-            className={styles.heroShotWrap}
-            initial={{ opacity: 0, y: 40, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.9, delay: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
-          >
-            <motion.img
-              src="/v2/screens/dnes.png"
-              alt="Karta Dnes v klientskom portáli FitPilot"
-              className={styles.heroShot}
-              style={reduced ? undefined : { opacity: shotOpacity, scale: shotScale, y: shotY }}
-              suppressHydrationWarning
-            />
-          </motion.div>
-        </section>
+        <HeroSimple />
 
         {/* ---------- TRUST BAR (honest — no fabricated logos/testimonials) ---------- */}
         <div className={styles.trustBar}>
@@ -219,13 +196,30 @@ export function V3Experience() {
           </motion.div>
         </section>
 
-        {/* ---------- SOLUTION — sticky scrollytelling ---------- */}
+        {/* ---------- FEATURES — zig-zag, one reveal per row ---------- */}
         <section className={`${styles.wrap} ${styles.section}`}>
           <motion.div className={styles.solutionHead} {...fadeUp}>
             <p className={styles.eyebrow}>Riešenie</p>
             <h2 className={styles.solutionHeadline}>Jedna appka. Celý proces.</h2>
           </motion.div>
-          <SolutionScrolly steps={SOLUTION_STEPS} />
+          <div className={styles.featureRows}>
+            {FEATURES.map((f, i) => (
+              <FeatureRow key={f.title} index={i + 1} title={f.title} copy={f.copy} shot={f.shot} reverse={i % 2 === 1} />
+            ))}
+          </div>
+        </section>
+
+        {/* ---------- AI — memory web, builds in as you scroll ---------- */}
+        <section className={`${styles.wrap} ${styles.section} ${styles.aiSection}`}>
+          <motion.div className={styles.aiHead} {...fadeUp}>
+            <p className={styles.eyebrow}>AI kouč</p>
+            <h2 className={styles.solutionHeadline}>AI, ktorá si pamätá kontext</h2>
+            <p className={styles.heroSub} style={{ margin: "18px auto 0" }}>
+              Váha, tréning, jedálniček aj nálada klienta — AI navrhne prvý draft plánu aj odpoveď na bežnú otázku
+              z tohto kontextu. Posledné slovo má vždy tréner, nič sa neposiela bez schválenia.
+            </p>
+          </motion.div>
+          <AiMemoryWeb />
         </section>
 
         {/* ---------- HOW IT WORKS ---------- */}
@@ -234,15 +228,15 @@ export function V3Experience() {
             <p className={styles.eyebrow}>Ako to funguje</p>
             <h2 className={styles.sectionHeadline}>Od registrácie po prvý report za pár minút</h2>
           </motion.div>
-          <div className={styles.howGrid}>
+          <motion.div className={styles.howGrid} {...staggerParent}>
             {HOW_STEPS.map((s, i) => (
-              <motion.div key={s.title} className={styles.howStep} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.08 }}>
+              <motion.div key={s.title} className={styles.howStep} {...staggerChild}>
                 <div className={styles.howNum}>{String(i + 1).padStart(2, "0")}</div>
                 <h3 className={styles.howTitle}>{s.title}</h3>
                 <p className={styles.howCopy}>{s.copy}</p>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </section>
 
         {/* ---------- PRICING ---------- */}
@@ -252,14 +246,27 @@ export function V3Experience() {
             <h2 className={styles.sectionHeadline}>Predplatné pre trénera, nie pre klienta</h2>
           </motion.div>
           <p className={styles.pricingNote}>orientačný cenník pre spustenie — ceny sa môžu do launchu upraviť</p>
-          <motion.div className={styles.tierGrid} {...fadeUp}>
+          <motion.div className={styles.tierGrid} {...staggerParent}>
             {TIERS.map((t) => (
-              <div key={t.tier} className={`${styles.tierCard} ${t.featured ? styles.tierFeatured : ""}`}>
+              <motion.div key={t.tier} className={`${styles.tierCard} ${t.featured ? styles.tierFeatured : ""}`} {...staggerChild}>
                 <span className={styles.tierName}>{t.tier}</span>
                 <span className={styles.tierMeta}>{t.meta}</span>
                 <span className={styles.tierPrice}>{t.price}</span>
                 <span className={styles.tierPer}>/ mes</span>
-              </div>
+                <ul className={styles.tierPerks}>
+                  {t.perks.map((perk) => (
+                    <li key={perk}>
+                      <span className={styles.tierCheck} aria-hidden="true">
+                        ✓
+                      </span>
+                      {perk}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/prihlasenie#register" className={styles.tierCta}>
+                  Vybrať {t.tier}
+                </Link>
+              </motion.div>
             ))}
           </motion.div>
         </section>
@@ -278,7 +285,8 @@ export function V3Experience() {
         </section>
 
         {/* ---------- FINAL CTA ---------- */}
-        <section className={`${styles.wrap} ${styles.finalCta}`}>
+        <section ref={finalRef} className={`${styles.wrap} ${styles.section} ${styles.finalCta}`}>
+          <motion.div className={styles.finalGlow} style={{ y: reduced ? 0 : finalGlowY }} aria-hidden="true" suppressHydrationWarning />
           <motion.h2 className={styles.finalHeadline} {...fadeUp}>
             Zdvihni administratívu zo svojich pliec.
           </motion.h2>

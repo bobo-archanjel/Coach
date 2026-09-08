@@ -307,3 +307,19 @@ test.describe("Portál — shell", () => {
     expect(navPosition).toBe((viewport?.width ?? 0) >= 880 ? "static" : "fixed");
   });
 });
+
+test.describe("Landing page /v4 (interný náhľad)", () => {
+  test("načíta sa, hlavička viditeľná, žiadne console chyby", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/v4");
+    await expect(page).toHaveTitle(/FitPilot/i);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
+  });
+
+  test("CTA vedie na registráciu", async ({ page }) => {
+    await page.goto("/v4");
+    await page.getByRole("link", { name: /Začať 14-dňovú skúšku/i }).first().click();
+    await expect(page).toHaveURL(/\/prihlasenie/);
+  });
+});
