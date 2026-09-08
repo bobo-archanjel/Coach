@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import Lenis from "lenis";
 import { LogoMark } from "../components/LogoMark";
 import { FaqItem } from "./components/FaqItem";
+import { ScrollTextReveal } from "./components/ScrollTextReveal";
+import { SolutionScrolly } from "./components/SolutionScrolly";
 import styles from "./page.module.css";
 
 /*
@@ -89,6 +91,16 @@ const FAQS = [
 
 export function V3Experience() {
   const reduced = useReducedMotion();
+  const heroRef = useRef<HTMLElement>(null);
+  // Klasický Apple hero parallax: pozadie sa pri odchode z hero hýbe inou
+  // rýchlosťou než obsah (glowY), produktový screenshot navyše mierne
+  // vybledne a zmenší sa, akoby "odchádzal" so sekciou (shotOpacity/shotScale)
+  // — nie jednorazová whileInView animácia, priamo funkcia scroll pozície.
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const glowY = useTransform(heroProgress, [0, 1], [0, 160]);
+  const shotOpacity = useTransform(heroProgress, [0, 0.8], [1, 0.2]);
+  const shotScale = useTransform(heroProgress, [0, 1], [1, 0.92]);
+  const shotY = useTransform(heroProgress, [0, 1], [0, -40]);
 
   useEffect(() => {
     if (reduced) return;
@@ -129,7 +141,8 @@ export function V3Experience() {
 
       <main>
         {/* ---------- HERO ---------- */}
-        <section className={`${styles.wrap} ${styles.hero}`}>
+        <section ref={heroRef} className={`${styles.wrap} ${styles.hero}`}>
+          <motion.div className={styles.heroGlow} style={{ y: reduced ? 0 : glowY }} aria-hidden="true" suppressHydrationWarning />
           <motion.p className={styles.heroKicker} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
             FitPilot pre fitness trénerov
           </motion.p>
@@ -168,8 +181,13 @@ export function V3Experience() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.9, delay: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/v2/screens/dnes.png" alt="Karta Dnes v klientskom portáli FitPilot" className={styles.heroShot} />
+            <motion.img
+              src="/v2/screens/dnes.png"
+              alt="Karta Dnes v klientskom portáli FitPilot"
+              className={styles.heroShot}
+              style={reduced ? undefined : { opacity: shotOpacity, scale: shotScale, y: shotY }}
+              suppressHydrationWarning
+            />
           </motion.div>
         </section>
 
@@ -188,9 +206,10 @@ export function V3Experience() {
 
         {/* ---------- PROBLEM ---------- */}
         <section className={`${styles.wrap} ${styles.section} ${styles.problem}`}>
-          <motion.p className={styles.problemStatement} {...fadeUp}>
-            Trénerská prax je dnes <strong>rozhádzaná</strong> naprieč piatimi appkami.
-          </motion.p>
+          <ScrollTextReveal
+            text="Trénerská prax je dnes rozhádzaná naprieč piatimi appkami."
+            className={styles.problemStatement}
+          />
           <motion.div className={styles.problemList} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }}>
             <span className={styles.problemChip}>Excel tabuľka klientov</span>
             <span className={styles.problemChip}>WhatsApp správy</span>
@@ -206,29 +225,7 @@ export function V3Experience() {
             <p className={styles.eyebrow}>Riešenie</p>
             <h2 className={styles.solutionHeadline}>Jedna appka. Celý proces.</h2>
           </motion.div>
-          <div className={styles.solutionGrid}>
-            <div className={styles.solutionSticky}>
-              <motion.div
-                key="solution-shot"
-                initial={{ opacity: 0.4 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={SOLUTION_STEPS[0].shot} alt="" className={styles.solutionShot} />
-              </motion.div>
-            </div>
-            <div className={styles.solutionSteps}>
-              {SOLUTION_STEPS.map((step, i) => (
-                <motion.div key={step.title} className={styles.solutionStep} {...fadeUp}>
-                  <span className={styles.solutionStepNum}>{String(i + 1).padStart(2, "0")}</span>
-                  <h3 className={styles.solutionStepTitle}>{step.title}</h3>
-                  <p className={styles.solutionStepCopy}>{step.copy}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+          <SolutionScrolly steps={SOLUTION_STEPS} />
         </section>
 
         {/* ---------- HOW IT WORKS ---------- */}
