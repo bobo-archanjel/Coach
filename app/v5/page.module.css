@@ -1,0 +1,142 @@
+/* app/v5 — "Posilňovňa", scroll-world build. The scroll-world engine
+   (public/v5/scrub-engine.js) injects its own CSS under @layer sw and reads
+   these custom properties for theming — see mountScrollWorld's header comment.
+   FitPilot dark theme mapped onto the engine's tokens 1:1 from DESIGN.md. */
+
+.worldRoot {
+  --sw-bg: var(--ink);
+  --sw-ink: var(--paper);
+  --sw-ink-soft: var(--paper-dim);
+  --sw-accent: var(--iron-red);
+  --sw-font-display: "Inter", system-ui, sans-serif;
+  --sw-font-body: "Inter", system-ui, sans-serif;
+  position: relative;
+  background: var(--ink);
+  min-height: 100dvh;
+}
+
+/* The engine's own .sw-btn--primary / .sw-topcta rules hardcode white text on
+   a var(--sw-ink) background — correct for its light-theme default (dark ink,
+   white text reads fine) but for our INVERTED dark theme --sw-ink is now
+   light (var(--paper)), which makes that "white on --sw-ink" combination
+   white-on-near-white — invisible. Found by screenshotting the finished
+   build: both the top-nav CTA and the final section's primary CTA rendered
+   as blank pills. Override with explicit coral so it reads in either theme
+   polarity, instead of coupling button color to the ink token. */
+.worldRoot :global(.sw-topcta),
+.worldRoot :global(.sw-btn--primary) {
+  background: var(--iron-red-deep) !important;
+  color: var(--paper) !important;
+}
+
+/* ---------- mobile: plain responsive stack, no video (per direction) ---------- */
+.mobilePage {
+  background: var(--ink);
+  color: var(--paper);
+  min-height: 100dvh;
+}
+.mobileNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+.mobileBrand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--paper);
+  font-weight: 800;
+  text-decoration: none;
+  font-size: 15px;
+}
+.mobileLogo {
+  width: 22px;
+  height: 22px;
+}
+.mobileBtn {
+  display: inline-flex;
+  align-items: center;
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+}
+.mobileSection {
+  position: relative;
+  padding: 0 0 48px;
+}
+.mobileSection img {
+  display: block;
+  width: 100%;
+  height: 62vh;
+  object-fit: cover;
+  object-position: center 42%;
+}
+.mobileSectionBody {
+  padding: 24px 20px 0;
+}
+.mobileEyebrow {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-color, var(--iron-red));
+  margin-bottom: 10px;
+}
+.mobileTitle {
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0 0 12px;
+}
+.mobileBody {
+  font-size: 15px;
+  color: var(--paper-dim);
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+.mobileTags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+}
+.mobileTags li {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-color, var(--iron-red)) 16%, var(--ink-2));
+  border: 1px solid color-mix(in srgb, var(--accent-color, var(--iron-red)) 30%, transparent);
+  color: var(--paper);
+}
+.mobileCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  border-radius: 999px;
+  padding: 14px 28px;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  margin-top: 8px;
+}
+.mobileFooter {
+  padding: 24px 20px 40px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+.mobileFooter a {
+  color: var(--iron-red);
+}
