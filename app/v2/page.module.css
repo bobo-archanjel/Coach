@@ -1,15 +1,70 @@
-/* /v2 — plne naložený scrollytelling landing (feature/security#2, rebuild #2).
-   Rovnaká paleta ako produkčný landing (globals.css tokeny). Kompozícia:
-   pinned hero, staggered feature grid s cursor-tilt, pinned horizontálna
-   "ako to funguje" galéria, pinned scrubovaný AI chat, jednoduchý cenník,
-   parallax final CTA. Detaily pozri v direction-contract komentári vo
-   V2Experience.tsx. */
+/* /v2 — "rok 3500" HUD/command-console landing (feature/front-end, rebuild #3).
+   Rovnaká paleta ako produkčný landing (globals.css tokeny) + JetBrains Mono
+   (--font-hud-mono, next/font v page.tsx) pre labely/eyebrow/readouty —
+   dvojhlasý systém: Inter pre ľudský text, mono pre "strojové" HUD prvky.
+   Detaily pozri v direction-contract komentári vo V2Experience.tsx. */
 
 .page {
   position: relative;
   z-index: 1;
   min-height: 100dvh;
   overflow-x: hidden;
+  cursor: none;
+}
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .page {
+    cursor: auto;
+  }
+}
+
+/* ---------- custom HUD kurzor ---------- */
+.cursorLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+}
+.cursorLayerVisible {
+  opacity: 1;
+}
+.cursorDot {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--iron-red);
+  will-change: transform;
+}
+.cursorRing {
+  position: absolute;
+  top: -19px;
+  left: -19px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(224, 64, 42, 0.55);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+/* Zväčšenie pri hover je transform:scale (GSAP), nie width/height/top/left —
+   tie sú layout-affecting a naťahujú reflow (nájdené detektorom dizajnovej
+   kvality); base box je fixný, len farba prechádza cez CSS. */
+.cursorRingActive {
+  background: rgba(224, 64, 42, 0.12);
+  border-color: var(--iron-red);
+}
+.cursorLabel {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--paper);
 }
 
 /* ---------- 3D scéna (fixed, za obsahom) ---------- */
@@ -32,7 +87,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 14px;
   background: var(--ink);
 }
 .preloaderRing {
@@ -47,13 +102,19 @@
   color: var(--paper-dim);
   opacity: 0;
 }
+.preloaderBoot {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--iron-red);
+  opacity: 0;
+}
 
 /* ---------- header ---------- */
 .header {
   position: relative;
   z-index: 2;
   padding: 18px clamp(20px, 5vw, 48px);
-  border-bottom: 1px solid var(--steel-line);
 }
 .headerInner {
   display: flex;
@@ -75,15 +136,65 @@
   width: 26px;
   height: 26px;
 }
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--moss);
+  box-shadow: 0 0 0 3px rgba(76, 122, 94, 0.2);
+}
 .previewBadge {
-  font-size: 11px;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--plate-yellow);
   border: 1px solid var(--plate-yellow);
-  border-radius: 999px;
-  padding: 5px 12px;
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+/* ---------- kinetická typografia (ticker) ---------- */
+.marquee {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-top: 1px solid var(--steel-line);
+  border-bottom: 1px solid var(--steel-line);
+  background: var(--ink-2);
+  padding: 6px 0;
+}
+.marqueeTrack {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.marqueeGroup {
+  display: flex;
+  flex-shrink: 0;
+}
+.marqueeItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  white-space: nowrap;
+  padding: 0 14px;
+}
+.marqueeDot {
+  color: var(--iron-red);
+  font-size: 8px;
 }
 
 /* ---------- hero ---------- */
@@ -98,14 +209,26 @@
   padding: clamp(20px, 5vw, 48px);
   max-width: 720px;
   margin: 0 auto;
-  overflow: hidden;
+  /* Pozn.: žiadne overflow:hidden — HeroShowcase (screenshoty vpravo od
+     textového stĺpca) by inak bol orezaný vlastným rodičom (skutočný bug,
+     zistený screenshotom: karty úplne zmizli, kým .hero mal overflow:hidden
+     ešte z čias, keď tu bývali blur-shape kruhy klipované na okraj sekcie). */
 }
 .heroBadge {
   position: relative;
   z-index: 1;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   opacity: 0;
   transform: scale(0.85);
+}
+.heroEyebrow {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--iron-red);
+  margin-bottom: 10px;
 }
 .heroHeadline {
   position: relative;
@@ -114,7 +237,7 @@
   line-height: 1.08;
   letter-spacing: -0.025em;
   margin-bottom: 18px;
-  overflow: hidden; /* maskuje SplitText char-reveal cez okraj riadku */
+  overflow: hidden;
 }
 .accent {
   color: var(--iron-red);
@@ -137,9 +260,6 @@
   transform: translateY(16px);
   display: inline-flex;
 }
-/* Nad 860px má 3D atlét vlastnú zónu vpravo (Scene3D/Athlete x-offset) — hero
-   text sa preto posunie doľava, nech sa nikdy nekryjú. Pod 860px je 3D scéna
-   vypnutá (adaptívna stratégia), takže centrovaný text zostáva bezpečný. */
 @media (min-width: 860px) {
   .hero {
     align-items: flex-start;
@@ -153,44 +273,309 @@
   }
 }
 
-/* Parallax dekor v hero/final — dva blur kruhy, rôzna scroll rýchlosť. */
-.heroShape1,
-.heroShape2,
-.finalShape1,
-.finalShape2 {
-  position: absolute;
-  z-index: 0;
-  border-radius: 50%;
-  filter: blur(60px);
+/* Poznámka: DOM/CSS blur "glow" tvary (heroShape/finalShape) boli z tejto
+   verzie odstránené — kolidovali vizuálne s WebGL shader pozadím (dva
+   nezávislé zdroje žiary/gradientu naraz čítali ako "seknuté" pozadie a
+   druhý, nesynchronizovaný kurzor; nájdené vo vizuálnej spätnej väzbe).
+   ShaderBackdrop (Scene3D) je teraz jediný zdroj ambientnej žiary/pohybu na
+   pozadí hero aj final sekcie. */
+
+/* ---------- ProgressRail — fixná koľajnica cez celú stránku ---------- */
+.progressRail {
+  display: none;
+  position: fixed;
+  z-index: 50;
+  left: clamp(16px, 2vw, 30px);
+  top: 50%;
+  transform: translateY(-50%);
+  height: 42vh;
+  min-height: 260px;
   pointer-events: none;
 }
-.heroShape1 {
-  width: 420px;
+@media (min-width: 900px) {
+  .progressRail {
+    display: block;
+  }
+}
+.railTrack {
+  position: relative;
+  width: 2px;
+  height: 100%;
+  margin: 0 auto;
+  background: var(--steel-line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.railFill {
+  position: absolute;
+  inset: 0;
+  transform: scaleY(0);
+  transform-origin: top;
+  background: linear-gradient(var(--iron-red-deep), var(--iron-red));
+}
+.railTicks {
+  position: absolute;
+  inset: 0;
+  width: 2px;
+  margin: 0 auto;
+}
+.railTick {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.railDot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.railLabel {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--paper-faint);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+}
+.railTickActive .railDot {
+  background: var(--iron-red);
+  border-color: var(--iron-red);
+  box-shadow: 0 0 8px rgba(224, 64, 42, 0.6);
+}
+.railTickActive .railLabel {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--paper);
+}
+
+/* ---------- HeroExtras — vitals monitor + rep counter, voľný priestor vpravo ---------- */
+/* Dopĺňa HeroShowcase (nemení ho) — vlastný, vyšší breakpoint (1400px), nech
+   nekonkuruje kartám v priestore, kde sotva sedia ony samotné. */
+.heroExtras {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  left: 100%;
+  margin-left: 460px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 200px;
   height: 420px;
-  top: -10%;
-  right: -12%;
-  background: radial-gradient(circle, rgba(224, 64, 42, 0.22), transparent 70%);
+  pointer-events: none;
 }
-.heroShape2 {
-  width: 300px;
-  height: 300px;
-  bottom: -15%;
-  left: -10%;
-  background: radial-gradient(circle, rgba(230, 178, 58, 0.16), transparent 70%);
+@media (min-width: 1400px) {
+  .heroExtras {
+    display: block;
+  }
 }
-.finalShape1 {
-  width: 380px;
-  height: 380px;
+.extraCard {
+  position: absolute;
+  width: 190px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+}
+.vitalsCard {
   top: 0;
-  left: -8%;
-  background: radial-gradient(circle, rgba(224, 64, 42, 0.18), transparent 70%);
+  left: 0;
 }
-.finalShape2 {
-  width: 260px;
-  height: 260px;
-  bottom: -10%;
-  right: -6%;
-  background: radial-gradient(circle, rgba(76, 122, 94, 0.2), transparent 70%);
+.repCard {
+  bottom: 0;
+  left: 10px;
+}
+.vitalsHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--paper-faint);
+  margin-bottom: 8px;
+}
+.vitalsDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--moss);
+  box-shadow: 0 0 6px rgba(76, 122, 94, 0.7);
+  animation: vitalsPulse 1.6s ease-in-out infinite;
+}
+@keyframes vitalsPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.ekgSvg {
+  width: 100%;
+  height: 32px;
+  display: block;
+  margin-bottom: 6px;
+}
+.vitalsBpm {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--paper);
+}
+.vitalsBpm small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  margin-left: 4px;
+}
+.repLabel {
+  display: block;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--paper-faint);
+  margin-bottom: 10px;
+}
+.dumbbellIcon {
+  margin-bottom: 10px;
+}
+.repNum {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--iron-red);
+  font-variant-numeric: tabular-nums;
+}
+.repNum small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--paper-dim);
+  margin-left: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vitalsDot {
+    animation: none;
+  }
+}
+
+/* ---------- HeroShowcase — reálne screenshoty ako parallax karty ---------- */
+/* Nahrádza tretí zamietnutý 3D centerpiece pokus (atlét → barbell →
+   kettlebell) — bezpečnejšia, doslovná "dôkaz appky" kompozícia namiesto
+   ďalšieho vymysleného 3D objektu. Desktop-only, rovnaká hranica ako
+   predošlá 3D vrstva (Scene3D vypnutá pod 860px). */
+/* .hero je len tak široký ako text (max-width:640px + margin-left offset,
+   viď @media 860px vyššie) — NIE celá šírka viewportu. `right:` by preto
+   kotvilo kartu priamo na okraj textu (skutočný bug, zistený screenshotom:
+   karty prekrývali nadpis). `left:100%` ju posunie AŽ ZA koniec textového
+   stĺpca. Vlastný, vyšší breakpoint (1180px) — pod ním by sa text + karty
+   nezmestili vedľa seba bez kolízie. */
+.heroShowcase {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 100%;
+  margin-left: clamp(24px, 3vw, 64px);
+  transform: translateY(-50%);
+  width: clamp(260px, 24vw, 360px);
+  height: 400px;
+  pointer-events: none;
+}
+@media (min-width: 1180px) {
+  .heroShowcase {
+    display: block;
+  }
+}
+.showcaseCard {
+  position: absolute;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--steel-line);
+  background: var(--ink-2);
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.65);
+}
+.showcaseCard img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cardMain {
+  width: 60%;
+  top: 8%;
+  left: 20%;
+  z-index: 3;
+}
+.cardChat {
+  width: 44%;
+  top: -2%;
+  right: -4%;
+  z-index: 2;
+  opacity: 0.92;
+}
+.cardDennik {
+  width: 44%;
+  bottom: -4%;
+  left: -6%;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.showcaseBadge {
+  position: absolute;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--paper);
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  padding: 7px 13px;
+  box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.6);
+  animation: showcaseFloat 5s ease-in-out infinite;
+}
+.badgeA {
+  top: 2%;
+  right: 8%;
+  border-color: var(--moss);
+  animation-delay: 0s;
+}
+.badgeB {
+  bottom: 8%;
+  right: 0;
+  border-color: var(--plate-yellow);
+  animation-delay: 1.4s;
+}
+@keyframes showcaseFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .showcaseBadge {
+    animation: none;
+  }
 }
 
 /* ---------- ring (RingStat) ---------- */
@@ -225,8 +610,9 @@
   white-space: nowrap;
 }
 .ringLabel {
-  font-size: calc(12px * max(var(--ring-scale, 1), 0.75));
-  font-weight: 700;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: calc(11px * max(var(--ring-scale, 1), 0.75));
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--paper-dim);
@@ -248,8 +634,9 @@
   padding: clamp(56px, 9vh, 96px) clamp(20px, 5vw, 48px);
 }
 .eyebrow {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--paper-faint);
@@ -260,6 +647,35 @@
   letter-spacing: -0.02em;
   margin-bottom: 36px;
   max-width: 22ch;
+}
+
+/* ---------- HUD panel — spoločné corner-bracket riešenie pre karty ---------- */
+.hudPanel {
+  position: relative;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: 6px;
+}
+.hudPanel::before,
+.hudPanel::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.hudPanel::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--iron-red);
+  border-left: 2px solid var(--iron-red);
+}
+.hudPanel::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--iron-red);
+  border-right: 2px solid var(--iron-red);
 }
 
 /* ---------- FEATURES: staggered grid + cursor tilt ---------- */
@@ -279,32 +695,37 @@
   }
 }
 .featureCard {
-  position: relative;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
+  composes: hudPanel;
   padding: 24px;
   transform-style: preserve-3d;
   will-change: transform;
   overflow: hidden;
 }
-.featureCard::before {
-  content: "";
+.featureCard::before,
+.featureCard::after {
+  z-index: 1;
+}
+.featureCard > *:not(.glowLayer) {
+  position: relative;
+  z-index: 1;
+}
+.glowLayer {
   position: absolute;
   inset: 0;
   opacity: 0;
   transition: opacity 0.3s ease;
   background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(224, 64, 42, 0.14), transparent 65%);
   pointer-events: none;
+  z-index: 0;
 }
-.featureCard:hover::before {
+.featureCard:hover .glowLayer {
   opacity: 1;
 }
 .featureIndex {
   display: block;
-  font-size: 12px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--paper-faint);
   margin-bottom: 14px;
 }
@@ -324,12 +745,13 @@
   gap: 6px;
 }
 .featureTagRow span {
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
   color: var(--paper-faint);
   border: 1px solid var(--steel-line);
-  border-radius: 999px;
-  padding: 3px 9px;
+  border-radius: 3px;
+  padding: 3px 8px;
 }
 .toneCoral .featureIndex {
   color: var(--iron-red);
@@ -363,13 +785,6 @@
   padding: 0 clamp(20px, 5vw, 48px);
   width: 100%;
 }
-/* Default: natively horizontally scrollable (reduced-motion + mobile fallback
-   — without this, cards past the viewport edge would be clipped by .page's
-   overflow-x:hidden and permanently unreachable, a real bug caught by
-   screenshot review under prefers-reduced-motion on desktop). The pinned
-   desktop/tablet path (V2Experience.tsx) sets overflow:hidden on this
-   element via ref once it takes over with a scrub-driven transform, so the
-   two scroll mechanisms never fight each other. */
 .howScroller {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -382,22 +797,20 @@
   width: max-content;
 }
 .howCard {
+  composes: hudPanel;
   flex: none;
   width: min(78vw, 380px);
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
   padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 .howStep {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--iron-red);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 .howCard h3 {
   font-size: 1.15rem;
@@ -408,7 +821,7 @@
   line-height: 1.6;
 }
 .howShot {
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--steel-line);
   width: 100%;
   display: block;
@@ -430,8 +843,6 @@
   transform: scaleX(0);
   transform-origin: left;
 }
-/* Mobile: žiadny scroll-hijack pin — natívny horizontálny scroll so snapom
-   (.howScroller je scrollovateľný defaultne, tu len ladíme rozmery/padding). */
 @media (max-width: 768px) {
   .howViewport {
     height: auto;
@@ -453,7 +864,7 @@
   }
 }
 
-/* ---------- AI: pinned, scrub-driven "typing" chat ---------- */
+/* ---------- AI: pinned, scrub-driven terminál ---------- */
 .aiViewport {
   min-height: 100vh;
   display: flex;
@@ -476,7 +887,7 @@
 .chatBubble {
   max-width: 82%;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: 10px;
   font-size: 14.5px;
   line-height: 1.5;
   opacity: 0;
@@ -486,16 +897,18 @@
   align-self: flex-start;
   background: var(--ink-3);
   border: 1px solid var(--steel-line);
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 2px;
 }
 .chatAi {
   align-self: flex-end;
   background: var(--iron-red-deep);
   color: var(--paper);
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 2px;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
 }
 .chatTag {
   display: block;
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -532,9 +945,7 @@
   }
 }
 .tierCard {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
+  composes: hudPanel;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -549,8 +960,9 @@
   font-size: 1.05rem;
 }
 .tierMeta {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
   color: var(--paper-faint);
-  font-size: 12px;
+  font-size: 11.5px;
   margin-bottom: 10px;
 }
 .tierPrice {
@@ -559,8 +971,9 @@
   font-variant-numeric: tabular-nums;
 }
 .tierPer {
+  font-family: var(--font-hud-mono), ui-monospace, monospace;
   color: var(--paper-dim);
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 /* ---------- final CTA ---------- */
@@ -582,8 +995,6 @@
   flex-direction: column;
   align-items: center;
 }
-/* Atlét sa vracia v tejto sekcii (Athlete visibleSections) posunutý vpravo,
-   final CTA text preto tiež doľava na desktope — rovnaký dôvod ako .hero. */
 @media (min-width: 860px) {
   .finalCta {
     align-items: flex-start;
@@ -608,7 +1019,6 @@
 .footer {
   position: relative;
   z-index: 1;
-  border-top: 1px solid var(--steel-line);
   padding: 24px clamp(20px, 5vw, 48px) calc(24px + env(safe-area-inset-bottom));
   text-align: center;
 }
@@ -629,5 +1039,8 @@
   }
   .featureCard {
     transform: none !important;
+  }
+  .cursorLayer {
+    display: none;
   }
 }

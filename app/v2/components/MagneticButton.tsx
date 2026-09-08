@@ -15,10 +15,12 @@ export function MagneticButton({
   href,
   className,
   children,
+  ...rest
 }: {
   href: string;
   className?: string;
   children: React.ReactNode;
+  "data-cursor"?: string;
 }) {
   const ref = useRef<HTMLAnchorElement>(null);
 
@@ -62,7 +64,7 @@ export function MagneticButton({
   }, []);
 
   return (
-    <Link href={href} ref={ref} className={className}>
+    <Link href={href} ref={ref} className={className} {...rest}>
       {children}
     </Link>
   );

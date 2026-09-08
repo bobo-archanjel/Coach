@@ -12,44 +12,13 @@ import { Scene3D } from "./components/Scene3D";
 import { RingStat } from "./components/RingStat";
 import { MagneticButton } from "./components/MagneticButton";
 import { FeatureCard } from "./components/FeatureCard";
+import { CustomCursor } from "./components/CustomCursor";
+import { Marquee } from "./components/Marquee";
+import { HeroShowcase } from "./components/HeroShowcase";
+import { HeroExtras } from "./components/HeroExtras";
+import { ProgressRail } from "./components/ProgressRail";
 import { sceneState } from "./lib/sceneState";
 import styles from "./page.module.css";
-
-/*
- * IMPECCABLE DIRECTION CONTRACT — feature/security#2, /v2 landing variant, rebuild #2
- *
- * THESIS: the first build read as "reveal-on-scroll pasted onto a static
- * page." This rebuild commits every section to a technique that actually
- * needs the scrollbar as an input device — pin, scrub, horizontal hijack,
- * parallax, magnetism — so the page behaves like a motion studio's demo
- * reel, not a brochure with fade-ins.
- * OWN-WORLD: unchanged FitPilot palette (grafitový ink/paper/iron-red/plate-
- * yellow/moss) and Inter — no new brand color, no new font. The mocap
- * athlete (coral wireframe) and particle field carry the "motion graphics"
- * half of the brief; GSAP/Lenis/ScrollTrigger choreography carries the rest.
- * A synthetic 3D phone was cut from the previous build — the app now proves
- * itself with its own real screenshots inside the DOM (feature grid, "ako to
- * funguje" gallery), which reads as more honest than a second 3D prop
- * fighting the athlete for attention.
- * STORY: a trainer scrolls through their own coaching practice — clients,
- * builder, nutrition, AI, price, decision — each screen a live mechanism,
- * not a static card, and lands on a CTA that feels inevitable, not tacked on.
- * FIRST VIEWPORT: pinned hero, parallax coral/amber glow shapes behind a
- * SplitText char-reveal headline that autoplays the instant the preloader
- * clears (never scrub-gated — a scrub-only reveal leaves scroll position 0
- * blank, a real regression caught by screenshot review in the first build).
- * FORM: GSAP + ScrollTrigger + SplitText for every choreography primitive
- * (pin, scrub, stagger, horizontal drag-track, clip-path typing), Lenis for
- * inertia, React Three Fiber/drei for the mocap athlete + particle layer.
- * Pricing is deliberately the calmest section on the page — a simple fade,
- * no pin, no scrub — because a buyer must be able to read it without
- * fighting the scrollbar.
- * FINISH: reduced-motion strips every pin/scrub/parallax/horizontal-hijack
- * down to a plain opacity+8px fade (3D layer already gone at that media
- * query); mobile (<768px) turns the pinned horizontal gallery into a native
- * scroll-snap row instead of hijacking vertical scroll for horizontal intent.
- * Verified via tsc/build/e2e plus desktop+mobile screenshot inspection.
- */
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
@@ -58,6 +27,15 @@ const ArrowIcon = () => (
     <path d="M3 7.5h9M8 3l4.5 4.5L8 12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+const TICKER = [
+  "AI KOUČ S DOHĽADOM TRÉNERA",
+  "TRÉNINGOVÝ BUILDER",
+  "VÝŽIVA A MAKRÁ",
+  "14 DNÍ ZADARMO",
+  "SK / CZ NATÍVNE",
+  "PROGRES TRACKING",
+];
 
 const FEATURES: { title: string; copy: string; tags: string[]; tone: "coral" | "amber" | "moss" | "steel" }[] = [
   {
@@ -149,7 +127,6 @@ export function V2Experience() {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
     const ctx = gsap.context(() => {
-      // ---------- globálny progress (0..1 cez celú stránku) ----------
       ScrollTrigger.create({
         trigger: rootRef.current,
         start: "top top",
@@ -160,11 +137,6 @@ export function V2Experience() {
       });
 
       // ---------- HERO: char-split headline, autoplay po preloaderi, pin ----------
-      // "words, chars" (not "chars" alone) — chars-only splitting lets the
-      // browser line-break mid-word between the individual char spans (real
-      // bug, caught by screenshot review: "trénerská" wrapped as "trén" /
-      // "erská"); wrapping each word first keeps line breaks at real word
-      // boundaries while chars stay individually animatable.
       const heroSplit = new SplitText(".v2-hero-headline", { type: "words, chars" });
       gsap.set(heroSplit.chars, { yPercent: 120, opacity: 0 });
       const heroTl = gsap.timeline({ paused: true });
@@ -174,23 +146,13 @@ export function V2Experience() {
         .to(`.${styles.heroBadge}`, { opacity: 1, scale: 1 }, "<");
 
       if (!reduced) {
-        ScrollTrigger.create({ trigger: ".v2-hero", start: "top top", end: "+=60%", pin: true });
-        // Parallax: dva glow tvary v hero sa hýbu opačným smerom a rôznou
-        // rýchlosťou (klasický multi-layer parallax), scrub priamo na scrollTop.
-        gsap.to(`.${styles.heroShape1}`, {
-          yPercent: -35,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-hero", start: "top top", end: "bottom top", scrub: 0.6 },
-        });
-        gsap.to(`.${styles.heroShape2}`, {
-          yPercent: 45,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-hero", start: "top top", end: "bottom top", scrub: 0.6 },
-        });
+        // Krátky pin — len nech je hero chvíľu na mieste kým doznie reveal,
+        // nie 60% scrollu bez viditeľného pohybu (predtým hlásené ako
+        // "stránka sa na chvíľu zasekne" — headline sa prehráva autoplay,
+        // nie scrub-viazane, takže dlhý pin nemal počas seba čo animovať).
+        ScrollTrigger.create({ trigger: ".v2-hero", start: "top top", end: "+=25%", pin: true });
       }
 
-      // rAF polling namiesto custom eventu — nezávisí od poradia mountu
-      // Preloader vs. tento efekt (Preloader nastaví sceneState.ready).
       const waitForReady = () => {
         if (sceneState.ready) {
           heroTl.play();
@@ -221,10 +183,6 @@ export function V2Experience() {
       // ---------- HOW: pinned horizontálna galéria (desktop/tablet) ----------
       if (!reduced && !isMobile && howTrackRef.current && howScrollerRef.current) {
         const track = howTrackRef.current;
-        // Natívny horizontálny scroll (CSS fallback pre reduced-motion/mobile,
-        // viď .howScroller) sa tu vypína — pin + scrub berie kontrolu nad
-        // horizontálnou pozíciou cez transform, dva súbežné mechanizmy by sa
-        // bili o tú istú os.
         howScrollerRef.current.style.overflow = "hidden";
         const getDistance = () => Math.max(0, track.scrollWidth - track.parentElement!.clientWidth);
         const howTl = gsap.timeline({
@@ -242,7 +200,6 @@ export function V2Experience() {
         });
         howTl.to(track, { x: () => -getDistance(), ease: "none" });
       } else {
-        // Mobile / reduced-motion: natívny scroll (CSS), len jemný fade-in kariet.
         gsap.from(".v2-how-card", {
           opacity: 0,
           y: 24,
@@ -253,7 +210,7 @@ export function V2Experience() {
         });
       }
 
-      // ---------- AI: pinned + scrub-driven "typing" chat bubliny ----------
+      // ---------- AI: pinned + scrub-driven "typing" terminál ----------
       const bubbles = gsap.utils.toArray<HTMLElement>(".v2-chat-bubble");
       gsap.set(bubbles, { opacity: 0, y: 16 });
       gsap.set(`.${styles.chatText}`, { clipPath: "inset(0 100% 0 0)" });
@@ -277,7 +234,7 @@ export function V2Experience() {
         gsap.set(`.${styles.chatText}`, { clipPath: "inset(0 0% 0 0)" });
       }
 
-      // ---------- PRICING: jemný fade, žiadny pin/scrub (musí ostať čitateľné) ----------
+      // ---------- PRICING: jemný fade, žiadny pin/scrub ----------
       gsap.from(".v2-pricing-head", {
         opacity: 0,
         y: 20,
@@ -293,7 +250,7 @@ export function V2Experience() {
         scrollTrigger: { trigger: ".v2-tier-grid", start: "top 84%" },
       });
 
-      // ---------- FINAL: split headline + parallax shapes + reveal ----------
+      // ---------- FINAL: split headline + parallax tvary + reveal ----------
       const finalSplit = new SplitText(".v2-final-headline", { type: "words, chars" });
       gsap.set(finalSplit.chars, { yPercent: 100, opacity: 0 });
       gsap.to(finalSplit.chars, {
@@ -310,23 +267,7 @@ export function V2Experience() {
         duration: 0.6,
         scrollTrigger: { trigger: ".v2-final", start: "top 70%" },
       });
-      if (!reduced) {
-        gsap.to(`.${styles.finalShape1}`, {
-          yPercent: -30,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-final", start: "top bottom", end: "bottom top", scrub: 0.6 },
-        });
-        gsap.to(`.${styles.finalShape2}`, {
-          yPercent: 40,
-          ease: "none",
-          scrollTrigger: { trigger: ".v2-final", start: "top bottom", end: "bottom top", scrub: 0.6 },
-        });
-      }
-
       // ---------- ktorá sekcia je aktívna (pre 3D scénu) — AŽ PO všetkých pinoch ----------
-      // Pin vkladá pin-spacer a mení layout pod sebou; keby tento loop bežal
-      // pred pinmi vyššie, ScrollTrigger by start/end počítal zo starých
-      // (pred-pin) pozícií (zistené vizuálnou kontrolou v prvom rebuilde).
       gsap.utils.toArray<HTMLElement>("[data-section]").forEach((el, i) => {
         ScrollTrigger.create({
           trigger: el,
@@ -348,37 +289,49 @@ export function V2Experience() {
 
   return (
     <SmoothScroll>
+      <CustomCursor />
       <Preloader />
       <Scene3D />
+      <ProgressRail />
       <div ref={rootRef} className={styles.page}>
         <header className={styles.header}>
           <div className={styles.headerInner}>
-            <Link href="/" className={styles.brand}>
+            <Link href="/" className={styles.brand} data-cursor="DOMOV">
               <LogoMark className={styles.logoMark} />
               FitPilot
             </Link>
-            <span className={styles.previewBadge}>Náhľad v2</span>
+            <div className={styles.headerRight}>
+              <span className={styles.statusDot} aria-hidden="true" />
+              <span className={styles.previewBadge}>NÁHĽAD V2 · SYSTÉM ONLINE</span>
+            </div>
           </div>
         </header>
+
+        <Marquee items={TICKER} />
 
         <main>
           {/* ---------- HERO ---------- */}
           <section className={`${styles.hero} v2-hero`} data-section>
-            <div className={styles.heroShape1} aria-hidden="true" />
-            <div className={styles.heroShape2} aria-hidden="true" />
+            <HeroShowcase />
+            <HeroExtras />
             <div className={styles.heroBadge}>
               <RingStat value={14} label="dní zadarmo" size={110} />
             </div>
+            <p className={styles.heroEyebrow}>FITPILOT OS · BUILD 2026.09</p>
             <h1 className={`${styles.heroHeadline} v2-hero-headline`}>
-              Tvoja trénerská prax,
+              Ovládací panel pre
               <br />
-              <span className={styles.accent}>naživo v pohybe.</span>
+              <span className={styles.accent}>tvoju trénerskú prax.</span>
             </h1>
             <p className={styles.heroSub}>
               FitPilot vedie klientov, plány aj jedálničky pre fitness trénerov na Slovensku a v Česku.
             </p>
-            <MagneticButton href="/prihlasenie#register" className={`btn btn-primary ${styles.heroCta}`}>
-              Začať skúšobné obdobie
+            <MagneticButton
+              href="/prihlasenie#register"
+              className={`btn btn-primary ${styles.heroCta}`}
+              data-cursor="OTVORIŤ"
+            >
+              Spustiť skúšobné obdobie
               <ArrowIcon />
             </MagneticButton>
           </section>
@@ -386,7 +339,7 @@ export function V2Experience() {
           {/* ---------- FEATURES ---------- */}
           <section className={`${styles.section} v2-features`} data-section>
             <div className="v2-feature-head">
-              <p className={styles.eyebrow}>Čo appka robí</p>
+              <p className={styles.eyebrow}>MODULY SYSTÉMU · 06</p>
               <h2 className={styles.sectionHead}>Šesť nástrojov, jeden pracovný tok</h2>
             </div>
             <div className={`${styles.featureGrid} v2-feature-grid`}>
@@ -400,14 +353,14 @@ export function V2Experience() {
           <section className={`${styles.section} ${styles.howSection} v2-how`} data-section>
             <div className={styles.howViewport}>
               <div className={styles.howHead}>
-                <p className={styles.eyebrow}>Ako to funguje</p>
+                <p className={styles.eyebrow}>PROTOKOL SPUSTENIA</p>
                 <h2 className={styles.sectionHead}>Od pozvánky po prvý report</h2>
               </div>
               <div ref={howScrollerRef} className={styles.howScroller}>
                 <div ref={howTrackRef} className={styles.howTrack}>
                   {STEPS.map((s) => (
-                    <div key={s.step} className={`v2-how-card ${styles.howCard}`}>
-                      <span className={styles.howStep}>Krok {s.step}</span>
+                    <div key={s.step} className={`v2-how-card ${styles.howCard}`} data-cursor="DETAIL">
+                      <span className={styles.howStep}>KROK_{s.step}</span>
                       <h3>{s.title}</h3>
                       <p>{s.copy}</p>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -422,10 +375,10 @@ export function V2Experience() {
             </div>
           </section>
 
-          {/* ---------- AI: pinned scrub-driven chat ---------- */}
+          {/* ---------- AI: pinned scrub-driven terminál ---------- */}
           <section className={`${styles.aiViewport} v2-ai`} data-section>
             <div className={styles.aiInner}>
-              <p className={styles.eyebrow}>AI s dohľadom trénera</p>
+              <p className={styles.eyebrow}>AI CORE · DOHĽAD TRÉNERA</p>
               <h2 className={styles.sectionHead}>Kontext, nie generický chatbot</h2>
               <div className={styles.chatList}>
                 {CHAT.map((m, i) => (
@@ -433,7 +386,7 @@ export function V2Experience() {
                     key={i}
                     className={`v2-chat-bubble ${styles.chatBubble} ${m.who === "client" ? styles.chatClient : styles.chatAi}`}
                   >
-                    <span className={styles.chatTag}>{m.name}</span>
+                    <span className={styles.chatTag}>{m.who === "ai" ? "> " : ""}{m.name}</span>
                     <span className={styles.chatText}>{m.text}</span>
                   </div>
                 ))}
@@ -447,13 +400,17 @@ export function V2Experience() {
           {/* ---------- PRICING ---------- */}
           <section className={`${styles.section} v2-pricing`} data-section>
             <div className="v2-pricing-head">
-              <p className={styles.eyebrow}>Cenník</p>
+              <p className={styles.eyebrow}>CENOVÉ ÚROVNE</p>
               <h2 className={styles.sectionHead}>Predplatné pre trénera, nie pre klienta</h2>
             </div>
             <p className={styles.pricingNote}>orientačný cenník pre spustenie — ceny sa môžu do launchu upraviť</p>
             <div className={`${styles.tierGrid} v2-tier-grid`}>
               {TIERS.map((t) => (
-                <div key={t.tier} className={`v2-tier-card ${styles.tierCard} ${t.featured ? styles.tierFeatured : ""}`}>
+                <div
+                  key={t.tier}
+                  className={`v2-tier-card ${styles.tierCard} ${t.featured ? styles.tierFeatured : ""}`}
+                  data-cursor="VYBRAŤ"
+                >
                   <span className={styles.tierName}>{t.tier}</span>
                   <span className={styles.tierMeta}>{t.meta}</span>
                   <span className={styles.tierPrice}>{t.price}</span>
@@ -465,22 +422,26 @@ export function V2Experience() {
 
           {/* ---------- FINAL ---------- */}
           <section className={`${styles.finalCta} v2-final`} data-section>
-            <div className={styles.finalShape1} aria-hidden="true" />
-            <div className={styles.finalShape2} aria-hidden="true" />
             <div className={`v2-final-content ${styles.finalContent}`}>
               <RingStat value={100} suffix="%" label="v tvojich rukách" sublabel="AI navrhuje, ty rozhoduješ" size={160} />
               <h2 className={`${styles.finalHeadline} v2-final-headline`}>Zdvihni administratívu zo svojich pliec.</h2>
-              <MagneticButton href="/prihlasenie#register" className={`btn btn-primary ${styles.heroCta}`}>
-                Začať skúšobné obdobie
+              <MagneticButton
+                href="/prihlasenie#register"
+                className={`btn btn-primary ${styles.heroCta}`}
+                data-cursor="OTVORIŤ"
+              >
+                Spustiť skúšobné obdobie
                 <ArrowIcon />
               </MagneticButton>
             </div>
           </section>
         </main>
 
+        <Marquee items={TICKER} speed={26} />
+
         <footer className={styles.footer}>
           <p>
-            Interná testovacia varianta landing page (feature/security#2) — bežná stránka ostáva na{" "}
+            Interná testovacia varianta landing page (feature/front-end) — bežná stránka ostáva na{" "}
             <Link href="/">fitpilot.sk</Link>.
           </p>
         </footer>

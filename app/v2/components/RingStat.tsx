@@ -41,10 +41,12 @@ export function RingStat({
         start: "top 85%",
         once: true,
         onEnter: () => {
-          gsap.to(circleRef.current, { strokeDashoffset: 0, duration: 1.4, ease: "power3.out" });
+          const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const duration = reduced ? 0 : 1.4;
+          gsap.to(circleRef.current, { strokeDashoffset: 0, duration, ease: "power3.out" });
           gsap.to(counter, {
             val: value,
-            duration: 1.4,
+            duration,
             ease: "power3.out",
             onUpdate: () => {
               if (numRef.current) numRef.current.textContent = `${Math.round(counter.val)}${suffix}`;

@@ -1,22 +1,24 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Athlete } from "./Athlete";
 import { ParticleField } from "./ParticleField";
+import { ShaderBackdrop } from "./ShaderBackdrop";
 import { sceneState } from "../lib/sceneState";
 import styles from "../page.module.css";
 
 /**
- * Jedna trvalá `fixed` Canvas vrstva za celým obsahom — mocap atlét (coral
- * wireframe) + ambientné particle pole, riadené `sceneState` (nastavuje ho
- * GSAP ScrollTrigger vo V2Experience, nie React state — scéna číta 60×/s,
- * re-render by ju len sekal). Vypnutá úplne na mobile a pri
+ * Jedna trvalá `fixed` Canvas vrstva za celým obsahom — čisto ambientná:
+ * vlastný GLSL HUD-grid + EKG shader (ShaderBackdrop) a particle pole.
+ * Doslovný fitness objekt (mocap atlét, potom wireframe barbell/kettlebell)
+ * bol z tejto vrstvy odstránený — tri po sebe idúce pokusy nepôsobili dobre
+ * (spätná väzba: "vyzerá to zle/otrasne", "nedá sa povedať že je to
+ * kettlebell"). Konkrétny "dôkaz produktu" teraz nesie `HeroShowcase`
+ * (reálne screenshoty appky, DOM/CSS parallax) priamo v hero sekcii —
+ * bezpečnejšia, overiteľná cesta než ďalší 3D model. Táto vrstva ostáva len
+ * tichá atmosféra v pozadí. Vypnutá úplne na mobile a pri
  * `prefers-reduced-motion` — DOM/GSAP scrollytelling tam beží ďalej bez
- * WebGL nákladu. 3D telefón bol z tejto vrstvy odstránený v tomto rebuilde —
- * appka sa teraz ukazuje cez reálne screenshoty priamo v DOM (feature karty,
- * "ako to funguje" galéria), nie cez ďalší 3D objekt v tej istej scéne;
- * menej vizuálneho súboja o pozornosť s atlétom.
+ * WebGL nákladu.
  */
 export function Scene3D() {
   const [enabled, setEnabled] = useState(false);
@@ -39,13 +41,8 @@ export function Scene3D() {
   return (
     <div className={styles.sceneLayer} aria-hidden="true">
       <Canvas camera={{ position: [0, 0.4, 5.5], fov: 42 }} gl={{ antialias: true, alpha: true }} dpr={[1, 1.75]}>
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[3, 4, 5]} intensity={1.3} color="#f3efe6" />
-        <pointLight position={[-3, -2, 2]} intensity={0.4} color="#e0402a" />
-        <Suspense fallback={null}>
-          <Athlete position={[1.9, -1.15, 0]} />
-          <ParticleField />
-        </Suspense>
+        <ShaderBackdrop />
+        <ParticleField />
       </Canvas>
     </div>
   );

@@ -58,7 +58,9 @@ export function FeatureCard({
       onPointerMove={onMove}
       onPointerLeave={onLeave}
       style={{ perspective: 800 }}
+      data-cursor="INFO"
     >
+      <div className={styles.glowLayer} aria-hidden="true" />
       <span className={styles.featureIndex}>{String(index + 1).padStart(2, "0")}</span>
       <h3>{title}</h3>
       <p>{copy}</p>

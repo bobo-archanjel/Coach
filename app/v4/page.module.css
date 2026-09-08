@@ -1,0 +1,696 @@
+/* /v4 — direct structural adaptation of a reference fitness/wellness
+   landing page's rhythm: marquee (fast) → calm text (pause) → dominant
+   visual (chapter-break) → marquee → cards → chapter-break (close). See
+   V4Experience.tsx's IMPECCABLE DIRECTION CONTRACT for the full mapping.
+   Brand: DESIGN.md's palette/Inter/radius tokens exactly — every card tint
+   below is color-mix() of an EXISTING token into --ink-2/--ink-3, never a
+   new hue. Banned per DESIGN.md "What to avoid", enforced throughout: no
+   eyebrow labels, no gradient text, no 3-column icon+title+text cards, no
+   decorative colored border-left, no glass/blur as decoration. */
+
+.page {
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: var(--ink);
+}
+
+/* ---------- nav ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(20px, 5vw, 64px);
+  background: rgba(18, 17, 16, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--steel-line);
+}
+.navBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--paper);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.navLogo {
+  width: 22px;
+  height: 22px;
+}
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.navPreview {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+
+/* ---------- shared ---------- */
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+/* padding-top/padding-bottom longhand ONLY on any element combined with
+   `.wrap` — a `padding` shorthand here silently zeroes `.wrap`'s horizontal
+   padding (same specificity, shorthand replaces the whole property), which
+   is exactly what broke every section's mobile side margins in /v3. */
+.section {
+  padding-top: clamp(56px, 10vh, 112px);
+  padding-bottom: clamp(56px, 10vh, 112px);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 30px;
+  border-radius: 980px;
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 17px;
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1), background 0.25s ease;
+}
+.btn:hover {
+  background: var(--iron-red);
+  transform: scale(1.03);
+}
+.sectionHeadline {
+  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  max-width: 20ch;
+  margin: 0 auto clamp(32px, 6vh, 56px);
+  text-align: center;
+}
+
+/* two-weight headline idiom, shared by hero + "Prekresľujeme" + "Ako to
+   funguje": a light first line, bold larger following line(s) — this
+   replaces the reference's font-weight jump inside one headline block. */
+.heroLineLight {
+  display: block;
+  font-weight: 400;
+  font-size: 0.4em;
+  color: var(--paper-dim);
+  letter-spacing: -0.01em;
+  margin-bottom: 0.15em;
+}
+.heroLineBold {
+  display: block;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.heroDot {
+  display: inline-block;
+  width: 0.22em;
+  height: 0.22em;
+  margin-left: 0.14em;
+  border-radius: 50%;
+  background: var(--iron-red);
+  vertical-align: middle;
+}
+
+/* ---------- HERO ---------- */
+.hero {
+  padding-top: clamp(64px, 13vh, 130px);
+  padding-bottom: clamp(28px, 5vh, 48px);
+  text-align: center;
+}
+.heroHeadline {
+  font-size: clamp(2.4rem, 6.4vw, 5.2rem);
+  line-height: 1.05;
+  max-width: 16ch;
+  margin: 0 auto;
+}
+
+/* ---------- card marquee ---------- */
+.marqueeCardsWrap {
+  overflow: hidden;
+  padding: clamp(28px, 5vh, 48px) 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marqueeCardsTrack {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: max-content;
+  will-change: transform;
+  animation: marqueeScrollCards 34s linear infinite;
+}
+.marqueeCardsTrack:hover,
+.marqueeCardsTrack:focus-within {
+  animation-play-state: paused;
+}
+@keyframes marqueeScrollCards {
+  /* -25% of a FOUR-copy track = exactly one copy's width, same pixel
+     distance as the old -50%-of-two-copies — speed is unchanged, only the
+     amount of standby content behind it increased (see MarqueeCards.tsx). */
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+.marqueeCardSlot {
+  flex: none;
+}
+
+/* ---------- data cards (real product-data mini-visualizations) ---------- */
+.dataCard {
+  width: 220px;
+  min-height: 150px;
+  padding: 20px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--steel-line);
+  background: var(--ink-2);
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tintNeutral {
+  background: var(--ink-2);
+}
+.tintCoral {
+  background: color-mix(in srgb, var(--iron-red) 13%, var(--ink-2));
+  border-color: color-mix(in srgb, var(--iron-red) 30%, var(--steel-line));
+}
+.tintAmber {
+  background: color-mix(in srgb, var(--plate-yellow) 11%, var(--ink-2));
+  border-color: color-mix(in srgb, var(--plate-yellow) 28%, var(--steel-line));
+}
+.tintMoss {
+  background: color-mix(in srgb, var(--moss) 14%, var(--ink-2));
+  border-color: color-mix(in srgb, var(--moss) 30%, var(--steel-line));
+}
+.dataCardValue {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.dataCardLabel {
+  font-size: 12.5px;
+  color: var(--paper-faint);
+}
+.macroBars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* full width explicitly — inside a flex column with align-items:center
+     (the control-center tile), a block child with no defined width
+     shrinks to its content's min-content instead of filling the row,
+     which collapsed `.macroBarTrack`'s `flex: 1` down to ~0 and made the
+     progress bars invisible. */
+  width: 100%;
+}
+.macroBarRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--paper-dim);
+}
+.macroBarLabel {
+  flex: none;
+  width: 66px;
+}
+.macroBarTrack {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--steel-line);
+  overflow: hidden;
+}
+.macroBarFill {
+  display: block;
+  height: 100%;
+  background: var(--iron-red);
+  border-radius: 999px;
+}
+.adherenceStrip {
+  display: flex;
+  gap: 5px;
+}
+.adherenceDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.adherence_moss {
+  background: var(--moss);
+}
+.adherence_coral {
+  background: var(--iron-red);
+}
+.adherence_steel {
+  background: var(--steel);
+  opacity: 0.4;
+}
+.chatBubbleRow {
+  display: flex;
+}
+.chatBubble {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--paper-dim);
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  padding: 10px 12px;
+}
+.statementCard {
+  justify-content: center;
+}
+.statementText {
+  font-size: 14.5px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--paper);
+}
+
+/* ---------- bento cards (stack-to-fan section — distinct from the
+   marquee's card family, on purpose, so the page doesn't repeat itself) ---------- */
+.bentoCard {
+  width: 100%;
+  min-height: 168px;
+}
+/* GitHub-style contribution heatmap */
+.heatmapGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.heatmapCell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--steel-line);
+}
+.heatmapCell[data-level="1"] {
+  background: color-mix(in srgb, var(--iron-red) 35%, var(--ink-3));
+}
+.heatmapCell[data-level="2"] {
+  background: color-mix(in srgb, var(--iron-red) 65%, var(--ink-3));
+}
+.heatmapCell[data-level="3"] {
+  background: var(--iron-red);
+}
+/* big-stat card (Stripe/Linear dashboard idiom) */
+.bigStatValue {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--moss);
+  line-height: 1;
+}
+.sparkline {
+  margin-top: auto;
+  display: block;
+}
+/* two-message exchange (iMessage bubble-pair idiom) */
+.exchangeStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.exchangeBubble {
+  font-size: 13px;
+  line-height: 1.4;
+  border-radius: var(--radius-s);
+  padding: 9px 11px;
+  max-width: 88%;
+}
+.exchangeIn {
+  align-self: flex-start;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-dim);
+}
+.exchangeOut {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--iron-red) 22%, var(--ink-2));
+  color: var(--paper);
+}
+/* weekly volume bar chart */
+.barChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 72px;
+  margin-top: auto;
+}
+.barChartCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+}
+.barChartBar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--plate-yellow);
+}
+.barChartLabel {
+  font-size: 10px;
+  color: var(--paper-faint);
+}
+
+/* ---------- control center panel ("All In One" — one composite widget
+   instead of three repeated cards) ---------- */
+.controlCenter {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--steel-line);
+  background: var(--ink-2);
+  box-shadow: var(--shadow-2);
+}
+@media (min-width: 760px) {
+  .controlCenter {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+.controlCenterTile {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.controlCenterDivider {
+  height: 1px;
+  width: 100%;
+  background: var(--steel-line);
+}
+@media (min-width: 760px) {
+  .controlCenterDivider {
+    height: 64px;
+    width: 1px;
+  }
+}
+.controlCenterValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- text marquee ---------- */
+.textMarqueeWrap {
+  overflow: hidden;
+  border-top: 1px solid var(--steel-line);
+  border-bottom: 1px solid var(--steel-line);
+  padding: clamp(18px, 3vh, 28px) 0;
+}
+.textMarqueeTrack {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marqueeScrollText 22s linear infinite;
+}
+.textMarqueeTrack:hover,
+.textMarqueeTrack:focus-within {
+  animation-play-state: paused;
+}
+@keyframes marqueeScrollText {
+  /* -25% of a FOUR-copy track = exactly one copy's width — see
+     marqueeScrollCards above and MarqueeText.tsx for why. */
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+.textMarqueeItem {
+  flex: none;
+  font-size: clamp(1.4rem, 4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--paper-faint);
+  white-space: nowrap;
+  padding-right: 1ch;
+}
+
+/* reduced-motion collapse for BOTH marquees — pure CSS, evaluated by the
+   browser regardless of React hydration state, so it carries none of the
+   className/style branching hydration risk a JS-conditional would. */
+@media (prefers-reduced-motion: reduce) {
+  .marqueeCardsTrack,
+  .textMarqueeTrack {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ---------- calm section (the pause after two marquees) ---------- */
+.calmSection {
+  text-align: center;
+}
+.calmHeadline {
+  font-size: clamp(1.7rem, 3.2vw, 2.3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  max-width: 22ch;
+  margin: 0 auto 20px;
+}
+.calmText {
+  font-size: 1.05rem;
+  color: var(--paper-dim);
+  line-height: 1.6;
+  max-width: 58ch;
+  margin: 0 auto;
+}
+
+/* ---------- split (headline left, dominant visual right) ---------- */
+.splitGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .splitGrid {
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: clamp(40px, 6vw, 80px);
+  }
+}
+.splitText {
+  text-align: left;
+}
+.splitHeadline {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.06;
+  margin: 0 0 20px;
+}
+.splitVisual {
+  border-radius: var(--radius-m);
+  border: 1px solid var(--steel-line);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: var(--ink-2);
+}
+.splitVisualImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.howList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-left: 22px;
+  color: var(--paper-dim);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.howList li {
+  padding-left: 4px;
+}
+
+/* ---------- stack → fan ---------- */
+.stackFanWrap {
+  display: flex;
+  justify-content: center;
+  padding: clamp(24px, 4vh, 40px) 0;
+}
+.stackFanTrack {
+  position: relative;
+  display: flex;
+  gap: 18px;
+  min-height: 190px;
+  align-items: center;
+  justify-content: center;
+}
+.stackFanSlot {
+  width: 236px;
+  flex: none;
+}
+@media (max-width: 760px) {
+  .stackFanTrack {
+    flex-wrap: wrap;
+  }
+  .stackFanSlot {
+    width: 160px;
+  }
+}
+
+/* ---------- portrait reveal (scroll-linked clip-path, not autoplay) ---------- */
+.portraitWrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: clamp(56px, 10vh, 112px) clamp(20px, 5vw, 64px);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: center;
+}
+@media (min-width: 800px) {
+  .portraitWrap {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.portraitFrame {
+  border-radius: var(--radius-m);
+  border: 1px solid var(--steel-line);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+  aspect-ratio: 780 / 1688;
+  max-height: 620px;
+  margin: 0 auto;
+  background: var(--ink-2);
+}
+.portraitImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+.portraitCaption {
+  text-align: left;
+}
+.portraitCaptionText {
+  font-size: 1.15rem;
+  line-height: 1.55;
+  color: var(--paper-dim);
+  max-width: 34ch;
+}
+
+/* ---------- all in one (second word dimmed) ---------- */
+.allInOneHeadline {
+  font-size: clamp(2rem, 4.4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-align: center;
+  margin: 0 auto 20px;
+}
+.allInOneDim {
+  color: var(--paper-faint);
+  font-weight: 700;
+}
+
+/* ---------- cinematic chapter-break (full height) ---------- */
+.chapter {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+/* Real product screenshots carry their own sharp UI text (button labels,
+   numbers) — used at full brightness/sharpness behind a headline, that text
+   visually fights the headline instead of reading as atmosphere. A slight
+   blur + darken turns it into recognizable texture (the ring shape, the
+   coral accent, the overall UI silhouette) without competing words —
+   the same "app is the hero, dramatically lit" intent, adapted for the
+   fact that a UI screenshot isn't photography. */
+.chapterImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(3px) brightness(0.62) saturate(1.15);
+  transform: scale(1.03);
+}
+.chapterScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(18, 17, 16, 0.35) 0%, rgba(18, 17, 16, 0.55) 45%, rgba(18, 17, 16, 0.94) 100%);
+}
+.chapterRim {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+}
+.chapterGlow_coral .chapterRim {
+  box-shadow: inset 0 0 220px 40px rgba(224, 64, 42, 0.28);
+}
+.chapterGlow_amber .chapterRim {
+  box-shadow: inset 0 0 220px 40px rgba(230, 178, 58, 0.24);
+}
+.chapterGlow_moss .chapterRim {
+  box-shadow: inset 0 0 220px 40px rgba(76, 122, 94, 0.24);
+}
+.chapterContent {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px) clamp(56px, 10vh, 112px);
+  text-align: center;
+}
+.chapterHeadline {
+  font-size: clamp(2.2rem, 5.6vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0 auto 14px;
+  max-width: 14ch;
+}
+.chapterSub {
+  font-size: 1.1rem;
+  color: var(--paper-dim);
+  margin: 0 auto 28px;
+}
+
+/* ---------- footer ---------- */
+.footer {
+  border-top: 1px solid var(--steel-line);
+  padding: 32px clamp(20px, 5vw, 64px) calc(32px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.footer p {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.footer a {
+  color: var(--iron-red);
+}
