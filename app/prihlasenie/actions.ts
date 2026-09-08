@@ -48,11 +48,18 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
 
-  // Doklaimovanie pozývacieho kódu, ak zostal nespárovaný z registrácie (viď
-  // pôvodný komentár v app/prihlasenie/page.tsx) — RPC je idempotentné.
-  const inviteCode = data.user.user_metadata?.invite_code as string | undefined;
-  if (profile?.role === "client" && inviteCode) {
-    await supabase.rpc("claim_client_by_invite", { p_invite_code: inviteCode });
+  if (profile?.role === "client") {
+    // Poistka: každý klient má mať vlastný `clients` riadok + kód (feature/registracia-update).
+    // Normálne ho vytvorí DB trigger pri registrácii, ale účet mohol vzniknúť inak
+    // (Dashboard "Add user", starší účet pred migráciou 0032) — RPC je idempotentné,
+    // vráti existujúci riadok alebo dovytvorí chýbajúci.
+    await supabase.rpc("ensure_self_client");
+
+    // Doklaimovanie starého pozývacieho kódu, ak zostal z pôvodného flow (backward compat).
+    const inviteCode = data.user.user_metadata?.invite_code as string | undefined;
+    if (inviteCode) {
+      await supabase.rpc("claim_client_by_invite", { p_invite_code: inviteCode });
+    }
   }
 
   return { error: null, redirectTo: profile?.role === "client" ? "/portal" : "/dashboard" };

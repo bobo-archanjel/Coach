@@ -221,6 +221,57 @@
 .addClientForm {
   margin-bottom: 20px;
 }
+/* Rozbalený panel s dvomi cestami pridania klienta (feature/registracia-update). */
+.addClientPanel {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 16px 18px;
+}
+.addClientModes {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--ink);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+.addClientModeBtn {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-faint);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.addClientModeBtn:hover {
+  color: var(--paper);
+}
+.addClientModeActive,
+.addClientModeActive:hover {
+  background: var(--ink-3);
+  color: var(--paper);
+}
+.addClientHint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--paper-faint);
+  margin-bottom: 12px;
+}
+.addClientOk {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8fc6a7;
+}
 .addClientFields {
   display: flex;
   flex-wrap: wrap;

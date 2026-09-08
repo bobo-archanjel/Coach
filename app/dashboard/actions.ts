@@ -7,6 +7,45 @@ export interface AddClientState {
   error: string | null;
 }
 
+export interface AddByCodeState {
+  error: string | null;
+  addedName: string | null;
+}
+
+/**
+ * Nový model pripojenia (feature/registracia-update): klient sa zaregistruje sám
+ * a dostane vlastný kód (FP-…). Tréner ho sem zadá → RPC add_client_by_code (0032)
+ * nastaví `clients.trainer_id` a pošle klientovi systémovú správu do chatu.
+ * Rate limit (8 pokusov / 15 min per tréner) je vnútri RPC.
+ */
+export async function addClientByCodeAction(_prev: AddByCodeState, formData: FormData): Promise<AddByCodeState> {
+  const code = ((formData.get("code") as string | null) ?? "").trim();
+  if (!code) return { error: "Zadaj kód klienta.", addedName: null };
+  if (code.length < 6) return { error: "Kód je príliš krátky — skopíruj ho celý.", addedName: null };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_client_by_code", { p_code: code });
+
+  if (error) {
+    const map: Record<string, string> = {
+      invalid_code: "Tento kód neexistuje. Over si ho u klienta — musí byť celý, aj s „FP-“.",
+      already_your_client: "Tohto klienta už máš v zozname.",
+      already_has_trainer: "Tento klient je už priradený k inému trénerovi. Musí sa najprv odpojiť vo svojom profile.",
+      too_many_attempts: "Priveľa pokusov o pridanie. Skús to znova o 15 minút.",
+      not_a_trainer: "Klientov môže pridávať len trénerský účet.",
+    };
+    const key = Object.keys(map).find((k) => error.message.includes(k));
+    return { error: key ? map[key] : "Pridanie zlyhalo. Skús to o chvíľu znova.", addedName: null };
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const addedName = (row?.client_name as string | undefined) ?? "Klient";
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/analytika");
+  return { error: null, addedName };
+}
+
 // feature/optimalizacia (security audit): predtým 4 náhodné znaky (~36^4 =
 // 1.68M kombinácií) — spolu s rate limitom na claim_client_by_invite (0029) je
 // to dostatočné, ale 8 znakov (~36^8 = 2.8 biliardy) robí uhádnutie prakticky

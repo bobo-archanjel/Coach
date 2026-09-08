@@ -13,7 +13,7 @@ React (Next.js), Tailwind CSS, mobile-first. Backend/DB: Supabase (Postgres, Aut
 ## Users
 
 - **Tréner** — prevádzkuje fitness koučing ako biznis, spravuje viacero klientov naraz (databáza klientov, tréningy, jedálničky), potrebuje rýchly prehľad kto meškal s logovaním a AI asistenta na generovanie plánov/jedálničkov a sumarizáciu progresu.
-- **Klient** — trénuje pod vedením trénera, používa appku hlavne na telefóne v posilňovni: odklikáva tréningy, zapisuje váhy/opakovania, loguje stravu, sleduje progres, pýta sa AI chatu v kontexte svojho profilu.
+- **Klient** — používa appku hlavne na telefóne v posilňovni: odklikáva tréningy, zapisuje váhy/opakovania, loguje stravu, sleduje progres, pýta sa AI chatu v kontexte svojho profilu. Môže trénovať **pod vedením trénera aj sám** — registruje sa vždy rovnako a po registrácii dostane vlastný kód, ktorý pošle trénerovi (tréner ho zadá u seba a tým sa napoja); prepojenie sa dá kedykoľvek zrušiť bez straty dát.
 
 ## Product Purpose
 

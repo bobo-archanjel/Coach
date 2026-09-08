@@ -136,8 +136,9 @@ export default function AuthPage() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerPasswordIssues, setRegisterPasswordIssues] = useState<string[]>([]);
   const registerPwLive = registerPassword ? checkPassword(registerPassword) : null;
-  // Explicitná voľba namiesto skrytého "mám kód" prepínača — inak sa klient bez
-  // povšimnutia zaregistruje ako tréner, keď netuší, že má hľadať niečo iné.
+  // Rola sa volí explicitne (tréner vs. klient). Klient sa registruje VŽDY
+  // rovnako — bez pozývacieho kódu (feature/registracia-update): po registrácii
+  // dostane vlastný kód, ktorý ukáže trénerovi. Tréner ho zadá v "Pridať klienta".
   const [registerRole, setRegisterRole] = useState<"trainer" | "client">("trainer");
   const isClientSignup = registerRole === "client";
 
@@ -145,15 +146,13 @@ export default function AuthPage() {
     e.preventDefault();
     setRegisterError(null);
     const form = e.currentTarget;
-    const fieldNames = isClientSignup ? ["invite", "name", "email", "password", "terms"] : ["name", "email", "password", "terms"];
-    const { invalid, hasInvalid } = validate(form, fieldNames);
+    const { invalid, hasInvalid } = validate(form, ["name", "email", "password", "terms"]);
     setRegisterInvalid(invalid);
     if (hasInvalid) return;
 
     const name = (form.elements.namedItem("name") as HTMLInputElement).value;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-    const invite = isClientSignup ? (form.elements.namedItem("invite") as HTMLInputElement).value.trim() : "";
 
     // Kontrola sily hesla (feature/optimalizacia, security audit) — predtým len
     // minLength={8} na klientovi, nič nezastavilo "12345678" alebo "password123".
@@ -174,17 +173,20 @@ export default function AuthPage() {
         data: {
           full_name: name,
           role: isClientSignup ? "client" : "trainer",
-          // Uložené pre prípad, že projekt vyžaduje potvrdenie e-mailu — vtedy tu
-          // ešte nie je session na zavolanie claim_client_by_invite, doklaimuje sa
-          // pri prvom prihlásení (viď handleLoginSubmit).
-          ...(isClientSignup ? { invite_code: invite } : {}),
         },
       },
     });
     if (error) {
       setRegisterStatus("idle");
+      const msg = error.message.toLowerCase();
       setRegisterError(
-        error.message === "User already registered" ? "Tento e-mail už je zaregistrovaný." : error.message
+        error.message === "User already registered"
+          ? "Tento e-mail už je zaregistrovaný."
+          : msg.includes("email rate limit") || msg.includes("rate limit")
+            ? "Priveľa registrácií za krátky čas z tejto adresy. Skús to o chvíľu znova."
+            : msg.includes("password")
+              ? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla."
+              : error.message,
       );
       return;
     }
@@ -199,29 +201,10 @@ export default function AuthPage() {
     }
 
     // Potvrdenie e-mailu je v projekte vypnuté — session je aktívna hneď.
-    if (isClientSignup) {
-      const { error: claimError } = await supabase.rpc("claim_client_by_invite", { p_invite_code: invite });
-      if (claimError) {
-        setRegisterStatus("idle");
-        setRegisterError(
-          claimError.message === "invalid_invite_code"
-            ? "Tento pozývací kód neexistuje. Over si ho u svojho trénera."
-            : claimError.message === "already_claimed"
-              ? "Tento pozývací kód je už použitý iným účtom."
-              : claimError.message === "too_many_attempts"
-                ? "Príliš veľa pokusov o spárovanie. Skús to znova o 15 minút."
-                : `Účet je vytvorený, ale spárovanie zlyhalo: ${claimError.message}`
-        );
-        return;
-      }
-      setRegisterStatus("success");
-      router.push("/portal");
-      router.refresh();
-      return;
-    }
-
+    // Klientovi DB trigger (handle_new_user, 0032) už vytvoril vlastný `clients`
+    // riadok + kód — netreba nič nárokovať, ide rovno do portálu.
     setRegisterStatus("success");
-    router.push("/dashboard");
+    router.push(isClientSignup ? "/portal" : "/dashboard");
     router.refresh();
   }
 
@@ -312,7 +295,7 @@ export default function AuthPage() {
             <section id="panel-login" role="tabpanel" aria-labelledby="tab-login">
               <div className={styles.authHead}>
                 <h2>Vitaj späť</h2>
-                <p>Prihlás sa do svojho trénerského konta.</p>
+                <p>Prihlás sa do svojho konta.</p>
               </div>
 
               <form ref={loginFormRef} noValidate onSubmit={handleLoginSubmit}>
@@ -386,7 +369,7 @@ export default function AuthPage() {
                 {loginStatus === "success" && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Prihlásenie prebehlo úspešne. Presmerúvam na dashboard…
+                    Prihlásenie prebehlo úspešne. Presmerúvam…
                   </div>
                 )}
                 {loginError && (
@@ -482,7 +465,7 @@ export default function AuthPage() {
                   aria-pressed={isClientSignup}
                   onClick={() => setRegisterRole("client")}
                 >
-                  Som klient — mám kód
+                  Som klient
                 </button>
               </div>
 
@@ -490,10 +473,14 @@ export default function AuthPage() {
                 {isClientSignup ? (
                   <>
                     <h2>
-                      Pripoj sa
-                      <br />k trénerovi
+                      Vytvor si
+                      <br />
+                      účet
                     </h2>
-                    <p>Vlož pozývací kód od svojho trénera a vytvor si účet.</p>
+                    <p>
+                      Trénuj sám alebo s trénerom. Po registrácii dostaneš vlastný kód — stačí ho poslať trénerovi a on
+                      ťa pridá.
+                    </p>
                   </>
                 ) : (
                   <>
@@ -508,29 +495,6 @@ export default function AuthPage() {
               </div>
 
               <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit}>
-                {isClientSignup && (
-                  <div className={styles.field}>
-                    <label htmlFor="invite-code">Pozývací kód</label>
-                    <input
-                      id="invite-code"
-                      name="invite"
-                      type="text"
-                      placeholder="napr. MK-7Q2X"
-                      autoComplete="off"
-                      required
-                      aria-invalid={registerInvalid.invite}
-                      onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
-                    />
-                    {registerInvalid.invite && (
-                      <span className={styles.fieldError}>
-                        <ErrorIcon />
-                        Vlož kód, ktorý si dostal od svojho trénera.
-                      </span>
-                    )}
-                    <span className={styles.fieldHint}>Kód nájdeš v pozvánke od trénera.</span>
-                  </div>
-                )}
-
                 <div className={styles.field}>
                   <label htmlFor="reg-name">Meno a priezvisko</label>
                   <input
@@ -647,7 +611,7 @@ export default function AuthPage() {
                     {registerStatus === "loading"
                       ? "Vytváram účet…"
                       : isClientSignup
-                        ? "Pripojiť sa k trénerovi"
+                        ? "Vytvoriť účet"
                         : "Začať skúšobné obdobie"}
                   </span>
                 </button>

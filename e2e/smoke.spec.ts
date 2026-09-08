@@ -70,22 +70,22 @@ test.describe("Prihlásenie /prihlasenie", () => {
     expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
   });
 
-  test("registrácia: prepínač tréner / klient + pozývací kód", async ({ page }) => {
+  test("registrácia: prepínač tréner / klient, klient bez kódu (feature/registracia-update)", async ({ page }) => {
     await page.goto("/prihlasenie");
     await page.getByRole("tab", { name: "Registrácia" }).click();
 
     // default = tréner
     await expect(page.getByRole("heading", { name: /Začni skúšobné/i })).toBeVisible();
+
+    // prepni na klienta → žiadne pole na pozývací kód, registrácia je rovnaká ako trénerská
+    await page.getByRole("button", { name: /^Som klient$/i }).click();
+    await expect(page.getByRole("heading", { name: /Vytvor si/i })).toBeVisible();
     await expect(page.getByLabel(/Pozývací kód/i)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Vytvoriť účet/i })).toBeVisible();
 
-    // prepni na klienta → objaví sa pole na kód
-    await page.getByRole("button", { name: /Som klient — mám kód/i }).click();
-    await expect(page.getByRole("heading", { name: /Pripoj sa/i })).toBeVisible();
-    await expect(page.getByLabel(/Pozývací kód/i)).toBeVisible();
-
-    // prázdny submit klienta → validačná chyba na kóde
-    await page.getByRole("button", { name: /Pripojiť sa k trénerovi/i }).click();
-    await expect(page.getByText(/Vlož kód, ktorý si dostal/i)).toBeVisible();
+    // prázdny submit → validácia na mene, nie na kóde
+    await page.getByRole("button", { name: /Vytvoriť účet/i }).click();
+    await expect(page.getByText(/Zadaj svoje meno/i)).toBeVisible();
   });
 
   test("neúspešné prihlásenie ukáže chybu, nie crash", async ({ page }) => {
@@ -223,9 +223,13 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     }
   });
 
-  test("Profil je stále coming-soon", async ({ page }) => {
-    await page.goto("/portal/profil");
-    await expect(page.getByText(/Pripravujeme/i)).toBeVisible();
+  test("Profil: kód pre trénera + stav prepojenia", async ({ page }) => {
+    await page.goto("/portal/profil?preview=no_trainer");
+    await expect(page.getByRole("heading", { name: "Profil" })).toBeVisible();
+    await expect(page.getByText("Tvoj kód pre trénera", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^FP-/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Kopírovať/i })).toBeVisible();
+    await expect(page.getByText(/Zatiaľ nemáš trénera/i)).toBeVisible();
   });
 
   test("Chat: vlákno s trénerom, denné oddeľovače, odoslanie", async ({ page }) => {

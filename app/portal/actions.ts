@@ -66,6 +66,24 @@ export async function cancelOwnDeletionAction(): Promise<ActionState> {
   return ok;
 }
 
+/**
+ * Klient sa odpojí od trénera (feature/registracia-update). Vlastné dáta ostávajú
+ * — RPC leave_trainer (0032) len nastaví `clients.trainer_id = null`. Trénerove
+ * plány/merania/history sa nemažú.
+ */
+export async function leaveTrainerAction(): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("leave_trainer");
+  if (error) {
+    if (error.message.includes("no_client")) return { error: "Nenašli sme tvoj klientský profil." };
+    return { error: "Odpojenie zlyhalo. Skús to o chvíľu znova." };
+  }
+  revalidatePath("/portal/profil");
+  revalidatePath("/portal");
+  revalidatePath("/portal/chat", "layout");
+  return ok;
+}
+
 /** Zavretie banneru o ukončenej spolupráci na karte Dnes (0015_client_cooperation_pause.sql). */
 export async function dismissCooperationNoticeAction(): Promise<ActionState> {
   const supabase = await createClient();

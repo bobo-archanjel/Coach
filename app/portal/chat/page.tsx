@@ -56,6 +56,7 @@ function previewResult(kind: string): PortalChatResult | null {
   if (kind === "ok") return PREVIEW;
   if (kind === "empty") return { state: "ok", data: { trainerName: "Marek", messages: [] } };
   if (kind === "unlinked") return { state: "unlinked", firstName: "Ján" };
+  if (kind === "no_trainer") return { state: "no_trainer", firstName: "Ján" };
   if (kind === "error") return { state: "error" };
   return null;
 }
@@ -80,6 +81,15 @@ export default async function ChatPage({
     return (
       <Notice icon={<ProfileIcon />} title={result.firstName ? `Vitaj, ${result.firstName}` : "Vitaj vo FitPilot"}>
         Tvoj účet ešte nie je prepojený s trénerom. Prepojenie spraví tréner zo svojej strany.
+      </Notice>
+    );
+  }
+
+  if (result.state === "no_trainer") {
+    return (
+      <Notice icon={<ProfileIcon />} title="Zatiaľ bez trénera">
+        Keď svojmu trénerovi pošleš kód z <strong>Profilu</strong> a on ťa pridá, otvorí sa tu vaše vlákno a príde ti
+        potvrdenie.
       </Notice>
     );
   }

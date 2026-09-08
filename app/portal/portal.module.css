@@ -1202,6 +1202,130 @@
   }
 }
 
+/* ---------- Profil: kód pre trénera + stav prepojenia (feature/registracia-update) ---------- */
+.profilePage {
+  display: block;
+}
+.profileHead {
+  margin-bottom: 18px;
+}
+.profileHead h1 {
+  font-size: clamp(1.5rem, 6vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.profileHead p {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.profileStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.codeValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--paper);
+  background: var(--ink);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  padding: 11px 13px;
+  word-break: break-all;
+  user-select: all;
+}
+.codeActions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.codeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  min-height: 40px;
+  border-radius: var(--radius-s);
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-dim);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.codeBtn:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+.codeBtn:active {
+  background: var(--ink-2);
+}
+.codeHint {
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--paper-faint);
+}
+.trainerStatus {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--steel-line);
+}
+.trainerName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--paper);
+  margin-bottom: 12px;
+}
+.trainerName strong {
+  font-weight: 700;
+}
+.trainerDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--moss);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--moss) 22%, transparent);
+}
+.trainerLeaveConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.trainerLeaveActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+@media (max-width: 400px) {
+  .codeActions {
+    width: 100%;
+  }
+  .codeBtn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 /* ---------- GDPR — notifikácia o zmazaní na karte Dnes (0013_client_deletion.sql) ---------- */
 .deletionNotice {
   background: var(--ink-2);
