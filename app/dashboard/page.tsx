@@ -62,6 +62,23 @@ const DELETION_PREVIEW = [
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
 
+  // DEV náhľad formulára "Pridať klienta" bez session (feature/registracia-update).
+  if (preview === "addclient" && process.env.NODE_ENV !== "production") {
+    return (
+      <>
+        <div className={styles.pageHead}>
+          <h1>Klienti</h1>
+          <p>0 klientov v starostlivosti — kliknutím otvoríš detail.</p>
+        </div>
+        <AddClientForm />
+        <div className={styles.emptyState}>
+          <h2>Zatiaľ žiadni klienti</h2>
+          <p>Pridaj prvého vyššie — zadaj jeho kód alebo mu vytvor záznam.</p>
+        </div>
+      </>
+    );
+  }
+
   if (preview === "deletion" && process.env.NODE_ENV !== "production") {
     const rosterClients = [
       ...DELETION_PREVIEW.filter((c) => !c.ended_at && !c.deletion_requested_at),

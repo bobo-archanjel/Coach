@@ -165,14 +165,16 @@ const PREVIEW_DATA: PortalData = {
   })),
 };
 
-/** DEV: ?preview=unlinked|no_plan|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
+/** DEV: ?preview=unlinked|no_plan|no_plan_solo|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
 function previewResult(kind: string): PortalResult | null {
   if (process.env.NODE_ENV === "production") return null;
   switch (kind) {
     case "unlinked":
       return { state: "unlinked", firstName: "Ján" };
     case "no_plan":
-      return { state: "no_plan", firstName: "Ján" };
+      return { state: "no_plan", firstName: "Ján", hasTrainer: true };
+    case "no_plan_solo":
+      return { state: "no_plan", firstName: "Ján", hasTrainer: false };
     case "error":
       return { state: "error" };
     case "ok":
@@ -253,6 +255,22 @@ export default async function PortalHome({
   }
 
   if (result.state === "no_plan") {
+    if (!result.hasTrainer) {
+      return (
+        <Notice
+          icon={<TrainingIcon />}
+          title={result.firstName ? `${result.firstName}, poďme na to` : "Poďme na to"}
+          action={
+            <Link href="/portal/trening" className="btn btn-primary btn-sm">
+              Vytvoriť plán
+            </Link>
+          }
+        >
+          Zatiaľ nemáš tréningový plán. Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi
+          a plán ti pripraví on.
+        </Notice>
+      );
+    }
     return (
       <Notice
         icon={<TrainingIcon />}

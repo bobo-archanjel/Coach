@@ -278,7 +278,7 @@ export async function getPortalData(): Promise<PortalResult> {
       supabase
         .from("clients")
         .select(
-          "id, full_name, active_plan_id, active_day_id, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by",
+          "id, full_name, trainer_id, active_plan_id, active_day_id, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by",
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: true })
@@ -318,7 +318,7 @@ export async function getPortalData(): Promise<PortalResult> {
       if (planErr) return { state: "error", message: planErr.message };
       plan = data ?? null;
     }
-    if (!plan) return { state: "no_plan", firstName: firstName ?? "" };
+    if (!plan) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
 
     const { data: dayRows, error: daysErr } = await supabase
       .from("workout_days")
@@ -329,7 +329,7 @@ export async function getPortalData(): Promise<PortalResult> {
     if (daysErr) return { state: "error", message: daysErr.message };
 
     const days = (dayRows ?? []) as DayRow[];
-    if (days.length === 0) return { state: "no_plan", firstName: firstName ?? "" };
+    if (days.length === 0) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
 
     const { isoDate, hour, base } = todayInTz();
 
@@ -1002,6 +1002,9 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
     if (clientErr) return { state: "error", message: clientErr.message };
     if (!client) return { state: "unlinked", firstName };
+    // Bez trénera nie je s kým chatovať — po napojení sem príde systémová správa
+    // "tréner ťa pridal" a klient uvidí normálne vlákno (feature/registracia-update).
+    if (!client.trainer_id) return { state: "no_trainer", firstName };
 
     // Označenie prečítaného rieši markClientChatSeenAction (mount / focus), nie render.
     const [{ data: rows, error: msgErr }, { data: cRow }] = await Promise.all([

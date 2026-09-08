@@ -165,7 +165,8 @@ export interface PortalData {
 export type PortalResult =
   | { state: "ok"; data: PortalData }
   | { state: "unlinked"; firstName: string | null }
-  | { state: "no_plan"; firstName: string }
+  /** `hasTrainer: false` = klient trénuje sám — má si vytvoriť vlastný plán, nie čakať na trénera */
+  | { state: "no_plan"; firstName: string; hasTrainer: boolean }
   | { state: "error"; message?: string };
 
 // ---------- Tréning (zoznam plánov klienta — od trénera aj vlastné) ----------
@@ -322,6 +323,8 @@ export interface PortalChatData {
 export type PortalChatResult =
   | { state: "ok"; data: PortalChatData }
   | { state: "unlinked"; firstName: string | null }
+  /** klient bez trénera (feature/registracia-update) — chat s trénerom ešte nemá s kým prebiehať */
+  | { state: "no_trainer"; firstName: string | null }
   | { state: "error"; message?: string };
 
 // ---------- AI Kouč (AI blok, Krok 4b) ----------

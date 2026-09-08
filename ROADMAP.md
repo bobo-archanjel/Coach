@@ -14,7 +14,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 **Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat/AI Kouč, rotácia dní, história týždňov), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based) + centrálna schránka (`/dashboard/spravy`) a hromadná správa, vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)**, **AI Kouč pre klienta, AI generátor tréningových plánov a AI sumarizácia progresu pre trénera**, **progres a analýza (per klient aj naprieč všetkými)**, **šablóny plánov**, **kalendár (voľné termíny)**, **detail klienta rozdelený na prehľadné sekcie** — viď sekcie nižšie.
 
-**Číslovanie migrácií — ďalšie voľné číslo je `0032`.** (`0031` je v `dev` — `feature/ai-plan-zameranie` zmergované 2026-09-07; `0030` = `feature/analytika-v2`, ešte nezmergované.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
+**Číslovanie migrácií — ďalšie voľné číslo je `0033`.** (`0031`, `0032` sú v `dev`; `0030` = `feature/analytika-v2`, ešte nezmergované.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
 | # | Súbor | Track |
 |---|---|---|
@@ -49,7 +49,8 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0029 | `invite_claim_lockout.sql` (rate limit priamo v `claim_client_by_invite` — pozývací kód sa dal brute-forcovať, `feature/optimalizacia`) | Zdieľané |
 | 0030 | `ai_usage_roster_summary.sql` (rozšírenie `ai_usage.kind` CHECK o `roster_summary`, `feature/analytika-v2` — ešte nezmergované) | Zdieľané |
 | 0031 | `exercise_equipment.sql` (`exercises.equipment text` — štruktúrovaný filter vybavenia pre AI generátor, `feature/ai-plan-zameranie`, zmergované 2026-09-07) — **treba manuálne spustiť v Supabase + re-import `scripts/import-exercises.mjs`** | Tréner |
-| 0032+ | — voľné — | dohodnúť |
+| 0032 | `client_self_code.sql` (obrátený model pripojenia: každý klient dostane pri registrácii vlastný riadok + kód, tréner ho zadá; `handle_new_user` trigger, `add_client_by_code`/`leave_trainer` RPC, `feature/registracia-update`, zmergované 2026-09-08) — **treba manuálne spustiť v Supabase** | Zdieľané |
+| 0033+ | — voľné — | dohodnúť |
 
 ---
 
@@ -139,6 +140,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ## Zdieľané / potrebuje koordináciu
 
+- ~~**Onboarding bez trénera + obrátený model pripojenia**~~ **HOTOVO 2026-09-08** (branch `feature/registracia-update`, migrácia `0032`, cez impeccable). **Prečo:** jediná cesta k registrácii klienta viedla cez pozývací kód od trénera — kto chcel appku používať sám, uviazol. Nový model otočil smer: **každý klient dostane pri registrácii vlastný `clients` riadok + dlhý náhodný kód** (`FP-` + 20 hex, generuje DB trigger `handle_new_user`), appku hneď plne používa aj bez trénera. Kód ukáže v **Profile**, tréner ho zadá v „Pridať klienta" (`add_client_by_code` RPC — rate-limit 8/15 min, systémová správa do chatu ako notifikácia). Klient sa vie kedykoľvek **odpojiť** (`leave_trainer` RPC) bez straty vlastných dát. **Jeden tréner na klienta** — kód priradeného klienta sa odmietne jasnou hláškou. Registrácia klienta už nemá vetvu „mám kód / nemám kód". Spätne kompatibilné: existujúce trénerom vytvorené riadky + starý `claim_client_by_invite` (0006/0029) ostávajú funkčné. Súbory: `app/prihlasenie/page.tsx`, `app/portal/profil/*` (`TrainerConnection`), `app/dashboard/AddClientForm.tsx` + `actions.ts`, `app/portal/actions.ts` (`leaveTrainerAction`), `lib/portal/data.ts`/`types.ts` (nové stavy `no_trainer` / `no_plan.hasTrainer`). e2e `e2e/onboarding.spec.ts`.
 - **Vyčistiť `main` branch** — stále obsahuje znovu-zavlečený `.claude/skills/impeccable/` bloat z priameho PR mergu (`feature/insert-client` → `main`, obišlo `dev`). Nahlásené skôr, zatiaľ neopravené. Netreba na to čakať s ďalšou prácou (`dev` je čistý), ale treba to niekedy dobehnúť pred prvým reálnym tagom/release.
 - ~~**Zabudnuté heslo / e-mailová verifikácia**~~ **HOTOVO 2026-08-30** (branch `feature/verification-adherencia`) — "Zabudnuté heslo?" je funkčný inline panel (`supabase.auth.resetPasswordForEmail`), nová stránka `/prihlasenie/nove-heslo` na nastavenie nového hesla z e-mailového odkazu. Registrácia klienta cez pozývací kód opravená pre prípad zapnutého povinného potvrdenia e-mailu (kód sa doklaimuje pri prvom prihlásení, nie len pri signUp). Manuálne kroky v Supabase Dashboarde ("Confirm email" v Authentication → Providers → Email, redirect URL `<url>/prihlasenie/nove-heslo`) **potvrdené hotové 2026-09-01**.
 - **Self-hosted Supabase presun** (z cloud dev projektu na `nexus`, rovnaká architektúra ako `crm.vanasenior.sk`) — úloha **pred produkčným nasadením**, nie teraz.
