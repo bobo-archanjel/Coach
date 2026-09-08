@@ -43,6 +43,12 @@ const nextConfig: NextConfig = {
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://raw.githubusercontent.com",
+      // app/v5's scroll-world engine (public/v5/scrub-engine.js) loads each
+      // clip as a Blob and assigns it to <video src> for guaranteed
+      // seekability regardless of byte-range support — that blob: URL falls
+      // under media-src (default-src 'self' has no blob: exception on its
+      // own, confirmed via a real CSP violation while wiring this in).
+      "media-src 'self' blob:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co https://plausible.io",
       "frame-ancestors 'none'",
