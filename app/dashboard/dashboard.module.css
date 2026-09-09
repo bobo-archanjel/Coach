@@ -1492,3 +1492,144 @@ select.addClientInputSm {
     width: 100%;
   }
 }
+
+/* ---------- /dashboard/analytika — zdravie portfólia + PR widget (feature/analytika-v2) ---------- */
+
+/* Počty klientov podľa zdravotného koša — glanceable stav celého portfólia nad rosterom.
+   Nie hero-metric dlaždice: kompaktný riadok, číslo + sémantický label, žiadny sprievodný graf. */
+.portfolioHealth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.portfolioStat {
+  flex: 1 1 110px;
+  min-width: 0;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 12px 14px;
+}
+.portfolioStatCount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.portfolioStatLabel {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* Tón podľa troch sémantických rolí: moss = v poriadku, coral = riziko,
+   amber = sleduj (rovnaká "upozornenie, nie výčitka" rola ako over-goal v denníku),
+   neutrál = bez dát (žiadna z rolí — nie je to postup/kontext/úspech). */
+.phOk .portfolioStatCount,
+.phOk .portfolioStatLabel {
+  color: #8fc6a7;
+}
+.phWatch .portfolioStatCount,
+.phWatch .portfolioStatLabel {
+  color: var(--plate-yellow);
+}
+.phRisk .portfolioStatCount,
+.phRisk .portfolioStatLabel {
+  color: var(--iron-red);
+}
+.phNone .portfolioStatCount,
+.phNone .portfolioStatLabel {
+  color: var(--paper-faint);
+}
+
+/* Posledné osobné maximá naprieč klientmi — moss (splnený/úspešný stav), rýchly
+   dôvod niekomu napísať pochvalu. Rovnaká štruktúra ako .alertPanel, opačný náboj. */
+.prPanel {
+  background: rgba(76, 122, 94, 0.08);
+  border: 1px solid rgba(76, 122, 94, 0.3);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.prPanelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8fc6a7;
+}
+.prPanelList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  list-style: none;
+  padding: 0;
+}
+.prPanelList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.prPanelList a {
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+}
+.prPanelList a:hover {
+  text-decoration: underline;
+}
+.prPanelList span {
+  color: var(--paper-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ---------- kombinovaný súhrn na vrchu Analytiky klienta (feature/analytika-v2, bod 4) ---------- */
+.combinedSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+}
+.combinedSummary > span {
+  font-size: 13px;
+  color: var(--paper-dim);
+  white-space: nowrap;
+}
+.combinedSummary strong {
+  color: var(--paper);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- PR badge pri cviku v karte Sila (feature/analytika-v2, bod 3) ---------- */
+.prBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 8px 0 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(76, 122, 94, 0.18);
+  color: #8fc6a7;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 480px) {
+  .portfolioStat {
+    flex: 1 1 calc(50% - 5px);
+  }
+  .prPanelList li,
+  .combinedSummary {
+    font-size: 12.5px;
+  }
+}

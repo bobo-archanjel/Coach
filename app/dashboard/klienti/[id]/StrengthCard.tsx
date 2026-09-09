@@ -27,11 +27,15 @@ const DownIcon = () => (
 export function StrengthCard({
   exerciseNames,
   byExercise,
+  prExerciseNames = [],
 }: {
   exerciseNames: string[];
   byExercise: Record<string, StrengthPoint[]>;
+  /** cviky, na ktorých je posledný záznam nové osobné maximum (feature/analytika-v2, bod 3) */
+  prExerciseNames?: string[];
 }) {
   const [selected, setSelected] = useState(exerciseNames[0] ?? "");
+  const isPR = prExerciseNames.includes(selected);
 
   const points: DualLineChartPoint[] = (byExercise[selected] ?? []).map((p) => ({
     date: p.date,
@@ -68,6 +72,13 @@ export function StrengthCard({
               </option>
             ))}
           </select>
+
+          {isPR && (
+            <p className={styles.prBadge}>
+              <UpIcon />
+              Nové osobné maximum
+            </p>
+          )}
 
           {trend != null && (
             <p className={`${styles.strengthTrend} ${trend > 0 ? styles.strengthTrendUp : trend < 0 ? styles.strengthTrendDown : styles.strengthTrendFlat}`}>

@@ -14,7 +14,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 **Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat/AI Kouč, rotácia dní, história týždňov), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based) + centrálna schránka (`/dashboard/spravy`) a hromadná správa, vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)**, **AI Kouč pre klienta, AI generátor tréningových plánov a AI sumarizácia progresu pre trénera**, **progres a analýza (per klient aj naprieč všetkými)**, **šablóny plánov**, **kalendár (voľné termíny)**, **detail klienta rozdelený na prehľadné sekcie** — viď sekcie nižšie.
 
-**Číslovanie migrácií — ďalšie voľné číslo je `0033`.** (`0031`, `0032` sú v `dev`; `0030` = `feature/analytika-v2`, ešte nezmergované.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
+**Číslovanie migrácií — ďalšie voľné číslo je `0033`.** (`0030`, `0031`, `0032` sú v `dev`.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
 | # | Súbor | Track |
 |---|---|---|
@@ -47,7 +47,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0027 | `ai_usage_client_kind_idx.sql` (chýbajúci index pre rate-limit kontrolu, `feature/optimalizacia`) | Zdieľané |
 | 0028 | `login_lockout.sql` (`login_attempts` + security definer funkcie na account lockout, `feature/optimalizacia`) | Zdieľané |
 | 0029 | `invite_claim_lockout.sql` (rate limit priamo v `claim_client_by_invite` — pozývací kód sa dal brute-forcovať, `feature/optimalizacia`) | Zdieľané |
-| 0030 | `ai_usage_roster_summary.sql` (rozšírenie `ai_usage.kind` CHECK o `roster_summary`, `feature/analytika-v2` — ešte nezmergované) | Zdieľané |
+| 0030 | `ai_usage_roster_summary.sql` (rozšírenie `ai_usage.kind` CHECK o `roster_summary` — AI digest portfólia, `feature/analytika-v2`, zmergované 2026-09-09) — **treba manuálne spustiť v Supabase** | Zdieľané |
 | 0031 | `exercise_equipment.sql` (`exercises.equipment text` — štruktúrovaný filter vybavenia pre AI generátor, `feature/ai-plan-zameranie`, zmergované 2026-09-07) — **treba manuálne spustiť v Supabase + re-import `scripts/import-exercises.mjs`** | Tréner |
 | 0032 | `client_self_code.sql` (obrátený model pripojenia: každý klient dostane pri registrácii vlastný riadok + kód, tréner ho zadá; `handle_new_user` trigger, `add_client_by_code`/`leave_trainer` RPC, `feature/registracia-update`, zmergované 2026-09-08) — **treba manuálne spustiť v Supabase** | Zdieľané |
 | 0033+ | — voľné — | dohodnúť |
@@ -67,6 +67,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 7. ~~**AI sumarizácia progresu**~~ **HOTOVO 2026-09-04** (branch `feature/progress-AI-sablona`) — PRODUCT.md AI modul "sumarizácia progresu" pre trénera. On-demand tlačidlo v Analytike na `/dashboard/klienti/[id]` (žiadny cron) — Claude Haiku sformuluje krátke zhrnutie z už spočítaných dát (adherencia, váhový trend, silový progres), vlastný denný rate-limit per klient. `lib/ai/progressSummary.ts`.
 8. ~~**Kalendár**~~ **HOTOVO 2026-09-04** (branch `feature/planing-groupMessage`, `0026`) — `/dashboard/kalendar`: voľné termíny s klientmi (konzultácie/tréningy), nezávislé od tréningového plánu. Agenda zoznam zoradený chronologicky a zoskupený podľa dňa (nie mesačná mriežka — lepšie na mobile). Klient vidí malú kartu "Najbližší termín" v portáli (karta Dnes, žiadny nový tab).
 9. ~~**Hromadná správa**~~ **HOTOVO 2026-09-04** (branch `feature/planing-groupMessage`) — `/dashboard/spravy`: prepínač "Hromadná správa", výber klientov (checkboxy + "Vybrať všetkých"), jeden batch insert namiesto N requestov. Rovnaké validácie ako 1:1 chat.
+10. ~~**Analytika v2 — 5 zlepšení z pohľadu trénera**~~ **HOTOVO 2026-09-07** (branch `feature/analytika-v2`, migrácia `0030` — len rozšírenie CHECK na `ai_usage.kind`, žiadna nová tabuľka). Nadstavba nad existujúcu analytiku (bod 5 + sekcia „Progres a analýza"), všetko doplnok, nie refaktor. **Prečo:** tréner musel prechádzať roster riadok po riadku a skladať si obraz v hlave — chýbal pohľad „zhora" a „prečo si to nevšimol". (1) **Agregované zdravie portfólia** na `/dashboard/analytika` — počty V poriadku / Sleduj / Riziko / Bez dát (rovnaké prahy ako `pctTone`). (2) **Splnenie plánu** vedľa binárnej adherencie na `/dashboard/klienti/[id]` — porovná skutočné série/opakovania/váhu (`workout_logs.entries`) s predpisom z buildera (`workout_days.exercises`); vážené skóre 3 zložiek, prekročenie = 100 %, rozsah „8-10" = spodná hranica (`lib/dashboard/adherence.ts`). (3) **PR / míľnikové upozornenia** — badge „Nové osobné maximum" pri cviku + widget „Posledné PR" (14 dní) naprieč klientmi, odvodené z `getAllStrengthProgress` (`getRecentPRs`), nič sa neukladá. (4) **Kombinovaný súhrn** navrchu Analytiky klienta — tréning/plán/strava/váha v jednom riadku. (5) **AI zhrnutie portfólia** — `generateRosterSummaryAction` + `lib/ai/rosterSummary.ts`, rovnaký vzor ako `progressSummary.ts` (Haiku sformuluje spočítané čísla, denný rate-limit per tréner, `ai_usage.kind = 'roster_summary'`), on-demand tlačidlo na `/dashboard/analytika`. Dev náhľady `?preview=ok` / `?preview=progress` rozšírené, nová e2e sada `e2e/analytika.spec.ts`.
 
 ## Track "Klient"
 
@@ -105,6 +106,8 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 ## Progres a analýza (tréner aj klient)
 
 **HOTOVO 2026-09-04** (branch `feature/progress-analyst`), fázy 1-6 nižšie implementované, fáza 7 (fotoprogres) zámerne mimo. Cieľ: tréner vidí progres klientov (jedného aj naprieč všetkými), klient vidí vlastný progres vo svojom portáli.
+
+**Rozšírené 2026-09-07** (branch `feature/analytika-v2`) — 5 zlepšení analytiky z pohľadu trénera: agregované zdravie portfólia, metrika splnenia plánu (plán vs. skutočnosť), PR/míľnikové upozornenia, kombinovaný súhrn na klientovi, AI zhrnutie celého portfólia. Viď Track "Tréner" bod 10. Žiadna nová DB tabuľka (len migrácia `0030` — rozšírenie CHECK na `ai_usage.kind`).
 
 **1. Čo už máme (dá sa použiť bez čokoľvek meniť):**
 

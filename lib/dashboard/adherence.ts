@@ -49,10 +49,25 @@ export interface NutritionAdherence {
   window90: AdherenceWindow;
 }
 
+/** Nakoľko sa odcvičený tréning zhoduje s predpísaným plánom (série/opakovania/váha) v okne. */
+export interface PlanCompletionWindow {
+  /** priemerné % splnenia predpisu naprieč hodnotenými tréningmi; null = žiadny tréning sa nedal ohodnotiť */
+  pct: number | null;
+  /** koľko odcvičených tréningov v okne malo naviazaný plánovaný deň s cvikmi (a teda sa dalo ohodnotiť) */
+  sessionsScored: number;
+}
+
 /** % dní s aspoň jedným odcvičeným tréningom v okne — bez cieľa, klient si sám volí kedy cvičí (rotačný model). */
 export interface TrainingAdherence {
   window30: { pct: number; trainedDays: number; totalDays: number };
   window90: { pct: number; trainedDays: number; totalDays: number };
+  /**
+   * Doplnková metrika k binárnej adherencii (feature/analytika-v2, bod 2): binárna
+   * hovorí len "v ten deň niečo odcvičil", plan completion hovorí "odcvičil to, čo
+   * bolo v pláne" — porovná skutočné série/opakovania/váhu (workout_logs.entries)
+   * s predpisom z buildera (workout_days.exercises). Nenahrádza binárnu metriku.
+   */
+  planCompletion: { window30: PlanCompletionWindow; window90: PlanCompletionWindow };
 }
 
 export function todayInTz(): { isoDate: string; base: Date } {
@@ -150,11 +165,93 @@ export async function getNutritionAdherence(clientId: string): Promise<Nutrition
   };
 }
 
+/** Tvar cviku v pláne (workout_days.exercises JSONB) — zhodný s ExerciseEntry v lib/portal/data.ts. */
+type PlannedExercise = {
+  entry_id?: string | null;
+  exercise_name?: string | null;
+  sets?: number | null;
+  reps?: string | null;
+  load_kg?: number | null;
+};
+
+/** Jedna skutočne odcvičená séria (workout_logs.entries[].sets[]). */
+type PerformedSet = { reps: number | null; weight: number | null };
+
+/** Spodná hranica plánovaných opakovaní z reťazca buildera: "8" → 8, "8-10" → 8, "AMRAP" → null. */
+function plannedRepsFloor(reps: string | null | undefined): number | null {
+  if (!reps) return null;
+  const m = reps.match(/\d+/);
+  return m ? parseInt(m[0], 10) : null;
+}
+
+function normName(name: string | null | undefined): string {
+  return (name ?? "").trim().toLocaleLowerCase("sk");
+}
+
+/**
+ * Skóre splnenia jedného plánovaného cviku (0–1): priemer dostupných zložiek —
+ * série (odcvičené/plánované), opakovania (koľko sérií dosiahlo spodnú hranicu
+ * reps) a váha (koľko sérií dosiahlo load_kg). Prekročenie predpisu = 1, nie viac
+ * (progresívne preťaženie je cieľ, nie odchýlka). Cvik bez load_kg (vlastná váha)
+ * sa hodnotí len na sériách + opakovaniach. Plánovaný, ale vôbec neodcvičený cvik = 0.
+ */
+function plannedExerciseScore(planned: PlannedExercise, performed: PerformedSet[] | null): number {
+  const plannedSets = planned.sets && planned.sets > 0 ? planned.sets : 1;
+  if (!performed || performed.length === 0) return 0;
+
+  const components: number[] = [Math.min(1, performed.length / plannedSets)];
+
+  const repsFloor = plannedRepsFloor(planned.reps);
+  if (repsFloor != null) {
+    const hit = performed.filter((s) => s.reps != null && s.reps >= repsFloor).length;
+    components.push(Math.min(1, hit / plannedSets));
+  }
+
+  if (planned.load_kg != null && planned.load_kg > 0) {
+    const target = planned.load_kg;
+    const hit = performed.filter((s) => s.weight != null && s.weight >= target).length;
+    components.push(Math.min(1, hit / plannedSets));
+  }
+
+  return components.reduce((a, b) => a + b, 0) / components.length;
+}
+
+/**
+ * Skóre jedného odcvičeného tréningu (0–1) oproti plánu dňa. `null` = deň nemá
+ * plánované cviky (nedá sa porovnať). Zdieľané s lib/dashboard/analytics.ts
+ * (agregovaný prehľad naprieč klientmi) — rovnaká metrika na oboch miestach.
+ */
+export function sessionCompletionScore(plannedRaw: unknown, entriesRaw: unknown): number | null {
+  const planned = Array.isArray(plannedRaw) ? (plannedRaw as PlannedExercise[]) : [];
+  if (planned.length === 0) return null;
+
+  const entries = Array.isArray(entriesRaw) ? (entriesRaw as Record<string, unknown>[]) : [];
+  const byId = new Map<string, PerformedSet[]>();
+  const byName = new Map<string, PerformedSet[]>();
+  for (const e of entries) {
+    const sets = Array.isArray(e.sets) ? (e.sets as PerformedSet[]) : [];
+    const entryId = (e.entryId as string) ?? (e.entry_id as string) ?? null;
+    const name = (e.name as string) ?? (e.exercise_name as string) ?? null;
+    if (entryId) byId.set(entryId, sets);
+    if (name) byName.set(normName(name), sets);
+  }
+
+  let sum = 0;
+  for (const p of planned) {
+    const performed =
+      (p.entry_id ? byId.get(p.entry_id) : undefined) ?? byName.get(normName(p.exercise_name)) ?? null;
+    sum += plannedExerciseScore(p, performed);
+  }
+  return sum / planned.length;
+}
+
 /**
  * Adherencia tréningu — % dní za posledných 30/90 dní, kde má klient aspoň
  * jeden odcvičený tréning (naprieč všetkými plánmi). Bez cieľa/rozvrhu (rotačný
  * model — klient si sám volí kedy cvičí, viď lib/portal/data.ts), takže "v
- * poriadku" tu jednoducho znamená "v ten deň niečo odcvičil".
+ * poriadku" tu jednoducho znamená "v ten deň niečo odcvičil". Plus doplnková
+ * metrika `planCompletion` (feature/analytika-v2) — nakoľko sa to, čo klient
+ * odcvičil, zhoduje s predpisom z plánu.
  */
 export async function getTrainingAdherence(clientId: string): Promise<TrainingAdherence | null> {
   const supabase = await createClient();
@@ -163,13 +260,14 @@ export async function getTrainingAdherence(clientId: string): Promise<TrainingAd
 
   const { data, error } = await supabase
     .from("workout_logs")
-    .select("performed_on")
+    .select("performed_on, workout_day_id, entries, workout_days(exercises)")
     .eq("client_id", clientId)
     .gte("performed_on", historyStart)
     .lte("performed_on", isoDate);
   if (error) return null;
 
-  const trainedDates = new Set((data ?? []).map((r) => r.performed_on as string));
+  const rows = data ?? [];
+  const trainedDates = new Set(rows.map((r) => r.performed_on as string));
 
   const windowFor = (days: number) => {
     let trained = 0;
@@ -179,5 +277,26 @@ export async function getTrainingAdherence(clientId: string): Promise<TrainingAd
     return { pct: Math.round((trained / days) * 100), trainedDays: trained, totalDays: days };
   };
 
-  return { window30: windowFor(30), window90: windowFor(90) };
+  // Plan completion: skóre za každý odcvičený tréning, ktorý má naviazaný deň s cvikmi.
+  const scored: { date: string; score: number }[] = [];
+  for (const r of rows) {
+    const day = (r.workout_days as unknown as { exercises: unknown } | null) ?? null;
+    if (!day) continue;
+    const score = sessionCompletionScore(day.exercises, r.entries);
+    if (score != null) scored.push({ date: r.performed_on as string, score });
+  }
+
+  const planWindowFor = (days: number): PlanCompletionWindow => {
+    const cutoff = iso(addDays(base, -(days - 1)));
+    const inWindow = scored.filter((s) => s.date >= cutoff);
+    if (inWindow.length === 0) return { pct: null, sessionsScored: 0 };
+    const avg = inWindow.reduce((a, b) => a + b.score, 0) / inWindow.length;
+    return { pct: Math.round(avg * 100), sessionsScored: inWindow.length };
+  };
+
+  return {
+    window30: windowFor(30),
+    window90: windowFor(90),
+    planCompletion: { window30: planWindowFor(30), window90: planWindowFor(90) },
+  };
 }

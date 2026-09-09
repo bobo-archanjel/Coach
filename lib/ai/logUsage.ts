@@ -4,7 +4,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export type AiUsageKind = "plan_gen" | "meal_gen" | "progress_summary" | "chat";
+export type AiUsageKind = "plan_gen" | "meal_gen" | "progress_summary" | "roster_summary" | "chat";
 
 export async function logAiUsage(params: {
   trainerId: string;

@@ -79,6 +79,38 @@ export async function isProgressSummaryRateLimited(supabase: SupabaseClient, cli
 
 export const AI_PROGRESS_SUMMARY_DAILY_LIMIT = progressSummaryDailyLimit;
 
+const DEFAULT_ROSTER_SUMMARY_DAILY_LIMIT = 3;
+
+function rosterSummaryDailyLimit(): number {
+  const raw = process.env.AI_ROSTER_SUMMARY_DAILY_LIMIT_PER_TRAINER;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_ROSTER_SUMMARY_DAILY_LIMIT;
+}
+
+/**
+ * True = tréner dnes už vyčerpal limit AI zhrnutí celého portfólia
+ * (feature/analytika-v2, bod 5). Počíta sa per TRÉNER (nie per klient — zhrnutie
+ * nemá konkrétneho klienta, `ai_usage.client_id` je null), a limit je nižší než
+ * pri progress_summary: jedno volanie spracuje dáta všetkých klientov naraz,
+ * takže je drahšie a nemá zmysel ho spúšťať viackrát za deň nad tými istými dátami.
+ */
+export async function isRosterSummaryRateLimited(supabase: SupabaseClient, trainerId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("trainer_id", trainerId)
+    .eq("kind", "roster_summary")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    console.error("isRosterSummaryRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= rosterSummaryDailyLimit();
+}
+
+export const AI_ROSTER_SUMMARY_DAILY_LIMIT = rosterSummaryDailyLimit;
+
 const DEFAULT_PLAN_GEN_DAILY_LIMIT = 10;
 
 function planGenDailyLimit(): number {
