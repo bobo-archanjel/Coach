@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { AddClientForm } from "./AddClientForm";
+import { ClientRoster, type RosterItem } from "./ClientRoster";
 import { getLateStatusByClient } from "@/lib/dashboard/lateStatus";
+import { getHealthDigest, BUCKET_LABEL } from "@/lib/dashboard/healthDigest";
 import styles from "./dashboard.module.css";
 
 /** Grace period pred hard delete (0018_client_deletion.sql, pg_cron `purge_deleted_clients`). */
@@ -149,15 +151,20 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   }
 
   // Nezávislé dopyty — zoznam klientov nepotrebuje neprečítané správy (a naopak,
-  // RLS scopuje messages na klientov tohto trénera samo) — paralelne.
-  const [{ data: clients }, { data: unreadRows }] = await Promise.all([
+  // RLS scopuje messages na klientov tohto trénera samo) — paralelne. `user_id`
+  // navyše oproti pôvodnému výberu — potrebné pre onboarding checklist (krok 3,
+  // "klient sa pripojil cez svoj kód").
+  const [{ data: clients }, { data: unreadRows }, healthDigest] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, full_name, goal, created_at, ended_at, deletion_requested_at")
+      .select("id, full_name, goal, created_at, ended_at, deletion_requested_at, user_id")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
     // neprečítané správy od klientov → odznak pri klientovi
     supabase.from("messages").select("client_id").eq("sender", "client").is("read_at", null),
+    // Weekly digest (feature/OnBoarding, migrácia 0034) — porovnanie posledných
+    // dvoch týždenných snapshotov portfolio-health, viď lib/dashboard/healthDigest.ts.
+    getHealthDigest(supabase, user.id),
   ]);
   const unread = new Map<string, number>();
   for (const r of unreadRows ?? []) unread.set(r.client_id, (unread.get(r.client_id) ?? 0) + 1);
@@ -189,12 +196,78 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     ...(clients ?? []).filter((c) => c.deletion_requested_at),
   ];
 
+  const rosterItems: RosterItem[] = rosterClients.map((client) => {
+    const pendingDeletion = Boolean(client.deletion_requested_at);
+    const ended = Boolean(client.ended_at) && !pendingDeletion;
+    const status = statusByClient.get(client.id);
+    return {
+      id: client.id,
+      fullName: client.full_name,
+      goal: client.goal,
+      createdAt: client.created_at,
+      unread: unread.get(client.id) ?? 0,
+      pendingDeletion,
+      deletionLabel: pendingDeletion ? purgeDateLabel(client.deletion_requested_at!) : null,
+      ended,
+      statusLabel: pendingDeletion ? null : ended ? ENDED_LABEL : (status?.label ?? null),
+      statusTone: status?.tone ?? null,
+    };
+  });
+
+  // Onboarding checklist (feature/OnBoarding) — čerstvý účet s 0 klientmi nemá
+  // žiadne vedenie. Auto-hide: len kým chýba niektorý krok, žiadny perzistentný
+  // "zavrieť" stav (rozhodnuté vedome — jednoduchšie, nič na údržbu).
+  const hasClient = (clients?.length ?? 0) > 0;
+  const hasPlan = lateStatus.size > 0; // getLateStatusByClient vracia záznam len pre klienta s ≥1 priradeným plánom
+  const hasLinkedClient = (clients ?? []).some((c) => c.user_id != null);
+  const onboardingDone = hasClient && hasPlan && hasLinkedClient;
+
   return (
     <>
       <div className={styles.pageHead}>
         <h1>Klienti</h1>
         <p>{clients?.length ?? 0} klientov v starostlivosti — kliknutím otvoríš detail.</p>
       </div>
+
+      {!onboardingDone && (
+        <div className={`${styles.card} ${styles.onboardingCard}`}>
+          <h3>Prvé kroky</h3>
+          <ul className={styles.onboardingList}>
+            <li className={hasClient ? styles.onboardingDone : undefined}>
+              <span className={styles.onboardingCheck} aria-hidden="true">
+                {hasClient ? "✓" : "1"}
+              </span>
+              <span>Pridaj prvého klienta (formulár nižšie)</span>
+            </li>
+            <li className={hasPlan ? styles.onboardingDone : undefined}>
+              <span className={styles.onboardingCheck} aria-hidden="true">
+                {hasPlan ? "✓" : "2"}
+              </span>
+              <span>
+                Postav mu tréningový plán —{" "}
+                <Link href="/dashboard/treningy">otvoriť Tréningy</Link>
+              </span>
+            </li>
+            <li className={hasLinkedClient ? styles.onboardingDone : undefined}>
+              <span className={styles.onboardingCheck} aria-hidden="true">
+                {hasLinkedClient ? "✓" : "3"}
+              </span>
+              <span>Pošli mu pozývací kód, nech si appku pripojí (kód nájdeš v detaile klienta)</span>
+            </li>
+          </ul>
+        </div>
+      )}
+
+      {healthDigest && (
+        <div className={styles.digestBanner} role="status">
+          <p className={styles.digestBannerTitle}>Týždenný prehľad</p>
+          <p className={styles.digestBannerText}>
+            {healthDigest.count} {healthDigest.count === 1 ? "klient klesol" : "klienti klesli"} zo „
+            {BUCKET_LABEL[healthDigest.from]}“ do „{BUCKET_LABEL[healthDigest.to]}“ tento týždeň.{" "}
+            <Link href="/dashboard/analytika">Pozrieť analytiku</Link>
+          </p>
+        </div>
+      )}
 
       {lateClients.length > 0 && (
         <div className={styles.alertPanel} role="status">
@@ -214,54 +287,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
 
       <AddClientForm />
 
-      {rosterClients.length > 0 ? (
-        <div className={styles.roster}>
-          {rosterClients.map((client) => {
-            const n = unread.get(client.id) ?? 0;
-            const status = statusByClient.get(client.id);
-            const pendingDeletion = Boolean(client.deletion_requested_at);
-            const ended = Boolean(client.ended_at) && !pendingDeletion;
-            return (
-              <Link
-                key={client.id}
-                href={`/dashboard/klienti/${client.id}`}
-                className={`${styles.clientCard} ${
-                  pendingDeletion ? styles.clientCardPendingDeletion : ended ? styles.clientCardEnded : ""
-                }`}
-              >
-                <div>
-                  <div className={styles.clientName}>{client.full_name}</div>
-                  {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
-                </div>
-                <span className={styles.clientMeta}>
-                  {n > 0 && (
-                    <span className={styles.unreadPill} title={`${n} neprečítaných správ`}>
-                      {n} {n === 1 ? "správa" : n >= 2 && n <= 4 ? "správy" : "správ"}
-                    </span>
-                  )}
-                  {pendingDeletion ? (
-                    <span className={styles.deletionChip}>
-                      Zmaže sa {purgeDateLabel(client.deletion_requested_at!)}
-                    </span>
-                  ) : ended ? (
-                    <span className={`${styles.statusChip} ${styles.ended}`}>{ENDED_LABEL}</span>
-                  ) : (
-                    status && <span className={`${styles.statusChip} ${styles[status.tone]}`}>{status.label}</span>
-                  )}
-                  <span className={styles.clientSince}>
-                    od {new Date(client.created_at).toLocaleDateString("sk-SK")}
-                  </span>
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <div className={styles.emptyState}>
-          <h2>Zatiaľ nemáš žiadnych klientov</h2>
-          <p>Pridaj prvého klienta vyššie.</p>
-        </div>
-      )}
+      <ClientRoster items={rosterItems} />
     </>
   );
 }

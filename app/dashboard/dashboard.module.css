@@ -465,6 +465,96 @@ select.addClientInputSm {
   white-space: nowrap;
 }
 
+/* ---------- onboarding checklist (feature/OnBoarding) ---------- */
+.onboardingCard {
+  margin-bottom: 20px;
+}
+.onboardingList {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin-top: 4px;
+}
+.onboardingList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.onboardingList li a {
+  color: var(--iron-red);
+  font-weight: 600;
+}
+.onboardingCheck {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--steel-line);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--paper-faint);
+}
+.onboardingDone {
+  color: var(--paper-faint);
+  text-decoration: line-through;
+}
+.onboardingDone .onboardingCheck {
+  border-color: rgba(76, 122, 94, 0.5);
+  background: rgba(76, 122, 94, 0.18);
+  color: #8fc6a7;
+}
+
+/* ---------- weekly health digest banner (feature/OnBoarding) — steel, neutrálnejšie než alertPanel (coral) */
+.digestBanner {
+  background: rgba(127, 138, 149, 0.1);
+  border: 1px solid rgba(127, 138, 149, 0.32);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.digestBannerTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--steel);
+}
+.digestBannerText {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.digestBannerText a {
+  color: var(--iron-red);
+  font-weight: 600;
+}
+
+/* ---------- roster search (feature/OnBoarding) ---------- */
+.rosterSearch {
+  margin-bottom: 12px;
+}
+.rosterSearchInput {
+  width: 100%;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.rosterSearchInput::placeholder {
+  color: var(--paper-faint);
+}
+.rosterSearchInput:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 1px;
+}
+
 /* ---------- client roster ---------- */
 .roster {
   display: grid;
