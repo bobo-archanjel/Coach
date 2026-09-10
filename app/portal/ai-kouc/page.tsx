@@ -75,9 +75,12 @@ export default async function AiKoucPage() {
         emptyText="Napríklad: čo mám zjesť, aby som splnil dnešný cieľ? Alebo: aký cvik mi navrhneš namiesto tohto?"
         placeholder="Napíš AI Kočovi…"
         fill
-        // Súkromná konverzácia klient↔AI (0017) — odpoveď príde synchrónne v tej
-        // istej server action, žiadna druhá strana nemôže pridať správu odinakiaľ.
-        // Polling (feature/optimalizacia) by tu bol len zbytočný pravidelný dopyt navyše.
+        // Súkromná konverzácia klient↔AI (0017) — bežná odpoveď príde synchrónne v
+        // tej istej server action. Jediná výnimka je proaktívny AI check-in (0033,
+        // pg_cron pri strate adherencie) — ten vloží správu mimo tejto stránky, ale
+        // ide o max. raz za pár dní, klient ju uvidí pri ďalšom otvorení/refreshi;
+        // pravidelný poll ani Realtime by tu boli zbytočný dopyt navyše pre tak
+        // zriedkavú udalosť.
         pollMs={0}
       />
     </div>

@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import styles from "./chat.module.css";
 
 export type ChatMessage = {
@@ -72,6 +73,7 @@ export function ChatThread({
   onSeen,
   readOnly = false,
   checkNewAction,
+  realtimeTable,
 }: {
   messages: ChatMessage[];
   mySide: "trainer" | "client";
@@ -95,6 +97,17 @@ export function ChatThread({
       naozaj zmenilo, nie na každý tik. Bez tejto props padá na starší, drahší vzor
       (vždy refresh) — držané kvôli spätnej kompatibilite, nové použitia by ju mali dať vždy. */
   checkNewAction?: () => Promise<string | null>;
+  /**
+   * Meno Postgres tabuľky (napr. "messages"), na ktorej sa má počúvať Supabase
+   * Realtime INSERT namiesto čakania na ďalší poll tik — okamžitá odozva pri
+   * novej správe od protistrany (ROADMAP: chat bol dovtedy čisto poll-based,
+   * ~12 s oneskorenie). ŽIADNY vlastný `eq` filter na klientovi netreba: Realtime
+   * postgres_changes vyhodnocuje SELECT RLS danej tabuľky za pripojeného
+   * používateľa, takže cez tento kanál nepríde nič, čo by si používateľ beztak
+   * nemohol prečítať cez bežný dopyt (RLS `messages_select`, 0008). Polling
+   * (`pollMs`) ostáva bežať ako záložná sieť pre prípad výpadku Realtime spojenia.
+   */
+  realtimeTable?: string;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(sendAction, initialState);
@@ -136,13 +149,13 @@ export function ChatThread({
     lastMarkerRef.current = messages[messages.length - 1]?.id ?? null;
   }, [messages]);
 
-  // refresh-based doručenie: poll kým je karta viditeľná + pri návrate na kartu.
-  // S `checkNewAction` ide o dvojkrokový poll — lacný dopyt na ID poslednej správy
-  // (jeden indexovaný riadok) namiesto vždy plného router.refresh() (celý round-trip
-  // + rerender stránky, aj keď väčšinu tikov nepribudla žiadna správa). Bez nej
-  // (napr. AI Kouč pri pollMs=0) sa polling úplne vypne.
+  // refresh-based doručenie: poll kým je karta viditeľná + pri návrate na kartu,
+  // plus (ak je `realtimeTable` zadané) okamžitý Realtime push namiesto čakania
+  // na ďalší tik. S `checkNewAction` ide o dvojkrokový poll — lacný dopyt na ID
+  // poslednej správy (jeden indexovaný riadok) namiesto vždy plného router.refresh()
+  // (celý round-trip + rerender stránky, aj keď väčšinu tikov nepribudla žiadna
+  // správa). Bez nej (napr. AI Kouč pri pollMs=0) sa polling úplne vypne.
   useEffect(() => {
-    if (!pollMs) return;
     const tick = async () => {
       if (document.visibilityState !== "visible") return;
       if (!checkNewAction) {
@@ -155,15 +168,35 @@ export function ChatThread({
         router.refresh();
       }
     };
-    const id = window.setInterval(tick, pollMs);
-    document.addEventListener("visibilitychange", tick);
-    window.addEventListener("focus", tick);
+
+    let intervalId: number | null = null;
+    if (pollMs) {
+      intervalId = window.setInterval(tick, pollMs);
+      document.addEventListener("visibilitychange", tick);
+      window.addEventListener("focus", tick);
+    }
+
+    // Realtime kanál je nezávislý od `pollMs` — aj keď je polling vypnutý (0),
+    // Realtime samo o sebe stále dáva okamžitú odozvu (napr. by sa hodilo pre
+    // AI Kouč pri budúcom proaktívnom oslovení klienta appkou).
+    let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
+    if (realtimeTable) {
+      const supabase = createClient();
+      channel = supabase
+        .channel(`chat-${realtimeTable}-${mySide}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: realtimeTable }, () => {
+          void tick();
+        })
+        .subscribe();
+    }
+
     return () => {
-      window.clearInterval(id);
+      if (intervalId != null) window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", tick);
       window.removeEventListener("focus", tick);
+      if (channel) void channel.unsubscribe();
     };
-  }, [router, pollMs, checkNewAction]);
+  }, [router, pollMs, checkNewAction, realtimeTable, mySide]);
 
   function grow() {
     const el = inputRef.current;

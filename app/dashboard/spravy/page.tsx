@@ -178,6 +178,7 @@ export default async function SpravyPage({
                       extraFields={{ client_id: selectedClientId }}
                       onSeen={markTrainerChatSeenAction.bind(null, selectedClientId)}
                       checkNewAction={getTrainerChatMarkerAction.bind(null, selectedClientId)}
+                      realtimeTable="messages"
                       emptyTitle="Zatiaľ žiadne správy"
                       emptyText={`Napíš ${selectedName.split(/\s+/)[0]}ovi prvú správu.`}
                       placeholder={`Správa pre ${selectedName.split(/\s+/)[0]}a…`}
