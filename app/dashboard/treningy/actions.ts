@@ -184,7 +184,7 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   const planId = formData.get("plan_id") as string | null;
   const name = (formData.get("name") as string | null)?.trim() ?? "";
 
-  if (!dayId) return { error: "Najprv vytvor alebo vyber deň." };
+  if (!dayId) return { error: "Najprv pridaj tréningový deň." };
   if (!planId) return { error: "Chýba ID plánu." };
   if (!name) return { error: "Zadaj názov cviku." };
 

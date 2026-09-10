@@ -38,6 +38,12 @@ export function ExerciseLibrary({
   const [dayState, addToDay, dayPending] = useActionState(addCustomExerciseToDayAction, initialState);
   const customPending = libPending || dayPending;
   const [page, setPage] = useState(0);
+  // Klik na „Pridať do tréningu" bez vytvoreného dňa — okamžité upozornenie bez
+  // zbytočného volania servera. Zmizne, hneď ako existuje aktívny deň.
+  const [noDayHint, setNoDayHint] = useState(false);
+  useEffect(() => {
+    if (activeDayId) setNoDayHint(false);
+  }, [activeDayId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -82,11 +88,18 @@ export function ExerciseLibrary({
             type="submit"
             formAction={addToDay}
             className="btn btn-ghost btn-sm"
-            disabled={customPending || !activeDayId}
-            title={!activeDayId ? "Najprv vytvor deň" : "Pridá cvik len do tohto tréningu, nie do knižnice"}
+            disabled={customPending}
+            title="Pridá cvik len do tohto tréningu, nie do knižnice"
+            onClick={(e) => {
+              if (!activeDayId) {
+                e.preventDefault();
+                setNoDayHint(true);
+              }
+            }}
           >
             {dayPending ? "Pridávam…" : "+ Pridať do tréningu"}
           </button>
+          {noDayHint && !activeDayId && <p className={styles.formError}>Najprv pridaj tréningový deň.</p>}
           {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
           <button type="submit" formAction={addToLibrary} className="btn btn-ghost btn-sm" disabled={customPending}>
             {libPending ? "Pridávam…" : "+ Pridať do knižnice"}
