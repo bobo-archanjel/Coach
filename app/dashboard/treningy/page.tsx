@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { CreatePlanForm } from "./CreatePlanForm";
 import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
@@ -35,11 +36,24 @@ export default async function TreningyPage() {
       .from("workout_plans")
       // Explicitná FK — viď poznámku v [planId]/page.tsx (clients.active_plan_id
       // robí plain `clients(...)` embed nejednoznačným, celý zoznam plánov by inak
-      // vždy vyzeral prázdny).
-      .select("id, name, created_at, published, clients!workout_plans_client_id_fkey(full_name), workout_days(count)")
+      // vždy vyzeral prázdny). `workout_days(id)` (nie `(count)`) — z tých istých
+      // ID sa počíta aj počet dní aj odcvičenosť (getPlanCompletion) bez ďalšieho
+      // dopytu na `workout_days`.
+      .select("id, name, created_at, published, clients!workout_plans_client_id_fkey(full_name), workout_days(id)")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
+
+  // Odcvičenosť plánov — jeden zdroj pravdy zdieľaný s detailom klienta
+  // (lib/dashboard/planCompletion.ts). Jediný dopyt navyše, po `plans`, lebo
+  // potrebuje ich ID dní.
+  const planCompletion = await getPlanCompletion(
+    supabase,
+    (plans ?? []).map((p) => ({
+      id: p.id,
+      dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
+    })),
+  );
 
   const clientList = (clients ?? []).map((c) => {
     const profile = c.nutrition_profiles as unknown as { sex: "muz" | "zena" } | { sex: "muz" | "zena" }[] | null;
@@ -68,7 +82,8 @@ export default async function TreningyPage() {
         <div className={styles.roster} style={{ marginBottom: 28 }}>
           {plans.map((plan) => {
             const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
-            const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+            const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
+            const done = planCompletion.get(plan.id);
             return (
               <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
                 <div>
@@ -78,7 +93,13 @@ export default async function TreningyPage() {
                   </div>
                   <div className={styles.clientGoal}>{clientName}</div>
                 </div>
-                <span className={styles.clientSince}>{dayCount} dní</span>
+                {done?.allDone ? (
+                  <span className={styles.planDoneBadge}>Hotovo</span>
+                ) : (
+                  <span className={styles.clientSince}>
+                    {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
+                  </span>
+                )}
               </Link>
             );
           })}

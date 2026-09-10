@@ -67,10 +67,11 @@ export function ExerciseRow({
   const libEntry = library.find((l) => l.id === entry.exercise_id) ?? null;
 
   const openDetail = () => {
+    if (!entry.exercise_id) return;
     setShowDetail(true);
     setDetail(undefined);
     startTransition(async () => {
-      const d = await getExerciseDetailAction(entry.exercise_id);
+      const d = await getExerciseDetailAction(entry.exercise_id!);
       setDetail(d);
     });
   };
@@ -126,10 +127,17 @@ export function ExerciseRow({
 
   return (
     <div className={styles.exerciseRow}>
-      <button type="button" className={styles.exerciseNameBtn} onClick={openDetail}>
-        <ExerciseThumb src={libEntry?.image_url[0] ?? null} alt="" size={26} />
-        <span className={styles.exerciseName}>{entry.exercise_name}</span>
-      </button>
+      {entry.exercise_id ? (
+        <button type="button" className={styles.exerciseNameBtn} onClick={openDetail}>
+          <ExerciseThumb src={libEntry?.image_url[0] ?? null} alt="" size={26} />
+          <span className={styles.exerciseName}>{entry.exercise_name}</span>
+        </button>
+      ) : (
+        <div className={styles.exerciseNameStatic}>
+          <ExerciseThumb src={null} alt="" size={26} />
+          <span className={styles.exerciseName}>{entry.exercise_name}</span>
+        </div>
+      )}
       <span className={styles.exerciseSummary}>
         {entry.sets}× {entry.reps}
         {entry.load_kg ? ` @ ${entry.load_kg} kg` : ""}

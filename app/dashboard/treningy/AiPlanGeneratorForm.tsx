@@ -98,10 +98,10 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
           type="number"
           min={1}
           max={7}
-          defaultValue={3}
           required
           disabled={pending}
           className={styles.addClientInputSm}
+          placeholder="počet dní"
           aria-label="Počet tréningových dní v týždni"
           title="Počet dní v týždni"
         />

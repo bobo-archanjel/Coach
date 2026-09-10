@@ -369,6 +369,15 @@
   text-decoration: underline;
   text-decoration-color: var(--steel-line);
 }
+/* Vlastný cvik pridaný rovno do tréningu (bez záznamu v knižnici) — nemá detail,
+   takže názov nie je klikateľný (rovnaký vzor ako klientský ClientPlanBuilder). */
+.exerciseNameStatic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
 .exerciseSummary {
   font-variant-numeric: tabular-nums;
   color: var(--plate-yellow);

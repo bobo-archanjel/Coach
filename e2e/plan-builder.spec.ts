@@ -53,6 +53,27 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
     await expect(page.locator("[class*='exerciseRow']").nth(1)).toContainText("Bench press");
   });
 
+  test("vlastný cvik: 'Pridať do tréningu' aj 'Pridať do knižnice' vedľa seba", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/dashboard/treningy/x?preview=builder");
+
+    // Knižnica je na mobile defaultne zbalená — rozbaľ ju.
+    const libToggle = page.getByRole("button", { name: /Knižnica cvikov/ });
+    if ((await libToggle.getAttribute("aria-expanded")) === "false") await libToggle.click();
+
+    const addToTraining = page.getByRole("button", { name: "+ Pridať do tréningu" });
+    const addToLibrary = page.getByRole("button", { name: "+ Pridať do knižnice" });
+    await expect(addToTraining).toBeVisible();
+    await expect(addToLibrary).toBeVisible();
+    // preview má dni → je aktívny deň, takže "do tréningu" je povolené
+    await expect(addToTraining).toBeEnabled();
+
+    await page.getByPlaceholder("Nový vlastný cvik").fill("Testovací cvik");
+    await addToTraining.click(); // server action v preview nezapíše, ale nesmie spadnúť
+
+    expect(real(errs), real(errs).join("\n")).toEqual([]);
+  });
+
   test("mazanie konceptu: dvojkrokové potvrdenie", async ({ page }) => {
     await page.goto("/dashboard/treningy/x?preview=builder");
 

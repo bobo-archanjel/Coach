@@ -45,7 +45,8 @@ export async function getExerciseLibraryListAction(): Promise<ExerciseListItem[]
 
 export interface WorkoutExerciseEntry {
   entry_id: string;
-  exercise_id: string;
+  /** `null` = vlastný cvik pridaný rovno do tréningu, nie je v knižnici (žiadny detail/obrázky). */
+  exercise_id: string | null;
   exercise_name: string;
   sets: number;
   reps: string;
@@ -150,6 +151,50 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
     entry_id: randomUUID(),
     exercise_id: exerciseId,
     exercise_name: exercise.name,
+    sets: 3,
+    reps: "10",
+    load_kg: null,
+    tempo: null,
+    rest_seconds: 90,
+  };
+
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const { error } = await supabase
+    .from("workout_days")
+    .update({ exercises: [...current, newEntry] })
+    .eq("id", dayId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+/**
+ * "Pridať do tréningu" pri vlastnom cviku v builderi — pridá cvik LEN do aktívneho
+ * dňa práve zostavovaného plánu, bez zápisu do knižnice (tú napĺňa výhradne
+ * `addCustomExerciseAction`). Entry má `exercise_id: null` — rovnaký tvar ako
+ * vlastný cvik klienta v jeho portálovom builderi (app/portal/trening/actions.ts),
+ * takže detail/obrázky sa preň jednoducho neponúkajú.
+ */
+export async function addCustomExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const dayId = formData.get("day_id") as string | null;
+  const planId = formData.get("plan_id") as string | null;
+  const name = (formData.get("name") as string | null)?.trim() ?? "";
+
+  if (!dayId) return { error: "Najprv vytvor alebo vyber deň." };
+  if (!planId) return { error: "Chýba ID plánu." };
+  if (!name) return { error: "Zadaj názov cviku." };
+
+  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  if (!day) return { error: "Deň sa nenašiel." };
+
+  const newEntry: WorkoutExerciseEntry = {
+    entry_id: randomUUID(),
+    exercise_id: null,
+    exercise_name: name,
     sets: 3,
     reps: "10",
     load_kg: null,

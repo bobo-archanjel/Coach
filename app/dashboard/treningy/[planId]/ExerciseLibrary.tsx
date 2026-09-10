@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useActionState } from "react";
-import { addCustomExerciseAction, type ActionState } from "../actions";
+import { addCustomExerciseAction, addCustomExerciseToDayAction, type ActionState } from "../actions";
 import { LibraryItem } from "./LibraryItem";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "./builder.module.css";
@@ -34,7 +34,9 @@ export function ExerciseLibrary({
   // Na mobile defaultne zbalené (viď builderGrid poradie) — tréner vidí plátno prvé.
   // Nad 760px CSS `.collapsed` pravidlo neplatí, takže tento stav tam vizuálne nič nemení.
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(addCustomExerciseAction, initialState);
+  const [libState, addToLibrary, libPending] = useActionState(addCustomExerciseAction, initialState);
+  const [dayState, addToDay, dayPending] = useActionState(addCustomExerciseToDayAction, initialState);
+  const customPending = libPending || dayPending;
   const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
@@ -71,13 +73,25 @@ export function ExerciseLibrary({
       {!activeDayId && <p className={styles.libraryHint}>Vytvor deň vpravo, potom sem klikni na cvik.</p>}
 
       <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
-        <form action={formAction} className={styles.customExerciseForm}>
-          <input name="name" type="text" placeholder="Nový vlastný cvik" required disabled={pending} className={styles.customExerciseInput} />
-          <input name="muscle_group" type="text" placeholder="Partia (voliteľné)" disabled={pending} className={styles.customExerciseInput} />
-          <button type="submit" className="btn btn-ghost btn-sm" disabled={pending}>
-            {pending ? "Pridávam…" : "+ Pridať do knižnice"}
+        <form className={styles.customExerciseForm}>
+          <input name="name" type="text" placeholder="Nový vlastný cvik" required disabled={customPending} className={styles.customExerciseInput} />
+          <input name="muscle_group" type="text" placeholder="Partia (voliteľné)" disabled={customPending} className={styles.customExerciseInput} />
+          <input type="hidden" name="plan_id" value={planId} readOnly />
+          <input type="hidden" name="day_id" value={activeDayId ?? ""} readOnly />
+          <button
+            type="submit"
+            formAction={addToDay}
+            className="btn btn-ghost btn-sm"
+            disabled={customPending || !activeDayId}
+            title={!activeDayId ? "Najprv vytvor deň" : "Pridá cvik len do tohto tréningu, nie do knižnice"}
+          >
+            {dayPending ? "Pridávam…" : "+ Pridať do tréningu"}
           </button>
-          {state.error && <p className={styles.formError}>{state.error}</p>}
+          {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
+          <button type="submit" formAction={addToLibrary} className="btn btn-ghost btn-sm" disabled={customPending}>
+            {libPending ? "Pridávam…" : "+ Pridať do knižnice"}
+          </button>
+          {libState.error && <p className={styles.formError}>{libState.error}</p>}
         </form>
 
         <input

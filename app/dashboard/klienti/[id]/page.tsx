@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
+import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import type { LoggedExercise } from "@/lib/portal/types";
 import styles from "../../dashboard.module.css";
 import { DangerZone } from "./DangerZone";
@@ -133,8 +134,10 @@ export default async function ClientDetailPage({
         .eq("id", id)
         .maybeSingle(),
       supabase
+        // `workout_days(id)` (nie `(count)`) — z tých istých ID sa počíta počet dní
+        // aj odcvičenosť (getPlanCompletion, zdieľané so zoznamom /dashboard/treningy).
         .from("workout_plans")
-        .select("id, name, created_at, workout_days(count)")
+        .select("id, name, created_at, workout_days(id)")
         .eq("client_id", id)
         .order("created_at", { ascending: false }),
       supabase
@@ -165,6 +168,15 @@ export default async function ClientDetailPage({
     month: "long",
     year: "numeric",
   });
+
+  // Odcvičenosť plánov — rovnaký zdroj pravdy ako zoznam /dashboard/treningy.
+  const planCompletion = await getPlanCompletion(
+    supabase,
+    (plans ?? []).map((p) => ({
+      id: p.id,
+      dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
+    })),
+  );
 
   const sections: ClientDetailSection[] = [
     {
@@ -241,11 +253,18 @@ export default async function ClientDetailPage({
           {plans && plans.length > 0 ? (
             <div className={styles.roster}>
               {plans.map((plan) => {
-                const dayCount = (plan.workout_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+                const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
+                const done = planCompletion.get(plan.id);
                 return (
                   <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
                     <div className={styles.clientName}>{plan.name}</div>
-                    <span className={styles.clientSince}>{dayCount} dní</span>
+                    {done?.allDone ? (
+                      <span className={styles.planDoneBadge}>Hotovo</span>
+                    ) : (
+                      <span className={styles.clientSince}>
+                        {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
+                      </span>
+                    )}
                   </Link>
                 );
               })}
