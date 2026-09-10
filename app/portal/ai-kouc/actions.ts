@@ -8,6 +8,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendAiChatMessage } from "@/lib/ai/chat";
+import { needsHealthEscalation } from "@/lib/ai/healthFilter";
+import { classifyTopic } from "@/lib/ai/topicClassify";
 
 export interface AiKoucActionState {
   error: string | null;
@@ -71,9 +73,14 @@ export async function sendAiKoucMessageAction(
 
   const history = (historyRows ?? []).map((r) => ({ role: r.role as "user" | "assistant", content: r.content }));
 
+  // Téma pre agregované insighty trénera (migrácia 0033, get_ai_topic_insights)
+  // — pevná kategória, nikdy obsah správy. Tréner ju nikdy nevidí per-klient,
+  // len ako súčet naprieč ≥3 klientmi (k-anonymita v RPC), viď lib/ai/topicClassify.ts.
+  const topic = classifyTopic(body, needsHealthEscalation(body));
+
   const { error: insertUserErr } = await supabase
     .from("ai_messages")
-    .insert({ conversation_id: conversationId, role: "user", content: body });
+    .insert({ conversation_id: conversationId, role: "user", content: body, topic });
   if (insertUserErr) return { error: insertUserErr.message };
 
   const result = await sendAiChatMessage(supabase, {

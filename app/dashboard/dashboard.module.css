@@ -1602,6 +1602,50 @@ select.addClientInputSm {
   text-align: right;
 }
 
+/* ---------- AI Kouč agregované insighty (feature/AI) — amber "skorý signál", odlíšené od zeleného PR panelu ---------- */
+.aiInsightsPanel {
+  background: rgba(230, 178, 58, 0.08);
+  border: 1px solid rgba(230, 178, 58, 0.3);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.aiInsightsPanelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--plate-yellow);
+}
+.aiInsightsList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  list-style: none;
+  padding: 0;
+}
+.aiInsightsList li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--paper);
+}
+.aiInsightsList li span:first-child {
+  color: var(--paper-faint);
+}
+.aiInsightsList li span:last-child {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+.aiInsightsHint {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--paper-faint);
+}
+
 /* ---------- kombinovaný súhrn na vrchu Analytiky klienta (feature/analytika-v2, bod 4) ---------- */
 .combinedSummary {
   display: flex;

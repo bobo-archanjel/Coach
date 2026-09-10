@@ -9,7 +9,9 @@ import styles from "../portal.module.css";
 
 /* /portal/chat — obojsmerné vlákno s trénerom (Track "Klient" bod 2).
    coach_notes (dnešný odkaz na karte Dnes) ostáva samostatný.
-   Refresh-based: ChatThread polluje (len lacný marker-check, feature/optimalizacia),
+   Refresh-based: ChatThread polluje (len lacný marker-check, feature/optimalizacia)
+   ako záložná sieť, doručenie novej správy je teraz primárne okamžité cez
+   Supabase Realtime (feature/AI, realtimeTable="messages" v ChatThread).
    sendClientMessageAction revaliduje. */
 
 const PREVIEW: PortalChatResult = {
@@ -105,6 +107,7 @@ export default async function ChatPage({
         sendAction={sendClientMessageAction}
         onSeen={markClientChatSeenAction}
         checkNewAction={getClientChatMarkerAction}
+        realtimeTable="messages"
         emptyTitle={`Napíš ${trainerName}ovi`}
         emptyText="Otázka k plánu, pocit z tréningu, čokoľvek — tréner ti odpovie sem."
         placeholder={`Správa pre ${trainerName}a…`}

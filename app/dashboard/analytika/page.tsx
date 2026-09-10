@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview, type ClientAnalyticsRow } from "@/lib/dashboard/analytics";
 import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
+import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { RosterSummaryCard } from "./RosterSummaryCard";
 import styles from "../dashboard.module.css";
 
@@ -80,6 +81,11 @@ const PREVIEW_PRS: Map<string, StrengthPR[]> = new Map([
   ["p3", [{ exercise: "Drep s veľkou činkou", bestWeightKg: 105, reps: 5, achievedOn: daysAgoIso(2) }]],
   ["p2", [{ exercise: "Mŕtvy ťah", bestWeightKg: 120, reps: 3, achievedOn: daysAgoIso(5) }]],
 ]);
+const PREVIEW_AI_INSIGHTS: AiTopicInsight[] = [
+  { topic: "koleno", label: "bolesť/nepohodlie v kolene", clientCount: 5 },
+  { topic: "motivácia", label: "pokles motivácie", clientCount: 3 },
+];
+
 const PREVIEW_ROSTER_SUMMARY =
   "Portfólio je zmiešané — traja z piatich klientov držia tempo, dvaja potrebujú zásah. " +
   "Zameraj sa na Ota: tréning aj strava sú dlhodobo pod 25 % a váha za 90 dní stúpla o 1,4 kg — ozvi sa mu ešte tento týždeň. " +
@@ -98,11 +104,13 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
   let activeClients: { id: string; full_name: string }[];
   let overview: Map<string, ClientAnalyticsRow> | null;
   let recentPRs: Map<string, StrengthPR[]> | null;
+  let aiInsights: AiTopicInsight[] | null;
 
   if (isPreview) {
     activeClients = PREVIEW_CLIENTS;
     overview = PREVIEW_OVERVIEW;
     recentPRs = PREVIEW_PRS;
+    aiInsights = PREVIEW_AI_INSIGHTS;
   } else {
     const supabase = await createClient();
     const {
@@ -120,7 +128,11 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
     // rovnaké vylúčenie ako pri upozornení na meškanie na /dashboard.
     activeClients = (clients ?? []).filter((c) => !c.ended_at && !c.deletion_requested_at);
     const ids = activeClients.map((c) => c.id);
-    [overview, recentPRs] = await Promise.all([getClientAnalyticsOverview(ids), getRecentPRs(ids, 14)]);
+    [overview, recentPRs, aiInsights] = await Promise.all([
+      getClientAnalyticsOverview(ids),
+      getRecentPRs(ids, 14),
+      getAiTopicInsights(supabase),
+    ]);
   }
 
   if (!overview) {
@@ -196,6 +208,26 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {aiInsights != null && aiInsights.length > 0 && (
+            <div className={styles.aiInsightsPanel}>
+              <p className={styles.aiInsightsPanelTitle}>AI Kouč · skoré signály · {"posledných 7 dní"}</p>
+              <ul className={styles.aiInsightsList}>
+                {aiInsights.map((i) => (
+                  <li key={i.topic}>
+                    <span>
+                      {i.clientCount} {i.clientCount === 1 ? "klient sa" : i.clientCount < 5 ? "klienti sa" : "klientov sa"} pýtalo
+                      AI Kouča na
+                    </span>
+                    <span>{i.label}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className={styles.aiInsightsHint}>
+                Agregované naprieč aspoň 3 klientmi, bez prístupu appky k obsahu konverzácie — AI Kouč zostáva súkromný chat.
+              </p>
             </div>
           )}
 
