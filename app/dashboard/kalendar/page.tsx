@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AddAppointmentForm } from "./AddAppointmentForm";
 import { AppointmentRow } from "./AppointmentRow";
@@ -34,11 +34,11 @@ function dayGroupLabel(dateKey: string, todayKey: string, tomorrowKey: string): 
 }
 
 export default async function KalendarPage() {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
   if (!user) redirect("/prihlasenie");
+  const supabase = await createClient();
 
   const nowIso = new Date().toISOString();
 

@@ -83,7 +83,7 @@ export default function LandingPage() {
                 tréner.
               </p>
               <div className={styles.heroCtas}>
-                <a href="#cennik" className="btn btn-primary">
+                <a href="/prihlasenie" className="btn btn-primary">
                   Začať 14-dňové skúšobné obdobie
                   <ArrowIcon />
                 </a>

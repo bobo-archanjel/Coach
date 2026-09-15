@@ -39,9 +39,8 @@ test.describe("Landing page /", () => {
     await expect(page).toHaveURL(/\/prihlasenie/);
   });
 
-  // FINDING: hero primárne CTA "Začať 14-dňové skúšobné obdobie" má href="#cennik"
-  // (app/page.tsx:71) — skroluje na cenník namiesto /prihlasenie#register, na rozdiel
-  // od všetkých ostatných "Začať..." CTA. Test drží správne očakávanie.
+  // Predtým bug: href="#cennik" (scroll na cenník) namiesto /prihlasenie, na
+  // rozdiel od všetkých ostatných "Začať..." CTA — opravené 2026-09-15.
   test("hero primárne CTA vedie na registráciu", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("link", { name: /Začať 14-dňové skúšobné obdobie/i }).click();
@@ -128,9 +127,9 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByRole("heading", { name: /Dobré ráno, Ján|Dobrý deň, Ján|Dobrý večer, Ján/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Deň C — Nohy/ })).toBeVisible();
 
-    // 6 cvikov v zozname
-    await expect(page.locator("ol li")).toHaveCount(6);
-    await expect(page.getByText("Drep s veľkou činkou")).toBeVisible();
+    // karta Dnes je len súhrn (revízia 2026-09) — rozpis cvikov je v tabe Tréning,
+    // tu sa overuje len počet cez chip badge.
+    await expect(page.getByText("6 cvikov", { exact: true })).toBeVisible();
 
     // odklikávanie tréningu (Fáza A) — lokálny prepínač, potom "Ukončiť tréning"
     const start = page.getByRole("button", { name: /Začať tréning/i });
@@ -280,8 +279,9 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByRole("button", { name: "Obed", exact: true })).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("tab", { name: "Knižnica" }).click();
     await page.getByLabel("Hľadať potravinu").fill("vaj");
-    await expect(page.getByRole("button", { name: /Vajcia \(celé\)/ })).toBeVisible();
-    await page.getByRole("button", { name: /Vajcia \(celé\)/ }).click();
+    // DB name (USDA import) je "Vajcia (celé, surové)" — regex bez uzatvárajúcej zátvorky.
+    await expect(page.getByRole("button", { name: /Vajcia \(celé/ })).toBeVisible();
+    await page.getByRole("button", { name: /Vajcia \(celé/ }).click();
     // po výbere je gramáž a "Pridať"
     await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeVisible();
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
 import { sendTrainerMessageAction, markTrainerChatSeenAction, getTrainerChatMarkerAction } from "../klienti/actions";
 import { SpravyView } from "./SpravyView";
@@ -42,10 +42,9 @@ export default async function SpravyPage({
   searchParams: Promise<{ client?: string }>;
 }) {
   const { client: selectedClientId } = await searchParams;
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
   if (!user) {
     return (
       <div className={styles.emptyState}>
@@ -54,6 +53,7 @@ export default async function SpravyPage({
       </div>
     );
   }
+  const supabase = await createClient();
 
   const { data: clients } = await supabase
     .from("clients")
@@ -68,24 +68,27 @@ export default async function SpravyPage({
   const unreadByClient = new Map<string, number>();
 
   if (clientIds.length > 0) {
-    const { data: recentMessages } = await supabase
-      .from("messages")
-      .select("id, client_id, sender, body, created_at")
-      .in("client_id", clientIds)
-      .order("created_at", { ascending: false })
-      .limit(1000);
+    // Obe závisia len na `clientIds`, nie jedna na druhej — predtým bežali
+    // sekvenčne (2 zbytočné round-tripy navyše k dopytu na clients vyššie).
+    const [{ data: recentMessages }, { data: unreadRows }] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("id, client_id, sender, body, created_at")
+        .in("client_id", clientIds)
+        .order("created_at", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("messages")
+        .select("client_id")
+        .in("client_id", clientIds)
+        .eq("sender", "client")
+        .is("read_at", null),
+    ]);
 
     // Zoradené zostupne podľa created_at — prvý výskyt na klienta je jeho posledná správa.
     for (const m of (recentMessages ?? []) as MessageRow[]) {
       if (!lastByClient.has(m.client_id)) lastByClient.set(m.client_id, m);
     }
-
-    const { data: unreadRows } = await supabase
-      .from("messages")
-      .select("client_id")
-      .in("client_id", clientIds)
-      .eq("sender", "client")
-      .is("read_at", null);
     for (const r of unreadRows ?? []) unreadByClient.set(r.client_id, (unreadByClient.get(r.client_id) ?? 0) + 1);
   }
 

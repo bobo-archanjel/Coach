@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { TemplateRow } from "./TemplateRow";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
 import styles from "../dashboard.module.css";
 
 export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ goal?: string }> }) {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
   if (!user) redirect("/prihlasenie");
+  const supabase = await createClient();
 
   const { goal: goalParam } = await searchParams;
   const activeGoal = isPlanGoal(goalParam) ? goalParam : null;
