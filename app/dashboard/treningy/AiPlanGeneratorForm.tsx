@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { generatePlanWithAiAction, type ActionState } from "./actions";
-import type { PlanFocus } from "@/lib/ai/planTaxonomy";
+import type { PlanFocus } from "@/lib/ai/planCategories";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
@@ -110,8 +110,9 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
         </button>
       </div>
       <p className={styles.aiPlanHint}>
-        AI navrhne rozdelenie na dni a cviky z knižnice podľa cieľa a zamerania — plán sa otvorí ako koncept, pred
-        publikovaním vieš čokoľvek upraviť. Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná.
+        Appka rozdelí týždeň na dni podľa cieľa a zamerania (napr. Tlak/Ťah/Nohy), AI vyberie konkrétne cviky z
+        knižnice pre každý deň — plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať.
+        Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná.
       </p>
       {state.error && <p className={styles.addClientError}>{state.error}</p>}
       {state.planId && (
