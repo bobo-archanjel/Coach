@@ -3,15 +3,22 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { generatePlanWithAiAction, type ActionState } from "./actions";
-import type { PlanFocus } from "@/lib/ai/planCategories";
+import {
+  type PlanFocus,
+  type WholePlanFocus,
+  DAY_CATEGORIES,
+  DAY_CATEGORY_LABEL_SK,
+  WHOLE_PLAN_FOCUS_LABEL_SK,
+  isSingleDayFocus,
+} from "@/lib/ai/planCategories";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
 type ClientOption = { id: string; full_name: string; sex: "muz" | "zena" | null };
 
-/** Predvyplnené zameranie podľa pohlavia — len návrh, tréner ho vždy prepíše. */
-function defaultFocusForSex(sex: "muz" | "zena" | null): PlanFocus {
+/** Predvyplnené celoplánové zameranie podľa pohlavia — len návrh, tréner ho vždy prepíše. */
+function defaultFocusForSex(sex: "muz" | "zena" | null): WholePlanFocus {
   if (sex === "zena") return "dolna";
   if (sex === "muz") return "horna";
   return "vyvazene";
@@ -22,6 +29,7 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
   const [focus, setFocus] = useState<PlanFocus>("vyvazene");
   // Kým tréner sám nezmení zameranie, meníme ho podľa vybraného klienta.
   const [focusTouched, setFocusTouched] = useState(false);
+  const singleDay = isSingleDayFocus(focus);
 
   if (clients.length === 0) {
     return <p className={styles.noWorkouts}>Najprv pridaj klienta na stránke Klienti.</p>;
@@ -86,33 +94,44 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
             setFocus(e.target.value as PlanFocus);
             setFocusTouched(true);
           }}
-          aria-label="Zameranie plánu"
-          title="Zameranie plánu"
+          aria-label="Zameranie"
+          title="Zameranie"
         >
-          <option value="vyvazene">Vyvážene</option>
-          <option value="horna">Viac horná časť tela</option>
-          <option value="dolna">Viac dolná časť tela (zadok)</option>
+          <optgroup label="Celý plán">
+            <option value="vyvazene">{WHOLE_PLAN_FOCUS_LABEL_SK.vyvazene}</option>
+            <option value="horna">{WHOLE_PLAN_FOCUS_LABEL_SK.horna}</option>
+            <option value="dolna">{WHOLE_PLAN_FOCUS_LABEL_SK.dolna}</option>
+          </optgroup>
+          <optgroup label="Jeden deň na partiu">
+            {DAY_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {DAY_CATEGORY_LABEL_SK[cat]}
+              </option>
+            ))}
+          </optgroup>
         </select>
-        <input
-          name="days_per_week"
-          type="number"
-          min={1}
-          max={7}
-          required
-          disabled={pending}
-          className={styles.addClientInputSm}
-          placeholder="počet dní"
-          aria-label="Počet tréningových dní v týždni"
-          title="Počet dní v týždni"
-        />
+        {!singleDay && (
+          <input
+            name="days_per_week"
+            type="number"
+            min={1}
+            max={7}
+            required
+            disabled={pending}
+            className={styles.addClientInputSm}
+            placeholder="počet dní"
+            aria-label="Počet tréningových dní v týždni"
+            title="Počet dní v týždni"
+          />
+        )}
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? "Generujem…" : "Navrhnúť plán s AI"}
+          {pending ? "Generujem…" : singleDay ? "Navrhnúť tréning na jeden deň" : "Navrhnúť plán s AI"}
         </button>
       </div>
       <p className={styles.aiPlanHint}>
-        Appka rozdelí týždeň na dni podľa cieľa a zamerania (napr. Tlak/Ťah/Nohy), AI vyberie konkrétne cviky z
-        knižnice pre každý deň — plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať.
-        Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná.
+        {singleDay
+          ? `Appka vygeneruje presne 1 tréningový deň zameraný na „${DAY_CATEGORY_LABEL_SK[focus as (typeof DAY_CATEGORIES)[number]]}" — cviky výhradne z tejto partie, počet dní v týždni sa neberie do úvahy. Plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať.`
+          : "Appka vygeneruje plán na zadaný počet dní, AI vyberie konkrétne cviky z knižnice s ohľadom na zvolené zameranie — plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať. Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná."}
       </p>
       {state.error && <p className={styles.addClientError}>{state.error}</p>}
       {state.planId && (

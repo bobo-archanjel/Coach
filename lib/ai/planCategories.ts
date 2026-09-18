@@ -1,23 +1,24 @@
-// FitPilot — AI generátor plánu: kategórie tréningových dní (feature/ai-plan-kategorie).
+// FitPilot — AI generátor plánu: kategórie tréningových dní pre RÝCHLE
+// jednodňové generovanie (feature/ai-plan-partie, 2026-09-18).
 //
-// Nahrádza pôvodný voľný pomer "horná/dolná časť tela" (feature/ai-plan-zameranie,
-// 2026-09-07): dovtedy appka nechala model rozhodnúť VŠETKO naraz (aj rozdelenie
-// na dni, aj balans partií, aj výber cvikov) len s číselným cieľom v prompte
-// ("~55-60 % cvikov z cielenej časti") + deterministickou kontrolou CELÉHO
-// plánu až po fakte (enforceFocus). To bolo nespoľahlivé, lebo to bola jedna
-// veľká neurčitá úloha pre model namiesto viacerých malých overiteľných krokov.
+// Nahrádza automatický "split builder" (feature/ai-plan-kategorie, 2026-09-17,
+// funkcia `buildSplit`): appka vtedy SAMA rozhodovala, ktorý deň v týždni bude
+// push/pull/legs/... — teda rozhodovala ZA trénera o štruktúre celého plánu.
+// To presne NIE JE to, čo tréner chcel. Appka už nerozhoduje o rozdelení
+// viacdňového plánu na kategórie — `daysPerWeek` dní s "Zameraním"
+// (vyvážene/horná/dolná) sa generuje jednoduchým pomerom v prompte, presne ako
+// pred `buildSplit` (feature/ai-plan-zameranie, `enforceFocus` v
+// lib/ai/planGenerator.ts + lib/ai/planTaxonomy.ts).
 //
-// Teraz appka SAMA (deterministicky, tu) rozhodne o štruktúre týždňa — pevná
-// sada kategórií dní (buildSplit) — a model dostane už rozdelené, menšie a
-// overiteľné úlohy: vybrať cviky pre KONKRÉTNU kategóriu na KONKRÉTNY deň,
-// nie vymyslieť celú štruktúru plánu. lib/ai/planGenerator.ts orchestruje
-// (volanie modelu, per-deň kandidáti, post-generation kontrola pokrytia).
+// Čo ZOSTÁVA a znovu sa používa: mapovanie kategória → muscle_group nižšie
+// (DAY_CATEGORY_MUSCLE_GROUPS/candidatesForCategory) — presne to, čo tréner
+// potrebuje, len inak zapojené: nie na rozdelenie CELÉHO týždňa, ale na
+// RÝCHLE vygenerovanie JEDNÉHO tréningového dňa na konkrétnu partiu,
+// nezávisle od `daysPerWeek` (select "Zameranie", jeden plochý dropdown,
+// pozri AiPlanGeneratorForm.tsx).
 //
 // Čisté funkcie bez závislosti na Supabase/Anthropic SDK — testovateľné
-// oddelene (rovnaký vzor ako lib/ai/planTaxonomy.ts, ktoré si ponecháva len
-// vybavenie ako filter).
-
-import type { PlanGoal } from "./planGenerator";
+// oddelene (rovnaký vzor ako lib/ai/planTaxonomy.ts).
 
 export type DayCategory =
   | "push"
@@ -44,7 +45,7 @@ export const DAY_CATEGORIES: DayCategory[] = [
   "shoulders",
 ];
 
-/** Slovenský názov dňa pre `workout_days.name` — tréner ho vie premenovať v PlanBuilderi ako hocijaký iný. */
+/** Slovenský názov kategórie — použitý ako text voľby v selecte AJ ako `workout_days.name`/názov plánu pri jednodňovom generovaní. Tréner ho vie premenovať v PlanBuilderi ako hocijaký iný. */
 export const DAY_CATEGORY_LABEL_SK: Record<DayCategory, string> = {
   push: "Tlak (Push)",
   pull: "Ťah (Pull)",
@@ -58,14 +59,29 @@ export const DAY_CATEGORY_LABEL_SK: Record<DayCategory, string> = {
   shoulders: "Ramená",
 };
 
-/** Voľný select "Zameranie" vo formulári — hodnota teraz volí kategórie dní (buildSplit), nie pomer v texte promptu. */
-export type PlanFocus = "vyvazene" | "horna" | "dolna";
-export const PLAN_FOCUSES: PlanFocus[] = ["vyvazene", "horna", "dolna"];
-export const PLAN_FOCUS_LABEL_SK: Record<PlanFocus, string> = {
+/** Celoplánové hodnoty selectu "Zameranie" — menia pomer cvikov na `daysPerWeek` dní (ako doteraz), žiadny split builder. */
+export type WholePlanFocus = "vyvazene" | "horna" | "dolna";
+export const WHOLE_PLAN_FOCUSES: WholePlanFocus[] = ["vyvazene", "horna", "dolna"];
+export const WHOLE_PLAN_FOCUS_LABEL_SK: Record<WholePlanFocus, string> = {
   vyvazene: "Vyvážene",
   horna: "Viac horná časť tela",
   dolna: "Viac dolná časť tela (zadok)",
 };
+
+/**
+ * Jeden plochý select "Zameranie" má 13 hodnôt naraz: 3 celoplánové (menia pomer
+ * na `daysPerWeek` dní) + 10 partiových (rýchle vygenerovanie JEDNÉHO dňa,
+ * `daysPerWeek` sa ignoruje). `DayCategory` sa tu znovu použije ako podmnožina
+ * `PlanFocus` — obe strany selectu zdieľajú jeden typ/hodnoty.
+ */
+export type PlanFocus = WholePlanFocus | DayCategory;
+export const SINGLE_DAY_FOCUSES: DayCategory[] = DAY_CATEGORIES;
+export const PLAN_FOCUSES: PlanFocus[] = [...WHOLE_PLAN_FOCUSES, ...SINGLE_DAY_FOCUSES];
+
+/** true = partiová voľba (rýchly 1 deň), false = celoplánová voľba (`daysPerWeek` dní ako doteraz). */
+export function isSingleDayFocus(focus: PlanFocus): focus is DayCategory {
+  return (SINGLE_DAY_FOCUSES as PlanFocus[]).includes(focus);
+}
 
 /**
  * muscle_group je v knižnici uložený ako SK reťazec — presne hodnoty z mapy
@@ -101,113 +117,16 @@ export const DAY_CATEGORY_MUSCLE_GROUPS: Record<DayCategory, string[]> = {
   fullbody: [...CHEST_GROUPS, ...BACK_GROUPS, ...LEG_GROUPS, ...SHOULDER_GROUPS, ...CORE_GROUPS],
 };
 
-/** SK názov partie "zadok" — cieľ pri kategórii legs/lower so zameraním "viac dolná časť". */
-export const GLUTES_MUSCLE_GROUP = "zadok";
-/** Minimálny počet cvikov na "zadok" na deň s kategóriou legs/lower pri zameraní "dolna". */
-export const FOCUS_MIN_GLUTES = 2;
-/** Minimálny počet cvikov na deň po filtri neplatných exercise_id — inak appka dopĺňa z kandidátov danej kategórie (viď planGenerator.ts). */
+/** Minimálny počet cvikov na jednodňový partiový plán po filtri neplatných exercise_id — inak appka dopĺňa z kandidátov danej kategórie (viď planGenerator.ts). */
 export const MIN_EXERCISES_PER_CATEGORY_DAY = 3;
 
-/** Kandidáti patriaci danej kategórii dňa — filter podľa muscle_group, aplikuje sa PO equipment filtri (planTaxonomy.ts), nie namiesto neho. */
+/**
+ * Kandidáti patriaci danej kategórii — filter podľa muscle_group, aplikuje sa
+ * PO equipment filtri (planTaxonomy.ts), nie namiesto neho. `fullbody` sa ako
+ * filter nepoužíva (žiadne obmedzenie kandidátov) — len vynúti presne 1 deň,
+ * viď planGenerator.ts.
+ */
 export function candidatesForCategory<T extends { muscleGroup: string }>(candidates: T[], category: DayCategory): T[] {
   const groups = DAY_CATEGORY_MUSCLE_GROUPS[category];
   return candidates.filter((c) => groups.includes(c.muscleGroup.trim()));
-}
-
-// ---------- deterministický split builder ----------
-
-const UPPER_LEANING: DayCategory[] = ["push", "pull", "upper", "chest", "back", "shoulders", "arms"];
-const LOWER_LEANING: DayCategory[] = ["legs", "lower"];
-
-/**
- * Základné ("vyvážené") rozdelenie pre 1-4 dni — rovnaké pre všetky ciele.
- * Orientačné, bežné fitness-programové vzory (nie pevná špecifikácia):
- * 1-2 dni nevedia pokryť telo inak než celé naraz, 3-4 dni striedajú
- * horná/dolná so zvyškom ako celé telo.
- */
-const BASE_SPLIT_SMALL: Record<number, DayCategory[]> = {
-  1: ["fullbody"],
-  2: ["fullbody", "fullbody"],
-  3: ["upper", "lower", "fullbody"],
-  4: ["upper", "lower", "upper", "lower"],
-};
-
-/**
- * Od 5 dní vyššie sa cieľ prejaví aj na tvare splitu (nielen na sets/reps cez
- * `defaultsForGoal` v planGenerator.ts): hypertrofia/sila profitujú z
- * bodypart-špecializácie (push/pull/legs, vyššia frekvencia/objem na partiu),
- * kým chudnutie/kondícia bežne nepotrebujú bodybuilding-štýl split — plný
- * telo/upper-lower rotácia je pre všeobecnú populáciu rovnako účinná a
- * jednoduchšia na dodržanie. Orientačné defaulty, nie pevná špecifikácia.
- */
-const SPECIALIZATION_GOALS: PlanGoal[] = ["hypertrofia", "sila"];
-
-const BASE_SPLIT_SPECIALIZED: Record<number, DayCategory[]> = {
-  5: ["push", "pull", "legs", "upper", "lower"],
-  6: ["push", "pull", "legs", "push", "pull", "legs"],
-  7: ["push", "pull", "legs", "upper", "lower", "fullbody", "fullbody"],
-};
-
-const BASE_SPLIT_GENERAL: Record<number, DayCategory[]> = {
-  5: ["upper", "lower", "fullbody", "upper", "lower"],
-  6: ["upper", "lower", "fullbody", "upper", "lower", "fullbody"],
-  7: ["upper", "lower", "fullbody", "upper", "lower", "fullbody", "fullbody"],
-};
-
-function baseSplitFor(daysPerWeek: number, goal: PlanGoal): DayCategory[] {
-  if (daysPerWeek <= 4) return BASE_SPLIT_SMALL[daysPerWeek];
-  const table = SPECIALIZATION_GOALS.includes(goal) ? BASE_SPLIT_SPECIALIZED : BASE_SPLIT_GENERAL;
-  return table[daysPerWeek];
-}
-
-/**
- * Koľko dní zameranie smie prehodiť na cielenú kategóriu. 1 deň zostáva vždy
- * "fullbody" bez ohľadu na zameranie — jediný tréning týždenne musí pokryť
- * celé telo, zúženie na jednu polovicu by druhú nechalo úplne bez podnetu.
- */
-const FOCUS_SWAP_COUNT: Record<number, number> = { 1: 0, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2 };
-
-/**
- * Zameranie posunie zloženie splitu, nikdy ho úplne nevyprázdni na jednu
- * stranu: "dolna" nenechá menej než 1 horná-orientovaný deň (ak nejaký v
- * základe bol) a "horna" nenechá menej než 1 dolná-orientovaný deň — plán tak
- * nikdy nestratí kompletne jednu polovicu tela, len jej dá menší priestor.
- */
-function applyFocus(base: DayCategory[], focus: PlanFocus): DayCategory[] {
-  const days = [...base];
-  if (focus === "vyvazene") return days;
-
-  let remaining = FOCUS_SWAP_COUNT[days.length] ?? 0;
-  if (remaining === 0) return days;
-
-  const targetCategory: DayCategory = focus === "dolna" ? "legs" : "upper";
-  const isNeutral = (c: DayCategory) => c === "fullbody";
-  const isOpposite = (c: DayCategory) => (focus === "dolna" ? UPPER_LEANING.includes(c) : LOWER_LEANING.includes(c));
-
-  // 1. najprv nahraď "fullbody" (neutrálne) dni — nestráca sa tým cielená práca opačnej strany.
-  for (let i = days.length - 1; i >= 0 && remaining > 0; i--) {
-    if (isNeutral(days[i])) {
-      days[i] = targetCategory;
-      remaining--;
-    }
-  }
-
-  // 2. ak treba viac, nahraď opačne-orientované dni — nikdy nie POSLEDNÝ zvyšný.
-  while (remaining > 0) {
-    const oppositeIdxs = days.map((c, i) => (isOpposite(c) ? i : -1)).filter((i) => i >= 0);
-    if (oppositeIdxs.length <= 1) break;
-    days[oppositeIdxs[oppositeIdxs.length - 1]] = targetCategory;
-    remaining--;
-  }
-
-  return days;
-}
-
-/**
- * Deterministický "split builder" — appka rozhodne poradie kategórií dní,
- * nie model. Čistá funkcia (žiadne volanie AI), testovateľná priamo.
- */
-export function buildSplit(daysPerWeek: number, goal: PlanGoal, focus: PlanFocus): DayCategory[] {
-  const n = Math.min(7, Math.max(1, Math.round(daysPerWeek)));
-  return applyFocus(baseSplitFor(n, goal), focus);
 }

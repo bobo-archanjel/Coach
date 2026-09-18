@@ -1,13 +1,18 @@
 // FitPilot — AI generátor plánu: vybavenie ako štrukturálny filter kandidátov
-// (feature/ai-plan-zameranie, 2026-09-07). Čistá výpočtová logika bez
-// závislosti na Supabase / Anthropic SDK, aby sa dala unit-testovať oddelene
-// od volania modelu (lib/ai/planGenerator.ts orchestruje, toto počíta).
+// (feature/ai-plan-zameranie, 2026-09-07) + celoplánové "Zameranie"
+// horná/dolná časť tela ako jednoduchý pomer cvikov (pôvodne tu, dočasne
+// presunuté do `ensureCategoryCoverage`/kategórií vo feature/ai-plan-kategorie
+// — tá automatika sa ukázala ako presne to, čo tréner nechcel (appka
+// rozhodovala ZA neho, ktorý deň bude push/pull/legs), takže sa tu 2026-09-18
+// (feature/ai-plan-partie) vracia pôvodná jednoduchá verzia). Čistá výpočtová
+// logika bez závislosti na Supabase / Anthropic SDK, aby sa dala unit-testovať
+// oddelene od volania modelu (lib/ai/planGenerator.ts orchestruje, toto počíta).
 //
-// Rozdelenie plánu na dni podľa kategórií a "Zameranie" select (vyvážene /
-// horná / dolná) žijú v lib/ai/planCategories.ts (feature/ai-plan-kategorie) —
-// tento modul si ponecháva výhradne vybavenie.
+// Kategórie pre RÝCHLE jednodňové generovanie (partie select) žijú v
+// lib/ai/planCategories.ts — nezávislé od tohto modulu.
 
 import type { PlanEquipment } from "./planGenerator";
+import type { WholePlanFocus } from "./planCategories";
 
 /**
  * equipment → úroveň dostupnosti (hierarchia, nie presná zhoda):
@@ -61,4 +66,92 @@ export function clientEquipmentLevel(planEquipment: PlanEquipment): 0 | 1 | 2 {
 /** Cvik je pre klienta dostupný, ak jeho úroveň vybavenia nie je vyššia než klientova. */
 export function exerciseFitsEquipment(exerciseEquipment: string | null | undefined, planEquipment: PlanEquipment): boolean {
   return equipmentLevel(exerciseEquipment) <= clientEquipmentLevel(planEquipment);
+}
+
+// ---------- celoplánové "Zameranie" (vyvážene/horná/dolná) — jednoduchý pomer, žiadny split builder ----------
+
+export type BodyRegion = "horna" | "dolna" | "core";
+
+/**
+ * muscle_group → časť tela (horná / dolná / core). Kľúče MUSIA sedieť s mapou
+ * `MUSCLE_SK` v scripts/import-exercises.mjs — ak sa import zmení, zmeň aj
+ * toto. `zadok` (glutes) je zámerne samostatná partia, nie súčasť "stehná" —
+ * zameranie "viac dolná časť" ju cieli explicitne.
+ */
+export const MUSCLE_REGION: Record<string, BodyRegion> = {
+  // dolná časť tela
+  "stehná (kvadriceps)": "dolna",
+  "zadné stehná": "dolna",
+  zadok: "dolna",
+  lýtka: "dolna",
+  "adduktory (vnútorné stehná)": "dolna",
+  "abduktory (vonkajšie stehná)": "dolna",
+  // horná časť tela
+  hrudník: "horna",
+  "chrbát (širák)": "horna",
+  "stredný chrbát": "horna",
+  ramená: "horna",
+  biceps: "horna",
+  triceps: "horna",
+  predlaktia: "horna",
+  trapézy: "horna",
+  krk: "horna",
+  // trup / core (spodný chrbát je stabilizátor trupu, nie končatina — patrí sem)
+  brucho: "core",
+  "spodný chrbát": "core",
+};
+
+/** SK názov partie „zadok" — cieľ pre zameranie „viac dolná časť tela". */
+export const GLUTES_MUSCLE_GROUP = "zadok";
+
+export function regionForMuscleGroup(muscleGroup: string | null | undefined): BodyRegion | null {
+  if (!muscleGroup) return null;
+  return MUSCLE_REGION[muscleGroup.trim()] ?? null;
+}
+
+export interface FocusAnalysis {
+  total: number;
+  horna: number;
+  dolna: number;
+  core: number;
+  /** cviky bez rozpoznanej partie (vlastný cvik trénera, chýbajúci muscle_group) */
+  unknown: number;
+  zadok: number;
+  hornaShare: number;
+  dolnaShare: number;
+}
+
+/** Spočíta rozloženie cvikov naprieč celým týždenným plánom. `muscleGroupById` mapuje cvik podľa jeho ID. */
+export function analyzeFocus(exerciseIds: string[], muscleGroupById: Map<string, string | null>): FocusAnalysis {
+  const a: FocusAnalysis = { total: 0, horna: 0, dolna: 0, core: 0, unknown: 0, zadok: 0, hornaShare: 0, dolnaShare: 0 };
+  for (const id of exerciseIds) {
+    a.total++;
+    const mg = muscleGroupById.get(id) ?? null;
+    if (mg && mg.trim() === GLUTES_MUSCLE_GROUP) a.zadok++;
+    const region = regionForMuscleGroup(mg);
+    if (region === "horna") a.horna++;
+    else if (region === "dolna") a.dolna++;
+    else if (region === "core") a.core++;
+    else a.unknown++;
+  }
+  if (a.total > 0) {
+    a.hornaShare = a.horna / a.total;
+    a.dolnaShare = a.dolna / a.total;
+  }
+  return a;
+}
+
+/** Cieľový podiel dominantnej časti tela pre dané zameranie — prompt pýta 55-60 %, tolerancia pre kontrolu je 50 %. */
+export const FOCUS_TARGET_SHARE = 0.5;
+/** Minimálny počet cvikov priamo na „zadok" za CELÝ TÝŽDEŇ pri zameraní „viac dolná časť tela". */
+export const FOCUS_MIN_GLUTES = 2;
+
+/** Splnil hotový plán zvolené zameranie? Pri „vyvážene" vždy true (žiadna dodatočná podmienka). */
+export function focusTargetMet(analysis: FocusAnalysis, focus: WholePlanFocus): boolean {
+  if (focus === "vyvazene") return true;
+  if (analysis.total === 0) return false;
+  if (focus === "dolna") {
+    return analysis.dolnaShare >= FOCUS_TARGET_SHARE && analysis.zadok >= FOCUS_MIN_GLUTES;
+  }
+  return analysis.hornaShare >= FOCUS_TARGET_SHARE;
 }

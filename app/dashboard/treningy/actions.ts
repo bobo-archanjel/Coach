@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
-import { PLAN_FOCUSES, type PlanFocus } from "@/lib/ai/planCategories";
+import { PLAN_FOCUSES, isSingleDayFocus, type PlanFocus } from "@/lib/ai/planCategories";
 import { isPlanGenRateLimited, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 
@@ -391,13 +391,17 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   // Zameranie je voliteľné — chýbajúce / neznáme = "vyvážene" (bezpečný fallback).
   const focusRaw = (formData.get("focus") as string | null) ?? "vyvazene";
   const focus: PlanFocus = PLAN_FOCUSES.includes(focusRaw as PlanFocus) ? (focusRaw as PlanFocus) : "vyvazene";
-  const daysPerWeek = Number(formData.get("days_per_week"));
+  // Partiové (jednodňové) zameranie ignoruje počet dní — UI ho skryje, appka vygeneruje presne 1 deň.
+  const singleDay = isSingleDayFocus(focus);
+  const daysPerWeek = singleDay ? 1 : Number(formData.get("days_per_week"));
 
   if (!clientId) return { error: "Vyber klienta." };
   if (!goal || !PLAN_GOALS.includes(goal as PlanGoal)) return { error: "Vyber cieľ." };
   if (!experience || !PLAN_EXPERIENCES.includes(experience as PlanExperience)) return { error: "Vyber skúsenosť klienta." };
   if (!equipment || !PLAN_EQUIPMENT.includes(equipment as PlanEquipment)) return { error: "Vyber dostupné vybavenie." };
-  if (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) return { error: "Zadaj počet dní 1-7." };
+  if (!singleDay && (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7)) {
+    return { error: "Zadaj počet dní 1-7." };
+  }
 
   const { data: client } = await supabase
     .from("clients")
@@ -425,12 +429,16 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   });
   if ("error" in result) return { error: result.error };
 
+  // Partiové (jednodňové) generovanie pomenuje plán podľa kategórie + dátumu
+  // (napr. "Chrbát — 18. 9. 2026"), inak default podľa cieľa ako doteraz.
+  const planName = result.plan.planName ?? `AI plán — ${PLAN_GOAL_LABEL_SK[goal as PlanGoal]}`;
+
   const { data: newPlan, error: planErr } = await supabase
     .from("workout_plans")
     .insert({
       client_id: clientId,
       trainer_id: user.id,
-      name: `AI plán — ${PLAN_GOAL_LABEL_SK[goal as PlanGoal]}`,
+      name: planName,
       published: false,
     })
     .select("id")

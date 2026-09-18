@@ -3,23 +3,22 @@ import {
   DAY_CATEGORIES,
   DAY_CATEGORY_MUSCLE_GROUPS,
   DAY_CATEGORY_LABEL_SK,
-  GLUTES_MUSCLE_GROUP,
+  WHOLE_PLAN_FOCUSES,
+  SINGLE_DAY_FOCUSES,
+  PLAN_FOCUSES,
   candidatesForCategory,
-  buildSplit,
-  type DayCategory,
+  isSingleDayFocus,
+  type PlanFocus,
 } from "../lib/ai/planCategories";
-import type { PlanGoal } from "../lib/ai/planGenerator";
 
 /**
- * Čisté funkcie kategórií tréningových dní (feature/ai-plan-kategorie) — bez
- * volania modelu/DB. Nahrádza pôvodný voľný pomer horná/dolná časť tela
- * (feature/ai-plan-zameranie, `e2e/planTaxonomy.spec.ts`) deterministickým
- * rozdelením na dni: `buildSplit` (appka rozhodne o štruktúre týždňa) a
- * mapovanie kategória → muscle_group (appka podľa neho filtruje kandidátov
- * pre daný deň).
+ * Čisté funkcie kategórií tréningových dní — RÝCHLE jednodňové generovanie
+ * podľa partie (feature/ai-plan-partie, 2026-09-18). Nahrádza pôvodný
+ * automatický "split builder" (`buildSplit`, feature/ai-plan-kategorie) —
+ * appka už nerozhoduje ZA trénera, ktorý deň v týždni bude push/pull/legs.
+ * Mapovanie kategória → muscle_group (znovupoužité z tej vetvy) a filter
+ * kandidátov ostávajú — teraz slúžia len na 1-dňové partiové generovanie.
  */
-
-const GOALS: PlanGoal[] = ["chudnutie", "hypertrofia", "sila", "kondicia"];
 
 test.describe("mapovanie kategória → muscle_group", () => {
   test("jednotlivé partie sedia presne s reťazcami z MUSCLE_SK (scripts/import-exercises.mjs)", () => {
@@ -64,7 +63,7 @@ test.describe("mapovanie kategória → muscle_group", () => {
       expect.arrayContaining([
         "stehná (kvadriceps)",
         "zadné stehná",
-        GLUTES_MUSCLE_GROUP,
+        "zadok",
         "lýtka",
         "abduktory (vonkajšie stehná)",
         "adduktory (vnútorné stehná)",
@@ -84,6 +83,12 @@ test.describe("mapovanie kategória → muscle_group", () => {
       const groups = DAY_CATEGORY_MUSCLE_GROUPS[cat];
       expect(groups.length).toBeGreaterThan(0);
       expect(new Set(groups).size).toBe(groups.length);
+    }
+  });
+
+  test("SK názvy kategórií existujú pre každú z 10 partií", () => {
+    for (const cat of DAY_CATEGORIES) {
+      expect(DAY_CATEGORY_LABEL_SK[cat]).toBeTruthy();
     }
   });
 });
@@ -141,125 +146,31 @@ test.describe("filter kandidátov podľa kategórie (candidatesForCategory)", ()
   });
 });
 
-test.describe("buildSplit — deterministický split builder", () => {
-  test("vracia neprázdny zoznam presnej dĺžky pre každý počet dní 1-7, naprieč cieľmi a zameraniami", () => {
-    for (let days = 1; days <= 7; days++) {
-      for (const goal of GOALS) {
-        for (const focus of ["vyvazene", "horna", "dolna"] as const) {
-          const split = buildSplit(days, goal, focus);
-          expect(split.length).toBe(days);
-          expect(split.length).toBeGreaterThan(0);
-          for (const cat of split) expect(DAY_CATEGORIES).toContain(cat);
-        }
-      }
+test.describe("jeden plochý select \"Zameranie\" — 13 hodnôt, dve odlišné správania", () => {
+  test("PLAN_FOCUSES = 3 celoplánové + 10 partiových, žiadne duplicity", () => {
+    expect(PLAN_FOCUSES.length).toBe(13);
+    expect(new Set(PLAN_FOCUSES).size).toBe(13);
+    expect(WHOLE_PLAN_FOCUSES.length).toBe(3);
+    expect(SINGLE_DAY_FOCUSES.length).toBe(10);
+  });
+
+  test("celoplánové hodnoty (vyvazene/horna/dolna) nie sú partiové", () => {
+    for (const focus of WHOLE_PLAN_FOCUSES) {
+      expect(isSingleDayFocus(focus)).toBe(false);
     }
   });
 
-  test("1 deň je vždy fullbody bez ohľadu na zameranie (jediný tréning musí pokryť celé telo)", () => {
-    for (const goal of GOALS) {
-      expect(buildSplit(1, goal, "vyvazene")).toEqual(["fullbody"]);
-      expect(buildSplit(1, goal, "dolna")).toEqual(["fullbody"]);
-      expect(buildSplit(1, goal, "horna")).toEqual(["fullbody"]);
-    }
-  });
-
-  test("goal mení tvar splitu od 5 dní vyššie (špecializácia push/pull/legs pri hypertrofii/sile)", () => {
-    expect(buildSplit(5, "kondicia", "vyvazene")).toEqual(["upper", "lower", "fullbody", "upper", "lower"]);
-    expect(buildSplit(5, "hypertrofia", "vyvazene")).toEqual(["push", "pull", "legs", "upper", "lower"]);
-    // pod 5 dní je tvar rovnaký pre všetky ciele
-    expect(buildSplit(3, "kondicia", "vyvazene")).toEqual(buildSplit(3, "sila", "vyvazene"));
-  });
-
-  test('"dolna" pridá/uprednostní legs/lower oproti "vyvazene" (aspoň jedna kategória sa zmení) — naprieč viacerými kombináciami', () => {
-    const combos: [number, PlanGoal][] = [
-      [2, "kondicia"],
-      [3, "kondicia"],
-      [4, "hypertrofia"],
-      [5, "hypertrofia"],
-      [5, "kondicia"],
-      [6, "sila"],
-      [6, "chudnutie"],
-      [7, "hypertrofia"],
-      [7, "kondicia"],
-    ];
-    for (const [days, goal] of combos) {
-      const base = buildSplit(days, goal, "vyvazene");
-      const dolna = buildSplit(days, goal, "dolna");
-      expect(dolna).not.toEqual(base);
-      const lowerCount = (arr: DayCategory[]) => arr.filter((c) => c === "legs" || c === "lower").length;
-      expect(lowerCount(dolna)).toBeGreaterThan(lowerCount(base));
-    }
-  });
-
-  test('"horna" pridá/uprednostní upper-orientované kategórie oproti "vyvazene" — naprieč viacerými kombináciami', () => {
-    const combos: [number, PlanGoal][] = [
-      [2, "kondicia"],
-      [3, "kondicia"],
-      [4, "hypertrofia"],
-      [5, "hypertrofia"],
-      [5, "kondicia"],
-      [6, "sila"],
-      [6, "chudnutie"],
-      [7, "hypertrofia"],
-      [7, "kondicia"],
-    ];
-    const UPPER_LEANING = new Set(["push", "pull", "upper", "chest", "back", "shoulders", "arms"]);
-    for (const [days, goal] of combos) {
-      const base = buildSplit(days, goal, "vyvazene");
-      const horna = buildSplit(days, goal, "horna");
-      expect(horna).not.toEqual(base);
-      const upperCount = (arr: DayCategory[]) => arr.filter((c) => UPPER_LEANING.has(c)).length;
-      expect(upperCount(horna)).toBeGreaterThan(upperCount(base));
-    }
-  });
-
-  test('"dolna" a "horna" nikdy úplne nevyprázdnia opačnú polovicu tela (aspoň 1 deň zostane) pri viac než 1 dni', () => {
-    const UPPER_LEANING = new Set(["push", "pull", "upper", "chest", "back", "shoulders", "arms"]);
-    const LOWER_LEANING = new Set(["legs", "lower"]);
-    for (let days = 2; days <= 7; days++) {
-      for (const goal of GOALS) {
-        const dolna = buildSplit(days, goal, "dolna");
-        if (buildSplit(days, goal, "vyvazene").some((c) => UPPER_LEANING.has(c))) {
-          expect(dolna.some((c) => UPPER_LEANING.has(c))).toBe(true);
-        }
-        const horna = buildSplit(days, goal, "horna");
-        if (buildSplit(days, goal, "vyvazene").some((c) => LOWER_LEANING.has(c))) {
-          expect(horna.some((c) => LOWER_LEANING.has(c))).toBe(true);
-        }
-      }
-    }
-  });
-
-  test("presné hodnoty pre reprezentatívne kombinácie (regresný odtlačok)", () => {
-    expect(buildSplit(3, "kondicia", "vyvazene")).toEqual(["upper", "lower", "fullbody"]);
-    expect(buildSplit(3, "kondicia", "dolna")).toEqual(["upper", "lower", "legs"]);
-    expect(buildSplit(3, "kondicia", "horna")).toEqual(["upper", "lower", "upper"]);
-
-    expect(buildSplit(4, "kondicia", "vyvazene")).toEqual(["upper", "lower", "upper", "lower"]);
-    expect(buildSplit(4, "kondicia", "dolna")).toEqual(["upper", "lower", "legs", "lower"]);
-    expect(buildSplit(4, "kondicia", "horna")).toEqual(["upper", "lower", "upper", "upper"]);
-
-    expect(buildSplit(5, "hypertrofia", "vyvazene")).toEqual(["push", "pull", "legs", "upper", "lower"]);
-    expect(buildSplit(5, "hypertrofia", "dolna")).toEqual(["push", "pull", "legs", "legs", "lower"]);
-    expect(buildSplit(5, "hypertrofia", "horna")).toEqual(["push", "pull", "legs", "upper", "upper"]);
-
-    expect(buildSplit(6, "kondicia", "vyvazene")).toEqual(["upper", "lower", "fullbody", "upper", "lower", "fullbody"]);
-    expect(buildSplit(6, "kondicia", "dolna")).toEqual(["upper", "lower", "legs", "upper", "lower", "legs"]);
-    expect(buildSplit(6, "kondicia", "horna")).toEqual(["upper", "lower", "upper", "upper", "lower", "upper"]);
-
-    expect(buildSplit(7, "hypertrofia", "vyvazene")).toEqual(["push", "pull", "legs", "upper", "lower", "fullbody", "fullbody"]);
-    expect(buildSplit(7, "hypertrofia", "dolna")).toEqual(["push", "pull", "legs", "upper", "lower", "legs", "legs"]);
-    expect(buildSplit(7, "hypertrofia", "horna")).toEqual(["push", "pull", "legs", "upper", "lower", "upper", "upper"]);
-  });
-
-  test("mimo rozsahu 1-7 sa dni orežú (obranné správanie, formulár aj tak validuje 1-7)", () => {
-    expect(buildSplit(0, "kondicia", "vyvazene")).toEqual(["fullbody"]);
-    expect(buildSplit(10, "kondicia", "vyvazene")).toEqual(buildSplit(7, "kondicia", "vyvazene"));
-  });
-
-  test("SK názvy dní existujú pre každú kategóriu", () => {
+  test("všetkých 10 kategórií dňa JE partiové (jednodňové) zameranie", () => {
     for (const cat of DAY_CATEGORIES) {
-      expect(DAY_CATEGORY_LABEL_SK[cat]).toBeTruthy();
+      expect(isSingleDayFocus(cat)).toBe(true);
     }
+  });
+
+  test("SINGLE_DAY_FOCUSES je presne DAY_CATEGORIES (rovnaký zdroj hodnôt)", () => {
+    expect([...SINGLE_DAY_FOCUSES].sort()).toEqual([...DAY_CATEGORIES].sort());
+  });
+
+  test("neznáma hodnota nie je partiové zameranie", () => {
+    expect(isSingleDayFocus("neexistuje" as PlanFocus)).toBe(false);
   });
 });
