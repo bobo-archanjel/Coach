@@ -46,13 +46,17 @@ export function PublishControl({ planId, published }: { planId: string; publishe
       <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
         {published ? "Publikovaný — klient ho vidí" : "Koncept — klient ho ešte nevidí"}
       </span>
-      <form action={formAction}>
-        <input type="hidden" name="plan_id" value={planId} />
-        <input type="hidden" name="published" value={published ? "false" : "true"} />
-        <button type="submit" className={published ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm"} disabled={pending}>
-          {pending ? "Ukladám…" : published ? "Vytvoriť" : "Potvrdiť a uložiť"}
-        </button>
-      </form>
+      {/* Publikovanie je jednosmerné — publikovaný plán sa už cez UI nedá vrátiť
+          späť do konceptu (dá sa len zmazať koncept, kým ešte publikovaný nie je). */}
+      {!published && (
+        <form action={formAction}>
+          <input type="hidden" name="plan_id" value={planId} />
+          <input type="hidden" name="published" value="true" />
+          <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
+            {pending ? "Ukladám…" : "Potvrdiť a uložiť"}
+          </button>
+        </form>
+      )}
 
       {!published &&
         (confirmingDelete ? (
@@ -79,7 +83,7 @@ export function PublishControl({ planId, published }: { planId: string; publishe
       {justSaved && !state.error && (
         <span className={styles.publishConfirm} role="status">
           <CheckIcon />
-          {published ? "Uložené — klient tréning už vidí." : "Uložené ako koncept."}
+          Uložené — klient tréning už vidí.
         </span>
       )}
       {state.error && <p className={styles.publishError}>{state.error}</p>}
