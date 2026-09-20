@@ -247,6 +247,8 @@ export interface PortalMealDay {
 
 export interface PortalNutritionData {
   macroGoal: PortalMacroGoal | null;
+  /** ID najnovšieho jedálnička — pre odkaz na PDF export (api/export/meal-plan). */
+  mealPlanId: string | null;
   mealPlanName: string | null;
   mealDays: PortalMealDay[];
 }

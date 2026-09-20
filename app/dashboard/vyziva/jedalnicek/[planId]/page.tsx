@@ -52,8 +52,11 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <SaveTemplateForm kind="meal" planId={planId} defaultName={plan.name} />
+        <a href={`/api/export/meal-plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
+          Stiahnuť PDF
+        </a>
       </div>
 
       <MealPlanBuilder planId={planId} days={days ?? []} library={foods ?? []} />

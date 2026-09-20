@@ -753,10 +753,12 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         }
       : null;
 
+    let mealPlanId: string | null = null;
     let mealPlanName: string | null = null;
     let mealDays: PortalMealDay[] = [];
 
     if (plan) {
+      mealPlanId = plan.id;
       mealPlanName = plan.name;
       const { data: dayRows, error: daysErr } = await supabase
         .from("meal_days")
@@ -799,7 +801,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
       });
     }
 
-    const data: PortalNutritionData = { macroGoal, mealPlanName, mealDays };
+    const data: PortalNutritionData = { macroGoal, mealPlanId, mealPlanName, mealDays };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };

@@ -27,7 +27,7 @@ export default async function StravaPage() {
     );
   }
 
-  const { macroGoal, mealPlanName, mealDays } = result.data;
+  const { macroGoal, mealPlanId, mealPlanName, mealDays } = result.data;
 
   return (
     <section aria-label="Výživa" style={{ display: "grid", gap: 20 }}>
@@ -56,7 +56,14 @@ export default async function StravaPage() {
       </div>
 
       <div>
-        <p className={styles.panelLabel}>{mealPlanName ?? "Jedálniček"}</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <p className={styles.panelLabel}>{mealPlanName ?? "Jedálniček"}</p>
+          {mealPlanId && mealDays.length > 0 && (
+            <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
+              Stiahnuť PDF
+            </a>
+          )}
+        </div>
         {mealDays.length === 0 ? (
           <div className={styles.sessionQuiet}>
             <p>Tréner ti zatiaľ nezostavil jedálniček.</p>
