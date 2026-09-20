@@ -7,6 +7,10 @@
 // Spustenie (raz, lokálne, nikdy za behu appky):
 //   node scripts/import-exercises.mjs
 //
+// POZOR: robí upsert CELÝCH riadkov podľa external_id — opätovné spustenie prepíše aj
+// name_sk, description, instructions a image_url. Na doplnenie samotného stĺpca `equipment`
+// použi scripts/backfill-exercise-equipment.mjs (zapisuje len ten jeden stĺpec, len kde je NULL).
+//
 // Vyžaduje v .env.local: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // (service role kľúč obchádza RLS — treba na vloženie riadkov s trainer_id = null).
 

@@ -42,3 +42,6 @@ tsconfig.tsbuildinfo
 
 /test-results/
 /playwright-report/
+
+# záloha ID z backfillu exercises.equipment (scripts/backfill-exercise-equipment.mjs --apply), slúži na prípadný návrat
+scripts/.equipment-backfill-*.json
