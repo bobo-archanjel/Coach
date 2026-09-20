@@ -50,7 +50,10 @@ const nextConfig: NextConfig = {
       // own, confirmed via a real CSP violation while wiring this in).
       "media-src 'self' blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co https://plausible.io",
+      // wss:// je pre Supabase Realtime (ChatThread, NotificationBell) — `https://` v
+      // connect-src WebSocket NEpokrýva; bez toho prehliadač spojenie ticho zablokuje
+      // (zistené v konzole pri kontrole zvončeka, chat mu do vtedy len padal na polling).
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
