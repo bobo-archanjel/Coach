@@ -8,6 +8,7 @@ import { AlertIcon, Notice } from "./Notice";
 import { CooperationNotice } from "./CooperationNotice";
 import { RetryButton } from "./RetryButton";
 import { WorkoutStopwatch } from "./WorkoutStopwatch";
+import { StreakRow } from "./StreakRow";
 import { WeekHistory } from "./WeekHistory";
 import { BodyMetricForm } from "./BodyMetricForm";
 import styles from "./portal.module.css";
@@ -150,6 +151,10 @@ const PREVIEW_DATA: PortalData = {
   },
   totalSessions: 12,
   streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
+  streaks: {
+    training: { count: 5, atRisk: false, thisWeekDays: 1, needThisWeek: 1 },
+    food: { count: 12, atRisk: false },
+  },
   deletionNotice: null,
   cooperationEndedNotice: null,
   nextAppointment: { title: "Konzultácia — kontrola techniky", startsAt: new Date(Date.now() + 2 * 86_400_000).toISOString() },
@@ -301,6 +306,7 @@ function PortalToday({ data }: { data: PortalData }) {
     week,
     totalSessions,
     streakHistory,
+    streaks,
     deletionNotice,
     cooperationEndedNotice,
     bodyMetrics,
@@ -418,6 +424,7 @@ function PortalToday({ data }: { data: PortalData }) {
               <span key={i} className={`${styles.plate} ${PLATE_CLASS[state] ?? ""}`} />
             ))}
           </div>
+          <StreakRow streaks={streaks} />
         </div>
 
         <div className={styles.panel}>
