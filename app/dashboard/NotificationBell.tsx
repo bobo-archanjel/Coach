@@ -39,6 +39,8 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   const pathname = usePathname();
   const [data, setData] = useState<AttentionData | null>(null);
   const [failed, setFailed] = useState(false);
+  // Chyba zápisu skrytia/"prečítané" — ukáže sa v paneli (nie ticho), zmizne pri ďalšej akcii.
+  const [actionFailed, setActionFailed] = useState(false);
   // Panel je "otvorený na tejto trase" — po navigácii sa sám zavrie bez efektu.
   const [openAt, setOpenAt] = useState<string | null>(null);
   const open = openAt === pathname;
@@ -129,23 +131,33 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   const dismiss = useCallback(
     (keys: string[], days: number | null) => {
       const gone = new Set(keys);
+      const fail = () => {
+        setActionFailed(true);
+        void refresh(0);
+      };
+      setActionFailed(false);
       setData((d) => (d ? applyDismissals(d, gone) : d));
       void dismissNotificationsAction(keys, days)
         .then((r) => {
-          if (!r.ok) void refresh(0);
+          if (!r.ok) fail();
         })
-        .catch(() => void refresh(0));
+        .catch(fail);
     },
     [refresh],
   );
 
   const markRead = useCallback(() => {
+    const fail = () => {
+      setActionFailed(true);
+      void refresh(0);
+    };
+    setActionFailed(false);
     setData((d) => (d ? { ...d, unread: 0 } : d));
     void markAllMessagesReadAction()
       .then((r) => {
-        if (!r.ok) void refresh(0);
+        if (!r.ok) fail();
       })
-      .catch(() => void refresh(0));
+      .catch(fail);
   }, [refresh]);
 
   return (
@@ -223,6 +235,11 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                 )}
               </div>
             ))
+          )}
+          {actionFailed && (
+            <p className={styles.bellError} role="alert">
+              Nepodarilo sa uložiť. Skús to znova o chvíľu.
+            </p>
           )}
         </div>
       )}

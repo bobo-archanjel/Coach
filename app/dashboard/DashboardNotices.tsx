@@ -11,6 +11,8 @@ import { DISMISS_LATE_DAYS } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction } from "./attention/actions";
 import styles from "./dashboard.module.css";
 
+const SAVE_FAILED = "Skrytie sa nepodarilo uložiť. Skús to znova o chvíľu.";
+
 /** Jeden skrytý-alebo-nie blok (digest banner, checklist prvých krokov). */
 export function DismissibleNotice({
   dismissKey,
@@ -27,23 +29,35 @@ export function DismissibleNotice({
   children: ReactNode;
 }) {
   const [hidden, setHidden] = useState(false);
+  const [failed, setFailed] = useState(false);
   if (hidden) return null;
+
+  const fail = () => {
+    setHidden(false);
+    setFailed(true);
+  };
 
   return (
     <div className={`${className ?? ""} ${styles.noticeWrap}`} role="status">
       {children}
+      {failed && (
+        <p className={styles.noticeError} role="alert">
+          {SAVE_FAILED}
+        </p>
+      )}
       <button
         type="button"
         className={styles.noticeClose}
         aria-label={label}
         title={label}
         onClick={() => {
+          setFailed(false);
           setHidden(true);
           void dismissNotificationsAction([dismissKey], days)
             .then((r) => {
-              if (!r.ok) setHidden(false);
+              if (!r.ok) fail();
             })
-            .catch(() => setHidden(false));
+            .catch(fail);
         }}
       >
         ×
@@ -63,16 +77,24 @@ export interface LateNoticeClient {
 /** Alert panel "meškajúci klienti" so skrytím jedného aj všetkých naraz (na 7 dní). */
 export function LateAlertPanel({ clients }: { clients: LateNoticeClient[] }) {
   const [hiddenKeys, setHiddenKeys] = useState<ReadonlySet<string>>(new Set());
+  const [failed, setFailed] = useState(false);
   const visible = clients.filter((c) => !hiddenKeys.has(c.key));
   if (visible.length === 0) return null;
 
   function hide(keys: string[]) {
+    // Optimisticky skryté; ak server zápis odmietne, vrátime ich A povieme prečo —
+    // ticho vrátené upozornenie by vyzeralo ako "tlačidlo nefunguje".
+    const restore = () => {
+      setHiddenKeys((prev) => new Set([...prev].filter((k) => !keys.includes(k))));
+      setFailed(true);
+    };
+    setFailed(false);
     setHiddenKeys((prev) => new Set([...prev, ...keys]));
     void dismissNotificationsAction(keys, DISMISS_LATE_DAYS)
       .then((r) => {
-        if (!r.ok) setHiddenKeys((prev) => new Set([...prev].filter((k) => !keys.includes(k))));
+        if (!r.ok) restore();
       })
-      .catch(() => setHiddenKeys((prev) => new Set([...prev].filter((k) => !keys.includes(k)))));
+      .catch(restore);
   }
 
   const n = visible.length;
@@ -110,6 +132,11 @@ export function LateAlertPanel({ clients }: { clients: LateNoticeClient[] }) {
           </li>
         ))}
       </ul>
+      {failed && (
+        <p className={styles.noticeError} role="alert">
+          {SAVE_FAILED}
+        </p>
+      )}
     </div>
   );
 }

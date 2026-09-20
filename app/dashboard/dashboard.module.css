@@ -2091,3 +2091,12 @@ select.addClientInputSm {
     padding: 8px 0;
   }
 }
+
+/* Chyba pri ukladaní skrytia — viditeľná, nie tichý návrat upozornenia. */
+.noticeError,
+.bellError {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--iron-red);
+}
