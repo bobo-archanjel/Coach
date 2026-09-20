@@ -15,6 +15,8 @@
 .sidebar {
   position: sticky;
   top: 0;
+  /* nad obsahom stránky — panel zvončeka (.bellPanel) presahuje šírku sidebaru */
+  z-index: 20;
   height: 100vh;
   background: var(--ink-2);
   border-right: 1px solid var(--steel-line);
@@ -57,6 +59,170 @@
   align-items: center;
   text-decoration: none;
   flex: none;
+}
+
+/* Brand + zvonček upozornení (feature/funkcionalita). Na mobile sa blok natiahne
+   (flex: 1) a zvonček sa tak usadí vpravo vedľa "Odhlásiť sa". */
+.sidebarTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+@media (max-width: 880px) {
+  .sidebarTop {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ---------- zvonček upozornení ---------- */
+/* .bell nie je positioned: panel sa kotví na .sidebar (sticky = containing block), nie na tlačidlo. */
+.bell {
+  display: flex;
+}
+.bellBtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--paper-dim);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.bellBtn:hover,
+.bellBtnOpen {
+  background: var(--ink-3);
+  color: var(--paper);
+}
+.bellBtn:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 2px;
+}
+.bellBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.bellPanel {
+  position: absolute;
+  top: 64px;
+  left: 12px;
+  z-index: 40;
+  width: min(344px, calc(100vw - 24px));
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+  padding: 14px 16px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+.bellPanelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+  margin-bottom: 4px;
+}
+.bellEmpty {
+  padding: 12px 0 4px;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.bellItem {
+  padding: 11px 0;
+  border-top: 1px solid var(--steel-line);
+}
+.bellItem:first-of-type {
+  border-top: 0;
+}
+.bellItemMain {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--paper);
+  text-decoration: none;
+}
+.bellItemMain::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+.bellToneAlert::before {
+  background: var(--iron-red);
+}
+.bellToneWatch::before {
+  background: var(--steel);
+}
+.bellItemMain:hover {
+  text-decoration: underline;
+}
+.bellLinks {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 0 0 0 15px;
+  list-style: none;
+}
+.bellLinks li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.bellLinks a {
+  color: var(--paper-dim);
+  text-decoration: none;
+}
+.bellLinks a:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+.bellLinks span {
+  color: var(--paper-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Mobile: panel je "list" pod horným barom, nad spodnou tab barou (76px), na celú šírku. */
+@media (max-width: 880px) {
+  .bellBtn {
+    width: 44px;
+    height: 44px;
+  }
+  .bellPanel {
+    top: 62px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100dvh - 62px - 84px);
+  }
 }
 /* Mark + "FitPilot" ako jeden obrázok (LogoWordmark) — pomer strán zdroja ~3:1. */
 .brandLogo {
