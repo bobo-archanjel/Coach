@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoWordmark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
+import { NotificationBell } from "./NotificationBell";
 import styles from "./dashboard.module.css";
 
 const ClientsIcon = () => (
@@ -94,9 +95,12 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
 
   return (
     <aside className={styles.sidebar}>
-      <Link href="/dashboard" className={styles.sidebarBrand}>
-        <LogoWordmark className={styles.brandLogo} />
-      </Link>
+      <div className={styles.sidebarTop}>
+        <Link href="/dashboard" className={styles.sidebarBrand}>
+          <LogoWordmark className={styles.brandLogo} />
+        </Link>
+        <NotificationBell initialUnread={unreadCount} />
+      </div>
 
       <nav className={styles.navList} aria-label="Trénerský dashboard">
         {NAV_ITEMS.map(({ href, label, Icon, match }) => {

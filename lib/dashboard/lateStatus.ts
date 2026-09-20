@@ -11,6 +11,13 @@ export const LATE_THRESHOLD_DAYS = 5;
 export interface LateStatus {
   days: number;
   tone: "active" | "late";
+  /**
+   * Dátum (YYYY-MM-DD), od ktorého sa meškanie počíta — posledný tréning, alebo
+   * pridelenie plánu, ak ešte necvičil. Súčasť kľúča skrytia upozornenia
+   * (lib/dashboard/attention.ts): po novom tréningu sa zmení, takže ďalšie
+   * meškanie už nie je "to isté" skryté upozornenie.
+   */
+  since: string;
 }
 
 /** Per-klient stav meškania — len pre klientov, ktorí majú aspoň jeden priradený plán. */
@@ -47,7 +54,11 @@ export async function getLateStatusByClient(
   for (const [clientId, planCreatedAt] of latestPlanByClient) {
     const reference = latestLogByClient.get(clientId) ?? planCreatedAt;
     const days = Math.floor((todayMs - new Date(reference).getTime()) / 86_400_000);
-    statusByClient.set(clientId, { days, tone: days >= LATE_THRESHOLD_DAYS ? "late" : "active" });
+    statusByClient.set(clientId, {
+      days,
+      tone: days >= LATE_THRESHOLD_DAYS ? "late" : "active",
+      since: reference.slice(0, 10),
+    });
   }
   return statusByClient;
 }

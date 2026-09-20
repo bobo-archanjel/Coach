@@ -3,6 +3,7 @@
 
 import type { MealSlot } from "@/lib/meals";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
+import type { PortalStreaks } from "./streak";
 
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
 // si sám vyberá kedy cvičí, "ďalší tréning" je vždy nasledujúci nedokončený deň
@@ -151,6 +152,8 @@ export interface PortalData {
   totalSessions: number;
   /** posledných 12 dní pred dneškom, najstarší prvý */
   streakHistory: StreakDayState[];
+  /** série (týždne tréningu, dni zápisu jedla) — pravidlá v lib/portal/streak.ts */
+  streaks: PortalStreaks;
   /** null, kým nie je podaná žiadosť o zmazanie klienta (viď DeleteAccountSection na /portal/profil) */
   deletionNotice: PortalDeletionNotice | null;
   /** null, kým tréner neukončil spoluprácu (0020) — na rozdiel od deletionNotice dáta ostávajú */
@@ -247,6 +250,8 @@ export interface PortalMealDay {
 
 export interface PortalNutritionData {
   macroGoal: PortalMacroGoal | null;
+  /** ID najnovšieho jedálnička — pre odkaz na PDF export (api/export/meal-plan). */
+  mealPlanId: string | null;
   mealPlanName: string | null;
   mealDays: PortalMealDay[];
 }

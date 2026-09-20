@@ -3,6 +3,12 @@ import { unstable_cache } from "next/cache";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import {
+  computeFoodStreak,
+  computeTrainingStreak,
+  FOOD_WINDOW_DAYS,
+  TRAINING_WINDOW_WEEKS,
+} from "./streak";
 import type {
   CoachNote,
   DayCellState,
@@ -406,29 +412,45 @@ export async function getPortalData(): Promise<PortalResult> {
       dayId: targetDay.id,
     };
 
-    // Týždenný pás, odkaz trénera a história meraní sa navzájom nepotrebujú —
+    // Série (lib/portal/streak.ts): tréningy naprieč VŠETKÝMI plánmi klienta (séria
+    // nesmie zaniknúť pri zmene plánu, preto nie `logs` vyššie — tie sú len z dní
+    // aktuálneho plánu) + zápisy jedla. Len dátumové stĺpce, obmedzené oknom.
+    const trainingSince = iso(addDays(mondayOf(base), -7 * (TRAINING_WINDOW_WEEKS - 1)));
+    const foodSince = iso(addDays(base, -(FOOD_WINDOW_DAYS - 1)));
+
+    // Týždenný pás, odkaz trénera, história meraní a série sa navzájom nepotrebujú —
     // paralelne namiesto čakania na celý (dvoj-dopytový) buildWeekView pred
     // začatím ostatných. getBodyMetrics má vlastný createClient() (cache()-ovaný,
     // žiadny extra round-trip na auth), len jeden indexovaný dopyt navyše.
-    const [week, { data: note }, bodyMetrics, { data: nextAppt }] = await Promise.all([
-      buildWeekView(supabase, client.id, mondayOf(base), isoDate),
-      supabase
-        .from("coach_notes")
-        .select("body, trainer_id")
-        .eq("client_id", client.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      getBodyMetrics(client.id),
-      supabase
-        .from("appointments")
-        .select("title, starts_at")
-        .eq("client_id", client.id)
-        .gte("starts_at", new Date().toISOString())
-        .order("starts_at", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }] =
+      await Promise.all([
+        buildWeekView(supabase, client.id, mondayOf(base), isoDate),
+        supabase
+          .from("coach_notes")
+          .select("body, trainer_id")
+          .eq("client_id", client.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        getBodyMetrics(client.id),
+        supabase
+          .from("appointments")
+          .select("title, starts_at")
+          .eq("client_id", client.id)
+          .gte("starts_at", new Date().toISOString())
+          .order("starts_at", { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+        supabase.from("workout_logs").select("performed_on").eq("client_id", client.id).gte("performed_on", trainingSince),
+        supabase.from("food_logs").select("eaten_on").eq("client_id", client.id).gte("eaten_on", foodSince),
+      ]);
+
+    // Série sú len motivačná dekorácia — chyba ich dopytu (data = null) nesmie
+    // zhodiť celú kartu Dnes, len sa ukážu prázdne (žiadna séria).
+    const streaks = {
+      training: computeTrainingStreak((streakTrainRows ?? []).map((r) => r.performed_on as string), isoDate),
+      food: computeFoodStreak((streakFoodRows ?? []).map((r) => r.eaten_on as string), isoDate),
+    };
 
     // ---------- história (posledných 12 dní pred dneškom) ----------
     const streakHistory: StreakDayState[] = [];
@@ -467,6 +489,7 @@ export async function getPortalData(): Promise<PortalResult> {
       week,
       totalSessions,
       streakHistory,
+      streaks,
       deletionNotice: client.deletion_requested_at
         ? { requestedBy: client.deletion_requested_by as "trainer" | "client", requestedAt: client.deletion_requested_at }
         : null,
@@ -753,10 +776,12 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         }
       : null;
 
+    let mealPlanId: string | null = null;
     let mealPlanName: string | null = null;
     let mealDays: PortalMealDay[] = [];
 
     if (plan) {
+      mealPlanId = plan.id;
       mealPlanName = plan.name;
       const { data: dayRows, error: daysErr } = await supabase
         .from("meal_days")
@@ -799,7 +824,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
       });
     }
 
-    const data: PortalNutritionData = { macroGoal, mealPlanName, mealDays };
+    const data: PortalNutritionData = { macroGoal, mealPlanId, mealPlanName, mealDays };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };

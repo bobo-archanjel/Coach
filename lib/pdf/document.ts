@@ -118,6 +118,15 @@ export class PdfWriter {
     if (this.y - need < MARGIN) this.newPage();
   }
 
+  /**
+   * Zabezpečí, že nasledujúci blok (nadpis + hlavička tabuľky + pár riadkov) sa
+   * nezačne na samom spodku strany a nezostane osirotený bez obsahu — ak sa
+   * `need` bodov už nezmestí, začne sa nová strana. Nemení nič, ak miesta je dosť.
+   */
+  reserve(need: number) {
+    this.ensureSpace(need);
+  }
+
   /** Veľký titulok reportu (názov plánu / "Progres — meno klienta"). */
   heading(text: string) {
     this.ensureSpace(30);
