@@ -46,28 +46,6 @@ export async function addClientByCodeAction(_prev: AddByCodeState, formData: For
   return { error: null, addedName };
 }
 
-// feature/optimalizacia (security audit): predtým 4 náhodné znaky (~36^4 =
-// 1.68M kombinácií) — spolu s rate limitom na claim_client_by_invite (0029) je
-// to dostatočné, ale 8 znakov (~36^8 = 2.8 biliardy) robí uhádnutie prakticky
-// nemožné aj bez limitu. Math.random() nie je kryptograficky bezpečný generátor,
-// ale pri tejto entropii (a rate-limitovanom RPC) to na neuhádnuteľný kód stačí —
-// nejde o token na overenie identity, len o spárovací kód medzi trénerom a klientom.
-function generateInviteCode(fullName: string) {
-  const initials =
-    fullName
-      .trim()
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 3) || "FP";
-  const random = (Math.random().toString(36) + Math.random().toString(36))
-    .replace(/[^a-z0-9]/g, "")
-    .slice(0, 8)
-    .toUpperCase();
-  return `${initials}-${random}`;
-}
-
 export async function addClientAction(
   _prevState: AddClientState,
   formData: FormData
@@ -102,19 +80,33 @@ export async function addClientAction(
   const weightKg = parseOptionalNumber("weight_kg");
   const heightCm = parseOptionalNumber("height_cm");
 
-  const { error } = await supabase.from("clients").insert({
-    trainer_id: user.id,
-    full_name: fullName,
-    goal,
-    notes,
-    age,
-    weight_kg: weightKg,
-    height_cm: heightCm,
-    invite_code: generateInviteCode(fullName),
-  });
+  // invite_code sa NEzadáva: generuje ho DB (default gen_client_code(), 80 bitov z CSPRNG,
+  // migrácia 0036). Predtým ho tu skladal Math.random() z iniciálok mena (predvídateľný,
+  // nekryptografický). Trénerova súkromná poznámka ide do trainer_private_notes —
+  // stĺpec clients.notes číta aj sám klient (RLS je riadková), viď 0036.
+  const { data: created, error } = await supabase
+    .from("clients")
+    .insert({
+      trainer_id: user.id,
+      full_name: fullName,
+      goal,
+      age,
+      weight_kg: weightKg,
+      height_cm: heightCm,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    return { error: error.message };
+  if (error || !created) {
+    console.error("addClientAction:", error?.message);
+    return { error: "Klienta sa nepodarilo pridať. Skús to prosím znova." };
+  }
+
+  if (notes) {
+    const { error: noteErr } = await supabase
+      .from("trainer_private_notes")
+      .insert({ client_id: created.id, scope: "client", trainer_id: user.id, notes: notes.slice(0, 4000) });
+    if (noteErr) console.error("addClientAction (poznámka):", noteErr.message);
   }
 
   revalidatePath("/dashboard");

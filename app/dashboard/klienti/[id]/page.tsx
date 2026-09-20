@@ -58,7 +58,7 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const { preview } = await searchParams;
 
-  if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV !== "production") {
+  if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV === "development") {
     const empty = preview === "progress_empty";
     return (
       <>
@@ -124,12 +124,12 @@ export default async function ClientDetailPage({
   // `id` z route parametra priamo) — predtým čakal na svoj round-trip, kým sa
   // spustilo zvyšných 8. Beží teraz v tej istej dávke; ak klient neexistuje,
   // ostatné vrátia prázdno/null a zahodia sa spolu s `notFound()` nižšie.
-  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress] =
+  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, { data: privateNote }] =
     await Promise.all([
       supabase
         .from("clients")
         .select(
-          "id, full_name, goal, notes, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
+          "id, full_name, goal, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -155,6 +155,9 @@ export default async function ClientDetailPage({
       getTrainingAdherence(id),
       getBodyMetrics(id),
       getAllStrengthProgress(id),
+      // Súkromná poznámka trénera (trainer_private_notes, 0036) — klient ju nevidí.
+      // Tabuľka ešte nemusí existovať (pred migráciou) → data je vtedy null, stránka funguje.
+      supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "client").maybeSingle(),
     ]);
 
   if (!client) {
@@ -209,8 +212,8 @@ export default async function ClientDetailPage({
           )}
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Poznámky</span>
-            {client.notes ? (
-              <span className={styles.infoValue}>{client.notes}</span>
+            {privateNote?.notes ? (
+              <span className={styles.infoValue}>{privateNote.notes}</span>
             ) : (
               <span className={styles.notesEmpty}>Žiadne poznámky</span>
             )}

@@ -61,7 +61,7 @@ const PREVIEW: PortalTrainingData = {
 };
 
 function previewResult(kind: string): PortalTrainingResult | null {
-  if (process.env.NODE_ENV === "production") return null;
+  if (process.env.NODE_ENV !== "development") return null;
   if (kind === "ok") return { state: "ok", data: PREVIEW };
   if (kind === "empty") return { state: "ok", data: { ...PREVIEW, plans: [], activePlanId: null } };
   if (kind === "own")

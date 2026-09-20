@@ -14,7 +14,8 @@ import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
-import { isProgressSummaryRateLimited, AI_PROGRESS_SUMMARY_DAILY_LIMIT } from "./rateLimit";
+import { reserveAiSlot, AI_PROGRESS_SUMMARY_DAILY_LIMIT } from "./rateLimit";
+import { DATA_IS_NOT_INSTRUCTIONS, promptSafe, wrapAsData } from "./promptSafety";
 
 export type ProgressSummaryResult =
   | { status: "ok"; summary: string }
@@ -47,7 +48,7 @@ function strengthTrendLines(progress: Awaited<ReturnType<typeof getAllStrengthPr
   return ranked.map(({ name, points }) => {
     const first = points[0];
     const last = points[points.length - 1];
-    return `${name}: ${first.bestWeightKg} kg×${first.reps} (${first.date}) → ${last.bestWeightKg} kg×${last.reps} (${last.date}).`;
+    return `${promptSafe(name, 60)}: ${first.bestWeightKg} kg×${first.reps} (${first.date}) → ${last.bestWeightKg} kg×${last.reps} (${last.date}).`;
   });
 }
 
@@ -65,13 +66,6 @@ export async function generateProgressSummary(
     return { status: "not_configured", summary: "AI zatiaľ nie je nakonfigurované (chýba API kľúč)." };
   }
 
-  if (await isProgressSummaryRateLimited(supabase, params.clientId)) {
-    return {
-      status: "rate_limited",
-      summary: `Dnešný limit ${AI_PROGRESS_SUMMARY_DAILY_LIMIT()} zhrnutí pre tohto klienta je vyčerpaný — skús to zajtra.`,
-    };
-  }
-
   const [trainingAdherence, nutritionAdherence, bodyMetrics, strengthProgress] = await Promise.all([
     getTrainingAdherence(params.clientId),
     getNutritionAdherence(params.clientId),
@@ -80,7 +74,7 @@ export async function generateProgressSummary(
   ]);
 
   const lines: string[] = [];
-  lines.push(`Klient: ${params.clientName}${params.clientGoal ? ` (cieľ: ${params.clientGoal})` : ""}.`);
+  lines.push(`Klient: ${promptSafe(params.clientName, 60)}${params.clientGoal ? ` (cieľ: ${promptSafe(params.clientGoal, 100)})` : ""}.`);
 
   if (trainingAdherence) {
     lines.push(
@@ -116,7 +110,25 @@ export async function generateProgressSummary(
     "Napíš PO SLOVENSKY 3-5 vetné zhrnutie: čo sa zlepšilo, čo sa zhoršilo alebo stagnuje, a na konci JEDNU konkrétnu odporúčanú akciu pre trénera (napr. 'skús skontaktovať klienta', 'zváž zvýšenie záťaže', 'prehodnoťte kalorický cieľ').",
     "Používaj VÝHRADNE čísla, ktoré ti boli poslané — nič si nevymýšľaj, nehádaj príčiny mimo dát (napr. nediagnostikuj zdravotné dôvody stagnácie).",
     "Píš vecne pre trénera (nie pre klienta), bez uvítania a bez zbytočného úvodu — rovno k veci.",
+    DATA_IS_NOT_INSTRUCTIONS,
   ].join("\n");
+
+  // Atomická rezervácia denného limitu tesne pred volaním modelu (feature/security).
+  const slot = await reserveAiSlot({
+    supabase,
+    kind: "progress_summary",
+    trainerId: params.trainerId,
+    clientId: params.clientId,
+    model: AI_MODEL.PROGRESS_SUMMARY,
+    subject: "client",
+    subjectLimit: AI_PROGRESS_SUMMARY_DAILY_LIMIT(),
+  });
+  if (!slot.allowed) {
+    return {
+      status: "rate_limited",
+      summary: `Dnešný limit ${AI_PROGRESS_SUMMARY_DAILY_LIMIT()} zhrnutí pre tohto klienta je vyčerpaný — skús to zajtra.`,
+    };
+  }
 
   const anthropic = getAnthropicClient();
   try {
@@ -124,7 +136,7 @@ export async function generateProgressSummary(
       model: AI_MODEL.PROGRESS_SUMMARY,
       max_tokens: 400,
       system,
-      messages: [{ role: "user", content: lines.join("\n") }],
+      messages: [{ role: "user", content: wrapAsData(lines) }],
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
@@ -137,6 +149,7 @@ export async function generateProgressSummary(
       model: AI_MODEL.PROGRESS_SUMMARY,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
+      reservationId: slot.reservationId,
     });
 
     return { status: "ok", summary };

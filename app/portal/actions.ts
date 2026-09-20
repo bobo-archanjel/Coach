@@ -6,7 +6,9 @@ import { MEAL_SLOT_ORDER } from "@/lib/meals";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { getFoodLibrary, getPortalWeek } from "@/lib/portal/data";
 import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
+import { allowWithinWindow } from "@/lib/rateLimitMemory";
 import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
+import { dbErr } from "@/lib/dbError";
 
 export interface ActionState {
   error: string | null;
@@ -15,6 +17,19 @@ const ok: ActionState = { error: null };
 
 /** Živé vyhľadávanie značkových potravín (Open Food Facts, Fáza C) pre denník. */
 export async function searchOnlineFoodAction(query: string): Promise<{ error: string | null; results: PortalFoodOption[] }> {
+  // feature/security: akcia bola volateľná BEZ prihlásenia a bez limitu — server sa tak
+  // dal zneužiť ako otvorený proxy na Open Food Facts (vyčerpanie fair-use kvóty,
+  // zákaz IP adresy servera). Teraz len prihlásený, s obmedzenou dĺžkou a throttlom.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený.", results: [] };
+  if (typeof query !== "string" || query.length > 80) return { error: "Hľadaný text je príliš dlhý.", results: [] };
+  if (!allowWithinWindow(`off:${user.id}`, 20, 60_000)) {
+    return { error: "Príliš veľa vyhľadávaní naraz, skús to o chvíľu.", results: [] };
+  }
+
   try {
     const results = await searchOpenFoodFacts(query);
     return { error: null, results };
@@ -50,7 +65,7 @@ export async function requestOwnDeletionAction(): Promise<ActionState> {
   const clientId = await currentClientId(supabase);
   if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
   const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
   revalidatePath("/portal/profil");
   return ok;
 }
@@ -61,7 +76,7 @@ export async function cancelOwnDeletionAction(): Promise<ActionState> {
   const clientId = await currentClientId(supabase);
   if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
   const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
   revalidatePath("/portal/profil");
   return ok;
 }
@@ -90,7 +105,7 @@ export async function dismissCooperationNoticeAction(): Promise<ActionState> {
   const clientId = await currentClientId(supabase);
   if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
   const { error } = await supabase.rpc("dismiss_cooperation_notice", { p_client_id: clientId });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
   revalidatePath("/portal");
   return ok;
 }
@@ -169,7 +184,7 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
     },
     { onConflict: "client_id,measured_on" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/portal", "layout");
   revalidatePath(`/dashboard/klienti/${client.id}`);
@@ -272,7 +287,7 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   if (error) {
     // unique index (client_id, workout_day_id, performed_on) — dnes už zapísané,
     // netreba to hlásiť ako chybu (napr. druhý klik po pomalej sieti).
-    if (error.code !== "23505") return { error: error.message };
+    if (error.code !== "23505") return { error: dbErr(error, "actions") };
   }
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
@@ -317,11 +332,11 @@ export async function updateWorkoutLogAction(_prevState: ActionState, formData: 
     .order("performed_on", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (findErr) return { error: findErr.message };
+  if (findErr) return { error: dbErr(findErr, "actions") };
   if (!existing) return { error: "Nenašiel sa žiadny záznam na úpravu — skús obnoviť stránku." };
 
   const { error } = await supabase.from("workout_logs").update({ entries }).eq("id", existing.id);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/portal", "layout");
   return ok;
@@ -383,7 +398,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
     ...macros,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/portal/dennik");
   return ok;
@@ -399,7 +414,7 @@ export async function removeFoodLogAction(_prevState: ActionState, formData: For
   if (!id) return { error: "Chýba identifikátor záznamu." };
 
   const { error } = await supabase.from("food_logs").delete().eq("id", id).eq("client_id", clientId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/portal/dennik");
   return ok;
@@ -426,7 +441,7 @@ export async function sendClientMessageAction(_prevState: ActionState, formData:
     sender_id: user.id,
     body,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/portal/chat");
   return ok;

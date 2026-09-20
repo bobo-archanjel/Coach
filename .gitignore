@@ -45,3 +45,5 @@ tsconfig.tsbuildinfo
 
 # záloha ID z backfillu exercises.equipment (scripts/backfill-exercise-equipment.mjs --apply), slúži na prípadný návrat
 scripts/.equipment-backfill-*.json
+# Supabase CLI: dočasné súbory (môžu obsahovať referencie na projekt) — nikdy do repa
+supabase/.temp/

@@ -24,11 +24,11 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
 
   // `client` je nezávislý od profile/mealPlans (obe berú clientId priamo) — v tej
   // istej dávke namiesto čakania na jeho round-trip pred spustením ostatných.
-  const [{ data: client }, { data: profile }, { data: mealPlans }] = await Promise.all([
+  const [{ data: client }, { data: profileRow }, { data: mealPlans }, { data: privateNote }] = await Promise.all([
     supabase.from("clients").select("id, full_name").eq("id", clientId).maybeSingle(),
     supabase
       .from("nutrition_profiles")
-      .select("sex, age, weight_kg, height_cm, activity_level, goal, notes, bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
+      .select("sex, age, weight_kg, height_cm, activity_level, goal, bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
       .eq("client_id", clientId)
       .maybeSingle(),
     supabase
@@ -36,7 +36,11 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
       .select("id, name, created_at, meal_days(count)")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false }),
+    // Súkromná poznámka trénera k výžive (trainer_private_notes, 0036) — klient ju nevidí.
+    supabase.from("trainer_private_notes").select("notes").eq("client_id", clientId).eq("scope", "nutrition").maybeSingle(),
   ]);
+
+  const profile = profileRow ? { ...profileRow, notes: privateNote?.notes ?? null } : null;
 
   if (!client) {
     notFound();

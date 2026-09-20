@@ -12,7 +12,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
-import { isRosterSummaryRateLimited, AI_ROSTER_SUMMARY_DAILY_LIMIT } from "./rateLimit";
+import { reserveAiSlot, AI_ROSTER_SUMMARY_DAILY_LIMIT } from "./rateLimit";
+import { DATA_IS_NOT_INSTRUCTIONS, promptSafe, wrapAsData } from "./promptSafety";
 
 export type RosterSummaryResult =
   | { status: "ok"; summary: string }
@@ -40,7 +41,7 @@ export interface RosterSummaryClientInput {
 }
 
 function clientLine(c: RosterSummaryClientInput): string {
-  const parts: string[] = [`${c.name}${c.goal ? ` (cieľ: ${c.goal})` : ""}:`];
+  const parts: string[] = [`${promptSafe(c.name, 60)}${c.goal ? ` (cieľ: ${promptSafe(c.goal, 100)})` : ""}:`];
   parts.push(`tréning 30d ${c.trainingPct30} %`);
   parts.push(c.nutritionPct30 != null ? `strava 30d ${c.nutritionPct30} %` : "strava bez cieľa");
   if (c.planCompletionPct30 != null) parts.push(`splnenie plánu 30d ${c.planCompletionPct30} %`);
@@ -48,7 +49,7 @@ function clientLine(c: RosterSummaryClientInput): string {
   if (c.daysSinceLastTrained == null) parts.push("nikdy neodcvičil tréning");
   else parts.push(`posledný tréning pred ${c.daysSinceLastTrained} dňami`);
   if (c.recentPRs.length > 0) {
-    parts.push(`nové PR: ${c.recentPRs.map((p) => `${p.exercise} ${p.bestWeightKg} kg`).join(", ")}`);
+    parts.push(`nové PR: ${c.recentPRs.map((p) => `${promptSafe(p.exercise, 60)} ${p.bestWeightKg} kg`).join(", ")}`);
   }
   return `- ${parts.join(", ")}.`;
 }
@@ -70,25 +71,36 @@ export async function generateRosterSummary(
     return { status: "no_data", summary: "Zatiaľ nemáš aktívnych klientov s dátami na zhrnutie." };
   }
 
-  if (await isRosterSummaryRateLimited(supabase, params.trainerId)) {
-    return {
-      status: "rate_limited",
-      summary: `Dnešný limit ${AI_ROSTER_SUMMARY_DAILY_LIMIT()} zhrnutí portfólia je vyčerpaný — skús to zajtra.`,
-    };
-  }
-
   const system = [
     "Si asistent fitness trénera v aplikácii FitPilot. Dostaneš hotové číselné dáta o celom portfóliu klientov trénera (adherencia tréningu, adherencia stravy, splnenie plánu, trend váhy, nedávne osobné maximá) — appka ich už spočítala, ty ich len utriediš do krátkeho týždenného prehľadu.",
     "Napíš PO SLOVENSKY stručný digest (max ~120 slov): na začiatku 1 veta o celkovom stave portfólia, potom 2–4 konkrétni klienti, na ktorých sa má tréner tento týždeň zamerať A PREČO (nízka adherencia, dlho necvičil, stagnuje váha, strava mimo cieľa), a nakoniec 1 veta o pozitívach (kto ide dobre, kto má nové PR — dôvod niekomu napísať pochvalu).",
     "Používaj VÝHRADNE čísla a mená, ktoré ti boli poslané — nič si nevymýšľaj, nehádaj príčiny mimo dát (napr. nediagnostikuj zdravotné dôvody).",
     "Píš vecne pre trénera, bez uvítania a bez zbytočného úvodu — rovno k veci. Klientov oslovuj menom. Žiadne odrážky pre klientov, súvislý text.",
+    DATA_IS_NOT_INSTRUCTIONS,
   ].join("\n");
 
-  const userContent = [
+  const userContent = wrapAsData([
     `Portfólio má ${params.clients.length} aktívnych klientov.`,
     "",
     ...params.clients.map(clientLine),
-  ].join("\n");
+  ]);
+
+  // Atomická rezervácia denného limitu tesne pred volaním modelu (feature/security).
+  const slot = await reserveAiSlot({
+    supabase,
+    kind: "roster_summary",
+    trainerId: params.trainerId,
+    clientId: null,
+    model: AI_MODEL.PROGRESS_SUMMARY,
+    subject: "trainer",
+    subjectLimit: AI_ROSTER_SUMMARY_DAILY_LIMIT(),
+  });
+  if (!slot.allowed) {
+    return {
+      status: "rate_limited",
+      summary: `Dnešný limit ${AI_ROSTER_SUMMARY_DAILY_LIMIT()} zhrnutí portfólia je vyčerpaný — skús to zajtra.`,
+    };
+  }
 
   const anthropic = getAnthropicClient();
   try {
@@ -109,6 +121,7 @@ export async function generateRosterSummary(
       model: AI_MODEL.PROGRESS_SUMMARY,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
+      reservationId: slot.reservationId,
     });
 
     return { status: "ok", summary };

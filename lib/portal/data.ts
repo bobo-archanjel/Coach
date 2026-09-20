@@ -46,6 +46,7 @@ import type {
   WeekDay,
   WeekView,
 } from "./types";
+import { dbErr } from "@/lib/dbError";
 
 const TZ = "Europe/Bratislava";
 const WEEKDAY_LABELS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"]; // index 0 = pondelok
@@ -292,7 +293,7 @@ export async function getPortalData(): Promise<PortalResult> {
         .maybeSingle(),
     ]);
 
-    if (clientErr) return { state: "error", message: clientErr.message };
+    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
 
     const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
     if (!client) return { state: "unlinked", firstName };
@@ -321,7 +322,7 @@ export async function getPortalData(): Promise<PortalResult> {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (planErr) return { state: "error", message: planErr.message };
+      if (planErr) return { state: "error", message: dbErr(planErr, "data") };
       plan = data ?? null;
     }
     if (!plan) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
@@ -332,7 +333,7 @@ export async function getPortalData(): Promise<PortalResult> {
       .eq("plan_id", plan.id)
       .order("day_number", { ascending: true });
 
-    if (daysErr) return { state: "error", message: daysErr.message };
+    if (daysErr) return { state: "error", message: dbErr(daysErr, "data") };
 
     const days = (dayRows ?? []) as DayRow[];
     if (days.length === 0) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
@@ -347,7 +348,7 @@ export async function getPortalData(): Promise<PortalResult> {
       .in("workout_day_id", dayIds)
       .order("performed_on", { ascending: false });
 
-    if (logErr) return { state: "error", message: logErr.message };
+    if (logErr) return { state: "error", message: dbErr(logErr, "data") };
 
     const logs = logRows ?? [];
     const loggedDates = new Set(logs.map((l) => l.performed_on));
@@ -556,7 +557,7 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, error } = await getLinkedClient(supabase, user.id);
-    if (error) return { state: "error", message: error.message };
+    if (error) return { state: "error", message: dbErr(error, "data") };
     if (!client) return { state: "error", message: "Účet ešte nie je prepojený." };
 
     const { isoDate, base } = todayInTz();
@@ -596,7 +597,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, error: clientErr } = await getLinkedClient(supabase, user.id);
-    if (clientErr) return { state: "error", message: clientErr.message };
+    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
 
     if (!client) {
       return { state: "ok", data: { plans: [], activePlanId: null } };
@@ -611,7 +612,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       .eq("client_id", client.id)
       .eq("published", true)
       .order("created_at", { ascending: false });
-    if (planErr) return { state: "error", message: planErr.message };
+    if (planErr) return { state: "error", message: dbErr(planErr, "data") };
 
     const planList = planRows ?? [];
     const newestId = planList.length > 0 ? planList[0].id : null;
@@ -630,7 +631,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
           planList.map((p) => p.id),
         )
         .order("day_number", { ascending: true });
-      if (daysErr) return { state: "error", message: daysErr.message };
+      if (daysErr) return { state: "error", message: dbErr(daysErr, "data") };
 
       const dayIds = (dayRows ?? []).map((d) => d.id);
       // Ktoré dni má klient už niekedy odcvičené (aspoň jeden záznam v histórii) —
@@ -640,7 +641,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
         .select("workout_day_id, performed_on")
         .eq("client_id", client.id)
         .in("workout_day_id", dayIds.length > 0 ? dayIds : [""]);
-      if (doneErr) return { state: "error", message: doneErr.message };
+      if (doneErr) return { state: "error", message: dbErr(doneErr, "data") };
       const doneIds = new Set((doneRows ?? []).map((r) => r.workout_day_id));
       // Bez tohto rozlíšenia by deň odcvičený pred týždňami (len "niekedy hotový")
       // dostal rovnaké akčné tlačidlo ako deň odcvičený DNES — "Začať tréning" by
@@ -745,7 +746,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
-    if (clientErr) return { state: "error", message: clientErr.message };
+    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
     const [{ data: profile, error: profileErr }, { data: plan, error: planErr }] = await Promise.all([
@@ -762,8 +763,8 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         .limit(1)
         .maybeSingle(),
     ]);
-    if (profileErr) return { state: "error", message: profileErr.message };
-    if (planErr) return { state: "error", message: planErr.message };
+    if (profileErr) return { state: "error", message: dbErr(profileErr, "data") };
+    if (planErr) return { state: "error", message: dbErr(planErr, "data") };
 
     const macroGoal = profile
       ? {
@@ -788,7 +789,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         .select("id, name, meals")
         .eq("plan_id", plan.id)
         .order("day_number", { ascending: true });
-      if (daysErr) return { state: "error", message: daysErr.message };
+      if (daysErr) return { state: "error", message: dbErr(daysErr, "data") };
 
       mealDays = (dayRows ?? []).map((d) => {
         const entries = (Array.isArray(d.meals) ? d.meals : []) as MealEntryRow[];
@@ -868,7 +869,7 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
-    if (clientErr) return { state: "error", message: clientErr.message };
+    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
     const { isoDate, hour } = todayInTz();
@@ -898,9 +899,9 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
         .maybeSingle(),
     ]);
 
-    if (profileErr) return { state: "error", message: profileErr.message };
-    if (logErr) return { state: "error", message: logErr.message };
-    if (planErr) return { state: "error", message: planErr.message };
+    if (profileErr) return { state: "error", message: dbErr(profileErr, "data") };
+    if (logErr) return { state: "error", message: dbErr(logErr, "data") };
+    if (planErr) return { state: "error", message: dbErr(planErr, "data") };
 
     const goal = profile
       ? {
@@ -1025,7 +1026,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
-    if (clientErr) return { state: "error", message: clientErr.message };
+    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     // Bez trénera nie je s kým chatovať — po napojení sem príde systémová správa
     // "tréner ťa pridal" a klient uvidí normálne vlákno (feature/registracia-update).
@@ -1042,7 +1043,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
       supabase.from("clients").select("trainer_id").eq("id", client.id).maybeSingle(),
     ]);
 
-    if (msgErr) return { state: "error", message: msgErr.message };
+    if (msgErr) return { state: "error", message: dbErr(msgErr, "data") };
 
     const messages: PortalChatMessage[] = (rows ?? []).map((m) => ({
       id: m.id,
@@ -1080,7 +1081,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
-    if (clientErr) return { state: "error", message: clientErr.message };
+    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     if (!client.trainer_id) return { state: "no_trainer" };
 
@@ -1089,7 +1090,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
       .select("id")
       .eq("client_id", client.id)
       .maybeSingle();
-    if (convErr) return { state: "error", message: convErr.message };
+    if (convErr) return { state: "error", message: dbErr(convErr, "data") };
 
     if (!conv) return { state: "ok", data: { messages: [] } satisfies PortalAiChatData };
 
@@ -1099,7 +1100,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
       .eq("conversation_id", conv.id)
       .order("created_at", { ascending: true })
       .limit(300);
-    if (msgErr) return { state: "error", message: msgErr.message };
+    if (msgErr) return { state: "error", message: dbErr(msgErr, "data") };
 
     const messages: PortalAiChatMessage[] = (rows ?? []).map((m) => ({
       id: m.id,

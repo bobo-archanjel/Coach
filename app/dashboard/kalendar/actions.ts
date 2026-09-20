@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { dbErr } from "@/lib/dbError";
 
 export interface ActionState {
   error: string | null;
@@ -63,7 +64,7 @@ export async function createAppointmentAction(_prevState: ActionState, formData:
     ends_at: endsAt,
     note: note || null,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/dashboard/kalendar");
   return ok;

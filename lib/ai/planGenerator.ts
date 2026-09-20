@@ -57,6 +57,8 @@ export interface PlanGeneratorInput {
   daysPerWeek: number; // 1-7, ignorované pri partiovom (jednodňovom) zameraní
   experience: PlanExperience;
   equipment: PlanEquipment;
+  /** ID z reserveAiSlot() — dokončí sa po volaní modelu (viď lib/ai/rateLimit.ts) */
+  reservationId?: string | null;
   focus: PlanFocus;
 }
 
@@ -498,6 +500,7 @@ export async function generateWorkoutPlan(
         model: AI_MODEL.PLAN_GENERATOR,
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
+        reservationId: input.reservationId,
       });
 
       return {
@@ -528,6 +531,7 @@ export async function generateWorkoutPlan(
       model: AI_MODEL.PLAN_GENERATOR,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
+      reservationId: input.reservationId,
     });
 
     return { plan: { days, warnings: warnings.length > 0 ? warnings : undefined } };
@@ -536,7 +540,7 @@ export async function generateWorkoutPlan(
     console.error("generateWorkoutPlan (Claude call):", detail, err);
     // V deve ukáž skutočnú príčinu priamo v UI — generické „skús znova" pri
     // internom nástroji trénera nič nerieši.
-    const suffix = process.env.NODE_ENV !== "production" ? ` (detail: ${detail})` : "";
+    const suffix = process.env.NODE_ENV === "development" ? ` (detail: ${detail})` : "";
     return { error: `Nastala chyba pri generovaní plánu. Skús to prosím znova.${suffix}` };
   }
 }

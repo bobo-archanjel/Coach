@@ -19,7 +19,7 @@ import {
   type AttentionData,
 } from "@/lib/dashboard/attention";
 
-const DEV_NO_SESSION = process.env.NODE_ENV !== "production";
+const DEV_NO_SESSION = process.env.NODE_ENV === "development";
 
 // DEV bez session (rovnaký princíp ako DEV_OPEN v app/dashboard/layout.tsx): vzorové
 // dáta, nech sa dá zvonček pozerať bez prihlásenia. V produkcii sa nikdy nepoužije.

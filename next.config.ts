@@ -1,5 +1,22 @@
 import type { NextConfig } from "next";
 
+// Supabase projekt, na ktorý sa smie prehliadač pripájať (REST/Auth/Realtime). Predtým
+// `*.supabase.co` — povolilo by odoslať dáta na ĽUBOVOĽNÝ Supabase projekt (kanál na
+// exfiltráciu, keby sa podarilo vložiť skript). Host sa berie z env; ak by chýbal
+// (napr. build bez env), padá sa späť na wildcard, nie na nefunkčnú appku.
+function supabaseConnectHosts(): string {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (url) {
+      const host = new URL(url).host;
+      return `https://${host} wss://${host}`;
+    }
+  } catch {
+    // neplatná URL → wildcard nižšie
+  }
+  return "https://*.supabase.co wss://*.supabase.co";
+}
+
 const nextConfig: NextConfig = {
   // Default ("loose") CSS chunking duplikoval celý portal.module.css (64 kB)
   // do KAŽDÉHO page-level CSS chunku popri layout.css, ktorý ho už obsahuje —
@@ -9,6 +26,9 @@ const nextConfig: NextConfig = {
   experimental: {
     cssChunking: "strict",
   },
+  // Hlavička X-Powered-By: Next.js zbytočne prezrádza technológiu (usmerňuje útočníka
+  // na známe zraniteľnosti konkrétneho frameworku) — nič nerobí, tak preč.
+  poweredByHeader: false,
   images: {
     // Obrázky cvikov z Free Exercise DB (scripts/import-exercises.mjs) — len
     // externé URL, žiadne kopírovanie do Supabase Storage (šetrí 2 GB free
@@ -31,13 +51,16 @@ const nextConfig: NextConfig = {
     // Next dev server kompiluje s eval-based source mapmi (fast refresh) — bez
     // 'unsafe-eval' v dev móde CSP zhodí KAŽDÚ stránku hneď pri hydratácii
     // (zistené e2e sadou po prvom nasadení tejto CSP — 25 zlyhaní namiesto
-    // obvyklých 8). Produkčný build eval nepoužíva, tam zostáva prísne.
+    // obvyklých 8). Uvoľnené je to VÝHRADNE pri `NODE_ENV === "development"`
+    // (feature/security: predtým `!== "production"`, takže chybne nastavené alebo
+    // chýbajúce NODE_ENV na serveri by pustilo eval; teraz je predvolené prísne).
     // Plausible (feature/security#2) — script aj beacon idú na ich vlastnú
     // doménu, treba explicitne povoliť v CSP, inak by script-src/connect-src
     // tichým zamietnutím zablokoval analytics bez akejkoľvek chyby v konzole.
-    const scriptSrc = process.env.NODE_ENV === "production"
-      ? "'self' 'unsafe-inline' https://plausible.io"
-      : "'self' 'unsafe-inline' 'unsafe-eval' https://plausible.io";
+    const isDev = process.env.NODE_ENV === "development";
+    const scriptSrc = isDev
+      ? "'self' 'unsafe-inline' 'unsafe-eval' https://plausible.io"
+      : "'self' 'unsafe-inline' https://plausible.io";
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
@@ -51,12 +74,13 @@ const nextConfig: NextConfig = {
       "media-src 'self' blob:",
       "font-src 'self' data:",
       // wss:// je pre Supabase Realtime (ChatThread, NotificationBell) — `https://` v
-      // connect-src WebSocket NEpokrýva; bez toho prehliadač spojenie ticho zablokuje
-      // (zistené v konzole pri kontrole zvončeka, chat mu do vtedy len padal na polling).
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io",
+      // connect-src WebSocket NEpokrýva; bez toho prehliadač spojenie ticho zablokuje.
+      `connect-src 'self' ${supabaseConnectHosts()} https://plausible.io`,
+      "object-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      ...(isDev ? [] : ["upgrade-insecure-requests"]),
     ].join("; ");
 
     return [
@@ -69,7 +93,16 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          // Izoluje okno od cudzích okien (ochrana pred tabnabbingom a únikmi cez
+          // window.opener). Appka nepoužíva popup OAuth, takže nič nerozbije.
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
         ],
+      },
+      {
+        // Exporty (PDF/CSV) obsahujú osobné a zdravotné dáta — nesmú sa ukladať do
+        // zdieľaných cache (reverzné proxy, CDN, prehliadač na zdieľanom zariadení).
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
       },
     ];
   },

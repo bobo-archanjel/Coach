@@ -17,14 +17,17 @@ import { logAiUsage } from "./logUsage";
 import { getMacroContext } from "./macroContext";
 import {
   needsHealthEscalation,
+  isCrisisText,
   hasExerciseSwapIntent,
   HEALTH_ESCALATION_REPLY,
+  CRISIS_REPLY,
   buildEscalationNoticeForTrainer,
+  buildCrisisNoticeForTrainer,
   buildSoftExerciseNoticeForTrainer,
 } from "./healthFilter";
 import { findExerciseAlternatives, type ExerciseCandidate } from "./exerciseAlternatives";
 import { getFoodCandidates, formatFoodCandidates } from "./foodContext";
-import { isChatRateLimited, AI_CHAT_DAILY_LIMIT } from "./rateLimit";
+import { reserveAiSlot, AI_CHAT_DAILY_LIMIT } from "./rateLimit";
 
 const HISTORY_WINDOW = 12; // posledných N správ poslaných modelu — nie celá história (minimalizácia dát + náklady)
 const MAX_REPLY_TOKENS = 700; // dosť aj na štruktúrovaný jedálniček na celý deň (4 jedlá + súčty)
@@ -72,6 +75,19 @@ export async function sendAiChatMessage(
 ): Promise<SendChatResult> {
   const { trainerId, clientId, userText, history } = params;
 
+  // ---------- 0. KRÍZA (sebapoškodenie/suicidálne myšlienky) ----------
+  // Osobitná, najprísnejšia vetva: nikdy nejde cez model ani cez výnimku "výmena
+  // cviku". Pevná odpoveď s tiesňovou linkou + okamžité upozornenie trénera (bez
+  // citácie správy — je mimoriadne citlivá, tréner sa má ozvať osobne).
+  if (isCrisisText(userText)) {
+    const { error } = await supabase.rpc("insert_ai_escalation_message", {
+      p_client_id: clientId,
+      p_body: buildCrisisNoticeForTrainer(),
+    });
+    if (error) console.error("insert_ai_escalation_message (crisis):", error.message);
+    return { status: "escalated", reply: CRISIS_REPLY };
+  }
+
   // ---------- 1. zdravotný pre-filter ----------
   const healthTrigger = needsHealthEscalation(userText);
   const swapIntent = hasExerciseSwapIntent(userText);
@@ -87,14 +103,9 @@ export async function sendAiChatMessage(
     return { status: "escalated", reply: HEALTH_ESCALATION_REPLY };
   }
 
-  // ---------- 2. rate limit ----------
-  if (await isChatRateLimited(supabase, clientId)) {
-    return {
-      status: "rate_limited",
-      reply: `Dosiahol/a si dnešný limit AI správ (${AI_CHAT_DAILY_LIMIT()}). Skús to znova zajtra, alebo napíš priamo trénerovi.`,
-    };
-  }
-
+  // ---------- 2. AI nakonfigurované? ----------
+  // (Denný limit sa rezervuje až tesne PRED volaním modelu, viď nižšie — rezervácia je
+  // atomická a započíta sa hneď, takže paralelné požiadavky ju neobídu.)
   if (!isAiConfigured()) {
     return { status: "not_configured", reply: "AI chat zatiaľ nie je nastavený. Skús to prosím neskôr." };
   }
@@ -161,6 +172,23 @@ export async function sendAiChatMessage(
   const recent = history.slice(-HISTORY_WINDOW);
   const softEscalation = healthTrigger && swapIntent;
 
+  // ---------- 3c. atomická rezervácia denného limitu (feature/security) ----------
+  const slot = await reserveAiSlot({
+    supabase,
+    kind: "chat",
+    trainerId,
+    clientId,
+    model: AI_MODEL.CHAT,
+    subject: "client",
+    subjectLimit: AI_CHAT_DAILY_LIMIT(),
+  });
+  if (!slot.allowed) {
+    return {
+      status: "rate_limited",
+      reply: `Dosiahol/a si dnešný limit AI správ (${AI_CHAT_DAILY_LIMIT()}). Skús to znova zajtra, alebo napíš priamo trénerovi.`,
+    };
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: AI_MODEL.CHAT,
@@ -179,6 +207,7 @@ export async function sendAiChatMessage(
       model: AI_MODEL.CHAT,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
+      reservationId: slot.reservationId,
     });
 
     // mäkké FYI trénerovi — bežná výmena cviku kvôli nepohodliu, nie alarm (viď healthFilter.ts)

@@ -7,6 +7,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MEAL_SLOT_LABELS, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import { dbErr } from "@/lib/dbError";
 
 const TZ = "Europe/Bratislava";
 
@@ -94,8 +95,8 @@ export async function getMacroContext(
       .eq("eaten_on", isoDate),
   ]);
 
-  if (profileErr) return { context: null, error: profileErr.message };
-  if (logErr) return { context: null, error: logErr.message };
+  if (profileErr) return { context: null, error: dbErr(profileErr, "macroContext") };
+  if (logErr) return { context: null, error: dbErr(logErr, "macroContext") };
 
   const scaled = ((logRows ?? []) as FoodLogRow[]).map((r) =>
     scaleFoodMacros(

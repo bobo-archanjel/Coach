@@ -7,8 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
 import { PLAN_FOCUSES, isSingleDayFocus, type PlanFocus } from "@/lib/ai/planCategories";
-import { isPlanGenRateLimited, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
+import { reserveAiSlot, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
+import { AI_MODEL } from "@/lib/ai/client";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
+import { dbErr } from "@/lib/dbError";
 
 export interface ActionState {
   error: string | null;
@@ -100,7 +102,7 @@ export async function setPlanPublishedAction(_prevState: ActionState, formData: 
     .eq("id", planId)
     .eq("trainer_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   revalidatePath("/dashboard/treningy");
@@ -123,7 +125,7 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
     exercises: [],
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -164,7 +166,7 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
     .update({ exercises: [...current, newEntry] })
     .eq("id", dayId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -208,7 +210,7 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
     .update({ exercises: [...current, newEntry] })
     .eq("id", dayId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -248,7 +250,7 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
   );
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -285,7 +287,7 @@ export async function moveExerciseEntryAction(input: {
   [updated[idx], updated[target]] = [updated[target], updated[idx]];
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -307,7 +309,7 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
   const updated = current.filter((entry) => entry.entry_id !== entryId);
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -338,7 +340,7 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
   if (plan.published) return { error: "Publikovaný plán sa takto nedá zmazať — najprv ho vráť do konceptu." };
 
   const { error } = await supabase.from("workout_plans").delete().eq("id", planId).eq("trainer_id", user.id);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/dashboard/treningy");
   redirect("/dashboard/treningy");
@@ -362,7 +364,7 @@ export async function addCustomExerciseAction(_prevState: ActionState, formData:
     muscle_group: muscleGroup,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath("/dashboard/treningy");
   return ok;
@@ -411,10 +413,19 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
     .maybeSingle();
   if (!client) return { error: "Klient sa nenašiel." };
 
-  // Kontrola PRED volaním modelu — nulové náklady pri zamietnutí (rovnaký princíp
-  // ako chat/progress summary, lib/ai/rateLimit.ts). Per tréner, nie per klient —
-  // inak by sa dal limit obísť striedaním klientov.
-  if (await isPlanGenRateLimited(supabase, user.id)) {
+  // Atomická rezervácia PRED volaním modelu — nulové náklady pri zamietnutí a paralelné
+  // požiadavky ju neobídu (lib/ai/rateLimit.ts, migrácia 0036). Per tréner, nie per
+  // klient — inak by sa dal limit obísť striedaním klientov.
+  const slot = await reserveAiSlot({
+    supabase,
+    kind: "plan_gen",
+    trainerId: user.id,
+    clientId,
+    model: AI_MODEL.PLAN_GENERATOR,
+    subject: "trainer",
+    subjectLimit: AI_PLAN_GEN_DAILY_LIMIT(),
+  });
+  if (!slot.allowed) {
     return { error: `Dosiahol/a si dnešný limit AI generovania plánov (${AI_PLAN_GEN_DAILY_LIMIT()}). Skús to zajtra.` };
   }
 
@@ -426,6 +437,7 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
     experience: experience as PlanExperience,
     equipment: equipment as PlanEquipment,
     focus,
+    reservationId: slot.reservationId,
   });
   if ("error" in result) return { error: result.error };
 
@@ -462,7 +474,7 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   }));
 
   const { error: daysErr } = await supabase.from("workout_days").insert(dayRows);
-  if (daysErr) return { error: daysErr.message };
+  if (daysErr) return { error: dbErr(daysErr, "actions") };
 
   revalidatePath("/dashboard/treningy");
 

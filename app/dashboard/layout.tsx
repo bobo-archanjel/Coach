@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 /** DEV: `next dev` bez session (lokál bez platných Supabase kľúčov) — nechá prejsť,
     nech sa dajú pozerať povrchy cez `?preview=`. V produkcii guard nepodmienený.
     Symetrické s app/portal/layout.tsx. */
-const DEV_OPEN = process.env.NODE_ENV !== "production";
+const DEV_OPEN = process.env.NODE_ENV === "development";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const {

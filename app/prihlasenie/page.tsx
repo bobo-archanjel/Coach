@@ -117,7 +117,7 @@ export default function AuthPage() {
     // necháme používateľa skúsiť znova cez formError, ale neprezrádzame existenciu.
     if (error) {
       setForgotStatus("idle");
-      setForgotError(error.message);
+      setForgotError("Odoslanie zlyhalo. Skús to o chvíľu znova.");
       return;
     }
     setForgotStatus("success");
@@ -181,12 +181,12 @@ export default function AuthPage() {
       const msg = error.message.toLowerCase();
       setRegisterError(
         error.message === "User already registered"
-          ? "Tento e-mail už je zaregistrovaný."
+          ? "Registráciu sa nepodarilo dokončiť. Ak už účet máš, prihlás sa alebo si obnov heslo."
           : msg.includes("email rate limit") || msg.includes("rate limit")
             ? "Priveľa registrácií za krátky čas z tejto adresy. Skús to o chvíľu znova."
             : msg.includes("password")
               ? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla."
-              : error.message,
+              : "Registráciu sa nepodarilo dokončiť. Skús to prosím znova.",
       );
       return;
     }
