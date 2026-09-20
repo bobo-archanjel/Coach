@@ -20,6 +20,8 @@ export interface HealthDigest {
   from: HealthBucket;
   to: HealthBucket;
   count: number;
+  /** pondelok týždňa aktuálneho snapshotu — súčasť kľúča skrytia digestu (nový týždeň = nový digest) */
+  weekStart: string;
 }
 
 /**
@@ -64,5 +66,5 @@ export async function getHealthDigest(supabase: SupabaseClient, trainerId: strin
   if (!best) return null;
 
   const [from, to] = best.key.split("|") as [HealthBucket, HealthBucket];
-  return { from, to, count: best.count };
+  return { from, to, count: best.count, weekStart: currentWeek };
 }

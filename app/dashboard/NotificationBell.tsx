@@ -16,8 +16,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { attentionTotal, buildAttentionItems, type AttentionData } from "@/lib/dashboard/attention";
-import { getAttentionAction } from "./attention/actions";
+import { applyDismissals, attentionTotal, buildAttentionItems, type AttentionData } from "@/lib/dashboard/attention";
+import { dismissNotificationsAction, getAttentionAction, markAllMessagesReadAction } from "./attention/actions";
 import styles from "./dashboard.module.css";
 
 const BellIcon = () => (
@@ -123,6 +123,31 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   const total = data ? attentionTotal(data) : initialUnread;
   const items = data ? buildAttentionItems(data) : [];
 
+  // Skrytie/označenie je OPTIMISTICKÉ — upozornenie zmizne hneď, server sa dozvie na
+  // pozadí. Ak zlyhá, dotiahne sa skutočný stav (upozornenie sa vráti), nič sa
+  // nepredstiera. `refresh(0)` ide len ak práve nebeží iný dopyt.
+  const dismiss = useCallback(
+    (keys: string[], days: number | null) => {
+      const gone = new Set(keys);
+      setData((d) => (d ? applyDismissals(d, gone) : d));
+      void dismissNotificationsAction(keys, days)
+        .then((r) => {
+          if (!r.ok) void refresh(0);
+        })
+        .catch(() => void refresh(0));
+    },
+    [refresh],
+  );
+
+  const markRead = useCallback(() => {
+    setData((d) => (d ? { ...d, unread: 0 } : d));
+    void markAllMessagesReadAction()
+      .then((r) => {
+        if (!r.ok) void refresh(0);
+      })
+      .catch(() => void refresh(0));
+  }, [refresh]);
+
   return (
     <div className={styles.bell} ref={rootRef}>
       <button
@@ -152,18 +177,46 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
           ) : (
             items.map((item) => (
               <div key={item.id} className={styles.bellItem}>
-                <Link
-                  href={item.href}
-                  className={`${styles.bellItemMain} ${item.tone === "alert" ? styles.bellToneAlert : styles.bellToneWatch}`}
-                >
-                  {item.title}
-                </Link>
+                <div className={styles.bellItemHead}>
+                  <Link
+                    href={item.href}
+                    className={`${styles.bellItemMain} ${item.tone === "alert" ? styles.bellToneAlert : styles.bellToneWatch}`}
+                  >
+                    {item.title}
+                  </Link>
+                  {item.markRead && (
+                    <button type="button" className={styles.bellAction} onClick={markRead}>
+                      Označiť ako prečítané
+                    </button>
+                  )}
+                  {item.dismiss && (
+                    <button
+                      type="button"
+                      className={styles.bellAction}
+                      onClick={() => dismiss(item.dismiss!.keys, item.dismiss!.days)}
+                      title={item.dismiss.days ? `Skryje na ${item.dismiss.days} dní, potom sa vráti, ak to stále platí.` : undefined}
+                    >
+                      {item.dismiss.keys.length > 1 ? "Skryť všetky" : "Skryť"}
+                    </button>
+                  )}
+                </div>
                 {item.links.length > 0 && (
                   <ul className={styles.bellLinks}>
                     {item.links.map((l) => (
                       <li key={l.href + l.label}>
                         <Link href={l.href}>{l.label}</Link>
                         {l.meta && <span>{l.meta}</span>}
+                        {l.dismissKey && (
+                          <button
+                            type="button"
+                            className={styles.bellX}
+                            aria-label={`Skryť ${l.label} na ${item.dismiss?.days ?? 7} dní`}
+                            title="Skryť na 7 dní"
+                            onClick={() => dismiss([l.dismissKey!], item.dismiss?.days ?? null)}
+                          >
+                            ×
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
