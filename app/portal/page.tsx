@@ -172,7 +172,7 @@ const PREVIEW_DATA: PortalData = {
 
 /** DEV: ?preview=unlinked|no_plan|no_plan_solo|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
 function previewResult(kind: string): PortalResult | null {
-  if (process.env.NODE_ENV === "production") return null;
+  if (process.env.NODE_ENV !== "development") return null;
   switch (kind) {
     case "unlinked":
       return { state: "unlinked", firstName: "Ján" };

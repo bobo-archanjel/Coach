@@ -54,7 +54,7 @@ const PREVIEW: PortalChatResult = {
 };
 
 function previewResult(kind: string): PortalChatResult | null {
-  if (process.env.NODE_ENV === "production") return null;
+  if (process.env.NODE_ENV !== "development") return null;
   if (kind === "ok") return PREVIEW;
   if (kind === "empty") return { state: "ok", data: { trainerName: "Marek", messages: [] } };
   if (kind === "unlinked") return { state: "unlinked", firstName: "Ján" };

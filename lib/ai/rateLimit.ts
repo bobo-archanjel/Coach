@@ -142,3 +142,117 @@ export async function isPlanGenRateLimited(supabase: SupabaseClient, trainerId: 
 }
 
 export const AI_PLAN_GEN_DAILY_LIMIT = planGenDailyLimit;
+
+// ============================================================================
+// feature/security — ATOMICKÁ rezervácia AI volania (migrácia 0036, reserve_ai_slot)
+// ============================================================================
+// Doterajšie funkcie vyššie limit najprv PREČÍTAJÚ a zápis do ai_usage príde až po
+// volaní modelu — paralelné požiadavky (napr. 100 naraz) všetky videli počet 0 a
+// prešli. Rezervácia beží v DB pod advisory lockom (počet + vloženie riadku v jednej
+// kritickej sekcii), má aj denný limit na trénera pre daný druh (farma fiktívnych
+// klientov ho neobíde) a globálny denný strop (ochrana pred zneužitím cez množstvo
+// účtov). Volá sa so service role — limity zadáva server z env, používateľ nie.
+//
+// Prechodné správanie: ak chýba service role kľúč alebo migrácia 0036 ešte nebola
+// spustená (funkcia neexistuje), padá sa späť na doterajšiu kontrolu vyššie, nie na
+// "AI nefunguje".
+
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import type { AiUsageKind } from "./logUsage";
+
+function envInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/** Celkový počet AI volaní za deň naprieč všetkými účtami — poistka proti zneužitiu/nákladom. */
+export const AI_GLOBAL_DAILY_CAP = () => envInt("AI_GLOBAL_DAILY_CALL_CAP", 3000);
+export const AI_CHAT_DAILY_LIMIT_PER_TRAINER = () => envInt("AI_CHAT_DAILY_LIMIT_PER_TRAINER", 500);
+export const AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_TRAINER = () => envInt("AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_TRAINER", 40);
+export const AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER = () => envInt("AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER", 20);
+
+export interface AiReservation {
+  allowed: boolean;
+  /** ID rezervovaného riadku v ai_usage (null pri prechodnom fallbacku) — dokončí ho logAiUsage. */
+  reservationId: string | null;
+  /** true = zamietnuté kvôli GLOBÁLNEMU stropu (iná správa než osobný limit) */
+  globallyLimited?: boolean;
+}
+
+/** Strop pre trénera a druh volania (pri tréner-scoped druhoch je rovnaký ako osobný limit). */
+function trainerCap(kind: AiUsageKind, subjectLimit: number): number {
+  switch (kind) {
+    case "chat":
+      return AI_CHAT_DAILY_LIMIT_PER_TRAINER();
+    case "progress_summary":
+      return AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_TRAINER();
+    case "meal_gen":
+      return AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER();
+    default:
+      return subjectLimit; // roster_summary, plan_gen: limit je už na trénera
+  }
+}
+
+async function legacyLimited(
+  supabase: SupabaseClient,
+  p: { kind: AiUsageKind; trainerId: string; clientId?: string | null },
+): Promise<boolean> {
+  switch (p.kind) {
+    case "chat":
+      return p.clientId ? isChatRateLimited(supabase, p.clientId) : false;
+    case "progress_summary":
+      return p.clientId ? isProgressSummaryRateLimited(supabase, p.clientId) : false;
+    case "roster_summary":
+      return isRosterSummaryRateLimited(supabase, p.trainerId);
+    case "plan_gen":
+      return isPlanGenRateLimited(supabase, p.trainerId);
+    default:
+      return false;
+  }
+}
+
+/**
+ * Rezervuje jedno AI volanie PRED zavolaním modelu. `supabase` (session klient) sa
+ * používa len na prechodný fallback na staršiu kontrolu.
+ */
+export async function reserveAiSlot(p: {
+  supabase: SupabaseClient;
+  kind: AiUsageKind;
+  trainerId: string;
+  clientId?: string | null;
+  model: string;
+  /** komu sa počíta osobný denný limit: konkrétnemu klientovi, alebo trénerovi */
+  subject: "client" | "trainer";
+  subjectLimit: number;
+}): Promise<AiReservation> {
+  const admin = tryCreateAdminClient();
+  if (!admin) {
+    const limited = await legacyLimited(p.supabase, p);
+    return { allowed: !limited, reservationId: null };
+  }
+
+  const { data, error } = await admin.rpc("reserve_ai_slot", {
+    p_kind: p.kind,
+    p_trainer_id: p.trainerId,
+    p_client_id: p.clientId ?? null,
+    p_model: p.model,
+    p_subject: p.subject,
+    p_subject_limit: p.subjectLimit,
+    p_trainer_limit: trainerCap(p.kind, p.subjectLimit),
+    p_global_limit: AI_GLOBAL_DAILY_CAP(),
+  });
+
+  if (error) {
+    // PGRST202 / 42883 = funkcia v DB ešte neexistuje (migrácia 0036 nebola spustená).
+    if (error.code === "PGRST202" || error.code === "42883") {
+      const limited = await legacyLimited(p.supabase, p);
+      return { allowed: !limited, reservationId: null };
+    }
+    // Iná chyba: radšej zamietnuť než pustiť bez limitu (ide o náklady) — ale nahlásiť.
+    console.error("reserve_ai_slot:", error.message);
+    return { allowed: false, reservationId: null };
+  }
+
+  return typeof data === "string" ? { allowed: true, reservationId: data } : { allowed: false, reservationId: null };
+}

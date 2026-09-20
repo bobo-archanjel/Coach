@@ -7,9 +7,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { sendAiChatMessage } from "@/lib/ai/chat";
 import { needsHealthEscalation } from "@/lib/ai/healthFilter";
 import { classifyTopic } from "@/lib/ai/topicClassify";
+import { dbErr } from "@/lib/dbError";
 
 export interface AiKoucActionState {
   error: string | null;
@@ -39,7 +41,7 @@ export async function sendAiKoucMessageAction(
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (clientErr) return { error: clientErr.message };
+  if (clientErr) return { error: dbErr(clientErr, "actions") };
   if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
   if (!client.trainer_id) return { error: "AI Kouč je zatiaľ dostupný len klientom s prideleným trénerom." };
 
@@ -58,7 +60,7 @@ export async function sendAiKoucMessageAction(
       .insert({ client_id: client.id })
       .select("id")
       .single();
-    if (convErr) return { error: convErr.message };
+    if (convErr) return { error: dbErr(convErr, "actions") };
     conversationId = newConv.id;
   }
   if (!conversationId) return { error: "Nepodarilo sa založiť konverzáciu." };
@@ -69,7 +71,7 @@ export async function sendAiKoucMessageAction(
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .limit(HISTORY_FETCH_LIMIT);
-  if (historyErr) return { error: historyErr.message };
+  if (historyErr) return { error: dbErr(historyErr, "actions") };
 
   const history = (historyRows ?? []).map((r) => ({ role: r.role as "user" | "assistant", content: r.content }));
 
@@ -81,7 +83,7 @@ export async function sendAiKoucMessageAction(
   const { error: insertUserErr } = await supabase
     .from("ai_messages")
     .insert({ conversation_id: conversationId, role: "user", content: body, topic });
-  if (insertUserErr) return { error: insertUserErr.message };
+  if (insertUserErr) return { error: dbErr(insertUserErr, "actions") };
 
   const result = await sendAiChatMessage(supabase, {
     trainerId: client.trainer_id,
@@ -91,13 +93,22 @@ export async function sendAiKoucMessageAction(
     history,
   });
 
-  const { error: insertAssistantErr } = await supabase.from("ai_messages").insert({
+  // Odpoveď asistenta zapisuje SERVER (service role), nie session klienta — od migrácie
+  // 0036 klient smie vkladať len vlastné (user) správy, inak by si vedel podvrhnúť
+  // "asistentove" odpovede, ktoré sa posielajú modelu ako história (obchvat zdravotných
+  // hraníc). `conversationId` je overené vyššie cez klientovu vlastnú session (RLS).
+  // Bez service role kľúča (prechodne, pred nasadením 0036) sa zapisuje ako doteraz.
+  const writer = tryCreateAdminClient() ?? supabase;
+  const { error: insertAssistantErr } = await writer.from("ai_messages").insert({
     conversation_id: conversationId,
     role: "assistant",
     content: result.reply,
     escalated: result.status === "escalated" || (result.status === "ok" && result.escalated === true),
   });
-  if (insertAssistantErr) return { error: insertAssistantErr.message };
+  if (insertAssistantErr) {
+    console.error("sendAiKoucMessageAction (assistant insert):", insertAssistantErr.message);
+    return { error: "Odpoveď sa nepodarilo uložiť. Skús to prosím znova." };
+  }
 
   revalidatePath("/portal/ai-kouc");
   return ok;

@@ -42,3 +42,6 @@ tsconfig.tsbuildinfo
 
 /test-results/
 /playwright-report/
+
+# Supabase CLI: dočasné súbory (môžu obsahovať referencie na projekt) — nikdy do repa
+supabase/.temp/

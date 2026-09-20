@@ -66,7 +66,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const { preview } = await searchParams;
 
   // DEV náhľad formulára "Pridať klienta" bez session (feature/registracia-update).
-  if (preview === "addclient" && process.env.NODE_ENV !== "production") {
+  if (preview === "addclient" && process.env.NODE_ENV === "development") {
     return (
       <>
         <div className={styles.pageHead}>
@@ -82,7 +82,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     );
   }
 
-  if (preview === "deletion" && process.env.NODE_ENV !== "production") {
+  if (preview === "deletion" && process.env.NODE_ENV === "development") {
     const rosterClients = [
       ...DELETION_PREVIEW.filter((c) => !c.ended_at && !c.deletion_requested_at),
       ...DELETION_PREVIEW.filter((c) => c.ended_at && !c.deletion_requested_at),
@@ -143,7 +143,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   }
 
   // DEV náhľad skrývateľných upozornení bez session (feature/funkcionalita).
-  if (preview === "notices" && process.env.NODE_ENV !== "production") {
+  if (preview === "notices" && process.env.NODE_ENV === "development") {
     return (
       <>
         <div className={styles.pageHead}>

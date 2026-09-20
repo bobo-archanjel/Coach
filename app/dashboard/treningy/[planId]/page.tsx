@@ -35,7 +35,7 @@ export default async function PlanDetailPage({
   const { planId } = await params;
   const { preview } = await searchParams;
 
-  if (preview === "builder" && process.env.NODE_ENV !== "production") {
+  if (preview === "builder" && process.env.NODE_ENV === "development") {
     return (
       <>
         <Link href="/dashboard/treningy" className={styles.backLink}>

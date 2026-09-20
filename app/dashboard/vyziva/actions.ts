@@ -54,7 +54,6 @@ export async function saveNutritionProfileAction(
       height_cm: heightCm,
       activity_level: activityLevel,
       goal,
-      notes,
       bmr: result.bmr,
       tdee: result.tdee,
       calories_target: result.caloriesTarget,
@@ -66,7 +65,22 @@ export async function saveNutritionProfileAction(
   );
 
   if (error) {
-    return { error: error.message };
+    console.error("saveNutritionProfileAction:", error.message);
+    return { error: "Makro cieľ sa nepodarilo uložiť. Skontroluj hodnoty a skús to znova." };
+  }
+
+  // Súkromná poznámka trénera k výžive ide do trainer_private_notes (0036): stĺpec
+  // nutrition_profiles.notes číta aj sám klient (RLS je riadková). Prázdna poznámka = zmazať.
+  if (notes) {
+    const { error: noteErr } = await supabase
+      .from("trainer_private_notes")
+      .upsert(
+        { client_id: clientId, scope: "nutrition", trainer_id: user.id, notes: notes.slice(0, 4000), updated_at: new Date().toISOString() },
+        { onConflict: "client_id,scope" },
+      );
+    if (noteErr) console.error("saveNutritionProfileAction (poznámka):", noteErr.message);
+  } else {
+    await supabase.from("trainer_private_notes").delete().eq("client_id", clientId).eq("scope", "nutrition");
   }
 
   revalidatePath(`/dashboard/vyziva/${clientId}`);

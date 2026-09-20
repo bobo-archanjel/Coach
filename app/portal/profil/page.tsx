@@ -13,7 +13,7 @@ type ProfilView = {
 
 /** DEV: ?preview=has_trainer|no_trainer|deletion — profil bez session/DB. */
 function previewView(kind: string): ProfilView | null {
-  if (process.env.NODE_ENV === "production") return null;
+  if (process.env.NODE_ENV !== "development") return null;
   const code = "FP-4A9F2C7E1B8D6035AC12";
   switch (kind) {
     case "has_trainer":

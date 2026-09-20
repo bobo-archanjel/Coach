@@ -45,7 +45,7 @@ const PREVIEW: PortalDiaryData = {
 };
 
 function previewResult(kind: string): PortalDiaryResult | null {
-  if (process.env.NODE_ENV === "production") return null;
+  if (process.env.NODE_ENV !== "development") return null;
   if (kind === "ok") return { state: "ok", data: PREVIEW };
   if (kind === "nogoal") return { state: "ok", data: { ...PREVIEW, goal: null } };
   if (kind === "over")

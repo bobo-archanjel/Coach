@@ -99,7 +99,7 @@ function daysAgoIso(n: number): string {
 
 export default async function AnalytikaPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
-  const isPreview = preview === "ok" && process.env.NODE_ENV !== "production";
+  const isPreview = preview === "ok" && process.env.NODE_ENV === "development";
 
   let activeClients: { id: string; full_name: string }[];
   let overview: Map<string, ClientAnalyticsRow> | null;

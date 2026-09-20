@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { MealSlot } from "@/lib/meals";
+import { dbErr } from "@/lib/dbError";
 
 export interface ActionState {
   error: string | null;
@@ -65,7 +66,7 @@ export async function addMealDayAction(_prevState: ActionState, formData: FormDa
     meals: [],
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
   return ok;
@@ -111,7 +112,7 @@ export async function addFoodToDayAction(_prevState: ActionState, formData: Form
     .update({ meals: [...current, newEntry] })
     .eq("id", dayId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
   return ok;
@@ -139,7 +140,7 @@ export async function updateMealEntryAction(_prevState: ActionState, formData: F
   );
 
   const { error } = await supabase.from("meal_days").update({ meals: updated }).eq("id", dayId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
   return ok;
@@ -161,7 +162,7 @@ export async function removeMealEntryAction(_prevState: ActionState, formData: F
   const updated = current.filter((entry) => entry.entry_id !== entryId);
 
   const { error } = await supabase.from("meal_days").update({ meals: updated }).eq("id", dayId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
   return ok;
@@ -194,7 +195,7 @@ export async function addCustomFoodAction(_prevState: ActionState, formData: For
     fat_100g: fat,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   return ok;
 }

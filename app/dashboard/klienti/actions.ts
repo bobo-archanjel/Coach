@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { generateProgressSummary } from "@/lib/ai/progressSummary";
+import { dbErr } from "@/lib/dbError";
 
 export interface ActionState {
   error: string | null;
@@ -38,7 +39,7 @@ export async function sendTrainerMessageAction(_prevState: ActionState, formData
     sender_id: user.id,
     body,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
@@ -80,7 +81,7 @@ export async function bulkSendTrainerMessageAction(_prevState: BulkMessageState,
 
   const rows = ownedIds.map((clientId) => ({ client_id: clientId, sender: "trainer" as const, sender_id: user.id, body }));
   const { error } = await supabase.from("messages").insert(rows);
-  if (error) return { error: error.message, sentCount: null };
+  if (error) return { error: dbErr(error, "actions"), sentCount: null };
 
   revalidatePath("/dashboard/spravy");
   revalidatePath("/dashboard/klienti/[id]", "page");
@@ -129,7 +130,7 @@ export async function getTrainerChatMarkerAction(clientId: string): Promise<stri
 export async function endClientCooperationAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("end_client_cooperation", { p_client_id: clientId });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
@@ -139,7 +140,7 @@ export async function endClientCooperationAction(clientId: string): Promise<Acti
 export async function resumeClientCooperationAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("resume_client_cooperation", { p_client_id: clientId });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
@@ -149,7 +150,7 @@ export async function resumeClientCooperationAction(clientId: string): Promise<A
 export async function requestClientDeletionAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
@@ -159,7 +160,7 @@ export async function requestClientDeletionAction(clientId: string): Promise<Act
 export async function cancelClientDeletionAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;

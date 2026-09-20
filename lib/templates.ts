@@ -11,6 +11,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlanGoal } from "./planGoals";
+import { dbErr } from "@/lib/dbError";
 
 export interface TemplateResult {
   error: string | null;
@@ -47,7 +48,7 @@ export async function saveWorkoutPlanAsTemplate(
     .select("day_number, name, exercises")
     .eq("plan_id", planId)
     .order("day_number");
-  if (daysErr) return { error: daysErr.message };
+  if (daysErr) return { error: dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: "Plán nemá žiadne dni na uloženie do šablóny." };
 
   const { data: template, error: templateErr } = await supabase
@@ -62,7 +63,7 @@ export async function saveWorkoutPlanAsTemplate(
   if (insertErr) {
     // Šablóna bez dní by len strašila v zozname ako prázdna — radšej ju zmazať.
     await supabase.from("plan_templates").delete().eq("id", template.id);
-    return { error: insertErr.message };
+    return { error: dbErr(insertErr, "templates") };
   }
   return ok;
 }
@@ -85,7 +86,7 @@ export async function applyWorkoutTemplateToClient(
     .select("day_number, name, exercises")
     .eq("template_id", templateId)
     .order("day_number");
-  if (daysErr) return { error: daysErr.message, planId: null };
+  if (daysErr) return { error: dbErr(daysErr, "templates"), planId: null };
 
   // Nový plán je koncept (published: false), presne ako ručne vytvorený alebo AI vygenerovaný —
   // tréner ho doladí v builderi pred publikovaním klientovi (draft-then-approve, 0021).
@@ -99,7 +100,7 @@ export async function applyWorkoutTemplateToClient(
   if (templateDays && templateDays.length > 0) {
     const rows = templateDays.map((d) => ({ plan_id: newPlan.id, day_number: d.day_number, name: d.name, exercises: d.exercises }));
     const { error: insertErr } = await supabase.from("workout_days").insert(rows);
-    if (insertErr) return { error: insertErr.message, planId: newPlan.id };
+    if (insertErr) return { error: dbErr(insertErr, "templates"), planId: newPlan.id };
   }
 
   return { error: null, planId: newPlan.id };
@@ -107,7 +108,7 @@ export async function applyWorkoutTemplateToClient(
 
 export async function deleteWorkoutTemplate(supabase: SupabaseClient, trainerId: string, templateId: string): Promise<TemplateResult> {
   const { error } = await supabase.from("plan_templates").delete().eq("id", templateId).eq("trainer_id", trainerId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "templates") };
   return ok;
 }
 
@@ -127,7 +128,7 @@ export async function saveMealPlanAsTemplate(
     .select("day_number, name, meals")
     .eq("plan_id", planId)
     .order("day_number");
-  if (daysErr) return { error: daysErr.message };
+  if (daysErr) return { error: dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: "Jedálniček nemá žiadne dni na uloženie do šablóny." };
 
   const { data: template, error: templateErr } = await supabase
@@ -141,7 +142,7 @@ export async function saveMealPlanAsTemplate(
   const { error: insertErr } = await supabase.from("meal_template_days").insert(rows);
   if (insertErr) {
     await supabase.from("meal_templates").delete().eq("id", template.id);
-    return { error: insertErr.message };
+    return { error: dbErr(insertErr, "templates") };
   }
   return ok;
 }
@@ -164,7 +165,7 @@ export async function applyMealTemplateToClient(
     .select("day_number, name, meals")
     .eq("template_id", templateId)
     .order("day_number");
-  if (daysErr) return { error: daysErr.message, planId: null };
+  if (daysErr) return { error: dbErr(daysErr, "templates"), planId: null };
 
   const { data: newPlan, error: planErr } = await supabase
     .from("meal_plans")
@@ -176,7 +177,7 @@ export async function applyMealTemplateToClient(
   if (templateDays && templateDays.length > 0) {
     const rows = templateDays.map((d) => ({ plan_id: newPlan.id, day_number: d.day_number, name: d.name, meals: d.meals }));
     const { error: insertErr } = await supabase.from("meal_days").insert(rows);
-    if (insertErr) return { error: insertErr.message, planId: newPlan.id };
+    if (insertErr) return { error: dbErr(insertErr, "templates"), planId: newPlan.id };
   }
 
   return { error: null, planId: newPlan.id };
@@ -184,6 +185,6 @@ export async function applyMealTemplateToClient(
 
 export async function deleteMealTemplate(supabase: SupabaseClient, trainerId: string, templateId: string): Promise<TemplateResult> {
   const { error } = await supabase.from("meal_templates").delete().eq("id", templateId).eq("trainer_id", trainerId);
-  if (error) return { error: error.message };
+  if (error) return { error: dbErr(error, "templates") };
   return ok;
 }

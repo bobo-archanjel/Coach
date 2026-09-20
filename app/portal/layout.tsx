@@ -38,7 +38,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
  * Supabase kľúčov), guard neredirectuje — nech sa dá pozerať povrch cez
  * `/portal?preview=ok|unlinked|no_plan|error`. V produkcii je guard nepodmienený.
  */
-const DEV_OPEN = process.env.NODE_ENV !== "production";
+const DEV_OPEN = process.env.NODE_ENV === "development";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

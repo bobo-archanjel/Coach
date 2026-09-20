@@ -170,6 +170,15 @@ Skúsený a zavrhnutý fix: presun existence-check do `generateMetadata` (beží
 
 Overené po opravách: `tsc --noEmit` čisté, `npx playwright test` **105/108 passed** (1 skipped, 2 fail = vyššie zdokumentovaný notFound status nález, očakávané).
 
+## Bezpečnosť — sprísnenie (feature/security) — 2026-09-20
+
+- [x] Migrácia `0036`: anon revoke, stĺpcové oprávnenia, politiky s kontrolou aktuálneho vzťahu, rotácia kódu klienta, `trainer_private_notes`, atómová rezervácia AI limitov, flood guard správ.
+- [x] Regresný test databázy (`supabase/tests/run-local.sh`) — spúšťať po KAŽDEJ novej migrácii.
+- [x] Zámok prihlasovania na serveri, CSV ochrana, prompt safety, krízový filter, generické chybové hlášky.
+- [ ] **Manuálne v Supabase dashboarde:** potvrdenie e-mailu, minimálna dĺžka hesla + leaked-password protection, CAPTCHA, rate limity Auth, allow-list redirect URL (viď `docs/security/SUPABASE_HARDENING.md`).
+- [ ] Nastaviť mesačný spend limit v Anthropic konzole; na serveri `SUPABASE_SERVICE_ROLE_KEY` a prípadne `AI_GLOBAL_DAILY_CALL_CAP`.
+- [ ] Neskôr: CSP s noncom (odstránenie `'unsafe-inline'` zo `script-src`), MFA pre trénerov, externý audit.
+
 ## Zdieľané / potrebuje koordináciu
 
 - ~~**Onboarding bez trénera + obrátený model pripojenia**~~ **HOTOVO 2026-09-08** (branch `feature/registracia-update`, migrácia `0032`, cez impeccable). **Prečo:** jediná cesta k registrácii klienta viedla cez pozývací kód od trénera — kto chcel appku používať sám, uviazol. Nový model otočil smer: **každý klient dostane pri registrácii vlastný `clients` riadok + dlhý náhodný kód** (`FP-` + 20 hex, generuje DB trigger `handle_new_user`), appku hneď plne používa aj bez trénera. Kód ukáže v **Profile**, tréner ho zadá v „Pridať klienta" (`add_client_by_code` RPC — rate-limit 8/15 min, systémová správa do chatu ako notifikácia). Klient sa vie kedykoľvek **odpojiť** (`leave_trainer` RPC) bez straty vlastných dát. **Jeden tréner na klienta** — kód priradeného klienta sa odmietne jasnou hláškou. Registrácia klienta už nemá vetvu „mám kód / nemám kód". Spätne kompatibilné: existujúce trénerom vytvorené riadky + starý `claim_client_by_invite` (0006/0029) ostávajú funkčné. Súbory: `app/prihlasenie/page.tsx`, `app/portal/profil/*` (`TrainerConnection`), `app/dashboard/AddClientForm.tsx` + `actions.ts`, `app/portal/actions.ts` (`leaveTrainerAction`), `lib/portal/data.ts`/`types.ts` (nové stavy `no_trainer` / `no_plan.hasTrainer`). e2e `e2e/onboarding.spec.ts`.
