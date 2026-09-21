@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import styles from "../page.module.css";
 
@@ -32,8 +33,10 @@ export function ChapterBreak({
 
   return (
     <section className={`${styles.chapter} ${styles[`chapterGlow_${glow}`]}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} className={styles.chapterImg} style={{ objectPosition }} />
+      {/* feature/optimalizacia (Lighthouse) — next/image fill: responzívne veľkosti,
+          next-gen formát (WebP/AVIF) a lazy loading namiesto raw <img>. Sekcia je vždy
+          pod foldom (min-height: 100dvh o kus nižšie na stránke), takže bez `priority`. */}
+      <Image src={src} alt={alt} fill sizes="100vw" className={styles.chapterImg} style={{ objectPosition }} />
       <div className={styles.chapterScrim} aria-hidden="true" />
       <div className={styles.chapterRim} aria-hidden="true" />
       <div className={styles.chapterContent}>
