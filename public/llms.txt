@@ -1,0 +1,24 @@
+# FitPilot
+
+> AI-natívna platforma pre fitness trénerov a ich klientov na Slovensku a v Česku:
+> správa klientov, tréningové plány, jedálničky a AI kouč s pamäťou klientovho profilu.
+
+FitPilot je softvér pre fitness trénerov (nie pre koncových cvičencov priamo — klient sa
+pripája cez kód od svojho trénera). Tréner spravuje portfólio klientov, zostavuje im
+tréningové plány a jedálničky (ručne alebo s pomocou AI generátora) a komunikuje s nimi
+cez vstavaný chat. Klient má vlastný portál: dnešný tréning, jedálniček, denník stravy,
+progres a AI kouč s kontextom vlastného profilu.
+
+Kľúčové vlastnosti:
+- Tréningové plány s knižnicou cvikov (video/obrázok, alternatívy podľa vybavenia)
+- Jedálničky s makro cieľmi a nákupným zoznamom
+- AI kouč pre klienta — odpovedá s pamäťou jeho profilu, pri zdravotných/krízových témach eskaluje na trénera
+- AI generátor plánov pre trénera
+- Progres a analytika (tréning aj výživa) pre trénera aj klienta
+- Export do PDF (tréningový plán, jedálniček, progres)
+
+Cieľová skupina: fitness a osobní tréneri na Slovensku a v Česku.
+Skúšobné obdobie: 14 dní zadarmo, bez viazanosti.
+Jazyk rozhrania: slovenčina/čeština.
+
+Webová stránka: https://fitpilot.sk

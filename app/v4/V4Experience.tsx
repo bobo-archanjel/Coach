@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import Lenis from "lenis";
 import { LogoMark } from "../components/LogoMark";
@@ -119,18 +120,21 @@ export function V4Experience() {
       <main>
         {/* ---------- HERO — 3-line variable-weight headline + card marquee ---------- */}
         <section className={`${styles.wrap} ${styles.hero}`}>
-          <motion.h1
-            className={styles.heroHeadline}
-            initial={{ opacity: 0, scale: 1.04, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: reduced ? 0 : 0.9, ease }}
-          >
+          {/* feature/optimalizacia (Lighthouse) — bol tu motion.h1 s initial={{opacity:0}}
+              + animate. Framer Motion vykreslí SSR HTML s opacity:0 a text sa zviditeľní
+              až po hydratácii a spustení animácie — pre LCP element (prvý veľký text na
+              stránke) to znamenalo, že 91 % z 5.2s LCP bol "Render Delay" (čaká sa na stiahnutie
+              a spustenie celého JS balíka, hoci text bol v HTML od začiatku). Vstupná animácia
+              na prvej veci, ktorú návštevník vidí, nepridáva žiadnu hodnotu — len skrýva obsah.
+              Zvyšné motion.* nižšie používajú whileInView (spúšťajú sa až pri scrolli, nie pri
+              načítaní), tie LCP neovplyvňujú a ostávajú nezmenené. */}
+          <h1 className={styles.heroHeadline}>
             <span className={styles.heroLineLight}>Appka, ktorá myslí ako</span>
             <span className={styles.heroLineBold}>skúsený tréner</span>
             <span className={styles.heroLineBold}>
               a AI kouč zároveň<span className={styles.heroDot} aria-hidden="true" />
             </span>
-          </motion.h1>
+          </h1>
         </section>
 
         <MarqueeCards />
@@ -163,10 +167,14 @@ export function V4Experience() {
               </p>
             </motion.div>
             <motion.div className={styles.splitVisual} {...fadeUp(0.15)}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {/* feature/optimalizacia (Lighthouse) — raw <img> namiesto next/image stálo
+                  appku responzívne veľkosti aj next-gen formát (WebP/AVIF); next/image
+                  fill rieši oboje a defaultne lazy-loaduje (táto sekcia je pod foldom). */}
+              <Image
                 src="/v2/screens/chat.png"
                 alt="Konverzácia s AI koučom v appke FitPilot"
+                fill
+                sizes="(max-width: 760px) 100vw, 50vw"
                 className={styles.splitVisualImg}
                 style={{ objectPosition: "50% 24%" }}
               />
@@ -225,10 +233,12 @@ export function V4Experience() {
               </ol>
             </motion.div>
             <motion.div className={styles.splitVisual} {...fadeUp(0.15)}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {/* feature/optimalizacia (Lighthouse) — pozri komentár pri prvom next/image vyššie. */}
+              <Image
                 src="/v2/screens/dennik.png"
                 alt="Denník príjmu v klientskom portáli FitPilot"
+                fill
+                sizes="(max-width: 760px) 100vw, 50vw"
                 className={styles.splitVisualImg}
                 style={{ objectPosition: "50% 10%" }}
               />

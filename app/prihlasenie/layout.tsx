@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   // — nepridávať "FitPilot" manuálne, inak vznikne duplicita ("FitPilot — X · FitPilot").
   title: "Prihlásenie",
   description: "Prihlás sa do svojho trénerského konta alebo si vytvor nový účet na FitPilot — 14 dní zadarmo.",
+  alternates: { canonical: "/prihlasenie" },
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

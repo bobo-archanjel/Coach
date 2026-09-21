@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
 import styles from "../page.module.css";
 
@@ -25,8 +26,16 @@ export function PortraitReveal() {
   return (
     <div ref={ref} className={styles.portraitWrap}>
       <motion.div className={styles.portraitFrame} style={{ clipPath }} suppressHydrationWarning>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/v2/screens/dennik.png" alt="Denník príjmu a jedálniček v appke FitPilot" className={styles.portraitImg} />
+        {/* feature/optimalizacia (Lighthouse) — next/image fill namiesto raw <img>, pozri
+            komentár v ChapterBreak.tsx. Táto sekcia je hlboko pod foldom (scroll-scrubbed
+            reveal, viditeľná až pri scrollovaní), lazy loading tu má reálny efekt. */}
+        <Image
+          src="/v2/screens/dennik.png"
+          alt="Denník príjmu a jedálniček v appke FitPilot"
+          fill
+          sizes="(max-width: 760px) 100vw, 450px"
+          className={styles.portraitImg}
+        />
       </motion.div>
       <div className={styles.portraitCaption}>
         <p className={styles.portraitCaptionText}>
