@@ -110,6 +110,31 @@ select pg_temp.chk('B: tréner nepresunie svoj plán cudziemu klientovi (update 
 select pg_temp.chk('legit: klient vidí plán a cieľ od svojho trénera',
   pg_temp.cnt(:C, 'select 1 from public.workout_plans') = 1 and pg_temp.cnt(:C, 'select 1 from public.nutrition_profiles') = 1);
 
+-- B2) klient vs. klient — priame čítanie cudzích dát (nie cez trénera, priamo
+-- ako druhý prihlásený klientský účet skúšajúci vidieť/upraviť dáta iného
+-- klienta). SOCK je samostatný klientský účet — pripojený k inému trénerovi
+-- (T1) než klient C (ktorého má T2), takže ide o dve úplne nezávislé dvojice.
+select id as sock_cid, invite_code as sock_code from public.clients where user_id = :SOCK \gset
+select pg_temp.try(:T1, format($f$select * from public.add_client_by_code(%L)$f$, :'sock_code')) as sock_attach \gset
+select pg_temp.chk('legit: tréner T1 pripojí klienta SOCK jeho kódom', :'sock_attach' = 'OK', :'sock_attach');
+select pg_temp.chk('legit: klient vloží vlastný tréningový plán priamo (bez trénera)',
+  pg_temp.try(:SOCK, format('insert into public.workout_plans (client_id, name) values (%L, ''Sockov plan'')', :'sock_cid')) = 'OK');
+select pg_temp.chk('legit: klient vloží vlastný záznam telesných mier',
+  pg_temp.try(:SOCK, format('insert into public.body_metrics (client_id, trainer_id, measured_on, weight_kg) values (%L, %L, current_date, 80)', :'sock_cid', :T1)) = 'OK');
+select pg_temp.chk('B2: klient C nevidí tréningový plán klienta SOCK',
+  pg_temp.cnt(:C, format('select 1 from public.workout_plans where client_id = %L', :'sock_cid')) = 0);
+select pg_temp.chk('B2: klient SOCK nevidí tréningový plán klienta C (od trénera T2)',
+  pg_temp.cnt(:SOCK, format('select 1 from public.workout_plans where client_id = %L', :'cid')) = 0);
+select pg_temp.chk('B2: klient C nevidí telesné miery klienta SOCK',
+  pg_temp.cnt(:C, format('select 1 from public.body_metrics where client_id = %L', :'sock_cid')) = 0);
+select pg_temp.chk('B2: klient SOCK nezapíše telesné miery klientovi C (cudzí client_id)',
+  pg_temp.try(:SOCK, format('insert into public.body_metrics (client_id, measured_on, weight_kg) values (%L, current_date, 999)', :'cid')) like 'ERR:%');
+select pg_temp.chk('B2: klient SOCK neupraví tréningový plán klienta C',
+  pg_temp.try(:SOCK, format('update public.workout_plans set name = ''hack'' where client_id = %L', :'cid')) like 'ERR:%'
+  or (select count(*) from public.workout_plans where client_id = :'cid' and name = 'hack') = 0);
+select pg_temp.chk('legit: klient SOCK vidí len svoj vlastný plán a svoje miery',
+  pg_temp.cnt(:SOCK, 'select 1 from public.workout_plans') = 1 and pg_temp.cnt(:SOCK, 'select 1 from public.body_metrics') = 1);
+
 -- ============================================================ C/E) rola, profil
 select pg_temp.chk('11: používateľ si nezmení rolu (client → trainer)',
   pg_temp.try(:C, format('update public.profiles set role = ''trainer'' where id = %L', :C)) like 'ERR:%'

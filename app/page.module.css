@@ -79,8 +79,17 @@
 .navLinks a:hover {
   color: var(--paper);
 }
-.ctaBtn {
-  color: var(--ink);
+/* feature/optimalizacia (Lighthouse a11y audit) — `.navLinks a { color: var(--paper-dim) }`
+   je selektor s vyššou špecifickosťou (trieda + typ) než samotné `.ctaBtn`, takže
+   dovtedy vyhrával a farbu tlačidla ticho prepisoval na --paper-dim (kontrast
+   3.32:1 na červenom pozadí namiesto požadovaných 4.5:1 pre bežný text). Pôvodné
+   `color: var(--ink)` by problém nevyriešilo — na --iron-red-deep pozadí vychádza
+   len ~3.44:1 (prepočítané cez WCAG relatívny jas), stále pod limitom. `--paper`
+   (rovnaká farba akú .btn-primary používa všade inde v appke) dáva ~4.78:1 a
+   `.navLinks .ctaBtn` (dve triedy) má dosť špecifickosti, aby vyhrala nad
+   `.navLinks a`. */
+.navLinks .ctaBtn {
+  color: var(--paper);
 }
 .navMobileHide {
   display: inline;
