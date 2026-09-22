@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FitPilot | Appka pre fitness trénerov na Slovensku</title>
+  <meta name="description" content="FitPilot je appka pre fitness trénerov na Slovensku a v Česku. Klienti, tréningové plány, strava aj AI na jednom mieste. Zapíš sa na čakaciu listinu." />
+  <link rel="canonical" href="https://myfitpilot.eu/" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#121110" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://myfitpilot.eu/" />
+  <meta property="og:site_name" content="FitPilot" />
+  <meta property="og:locale" content="sk_SK" />
+  <meta property="og:title" content="FitPilot – appka pre fitness trénerov (čoskoro)" />
+  <meta property="og:description" content="Klienti, tréningy, strava aj AI asistent na jednom mieste. Appka pre fitness trénerov na Slovensku a v Česku. Buď medzi prvými." />
+  <!-- TODO (Boris): nahradiť reálnym product shotom v kontexte (telefón na lavičke pri
+       multi-stroji z Instagram plánu), keď bude hotový — zatiaľ branded fallback appky. -->
+  <meta property="og:image" content="https://myfitpilot.eu/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FitPilot – appka pre fitness trénerov (čoskoro)" />
+  <meta name="twitter:description" content="Klienti, tréningy, strava aj AI asistent na jednom mieste. Appka pre fitness trénerov na Slovensku a v Česku. Buď medzi prvými." />
+  <meta name="twitter:image" content="https://myfitpilot.eu/assets/og-image.png" />
+
+  <link rel="icon" href="/assets/icon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/assets/apple-icon.png" />
+
+  <!-- Organization schema — základná identita pre Google aj AI vyhľadávače -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "FitPilot",
+    "url": "https://myfitpilot.eu/",
+    "logo": "https://myfitpilot.eu/assets/logo-mark.png",
+    "description": "AI-native platforma pre fitness trénerov a ich klientov — tréning, výživa, komunikácia, rast.",
+    "areaServed": ["SK", "CZ"]
+  }
+  </script>
+  <!-- FAQPage schema — text nižšie MUSÍ zodpovedať viditeľnému FAQ obsahu na stránke
+       (Google FAQ schema guideline), preto sa mení len na jednom mieste (#faq nižšie). -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Kedy appka spustí?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Pracujeme na tom, aby FitPilot čoskoro spustil naostro pre trénerov aj jednotlivcov na Slovensku a v Česku. Zapíš sa na čakaciu listinu a dáme ti vedieť ako prvému." }
+      },
+      {
+        "@type": "Question",
+        "name": "Koľko bude appka stáť?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Cenník ešte finalizujeme, ale od začiatku sľubujeme transparentnú cenu bez skrytých poplatkov." }
+      },
+      {
+        "@type": "Question",
+        "name": "Bude appka aj v češtine?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Áno. FitPilot je od základu stavaný pre slovenský aj český trh, nie len preložený dodatočne." }
+      },
+      {
+        "@type": "Question",
+        "name": "Potrebujem trénera, aby som appku mohol používať?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Nie. FitPilot funguje aj samostatne — sledovanie stravy, makrá aj vlastné tréningové plány si vieš viesť aj bez trénera. Appka je ale primárne stavaná pre trénerov a ich klientov." }
+      },
+      {
+        "@type": "Question",
+        "name": "Čo presne appka umožňuje?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Klientov a tréningové plány (s knižnicou cvikov s obrázkami), sledovanie stravy a makier, obojsmerný chat, AI kouč pre klienta aj AI generátor plánov a sumarizácia progresu pre teba — všetko na jednom mieste, bez prepínania medzi appkami." }
+      },
+      {
+        "@type": "Question",
+        "name": "Sú moje dáta a dáta klientov v bezpečí?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Áno. Appka beží na zabezpečenej databáze s prístupom oddeleným po jednotlivých účtoch, a ty aj tvoj klient viete kedykoľvek požiadať o úplné vymazanie dát." }
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Tailwind (CDN, bez build kroku — pozri README.md "Prečo Tailwind CDN") -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#121110",
+            ink2: "#1b1a18",
+            ink3: "#262421",
+            paper: "#f3efe6",
+            paperdim: "#cfc9bd",
+            paperfaint: "#8f897d",
+            coral: "#e0402a",
+            coraldeep: "#c3341f",
+            amber: "#e6b23a",
+            steelline: "#38352f",
+          },
+          fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
+          borderRadius: { s: "9px", m: "12px" },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-ink text-paper font-sans antialiased">
+
+  <!-- ================================================================ NAV -->
+  <header class="border-b border-steelline">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-4 flex items-center justify-between">
+      <a href="#top" class="flex items-center gap-2.5">
+        <img src="assets/logo-mark.png" alt="" width="32" height="32" class="rounded-s" />
+        <span class="font-extrabold text-lg tracking-tight">FitPilot</span>
+      </a>
+      <span class="text-xs font-semibold uppercase tracking-wide text-amber border border-amber/30 rounded-full px-3 py-1">
+        Čoskoro
+      </span>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ================================================================ HERO
+         Zámerne BEZ data-reveal/GSAP animácie — H1 a CTA sú prvá vec, ktorú
+         návštevník uvidí, a musia byť viditeľné okamžite (viď css/style.css). -->
+    <section class="max-w-4xl mx-auto px-5 sm:px-8 pt-16 pb-14 sm:pt-24 sm:pb-20 text-center">
+      <h1 class="text-4xl sm:text-6xl font-extrabold leading-tight tracking-tight text-balance">
+        Appka pre fitness trénerov na Slovensku a v Česku
+      </h1>
+      <p class="mt-6 text-lg sm:text-xl text-paperdim max-w-2xl mx-auto text-balance">
+        Klienti, tréningové plány, strava aj AI asistent na jednom mieste. Bez tabuliek, bez chaosu v desiatich
+        rôznych appkách.
+      </p>
+      <div class="mt-9">
+        <a href="#waitlist" class="btn-primary inline-flex items-center justify-center rounded-s px-7 py-4 font-bold text-base sm:text-lg">
+          Zapísať sa na čakaciu listinu
+        </a>
+      </div>
+      <p class="mt-4 text-sm text-paperfaint">Žiadne záväzky. Ozveme sa, len keď appku spustíme.</p>
+    </section>
+
+    <!-- ================================================================ PROBLÉM -->
+    <section class="max-w-3xl mx-auto px-5 sm:px-8 py-14 sm:py-20" data-reveal>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-balance">
+        Administratíva ti kradne čas, ktorý patrí klientom
+      </h2>
+      <p class="mt-5 text-paperdim leading-relaxed">
+        Väčšina trénerov dnes vedie klientov naprieč tabuľkami, poznámkami v telefóne a správami rozhádzanými po
+        viacerých appkách. Tréningový plán je v jednom súbore, jedálniček v inom, komunikácia s klientom v treťom.
+        Výsledok: hodiny administratívy týždenne namiesto času s klientmi.
+      </p>
+    </section>
+
+    <!-- ================================================================ FUNKCIE -->
+    <section class="max-w-6xl mx-auto px-5 sm:px-8 py-14 sm:py-20">
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-center text-balance" data-reveal>
+        Všetko, čo potrebuješ na jednom mieste
+      </h2>
+      <div class="mt-12 grid sm:grid-cols-2 gap-5">
+        <div class="card p-7" data-reveal data-reveal-delay="0">
+          <h3 class="text-lg font-bold">Klienti a tréningové plány</h3>
+          <p class="mt-2.5 text-paperdim leading-relaxed">
+            Priraď plán klientovi za pár sekúnd, vyber cviky z knižnice s obrázkami a inštrukciami, sleduj jeho
+            progres bez papiera a tabuliek.
+          </p>
+        </div>
+        <div class="card p-7" data-reveal data-reveal-delay="80">
+          <h3 class="text-lg font-bold">Strava a makrá</h3>
+          <p class="mt-2.5 text-paperdim leading-relaxed">
+            Sledovanie stravy a makier ako plnohodnotná súčasť appky od začiatku, nie platený doplnok navyše.
+            Výpočet cieľa priamo z veku, váhy, výšky, aktivity a cieľa klienta.
+          </p>
+        </div>
+        <div class="card p-7" data-reveal data-reveal-delay="0">
+          <h3 class="text-lg font-bold">AI asistent</h3>
+          <p class="mt-2.5 text-paperdim leading-relaxed">
+            AI kouč pre klienta odpovedá v kontexte jeho profilu a plánu (pri zdravotných témach eskaluje na teba,
+            nikdy nediagnostikuje sám). Appka ti generuje tréningové aj jedálne plány, sumarizuje progres klientov
+            a upozorní, na koho z portfólia sa treba pozrieť. Ty máš vždy posledné slovo — appka nič neposiela
+            klientovi bez tvojho schválenia.
+          </p>
+        </div>
+        <div class="card p-7" data-reveal data-reveal-delay="80">
+          <h3 class="text-lg font-bold">Prehľad na jednom mieste</h3>
+          <p class="mt-2.5 text-paperdim leading-relaxed">
+            Dashboard so všetkými klientmi, plánmi a progresom bez prepínania medzi appkami, mobile-first pre teba
+            aj pre klienta.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ SK/CZ -->
+    <section class="max-w-3xl mx-auto px-5 sm:px-8 py-14 sm:py-20" data-reveal>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-balance">Appka, ktorá myslí po slovensky aj po česky</h2>
+      <p class="mt-5 text-paperdim leading-relaxed">
+        FitPilot je od základu stavaný pre slovenský a český trh — nie globálny nástroj len dodatočne preložený.
+        Rozhranie, komunikácia aj podpora sú v tvojom jazyku.
+      </p>
+    </section>
+
+    <!-- ================================================================ SOLO -->
+    <section class="max-w-3xl mx-auto px-5 sm:px-8 py-14 sm:py-20" data-reveal>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-balance">Appka aj pre teba, ak nemáš trénera</h2>
+      <p class="mt-5 text-paperdim leading-relaxed">
+        FitPilot je primárne stavaný pre trénerov a ich klientov, ale jednotlivé nástroje appky vieš používať aj
+        úplne samostatne — bez trénera. Sledovanie stravy a makier, jedálniček aj tvorbu vlastných tréningových
+        plánov si vieš viesť sám, vo svojom vlastnom tempe, a kedykoľvek sa vieš prepojiť s trénerom (alebo od
+        neho odpojiť) bez straty svojich dát.
+      </p>
+    </section>
+
+    <!-- ================================================================ ROADMAP -->
+    <section class="max-w-3xl mx-auto px-5 sm:px-8 py-14 sm:py-20" data-reveal>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-balance">Čo ešte prídeme dorobiť</h2>
+      <p class="mt-5 text-paperdim leading-relaxed">
+        Appka je funkčná už dnes — klienti, tréningy, výživa aj AI sú naostro. Čo ešte pribudne: platby priamo v
+        appke, exportovanie plánov a jedálničkov, a fotoprogres na sledovanie zmeny postavy v čase.
+      </p>
+    </section>
+
+    <!-- ================================================================ WAITLIST FORM -->
+    <section id="waitlist" class="max-w-2xl mx-auto px-5 sm:px-8 py-14 sm:py-20 scroll-mt-8" data-reveal>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-center text-balance">
+        Buď medzi prvými trénermi na Slovensku a v Česku
+      </h2>
+
+      <form id="waitlist-form" class="mt-9 card p-6 sm:p-8 space-y-4" novalidate>
+        <div>
+          <label for="full_name" class="block text-sm font-medium text-paperdim mb-1.5">Meno</label>
+          <input id="full_name" name="full_name" type="text" required maxlength="120" autocomplete="name"
+                 class="w-full px-4 py-3" placeholder="Tvoje meno" />
+        </div>
+        <div>
+          <label for="email" class="block text-sm font-medium text-paperdim mb-1.5">E-mail</label>
+          <input id="email" name="email" type="email" required maxlength="320" autocomplete="email"
+                 class="w-full px-4 py-3" placeholder="tvoj@email.sk" />
+        </div>
+        <div>
+          <label for="role" class="block text-sm font-medium text-paperdim mb-1.5">Som</label>
+          <select id="role" name="role" required class="w-full px-4 py-3">
+            <option value="" disabled selected>Vyber…</option>
+            <option value="trainer">Tréner</option>
+            <option value="solo">Koučoval by som sám seba</option>
+          </select>
+        </div>
+        <div>
+          <label for="note" class="block text-sm font-medium text-paperdim mb-1.5">
+            Ako aktuálne spravuješ klientov alebo svoj tréning? <span class="text-paperfaint font-normal">(voliteľné)</span>
+          </label>
+          <textarea id="note" name="note" rows="3" maxlength="500" class="w-full px-4 py-3"
+                    placeholder="Napr. Excel + WhatsApp…"></textarea>
+        </div>
+        <label class="flex items-start gap-2.5 text-sm text-paperdim">
+          <input type="checkbox" name="consent" required class="mt-1 shrink-0" />
+          <span>
+            Súhlasím so spracovaním e-mailu a mena za účelom oznámenia o spustení FitPilot. Kedykoľvek sa môžeš
+            odhlásiť. <a href="privacy.html" class="underline hover:text-paper">Ochrana súkromia</a>
+          </span>
+        </label>
+        <button id="waitlist-submit" type="submit" class="btn-primary w-full rounded-s px-6 py-3.5 font-bold text-base">
+          Zapísať sa
+        </button>
+        <p class="text-xs text-paperfaint text-center">
+          Tvoj e-mail použijeme len na to, aby sme ťa informovali o spustení. Žiadny spam, žiadne zdieľanie
+          tretím stranám.
+        </p>
+      </form>
+      <p id="waitlist-status" class="text-sm mt-3 text-center" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- ================================================================ FAQ
+         Text nižšie sa musí zhodovať s FAQPage JSON-LD v <head> — mení sa len tu. -->
+    <section id="faq" class="max-w-3xl mx-auto px-5 sm:px-8 py-14 sm:py-20" data-reveal>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-center text-balance">Časté otázky</h2>
+      <div class="mt-9 space-y-3">
+
+        <div class="card" data-faq-item data-open="false">
+          <h3>
+            <button type="button" data-faq-toggle aria-expanded="false"
+                    class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-semibold">
+              Kedy appka spustí?
+              <span aria-hidden="true" class="text-paperfaint">+</span>
+            </button>
+          </h3>
+          <div data-faq-panel class="px-5 overflow-hidden transition-[max-height] duration-300" style="max-height:0">
+            <p class="pb-4 text-paperdim leading-relaxed">
+              Pracujeme na tom, aby FitPilot čoskoro spustil naostro pre trénerov aj jednotlivcov na Slovensku a
+              v Česku. Zapíš sa na čakaciu listinu a dáme ti vedieť ako prvému.
+            </p>
+          </div>
+        </div>
+
+        <div class="card" data-faq-item data-open="false">
+          <h3>
+            <button type="button" data-faq-toggle aria-expanded="false"
+                    class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-semibold">
+              Koľko bude appka stáť?
+              <span aria-hidden="true" class="text-paperfaint">+</span>
+            </button>
+          </h3>
+          <div data-faq-panel class="px-5 overflow-hidden transition-[max-height] duration-300" style="max-height:0">
+            <p class="pb-4 text-paperdim leading-relaxed">
+              Cenník ešte finalizujeme, ale od začiatku sľubujeme transparentnú cenu bez skrytých poplatkov.
+            </p>
+          </div>
+        </div>
+
+        <div class="card" data-faq-item data-open="false">
+          <h3>
+            <button type="button" data-faq-toggle aria-expanded="false"
+                    class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-semibold">
+              Bude appka aj v češtine?
+              <span aria-hidden="true" class="text-paperfaint">+</span>
+            </button>
+          </h3>
+          <div data-faq-panel class="px-5 overflow-hidden transition-[max-height] duration-300" style="max-height:0">
+            <p class="pb-4 text-paperdim leading-relaxed">
+              Áno. FitPilot je od základu stavaný pre slovenský aj český trh, nie len preložený dodatočne.
+            </p>
+          </div>
+        </div>
+
+        <div class="card" data-faq-item data-open="false">
+          <h3>
+            <button type="button" data-faq-toggle aria-expanded="false"
+                    class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-semibold">
+              Potrebujem trénera, aby som appku mohol používať?
+              <span aria-hidden="true" class="text-paperfaint">+</span>
+            </button>
+          </h3>
+          <div data-faq-panel class="px-5 overflow-hidden transition-[max-height] duration-300" style="max-height:0">
+            <p class="pb-4 text-paperdim leading-relaxed">
+              Nie. FitPilot funguje aj samostatne — sledovanie stravy, makrá aj vlastné tréningové plány si vieš
+              viesť aj bez trénera. Appka je ale primárne stavaná pre trénerov a ich klientov.
+            </p>
+          </div>
+        </div>
+
+        <div class="card" data-faq-item data-open="false">
+          <h3>
+            <button type="button" data-faq-toggle aria-expanded="false"
+                    class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-semibold">
+              Čo presne appka umožňuje?
+              <span aria-hidden="true" class="text-paperfaint">+</span>
+            </button>
+          </h3>
+          <div data-faq-panel class="px-5 overflow-hidden transition-[max-height] duration-300" style="max-height:0">
+            <p class="pb-4 text-paperdim leading-relaxed">
+              Klientov a tréningové plány (s knižnicou cvikov s obrázkami), sledovanie stravy a makier, obojsmerný
+              chat, AI kouč pre klienta aj AI generátor plánov a sumarizácia progresu pre teba — všetko na jednom
+              mieste, bez prepínania medzi appkami.
+            </p>
+          </div>
+        </div>
+
+        <div class="card" data-faq-item data-open="false">
+          <h3>
+            <button type="button" data-faq-toggle aria-expanded="false"
+                    class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-semibold">
+              Sú moje dáta a dáta klientov v bezpečí?
+              <span aria-hidden="true" class="text-paperfaint">+</span>
+            </button>
+          </h3>
+          <div data-faq-panel class="px-5 overflow-hidden transition-[max-height] duration-300" style="max-height:0">
+            <p class="pb-4 text-paperdim leading-relaxed">
+              Áno. Appka beží na zabezpečenej databáze s prístupom oddeleným po jednotlivých účtoch, a ty aj tvoj
+              klient viete kedykoľvek požiadať o úplné vymazanie dát.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-steelline">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-paperfaint">
+      <span>© 2026 FitPilot</span>
+      <a href="privacy.html" class="underline hover:text-paperdim">Ochrana súkromia</a>
+    </div>
+  </footer>
+
+  <!-- GSAP (CDN) — len pre scroll reveal pod foldom, nie hero (viď vyššie) -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>
+  <!-- Supabase JS klient (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

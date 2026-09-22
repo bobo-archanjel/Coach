@@ -1,0 +1,97 @@
+/* FitPilot — Waitlist landing page.
+   Tailwind (CDN) robí layout/utility prácu; tento súbor drží len to, čo Tailwind
+   utility triedy nevedia pekne vyjadriť — presné brand tokeny z DESIGN.md, font,
+   a počiatočné stavy pre GSAP scroll reveal (viď js/main.js). Zámerne minimálny —
+   žiadny custom layout CSS, len doplnok k Tailwindu. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+:root {
+  /* DESIGN.md — presné brand tokeny, rovnaké ako v hlavnej appke (app/globals.css) */
+  --ink: #121110;
+  --ink-2: #1b1a18;
+  --ink-3: #262421;
+  --ink-4: #302d28;
+  --paper: #f3efe6;
+  --paper-dim: #cfc9bd;
+  --paper-faint: #8f897d;
+  --iron-red: #e0402a;
+  --iron-red-deep: #c3341f; /* na plných tlačidlách — WCAG AA 4.78:1 s --paper (overené výpočtom) */
+  --plate-yellow: #e6b23a; /* výhradne AI kontext, nikdy CTA — DESIGN.md pravidlo jedného akcentu */
+  --steel-line: #38352f;
+  --radius-s: 9px;
+  --radius-m: 12px;
+  --shadow-2: 0 12px 32px -12px rgba(0, 0, 0, 0.65);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* GSAP scroll reveal — počiatočný stav pred animáciou (js/main.js ju animuje na
+   opacity:1). Zámerne sa nepoužíva na hero H1/CTA (viď komentár v index.html) —
+   skúsenosť z /v4 landing page appky: JS-viazaná animácia na prvej veci, ktorú
+   návštevník uvidí, poškodzuje Largest Contentful Paint (LCP z 5.2s na 2.3s po
+   odstránení). Tu je aplikovaná len na sekcie POD foldom. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+}
+[data-reveal].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.7s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.7s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+/* Bez JS (napr. vypnutý JS, pomalé pripojenie počas ktorého GSAP ešte nenabehol)
+   nesmie obsah ostať navždy neviditeľný — no-js fallback cez <html> triedu nižšie. */
+html:not(.js) [data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.btn-primary {
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  box-shadow: var(--shadow-2);
+}
+.btn-primary:hover {
+  background: #b82f1b;
+}
+
+.card {
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+}
+
+/* Natívny select/checkbox v tmavom motíve — bez knižnice, len farebná zhoda. */
+input,
+select,
+textarea {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  border-radius: var(--radius-s);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--paper-faint);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 1px;
+}
