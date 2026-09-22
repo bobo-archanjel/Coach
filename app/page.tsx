@@ -50,7 +50,7 @@ const CheckIcon = ({ color, size = 16 }: { color: string; size?: number }) => (
 // trvalo bezplatný produkt — placená fáza (PRODUCT.md fáza 3) zatiaľ nemá
 // zverejnený cenník, preto sa sem nevymýšľa konkrétna suma.
 function StructuredData() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.eu";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -808,7 +808,7 @@ export default function LandingPage() {
               <a href="#funkcie">Funkcie</a>
               <a href="#ai">AI</a>
               <a href="#cennik">Cenník</a>
-              <a href="mailto:podpora@myfitpilot.eu">Kontakt</a>
+              <a href="mailto:podpora@myfitpilot.sk">Kontakt</a>
               <Link href="/ochrana-sukromia">Ochrana súkromia</Link>
               <Link href="/obchodne-podmienky">Obchodné podmienky</Link>
               <Link href="/cookies">Cookies</Link>

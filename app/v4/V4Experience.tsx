@@ -273,7 +273,7 @@ export function V4Experience() {
       <footer className={styles.footer}>
         <p>
           Interná testovacia varianta landing page (app/v4) — bežná stránka ostáva na{" "}
-          <Link href="/">myfitpilot.eu</Link>.
+          <Link href="/">myfitpilot.sk</Link>.
         </p>
       </footer>
     </div>

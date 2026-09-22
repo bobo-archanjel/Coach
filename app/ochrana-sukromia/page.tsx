@@ -41,7 +41,7 @@ export default function PrivacyPolicyPage() {
 
           <h2>1. Kto sme</h2>
           <p>
-            Prevádzkovateľom webovej stránky myfitpilot.eu a aplikácie FitPilot (ďalej len „appka“) je{" "}
+            Prevádzkovateľom webovej stránky myfitpilot.sk a aplikácie FitPilot (ďalej len „appka“) je{" "}
             <span className={styles.placeholder}>[Tvoje meno a priezvisko]</span>,{" "}
             <span className={styles.placeholder}>[adresa]</span> (ďalej len „my“ alebo „prevádzkovateľ“). V
             otázkach ochrany osobných údajov nás môžeš kontaktovať na{" "}

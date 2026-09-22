@@ -6,7 +6,7 @@ import type { MetadataRoute } from "next";
 // nezaťažujú appku indexovaním stránok, ktoré rovnako nikdy nezobrazia bez
 // prihlásenia. Sitemap (app/sitemap.ts) obsahuje len skutočne verejné cesty.
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.eu";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
   return {
     rules: {
       userAgent: "*",

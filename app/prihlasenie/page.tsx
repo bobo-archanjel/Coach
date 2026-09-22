@@ -259,7 +259,7 @@ export default function AuthPage() {
         </div>
 
         <p className={styles.brandFoot}>
-          Potrebuješ pomoc? <a href="mailto:podpora@myfitpilot.eu">podpora@myfitpilot.eu</a>
+          Potrebuješ pomoc? <a href="mailto:podpora@myfitpilot.sk">podpora@myfitpilot.sk</a>
         </p>
       </aside>
 

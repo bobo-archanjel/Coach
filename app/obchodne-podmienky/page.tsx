@@ -62,7 +62,7 @@ export default function TermsPage() {
 
           <h2>4. Cena a platba</h2>
           <p>
-            Ceny uvedené na stránke myfitpilot.eu sú v čase písania týchto podmienok orientačné a menia sa.{" "}
+            Ceny uvedené na stránke myfitpilot.sk sú v čase písania týchto podmienok orientačné a menia sa.{" "}
             <span className={styles.placeholder}>
               [Doplniť po finalizácii cenníka: presná cena, fakturačný cyklus, spôsob platby cez Stripe,
               možnosť zrušenia predplatného.]

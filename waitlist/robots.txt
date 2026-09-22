@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://myfitpilot.eu/sitemap.xml
+Sitemap: https://myfitpilot.sk/sitemap.xml

@@ -23,7 +23,7 @@ interface WaitlistWebhookPayload {
 }
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const FROM_ADDRESS = "FitPilot <info@myfitpilot.eu>";
+const FROM_ADDRESS = "FitPilot <info@myfitpilot.sk>";
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -53,7 +53,7 @@ function buildConfirmationEmailHtml(safeName: string): string {
                style="max-width:480px;width:100%;background-color:#1b1a18;border:1px solid #38352f;border-radius:12px;">
           <tr>
             <td style="padding:36px 32px 28px;text-align:center;">
-              <img src="https://myfitpilot.eu/assets/logo-wordmark.png" alt="FitPilot" width="140"
+              <img src="https://myfitpilot.sk/assets/logo-wordmark.png" alt="FitPilot" width="140"
                    style="display:block;margin:0 auto 28px;height:auto;" />
               <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#e6b23a;margin-bottom:14px;">
                 Čakacia listina
@@ -78,9 +78,9 @@ function buildConfirmationEmailHtml(safeName: string): string {
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
           <tr>
             <td style="padding:20px 32px 0;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8f897d;">
-              FitPilot · <a href="https://myfitpilot.eu" style="color:#8f897d;">myfitpilot.eu</a><br />
+              FitPilot · <a href="https://myfitpilot.sk" style="color:#8f897d;">myfitpilot.sk</a><br />
               Prihlásil sa niekto iný tvojím e-mailom omylom? Napíš na
-              <a href="mailto:info@myfitpilot.eu" style="color:#8f897d;">info@myfitpilot.eu</a> a vymažeme ťa zo zoznamu.
+              <a href="mailto:info@myfitpilot.sk" style="color:#8f897d;">info@myfitpilot.sk</a> a vymažeme ťa zo zoznamu.
             </td>
           </tr>
         </table>
@@ -101,8 +101,8 @@ function buildConfirmationEmailText(safeName: string): string {
     `Toto je jediný e-mail, ktorý od nás zatiaľ dostaneš. Ďalší príde presne vtedy, keď bude appka pripravená`,
     `na spustenie — žiadny ďalší spam, žiadne zdieľanie tretím stranám.`,
     ``,
-    `FitPilot · https://myfitpilot.eu`,
-    `Prihlásil sa niekto iný tvojím e-mailom omylom? Napíš na info@myfitpilot.eu a vymažeme ťa zo zoznamu.`,
+    `FitPilot · https://myfitpilot.sk`,
+    `Prihlásil sa niekto iný tvojím e-mailom omylom? Napíš na info@myfitpilot.sk a vymažeme ťa zo zoznamu.`,
   ].join("\n");
 }
 

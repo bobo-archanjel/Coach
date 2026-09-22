@@ -4,6 +4,10 @@
 vôbec nedotýka). Celý obsah tohto priečinka (`waitlist/`) sa dá nahrať priamo
 na Websupport hosting bez akéhokoľvek build kroku.
 
+**Finálna doména je `myfitpilot.sk`** — `myfitpilot.eu` je len presmerovanie
+(nastavuje sa vo Websupporte pri správe domény `.eu`, nie v kóde). Táto stránka
+aj Resend (potvrdzovací e-mail, krok 4 nižšie) sa vážu na `myfitpilot.sk`.
+
 ## Čo to je
 
 - `index.html` — hlavná landing page s formulárom na čakaciu listinu
@@ -16,7 +20,7 @@ na Websupport hosting bez akéhokoľvek build kroku.
 - `assets/` — logo, favicon, OG obrázok (skopírované z hlavnej appky)
 - `robots.txt`, `sitemap.xml` — **vlastné pre túto doménu, oddelené od appky.**
   Hlavná appka má vlastný `robots.ts`/`sitemap.ts` (Next.js), ale ten sa uplatní
-  až keď appka bude bežať na `myfitpilot.eu` — dovtedy je na doméne len táto
+  až keď appka bude bežať na `myfitpilot.sk` — dovtedy je na doméne len táto
   statická čakacia listina, takže potrebuje vlastné súbory (pozri bod 5 nižšie).
 
 Štýlovanie ide cez **vopred skompilovaný Tailwind** (`css/tailwind.css`, viď
@@ -68,9 +72,9 @@ appka (anon kľúč je verejný by design, bezpečnosť drží RLS, nie jeho uta
    prihlasovacie údaje, ktoré nájdeš v administrácii hostingu).
 2. Nahraj **celý obsah priečinka `waitlist/`** (nie priečinok samotný, ale to čo je
    v ňom) do koreňového priečinka webu (zvyčajne `public_html` alebo `www`).
-3. Over že `index.html` je priamo v koreni (t.j. `myfitpilot.eu/index.html`, nie
-   `myfitpilot.eu/waitlist/index.html`).
-4. Otestuj `myfitpilot.eu` v prehliadači, vyplň formulár, over že sa e-mail objaví
+3. Over že `index.html` je priamo v koreni (t.j. `myfitpilot.sk/index.html`, nie
+   `myfitpilot.sk/waitlist/index.html`).
+4. Otestuj `myfitpilot.sk` v prehliadači, vyplň formulár, over že sa e-mail objaví
    v Supabase (Dashboard → Table Editor → waitlist_signups).
 
 ## 4. Potvrdzovací e-mail (voliteľné, ale chceli ste ho)
@@ -78,10 +82,10 @@ appka (anon kľúč je verejný by design, bezpečnosť drží RLS, nie jeho uta
 Potvrdzovací e-mail posiela Supabase Edge Function cez [Resend](https://resend.com)
 (free tier: 100 e-mailov/deň, 3000/mesiac — na waitlist viac než dosť).
 
-**a) Založ účet na resend.com** (zadarmo) a over doménu `myfitpilot.eu`:
-   - Resend Dashboard → Domains → Add Domain → `myfitpilot.eu`
+**a) Založ účet na resend.com** (zadarmo) a over doménu `myfitpilot.sk`:
+   - Resend Dashboard → Domains → Add Domain → `myfitpilot.sk`
    - Pridá ti DNS záznamy (SPF, DKIM) — vlož ich vo Websupporte pri správe domény
-     (DNS záznamy sekcia). Bez tohto Resend nedovolí odosielať z `info@myfitpilot.eu`.
+     (DNS záznamy sekcia). Bez tohto Resend nedovolí odosielať z `info@myfitpilot.sk`.
    - Počkaj na "Verified" stav (zvyčajne pár minút až hodín).
    - Skopíruj si API kľúč (Resend Dashboard → API Keys → Create).
 
@@ -100,7 +104,7 @@ Potvrdzovací e-mail posiela Supabase Edge Function cez [Resend](https://resend.
    - Edge Function: `send-waitlist-confirmation`
    - Ulož.
 
-**d) Over end-to-end:** vyplň formulár na `myfitpilot.eu`, do pár sekúnd by mal
+**d) Over end-to-end:** vyplň formulár na `myfitpilot.sk`, do pár sekúnd by mal
 prísť e-mail. Ak nie, skontroluj Supabase Dashboard → Edge Functions →
 `send-waitlist-confirmation` → Logs (zobrazí presnú chybu — najčastejšie
 nedokončená DNS verifikácia domény v Resende).
@@ -112,12 +116,12 @@ môžeš spraviť aj neskôr, bez zásahu do `index.html`/`js/main.js`.
 ## 5. Pri spustení appky naostro
 
 1. Appku nasaď na Node hosting (napr. Vercel — pozri poznámku v hlavnom README appky).
-2. Vo Websupporte pri doméne `myfitpilot.eu` prepni DNS záznamy z tohto hostingu
+2. Vo Websupporte pri doméne `myfitpilot.sk` prepni DNS záznamy z tohto hostingu
    na nový hosting appky.
 3. Tento hosting (Websupport Simple 1GB) môžeš zrušiť alebo nechať dobehnúť do
    konca predplateného obdobia — doména ostáva tvoja, mení sa len kam smeruje.
 4. `robots.txt` a `sitemap.xml` z tohto priečinka (`waitlist/`) sa netreba mazať
    ručne — hneď ako DNS/hosting ukazuje na appku, prevezmú ich miesto appkine
    vlastné `app/robots.ts`/`app/sitemap.ts` (Next.js ich generuje na tých istých
-   cestách). Uisti sa len, že appka má `NEXT_PUBLIC_SITE_URL=https://myfitpilot.eu`
+   cestách). Uisti sa len, že appka má `NEXT_PUBLIC_SITE_URL=https://myfitpilot.sk`
    nastavené v produkčnom prostredí.
