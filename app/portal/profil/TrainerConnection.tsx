@@ -29,9 +29,13 @@ const ShareIcon = () => (
  */
 export function TrainerConnection({
   code,
+  hasTrainer,
   trainerName,
 }: {
   code: string | null;
+  hasTrainer: boolean;
+  /** Meno na zobrazenie — môže byť null aj keď hasTrainer je true (meno sa
+   * nepodarilo zistiť); šablóny nižšie preto meno vypisujú len keď je k dispozícii. */
   trainerName: string | null;
 }) {
   const [copied, setCopied] = useState(false);
@@ -115,17 +119,23 @@ export function TrainerConnection({
         <p className={styles.panelLabel} style={{ marginTop: 4, marginBottom: 10 }}>
           Tréner
         </p>
-        {trainerName ? (
+        {hasTrainer ? (
           <>
             <p className={styles.trainerName}>
               <span className={styles.trainerDot} aria-hidden="true" />
-              Prepojený/á s trénerom <strong>{trainerName}</strong>
+              {trainerName ? (
+                <>
+                  Prepojený/á s trénerom <strong>{trainerName}</strong>
+                </>
+              ) : (
+                "Prepojený/á s trénerom"
+              )}
             </p>
             {confirmLeave ? (
               <div className={styles.trainerLeaveConfirm}>
                 <p className={styles.codeHint} style={{ marginTop: 0 }}>
-                  Odpojiť sa od trénera {trainerName}? Tvoje tréningy, merania a denník ostávajú — tréner k nim už
-                  nebude mať prístup.
+                  {trainerName ? `Odpojiť sa od trénera ${trainerName}?` : "Odpojiť sa od trénera?"} Tvoje tréningy,
+                  merania a denník ostávajú — tréner k nim už nebude mať prístup.
                 </p>
                 <div className={styles.trainerLeaveActions}>
                   <button type="button" className="btn btn-primary btn-sm" onClick={leave} disabled={leavePending}>

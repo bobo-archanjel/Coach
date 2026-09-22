@@ -8,6 +8,7 @@ import { getHealthDigest, BUCKET_LABEL } from "@/lib/dashboard/healthDigest";
 import { getActiveDismissals } from "@/lib/dashboard/dismissals";
 import { digestDismissKey, lateDismissKey, ONBOARDING_DISMISS_KEY } from "@/lib/dashboard/attention";
 import { DismissibleNotice, LateAlertPanel } from "./DashboardNotices";
+import { pluralSk } from "@/lib/portal/streak";
 import styles from "./dashboard.module.css";
 
 /** Grace period pred hard delete (0018_client_deletion.sql, pg_cron `purge_deleted_clients`). */
@@ -92,7 +93,10 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       <>
         <div className={styles.pageHead}>
           <h1>Klienti</h1>
-          <p>{DELETION_PREVIEW.length} klientov v starostlivosti — kliknutím otvoríš detail.</p>
+          <p>
+            {DELETION_PREVIEW.length} {pluralSk(DELETION_PREVIEW.length, "klient", "klienti", "klientov")} v
+            starostlivosti — kliknutím otvoríš detail.
+          </p>
         </div>
         <div className={styles.alertPanel} role="status">
           <p className={styles.alertPanelTitle}>1 klient mešká s tréningom</p>
@@ -285,7 +289,10 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     <>
       <div className={styles.pageHead}>
         <h1>Klienti</h1>
-        <p>{clients?.length ?? 0} klientov v starostlivosti — kliknutím otvoríš detail.</p>
+        <p>
+          {clients?.length ?? 0} {pluralSk(clients?.length ?? 0, "klient", "klienti", "klientov")} v starostlivosti —
+          kliknutím otvoríš detail.
+        </p>
       </div>
 
       {!onboardingDone && !dismissed.has(ONBOARDING_DISMISS_KEY) && (

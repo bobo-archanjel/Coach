@@ -49,3 +49,5 @@ scripts/.equipment-backfill-*.json
 supabase/.temp/
 .qa-profiles/
 qa-results/
+.next-qa-trainer/
+.next-qa-client/

@@ -6,6 +6,10 @@ import styles from "../portal.module.css";
 
 type ProfilView = {
   code: string | null;
+  hasTrainer: boolean;
+  /** Meno trénera na zobrazenie — null aj keď hasTrainer je true (meno sa
+   * nepodarilo zistiť), nikdy fallback reťazec ako "tvoj tréner" (viedlo k
+   * "Prepojený/á s trénerom tvoj tréner" / "Odpojiť sa od trénera tvoj tréner?"). */
   trainerName: string | null;
   deletionRequestedAt: string | null;
   deletionRequestedBy: "trainer" | "client" | null;
@@ -17,12 +21,13 @@ function previewView(kind: string): ProfilView | null {
   const code = "FP-4A9F2C7E1B8D6035AC12";
   switch (kind) {
     case "has_trainer":
-      return { code, trainerName: "Marek Novák", deletionRequestedAt: null, deletionRequestedBy: null };
+      return { code, hasTrainer: true, trainerName: "Marek Novák", deletionRequestedAt: null, deletionRequestedBy: null };
     case "no_trainer":
-      return { code, trainerName: null, deletionRequestedAt: null, deletionRequestedBy: null };
+      return { code, hasTrainer: false, trainerName: null, deletionRequestedAt: null, deletionRequestedBy: null };
     case "deletion":
       return {
         code,
+        hasTrainer: true,
         trainerName: "Marek Novák",
         deletionRequestedAt: new Date(Date.now() - 4 * 86_400_000).toISOString(),
         deletionRequestedBy: "client",
@@ -44,6 +49,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
     } = await getUser();
 
     let code: string | null = null;
+    let hasTrainer = false;
     let trainerName: string | null = null;
     let deletionRequestedAt: string | null = null;
     let deletionRequestedBy: "trainer" | "client" | null = null;
@@ -72,17 +78,18 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
         deletionRequestedAt = client.deletion_requested_at;
         deletionRequestedBy = client.deletion_requested_by;
         if (client.trainer_id) {
+          hasTrainer = true;
           const { data: trainer } = await supabase
             .from("profiles")
             .select("full_name")
             .eq("id", client.trainer_id)
             .maybeSingle();
-          trainerName = trainer?.full_name ?? "tvoj tréner";
+          trainerName = trainer?.full_name ?? null;
         }
       }
     }
 
-    view = { code, trainerName, deletionRequestedAt, deletionRequestedBy };
+    view = { code, hasTrainer, trainerName, deletionRequestedAt, deletionRequestedBy };
   }
 
   return (
@@ -93,7 +100,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
       </div>
 
       <div className={styles.profileStack}>
-        <TrainerConnection code={view.code} trainerName={view.trainerName} />
+        <TrainerConnection code={view.code} hasTrainer={view.hasTrainer} trainerName={view.trainerName} />
 
         <div className={styles.panel}>
           <p className={styles.panelLabel}>Osobné údaje</p>

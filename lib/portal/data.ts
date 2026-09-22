@@ -298,6 +298,21 @@ export async function getPortalData(): Promise<PortalResult> {
     const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
     if (!client) return { state: "unlinked", firstName };
 
+    // Zápis telesnej miery (BodyMetricForm) je nezávislá funkcia od tréningového
+    // plánu — "no_plan" stav ju preto musí nosiť so sebou (QA nález #3: predtým
+    // sa BodyMetricForm vôbec nerenderoval, kým klient nemal aktívny plán).
+    const noPlanResult = async (): Promise<PortalResult> => {
+      const { isoDate } = todayInTz();
+      const bodyMetrics = await getBodyMetrics(client.id);
+      return {
+        state: "no_plan",
+        firstName: firstName ?? "",
+        hasTrainer: Boolean(client.trainer_id),
+        today: isoDate,
+        bodyMetrics: bodyMetrics ?? [],
+      };
+    };
+
     // "Aktívny" plán = clients.active_plan_id (klient si ho volí v sekcii Tréning),
     // inak najnovší plán (spätne kompatibilné). Platí pre plán od trénera aj vlastný.
     let plan: { id: string; name: string } | null = null;
@@ -325,7 +340,7 @@ export async function getPortalData(): Promise<PortalResult> {
       if (planErr) return { state: "error", message: dbErr(planErr, "data") };
       plan = data ?? null;
     }
-    if (!plan) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
+    if (!plan) return await noPlanResult();
 
     const { data: dayRows, error: daysErr } = await supabase
       .from("workout_days")
@@ -336,7 +351,7 @@ export async function getPortalData(): Promise<PortalResult> {
     if (daysErr) return { state: "error", message: dbErr(daysErr, "data") };
 
     const days = (dayRows ?? []) as DayRow[];
-    if (days.length === 0) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
+    if (days.length === 0) return await noPlanResult();
 
     const { isoDate, hour, base } = todayInTz();
 
@@ -465,18 +480,18 @@ export async function getPortalData(): Promise<PortalResult> {
     // ---------- odkaz trénera ----------
     let coachNote: CoachNote | null = null;
     if (note?.body) {
-      let trainerName = "tréner";
+      let trainerName: string | null = null;
       if (note.trainer_id) {
         const { data: trainer } = await supabase
           .from("profiles")
           .select("full_name")
           .eq("id", note.trainer_id)
           .maybeSingle();
-        trainerName = firstNameOf(trainer?.full_name) ?? trainerName;
+        trainerName = firstNameOf(trainer?.full_name);
       }
       coachNote = {
         trainer: trainerName,
-        initials: (trainerName[0] ?? "T").toUpperCase(),
+        initials: (trainerName?.[0] ?? "T").toUpperCase(),
         text: note.body,
       };
     }
@@ -1052,10 +1067,10 @@ export async function getPortalChat(): Promise<PortalChatResult> {
       createdAt: m.created_at,
     }));
 
-    let trainerName = "tréner";
+    let trainerName: string | null = null;
     if (cRow?.trainer_id) {
       const { data: t } = await supabase.from("profiles").select("full_name").eq("id", cRow.trainer_id).maybeSingle();
-      trainerName = firstNameOf(t?.full_name) ?? "tréner";
+      trainerName = firstNameOf(t?.full_name);
     }
 
     const data: PortalChatData = { messages, trainerName };

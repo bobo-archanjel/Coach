@@ -76,9 +76,13 @@ async function buildSnapshot(page) {
 }
 
 (async () => {
+  // QA_HEADED=1 otvorí reálne okno Chromia (beží priamo na tomto Macu, nie v
+  // izolovanom kontajneri) — užitočné keď chce človek vizuálne sledovať test naživo.
+  const headed = process.env.QA_HEADED === "1";
   const context = await chromium.launchPersistentContext(userDataDir, {
-    headless: true,
-    viewport: { width: 1280, height: 900 },
+    headless: !headed,
+    viewport: headed ? null : { width: 1280, height: 900 },
+    ...(headed ? { args: ["--window-size=1280,900", "--window-position=100,100"] } : {}),
   });
   const page = context.pages()[0] || (await context.newPage());
   await page.goto(`http://localhost:${appPort}/`, { waitUntil: "domcontentloaded" }).catch(() => {});

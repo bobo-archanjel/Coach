@@ -33,8 +33,13 @@ export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDa
       <input
         name="name"
         type="text"
-        placeholder={`Deň ${nextDayNumber} — Push`}
-        required
+        placeholder={`napr. Deň ${nextDayNumber} — Push`}
+        // Zámerne bez `required` — natívna HTML5 validačná bublina ("Please fill
+        // out this field") sa riadi jazykom PREHLIADAČA, nie appky, takže na
+        // anglicky nastavenom prehliadači vyskočí anglický text v inak
+        // slovenskej appke (QA nález #7). `addDayAction` (../actions.ts) už
+        // prázdny názov odmietne s vlastnou slovenskou hláškou ("Zadaj názov
+        // dňa.") cez `state.error` nižšie — netreba duplicitnú JS validáciu.
         autoFocus
         disabled={pending}
         className={styles.addDayInput}
