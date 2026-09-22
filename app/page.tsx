@@ -811,6 +811,7 @@ export default function LandingPage() {
               <a href="mailto:podpora@fitpilot.sk">Kontakt</a>
               <Link href="/ochrana-sukromia">Ochrana súkromia</Link>
               <Link href="/obchodne-podmienky">Obchodné podmienky</Link>
+              <Link href="/cookies">Cookies</Link>
             </div>
           </div>
           <p className={styles.fine}>
