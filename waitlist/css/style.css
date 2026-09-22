@@ -1,10 +1,9 @@
 /* FitPilot — Waitlist landing page.
-   Tailwind (CDN) robí layout/utility prácu; tento súbor drží len to, čo Tailwind
-   utility triedy nevedia pekne vyjadriť — presné brand tokeny z DESIGN.md, font,
-   a počiatočné stavy pre GSAP scroll reveal (viď js/main.js). Zámerne minimálny —
-   žiadny custom layout CSS, len doplnok k Tailwindu. */
-
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+   Tailwind (skompilovaný cez css/tailwind-input.css, viď index.html <head>)
+   robí layout/utility prácu; tento súbor drží len to, čo Tailwind utility triedy
+   nevedia pekne vyjadriť — presné brand tokeny z DESIGN.md a počiatočné stavy pre
+   GSAP scroll reveal (viď js/main.js). Font (Inter) sa načítava priamym <link>
+   v <head> index.html/privacy.html — nie @import tu (viď komentár tam prečo). */
 
 :root {
   /* DESIGN.md — presné brand tokeny, rovnaké ako v hlavnej appke (app/globals.css) */

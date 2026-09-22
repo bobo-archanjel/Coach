@@ -8,6 +8,9 @@ na Websupport hosting bez akéhokoľvek build kroku.
 
 - `index.html` — hlavná landing page s formulárom na čakaciu listinu
 - `privacy.html` — krátka stránka ochrany súkromia (len pre túto čakaciu listinu)
+- `css/tailwind-input.css` → skompilovaný do `css/tailwind.css` (netreba nahrávať
+  `tailwind-input.css` na hosting, len výsledný `tailwind.css` — je to zdrojový
+  súbor, nie výstup; prekompiluje sa pri zmene tried, viď nižšie)
 - `css/style.css` — brand tokeny (farby z DESIGN.md) + malé doplnky k Tailwindu
 - `js/main.js` — GSAP scroll reveal, FAQ accordion, odoslanie formulára do Supabase
 - `assets/` — logo, favicon, OG obrázok (skopírované z hlavnej appky)
@@ -16,18 +19,29 @@ na Websupport hosting bez akéhokoľvek build kroku.
   až keď appka bude bežať na `myfitpilot.eu` — dovtedy je na doméne len táto
   statická čakacia listina, takže potrebuje vlastné súbory (pozri bod 5 nižšie).
 
-Štýlovanie ide cez **Tailwind CDN** (`<script src="https://cdn.tailwindcss.com">`)
-— žiadny build krok, žiadny Node. Animácie cez **GSAP** (CDN) — len na sekciách
+Štýlovanie ide cez **vopred skompilovaný Tailwind** (`css/tailwind.css`, viď
+nižšie) — žiadny Node na samotnom hostingu, kompiluje sa len tu, jedenkrát,
+predtým než sa priečinok nahrá. Animácie cez **GSAP** (CDN) — len na sekciách
 pod hero, nikdy na H1/CTA (JS-viazaná animácia na prvej viditeľnej veci škodí
-LCP — poučenie z opravy `/v4` v hlavnej appke).
+LCP — poučenie z opravy `/v4` v hlavnej appke). Ak GSAP alebo Supabase CDN
+skript z akéhokoľvek dôvodu zlyhá (blokovač reklám, výpadok), `js/main.js` má
+zabudované poistky — obsah sa aj tak ukáže (cez natívny IntersectionObserver
+namiesto GSAP) a formulár sa jasne povie, že sa nepodarilo načítať, namiesto
+toho, aby ticho spadol.
 
-> **Prečo Tailwind CDN, nie kompilovaný CSS:** pre jednu nízko-návštevovú
-> waitlist stránku je jednoduchosť nasadenia (žiadny build, žiadny Node na
-> hostingu) dôležitejšia než pár desiatok kB navyše. Ak appka pred launchom
-> dostane vyššiu návštevnosť a bude sa oplatiť Lighthouse skóre doladiť,
-> najjednoduchšia cesta je skompilovať Tailwind CLI lokálne (`npx tailwindcss
-> -o css/tailwind.css --minify`) a nahradiť CDN script tag odkazom na tento
-> súbor — netreba meniť HTML štruktúru ani triedy.
+> **Prečo skompilovaný CSS, nie Tailwind CDN skript:** stránka pôvodne používala
+> `<script src="https://cdn.tailwindcss.com">`, čo je jednoduchšie na nasadenie,
+> ale beží AŽ po stiahnutí a vykonaní JS a triedy prepočítava za behu v
+> prehliadači — reálny Lighthouse audit ukázal 1.58s "render-blocking" práve
+> kvôli tomuto (plus Google Fonts `@import`, tiež opravené). Skompilovaný CSS
+> (12 kB) je rovnako jednoduchý na nahratie (jeden statický súbor), len sa
+> musí prekompilovať pri KAŽDEJ zmene Tailwind tried v `index.html`/`privacy.html`:
+> ```bash
+> cd waitlist
+> npx @tailwindcss/cli -i css/tailwind-input.css -o css/tailwind.css --minify
+> ```
+> `css/tailwind-input.css` obsahuje brand farby/font/radius (`@theme` blok) —
+> zmena farby sa robí tam, nie v `css/tailwind.css` (ten sa vždy prepíše nanovo).
 
 ## 1. Lokálne vyskúšanie
 

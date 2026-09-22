@@ -82,34 +82,23 @@
   }
   </script>
 
+  <!-- feature/wishlist (výkonová oprava) — priamy <link> namiesto @import v CSS.
+       @import vo vnútri style.css si prehliadač všimne až PO stiahnutí a
+       parsovaní style.css samotného (sériová vlna: HTML → style.css → Google
+       Fonts CSS → font súbory), aj s preconnect nižšie. Priamy <link> tu môže
+       prehliadač objaviť a stiahnuť rovno pri parsovaní <head>, paralelne so
+       zvyškom — to bol jeden z dvoch hlavných zdrojov 1.58s "render-blocking"
+       nálezu z Lighthouse auditu (druhý bol Tailwind CDN nižšie). -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" />
+  <!-- Vopred skompilovaný Tailwind (css/tailwind-input.css → npx @tailwindcss/cli,
+       pozri README.md "Aktualizácia Tailwind CSS po zmene tried") namiesto
+       runtime CDN <script>, ktorý predtým bežal AŽ po stiahnutí/vykonaní JS a
+       prepočítaval triedy za behu v prehliadači — to bol druhý hlavný zdroj
+       render-blocking nálezu z Lighthouse auditu. -->
+  <link rel="stylesheet" href="css/tailwind.css" />
   <link rel="stylesheet" href="css/style.css" />
-
-  <!-- Tailwind (CDN, bez build kroku — pozri README.md "Prečo Tailwind CDN") -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            ink: "#121110",
-            ink2: "#1b1a18",
-            ink3: "#262421",
-            paper: "#f3efe6",
-            paperdim: "#cfc9bd",
-            paperfaint: "#8f897d",
-            coral: "#e0402a",
-            coraldeep: "#c3341f",
-            amber: "#e6b23a",
-            steelline: "#38352f",
-          },
-          fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
-          borderRadius: { s: "9px", m: "12px" },
-        },
-      },
-    };
-  </script>
 </head>
 <body class="bg-ink text-paper font-sans antialiased">
 
