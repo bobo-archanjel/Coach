@@ -301,7 +301,7 @@ export function V3Experience() {
       <footer className={styles.footer}>
         <p>
           Interná testovacia varianta landing page (feature/front-end) — bežná stránka ostáva na{" "}
-          <Link href="/">fitpilot.sk</Link>.
+          <Link href="/">myfitpilot.eu</Link>.
         </p>
       </footer>
     </div>

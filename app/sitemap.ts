@@ -4,7 +4,7 @@ import type { MetadataRoute } from "next";
 // za loginom (RLS aj auth guard v layout.tsx) — vyhľadávač by tam aj tak
 // nikdy nič neuvidel, zaradenie do sitemap by bolo len zavádzajúce.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://fitpilot.sk";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.eu";
   const now = new Date();
 
   // Ochrana súkromia / obchodné podmienky zámerne CHÝBAJÚ — obe stránky majú

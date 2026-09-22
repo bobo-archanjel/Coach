@@ -11,6 +11,10 @@ na Websupport hosting bez akéhokoľvek build kroku.
 - `css/style.css` — brand tokeny (farby z DESIGN.md) + malé doplnky k Tailwindu
 - `js/main.js` — GSAP scroll reveal, FAQ accordion, odoslanie formulára do Supabase
 - `assets/` — logo, favicon, OG obrázok (skopírované z hlavnej appky)
+- `robots.txt`, `sitemap.xml` — **vlastné pre túto doménu, oddelené od appky.**
+  Hlavná appka má vlastný `robots.ts`/`sitemap.ts` (Next.js), ale ten sa uplatní
+  až keď appka bude bežať na `myfitpilot.eu` — dovtedy je na doméne len táto
+  statická čakacia listina, takže potrebuje vlastné súbory (pozri bod 5 nižšie).
 
 Štýlovanie ide cez **Tailwind CDN** (`<script src="https://cdn.tailwindcss.com">`)
 — žiadny build krok, žiadny Node. Animácie cez **GSAP** (CDN) — len na sekciách
@@ -94,7 +98,12 @@ môžeš spraviť aj neskôr, bez zásahu do `index.html`/`js/main.js`.
 ## 5. Pri spustení appky naostro
 
 1. Appku nasaď na Node hosting (napr. Vercel — pozri poznámku v hlavnom README appky).
-2. Vo Websupporte pri doméne `myfitpilot.eu` preptrni DNS záznamy z tohto hostingu
+2. Vo Websupporte pri doméne `myfitpilot.eu` prepni DNS záznamy z tohto hostingu
    na nový hosting appky.
 3. Tento hosting (Websupport Simple 1GB) môžeš zrušiť alebo nechať dobehnúť do
    konca predplateného obdobia — doména ostáva tvoja, mení sa len kam smeruje.
+4. `robots.txt` a `sitemap.xml` z tohto priečinka (`waitlist/`) sa netreba mazať
+   ručne — hneď ako DNS/hosting ukazuje na appku, prevezmú ich miesto appkine
+   vlastné `app/robots.ts`/`app/sitemap.ts` (Next.js ich generuje na tých istých
+   cestách). Uisti sa len, že appka má `NEXT_PUBLIC_SITE_URL=https://myfitpilot.eu`
+   nastavené v produkčnom prostredí.

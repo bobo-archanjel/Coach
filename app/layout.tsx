@@ -16,7 +16,7 @@ const inter = Inter({
 // právne stránky) môžu prebiť vlastným `export const metadata` — dashboard/
 // portal (za loginom) sa o SEO nestarajú, dedia len title (kartička v
 // prehliadači), nič viac netreba.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://fitpilot.sk";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.eu";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
