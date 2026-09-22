@@ -141,7 +141,7 @@ export function V5Experience() {
         <footer className={styles.mobileFooter}>
           <p>
             Interná testovacia varianta landing page (app/v5) — bežná stránka ostáva na{" "}
-            <Link href="/">fitpilot.sk</Link>.
+            <Link href="/">myfitpilot.sk</Link>.
           </p>
         </footer>
       </div>

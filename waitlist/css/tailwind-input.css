@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/* feature/wishlist (výkonová oprava) — v4-CSS config, náhrada za runtime
+   `tailwind.config = {...}` JS objekt, ktorý predtým bežal cez CDN <script>
+   (Tailwind Play CDN, nie skutočný build — negeneruje statický CSS vopred,
+   ale počíta triedy za behu v prehliadači, čo blokovalo render ~1.5s). Tento
+   súbor sa kompiluje LOKÁLNE (`npm run build:css` v tomto priečinku) do
+   hotového `tailwind.css`, ktorý sa už len odkazuje ako obyčajný <link>. */
+@theme {
+  --color-ink: #121110;
+  --color-ink2: #1b1a18;
+  --color-ink3: #262421;
+  --color-paper: #f3efe6;
+  --color-paperdim: #cfc9bd;
+  --color-paperfaint: #8f897d;
+  --color-coral: #e0402a;
+  --color-coraldeep: #c3341f;
+  --color-amber: #e6b23a;
+  --color-steelline: #38352f;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --radius-s: 9px;
+  --radius-m: 12px;
+}

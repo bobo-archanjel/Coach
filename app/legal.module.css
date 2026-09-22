@@ -116,6 +116,35 @@
   color: var(--iron-red);
 }
 
+/* Právne sprísnenie (2026-09-22) — tabuľky pre "účel/právny základ" (ochrana
+   súkromia) a "cookie/účel/platnosť" (cookie politika). */
+.legal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 14px;
+}
+.legal th,
+.legal td {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--steel-line);
+  color: var(--paper-dim);
+  vertical-align: top;
+}
+.legal th {
+  color: var(--paper);
+  background: var(--ink-3);
+  font-weight: 600;
+}
+
+/* Nevyplnené polia (meno, adresa, e-mail, IČO...) — zvýraznené, nech sa pred
+   zverejnením nezabudnú nahradiť skutočnými hodnotami. */
+.placeholder {
+  color: var(--plate-yellow);
+  font-weight: 600;
+}
+
 .backLink {
   display: inline-flex;
   align-items: center;

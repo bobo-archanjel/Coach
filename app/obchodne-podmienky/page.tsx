@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * feature/security#2 — predtým dead link (href="#") z registračného formulára.
- * DRAFT dokument — vecne správny podľa toho, čo appka reálne robí, ale nie je
- * to právne záväzný text od právnika. Viditeľné upozornenie v UI aj v kóde.
+ * 2026-09-22 — nahradené kompletným návrhom obchodných podmienok. Nie je to
+ * právne záväzný text od právnika — pozri draftNotice nižšie. Bod 4 (cena a
+ * platba) sa uplatní až po spustení Stripe platieb, dovtedy zostáva neaktívny.
  */
 export default function TermsPage() {
   return (
@@ -27,68 +27,90 @@ export default function TermsPage() {
         <article className={`${styles.card} ${styles.legal}`}>
           <span className={styles.eyebrow}>Právne</span>
           <h1>Obchodné podmienky</h1>
-          <p className={styles.updated}>Posledná aktualizácia: 7. september 2026</p>
+          <p className={styles.updated}>Posledná aktualizácia: 22. september 2026</p>
 
           <div className={styles.draftNotice}>
-            <strong>Toto je pracovný návrh (draft).</strong> Popisuje vecne, ako appka funguje — ale nie
-            je to právne záväzný text schválený právnikom. Pred spustením appky pre skutočných
-            zákazníkov nechajte tento dokument skontrolovať právnikom.
+            <strong>Toto je pracovný návrh (draft).</strong> Nie je to právne záväzný text schválený
+            právnikom. Obsahuje polia označené <span className={styles.placeholder}>[v hranatých zátvorkách]</span> —
+            tie treba doplniť pred zverejnením/spustením platieb. Odporúčame právnu kontrolu, najmä bodov o
+            zodpovednosti a cene.
           </div>
 
-          <h2>1. Predmet zmluvy</h2>
+          <h2>1. Základné ustanovenia</h2>
           <p>
-            FitPilot je softvér (SaaS) na správu klientov, tréningových plánov, výživy a komunikácie
-            pre fitness trénerov. Používaním appky (registráciou účtu) súhlasíte s týmito podmienkami.
+            Tieto obchodné podmienky upravujú vzťah medzi{" "}
+            <span className={styles.placeholder}>[Tvoje meno a priezvisko]</span> (ďalej len „poskytovateľ“)
+            a používateľom appky FitPilot (ďalej len „používateľ“). Používaním appky používateľ s týmito
+            podmienkami súhlasí.
           </p>
 
-          <h2>2. Účty a role</h2>
+          <h2>2. Popis služby</h2>
           <p>
-            Appka rozlišuje dve role — tréner (platiaci zákazník) a klient (pripojený trénerom cez
-            pozývací kód). Tréner zodpovedá za správnosť údajov, ktoré o svojich klientoch zadáva.
+            FitPilot je softvér ako služba (SaaS) určený predovšetkým fitness trénerom na Slovensku a v
+            Česku na správu klientov, tvorbu tréningových a jedálnych plánov, sledovanie stravy a makier a
+            komunikáciu s klientmi, s podporou AI asistenta. Jednotlivé nástroje appky (sledovanie stravy,
+            tvorba tréningových plánov) sú dostupné aj samostatne, bez prepojenia na trénera.
           </p>
 
-          <h2>3. Predplatné a skúšobné obdobie</h2>
+          <h2>3. Registrácia a účet</h2>
           <p>
-            Tréner má k dispozícii 14-dňové skúšobné obdobie zadarmo, bez viazanosti. Po jeho uplynutí
-            pokračovanie v používaní appky vyžaduje platné predplatné podľa aktuálneho cenníka na
-            landing page. Ceny sú orientačné a môžu sa zmeniť pred spustením plateného predplatného.
+            Používateľ sa registruje pomocou e-mailu a hesla. Tréner spravuje svojich klientov cez appku;
+            klient sa môže pripojiť k trénerovi pomocou pozývacieho kódu, alebo appku používať úplne
+            samostatne. Prepojenie medzi trénerom a klientom je možné kedykoľvek zrušiť bez straty vlastných
+            dát klienta.
           </p>
 
-          <h2>4. AI funkcie — obmedzenie zodpovednosti</h2>
+          <h2>4. Cena a platba</h2>
           <p>
-            Appka obsahuje AI asistenta (generovanie tréningových plánov, sumarizácia progresu, chat
-            pre klienta). AI výstupy sú <strong>návrhy</strong>, nikdy automatické rozhodnutia —
-            tréningový plán navrhnutý AI sa vždy zobrazí trénerovi na schválenie/úpravu pred tým, než
-            ho klient uvidí. AI chat pre klienta pri zmienke o bolesti, zranení alebo zdravotnom
-            probléme eskaluje na trénera a <strong>nediagnostikuje</strong> — appka nenahrádza
-            zdravotnú starostlivosť ani odborné poradenstvo.
+            Ceny uvedené na stránke myfitpilot.sk sú v čase písania týchto podmienok orientačné a menia sa.{" "}
+            <span className={styles.placeholder}>
+              [Doplniť po finalizácii cenníka: presná cena, fakturačný cyklus, spôsob platby cez Stripe,
+              možnosť zrušenia predplatného.]
+            </span>{" "}
+            Kým appka nemá spustené platby, tento bod sa neuplatňuje.
           </p>
 
-          <h2>5. Zodpovednosť trénera</h2>
+          <h2>5. Umelá inteligencia — dôležité obmedzenie</h2>
           <p>
-            Tréner zostáva plne zodpovedný za odborné vedenie svojich klientov — appka je nástroj na
-            administratívu a komunikáciu, nie náhrada odbornej starostlivosti trénera.
+            AI funkcie appky (AI kouč pre klienta, AI generátor tréningových a jedálnych plánov, sumarizácia
+            progresu) sú asistenčný nástroj, nie náhrada odborného poradenstva. AI výstupy pre klienta appka
+            nikdy neposiela automaticky — tréner ich musí najprv schváliť. AI nikdy nediagnostikuje zdravotné
+            problémy; pri zdravotných témach appka odporúča konzultáciu s trénerom alebo lekárom.
+            Poskytovateľ nezodpovedá za škodu spôsobenú nesprávnym použitím AI odporúčaní mimo tohto rámca.
           </p>
 
-          <h2>6. Ukončenie zmluvy</h2>
+          <h2>6. Trvanie a ukončenie</h2>
           <p>
-            Tréner môže kedykoľvek zrušiť predplatné a požiadať o vymazanie účtu. Appka poskytuje
-            30-dňovú ochrannú lehotu pred trvalým vymazaním údajov, počas ktorej sa dá zrušenie vrátiť.
+            Používateľ môže appku prestať používať a požiadať o vymazanie účtu kedykoľvek priamo v appke.
+            Poskytovateľ si vyhradzuje právo pozastaviť alebo zrušiť účet v prípade porušenia týchto
+            podmienok.
           </p>
 
-          <h2>7. Dostupnosť služby</h2>
+          <h2>7. Zodpovednosť</h2>
           <p>
-            Appka je poskytovaná „tak ako je&rdquo; (as-is). Snažíme sa o čo najvyššiu dostupnosť, ale
-            negarantujeme neprerušenú prevádzku.
+            Appka sa poskytuje „tak ako je“. Poskytovateľ vynakladá primerané úsilie na dostupnosť a
+            bezpečnosť appky, ale nezodpovedá za škody vzniknuté výpadkom služby, stratou dát v dôsledku
+            vyššej moci, alebo nesprávnym použitím appky v rozpore s jej účelom.
           </p>
 
-          <h2>8. Rozhodné právo</h2>
-          <p>Tieto podmienky sa riadia právnym poriadkom Slovenskej republiky.</p>
-
-          <h2>9. Kontakt</h2>
+          <h2>8. Ochrana osobných údajov</h2>
           <p>
-            Otázky k týmto podmienkam posielajte na{" "}
-            <a href="mailto:podpora@fitpilot.sk">podpora@fitpilot.sk</a>.
+            Spracúvanie osobných údajov sa riadi samostatnými{" "}
+            <Link href="/ochrana-sukromia">Zásadami ochrany osobných údajov</Link>.
+          </p>
+
+          <h2>9. Reklamácie a sťažnosti</h2>
+          <p>
+            Reklamácie a sťažnosti používateľ zasiela na{" "}
+            <span className={styles.placeholder}>[kontaktný e-mail]</span>. Poskytovateľ sa zaväzuje reagovať
+            do 30 dní.
+          </p>
+
+          <h2>10. Záverečné ustanovenia</h2>
+          <p>
+            Tieto podmienky sa riadia právnym poriadkom Slovenskej republiky. Poskytovateľ si vyhradzuje
+            právo podmienky priebežne upravovať; o zmenách bude používateľov informovať prostredníctvom
+            appky alebo e-mailu.
           </p>
 
           <Link href="/" className={styles.backLink}>

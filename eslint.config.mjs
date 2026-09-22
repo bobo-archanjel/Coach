@@ -14,7 +14,9 @@ const eslintConfig = [
     // next-env.d.ts je auto-generovaný Next.js pri každom builde/dev štarte
     // (triple-slash referencie sú jeho vlastný formát) — netreba ho editovať
     // ani lintovať, Next si ho sám prepíše nabudúce.
-    ignores: ["design/**", ".next/**", "public/**", "next-env.d.ts"],
+    // supabase/functions/** beží na Deno (edge functions), nie na Next/Node —
+    // iný runtime, iné globály (Deno.*), netreba ho lintovať rovnakou konfiguráciou.
+    ignores: ["design/**", ".next/**", "public/**", "next-env.d.ts", "supabase/functions/**"],
   },
 ];
 
