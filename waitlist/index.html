@@ -303,11 +303,10 @@
             odhlásiť. <a href="privacy.html" class="underline hover:text-paper">Ochrana súkromia</a>
           </span>
         </label>
-        <!-- Cloudflare Turnstile (CAPTCHA) — TODO (Boris): nahraď data-sitekey
-             skutočným Site Key z dash.cloudflare.com/?to=/:account/turnstile
-             (waitlist/README.md, sekcia "Ochrana proti spamu"). Bez neho
-             widget nič nezobrazí a odoslanie vždy zlyhá na "captcha_missing". -->
-        <div class="cf-turnstile" data-sitekey="TODO_TURNSTILE_SITE_KEY" data-theme="dark"></div>
+        <!-- Cloudflare Turnstile (CAPTCHA) — Site Key založený na dash.cloudflare.com
+             pre myfitpilot.sk (Managed mode). Zodpovedajúci Secret Key je nastavený
+             ako function secret TURNSTILE_SECRET_KEY v supabase/functions/submit-waitlist. -->
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAFA1_F-hL8XibALT" data-theme="dark"></div>
         <button id="waitlist-submit" type="submit" class="btn-primary w-full rounded-s px-6 py-3.5 font-bold text-base">
           Zapísať sa
         </button>
