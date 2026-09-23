@@ -4,6 +4,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview } from "@/lib/dashboard/analytics";
 import { getRecentPRs } from "@/lib/dashboard/bodyMetrics";
 import { generateRosterSummary, type RosterSummaryClientInput } from "@/lib/ai/rosterSummary";
+import { clientStatus } from "@/lib/dashboard/portfolioStatus";
 
 export interface RosterSummaryState {
   summary: string | null;
@@ -38,16 +39,19 @@ export async function generateRosterSummaryAction(): Promise<RosterSummaryState>
   const [overview, recentPRs] = await Promise.all([getClientAnalyticsOverview(ids), getRecentPRs(ids, 14)]);
   if (!overview) return { ...empty, error: "Prehľad sa nepodarilo načítať — skús to znova." };
 
-  const nowMs = Date.now();
+  // Kalendárne dni v časovom pásme appky (nie ms/86400000 od poludnia UTC — to pri
+  // dnešnom tréningu vedelo dať -1 alebo 0 podľa hodiny).
+  const todayIso = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bratislava" }).format(new Date());
   const inputs: RosterSummaryClientInput[] = active
     .map((c): RosterSummaryClientInput | null => {
       const row = overview.get(c.id);
       if (!row) return null;
       const daysSinceLastTrained = row.lastTrainedOn
-        ? Math.floor((nowMs - new Date(`${row.lastTrainedOn}T12:00:00Z`).getTime()) / 86_400_000)
+        ? Math.max(0, Math.round((Date.parse(todayIso) - Date.parse(row.lastTrainedOn)) / 86_400_000))
         : null;
       return {
         name: c.full_name,
+        status: clientStatus(row),
         goal: c.goal,
         trainingPct30: row.trainingPct30,
         nutritionPct30: row.nutritionPct30,

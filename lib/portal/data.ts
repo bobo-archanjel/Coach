@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { stripMarkdown } from "@/lib/ai/plainText";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
@@ -1142,7 +1143,8 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     const messages: PortalAiChatMessage[] = (rows ?? []).map((m) => ({
       id: m.id,
       role: m.role as "user" | "assistant",
-      body: m.content,
+      // staršie odpovede sa uložili ešte s markdownom (pred stripMarkdown v chat.ts)
+      body: m.role === "assistant" ? stripMarkdown(m.content) : m.content,
       createdAt: m.created_at,
       escalated: m.escalated ?? false,
     }));
