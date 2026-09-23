@@ -39,6 +39,7 @@ export function DangerZone({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
   const [coopError, setCoopError] = useState<string | null>(null);
   const [coopPending, startCoopTransition] = useTransition();
 
@@ -61,6 +62,7 @@ export function DangerZone({
     startCoopTransition(async () => {
       const res = await endClientCooperationAction(clientId);
       if (res.error) setCoopError(res.error);
+      else setConfirmingEnd(false);
     });
   };
 
@@ -87,8 +89,28 @@ export function DangerZone({
                 Obnoviť spoluprácu
               </button>
             </>
+          ) : confirmingEnd ? (
+            <>
+              <p className={styles.dangerText}>
+                Naozaj ukončiť spoluprácu s klientom {firstName}? Klient dostane správu v chate. Tréningy, výživa
+                aj denník zostanú uložené a spoluprácu môžeš kedykoľvek obnoviť.
+              </p>
+              <div className={styles.dangerActions}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={endCooperation} disabled={coopPending}>
+                  Áno, ukončiť
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setConfirmingEnd(false)}
+                  disabled={coopPending}
+                >
+                  Nie
+                </button>
+              </div>
+            </>
           ) : (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={endCooperation} disabled={coopPending}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingEnd(true)}>
               Ukončiť spoluprácu
             </button>
           )}
@@ -111,7 +133,7 @@ export function DangerZone({
         ) : confirming ? (
           <>
             <p className={styles.dangerText}>
-              Naozaj zmazať {firstName}a? Tréningy, jedálniček, denník aj chat zostanú 30 dní (dá sa zrušiť),
+              Naozaj zmazať klienta {firstName}? Tréningy, jedálniček, denník aj chat zostanú 30 dní (dá sa zrušiť),
               potom sa natrvalo odstránia.
             </p>
             <div className={styles.dangerActions}>

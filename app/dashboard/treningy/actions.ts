@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
+import { displayExerciseName, fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
 import { PLAN_FOCUSES, isSingleDayFocus, type PlanFocus } from "@/lib/ai/planCategories";
 import { reserveAiSlot, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
@@ -143,7 +143,7 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   if (!planId) return { error: "Chýba ID plánu." };
   if (!exerciseId) return { error: "Vyber cvik." };
 
-  const { data: exercise } = await supabase.from("exercises").select("name").eq("id", exerciseId).maybeSingle();
+  const { data: exercise } = await supabase.from("exercises").select("name, name_sk").eq("id", exerciseId).maybeSingle();
   if (!exercise) return { error: "Cvik sa nenašiel." };
 
   const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
@@ -152,7 +152,9 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   const newEntry: WorkoutExerciseEntry = {
     entry_id: randomUUID(),
     exercise_id: exerciseId,
-    exercise_name: exercise.name,
+    // Rovnaký názov, aký tréner vidí v knižnici (AI generátor aj ClientPlanBuilder
+    // ukladajú tiež name_sk) — inak plán, portál aj analytika ukazovali anglicky.
+    exercise_name: displayExerciseName(exercise.name, exercise.name_sk),
     sets: 3,
     reps: "10",
     load_kg: null,
