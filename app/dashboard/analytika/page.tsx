@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview, type ClientAnalyticsRow } from "@/lib/dashboard/analytics";
 import { clientStatus, sortScore } from "@/lib/dashboard/portfolioStatus";
+import { pluralSk } from "@/lib/portal/streak";
 import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { RosterSummaryCard } from "./RosterSummaryCard";
@@ -146,7 +147,7 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
         <p>
           {activeClients.length === 0
             ? "Zatiaľ nemáš klientov na analýzu."
-            : `${activeClients.length} klientov · zoradené od tých, ktorí najviac potrebujú pozornosť.`}
+            : `${activeClients.length} ${pluralSk(activeClients.length, "klient", "klienti", "klientov")} · zoradené od tých, ktorí najviac potrebujú pozornosť.`}
         </p>
       </div>
 
@@ -198,7 +199,8 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
                 {aiInsights.map((i) => (
                   <li key={i.topic}>
                     <span>
-                      {i.clientCount} {i.clientCount === 1 ? "klient sa" : i.clientCount < 5 ? "klienti sa" : "klientov sa"} pýtalo
+                      {i.clientCount}{" "}
+                      {pluralSk(i.clientCount, "klient sa pýtal", "klienti sa pýtali", "klientov sa pýtalo")}
                       AI Kouča na
                     </span>
                     <span>{i.label}</span>

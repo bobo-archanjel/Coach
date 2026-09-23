@@ -215,7 +215,11 @@ export function ClientPlanBuilder({
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            // Hláška o chýbajúcom názve nemá visieť, keď ho klient už dopĺňa (QA 2026-09-23).
+            if (error === "Zadaj názov tréningu.") setError(null);
+          }}
           placeholder="napr. Horná časť tela"
           maxLength={60}
           className={styles.trNameInput}
@@ -244,7 +248,10 @@ export function ClientPlanBuilder({
             <input
               type="text"
               value={activeDay.name}
-              onChange={(e) => patchDay(activeDay.key, (d) => ({ ...d, name: e.target.value }))}
+              onChange={(e) => {
+                patchDay(activeDay.key, (d) => ({ ...d, name: e.target.value }));
+                if (error === "Každý deň potrebuje názov.") setError(null);
+              }}
               placeholder="Názov dňa"
               maxLength={60}
               className={styles.trDayNameInput}

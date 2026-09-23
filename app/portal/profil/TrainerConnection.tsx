@@ -88,9 +88,12 @@ export function TrainerConnection({
 
   return (
     <div className={styles.panel}>
-      <p className={styles.panelLabel}>Tvoj kód pre trénera</p>
+      {/* Kód len pre klienta bez trénera — spárovaného klienta by iný tréner aj tak
+          odmietol (add_client_by_code → already_has_trainer), takže kód s výzvou
+          "pošli ho trénerovi" len mätie (QA 2026-09-23). Po odpojení sa znova ukáže. */}
+      {!hasTrainer && <p className={styles.panelLabel}>Tvoj kód pre trénera</p>}
 
-      {code ? (
+      {hasTrainer ? null : code ? (
         <>
           <div className={styles.codeRow}>
             <code className={styles.codeValue}>{code}</code>
@@ -115,8 +118,11 @@ export function TrainerConnection({
         <p className={styles.codeHint}>Kód sa práve pripravuje — obnov stránku o chvíľu.</p>
       )}
 
-      <div className={styles.trainerStatus}>
-        <p className={styles.panelLabel} style={{ marginTop: 4, marginBottom: 10 }}>
+      <div
+        className={styles.trainerStatus}
+        style={hasTrainer ? { marginTop: 0, paddingTop: 0, borderTop: "none" } : undefined}
+      >
+        <p className={styles.panelLabel} style={{ marginTop: hasTrainer ? 0 : 4, marginBottom: 10 }}>
           Tréner
         </p>
         {hasTrainer ? (
