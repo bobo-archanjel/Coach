@@ -1,6 +1,6 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
@@ -714,22 +714,23 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
  * cache-ovať naprieč VŠETKÝMI požiadavkami na hodinu (`unstable_cache`), nie len
  * v rámci jednej session. Zmerané: 886 riadkov / ~300 kB / 200-650 ms na dopyt —
  * s cache-om zaplatí tento round-trip len prvý klient za hodinu, nie každý.
- * Cookie-free anon klient priamo (nie `lib/supabase/server.ts`), lebo
- * `unstable_cache` zakazuje `cookies()`/dynamické API vo vnútri; RLS
- * (`exercises_select_global_or_own`) global riadky beztak povoľuje bez session.
+ * Service-role klient (nie `lib/supabase/server.ts`), lebo `unstable_cache`
+ * zakazuje `cookies()`/dynamické API vo vnútri. Pôvodne tu bol anon klient, ale
+ * 0036 odobrala anon roli všetky práva na tabuľky → dopyt ticho vracal [] a
+ * builder klienta mal prázdnu knižnicu (QA 2026-09-23). Service role je tu OK:
+ * číta len verejnú globálnu knižnicu (explicitný filter `trainer_id is null`)
+ * a volajúci (`getExerciseLibraryAction`) najprv overí session.
+ * Chyba sa VYHODÍ, nie vráti ako [] — `unstable_cache` výnimku neuloží, takže
+ * prechodný výpadok neurobí z knižnice hodinu prázdny zoznam.
  */
 const getGlobalExerciseLibrary = unstable_cache(
   async (): Promise<ExerciseOption[]> => {
-    const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
-    const { data: libRows, error } = await supabase
+    const { data: libRows, error } = await createAdminClient()
       .from("exercises")
       .select("id, name, name_sk, muscle_group, image_url")
       .is("trainer_id", null)
       .order("name", { ascending: true });
-    if (error) return [];
+    if (error) throw new Error(`exercise library: ${error.message}`);
     return (libRows ?? []).map((e) => ({
       id: e.id,
       name: e.name,
@@ -738,12 +739,20 @@ const getGlobalExerciseLibrary = unstable_cache(
       imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
     }));
   },
-  ["portal-global-exercise-library"],
+  // v2: nový kľúč, nech sa nepoužije prípadný [] uložený ešte anon verziou.
+  ["portal-global-exercise-library-v2"],
   { revalidate: 3600 },
 );
 
 export async function getExerciseLibrary(): Promise<ExerciseOption[]> {
-  return getGlobalExerciseLibrary();
+  try {
+    return await getGlobalExerciseLibrary();
+  } catch (err) {
+    // Builder má degradovať na vlastné cviky, nie spadnúť; TrainingSection pri
+    // prázdnej knižnici skúsi načítať znova pri ďalšom otvorení.
+    console.error("getExerciseLibrary:", err instanceof Error ? err.message : err);
+    return [];
+  }
 }
 
 /** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/vyziva/jedalnicek/actions.ts. */

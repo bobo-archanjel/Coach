@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { getExerciseLibrary } from "@/lib/portal/data";
 import type { ExerciseOption } from "@/lib/portal/types";
@@ -31,6 +31,10 @@ export async function getExerciseDetailAction(exerciseId: string): Promise<Exerc
  * nie ako súčasť každého načítania /portal/trening (viď lib/portal/data.ts).
  */
 export async function getExerciseLibraryAction(): Promise<ExerciseOption[]> {
+  // Knižnica sa číta service-role klientom (viď getExerciseLibrary) — server
+  // action je verejný endpoint, takže najprv overiť, že volá prihlásený používateľ.
+  const user = await getUser();
+  if (!user) return [];
   return getExerciseLibrary();
 }
 
