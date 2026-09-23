@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripMarkdown } from "@/lib/ai/plainText";
+import { validDiaryDate } from "@/lib/portal/diaryDate";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
@@ -897,7 +898,7 @@ type FoodRow = {
  * zbalený (`AddFoodDiaryEntry` `open=false`) — teraz na požiadanie cez
  * `getFoodLibraryAction`, rovnaký dôvod ako knižnica cvikov v `getPortalTraining`.
  */
-export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
+export async function getPortalFoodDiary(requestedDate?: string): Promise<PortalDiaryResult> {
   try {
     const supabase = await createClient();
     const {
@@ -909,7 +910,9 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
-    const { isoDate, hour } = todayInTz();
+    const { isoDate: todayIso, hour } = todayInTz();
+    // Zobrazený deň — dnešok, alebo klientom zvolený deň v povolenom rozsahu (?date=).
+    const isoDate = validDiaryDate(requestedDate, todayIso) ?? todayIso;
 
     const [
       { data: profile, error: profileErr },
@@ -1019,7 +1022,8 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
     }
 
     const data: PortalDiaryData = {
-      today: isoDate,
+      today: todayIso,
+      date: isoDate,
       hour,
       goal,
       groups,

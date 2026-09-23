@@ -300,6 +300,8 @@ export interface PortalDiaryGroup {
 
 export interface PortalDiaryData {
   today: string; // ISO (YYYY-MM-DD), Europe/Bratislava
+  /** zobrazený deň denníka (YYYY-MM-DD) — dnešok alebo deň zvolený cez ?date= */
+  date: string;
   /** hodina dňa 0-23 — na predvolený výber jedla dňa pri pridávaní */
   hour: number;
   goal: PortalMacroGoal | null;

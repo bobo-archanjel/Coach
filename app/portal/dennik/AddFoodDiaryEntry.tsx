@@ -53,15 +53,20 @@ function buildOptimisticEntry(option: PortalFoodOption, slot: MealSlot, grams: n
   };
 }
 
+const EMPTY_CUSTOM = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "100" };
+
 export function AddFoodDiaryEntry({
   planFoods,
   hour,
+  dayNote,
   onAdd,
   pending,
   error,
 }: {
   planFoods: PortalFoodOption[];
   hour: number;
+  /** pri zápise za iný deň ako dnes, napr. "Zapisuješ za včera." */
+  dayNote: string | null;
   /** Rodič (DiaryView) spúšťa optimistic pridanie + skutočnú server action v tej istej transition. */
   onAdd: (fd: FormData, entry: PortalDiaryEntry) => void;
   pending: boolean;
@@ -82,7 +87,9 @@ export function AddFoodDiaryEntry({
     }
   };
   const [slot, setSlot] = useState<MealSlot>(slotForHour(hour));
-  const [source, setSource] = useState<"library" | "plan" | "online">(planFoods.length > 0 ? "plan" : "library");
+  const [source, setSource] = useState<"library" | "plan" | "online" | "custom">(planFoods.length > 0 ? "plan" : "library");
+  // Vlastná potravina (QA 2026-09-23) — nie je v knižnici ani online; makrá zadá klient.
+  const [custom, setCustom] = useState(EMPTY_CUSTOM);
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<PortalFoodOption | null>(null);
   const [grams, setGrams] = useState("100");
@@ -128,6 +135,7 @@ export function AddFoodDiaryEntry({
       setJustAdded(attempted);
       setPicked(null);
       setQuery("");
+      setCustom(EMPTY_CUSTOM);
     }
     wasPending.current = pending;
   }, [pending, error, attempted]);
@@ -163,6 +171,32 @@ export function AddFoodDiaryEntry({
     onAdd(buildFormData(picked, slot, grams_), buildOptimisticEntry(picked, slot, grams_));
   }
 
+  function submitCustom() {
+    const option: PortalFoodOption = {
+      foodId: null,
+      name: custom.name.trim(),
+      kcal100g: Number(custom.kcal),
+      protein100g: Number(custom.protein) || 0,
+      carbs100g: Number(custom.carbs) || 0,
+      fat100g: Number(custom.fat) || 0,
+    };
+    const g = Number(custom.grams);
+    const grams_ = Number.isFinite(g) ? g : 0;
+    const fd = buildFormData(option, slot, grams_);
+    fd.set("custom", "1");
+    // Prázdne kcal pošli ako prázdne (nie 0), nech server vráti zrozumiteľnú chybu.
+    fd.set("kcal_100g", custom.kcal.trim());
+    setAttempted(option.name || "Vlastná potravina");
+    onAdd(fd, buildOptimisticEntry(option, slot, grams_));
+  }
+
+  const pickedPreview = picked
+    ? scaleFoodMacros(
+        { kcal_100g: picked.kcal100g, protein_100g: picked.protein100g, carbs_100g: picked.carbs100g, fat_100g: picked.fat100g },
+        Number(grams) > 0 ? Number(grams) : 0,
+      )
+    : null;
+
   if (!open) {
     return (
       <button type="button" className={`btn btn-ghost ${styles.addToggle}`} onClick={openPanel}>
@@ -189,6 +223,8 @@ export function AddFoodDiaryEntry({
           Zavrieť
         </button>
       </div>
+
+      {dayNote && <p className={styles.diaryMeta}>{dayNote}</p>}
 
       <div className={styles.slotChips} role="group" aria-label="Jedlo dňa">
         {MEAL_SLOT_ORDER.map((s) => (
@@ -225,6 +261,11 @@ export function AddFoodDiaryEntry({
               {pending ? "…" : "Pridať"}
             </button>
           </div>
+          {pickedPreview && (
+            <p className={styles.diaryMeta}>
+              ≈ {pickedPreview.kcal} kcal · {pickedPreview.proteinG}g B · {pickedPreview.carbsG}g S · {pickedPreview.fatG}g T
+            </p>
+          )}
           <button type="button" className={styles.sourceTab} style={{ marginTop: 8 }} onClick={() => setPicked(null)}>
             ← iné jedlo
           </button>
@@ -262,6 +303,15 @@ export function AddFoodDiaryEntry({
             >
               Značky (online)
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={source === "custom"}
+              className={`${styles.sourceTab} ${source === "custom" ? styles.sourceTabActive : ""}`}
+              onClick={() => setSource("custom")}
+            >
+              Vlastná
+            </button>
           </div>
 
           {source === "library" && (
@@ -286,7 +336,62 @@ export function AddFoodDiaryEntry({
             />
           )}
 
-          {source === "online" ? (
+          {source === "custom" ? (
+            <div className={styles.customFood}>
+              <input
+                className={styles.foodSearch}
+                type="text"
+                placeholder="Názov, napr. „Mamina sekaná“"
+                maxLength={120}
+                value={custom.name}
+                onChange={(e) => setCustom({ ...custom, name: e.target.value })}
+                aria-label="Názov vlastnej potraviny"
+              />
+              <p className={styles.diaryMeta}>Hodnoty na 100 g (nájdeš ich na obale):</p>
+              <div className={styles.customFoodGrid}>
+                {(
+                  [
+                    ["kcal", "kcal"],
+                    ["protein", "Bielkoviny g"],
+                    ["carbs", "Sacharidy g"],
+                    ["fat", "Tuky g"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className={styles.customFoodField}>
+                    <span>{label}</span>
+                    <input
+                      className={styles.gramInput}
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.1"
+                      value={custom[key]}
+                      onChange={(e) => setCustom({ ...custom, [key]: e.target.value })}
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className={styles.gramRow}>
+                <span className={styles.gramPicked}>Zjedené množstvo</span>
+                <label className={styles.gramField}>
+                  <input
+                    className={styles.gramInput}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={5000}
+                    value={custom.grams}
+                    onChange={(e) => setCustom({ ...custom, grams: e.target.value })}
+                    aria-label="Gramáž v gramoch"
+                  />
+                  <span className={styles.gramUnit}>g</span>
+                </label>
+                <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={submitCustom}>
+                  {pending ? "…" : "Pridať"}
+                </button>
+              </div>
+            </div>
+          ) : source === "online" ? (
             <ul className={styles.foodList}>
               {onlineResults.map((option, i) => (
                 <li key={`${option.name}-${i}`}>
