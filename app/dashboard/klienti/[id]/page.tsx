@@ -129,7 +129,7 @@ export default async function ClientDetailPage({
       supabase
         .from("clients")
         .select(
-          "id, full_name, goal, invite_code, created_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
+          "id, full_name, goal, invite_code, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -166,7 +166,8 @@ export default async function ClientDetailPage({
 
   const firstName = client.full_name.split(/\s+/)[0];
 
-  const memberSince = new Date(client.created_at).toLocaleDateString("sk-SK", {
+  // Od spárovania s týmto trénerom (0047), nie od registrácie klienta.
+  const memberSince = new Date(client.paired_at ?? client.created_at).toLocaleDateString("sk-SK", {
     day: "numeric",
     month: "long",
     year: "numeric",

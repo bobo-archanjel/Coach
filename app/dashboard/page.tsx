@@ -210,7 +210,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const [{ data: clients }, { data: unreadRows }, healthDigest, dismissed] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, full_name, goal, created_at, ended_at, deletion_requested_at, user_id")
+      .select("id, full_name, goal, created_at, paired_at, ended_at, deletion_requested_at, user_id")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
     // neprečítané správy od klientov → odznak pri klientovi
@@ -267,7 +267,8 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       id: client.id,
       fullName: client.full_name,
       goal: client.goal,
-      createdAt: client.created_at,
+      // od kedy je klient s týmto trénerom (0047), pre starých klientov created_at
+      since: client.paired_at ?? client.created_at,
       unread: unread.get(client.id) ?? 0,
       pendingDeletion,
       deletionLabel: pendingDeletion ? purgeDateLabel(client.deletion_requested_at!) : null,
