@@ -174,6 +174,11 @@ select pg_temp.chk('waitlist: duplicitný e-mail (aj v inej veľkosti písmen) s
   pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Iny', 'TEST@example.sk', 'solo', now())$s$, 'anon') like 'ERR:%');
 select pg_temp.chk('waitlist: anon nezapíše cudzí stĺpec (confirmation_sent_at)',
   pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at, confirmation_sent_at) values ('Hack', 'hack@example.sk', 'trainer', now(), now())$s$, 'anon') like 'ERR:%');
+-- 0039: tretia rola "klient, ktorý hľadá trénera" (odlišná od 'solo' — opačný zámer).
+select pg_temp.chk('legit: waitlist prijme rolu client (0039)',
+  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Klient Bez Trenera', 'klient-hladajuci@example.sk', 'client', now())$s$, 'anon') = 'OK');
+select pg_temp.chk('waitlist: neplatná rola sa odmietne',
+  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Neplatny', 'neplatny@example.sk', 'admin', now())$s$, 'anon') like 'ERR:%');
 
 -- ============================================================ E) AI
 select pg_temp.chk('10: klient nevloží podvrhnutú odpoveď asistenta',

@@ -1,5 +1,6 @@
 import { ChatThread } from "../../components/ChatThread";
 import { getPortalAiChat } from "@/lib/portal/data";
+import type { PortalAiChatResult } from "@/lib/portal/types";
 import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "./actions";
 import { AlertIcon, Notice } from "../Notice";
 import { ProfileIcon } from "../icons";
@@ -13,8 +14,51 @@ import styles from "../portal.module.css";
    náhradu cviku dostane tréner len krátku správu v skutočnom chate (Krok 4/5),
    nikdy celý AI transkript — to musí byť viditeľne oznámené tu. */
 
-export default async function AiKoucPage() {
-  const result = await getPortalAiChat();
+// DEV náhľad (?preview=ok) bez session, rovnaký vzor ako ostatné portálové
+// stránky (chat/dennik/trening/page.tsx) — pre marketingové screenshoty a
+// rýchlu vizuálnu kontrolu bez prihlásenia. Ilustračná ukážka produktu, nie
+// reálna konverzácia (rovnaký princíp ako PREVIEW v ../chat/page.tsx).
+const PREVIEW: PortalAiChatResult = {
+  state: "ok",
+  data: {
+    messages: [
+      {
+        id: "a1",
+        role: "user",
+        body: "Ahoj, dnes mi zvýšilo 40g bielkovín do cieľa a neviem čo si dať večer. Máš nápad?",
+        createdAt: new Date(Date.now() - 3600_000).toISOString(),
+      },
+      {
+        id: "a2",
+        role: "assistant",
+        body: "Ahoj! Skús tvarohovú misku (250 g tvarohu, banán, lyžica arašidového masla) — to je ~38 g bielkovín a sadne to aj do tvojho zvyšku sacharidov na dnes. Alebo kuracie prsia s ryžou, ak preferuješ slané.",
+        createdAt: new Date(Date.now() - 3500_000).toISOString(),
+      },
+      {
+        id: "a3",
+        role: "user",
+        body: "Super, dík. A čo namiesto bulharských drepov, bolí ma dnes koleno?",
+        createdAt: new Date(Date.now() - 1800_000).toISOString(),
+        escalated: true,
+      },
+      {
+        id: "a4",
+        role: "assistant",
+        body: "Bolesť kolena neposudzujem sám — dal som o tom vedieť tvojmu trénerovi, ozve sa ti s úpravou plánu. Do jeho odpovede radšej cvik vynechaj.",
+        createdAt: new Date(Date.now() - 1750_000).toISOString(),
+      },
+    ],
+  },
+};
+
+export default async function AiKoucPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ preview?: string }>;
+}) {
+  const { preview } = await searchParams;
+  const result =
+    preview === "ok" && process.env.NODE_ENV === "development" ? PREVIEW : await getPortalAiChat();
 
   if (result.state === "error") {
     return (
