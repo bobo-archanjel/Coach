@@ -794,6 +794,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         .from("meal_plans")
         .select("id, name")
         .eq("client_id", client.id)
+        .eq("published", true) // koncept vidí len tréner (0044)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -929,6 +930,7 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
         .from("meal_plans")
         .select("id")
         .eq("client_id", client.id)
+        .eq("published", true) // koncept vidí len tréner (0044)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
