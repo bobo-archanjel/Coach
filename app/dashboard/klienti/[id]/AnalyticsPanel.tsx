@@ -151,7 +151,7 @@ export function AnalyticsPanel({
       </div>
 
       <div className={styles.card}>
-        <h3>Trekovanie jedálnička</h3>
+        <h3>Sledovanie jedálnička</h3>
         {nutrition ? (
           <>
             <h4 className={styles.cardSubhead}>Makro cieľ</h4>
