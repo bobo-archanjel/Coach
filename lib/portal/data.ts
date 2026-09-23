@@ -366,7 +366,6 @@ export async function getPortalData(): Promise<PortalResult> {
     if (logErr) return { state: "error", message: dbErr(logErr, "data") };
 
     const logs = logRows ?? [];
-    const loggedDates = new Set(logs.map((l) => l.performed_on));
     // Viac dní sa dá odcvičiť aj v ten istý kalendárny deň (unique index je na
     // (client_id, workout_day_id, performed_on), nie len performed_on) — preto
     // mapa podľa dňa, nie jeden "dnešný log" pre celý plán.
@@ -424,7 +423,15 @@ export async function getPortalData(): Promise<PortalResult> {
       durationLabel: "",
       exercises: exList,
       loggedExercises,
-      completedCount: doneToday ? exList.length : 0,
+      // Krúžok postupu = cviky so skutočne zapísanou sériou (sanitizeEntries
+      // vynecháva cviky bez série), nie automaticky všetky — inak po ukončení
+      // ukazoval 3/3, hoci jeden cvik klient nezapísal. Len odklikutý tréning
+      // bez zápisu (entries: []) ostáva ako celý hotový.
+      completedCount: doneToday
+        ? loggedExercises
+          ? Math.min(loggedExercises.length, exList.length)
+          : exList.length
+        : 0,
       dayId: targetDay.id,
     };
 
@@ -469,13 +476,17 @@ export async function getPortalData(): Promise<PortalResult> {
     };
 
     // ---------- história (posledných 12 dní pred dneškom) ----------
+    // Naprieč všetkými plánmi (ako série), nie len `logs` aktuálneho plánu — inak
+    // "Odcvičené spolu" aj pás histórie spadli na 0 hneď po publikovaní nového plánu.
+    const allTrainingDates = (streakTrainRows ?? []).map((r) => r.performed_on as string);
+    const allLoggedDates = new Set(allTrainingDates);
     const streakHistory: StreakDayState[] = [];
     for (let i = HISTORY_DAYS; i >= 1; i--) {
       const date = addDays(base, -i);
-      streakHistory.push(loggedDates.has(iso(date)) ? "done" : "rest");
+      streakHistory.push(allLoggedDates.has(iso(date)) ? "done" : "rest");
     }
 
-    const totalSessions = logs.length;
+    const totalSessions = allTrainingDates.length;
 
     // ---------- odkaz trénera ----------
     let coachNote: CoachNote | null = null;

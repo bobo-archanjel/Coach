@@ -91,7 +91,7 @@ export function MealPlanBuilder({
               </>
             ) : (
               <p className={styles.emptyDay}>
-                Zatiaľ žiadne potraviny — klikni na potravinu v knižnici vľavo, pridá sa sem (100 g,
+                Zatiaľ žiadne potraviny — klikni na potravinu v knižnici, pridá sa sem (100 g,
                 raňajky) a hneď si to upravíš.
               </p>
             )

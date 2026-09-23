@@ -232,7 +232,7 @@ export function NutritionForm({ clientId, profile }: { clientId: string; profile
             </div>
           </>
         ) : (
-          <p className={styles.noWorkouts}>Vyplň vek, váhu a výšku vľavo — výsledok sa dopočíta automaticky.</p>
+          <p className={styles.noWorkouts}>Vyplň vek, váhu a výšku — výsledok sa dopočíta automaticky.</p>
         )}
       </div>
     </div>

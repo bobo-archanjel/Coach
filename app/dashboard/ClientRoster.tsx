@@ -102,7 +102,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
       ) : (
         <div className={styles.emptyState}>
           <h2>Zatiaľ nemáš žiadnych klientov</h2>
-          <p>Pridaj prvého klienta vyššie.</p>
+          <p>Pridaj prvého klienta cez „+ Nový klient“.</p>
         </div>
       )}
     </>

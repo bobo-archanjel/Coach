@@ -77,7 +77,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         <AddClientForm />
         <div className={styles.emptyState}>
           <h2>Zatiaľ žiadni klienti</h2>
-          <p>Pridaj prvého vyššie — zadaj jeho kód alebo mu vytvor záznam.</p>
+          <p>Pridaj prvého cez „+ Nový klient“ — zadaj jeho kód alebo mu vytvor záznam.</p>
         </div>
       </>
     );
@@ -163,7 +163,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
           <ul className={styles.onboardingList}>
             <li className={styles.onboardingDone}>
               <span className={styles.onboardingCheck} aria-hidden="true">✓</span>
-              <span>Pridaj prvého klienta (formulár nižšie)</span>
+              <span>Pridaj prvého klienta cez „+ Nový klient“</span>
             </li>
             <li>
               <span className={styles.onboardingCheck} aria-hidden="true">2</span>
@@ -307,7 +307,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
               <span className={styles.onboardingCheck} aria-hidden="true">
                 {hasClient ? "✓" : "1"}
               </span>
-              <span>Pridaj prvého klienta (formulár nižšie)</span>
+              <span>Pridaj prvého klienta cez „+ Nový klient“</span>
             </li>
             <li className={hasPlan ? styles.onboardingDone : undefined}>
               <span className={styles.onboardingCheck} aria-hidden="true">

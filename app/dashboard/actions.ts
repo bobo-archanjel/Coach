@@ -33,7 +33,7 @@ export async function addClientByCodeAction(_prev: AddByCodeState, formData: For
       // preklep, ale že kód už bol raz použitý — hláška to musí odlíšiť, inak trénera
       // navádza hľadať chybu u seba/klienta, keď v skutočnosti je klient už spárovaný.
       invalid_code:
-        "Tento kód už neplatí — buď je v ňom preklep, alebo bol už raz použitý (z bezpečnostných dôvodov sa po spárovaní mení). Ak si tohto klienta už pridal, nájdeš ho v zozname vyššie; inak si od neho vyžiadaj aktuálny kód z jeho profilu.",
+        "Tento kód už neplatí — buď je v ňom preklep, alebo bol už raz použitý (z bezpečnostných dôvodov sa po spárovaní mení). Ak si tohto klienta už pridal, nájdeš ho v zozname klientov; inak si od neho vyžiadaj aktuálny kód z jeho profilu.",
       already_your_client: "Tohto klienta už máš v zozname.",
       already_has_trainer: "Tento klient je už priradený k inému trénerovi. Musí sa najprv odpojiť vo svojom profile.",
       too_many_attempts: "Priveľa pokusov o pridanie. Skús to znova o 15 minút.",

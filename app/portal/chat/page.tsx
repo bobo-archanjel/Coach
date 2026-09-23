@@ -111,9 +111,10 @@ export default async function ChatPage({
         onSeen={markClientChatSeenAction}
         checkNewAction={getClientChatMarkerAction}
         realtimeTable="messages"
-        emptyTitle={trainerName ? `Napíš ${trainerName}ovi` : "Napíš trénerovi"}
+        // Bez skloňovania mena — prípona k menu tvorila "QAa", "Martinaovi".
+        emptyTitle="Napíš trénerovi"
         emptyText="Otázka k plánu, pocit z tréningu, čokoľvek — tréner ti odpovie sem."
-        placeholder={trainerName ? `Správa pre ${trainerName}a…` : "Správa pre trénera…"}
+        placeholder="Správa pre trénera…"
         fill
       />
     </div>

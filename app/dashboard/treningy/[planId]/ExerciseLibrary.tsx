@@ -76,7 +76,7 @@ export function ExerciseLibrary({
         <span className={styles.libraryHead}>Knižnica cvikov ({exercises.length})</span>
         <ChevronIcon className={`${styles.libraryChevron} ${open ? styles.libraryChevronOpen : ""}`} />
       </button>
-      {!activeDayId && <p className={styles.libraryHint}>Vytvor deň vpravo, potom sem klikni na cvik.</p>}
+      {!activeDayId && <p className={styles.libraryHint}>Najprv vytvor tréningový deň, potom sem klikni na cvik.</p>}
 
       <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
         <form className={styles.customExerciseForm}>

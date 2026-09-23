@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getPortalData } from "@/lib/portal/data";
+import { pluralSk } from "@/lib/portal/streak";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { DoneWorkoutView } from "./DoneWorkoutView";
 import { ProfileIcon, TrainingIcon } from "./icons";
@@ -386,7 +387,9 @@ function PortalToday({ data }: { data: PortalData }) {
             <h2 className={styles.sessionTitle}>{session.title}</h2>
             {session.focus && <p className={styles.sessionFocus}>{session.focus}</p>}
             <div className={styles.sessionChips}>
-              <span className={styles.chip}>{total} cvikov</span>
+              <span className={styles.chip}>
+                {total} {pluralSk(total, "cvik", "cviky", "cvikov")}
+              </span>
               {session.durationLabel && <span className={styles.chip}>{session.durationLabel}</span>}
             </div>
           </div>
