@@ -14,7 +14,9 @@
 --      históriu svojho klienta.
 --
 -- Spustiť v Supabase Dashboard → SQL Editor → New query → vložiť celý súbor → Run.
--- Predpokladá 0001–0038. Idempotentné.
+-- Predpokladá 0001–0041. Idempotentné.
+-- Pôvodne 0039 na vetve qa-dual-agent — prečíslované kvôli kolízii s waitlist
+-- migráciami 0038–0040 v dev. V DB už môže byť spustená pod starým číslom (idempotentné).
 
 alter table public.body_metrics alter column trainer_id drop not null;
 

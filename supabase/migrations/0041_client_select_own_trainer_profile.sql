@@ -10,7 +10,9 @@
 -- interpretoval ako "meno neznáme" a použil fallback text.
 --
 -- Spustiť v Supabase Dashboard → SQL Editor → New query → vložiť celý súbor → Run.
--- Predpokladá 0001–0037. Idempotentné.
+-- Predpokladá 0001–0040. Idempotentné.
+-- Pôvodne 0038 na vetve qa-dual-agent — prečíslované kvôli kolízii s waitlist
+-- migráciami 0038–0040 v dev. V DB už môže byť spustená pod starým číslom (idempotentné).
 
 drop policy if exists "profiles_select_own_trainer" on public.profiles;
 
