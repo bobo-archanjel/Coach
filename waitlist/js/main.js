@@ -71,38 +71,32 @@ document.querySelectorAll("[data-faq-item]").forEach((item) => {
 });
 
 // ---------------------------------------------------------------- Waitlist formulár
+// feature/wishlist (antispam) — zápis už nejde priamo do Supabase z prehliadača
+// (anon kľúč je verejný, dal sa obísť formulár úplne a spamovať skriptom rovno
+// na REST API). Ide cez edge function submit-waitlist, ktorá overí CAPTCHA
+// (Cloudflare Turnstile), honeypot a limit zápisov z jednej IP — pozri
+// supabase/functions/submit-waitlist/index.ts a migráciu 0040.
 (function setupForm() {
   const form = document.getElementById("waitlist-form");
   const formStatus = document.getElementById("waitlist-status");
   const submitBtn = document.getElementById("waitlist-submit");
   if (!form || !formStatus || !submitBtn) return;
 
-  // Supabase klient (CDN) — ak sa skript nenačítal, formulár to rovno povie
-  // namiesto toho, aby ticho spadol pri prvom kliknutí na "Zapísať sa".
-  // Anon kľúč je verejný by design (rovnaký princíp ako v hlavnej appke,
-  // lib/supabase/client.ts) — bezpečnosť dát nezávisí od jeho utajenia, ale od
-  // RLS politiky (supabase/migrations/0038_waitlist.sql): anon smie len INSERT.
   const SUPABASE_URL = "https://egpnjtmxproprtwgcwbg.supabase.co";
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncG5qdG14cHJvcHJ0d2djd2JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDgwNDcsImV4cCI6MjEwMzQyNDA0N30.Ye9u9z1TMjjZNjlNYTW1b-ZtZrKvbNUuoP0nKZogdz8";
-
-  let supabaseClient = null;
-  if (window.supabase) {
-    try {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (err) {
-      console.error("Supabase klient sa nepodarilo vytvoriť:", err);
-    }
-  }
-  if (!supabaseClient) {
-    submitBtn.disabled = true;
-    formStatus.textContent = "Formulár sa nepodarilo načítať. Skús prosím obnoviť stránku.";
-    formStatus.classList.add("text-[var(--iron-red)]");
-    return;
-  }
+  const SUBMIT_URL = `${SUPABASE_URL}/functions/v1/submit-waitlist`;
 
   const MAX_NAME_LEN = 120;
   const MAX_NOTE_LEN = 500;
+
+  const ERROR_MESSAGES = {
+    invalid: "Skontroluj prosím meno, e-mail a rolu.",
+    captcha_missing: "Over prosím, že nie si robot (zaškrtávacie políčko vyššie).",
+    captcha_failed: "Overenie sa nepodarilo. Skús to prosím znova.",
+    rate_limited: "Príliš veľa pokusov z tejto siete. Skús to prosím o niečo neskôr.",
+    server: "Zápis sa nepodaril. Skús to prosím o chvíľu znova.",
+  };
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -114,6 +108,8 @@ document.querySelectorAll("[data-faq-item]").forEach((item) => {
     const role = form.role.value;
     const note = form.note.value.trim().slice(0, MAX_NOTE_LEN);
     const consent = form.consent.checked;
+    // Honeypot — skryté pole (css/style.css .hp-field), človek ho nikdy nevyplní.
+    const hp = form.website ? form.website.value : "";
 
     if (!fullName || !email || !role) {
       formStatus.textContent = "Vyplň prosím meno, e-mail aj rolu.";
@@ -126,29 +122,40 @@ document.querySelectorAll("[data-faq-item]").forEach((item) => {
       return;
     }
 
+    // window.turnstile je globál z Cloudflare Turnstile skriptu (index.html <head>).
+    const turnstileToken = window.turnstile ? window.turnstile.getResponse() : "";
+    if (!turnstileToken) {
+      formStatus.textContent = ERROR_MESSAGES.captcha_missing;
+      formStatus.classList.add("text-[var(--iron-red)]");
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisujem…";
 
-    let error = null;
+    let result;
     try {
-      ({ error } = await supabaseClient.from("waitlist_signups").insert({
-        full_name: fullName,
-        email,
-        role,
-        note: note || null,
-        consent_at: new Date().toISOString(),
-      }));
+      const res = await fetch(SUBMIT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ full_name: fullName, email, role, note, turnstile_token: turnstileToken, hp }),
+      });
+      result = await res.json();
     } catch (err) {
-      error = err;
+      console.error("Zápis na waitlist zlyhal (sieť):", err);
+      result = { ok: false, code: "server" };
     }
 
     submitBtn.disabled = false;
     submitBtn.textContent = "Zapísať sa";
+    if (window.turnstile) window.turnstile.reset(); // token je jednorazový, treba nový na ďalší pokus
 
-    if (error) {
-      // 23505 = unique_violation (email už na zozname) — priateľská správa, nie chyba.
-      // Rovnaký princíp ako lib/dbError.ts v appke: nikdy neposielať surovú DB chybu do UI.
-      if (error.code === "23505") {
+    if (!result.ok) {
+      if (result.code === "duplicate") {
         form.classList.add("hidden");
         formStatus.classList.remove("text-[var(--iron-red)]");
         formStatus.innerHTML =
@@ -156,7 +163,7 @@ document.querySelectorAll("[data-faq-item]").forEach((item) => {
         formStatus.classList.add("text-lg", "font-semibold");
         return;
       }
-      formStatus.textContent = "Zápis sa nepodaril. Skús to prosím o chvíľu znova.";
+      formStatus.textContent = ERROR_MESSAGES[result.code] || ERROR_MESSAGES.server;
       formStatus.classList.add("text-[var(--iron-red)]");
       return;
     }

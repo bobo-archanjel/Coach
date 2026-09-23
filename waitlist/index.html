@@ -262,6 +262,14 @@
       </h2>
 
       <form id="waitlist-form" class="mt-9 card p-6 sm:p-8 space-y-4" novalidate>
+        <!-- Honeypot proti spam botom — skryté pre človeka (off-screen, nie
+             display:none — niektoré boty display:none polia rozpoznajú a
+             preskočia), primitívny bot ho vyplní. Overuje sa v edge function
+             submit-waitlist, nikde inde. -->
+        <div class="hp-field" aria-hidden="true">
+          <label for="website">Webstránka</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+        </div>
         <div>
           <label for="full_name" class="block text-sm font-medium text-paperdim mb-1.5">Meno</label>
           <input id="full_name" name="full_name" type="text" required maxlength="120" autocomplete="name"
@@ -295,6 +303,11 @@
             odhlásiť. <a href="privacy.html" class="underline hover:text-paper">Ochrana súkromia</a>
           </span>
         </label>
+        <!-- Cloudflare Turnstile (CAPTCHA) — TODO (Boris): nahraď data-sitekey
+             skutočným Site Key z dash.cloudflare.com/?to=/:account/turnstile
+             (waitlist/README.md, sekcia "Ochrana proti spamu"). Bez neho
+             widget nič nezobrazí a odoslanie vždy zlyhá na "captcha_missing". -->
+        <div class="cf-turnstile" data-sitekey="TODO_TURNSTILE_SITE_KEY" data-theme="dark"></div>
         <button id="waitlist-submit" type="submit" class="btn-primary w-full rounded-s px-6 py-3.5 font-bold text-base">
           Zapísať sa
         </button>
@@ -421,8 +434,10 @@
   <!-- GSAP (CDN) — len pre scroll reveal pod foldom, nie hero (viď vyššie) -->
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>
-  <!-- Supabase JS klient (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <!-- Cloudflare Turnstile (CAPTCHA) — async/defer, nič neblokuje. Zápis do DB
+       ide teraz cez edge function (js/main.js), nie priamo cez Supabase JS
+       klienta, preto ten už tu netreba. -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -16,7 +16,8 @@ aj Resend (potvrdzovací e-mail, krok 4 nižšie) sa vážu na `myfitpilot.sk`.
   `tailwind-input.css` na hosting, len výsledný `tailwind.css` — je to zdrojový
   súbor, nie výstup; prekompiluje sa pri zmene tried, viď nižšie)
 - `css/style.css` — brand tokeny (farby z DESIGN.md) + malé doplnky k Tailwindu
-- `js/main.js` — GSAP scroll reveal, FAQ accordion, odoslanie formulára do Supabase
+- `js/main.js` — GSAP scroll reveal, FAQ accordion, odoslanie formulára cez
+  edge function `submit-waitlist` (nie priamo do Supabase — pozri bod 3 nižšie)
 - `assets/` — logo, favicon, OG obrázok (skopírované z hlavnej appky)
 - `robots.txt`, `sitemap.xml` — **vlastné pre túto doménu, oddelené od appky.**
   Hlavná appka má vlastný `robots.ts`/`sitemap.ts` (Next.js), ale ten sa uplatní
@@ -27,11 +28,9 @@ aj Resend (potvrdzovací e-mail, krok 4 nižšie) sa vážu na `myfitpilot.sk`.
 nižšie) — žiadny Node na samotnom hostingu, kompiluje sa len tu, jedenkrát,
 predtým než sa priečinok nahrá. Animácie cez **GSAP** (CDN) — len na sekciách
 pod hero, nikdy na H1/CTA (JS-viazaná animácia na prvej viditeľnej veci škodí
-LCP — poučenie z opravy `/v4` v hlavnej appke). Ak GSAP alebo Supabase CDN
-skript z akéhokoľvek dôvodu zlyhá (blokovač reklám, výpadok), `js/main.js` má
-zabudované poistky — obsah sa aj tak ukáže (cez natívny IntersectionObserver
-namiesto GSAP) a formulár sa jasne povie, že sa nepodarilo načítať, namiesto
-toho, aby ticho spadol.
+LCP — poučenie z opravy `/v4` v hlavnej appke). Ak GSAP z akéhokoľvek dôvodu
+zlyhá (blokovač reklám, výpadok), `js/main.js` má zabudovanú poistku — obsah
+sa aj tak ukáže cez natívny IntersectionObserver namiesto GSAP.
 
 > **Prečo skompilovaný CSS, nie Tailwind CDN skript:** stránka pôvodne používala
 > `<script src="https://cdn.tailwindcss.com">`, čo je jednoduchšie na nasadenie,
@@ -57,16 +56,53 @@ python -m http.server 8000
 # http://localhost:8000
 ```
 
-## 2. Databáza — spustiť migráciu
+## 2. Databáza — spustiť migrácie
 
-V Supabase Dashboarde → SQL Editor → New query → vlož celý obsah
-`supabase/migrations/0038_waitlist.sql` → Run. Vytvorí tabuľku
-`waitlist_signups` s RLS (anon smie len INSERT, nikto iný zoznam nevidí).
+V Supabase Dashboarde → SQL Editor → New query → postupne vlož a spusti (v
+tomto poradí, každú ako samostatný Run):
+`supabase/migrations/0038_waitlist.sql` → `0039_waitlist_role_client.sql` →
+`0040_waitlist_antispam.sql`.
+
+Vytvorí tabuľku `waitlist_signups` s RLS (anon nemá k tabuľke ŽIADNY priamy
+prístup — zápis ide výhradne cez edge function `submit-waitlist`, pozri
+bod 3.5 nižšie; nikto okrem service_role zoznam nikdy nevidí).
 
 Supabase URL a anon kľúč sú už v `js/main.js` — rovnaký projekt ako hlavná
-appka (anon kľúč je verejný by design, bezpečnosť drží RLS, nie jeho utajenie).
+appka (anon kľúč je verejný by design; hranicu tu drží kombinácia edge
+function + CAPTCHA, nie RLS ako pri bežných tabuľkách appky).
 
-## 3. Nahratie na Websupport hosting
+## 3. Ochrana proti spamu a botom (Cloudflare Turnstile) — POVINNÉ
+
+Bez tohto kroku formulár **nefunguje vôbec** (odošle sa vždy chyba
+"Over prosím, že nie si robot") — nie je to voliteľné vylepšenie, je to
+súčasť antispam ochrany popísanej nižšie.
+
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Turnstile** (v ľavom menu, zadarmo,
+   netreba mať doménu už spravovanú cez Cloudflare).
+2. **Add a site** → doména `myfitpilot.sk`, widget mode **Managed** (odporúčané —
+   väčšine ľudí sa nič nezobrazí, len tichá kontrola na pozadí).
+3. Dostaneš dva kľúče:
+   - **Site Key** (verejný) → vlož do `waitlist/index.html`, nahraď
+     `data-sitekey="TODO_TURNSTILE_SITE_KEY"` skutočnou hodnotou.
+   - **Secret Key** → nastav ako function secret v kroku 3.5 nižšie, nikdy nie
+     do HTML/JS súborov (na rozdiel od Site Key, tento je tajný).
+4. Ulož zmenu v `index.html`.
+
+**3.5 — nasadenie edge function `submit-waitlist`** (rovnaké CLI kroky ako pri
+potvrdzovacom e-maile nižšie, ak si ich ešte nerobil):
+```powershell
+npx supabase login
+npx supabase link --project-ref egpnjtmxproprtwgcwbg
+npx supabase functions deploy submit-waitlist
+npx supabase secrets set TURNSTILE_SECRET_KEY=0x_tvoj_secret_kluc_z_kroku_3
+```
+
+Ako to funguje: formulár teraz posiela zápis na túto funkciu (nie priamo do
+databázy). Funkcia overí CAPTCHA token na serveri (token z prehliadača sa dá
+sfalšovať, preto sa MUSÍ overiť tu), skryté honeypot pole a limit 5 zápisov
+za 24h z jednej IP adresy — až potom zapíše cez service_role.
+
+## 4. Nahratie na Websupport hosting
 
 1. Websupport administrácia → tvoj hosting → **Súbory / File Manager** (alebo FTP
    prihlasovacie údaje, ktoré nájdeš v administrácii hostingu).
@@ -77,7 +113,7 @@ appka (anon kľúč je verejný by design, bezpečnosť drží RLS, nie jeho uta
 4. Otestuj `myfitpilot.sk` v prehliadači, vyplň formulár, over že sa e-mail objaví
    v Supabase (Dashboard → Table Editor → waitlist_signups).
 
-## 4. Potvrdzovací e-mail (voliteľné, ale chceli ste ho)
+## 5. Potvrdzovací e-mail (voliteľné, ale chceli ste ho)
 
 Potvrdzovací e-mail posiela Supabase Edge Function cez [Resend](https://resend.com)
 (free tier: 100 e-mailov/deň, 3000/mesiac — na waitlist viac než dosť).
@@ -113,7 +149,7 @@ nedokončená DNS verifikácia domény v Resende).
 e-mail sa uloží do databázy, len sa neodošle potvrdenie. Kroky a)-c) vyššie
 môžeš spraviť aj neskôr, bez zásahu do `index.html`/`js/main.js`.
 
-## 5. Pri spustení appky naostro
+## 6. Pri spustení appky naostro
 
 1. Appku nasaď na Node hosting (napr. Vercel — pozri poznámku v hlavnom README appky).
 2. Vo Websupporte pri doméne `myfitpilot.sk` prepni DNS záznamy z tohto hostingu

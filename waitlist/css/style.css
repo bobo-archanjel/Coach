@@ -180,3 +180,15 @@ textarea:focus {
   outline: 2px solid var(--iron-red);
   outline-offset: 1px;
 }
+
+/* Honeypot proti spam botom (index.html #website) — mimo obrazovky, nie
+   display:none/visibility:hidden. Niektoré boty tieto dva parsujú a pole
+   preskočia; posunutie mimo viditeľnú oblasť funguje spoľahlivejšie a
+   nezasahuje do rozloženia (žiadny skok layoutu, position:absolute). */
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

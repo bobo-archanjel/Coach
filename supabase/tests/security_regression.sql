@@ -161,24 +161,28 @@ select pg_temp.chk('legit: server po úspešnom prihlásení počítadlo vynuluj
   not (select public.check_login_lockout('lock@x.sk', 5)));
 
 -- ============================================================ H) waitlist (feature/wishlist)
--- Statická stránka waitlist/index.html zapisuje ako anon (nemá session) — RLS
--- musí povoliť len INSERT, nikdy SELECT/UPDATE, inak by ktokoľvek vedel
--- stiahnuť celý zoznam e-mailov cez verejný anon kľúč.
-select pg_temp.chk('legit: anon sa zapíše na waitlist',
-  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Test Tester', 'test@example.sk', 'trainer', now())$s$, 'anon') = 'OK');
+-- Od 0040 anon nemá k tabuľke ŽIADNY priamy prístup (ani INSERT) — zápis ide
+-- výhradne cez edge function submit-waitlist (service_role), ktorá pred
+-- zápisom overí Cloudflare Turnstile + honeypot + rate limit podľa IP.
+-- Priamy anon insert bol predtým jediná ochrana (RLS), čo dovoľovalo
+-- ktorémukoľvek skriptu spamovať tabuľku rovno cez Supabase REST API mimo
+-- formulára — testy nižšie preto overujú anon = úplne bez prístupu a
+-- service_role (simulácia edge function) = funkčný zápis.
+select pg_temp.chk('waitlist: anon nezapíše na waitlist vôbec (0040 — len cez edge function)',
+  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Bot', 'bot@example.sk', 'trainer', now())$s$, 'anon') like 'ERR:%');
 select pg_temp.chk('waitlist: anon nič nečíta zo zoznamu',
   pg_temp.cnt(null, 'select 1 from public.waitlist_signups', 'anon') = -1);
 select pg_temp.chk('waitlist: prihlásený klient/tréner tiež nič nečíta zo zoznamu',
   pg_temp.cnt(:C, 'select 1 from public.waitlist_signups') = -1);
+select pg_temp.chk('legit: service_role (edge function) zapíše nový záznam',
+  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at, ip_hash) values ('Test Tester', 'test@example.sk', 'trainer', now(), 'aaa')$s$, 'service_role') = 'OK');
 select pg_temp.chk('waitlist: duplicitný e-mail (aj v inej veľkosti písmen) sa nezapíše dvakrát',
-  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Iny', 'TEST@example.sk', 'solo', now())$s$, 'anon') like 'ERR:%');
-select pg_temp.chk('waitlist: anon nezapíše cudzí stĺpec (confirmation_sent_at)',
-  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at, confirmation_sent_at) values ('Hack', 'hack@example.sk', 'trainer', now(), now())$s$, 'anon') like 'ERR:%');
+  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Iny', 'TEST@example.sk', 'solo', now())$s$, 'service_role') like 'ERR:%');
 -- 0039: tretia rola "klient, ktorý hľadá trénera" (odlišná od 'solo' — opačný zámer).
 select pg_temp.chk('legit: waitlist prijme rolu client (0039)',
-  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Klient Bez Trenera', 'klient-hladajuci@example.sk', 'client', now())$s$, 'anon') = 'OK');
-select pg_temp.chk('waitlist: neplatná rola sa odmietne',
-  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Neplatny', 'neplatny@example.sk', 'admin', now())$s$, 'anon') like 'ERR:%');
+  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Klient Bez Trenera', 'klient-hladajuci@example.sk', 'client', now())$s$, 'service_role') = 'OK');
+select pg_temp.chk('waitlist: neplatná rola sa odmietne (aj cez service_role — DB CHECK, nie len edge function)',
+  pg_temp.try(null, $s$insert into public.waitlist_signups (full_name, email, role, consent_at) values ('Neplatny', 'neplatny@example.sk', 'admin', now())$s$, 'service_role') like 'ERR:%');
 
 -- ============================================================ E) AI
 select pg_temp.chk('10: klient nevloží podvrhnutú odpoveď asistenta',
