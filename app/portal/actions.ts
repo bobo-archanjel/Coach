@@ -9,6 +9,7 @@ import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
 import { allowWithinWindow } from "@/lib/rateLimitMemory";
 import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
+import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
 
 export interface ActionState {
   error: string | null;
@@ -342,6 +343,11 @@ export async function updateWorkoutLogAction(_prevState: ActionState, formData: 
   return ok;
 }
 
+/** Dnešný dátum (YYYY-MM-DD) v Europe/Bratislava — rovnako ako todayInTz v lib/portal/data.ts. */
+function todayBratislava(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bratislava" }).format(new Date());
+}
+
 /**
  * Denník — pridať zjedenú potravinu. Klient posiela food_id + gramáž + jedlo dňa;
  * makrá na 100 g si server dotiahne z `foods` (autoritatívne), a ak už potravina
@@ -360,6 +366,24 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 
   if (!MEAL_SLOT_ORDER.includes(slot as (typeof MEAL_SLOT_ORDER)[number])) return { error: "Vyber jedlo dňa." };
   if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: "Zadaj gramáž (1–5000 g)." };
+
+  // Zápis aj za iný deň (QA 2026-09-23) — rovnaký povolený rozsah ako zobrazenie.
+  const today = todayBratislava();
+  const eatenOnRaw = (formData.get("eaten_on") as string | null) || today;
+  const eatenOn = validDiaryDate(eatenOnRaw, today);
+  if (!eatenOn) return { error: `Zapisovať sa dá len za posledných ${DIARY_MAX_DAYS_BACK} dní, nie do budúcnosti.` };
+
+  // Vlastná potravina (custom=1): názov a makrá zadáva klient, žiadny food_id —
+  // preto ich tu overíme, nie len `|| 0` ako pri snapshote z plánu/online.
+  if (formData.get("custom") === "1") {
+    if (!name || name.length > 120) return { error: "Zadaj názov potraviny (max 120 znakov)." };
+    if (((formData.get("kcal_100g") as string | null) ?? "").trim() === "") return { error: "Zadaj kalórie na 100 g." };
+    const vals = ["kcal_100g", "protein_100g", "carbs_100g", "fat_100g"].map((k) => Number(formData.get(k)));
+    if (vals.some((v) => !Number.isFinite(v) || v < 0)) return { error: "Makrá musia byť čísla 0 alebo viac." };
+    const [kcal, protein, carbs, fat] = vals;
+    if (kcal > 900) return { error: "Kalórie na 100 g môžu byť najviac 900." };
+    if (protein + carbs + fat > 100) return { error: "Bielkoviny, sacharidy a tuky spolu nemôžu mať viac ako 100 g na 100 g." };
+  }
 
   // Autoritatívne makrá z DB; fallback na snapshot z formulára.
   let macros = {
@@ -391,6 +415,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 
   const { error } = await supabase.from("food_logs").insert({
     client_id: clientId,
+    eaten_on: eatenOn,
     meal_slot: slot,
     food_id: foodId,
     food_name: foodName,
@@ -399,6 +424,31 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
   });
 
   if (error) return { error: dbErr(error, "actions") };
+
+  revalidatePath("/portal/dennik");
+  return ok;
+}
+
+/** Denník — zmena gramáže / jedla dňa zapísanej položky (RLS: food_logs_update_own_client, 0045). */
+export async function updateFoodLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const id = formData.get("entry_id") as string | null;
+  const grams = Number(formData.get("grams"));
+  if (!id) return { error: "Chýba identifikátor záznamu." };
+  if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: "Zadaj gramáž (1–5000 g)." };
+
+  const { data, error } = await supabase
+    .from("food_logs")
+    .update({ grams })
+    .eq("id", id)
+    .eq("client_id", clientId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data) return { error: "Záznam sa nenašiel." };
 
   revalidatePath("/portal/dennik");
   return ok;

@@ -98,7 +98,9 @@ export interface LoggedExercise {
 }
 
 export interface CoachNote {
-  trainer: string;
+  /** null keď sa meno trénera nepodarilo zistiť (napr. chýbajúce full_name) — UI
+   * má vtedy zobraziť len "Tréner" bez mena, nikdy nie zreťazené "Tréner tréner". */
+  trainer: string | null;
   initials: string;
   text: string;
 }
@@ -168,8 +170,10 @@ export interface PortalData {
 export type PortalResult =
   | { state: "ok"; data: PortalData }
   | { state: "unlinked"; firstName: string | null }
-  /** `hasTrainer: false` = klient trénuje sám — má si vytvoriť vlastný plán, nie čakať na trénera */
-  | { state: "no_plan"; firstName: string; hasTrainer: boolean }
+  /** `hasTrainer: false` = klient trénuje sám — má si vytvoriť vlastný plán, nie čakať na trénera.
+   * `today`/`bodyMetrics` sú tu napriek chýbajúcemu plánu — zápis telesnej miery (BodyMetricForm)
+   * je nezávislá funkcia a nesmie byť podmienená existenciou tréningového plánu (QA nález #3). */
+  | { state: "no_plan"; firstName: string; hasTrainer: boolean; today: string; bodyMetrics: BodyMetricEntry[] }
   | { state: "error"; message?: string };
 
 // ---------- Tréning (zoznam plánov klienta — od trénera aj vlastné) ----------
@@ -296,6 +300,8 @@ export interface PortalDiaryGroup {
 
 export interface PortalDiaryData {
   today: string; // ISO (YYYY-MM-DD), Europe/Bratislava
+  /** zobrazený deň denníka (YYYY-MM-DD) — dnešok alebo deň zvolený cez ?date= */
+  date: string;
   /** hodina dňa 0-23 — na predvolený výber jedla dňa pri pridávaní */
   hour: number;
   goal: PortalMacroGoal | null;
@@ -322,7 +328,8 @@ export interface PortalChatMessage {
 
 export interface PortalChatData {
   messages: PortalChatMessage[];
-  trainerName: string;
+  /** null keď sa meno trénera nepodarilo zistiť — šablóny majú fallback text bez mena. */
+  trainerName: string | null;
 }
 
 export type PortalChatResult =

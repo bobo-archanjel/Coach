@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FoodLibrary } from "./FoodLibrary";
 import { MealEntryRow } from "./MealEntryRow";
 import { AddMealDayInline } from "./AddMealDayInline";
+import { MealDayActions } from "./MealDayActions";
 import type { MealEntry } from "../actions";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros } from "@/lib/meals";
 import styles from "./builder.module.css";
@@ -65,6 +66,10 @@ export function MealPlanBuilder({
         </div>
 
         <div className={styles.dayPanel}>
+          {activeDay && (
+            // key: po premenovaní/prepnutí dňa sa zavrie rozpracovaný formulár
+            <MealDayActions key={`${activeDay.id}-${activeDay.name}`} planId={planId} dayId={activeDay.id} name={activeDay.name} />
+          )}
           {activeDay ? (
             activeDay.meals.length > 0 ? (
               <>
@@ -91,7 +96,7 @@ export function MealPlanBuilder({
               </>
             ) : (
               <p className={styles.emptyDay}>
-                Zatiaľ žiadne potraviny — klikni na potravinu v knižnici vľavo, pridá sa sem (100 g,
+                Zatiaľ žiadne potraviny — klikni na potravinu v knižnici, pridá sa sem (100 g,
                 raňajky) a hneď si to upravíš.
               </p>
             )

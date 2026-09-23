@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getPortalData } from "@/lib/portal/data";
+import { pluralSk } from "@/lib/portal/streak";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { DoneWorkoutView } from "./DoneWorkoutView";
 import { ProfileIcon, TrainingIcon } from "./icons";
@@ -177,9 +178,9 @@ function previewResult(kind: string): PortalResult | null {
     case "unlinked":
       return { state: "unlinked", firstName: "Ján" };
     case "no_plan":
-      return { state: "no_plan", firstName: "Ján", hasTrainer: true };
+      return { state: "no_plan", firstName: "Ján", hasTrainer: true, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
     case "no_plan_solo":
-      return { state: "no_plan", firstName: "Ján", hasTrainer: false };
+      return { state: "no_plan", firstName: "Ján", hasTrainer: false, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
     case "error":
       return { state: "error" };
     case "ok":
@@ -260,30 +261,39 @@ export default async function PortalHome({
   }
 
   if (result.state === "no_plan") {
+    // Zápis telesnej miery nezávisí od tréningového plánu (QA nález #3) — Notice
+    // o chýbajúcom pláne sa zobrazí ako predtým, ale BodyMetricForm pod ňou
+    // funguje bez ohľadu na to, či/kedy tréner (alebo klient sám) plán vytvorí.
     if (!result.hasTrainer) {
       return (
-        <Notice
-          icon={<TrainingIcon />}
-          title={result.firstName ? `${result.firstName}, poďme na to` : "Poďme na to"}
-          action={
-            <Link href="/portal/trening" className="btn btn-primary btn-sm">
-              Vytvoriť plán
-            </Link>
-          }
-        >
-          Zatiaľ nemáš tréningový plán. Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi
-          a plán ti pripraví on.
-        </Notice>
+        <>
+          <Notice
+            icon={<TrainingIcon />}
+            title={result.firstName ? `${result.firstName}, poďme na to` : "Poďme na to"}
+            action={
+              <Link href="/portal/trening" className="btn btn-primary btn-sm">
+                Vytvoriť plán
+              </Link>
+            }
+          >
+            Zatiaľ nemáš tréningový plán. Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi
+            a plán ti pripraví on.
+          </Notice>
+          <BodyMetricForm today={result.today} history={result.bodyMetrics} />
+        </>
       );
     }
     return (
-      <Notice
-        icon={<TrainingIcon />}
-        title={result.firstName ? `${result.firstName}, plán je na ceste` : "Plán je na ceste"}
-      >
-        Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví,
-        nájdeš tu dnešný tréning aj prehľad týždňa.
-      </Notice>
+      <>
+        <Notice
+          icon={<TrainingIcon />}
+          title={result.firstName ? `${result.firstName}, plán je na ceste` : "Plán je na ceste"}
+        >
+          Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví,
+          nájdeš tu dnešný tréning aj prehľad týždňa.
+        </Notice>
+        <BodyMetricForm today={result.today} history={result.bodyMetrics} />
+      </>
     );
   }
 
@@ -353,7 +363,7 @@ function PortalToday({ data }: { data: PortalData }) {
               {coachNote.initials}
             </span>
             <div>
-              <p className={styles.noteFrom}>Tréner {coachNote.trainer}</p>
+              <p className={styles.noteFrom}>{coachNote.trainer ? `Tréner ${coachNote.trainer}` : "Tréner"}</p>
               <p className={styles.noteText}>{coachNote.text}</p>
             </div>
           </div>
@@ -377,7 +387,9 @@ function PortalToday({ data }: { data: PortalData }) {
             <h2 className={styles.sessionTitle}>{session.title}</h2>
             {session.focus && <p className={styles.sessionFocus}>{session.focus}</p>}
             <div className={styles.sessionChips}>
-              <span className={styles.chip}>{total} cvikov</span>
+              <span className={styles.chip}>
+                {total} {pluralSk(total, "cvik", "cviky", "cvikov")}
+              </span>
               {session.durationLabel && <span className={styles.chip}>{session.durationLabel}</span>}
             </div>
           </div>

@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useActionState, useOptimistic } from "react";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, sumMacros } from "@/lib/meals";
 import type { PortalDiaryData, PortalDiaryEntry, PortalDiaryGroup } from "@/lib/portal/types";
-import { addFoodLogAction, removeFoodLogAction, type ActionState } from "../actions";
+import { addFoodLogAction, removeFoodLogAction, updateFoodLogAction, type ActionState } from "../actions";
+import { diaryMinDate, shiftDiaryDate } from "@/lib/portal/diaryDate";
 import styles from "../portal.module.css";
 import { AddFoodDiaryEntry } from "./AddFoodDiaryEntry";
 import { DiaryRow } from "./DiaryRow";
@@ -43,11 +45,47 @@ function MacroBar({ label, value, goal }: { label: string; value: number; goal: 
   );
 }
 
-type DiaryAction = { type: "add"; entry: PortalDiaryEntry } | { type: "remove"; id: string };
+type DiaryAction =
+  | { type: "add"; entry: PortalDiaryEntry }
+  | { type: "remove"; id: string }
+  | { type: "grams"; id: string; grams: number };
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 function diaryReducer(entries: PortalDiaryEntry[], action: DiaryAction): PortalDiaryEntry[] {
   if (action.type === "add") return [...entries, action.entry];
-  return entries.filter((e) => e.id !== action.id);
+  if (action.type === "remove") return entries.filter((e) => e.id !== action.id);
+  // Zmena gramáže — makrá sú lineárne v gramoch, prepočítaj pomerom (server ich
+  // po revalidatePath aj tak dodá presne zo snapshotu na 100 g).
+  return entries.map((e) => {
+    if (e.id !== action.id || e.grams <= 0) return e;
+    const k = action.grams / e.grams;
+    return {
+      ...e,
+      grams: action.grams,
+      kcal: Math.round(e.kcal * k),
+      proteinG: round1(e.proteinG * k),
+      carbsG: round1(e.carbsG * k),
+      fatG: round1(e.fatG * k),
+    };
+  });
+}
+
+/** "Dnes" / "Včera" / "Pondelok 21. 9." — nadpis denníka a navigácia medzi dňami. */
+function dayLabel(date: string, today: string): string {
+  if (date === today) return "Dnes";
+  if (date === shiftDiaryDate(today, -1)) return "Včera";
+  const label = new Date(`${date}T12:00:00Z`).toLocaleDateString("sk-SK", {
+    weekday: "long",
+    day: "numeric",
+    month: "numeric",
+    timeZone: "UTC",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function diaryHref(date: string, today: string): string {
+  return date === today ? "/portal/dennik" : `/portal/dennik?date=${date}`;
 }
 
 /** Rovnaké zoskupenie ako getPortalFoodDiary (lib/portal/data.ts) — počíta sa
@@ -70,15 +108,20 @@ function buildGroups(entries: PortalDiaryEntry[]): PortalDiaryGroup[] {
  * jedla sa v zozname aj v makro pruhoch prejaví okamžite.
  */
 export function DiaryView({ data }: { data: PortalDiaryData }) {
-  const { goal, planFoods, hour } = data;
+  const { goal, planFoods, hour, date, today } = data;
+  const isToday = date === today;
+  const prevDate = shiftDiaryDate(date, -1);
+  const canGoBack = prevDate >= diaryMinDate(today);
 
   const [addState, addFormAction, addPending] = useActionState(addFoodLogAction, initialState);
   const [removeState, removeFormAction] = useActionState(removeFoodLogAction, initialState);
+  const [updateState, updateFormAction] = useActionState(updateFoodLogAction, initialState);
 
   const initialEntries = data.groups.flatMap((g) => g.entries);
   const [entries, dispatchOptimistic] = useOptimistic<PortalDiaryEntry[], DiaryAction>(initialEntries, diaryReducer);
 
   function handleAdd(fd: FormData, entry: PortalDiaryEntry) {
+    fd.set("eaten_on", date); // zápis za práve zobrazený deň (aj spätne)
     startTransition(() => {
       dispatchOptimistic({ type: "add", entry });
       addFormAction(fd);
@@ -94,6 +137,16 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
     });
   }
 
+  function handleUpdateGrams(id: string, grams: number) {
+    const fd = new FormData();
+    fd.set("entry_id", id);
+    fd.set("grams", String(grams));
+    startTransition(() => {
+      dispatchOptimistic({ type: "grams", id, grams });
+      updateFormAction(fd);
+    });
+  }
+
   const groups = buildGroups(entries);
   // Súčty vždy prepočítané z (optimistickej) plochej listiny — pri chybe
   // uloženia/odobratia React sám zahodí optimistic vrstvu, `entries` sa vráti
@@ -106,7 +159,27 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
   return (
     <section className={styles.diary} aria-label="Denník jedla">
       <div className={`${styles.panel} ${styles.diaryHero}`}>
-        <h1 className={styles.diaryHeading}>Dnešný príjem</h1>
+        <nav className={styles.diaryDateNav} aria-label="Deň denníka">
+          {canGoBack ? (
+            <Link href={diaryHref(prevDate, today)} className={styles.diaryDateArrow} aria-label="Predošlý deň">
+              ‹
+            </Link>
+          ) : (
+            <span className={`${styles.diaryDateArrow} ${styles.diaryDateArrowOff}`} aria-hidden="true">
+              ‹
+            </span>
+          )}
+          <h1 className={styles.diaryHeading}>{isToday ? "Dnešný príjem" : `Príjem — ${dayLabel(date, today)}`}</h1>
+          {isToday ? (
+            <span className={`${styles.diaryDateArrow} ${styles.diaryDateArrowOff}`} aria-hidden="true">
+              ›
+            </span>
+          ) : (
+            <Link href={diaryHref(shiftDiaryDate(date, 1), today)} className={styles.diaryDateArrow} aria-label="Nasledujúci deň">
+              ›
+            </Link>
+          )}
+        </nav>
         <div className={styles.kcalLine}>
           <span className={`${styles.diaryKcal} ${kcalOver ? styles.macroOver : ""}`}>{totals.kcal}</span>
           <span className={styles.diaryKcalGoal}>{kcalGoal != null ? `/ ${kcalGoal} kcal` : "kcal spolu"}</span>
@@ -134,6 +207,11 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
           Nepodarilo sa odobrať — {removeState.error}
         </p>
       )}
+      {updateState.error && (
+        <p className={styles.addError} role="alert">
+          Nepodarilo sa upraviť — {updateState.error}
+        </p>
+      )}
 
       {hasEntries ? (
         groups.map((group) => (
@@ -146,7 +224,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
             </div>
             <ul className={styles.diaryList}>
               {group.entries.map((entry) => (
-                <DiaryRow key={entry.id} entry={entry} onRemove={handleRemove} />
+                <DiaryRow key={entry.id} entry={entry} onRemove={handleRemove} onUpdateGrams={handleUpdateGrams} />
               ))}
             </ul>
           </div>
@@ -154,12 +232,23 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
       ) : (
         <div className={styles.panel}>
           <div className={styles.sessionQuiet}>
-            <p>Dnes si si ešte nič nezapísal. Pridaj prvé jedlo nižšie.</p>
+            <p>
+              {isToday
+                ? "Dnes si si ešte nič nezapísal. Pridaj prvé jedlo nižšie."
+                : "Za tento deň nemáš nič zapísané. Môžeš to doplniť nižšie."}
+            </p>
           </div>
         </div>
       )}
 
-      <AddFoodDiaryEntry planFoods={planFoods} hour={hour} onAdd={handleAdd} pending={addPending} error={addState.error} />
+      <AddFoodDiaryEntry
+        planFoods={planFoods}
+        hour={hour}
+        dayNote={isToday ? null : `Zapisuješ za ${dayLabel(date, today).toLowerCase()}.`}
+        onAdd={handleAdd}
+        pending={addPending}
+        error={addState.error}
+      />
     </section>
   );
 }

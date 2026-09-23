@@ -1154,7 +1154,7 @@ select.addClientInputSm {
   font-size: 1.05rem;
   margin-bottom: 12px;
 }
-/* Podnadpis vnútri väčšej zloženej karty (napr. Analytika, Trekovanie jedálnička —
+/* Podnadpis vnútri väčšej zloženej karty (napr. Analytika, Sledovanie jedálnička —
    viacero pôvodne samostatných kariet spojených do jednej, feature/progress-analyst). */
 .cardSubhead {
   font-size: 11px;

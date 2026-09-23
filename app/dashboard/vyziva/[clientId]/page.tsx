@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { NutritionForm } from "./NutritionForm";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
+import { pluralSk } from "@/lib/portal/streak";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -33,7 +34,7 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
       .maybeSingle(),
     supabase
       .from("meal_plans")
-      .select("id, name, created_at, meal_days(count)")
+      .select("id, name, created_at, published, meal_days(count)")
       .eq("client_id", clientId)
       .order("created_at", { ascending: false }),
     // Súkromná poznámka trénera k výžive (trainer_private_notes, 0036) — klient ju nevidí.
@@ -69,10 +70,26 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
           <div className={styles.roster}>
             {mealPlans.map((plan) => {
               const dayCount = (plan.meal_days as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+              // Portál ukazuje najnovší ZVEREJNENÝ jedálniček (zoradené od najnovšieho).
+              const visibleToClient = plan.id === mealPlans.find((p) => p.published)?.id;
               return (
                 <Link key={plan.id} href={`/dashboard/vyziva/jedalnicek/${plan.id}`} className={styles.clientCard}>
-                  <div className={styles.clientName}>{plan.name}</div>
-                  <span className={styles.clientSince}>{dayCount} dní</span>
+                  <div className={styles.clientName}>
+                    {plan.name}
+                    {!plan.published && (
+                      <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>
+                        Koncept
+                      </span>
+                    )}
+                    {visibleToClient && (
+                      <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`} style={{ marginLeft: 8 }}>
+                        Klient vidí
+                      </span>
+                    )}
+                  </div>
+                  <span className={styles.clientSince}>
+                    {dayCount} {pluralSk(dayCount, "deň", "dni", "dní")}
+                  </span>
                 </Link>
               );
             })}

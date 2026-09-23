@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { PortalDiaryEntry } from "@/lib/portal/types";
 import styles from "../portal.module.css";
 
@@ -15,14 +16,79 @@ const TrashIcon = () => (
   </svg>
 );
 
+const PencilIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 /**
- * Odobratie ide cez `onRemove` z rodiča (DiaryView) — ten spustí optimistic
- * odobratie zo zdieľaného zoznamu + skutočnú server action v jednej transition,
- * takže riadok zmizne hneď, nie až po revalidatePath. Vlastný pending stav tu
- * už netreba (predtým `useActionState` priamo tu) — kým sa čaká na server,
- * riadok už nie je vidno; pri chybe ho React sám vráti späť.
+ * Úprava aj odobratie idú cez callbacky z rodiča (DiaryView) — ten spustí
+ * optimistickú zmenu zdieľaného zoznamu + skutočnú server action v jednej
+ * transition, takže riadok aj súčty sa zmenia hneď. Odobratie má inline
+ * potvrdenie (QA 2026-09-23: kôš mazal okamžite, bez možnosti vrátiť).
  */
-export function DiaryRow({ entry, onRemove }: { entry: PortalDiaryEntry; onRemove: (id: string) => void }) {
+export function DiaryRow({
+  entry,
+  onRemove,
+  onUpdateGrams,
+}: {
+  entry: PortalDiaryEntry;
+  onRemove: (id: string) => void;
+  onUpdateGrams: (id: string, grams: number) => void;
+}) {
+  const [mode, setMode] = useState<"view" | "edit" | "confirmRemove">("view");
+  const [grams, setGrams] = useState(String(entry.grams));
+  // Optimistický riadok ešte nemá skutočné ID z DB — úprava/odobratie počká.
+  const pendingRow = entry.id.startsWith("optimistic-");
+
+  function saveGrams() {
+    const g = Number(grams);
+    if (!Number.isFinite(g) || g <= 0 || g > 5000) return;
+    setMode("view");
+    if (g !== entry.grams) onUpdateGrams(entry.id, g);
+  }
+
+  if (mode === "edit") {
+    return (
+      <li className={styles.diaryRow}>
+        <span className={styles.diaryName}>{entry.name}</span>
+        <span className={styles.gramField}>
+          <input
+            className={styles.gramInput}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={5000}
+            value={grams}
+            onChange={(e) => setGrams(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveGrams();
+              if (e.key === "Escape") setMode("view");
+            }}
+            aria-label={`Gramáž ${entry.name}`}
+            autoFocus
+          />
+          <span className={styles.gramUnit}>g</span>
+        </span>
+        <span style={{ display: "flex", gap: 6 }}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={saveGrams}>
+            Uložiť
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("view")}>
+            Zrušiť
+          </button>
+        </span>
+      </li>
+    );
+  }
+
   return (
     <li className={styles.diaryRow}>
       <span>
@@ -32,9 +98,40 @@ export function DiaryRow({ entry, onRemove }: { entry: PortalDiaryEntry; onRemov
         </span>
       </span>
       <span className={styles.diaryKcalCell}>{entry.kcal} kcal</span>
-      <button type="button" className={styles.removeBtn} onClick={() => onRemove(entry.id)} aria-label={`Odobrať ${entry.name}`}>
-        <TrashIcon />
-      </button>
+      {mode === "confirmRemove" ? (
+        <span style={{ display: "flex", gap: 6 }}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => onRemove(entry.id)}>
+            Odobrať
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("view")}>
+            Nie
+          </button>
+        </span>
+      ) : (
+        <span style={{ display: "flex", gap: 2 }}>
+          <button
+            type="button"
+            className={styles.removeBtn}
+            disabled={pendingRow}
+            onClick={() => {
+              setGrams(String(entry.grams));
+              setMode("edit");
+            }}
+            aria-label={`Upraviť gramáž ${entry.name}`}
+          >
+            <PencilIcon />
+          </button>
+          <button
+            type="button"
+            className={styles.removeBtn}
+            disabled={pendingRow}
+            onClick={() => setMode("confirmRemove")}
+            aria-label={`Odobrať ${entry.name}`}
+          >
+            <TrashIcon />
+          </button>
+        </span>
+      )}
     </li>
   );
 }

@@ -1,6 +1,8 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { stripMarkdown } from "@/lib/ai/plainText";
+import { validDiaryDate } from "@/lib/portal/diaryDate";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
@@ -298,6 +300,21 @@ export async function getPortalData(): Promise<PortalResult> {
     const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
     if (!client) return { state: "unlinked", firstName };
 
+    // Zápis telesnej miery (BodyMetricForm) je nezávislá funkcia od tréningového
+    // plánu — "no_plan" stav ju preto musí nosiť so sebou (QA nález #3: predtým
+    // sa BodyMetricForm vôbec nerenderoval, kým klient nemal aktívny plán).
+    const noPlanResult = async (): Promise<PortalResult> => {
+      const { isoDate } = todayInTz();
+      const bodyMetrics = await getBodyMetrics(client.id);
+      return {
+        state: "no_plan",
+        firstName: firstName ?? "",
+        hasTrainer: Boolean(client.trainer_id),
+        today: isoDate,
+        bodyMetrics: bodyMetrics ?? [],
+      };
+    };
+
     // "Aktívny" plán = clients.active_plan_id (klient si ho volí v sekcii Tréning),
     // inak najnovší plán (spätne kompatibilné). Platí pre plán od trénera aj vlastný.
     let plan: { id: string; name: string } | null = null;
@@ -325,7 +342,7 @@ export async function getPortalData(): Promise<PortalResult> {
       if (planErr) return { state: "error", message: dbErr(planErr, "data") };
       plan = data ?? null;
     }
-    if (!plan) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
+    if (!plan) return await noPlanResult();
 
     const { data: dayRows, error: daysErr } = await supabase
       .from("workout_days")
@@ -336,7 +353,7 @@ export async function getPortalData(): Promise<PortalResult> {
     if (daysErr) return { state: "error", message: dbErr(daysErr, "data") };
 
     const days = (dayRows ?? []) as DayRow[];
-    if (days.length === 0) return { state: "no_plan", firstName: firstName ?? "", hasTrainer: Boolean(client.trainer_id) };
+    if (days.length === 0) return await noPlanResult();
 
     const { isoDate, hour, base } = todayInTz();
 
@@ -351,7 +368,6 @@ export async function getPortalData(): Promise<PortalResult> {
     if (logErr) return { state: "error", message: dbErr(logErr, "data") };
 
     const logs = logRows ?? [];
-    const loggedDates = new Set(logs.map((l) => l.performed_on));
     // Viac dní sa dá odcvičiť aj v ten istý kalendárny deň (unique index je na
     // (client_id, workout_day_id, performed_on), nie len performed_on) — preto
     // mapa podľa dňa, nie jeden "dnešný log" pre celý plán.
@@ -409,7 +425,15 @@ export async function getPortalData(): Promise<PortalResult> {
       durationLabel: "",
       exercises: exList,
       loggedExercises,
-      completedCount: doneToday ? exList.length : 0,
+      // Krúžok postupu = cviky so skutočne zapísanou sériou (sanitizeEntries
+      // vynecháva cviky bez série), nie automaticky všetky — inak po ukončení
+      // ukazoval 3/3, hoci jeden cvik klient nezapísal. Len odklikutý tréning
+      // bez zápisu (entries: []) ostáva ako celý hotový.
+      completedCount: doneToday
+        ? loggedExercises
+          ? Math.min(loggedExercises.length, exList.length)
+          : exList.length
+        : 0,
       dayId: targetDay.id,
     };
 
@@ -454,29 +478,33 @@ export async function getPortalData(): Promise<PortalResult> {
     };
 
     // ---------- história (posledných 12 dní pred dneškom) ----------
+    // Naprieč všetkými plánmi (ako série), nie len `logs` aktuálneho plánu — inak
+    // "Odcvičené spolu" aj pás histórie spadli na 0 hneď po publikovaní nového plánu.
+    const allTrainingDates = (streakTrainRows ?? []).map((r) => r.performed_on as string);
+    const allLoggedDates = new Set(allTrainingDates);
     const streakHistory: StreakDayState[] = [];
     for (let i = HISTORY_DAYS; i >= 1; i--) {
       const date = addDays(base, -i);
-      streakHistory.push(loggedDates.has(iso(date)) ? "done" : "rest");
+      streakHistory.push(allLoggedDates.has(iso(date)) ? "done" : "rest");
     }
 
-    const totalSessions = logs.length;
+    const totalSessions = allTrainingDates.length;
 
     // ---------- odkaz trénera ----------
     let coachNote: CoachNote | null = null;
     if (note?.body) {
-      let trainerName = "tréner";
+      let trainerName: string | null = null;
       if (note.trainer_id) {
         const { data: trainer } = await supabase
           .from("profiles")
           .select("full_name")
           .eq("id", note.trainer_id)
           .maybeSingle();
-        trainerName = firstNameOf(trainer?.full_name) ?? trainerName;
+        trainerName = firstNameOf(trainer?.full_name);
       }
       coachNote = {
         trainer: trainerName,
-        initials: (trainerName[0] ?? "T").toUpperCase(),
+        initials: (trainerName?.[0] ?? "T").toUpperCase(),
         text: note.body,
       };
     }
@@ -688,22 +716,23 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
  * cache-ovať naprieč VŠETKÝMI požiadavkami na hodinu (`unstable_cache`), nie len
  * v rámci jednej session. Zmerané: 886 riadkov / ~300 kB / 200-650 ms na dopyt —
  * s cache-om zaplatí tento round-trip len prvý klient za hodinu, nie každý.
- * Cookie-free anon klient priamo (nie `lib/supabase/server.ts`), lebo
- * `unstable_cache` zakazuje `cookies()`/dynamické API vo vnútri; RLS
- * (`exercises_select_global_or_own`) global riadky beztak povoľuje bez session.
+ * Service-role klient (nie `lib/supabase/server.ts`), lebo `unstable_cache`
+ * zakazuje `cookies()`/dynamické API vo vnútri. Pôvodne tu bol anon klient, ale
+ * 0036 odobrala anon roli všetky práva na tabuľky → dopyt ticho vracal [] a
+ * builder klienta mal prázdnu knižnicu (QA 2026-09-23). Service role je tu OK:
+ * číta len verejnú globálnu knižnicu (explicitný filter `trainer_id is null`)
+ * a volajúci (`getExerciseLibraryAction`) najprv overí session.
+ * Chyba sa VYHODÍ, nie vráti ako [] — `unstable_cache` výnimku neuloží, takže
+ * prechodný výpadok neurobí z knižnice hodinu prázdny zoznam.
  */
 const getGlobalExerciseLibrary = unstable_cache(
   async (): Promise<ExerciseOption[]> => {
-    const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
-    const { data: libRows, error } = await supabase
+    const { data: libRows, error } = await createAdminClient()
       .from("exercises")
       .select("id, name, name_sk, muscle_group, image_url")
       .is("trainer_id", null)
       .order("name", { ascending: true });
-    if (error) return [];
+    if (error) throw new Error(`exercise library: ${error.message}`);
     return (libRows ?? []).map((e) => ({
       id: e.id,
       name: e.name,
@@ -712,12 +741,20 @@ const getGlobalExerciseLibrary = unstable_cache(
       imageUrl: Array.isArray(e.image_url) && e.image_url.length > 0 ? e.image_url[0] : null,
     }));
   },
-  ["portal-global-exercise-library"],
+  // v2: nový kľúč, nech sa nepoužije prípadný [] uložený ešte anon verziou.
+  ["portal-global-exercise-library-v2"],
   { revalidate: 3600 },
 );
 
 export async function getExerciseLibrary(): Promise<ExerciseOption[]> {
-  return getGlobalExerciseLibrary();
+  try {
+    return await getGlobalExerciseLibrary();
+  } catch (err) {
+    // Builder má degradovať na vlastné cviky, nie spadnúť; TrainingSection pri
+    // prázdnej knižnici skúsi načítať znova pri ďalšom otvorení.
+    console.error("getExerciseLibrary:", err instanceof Error ? err.message : err);
+    return [];
+  }
 }
 
 /** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/vyziva/jedalnicek/actions.ts. */
@@ -759,6 +796,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         .from("meal_plans")
         .select("id, name")
         .eq("client_id", client.id)
+        .eq("published", true) // koncept vidí len tréner (0044)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -860,7 +898,7 @@ type FoodRow = {
  * zbalený (`AddFoodDiaryEntry` `open=false`) — teraz na požiadanie cez
  * `getFoodLibraryAction`, rovnaký dôvod ako knižnica cvikov v `getPortalTraining`.
  */
-export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
+export async function getPortalFoodDiary(requestedDate?: string): Promise<PortalDiaryResult> {
   try {
     const supabase = await createClient();
     const {
@@ -872,7 +910,9 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
-    const { isoDate, hour } = todayInTz();
+    const { isoDate: todayIso, hour } = todayInTz();
+    // Zobrazený deň — dnešok, alebo klientom zvolený deň v povolenom rozsahu (?date=).
+    const isoDate = validDiaryDate(requestedDate, todayIso) ?? todayIso;
 
     const [
       { data: profile, error: profileErr },
@@ -894,6 +934,7 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
         .from("meal_plans")
         .select("id")
         .eq("client_id", client.id)
+        .eq("published", true) // koncept vidí len tréner (0044)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -981,7 +1022,8 @@ export async function getPortalFoodDiary(): Promise<PortalDiaryResult> {
     }
 
     const data: PortalDiaryData = {
-      today: isoDate,
+      today: todayIso,
+      date: isoDate,
       hour,
       goal,
       groups,
@@ -1052,10 +1094,10 @@ export async function getPortalChat(): Promise<PortalChatResult> {
       createdAt: m.created_at,
     }));
 
-    let trainerName = "tréner";
+    let trainerName: string | null = null;
     if (cRow?.trainer_id) {
       const { data: t } = await supabase.from("profiles").select("full_name").eq("id", cRow.trainer_id).maybeSingle();
-      trainerName = firstNameOf(t?.full_name) ?? "tréner";
+      trainerName = firstNameOf(t?.full_name);
     }
 
     const data: PortalChatData = { messages, trainerName };
@@ -1105,7 +1147,8 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     const messages: PortalAiChatMessage[] = (rows ?? []).map((m) => ({
       id: m.id,
       role: m.role as "user" | "assistant",
-      body: m.content,
+      // staršie odpovede sa uložili ešte s markdownom (pred stripMarkdown v chat.ts)
+      body: m.role === "assistant" ? stripMarkdown(m.content) : m.content,
       createdAt: m.created_at,
       escalated: m.escalated ?? false,
     }));

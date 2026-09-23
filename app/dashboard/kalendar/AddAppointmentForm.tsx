@@ -1,31 +1,61 @@
 "use client";
 
 import { useActionState, useRef, useEffect } from "react";
-import { createAppointmentAction, type ActionState } from "./actions";
+import {
+  createAppointmentAction,
+  updateAppointmentAction,
+  type ActionState,
+  type AppointmentFormValues,
+} from "./actions";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
-export function AddAppointmentForm({ clients }: { clients: { id: string; full_name: string }[] }) {
-  const [state, formAction, pending] = useActionState(createAppointmentAction, initialState);
+const EMPTY: AppointmentFormValues = { client_id: "", title: "", date: "", time: "", end_time: "", note: "" };
+
+/**
+ * Formulár termínu — nový (`appointmentId` chýba) aj úprava existujúceho.
+ * Polia sú zámerne bez HTML5 `required`: bublina by bola v jazyku prehliadača,
+ * akcia vracia vlastné slovenské hlášky. Pri chybe akcia vráti zadané hodnoty
+ * (`state.values`) — React 19 po akcii formulár resetuje na defaultValue, bez
+ * toho sa po chybe validácie vymazal názov aj čas (QA 2026-09-23).
+ */
+export function AppointmentForm({
+  clients,
+  appointmentId,
+  initial,
+  onDone,
+}: {
+  clients: { id: string; full_name: string }[];
+  appointmentId?: string;
+  initial?: AppointmentFormValues;
+  onDone?: () => void;
+}) {
+  const editing = Boolean(appointmentId);
+  const [state, formAction, pending] = useActionState(
+    editing ? updateAppointmentAction : createAppointmentAction,
+    initialState,
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const wasPending = useRef(false);
 
-  // Po úspešnom uložení vyčisti formulár (žiadny explicitný "úspech" text netreba —
-  // nový termín sa hneď objaví v agende nižšie vďaka revalidatePath).
   useEffect(() => {
-    if (wasPending.current && !pending && !state.error) formRef.current?.reset();
+    if (wasPending.current && !pending && !state.error) {
+      // Úspech: nový termín → prázdny formulár; úprava → zavrieť editor.
+      if (editing) onDone?.();
+      else formRef.current?.reset();
+    }
     wasPending.current = pending;
-  }, [pending, state.error]);
+  }, [pending, state.error, editing, onDone]);
 
-  if (clients.length === 0) {
-    return <p className={styles.noWorkouts}>Najprv pridaj klienta na stránke Klienti.</p>;
-  }
+  const v = state.values ?? initial ?? EMPTY;
 
   return (
-    <form ref={formRef} action={formAction} className={styles.addClientForm}>
+    // key: po chybe sa formulár pre-renderuje s práve zadanými hodnotami ako defaultValue
+    <form key={JSON.stringify(state.values ?? null)} ref={formRef} action={formAction} className={styles.addClientForm}>
+      {appointmentId && <input type="hidden" name="appointment_id" value={appointmentId} />}
       <div className={styles.addClientFields}>
-        <select name="client_id" required disabled={pending} className={styles.addClientInput} defaultValue="">
+        <select name="client_id" disabled={pending} className={styles.addClientInput} defaultValue={v.client_id}>
           <option value="" disabled>
             Vyber klienta
           </option>
@@ -35,29 +65,57 @@ export function AddAppointmentForm({ clients }: { clients: { id: string; full_na
             </option>
           ))}
         </select>
-        <input name="title" type="text" placeholder="Napr. Konzultácia" required maxLength={200} disabled={pending} className={styles.addClientInput} />
+        <input
+          name="title"
+          type="text"
+          placeholder="Napr. Konzultácia"
+          maxLength={200}
+          defaultValue={v.title}
+          disabled={pending}
+          className={styles.addClientInput}
+        />
       </div>
       <div className={styles.addClientFieldsRow}>
         <label className={styles.timeField}>
           <span className={styles.timeFieldLabel}>Dátum</span>
-          <input name="date" type="date" required disabled={pending} className={styles.addClientInputSm} />
+          <input name="date" type="date" defaultValue={v.date} disabled={pending} className={styles.addClientInputSm} />
         </label>
         <label className={styles.timeField}>
           <span className={styles.timeFieldLabel}>Od</span>
-          <input name="time" type="time" required disabled={pending} className={styles.addClientInputSm} />
+          <input name="time" type="time" defaultValue={v.time} disabled={pending} className={styles.addClientInputSm} />
         </label>
         <label className={styles.timeField}>
           <span className={styles.timeFieldLabel}>Do (voliteľné)</span>
-          <input name="end_time" type="time" disabled={pending} className={styles.addClientInputSm} />
+          <input name="end_time" type="time" defaultValue={v.end_time} disabled={pending} className={styles.addClientInputSm} />
         </label>
       </div>
       <div className={styles.addClientFields}>
-        <input name="note" type="text" placeholder="Poznámka (voliteľné)" maxLength={1000} disabled={pending} className={styles.addClientInput} />
+        <input
+          name="note"
+          type="text"
+          placeholder="Poznámka (voliteľné)"
+          maxLength={1000}
+          defaultValue={v.note}
+          disabled={pending}
+          className={styles.addClientInput}
+        />
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? "Ukladám…" : "Pridať termín"}
+          {pending ? "Ukladám…" : editing ? "Uložiť zmeny" : "Pridať termín"}
         </button>
+        {editing && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={pending}>
+            Zrušiť
+          </button>
+        )}
       </div>
       {state.error && <p className={styles.noWorkouts}>{state.error}</p>}
     </form>
   );
+}
+
+export function AddAppointmentForm({ clients }: { clients: { id: string; full_name: string }[] }) {
+  if (clients.length === 0) {
+    return <p className={styles.noWorkouts}>Najprv pridaj klienta na stránke Klienti.</p>;
+  }
+  return <AppointmentForm clients={clients} />;
 }

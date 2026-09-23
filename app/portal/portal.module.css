@@ -1517,6 +1517,59 @@
   line-height: 1.2;
   margin-bottom: 10px;
 }
+/* Navigácia medzi dňami denníka (‹ deň ›) — zápis aj spätne (QA 2026-09-23). */
+.diaryDateNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.diaryDateNav .diaryHeading {
+  margin-bottom: 0;
+  text-align: center;
+  flex: 1;
+}
+.diaryDateArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-size: 1.3rem;
+  line-height: 1;
+  text-decoration: none;
+}
+.diaryDateArrow:hover {
+  border-color: var(--paper-faint);
+}
+.diaryDateArrowOff {
+  opacity: 0.3;
+}
+/* Vlastná potravina v denníku — názov + makrá na 100 g + gramáž. */
+.customFood {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.customFoodGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.customFoodField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+.customFoodField .gramInput {
+  width: 100%;
+}
 .kcalLine {
   display: flex;
   align-items: baseline;

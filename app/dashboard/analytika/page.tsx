@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview, type ClientAnalyticsRow } from "@/lib/dashboard/analytics";
+import { clientStatus, sortScore } from "@/lib/dashboard/portfolioStatus";
+import { pluralSk } from "@/lib/portal/streak";
 import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { RosterSummaryCard } from "./RosterSummaryCard";
@@ -17,35 +19,14 @@ function pctTone(pct: number | null): "active" | "late" | "ended" {
 }
 
 /** Zoraďovacie skóre — čo najnižšie prvé (najviac potrebuje pozornosť). Priemer z dostupných %. */
-function sortScore(row: ClientAnalyticsRow): number {
-  const values = [row.nutritionPct30, row.trainingPct30].filter((v): v is number => v != null);
-  if (values.length === 0) return 100;
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-/** Klient bez akéhokoľvek signálu za 30 dní — nepatrí do žiadneho zdravotného koša, ukáže sa zvlášť. */
-function hasNoSignal(row: ClientAnalyticsRow): boolean {
-  return row.nutritionPct30 == null && row.trainingPct30 === 0 && row.lastTrainedOn == null;
-}
-
 /**
- * Zdravie celého portfólia — počty klientov podľa rovnakých prahov ako `pctTone`
- * (≥70 % v poriadku, <40 % riziko, medzi tým sleduj), aby tréner videl stav na
- * prvý pohľad, nie len zoradený zoznam. "Bez dát" = klient, ktorý za 30 dní nič
- * neodcvičil ani nemá makro cieľ (inak by umelo napĺňal "Riziko").
+ * Zdravie celého portfólia — počty klientov podľa `clientStatus`, aby tréner videl
+ * stav na prvý pohľad, nie len zoradený zoznam. "Bez dát" = klient, ktorý za 30 dní
+ * nič neodcvičil ani nemá makro cieľ (inak by umelo napĺňal "Riziko").
  */
 function portfolioHealth(rows: ClientAnalyticsRow[]): { ok: number; watch: number; risk: number; none: number } {
   const health = { ok: 0, watch: 0, risk: 0, none: 0 };
-  for (const row of rows) {
-    if (hasNoSignal(row)) {
-      health.none++;
-      continue;
-    }
-    const score = sortScore(row);
-    if (score >= 70) health.ok++;
-    else if (score < 40) health.risk++;
-    else health.watch++;
-  }
+  for (const row of rows) health[clientStatus(row)]++;
   return health;
 }
 
@@ -166,7 +147,7 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
         <p>
           {activeClients.length === 0
             ? "Zatiaľ nemáš klientov na analýzu."
-            : `${activeClients.length} klientov · zoradené od tých, ktorí najviac potrebujú pozornosť.`}
+            : `${activeClients.length} ${pluralSk(activeClients.length, "klient", "klienti", "klientov")} · zoradené od tých, ktorí najviac potrebujú pozornosť.`}
         </p>
       </div>
 
@@ -218,7 +199,8 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
                 {aiInsights.map((i) => (
                   <li key={i.topic}>
                     <span>
-                      {i.clientCount} {i.clientCount === 1 ? "klient sa" : i.clientCount < 5 ? "klienti sa" : "klientov sa"} pýtalo
+                      {i.clientCount}{" "}
+                      {pluralSk(i.clientCount, "klient sa pýtal", "klienti sa pýtali", "klientov sa pýtalo")}
                       AI Kouča na
                     </span>
                     <span>{i.label}</span>

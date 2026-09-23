@@ -18,6 +18,11 @@ function supabaseConnectHosts(): string {
 }
 
 const nextConfig: NextConfig = {
+  // QA_DIST_DIR (test/qa-dual-agent): umožňuje spustiť viac `next dev` inštancií
+  // nad tým istým repom bez toho, aby si navzájom kazili `.next` build cache
+  // (súbežný zápis do zdieľaného .next spôsoboval ENOENT/404 pády). Bez env
+  // premennej sa správanie vôbec nemení (default ".next").
+  ...(process.env.QA_DIST_DIR ? { distDir: process.env.QA_DIST_DIR } : {}),
   // Default ("loose") CSS chunking duplikoval celý portal.module.css (64 kB)
   // do KAŽDÉHO page-level CSS chunku popri layout.css, ktorý ho už obsahuje —
   // /portal/trening tak sťahoval 128 kB CSS namiesto 64 kB (viď commit). "strict"

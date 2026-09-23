@@ -15,7 +15,8 @@ export interface RosterItem {
   id: string;
   fullName: string;
   goal: string | null;
-  createdAt: string;
+  /** začiatok spolupráce s týmto trénerom (clients.paired_at, 0047) */
+  since: string;
   unread: number;
   pendingDeletion: boolean;
   deletionLabel: string | null;
@@ -89,7 +90,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                     </span>
                   )
                 )}
-                <span className={styles.clientSince}>od {new Date(client.createdAt).toLocaleDateString("sk-SK")}</span>
+                <span className={styles.clientSince}>od {new Date(client.since).toLocaleDateString("sk-SK")}</span>
               </span>
             </Link>
           ))}
@@ -102,7 +103,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
       ) : (
         <div className={styles.emptyState}>
           <h2>Zatiaľ nemáš žiadnych klientov</h2>
-          <p>Pridaj prvého klienta vyššie.</p>
+          <p>Pridaj prvého klienta cez „+ Nový klient“.</p>
         </div>
       )}
     </>

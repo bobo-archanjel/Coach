@@ -47,3 +47,7 @@ tsconfig.tsbuildinfo
 scripts/.equipment-backfill-*.json
 # Supabase CLI: dočasné súbory (môžu obsahovať referencie na projekt) — nikdy do repa
 supabase/.temp/
+.qa-profiles/
+qa-results/
+.next-qa-trainer/
+.next-qa-client/

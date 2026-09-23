@@ -38,7 +38,10 @@ export default async function VyzivaPage() {
       {clients && clients.length > 0 ? (
         <div className={styles.roster}>
           {clients.map((client) => {
-            const profile = (client.nutrition_profiles as unknown as NutritionSummary[] | null)?.[0] ?? null;
+            // nutrition_profiles.client_id je unique → PostgREST vráti objekt, nie pole
+            // (rovnako ošetrené v treningy/page.tsx).
+            const raw = client.nutrition_profiles as unknown as NutritionSummary | NutritionSummary[] | null;
+            const profile = (Array.isArray(raw) ? raw[0] : raw) ?? null;
             return (
               <Link key={client.id} href={`/dashboard/vyziva/${client.id}`} className={styles.clientCard}>
                 <div>

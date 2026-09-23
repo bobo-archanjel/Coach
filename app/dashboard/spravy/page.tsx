@@ -183,15 +183,16 @@ export default async function SpravyPage({
                       checkNewAction={getTrainerChatMarkerAction.bind(null, selectedClientId)}
                       realtimeTable="messages"
                       emptyTitle="Zatiaľ žiadne správy"
-                      emptyText={`Napíš ${selectedName.split(/\s+/)[0]}ovi prvú správu.`}
-                      placeholder={`Správa pre ${selectedName.split(/\s+/)[0]}a…`}
+                      // Bez skloňovania mena — prípona tvorila "Evaa", "Martinaovi".
+                      emptyText={`Napíš prvú správu — ${selectedName} ju uvidí v portáli.`}
+                      placeholder="Napíš správu…"
                       embedded
                     />
                   </>
                 ) : (
                   <div className={styles.emptyState} style={{ border: "none", padding: "clamp(24px, 6vw, 48px)" }}>
                     <h2>Vyber konverzáciu</h2>
-                    <p>Klikni na klienta vľavo a otvor jeho vlákno.</p>
+                    <p>Klikni na klienta v zozname a otvor jeho vlákno.</p>
                   </div>
                 )}
               </div>

@@ -97,10 +97,13 @@ export default async function ChatPage({
   }
 
   const { messages, trainerName } = result.data;
+  // trainerName je null keď sa meno nepodarilo zistiť (napr. chýbajúce/nečitateľné
+  // full_name) — nikdy nezreťazuj s "Tréner"/"Napíš …ovi", vznikne duplicitné
+  // "Tréner tréner"; namiesto toho použi holý fallback text bez mena.
 
   return (
     <div className={styles.chatPage}>
-      <h1 className={styles.chatTitle}>Tréner {trainerName}</h1>
+      <h1 className={styles.chatTitle}>{trainerName ? `Tréner ${trainerName}` : "Tréner"}</h1>
       <ChatThread
         messages={messages}
         mySide="client"
@@ -108,9 +111,10 @@ export default async function ChatPage({
         onSeen={markClientChatSeenAction}
         checkNewAction={getClientChatMarkerAction}
         realtimeTable="messages"
-        emptyTitle={`Napíš ${trainerName}ovi`}
+        // Bez skloňovania mena — prípona k menu tvorila "QAa", "Martinaovi".
+        emptyTitle="Napíš trénerovi"
         emptyText="Otázka k plánu, pocit z tréningu, čokoľvek — tréner ti odpovie sem."
-        placeholder={`Správa pre ${trainerName}a…`}
+        placeholder="Správa pre trénera…"
         fill
       />
     </div>

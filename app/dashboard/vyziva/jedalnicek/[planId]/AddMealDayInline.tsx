@@ -33,8 +33,9 @@ export function AddMealDayInline({ planId, nextDayNumber }: { planId: string; ne
       <input
         name="name"
         type="text"
-        placeholder={`Deň ${nextDayNumber}`}
-        required
+        placeholder={`napr. Deň ${nextDayNumber}`}
+        // Bez `required` — HTML5 bublina je v jazyku prehliadača; addMealDayAction
+        // prázdny názov odmietne slovenskou hláškou (rovnako ako AddDayInline).
         autoFocus
         disabled={pending}
         className={styles.addDayInput}

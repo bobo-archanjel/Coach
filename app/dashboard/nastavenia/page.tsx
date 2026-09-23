@@ -1,5 +1,6 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getTrainerAiUsageSummary } from "@/lib/ai/usageSummary";
+import { pluralSk } from "@/lib/portal/streak";
 import styles from "../dashboard.module.css";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
@@ -18,7 +19,7 @@ export default async function NastaveniaPage() {
     <>
       <div className={styles.pageHead}>
         <h1>Nastavenia</h1>
-        <p>Základné údaje konta. Úprava profilu a fakturácia sú ďalšia úloha.</p>
+        <p>Základné údaje tvojho konta.</p>
       </div>
 
       <div className={styles.settingsGrid}>
@@ -55,17 +56,19 @@ export default async function NastaveniaPage() {
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Dnes</span>
                 <span className={styles.infoValue}>
-                  {aiUsage.todayCount} {aiUsage.todayCount === 1 ? "správa" : "správy"} · ~{usdFormat(aiUsage.todayCostUsd)}
+                  {aiUsage.todayCount} {pluralSk(aiUsage.todayCount, "AI požiadavka", "AI požiadavky", "AI požiadaviek")} · ~
+                  {usdFormat(aiUsage.todayCostUsd)}
                 </span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Posledných 7 dní</span>
                 <span className={styles.infoValue}>
-                  {aiUsage.weekCount} {aiUsage.weekCount === 1 ? "správa" : "správy"} · ~{usdFormat(aiUsage.weekCostUsd)}
+                  {aiUsage.weekCount} {pluralSk(aiUsage.weekCount, "AI požiadavka", "AI požiadavky", "AI požiadaviek")} · ~
+                  {usdFormat(aiUsage.weekCostUsd)}
                 </span>
               </div>
               <p style={{ color: "var(--paper-dim)", fontSize: 12.5, marginTop: 10 }}>
-                Orientačný odhad podľa cenníka modelu. Záväzný limit si nastav v Anthropic Console → Plans &amp; Billing.
+                Orientačný odhad nákladov na AI funkcie tvojho konta — AI kouč klientov, generátor plánov a zhrnutia.
               </p>
             </>
           ) : (
@@ -79,7 +82,7 @@ export default async function NastaveniaPage() {
             <span className={styles.comingSoon}>čoskoro</span>
           </div>
           <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>
-            Predplatné a platobné údaje pribudnú vo Fáze 3 (Stripe).
+            Správa predplatného a platobných údajov tu bude dostupná čoskoro.
           </p>
         </div>
       </div>

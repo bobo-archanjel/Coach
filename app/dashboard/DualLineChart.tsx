@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { pluralSk } from "@/lib/portal/streak";
 import styles from "./dashboard.module.css";
 
 export interface DualLineChartPoint {
@@ -170,7 +171,9 @@ export function DualLineChart({
         </div>
       )}
 
-      <p className={styles.chartRange}>{points.length} záznamov</p>
+      <p className={styles.chartRange}>
+        {points.length} {pluralSk(points.length, "záznam", "záznamy", "záznamov")}
+      </p>
     </div>
   );
 }

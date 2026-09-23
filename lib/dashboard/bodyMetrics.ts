@@ -88,14 +88,72 @@ export interface StrengthPR {
   achievedOn: string;
 }
 
-type StrengthLogRow = { performed_on: string; entries: unknown; client_id?: string };
+type StrengthLogRow = { performed_on: string; entries: unknown; client_id?: string; workout_days?: unknown };
+type PlanEntry = { entry_id?: string | null; exercise_id?: string | null };
 
-/** Zoskupí workout_logs riadky na časový rad najťažších sérií per cvik (názov). */
-function strengthSeriesFromRows(rows: StrengthLogRow[]): Record<string, StrengthPoint[]> {
+type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
+
+/** Stĺpce workout_logs potrebné pre graf sily — `workout_days(exercises)` kvôli entryId → exercise_id. */
+const STRENGTH_LOG_COLUMNS = "performed_on, entries, workout_days(exercises)";
+
+/**
+ * Zjednotený názov cviku pre graf sily a PR. Záznam tréningu si pamätá názov z
+ * času zápisu — staré záznamy majú anglický ("Barbell Bench Press - Medium Grip"),
+ * nové slovenský ("Bench press s činkou"), takže zoskupenie podľa uloženého
+ * názvu rozdelilo jeden cvik na dve krivky (QA 2026-09-23). Preto:
+ * entryId → riadok plánu → exercise_id → aktuálny názov z knižnice (name_sk ||
+ * name). Keď sa riadok plánu medzičasom zmazal, skúsi sa zhoda uloženého názvu
+ * s anglickým/slovenským názvom cvikov z plánov tohto klienta; inak ostáva
+ * uložený názov (vlastné cviky bez exercise_id).
+ */
+async function buildExerciseNameResolver(
+  supabase: SupabaseServer,
+  rows: StrengthLogRow[],
+): Promise<(row: StrengthLogRow, entry: LoggedExerciseEntry) => string | null> {
+  const exerciseIdByEntry = new Map<string, string>();
+  for (const row of rows) {
+    const day = row.workout_days as { exercises?: unknown } | null | undefined;
+    for (const e of (Array.isArray(day?.exercises) ? day!.exercises : []) as PlanEntry[]) {
+      if (e.entry_id && e.exercise_id) exerciseIdByEntry.set(e.entry_id, e.exercise_id);
+    }
+  }
+
+  const displayById = new Map<string, string>();
+  const displayByStoredName = new Map<string, string>();
+  const ids = [...new Set(exerciseIdByEntry.values())];
+  if (ids.length > 0) {
+    const { data } = await supabase.from("exercises").select("id, name, name_sk").in("id", ids);
+    for (const ex of data ?? []) {
+      const display = (ex.name_sk as string | null)?.trim() || (ex.name as string);
+      displayById.set(ex.id as string, display);
+      displayByStoredName.set((ex.name as string).trim().toLowerCase(), display);
+      if (ex.name_sk) displayByStoredName.set((ex.name_sk as string).trim().toLowerCase(), display);
+    }
+  }
+
+  return (_row, entry) => {
+    const id = entry.entryId ? exerciseIdByEntry.get(entry.entryId) : undefined;
+    const byId = id ? displayById.get(id) : undefined;
+    if (byId) return byId;
+    const stored = entry.name?.trim();
+    if (!stored) return null;
+    return displayByStoredName.get(stored.toLowerCase()) ?? stored;
+  };
+}
+
+/** Zoskupí workout_logs riadky na časový rad najťažších sérií per cvik (zjednotený názov). */
+function strengthSeriesFromRows(
+  rows: StrengthLogRow[],
+  nameOf: (row: StrengthLogRow, entry: LoggedExerciseEntry) => string | null,
+): Record<string, StrengthPoint[]> {
   const byExercise: Record<string, StrengthPoint[]> = {};
   for (const row of rows) {
+    // Jeden tréning môže obsahovať ten istý cvik 2× (duplicitné riadky knižnice
+    // zlúčené pod jeden názov) — v grafe má byť za deň jeden bod s najťažšou sériou.
+    const bestInRow = new Map<string, StrengthPoint>();
     for (const ex of parseEntries(row.entries)) {
-      if (!ex.name) continue;
+      const name = nameOf(row, ex);
+      if (!name) continue;
       let best: LoggedSet | null = null;
       for (const s of ex.sets ?? []) {
         if (s.weight == null) continue;
@@ -104,13 +162,13 @@ function strengthSeriesFromRows(rows: StrengthLogRow[]): Record<string, Strength
         }
       }
       if (best?.weight != null) {
-        (byExercise[ex.name] ??= []).push({
-          date: row.performed_on,
-          bestWeightKg: best.weight,
-          reps: best.reps ?? 0,
-        });
+        const prev = bestInRow.get(name);
+        if (!prev || best.weight > prev.bestWeightKg || (best.weight === prev.bestWeightKg && (best.reps ?? 0) > prev.reps)) {
+          bestInRow.set(name, { date: row.performed_on, bestWeightKg: best.weight, reps: best.reps ?? 0 });
+        }
       }
     }
+    for (const [name, point] of bestInRow) (byExercise[name] ??= []).push(point);
   }
   return byExercise;
 }
@@ -130,8 +188,7 @@ function latestIsNewPR(points: StrengthPoint[]): boolean {
 
 /**
  * Progres sily pre všetky cviky naraz — jeden dotaz na workout_logs, zoskupené
- * podľa názvu cviku (entryId je viazaný na konkrétny riadok v pláne a nemusí
- * prežiť úpravu plánu, názov áno). Pre každý tréning, kde bol cvik zapísaný,
+ * podľa zjednoteného názvu cviku z knižnice (viď buildExerciseNameResolver). Pre každý tréning, kde bol cvik zapísaný,
  * najťažšia séria (podľa váhy; pri zhode vyššie opakovania). Cviky bez zadanej
  * váhy (vlastná váha) sa do grafu nedostanú — nie je čo vyniesť na os.
  * Vracia zoznam názvov (abecedne, pre výber v UI) + mapu názov → body grafu +
@@ -143,12 +200,13 @@ export async function getAllStrengthProgress(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("workout_logs")
-    .select("performed_on, entries")
+    .select(STRENGTH_LOG_COLUMNS)
     .eq("client_id", clientId)
     .order("performed_on", { ascending: true });
   if (error) return null;
 
-  const byExercise = strengthSeriesFromRows((data ?? []) as StrengthLogRow[]);
+  const rows = (data ?? []) as StrengthLogRow[];
+  const byExercise = strengthSeriesFromRows(rows, await buildExerciseNameResolver(supabase, rows));
   const names = Object.keys(byExercise).sort((a, b) => a.localeCompare(b, "sk"));
 
   const prs: StrengthPR[] = [];
@@ -178,10 +236,11 @@ export async function getRecentPRs(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("workout_logs")
-    .select("client_id, performed_on, entries")
+    .select(`client_id, ${STRENGTH_LOG_COLUMNS}`)
     .in("client_id", clientIds)
     .order("performed_on", { ascending: true });
   if (error) return null;
+  const nameOf = await buildExerciseNameResolver(supabase, (data ?? []) as StrengthLogRow[]);
 
   const rowsByClient = new Map<string, StrengthLogRow[]>();
   for (const row of (data ?? []) as StrengthLogRow[]) {
@@ -194,7 +253,7 @@ export async function getRecentPRs(
   const cutoff = new Date(Date.now() - sinceDays * 86_400_000).toISOString().slice(0, 10);
   const result = new Map<string, StrengthPR[]>();
   for (const [clientId, rows] of rowsByClient) {
-    const byExercise = strengthSeriesFromRows(rows);
+    const byExercise = strengthSeriesFromRows(rows, nameOf);
     const prs: StrengthPR[] = [];
     for (const [name, points] of Object.entries(byExercise)) {
       if (!latestIsNewPR(points)) continue;

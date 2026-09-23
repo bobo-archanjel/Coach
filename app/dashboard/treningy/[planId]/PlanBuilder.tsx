@@ -100,7 +100,7 @@ export function PlanBuilder({
               ))
             ) : (
               <p className={styles.emptyDay}>
-                Zatiaľ žiadne cviky — klikni na cvik v knižnici vľavo, pridá sa sem s defaultnými
+                Zatiaľ žiadne cviky — klikni na cvik v knižnici, pridá sa sem s defaultnými
                 hodnotami, ktoré si hneď upravíš.
               </p>
             )
