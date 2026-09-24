@@ -5,8 +5,11 @@ import { StopwatchIcon } from "./icons";
 import styles from "./portal.module.css";
 import {
   WORKOUT_STARTED_EVENT,
+  clearWorkoutDraft,
   clearWorkoutStarted,
   isWorkoutStarted,
+  hideStopwatchFor,
+  isStopwatchHidden,
 } from "./workoutSession";
 
 /**
@@ -79,6 +82,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
 
     if (finished) {
       clearWorkoutStarted();
+      clearWorkoutDraft();
       try {
         localStorage.removeItem(SW_KEY);
       } catch {
@@ -88,7 +92,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
       return;
     }
 
-    setActive(isWorkoutStarted(dayId));
+    setActive(isWorkoutStarted(dayId) && !isStopwatchHidden(dayId));
 
     try {
       const raw = localStorage.getItem(SW_KEY);
@@ -536,7 +540,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
             </div>
           )}
 
-          <button type="button" className={styles.swHide} onClick={() => { setActive(false); clearWorkoutStarted(); try { localStorage.removeItem(SW_KEY); } catch {} }}>
+          <button type="button" className={styles.swHide} onClick={() => { setActive(false); hideStopwatchFor(dayId); try { localStorage.removeItem(SW_KEY); } catch {} }}>
             Skryť stopky
           </button>
         </div>

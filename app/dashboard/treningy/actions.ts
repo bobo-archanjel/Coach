@@ -11,6 +11,7 @@ import { reserveAiSlot, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { AI_MODEL } from "@/lib/ai/client";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 import { dbErr } from "@/lib/dbError";
+import { parsePlanSnapshot, snapshotToPlanEntries } from "@/lib/workouts/completed";
 
 export interface ActionState {
   error: string | null;
@@ -346,6 +347,62 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
 
   revalidatePath("/dashboard/treningy");
   redirect("/dashboard/treningy");
+}
+
+/**
+ * "Duplikovať ako nový tréning" — z dokončeného tréningu (workout_logs, 0048)
+ * vytvorí nový plán ako koncept s jedným dňom: plánované cviky zo snapshotu v
+ * čase tréningu, bez výsledkov klienta. Pôvodný záznam ostáva nedotknutý (je
+ * zamknutý v DB), tréner upravuje len novú kópiu. Nový plán je `published: false`,
+ * klient ho uvidí až po potvrdení — rovnako ako pri createPlanAction.
+ */
+export async function duplicateCompletedWorkoutAction(logId: string): Promise<ActionState> {
+  if (!logId) return { error: "Chýba ID tréningu." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  // RLS workout_logs_select_own_trainer — tréner vidí len záznamy vlastných klientov.
+  const { data: log, error: logErr } = await supabase
+    .from("workout_logs")
+    .select("id, client_id, status, plan_snapshot")
+    .eq("id", logId)
+    .maybeSingle();
+  if (logErr) return { error: dbErr(logErr, "actions") };
+  if (!log) return { error: "Tréning sa nenašiel." };
+  if (log.status !== "completed") return { error: "Duplikovať sa dá len dokončený tréning." };
+
+  const snapshot = parsePlanSnapshot(log.plan_snapshot);
+  if (!snapshot || snapshot.exercises.length === 0) {
+    return { error: "Tréning nemá uložený plán, z ktorého by sa dala urobiť kópia." };
+  }
+
+  const dayName = snapshot.dayName ?? "Tréning";
+  const { data: plan, error: planErr } = await supabase
+    .from("workout_plans")
+    .insert({ client_id: log.client_id, trainer_id: user.id, name: `${dayName} (kópia)`, published: false })
+    .select("id")
+    .single();
+  if (planErr || !plan) return { error: dbErr(planErr, "actions") };
+
+  const { error: dayErr } = await supabase.from("workout_days").insert({
+    plan_id: plan.id,
+    day_number: 1,
+    name: dayName,
+    exercises: snapshotToPlanEntries(snapshot, randomUUID),
+  });
+  if (dayErr) {
+    // Bez dňa by ostal prázdny koncept — radšej ho zahoď (koncept bez logov sa zmazať dá).
+    await supabase.from("workout_plans").delete().eq("id", plan.id);
+    return { error: dbErr(dayErr, "actions") };
+  }
+
+  revalidatePath("/dashboard/treningy");
+  revalidatePath(`/dashboard/klienti/${log.client_id}`);
+  redirect(`/dashboard/treningy/${plan.id}`);
 }
 
 export async function addCustomExerciseAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {

@@ -49,6 +49,7 @@ import type {
   WeekView,
 } from "./types";
 import { dbErr } from "@/lib/dbError";
+import { parseLoggedEntries } from "@/lib/workouts/completed";
 
 const TZ = "Europe/Bratislava";
 const WEEKDAY_LABELS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"]; // index 0 = pondelok
@@ -360,7 +361,7 @@ export async function getPortalData(): Promise<PortalResult> {
     const dayIds = days.map((d) => d.id);
     const { data: logRows, error: logErr } = await supabase
       .from("workout_logs")
-      .select("workout_day_id, performed_on, entries")
+      .select("workout_day_id, performed_on, entries, completed_at, rpe, note")
       .eq("client_id", client.id)
       .in("workout_day_id", dayIds)
       .order("performed_on", { ascending: false });
@@ -413,10 +414,8 @@ export async function getPortalData(): Promise<PortalResult> {
     // zadal (Fáza B) — "vrátiť sa do tréningu" má zmysel len ak vidí svoje dáta,
     // nie znovu ten istý plán, ktorý mu ešte len je pripravený. Bez zadaných
     // hodnôt (len odklikol, entries: []) ostáva fallback na plánované cviky.
-    const loggedExercises: LoggedExercise[] | null =
-      todaysLogForTarget && Array.isArray(todaysLogForTarget.entries) && todaysLogForTarget.entries.length > 0
-        ? (todaysLogForTarget.entries as LoggedExercise[])
-        : null;
+    const loggedEntries = todaysLogForTarget ? parseLoggedEntries(todaysLogForTarget.entries) : [];
+    const loggedExercises: LoggedExercise[] | null = loggedEntries.length > 0 ? loggedEntries : null;
     const session: TodaySession = {
       kind: doneToday ? "done" : "training",
       title: targetDay.name,
@@ -425,13 +424,16 @@ export async function getPortalData(): Promise<PortalResult> {
       durationLabel: "",
       exercises: exList,
       loggedExercises,
+      completedAt: (todaysLogForTarget?.completed_at as string | null | undefined) ?? null,
+      sessionRpe: (todaysLogForTarget?.rpe as number | null | undefined) ?? null,
+      sessionNote: (todaysLogForTarget?.note as string | null | undefined) ?? null,
       // Krúžok postupu = cviky so skutočne zapísanou sériou (sanitizeEntries
       // vynecháva cviky bez série), nie automaticky všetky — inak po ukončení
       // ukazoval 3/3, hoci jeden cvik klient nezapísal. Len odklikutý tréning
       // bez zápisu (entries: []) ostáva ako celý hotový.
       completedCount: doneToday
         ? loggedExercises
-          ? Math.min(loggedExercises.length, exList.length)
+          ? Math.min(loggedExercises.filter((e) => e.sets.length > 0).length, exList.length)
           : exList.length
         : 0,
       dayId: targetDay.id,

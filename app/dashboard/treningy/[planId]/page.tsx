@@ -5,6 +5,7 @@ import { PlanBuilder } from "./PlanBuilder";
 import { PublishControl } from "./PublishControl";
 import { SaveTemplateForm } from "../../sablony/SaveTemplateForm";
 import type { WorkoutExerciseEntry } from "../actions";
+import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -58,7 +59,7 @@ export default async function PlanDetailPage({
 
   // `plan`, `days` aj `exercises` berú `planId`/nič z route parametra — nezávislé,
   // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
-  const [{ data: plan }, { data: days }, { data: exercises }] = await Promise.all([
+  const [{ data: plan }, { data: days }, { data: exercises }, { data: completedLogs }] = await Promise.all([
     supabase
       .from("workout_plans")
       // Explicitná FK: odkedy má `clients` aj `active_plan_id → workout_plans`
@@ -70,6 +71,15 @@ export default async function PlanDetailPage({
       .maybeSingle(),
     supabase.from("workout_days").select("id, day_number, name, exercises").eq("plan_id", planId).order("day_number"),
     supabase.from("exercises").select("id, name, name_sk, muscle_group, image_url").order("name"),
+    // Odcvičené tréningy z tohto plánu — podľa snapshotu (0048), nie workout_day_id,
+    // aby sa ukázali aj po zmazaní dňa. Zamknuté, každý má vlastný detail plán/realita.
+    supabase
+      .from("workout_logs")
+      .select("id, completed_at, performed_on, plan_snapshot")
+      .eq("plan_snapshot->>plan_id", planId)
+      .eq("status", "completed")
+      .order("completed_at", { ascending: false })
+      .limit(20),
   ]);
 
   if (!plan) {
@@ -102,7 +112,34 @@ export default async function PlanDetailPage({
         </a>
       </div>
 
+      {completedLogs && completedLogs.length > 0 && (
+        <p className={styles.planLockedHint}>
+          Klient už z tohto plánu cvičil. Úpravy sa prejavia len v ďalších tréningoch — odcvičené tréningy ostávajú
+          uložené presne tak, ako ich klient zapísal.
+        </p>
+      )}
+
       <PlanBuilder planId={planId} days={days ?? []} library={exercises ?? []} />
+
+      {completedLogs && completedLogs.length > 0 && (
+        <section className={styles.card} style={{ marginTop: 20 }}>
+          <h3>Odcvičené tréningy</h3>
+          <div className={styles.roster}>
+            {completedLogs.map((log) => (
+              <Link
+                key={log.id}
+                href={`/dashboard/klienti/${plan.client_id}/treningy/${log.id}`}
+                className={styles.logLinkRow}
+              >
+                <span className={styles.clientName}>{parsePlanSnapshot(log.plan_snapshot)?.dayName ?? "Tréning"}</span>
+                <span className={`${styles.statusChip} ${styles.active}`}>
+                  Dokončený – {formatCompletedDate(log.completed_at ?? `${log.performed_on}T12:00:00Z`)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

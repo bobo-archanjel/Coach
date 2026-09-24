@@ -986,58 +986,41 @@ select.addClientInputSm {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Posledná aktivita: rozbaliteľný detail skutočných hodnôt (Fáza B) ---------- */
-.logDetails {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-}
-.logSummary {
+/* ---------- Posledná aktivita: riadok → detail dokončeného tréningu (plán vs. realita, 0048) ---------- */
+.logLinkRow {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 16px;
-  padding: 16px 18px;
-  cursor: pointer;
-  list-style: none;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  color: inherit;
+  text-decoration: none;
 }
-.logSummary::-webkit-details-marker {
-  display: none;
+.planLockedHint {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--paper-faint);
+  max-width: var(--measure);
 }
-.logDetails:hover {
+.logLinkRow:hover {
   border-color: var(--paper-faint);
 }
-.logExercises {
-  display: grid;
-  gap: 10px;
-  padding: 0 18px 16px;
-  border-top: 1px solid var(--steel-line);
-  margin-top: -1px;
-  padding-top: 12px;
+.logLinkMeta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
 }
-.logExerciseRow + .logExerciseRow {
-  border-top: 1px solid var(--steel-line);
-  padding-top: 10px;
-}
-.logExerciseTitle {
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.logSetList {
+.logLinkSide {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
-  list-style: none;
-  padding: 0;
-  font-size: 12.5px;
-  color: var(--paper-dim);
-  font-variant-numeric: tabular-nums;
-}
-.logSetList li {
-  background: var(--ink-3);
-  border-radius: 999px;
-  padding: 3px 9px;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px 10px;
 }
 
 .emptyState {
