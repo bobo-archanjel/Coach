@@ -185,6 +185,22 @@ function previewResult(kind: string): PortalResult | null {
       return { state: "error" };
     case "ok":
       return { state: "ok", data: PREVIEW_DATA };
+    case "complete":
+      return {
+        state: "ok",
+        data: {
+          ...PREVIEW_DATA,
+          session: {
+            ...PREVIEW_DATA.session,
+            kind: "complete",
+            title: "Silový 3× týždenne",
+            exercises: [],
+            loggedExercises: null,
+            completedCount: 3,
+            dayId: null,
+          },
+        },
+      };
     case "done":
       return {
         state: "ok",
@@ -199,6 +215,8 @@ function previewResult(kind: string): PortalResult | null {
               { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
             ],
             completedAt: new Date().toISOString(),
+            logId: "preview-log",
+            editableUntil: new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString(),
             sessionRpe: 8,
             sessionNote: "Dobrý tréning, koleno OK.",
           },
@@ -383,6 +401,22 @@ function PortalToday({ data }: { data: PortalData }) {
       </section>
 
       {/* 2 · práca — ďalší tréning v poradí (rotácia, nie pevný rozvrh podľa dňa v týždni) */}
+      {session.kind === "complete" ? (
+        // Plán je jednorazový — všetky dni odcvičené, žiadny ďalší "Začať tréning".
+        <section className={styles.session} aria-label="Tréningový plán hotový">
+          <div className={styles.sessionTop}>
+            <ProgressRing done={session.completedCount} total={session.completedCount} />
+            <div>
+              <h2 className={styles.sessionTitle}>Plán máš hotový</h2>
+              <p className={styles.sessionFocus}>{session.title}</p>
+            </div>
+          </div>
+          <p className={styles.doneMark}>
+            <CheckIcon /> Odcvičil si všetky dni plánu. Ďalší ti pripraví tréner — alebo si vytvor vlastný v sekcii
+            Tréning.
+          </p>
+        </section>
+      ) : (
       <section className={styles.session} aria-label="Ďalší tréning">
         <div className={styles.sessionTop}>
           <ProgressRing done={session.completedCount} total={total} />
@@ -412,6 +446,9 @@ function PortalToday({ data }: { data: PortalData }) {
             completedAt={session.completedAt}
             sessionRpe={session.sessionRpe}
             sessionNote={session.sessionNote}
+            logId={session.logId}
+            editableUntil={session.editableUntil}
+            exercises={session.exercises}
           />
         )}
 
@@ -420,9 +457,11 @@ function PortalToday({ data }: { data: PortalData }) {
             má zostať prehľad (ring, názov, počet cvikov), nie duplicitný rozpis. */}
 
         {session.kind === "training" && session.dayId && (
-          <LogWorkoutButton dayId={session.dayId} exercises={session.exercises} />
+          // key: iný deň = nový stav formulára (koncept aj riadky sú viazané na deň)
+          <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} />
         )}
       </section>
+      )}
 
       {/* Plávajúce stopky / časovač pauzy — ikona dole sa objaví po "Začať tréning",
           zmizne po ukončení. Fixne pozicované, miesto v strome je len logické. */}
@@ -432,6 +471,11 @@ function PortalToday({ data }: { data: PortalData }) {
 
       {/* 3 · dozvuk */}
       <section className={styles.after} aria-label="Prehľad">
+        <div className={styles.panel}>
+          <p className={styles.panelLabel}>Meranie</p>
+          <BodyMetricForm today={today} history={bodyMetrics} />
+        </div>
+
         <div className={styles.panel}>
           <p className={styles.panelLabel}>Odcvičené spolu</p>
           <div className={styles.streakHead}>
@@ -444,11 +488,6 @@ function PortalToday({ data }: { data: PortalData }) {
             ))}
           </div>
           <StreakRow streaks={streaks} />
-        </div>
-
-        <div className={styles.panel}>
-          <p className={styles.panelLabel}>Meranie</p>
-          <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
 
         <WeekHistory initial={week} />

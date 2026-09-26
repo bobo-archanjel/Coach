@@ -44,6 +44,12 @@
   color: var(--plate-yellow);
 }
 
+.editedNote {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--plate-yellow);
+}
 .readonlyNote,
 .backfillNote {
   font-size: 13px;

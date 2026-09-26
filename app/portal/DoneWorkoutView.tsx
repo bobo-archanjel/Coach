@@ -1,5 +1,15 @@
-import type { LoggedExercise, LoggedSet } from "@/lib/portal/types";
-import { formatCompletedDate, formatDistance, formatDuration } from "@/lib/workouts/completed";
+"use client";
+
+import { useState } from "react";
+import type { LoggedExercise, LoggedSet, PortalExercise } from "@/lib/portal/types";
+import {
+  formatCompletedDate,
+  formatDistance,
+  formatDuration,
+  formatEditDeadline,
+  isStillEditable,
+} from "@/lib/workouts/completed";
+import { LoggedWorkoutEditor } from "./LoggedWorkoutEditor";
 import styles from "./portal.module.css";
 
 const LockIcon = () => (
@@ -9,10 +19,22 @@ const LockIcon = () => (
   </svg>
 );
 
+const PencilIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M4 20l1-4.2L15.6 5.2a1.5 1.5 0 0 1 2.1 0l1.1 1.1a1.5 1.5 0 0 1 0 2.1L8.2 19l-4.2 1Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 function setLabel(s: LoggedSet): string {
   const parts: string[] = [];
   if (s.reps != null) parts.push(`${s.reps} op.`);
-  if (s.weight != null) parts.push(`${s.weight} kg`);
+  if (s.weight != null) parts.push(`${s.weight.toLocaleString("sk-SK")} kg`);
   if (s.durationS != null) parts.push(formatDuration(s.durationS));
   if (s.distanceM != null) parts.push(formatDistance(s.distanceM));
   const base = parts.join(" × ") || "—";
@@ -20,21 +42,44 @@ function setLabel(s: LoggedSet): string {
 }
 
 /**
- * Dokončený tréning na karte Dnes — len na čítanie. Od 0048 je záznam po
- * "Ukončiť tréning" zamknutý v DB (trigger), takže tu už nie je "Upraviť
- * hodnoty": to, čo klient zapísal, je presne to, čo vidí tréner.
+ * Dokončený tréning na karte Dnes — zapísané hodnoty. 24 h po ukončení ponúka
+ * nefarebné "Upraviť hodnoty" (0049: klient zabudol sériu / preklep), potom je
+ * záznam zamknutý v DB a ostane len na čítanie.
  */
 export function DoneWorkoutView({
   loggedExercises,
   completedAt,
   sessionRpe,
   sessionNote,
+  logId,
+  editableUntil,
+  exercises,
 }: {
   loggedExercises: LoggedExercise[] | null;
   completedAt?: string | null;
   sessionRpe?: number | null;
   sessionNote?: string | null;
+  logId?: string | null;
+  editableUntil?: string | null;
+  exercises: PortalExercise[];
 }) {
+  const [editing, setEditing] = useState(false);
+  const canEdit = !!logId && isStillEditable(editableUntil);
+
+  if (editing && canEdit && logId && editableUntil) {
+    return (
+      <LoggedWorkoutEditor
+        logId={logId}
+        exercises={exercises}
+        logged={loggedExercises ?? []}
+        rpe={sessionRpe ?? null}
+        note={sessionNote ?? null}
+        editableUntil={editableUntil}
+        onClose={() => setEditing(false)}
+      />
+    );
+  }
+
   return (
     <>
       {loggedExercises ? (
@@ -65,10 +110,19 @@ export function DoneWorkoutView({
         </p>
       )}
 
-      <p className={styles.lockNote}>
-        <LockIcon /> Dokončený{completedAt ? ` – ${formatCompletedDate(completedAt)}` : ""}. Zapísané hodnoty sa už
-        nedajú meniť.
-      </p>
+      {canEdit && editableUntil ? (
+        <>
+          <button type="button" className={styles.editValuesBtn} onClick={() => setEditing(true)}>
+            <PencilIcon /> Upraviť hodnoty
+          </button>
+          <p className={styles.lockNote}>Zabudnuté hodnoty môžeš opraviť do {formatEditDeadline(editableUntil)}.</p>
+        </>
+      ) : (
+        <p className={styles.lockNote}>
+          <LockIcon /> Dokončený{completedAt ? ` – ${formatCompletedDate(completedAt)}` : ""}. Zapísané hodnoty sa už
+          nedajú meniť.
+        </p>
+      )}
     </>
   );
 }

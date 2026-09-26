@@ -118,8 +118,9 @@ export interface PortalNextAppointment {
 }
 
 export interface TodaySession {
-  /** training = pripravený ďalší tréning v poradí, done = dnes už odcvičené */
-  kind: "training" | "done";
+  /** training = pripravený ďalší tréning v poradí, done = dnes už odcvičené,
+   *  complete = všetky dni plánu odcvičené (plán je jednorazový, dni sa neopakujú) */
+  kind: "training" | "done" | "complete";
   title: string;
   focus: string;
   durationLabel: string;
@@ -131,8 +132,11 @@ export interface TodaySession {
    * žiadne hodnoty (len odklikol) — vtedy sa použije `exercises` ako fallback.
    */
   loggedExercises: LoggedExercise[] | null;
-  /** `kind: "done"` — čas ukončenia (workout_logs.completed_at, 0048); záznam je odvtedy len na čítanie */
+  /** `kind: "done"` — čas ukončenia (workout_logs.completed_at, 0048) */
   completedAt?: string | null;
+  /** `kind: "done"` — id záznamu a do kedy ho klient smie opraviť (24 h, 0049) */
+  logId?: string | null;
+  editableUntil?: string | null;
   /** celkové RPE a poznámka klienta k tréningu (workout_logs.rpe / note) */
   sessionRpe?: number | null;
   sessionNote?: string | null;
@@ -195,8 +199,21 @@ export interface PortalTrainingDay {
   exercises: PortalExercise[];
   /** klient tento deň už niekedy odcvičil (aspoň 1 záznam vo workout_logs) — badge „Hotovo" v zozname dní */
   done: boolean;
-  /** klient tento deň odcvičil DNES — rozhoduje, či akčné tlačidlo ponúka "Začať" alebo "Upraviť" */
+  /** klient tento deň odcvičil DNES */
   doneToday: boolean;
+  /** posledný odcvičený záznam dňa — pre "Upraviť hodnoty" (24 h okno, 0049) */
+  lastLog: PortalDayLog | null;
+}
+
+/** Odcvičený záznam dňa (workout_logs) v sekcii Tréning. */
+export interface PortalDayLog {
+  id: string;
+  completedAt: string | null;
+  /** do kedy ho klient smie opraviť; null = už nie */
+  editableUntil: string | null;
+  entries: LoggedExercise[];
+  rpe: number | null;
+  note: string | null;
 }
 
 /** Zdroj plánu: od trénera, alebo si ho klient vytvoril sám. */

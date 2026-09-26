@@ -232,3 +232,28 @@ export function rowTone(row: CompareRow): "below" | "above" | "met" | null {
   if (cmp.some((c) => c > 0)) return "above";
   return "met";
 }
+
+/** Klient smie opraviť hodnoty dokončeného tréningu 24 h po ukončení (0049 — DB to vynucuje triggerom). */
+export const CLIENT_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Do kedy (ISO) sa dá záznam upraviť; null = neznámy čas ukončenia → neupraviteľné. */
+export function editableUntil(completedAt: string | null | undefined): string | null {
+  if (!completedAt) return null;
+  const t = Date.parse(completedAt);
+  return Number.isFinite(t) ? new Date(t + CLIENT_EDIT_WINDOW_MS).toISOString() : null;
+}
+
+export function isStillEditable(until: string | null | undefined, now: number = Date.now()): boolean {
+  return !!until && Date.parse(until) > now;
+}
+
+/** "dnes 21:30" / "zajtra 8:05" / "28. 9. 14:00" — koniec okna na opravu v Europe/Bratislava. */
+export function formatEditDeadline(until: string, now: Date = new Date()): string {
+  const tz = "Europe/Bratislava";
+  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
+  const d = new Date(until);
+  const time = new Intl.DateTimeFormat("sk-SK", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(d);
+  if (day(d) === day(now)) return `dnes ${time}`;
+  if (day(d) === day(new Date(now.getTime() + 86_400_000))) return `zajtra ${time}`;
+  return `${formatCompletedDate(until)} ${time}`;
+}
