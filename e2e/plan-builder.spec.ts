@@ -87,4 +87,46 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
     await page.getByRole("button", { name: "Zrušiť" }).click();
     await expect(page.getByRole("button", { name: "Zmazať koncept" })).toBeVisible();
   });
+
+  test("zmazanie dňa: potvrdenie s názvom dňa, Zrušiť aj Esc nič nezmažú", async ({ page }) => {
+    await page.goto("/dashboard/treningy/x?preview=builder");
+
+    const delDay = page.getByRole("button", { name: "Zmazať deň", exact: true });
+    await delDay.click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toContainText("Naozaj zmazať deň „Deň 1 — Tlak (hrudník, ramená, triceps)“ aj s 6 cvikmi?");
+    await expect(dialog).not.toContainText("ostanú uložené"); // deň 1 v preview nikto neodcvičil
+    await dialog.getByRole("button", { name: "Zrušiť" }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Deň 1 — Tlak/ })).toBeVisible();
+
+    // Esc zruší; prepnutie dňa ukáže potvrdenie pre nový deň (odcvičený → info o záznamoch)
+    await delDay.click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await page.getByRole("button", { name: /Deň 2 — Nohy/ }).click();
+    await page.getByRole("button", { name: "Zmazať deň", exact: true }).click();
+    await expect(page.getByRole("alertdialog")).toContainText("„Deň 2 — Nohy a spodný chrbát“ aj s 3 cvikmi");
+    await expect(page.getByRole("alertdialog")).toContainText("ostanú uložené");
+    await expect(page.getByRole("button", { name: "Áno, zmazať deň" })).toBeVisible();
+  });
+});
+
+test.describe("PlanBuilder bez dní (?preview=builder_empty)", () => {
+  test("klik na cvik v knižnici bez dňa ukáže hlášku namiesto mŕtveho tlačidla", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/dashboard/treningy/x?preview=builder_empty");
+
+    const libToggle = page.getByRole("button", { name: /Knižnica cvikov/ });
+    if ((await libToggle.getAttribute("aria-expanded")) === "false") await libToggle.click();
+
+    await expect(page.getByRole("button", { name: "Zmazať deň", exact: true })).toHaveCount(0);
+    const item = page.getByRole("button", { name: /^Hip thrust s činkou/ });
+    await expect(item).toBeEnabled();
+    await item.click();
+    await expect(page.getByText("Najprv pridaj tréningový deň.")).toBeVisible();
+    await expect(page.getByText("Vytvor prvý deň vyššie.")).toBeVisible();
+
+    expect(real(errs), real(errs).join("\n")).toEqual([]);
+  });
 });

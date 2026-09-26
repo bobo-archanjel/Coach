@@ -26,6 +26,11 @@ const PREVIEW_DAYS = [
   { id: "d4", day_number: 4, name: "Deň 4 — Horná časť tela (silový mix) a core", exercises: ["Plank", "Mŕtvy ťah"].map((n, i) => previewEntry(i + 30, n)) },
 ];
 
+const PREVIEW_LIBRARY = [
+  { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [] },
+  { id: "lib2", name: "Farmer's Walk", name_sk: "Farmárska chôdza", muscle_group: "predlaktia", image_url: [] },
+];
+
 export default async function PlanDetailPage({
   params,
   searchParams,
@@ -36,7 +41,8 @@ export default async function PlanDetailPage({
   const { planId } = await params;
   const { preview } = await searchParams;
 
-  if (preview === "builder" && process.env.NODE_ENV === "development") {
+  // ?preview=builder_empty — nový plán bez dní (hláška pri kliku na cvik bez dňa).
+  if ((preview === "builder" || preview === "builder_empty") && process.env.NODE_ENV === "development") {
     return (
       <>
         <Link href="/dashboard/treningy" className={styles.backLink}>
@@ -50,7 +56,12 @@ export default async function PlanDetailPage({
           </div>
           <PublishControl planId={planId} published={false} />
         </div>
-        <PlanBuilder planId={planId} days={PREVIEW_DAYS} library={[]} />
+        <PlanBuilder
+          planId={planId}
+          days={preview === "builder_empty" ? [] : PREVIEW_DAYS}
+          library={PREVIEW_LIBRARY}
+          completedDayIds={["d2"]}
+        />
       </>
     );
   }
@@ -119,7 +130,14 @@ export default async function PlanDetailPage({
         </p>
       )}
 
-      <PlanBuilder planId={planId} days={days ?? []} library={exercises ?? []} />
+      <PlanBuilder
+        planId={planId}
+        days={days ?? []}
+        library={exercises ?? []}
+        completedDayIds={(completedLogs ?? [])
+          .map((l) => parsePlanSnapshot(l.plan_snapshot)?.dayId)
+          .filter((id): id is string => Boolean(id))}
+      />
 
       {completedLogs && completedLogs.length > 0 && (
         <section className={styles.card} style={{ marginTop: 20 }}>

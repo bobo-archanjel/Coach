@@ -24,10 +24,13 @@ export function LibraryItem({
   exercise,
   dayId,
   planId,
+  onNoDay,
 }: {
   exercise: ExerciseLibraryRow;
   dayId: string | null;
   planId: string;
+  /** klik bez vytvoreného dňa — rodič ukáže hlášku (namiesto mŕtveho, neaktívneho tlačidla) */
+  onNoDay?: () => void;
 }) {
   const [, formAction, pending] = useActionState(addExerciseToDayAction, initialState);
   const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
@@ -51,7 +54,18 @@ export function LibraryItem({
         <input type="hidden" name="exercise_id" value={exercise.id} readOnly />
         <input type="hidden" name="plan_id" value={planId} readOnly />
         <input type="hidden" name="day_id" value={dayId ?? ""} readOnly />
-        <button type="submit" className={styles.libraryItem} disabled={pending || !dayId} title={!dayId ? "Najprv vytvor deň" : `Pridať ${name} do dňa`}>
+        <button
+          type="submit"
+          className={styles.libraryItem}
+          disabled={pending}
+          title={!dayId ? "Najprv pridaj tréningový deň" : `Pridať ${name} do dňa`}
+          onClick={(e) => {
+            if (!dayId) {
+              e.preventDefault();
+              onNoDay?.();
+            }
+          }}
+        >
           <ExerciseThumb src={exercise.image_url[0] ?? null} alt="" size={28} />
           <span>{name}</span>
           {exercise.muscle_group && <span className={styles.libraryItemMuscle}>{exercise.muscle_group}</span>}

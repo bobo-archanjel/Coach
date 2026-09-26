@@ -132,6 +132,51 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
   return ok;
 }
 
+/**
+ * "Zmazať deň" v builderi (po potvrdení v DeleteDayControl). Odcvičené tréningy
+ * z tohto dňa ostanú — workout_logs.workout_day_id sa cez FK nastaví na null a
+ * záznam si drží vlastnú kópiu plánu (plan_snapshot, 0048). Zvyšné dni sa
+ * prečíslujú 1..n v pôvodnom poradí: "+ deň" berie ďalšie číslo ako počet dní,
+ * takže medzera by viedla k dvom dňom s rovnakým day_number (nejasné poradie
+ * v builderi aj v rotácii portálu).
+ */
+export async function deleteDayAction(planId: string, dayId: string): Promise<ActionState> {
+  if (!planId || !dayId) return { error: "Chýba identifikátor dňa." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  // RLS workout_days_delete_own_trainer — cudzí deň vráti 0 riadkov, nie chybu.
+  const { data: deleted, error } = await supabase
+    .from("workout_days")
+    .delete()
+    .eq("id", dayId)
+    .eq("plan_id", planId)
+    .select("id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!deleted || deleted.length === 0) return { error: "Deň sa nepodarilo zmazať — skús obnoviť stránku." };
+
+  const { data: rest } = await supabase
+    .from("workout_days")
+    .select("id, day_number")
+    .eq("plan_id", planId)
+    .order("day_number")
+    .order("created_at");
+  await Promise.all(
+    (rest ?? [])
+      .map((d, i) => ({ id: d.id as string, from: d.day_number as number, to: i + 1 }))
+      .filter((d) => d.from !== d.to)
+      .map((d) => supabase.from("workout_days").update({ day_number: d.to }).eq("id", d.id)),
+  );
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  revalidatePath("/dashboard/treningy");
+  return ok;
+}
+
 /** Klik na cvik v knižnici → pridá ho do aktívneho dňa s rozumnými defaultmi (rovno editovateľné). */
 export async function addExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
