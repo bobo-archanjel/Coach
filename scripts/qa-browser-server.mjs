@@ -22,6 +22,8 @@
 //   screenshot  {}                     — uloží PNG, vráti cestu
 //   wait        {ms}
 //   waitFor     {selector, ms?}        — čaká kým selector existuje (default 8000ms)
+//   viewport    {width, height}        — zmena veľkosti (napr. 390×844 mobil, 1280×900 desktop)
+//   errors      {}                     — vráti a vyprázdni zachytené JS chyby / console.error
 //
 // Odpoveď vždy obsahuje {ok, url, title, elements[], bodyText} (okrem screenshot/text),
 // elements = interaktívne prvky viditeľné na stránke s podnetmi na selector.
@@ -85,6 +87,11 @@ async function buildSnapshot(page) {
     ...(headed ? { args: ["--window-size=1280,900", "--window-position=100,100"] } : {}),
   });
   const page = context.pages()[0] || (await context.newPage());
+  const jsErrors = [];
+  page.on("pageerror", (e) => jsErrors.push(`pageerror: ${e.message}`));
+  page.on("console", (m) => {
+    if (m.type() === "error") jsErrors.push(`console: ${m.text()}`);
+  });
   await page.goto(`http://localhost:${appPort}/`, { waitUntil: "domcontentloaded" }).catch(() => {});
 
   const server = createServer(async (req, res) => {
@@ -134,6 +141,13 @@ async function buildSnapshot(page) {
           const file = path.join(shotDir, `${Date.now()}.png`);
           await page.screenshot({ path: file, fullPage: true });
           res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ ok: true, file }));
+          return;
+        } else if (cmd === "viewport") {
+          await page.setViewportSize({ width: Number(payload.width) || 1280, height: Number(payload.height) || 900 });
+          await page.waitForTimeout(300);
+        } else if (cmd === "errors") {
+          const list = jsErrors.splice(0);
+          res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ ok: true, errors: list }));
           return;
         } else if (cmd === "snapshot") {
           // no-op

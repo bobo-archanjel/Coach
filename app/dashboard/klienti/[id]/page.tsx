@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
-import type { LoggedExercise } from "@/lib/portal/types";
+import { parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
 import styles from "../../dashboard.module.css";
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
@@ -147,7 +147,7 @@ export default async function ClientDetailPage({
         .maybeSingle(),
       supabase
         .from("workout_logs")
-        .select("id, performed_on, entries, workout_days(name)")
+        .select("id, performed_on, status, completed_at, entries, plan_snapshot, workout_days(name)")
         .eq("client_id", id)
         .order("performed_on", { ascending: false })
         .limit(8),
@@ -220,7 +220,7 @@ export default async function ClientDetailPage({
             )}
           </div>
 
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 6 }}>
             <DangerZone
               clientId={id}
               firstName={firstName}
@@ -290,40 +290,33 @@ export default async function ClientDetailPage({
           {logs && logs.length > 0 ? (
             <div className={styles.roster}>
               {logs.map((log) => {
-                const dayName = (log.workout_days as unknown as { name: string } | null)?.name ?? "Tréning";
+                // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
+                const dayName =
+                  parsePlanSnapshot(log.plan_snapshot)?.dayName ??
+                  (log.workout_days as unknown as { name: string } | null)?.name ??
+                  "Tréning";
                 const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
                   weekday: "short",
                   day: "numeric",
                   month: "numeric",
                   timeZone: "UTC",
                 });
-                const entries = Array.isArray(log.entries) ? (log.entries as LoggedExercise[]) : [];
+                const loggedCount = parseLoggedEntries(log.entries).filter((e) => e.sets.length > 0).length;
                 return (
-                  <details key={log.id} className={styles.logDetails}>
-                    <summary className={styles.logSummary}>
+                  <Link key={log.id} href={`/dashboard/klienti/${id}/treningy/${log.id}`} className={styles.logLinkRow}>
+                    <span>
                       <span className={styles.clientName}>{dayName}</span>
+                      <span className={styles.logLinkMeta}>
+                        {loggedCount > 0
+                          ? `${loggedCount} ${loggedCount === 1 ? "cvik zapísaný" : loggedCount < 5 ? "cviky zapísané" : "cvikov zapísaných"}`
+                          : "bez zapísaných hodnôt"}
+                      </span>
+                    </span>
+                    <span className={styles.logLinkSide}>
+                      {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>Dokončený</span>}
                       <span className={styles.clientSince}>{performedOn}</span>
-                    </summary>
-                    {entries.length > 0 ? (
-                      <div className={styles.logExercises}>
-                        {entries.map((ex, i) => (
-                          <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.logExerciseRow}>
-                            <p className={styles.logExerciseTitle}>{ex.name}</p>
-                            <ol className={styles.logSetList}>
-                              {ex.sets.map((s, j) => (
-                                <li key={j}>
-                                  {s.reps != null ? `${s.reps} op.` : "—"}
-                                  {s.weight != null ? ` × ${s.weight} kg` : ""}
-                                </li>
-                              ))}
-                            </ol>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className={styles.noWorkouts}>Klient nezadal skutočné hodnoty (len odklikol tréning).</p>
-                    )}
-                  </details>
+                    </span>
+                  </Link>
                 );
               })}
             </div>

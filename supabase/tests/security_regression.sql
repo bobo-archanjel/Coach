@@ -135,6 +135,55 @@ select pg_temp.chk('B2: klient SOCK neupraví tréningový plán klienta C',
 select pg_temp.chk('legit: klient SOCK vidí len svoj vlastný plán a svoje miery',
   pg_temp.cnt(:SOCK, 'select 1 from public.workout_plans') = 1 and pg_temp.cnt(:SOCK, 'select 1 from public.body_metrics') = 1);
 
+-- ============================================================ H) dokončený tréning je nemenný (0048)
+select id as wplan from public.workout_plans where client_id = :'cid' and trainer_id = :T2 limit 1 \gset
+insert into public.workout_days (id, plan_id, day_number, name, exercises) values
+  ('44444444-0000-0000-0000-000000000004', :'wplan', 1, 'Deň A',
+   '[{"entry_id":"e1","exercise_id":null,"exercise_name":"Drep","sets":3,"reps":"8","load_kg":60,"tempo":null,"rest_seconds":90}]');
+select pg_temp.chk('legit: klient zapíše dokončený tréning',
+  pg_temp.try(:C, format($f$insert into public.workout_logs (client_id, workout_day_id, entries, plan_snapshot, completed_at)
+    values (%L, '44444444-0000-0000-0000-000000000004', '[{"entryId":"e1","name":"Drep","sets":[{"reps":8,"weight":60}]}]',
+            '{"exercises":[]}', '2000-01-01')$f$, :'cid')) = 'OK');
+select id as wlog from public.workout_logs where client_id = :'cid' limit 1 \gset
+select pg_temp.chk('H: snapshot plánu vyplní DB (klientom poslaný sa ignoruje)',
+  (select plan_snapshot->'exercises'->0->>'load_kg' = '60' and plan_snapshot->>'day_name' = 'Deň A'
+          and status = 'completed' and completed_at > now() - interval '1 minute'
+   from public.workout_logs where id = :'wlog'));
+select pg_temp.try(:C, format($f$update public.workout_logs set entries = '[]', note = 'hack' where id = %L$f$, :'wlog')) as h_c_upd \gset
+select pg_temp.chk('H: klient nezmení hodnoty dokončeného tréningu',
+  (select entries <> '[]'::jsonb and note is distinct from 'hack' from public.workout_logs where id = :'wlog'), :'h_c_upd');
+select pg_temp.try(:C, format('delete from public.workout_logs where id = %L', :'wlog')) as h_c_del \gset
+select pg_temp.try(:T2, format('delete from public.workout_logs where id = %L', :'wlog')) as h_t_del \gset
+select pg_temp.chk('H: klient ani tréner dokončený tréning nezmažú',
+  exists (select 1 from public.workout_logs where id = :'wlog'), :'h_c_del' || ' ' || :'h_t_del');
+select pg_temp.try(null, format($f$update public.workout_logs set entries = '[]' where id = %L$f$, :'wlog'), 'service_role') as h_s_upd \gset
+select pg_temp.try(null, format('delete from public.workout_logs where id = %L', :'wlog'), 'service_role') as h_s_del \gset
+select pg_temp.chk('H: zámok platí aj pre service_role (trigger, nie len RLS)',
+  :'h_s_upd' like 'ERR:%' and :'h_s_del' like 'ERR:%'
+  and (select entries <> '[]'::jsonb from public.workout_logs where id = :'wlog'), :'h_s_upd' || ' ' || :'h_s_del');
+-- Pozn.: nekorelované poddopyty (InitPlan) sa vyhodnotia PRED volaním try() v tom istom
+-- príkaze — preto zápis a kontrola výsledku idú v samostatných príkazoch.
+select pg_temp.try(:T2, $f$update public.workout_days set exercises = '[]' where id = '44444444-0000-0000-0000-000000000004'$f$) as h_upd \gset
+select pg_temp.chk('legit: tréner smie meniť plán dňa, odcvičený snapshot ostane',
+  :'h_upd' = 'OK'
+  and (select exercises = '[]'::jsonb from public.workout_days where id = '44444444-0000-0000-0000-000000000004')
+  and (select plan_snapshot->'exercises'->0->>'load_kg' = '60' from public.workout_logs where id = :'wlog'), :'h_upd');
+select pg_temp.try(:T2, format('delete from public.workout_plans where id = %L', :'wplan')) as h_del \gset
+select pg_temp.chk('legit: zmazanie plánu nezablokuje zámok (záznam ostane, deň = null)',
+  :'h_del' = 'OK'
+  and not exists (select 1 from public.workout_plans where id = :'wplan')
+  and (select workout_day_id is null and plan_snapshot is not null from public.workout_logs where id = :'wlog'), :'h_del');
+select pg_temp.try(:C, format($f$insert into public.workout_logs (client_id, performed_on, status) values (%L, current_date - 1, 'in_progress')$f$, :'cid')) as h_ins \gset
+select pg_temp.try(:C, format($f$update public.workout_logs set note = 'ok' where client_id = %L and status = 'in_progress'$f$, :'cid')) as h_upd2 \gset
+select pg_temp.chk('legit: nedokončený (in_progress) záznam sa upraviť dá',
+  :'h_ins' = 'OK' and :'h_upd2' = 'OK'
+  and (select note = 'ok' from public.workout_logs where client_id = :'cid' and status = 'in_progress'), :'h_ins' || ' ' || :'h_upd2');
+insert into public.clients (id, trainer_id, full_name) values ('55555555-0000-0000-0000-000000000005', :T2, 'Na zmazanie');
+insert into public.workout_logs (client_id) values ('55555555-0000-0000-0000-000000000005');
+delete from public.clients where id = '55555555-0000-0000-0000-000000000005';
+select pg_temp.chk('legit: zmazanie klienta (GDPR purge) kaskádou zmaže aj dokončené tréningy',
+  not exists (select 1 from public.workout_logs where client_id = '55555555-0000-0000-0000-000000000005'));
+
 -- ============================================================ C/E) rola, profil
 select pg_temp.chk('11: používateľ si nezmení rolu (client → trainer)',
   pg_temp.try(:C, format('update public.profiles set role = ''trainer'' where id = %L', :C)) like 'ERR:%'

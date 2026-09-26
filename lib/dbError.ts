@@ -12,8 +12,9 @@ interface DbErrorLike {
   hint?: string | null;
 }
 
-/** Text hlášky, ktorý sme v DB napísali PRE používateľa (napr. trigger flood guardu). */
-const FRIENDLY_PREFIX = "rate_limited:";
+/** Text hlášky, ktorý sme v DB napísali PRE používateľa (trigger flood guardu,
+ *  zámok dokončeného tréningu 0048). */
+const FRIENDLY_PREFIXES = ["rate_limited:", "locked:"];
 
 export function dbErr(err: DbErrorLike | null | undefined, context?: string): string {
   if (!err) return "Nepodarilo sa dokončiť akciu. Skús to prosím znova.";
@@ -21,7 +22,8 @@ export function dbErr(err: DbErrorLike | null | undefined, context?: string): st
   console.error(`${context ?? "db"}: [${err.code ?? "?"}] ${err.message ?? ""}`);
 
   const msg = err.message ?? "";
-  if (msg.startsWith(FRIENDLY_PREFIX)) return msg.slice(FRIENDLY_PREFIX.length).trim();
+  const prefix = FRIENDLY_PREFIXES.find((p) => msg.startsWith(p));
+  if (prefix) return msg.slice(prefix.length).trim();
 
   switch (err.code) {
     case "42501": // insufficient_privilege / RLS

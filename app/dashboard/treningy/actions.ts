@@ -11,6 +11,7 @@ import { reserveAiSlot, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { AI_MODEL } from "@/lib/ai/client";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 import { dbErr } from "@/lib/dbError";
+import { parsePlanSnapshot, snapshotToPlanEntries } from "@/lib/workouts/completed";
 
 export interface ActionState {
   error: string | null;
@@ -84,6 +85,38 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
   redirect(`/dashboard/treningy/${data.id}`);
 }
 
+/**
+ * Premenovanie plánu (ceruzka pri názve na detaile plánu). Nový názov vidí aj
+ * klient v portáli; šablóna sa odteraz ukladá pod týmto názvom. RLS
+ * workout_plans_update_own_trainer — cudzí plán vráti 0 riadkov, nie chybu.
+ */
+export async function renamePlanAction(planId: string, rawName: string): Promise<ActionState> {
+  if (!planId) return { error: "Chýba ID plánu." };
+  const name = rawName.trim();
+  if (!name) return { error: "Zadaj názov plánu." };
+  if (name.length > 120) return { error: "Názov môže mať najviac 120 znakov." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const { data, error } = await supabase
+    .from("workout_plans")
+    .update({ name })
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .select("client_id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: "Plán sa nepodarilo premenovať — skús obnoviť stránku." };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  revalidatePath("/dashboard/treningy");
+  revalidatePath(`/dashboard/klienti/${data[0].client_id}`);
+  return ok;
+}
+
 /** Potvrdenie/koncept plánu — kým je `published: false`, klient ho v portáli nevidí. */
 export async function setPlanPublishedAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
@@ -128,6 +161,51 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
   if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+/**
+ * "Zmazať deň" v builderi (po potvrdení v DeleteDayControl). Odcvičené tréningy
+ * z tohto dňa ostanú — workout_logs.workout_day_id sa cez FK nastaví na null a
+ * záznam si drží vlastnú kópiu plánu (plan_snapshot, 0048). Zvyšné dni sa
+ * prečíslujú 1..n v pôvodnom poradí: "+ deň" berie ďalšie číslo ako počet dní,
+ * takže medzera by viedla k dvom dňom s rovnakým day_number (nejasné poradie
+ * v builderi aj v rotácii portálu).
+ */
+export async function deleteDayAction(planId: string, dayId: string): Promise<ActionState> {
+  if (!planId || !dayId) return { error: "Chýba identifikátor dňa." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  // RLS workout_days_delete_own_trainer — cudzí deň vráti 0 riadkov, nie chybu.
+  const { data: deleted, error } = await supabase
+    .from("workout_days")
+    .delete()
+    .eq("id", dayId)
+    .eq("plan_id", planId)
+    .select("id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!deleted || deleted.length === 0) return { error: "Deň sa nepodarilo zmazať — skús obnoviť stránku." };
+
+  const { data: rest } = await supabase
+    .from("workout_days")
+    .select("id, day_number")
+    .eq("plan_id", planId)
+    .order("day_number")
+    .order("created_at");
+  await Promise.all(
+    (rest ?? [])
+      .map((d, i) => ({ id: d.id as string, from: d.day_number as number, to: i + 1 }))
+      .filter((d) => d.from !== d.to)
+      .map((d) => supabase.from("workout_days").update({ day_number: d.to }).eq("id", d.id)),
+  );
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  revalidatePath("/dashboard/treningy");
   return ok;
 }
 
@@ -318,10 +396,12 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
 }
 
 /**
- * Zmazanie plánu — len kým je koncept (`published: false`). Publikovaný plán
- * klient vidí v portáli, môže mať naň naviazané `workout_logs` — ten sa takto
- * nezmaže (tréner ho musí najprv vrátiť do konceptu). `workout_days` idú kaskádou
- * (FK `on delete cascade`, 0002).
+ * Zmazanie plánu — koncept ("Zmazať koncept" hore) aj už publikovaný plán
+ * ("Zmazať" dole pri PDF). `workout_days` idú kaskádou (FK `on delete cascade`,
+ * 0002); odcvičené tréningy ostanú: `workout_logs.workout_day_id` sa nastaví na
+ * null a záznam si drží vlastnú kópiu plánu (plan_snapshot, 0048 — zámok túto
+ * zmenu povoľuje). `clients.active_plan_id`/`active_day_id` sa cez FK vynulujú,
+ * portál klienta potom spadne na najnovší zostávajúci plán.
  */
 export async function deletePlanAction(planId: string): Promise<ActionState> {
   if (!planId) return { error: "Chýba ID plánu." };
@@ -332,20 +412,74 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
 
-  const { data: plan } = await supabase
+  const { data: deleted, error } = await supabase
     .from("workout_plans")
-    .select("id, published")
+    .delete()
     .eq("id", planId)
     .eq("trainer_id", user.id)
-    .maybeSingle();
-  if (!plan) return { error: "Plán sa nenašiel." };
-  if (plan.published) return { error: "Publikovaný plán sa takto nedá zmazať — najprv ho vráť do konceptu." };
-
-  const { error } = await supabase.from("workout_plans").delete().eq("id", planId).eq("trainer_id", user.id);
+    .select("client_id");
   if (error) return { error: dbErr(error, "actions") };
+  if (!deleted || deleted.length === 0) return { error: "Plán sa nenašiel." };
 
   revalidatePath("/dashboard/treningy");
+  revalidatePath(`/dashboard/klienti/${deleted[0].client_id}`);
   redirect("/dashboard/treningy");
+}
+
+/**
+ * "Duplikovať ako nový tréning" — z dokončeného tréningu (workout_logs, 0048)
+ * vytvorí nový plán ako koncept s jedným dňom: plánované cviky zo snapshotu v
+ * čase tréningu, bez výsledkov klienta. Pôvodný záznam ostáva nedotknutý (je
+ * zamknutý v DB), tréner upravuje len novú kópiu. Nový plán je `published: false`,
+ * klient ho uvidí až po potvrdení — rovnako ako pri createPlanAction.
+ */
+export async function duplicateCompletedWorkoutAction(logId: string): Promise<ActionState> {
+  if (!logId) return { error: "Chýba ID tréningu." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  // RLS workout_logs_select_own_trainer — tréner vidí len záznamy vlastných klientov.
+  const { data: log, error: logErr } = await supabase
+    .from("workout_logs")
+    .select("id, client_id, status, plan_snapshot")
+    .eq("id", logId)
+    .maybeSingle();
+  if (logErr) return { error: dbErr(logErr, "actions") };
+  if (!log) return { error: "Tréning sa nenašiel." };
+  if (log.status !== "completed") return { error: "Duplikovať sa dá len dokončený tréning." };
+
+  const snapshot = parsePlanSnapshot(log.plan_snapshot);
+  if (!snapshot || snapshot.exercises.length === 0) {
+    return { error: "Tréning nemá uložený plán, z ktorého by sa dala urobiť kópia." };
+  }
+
+  const dayName = snapshot.dayName ?? "Tréning";
+  const { data: plan, error: planErr } = await supabase
+    .from("workout_plans")
+    .insert({ client_id: log.client_id, trainer_id: user.id, name: `${dayName} (kópia)`, published: false })
+    .select("id")
+    .single();
+  if (planErr || !plan) return { error: dbErr(planErr, "actions") };
+
+  const { error: dayErr } = await supabase.from("workout_days").insert({
+    plan_id: plan.id,
+    day_number: 1,
+    name: dayName,
+    exercises: snapshotToPlanEntries(snapshot, randomUUID),
+  });
+  if (dayErr) {
+    // Bez dňa by ostal prázdny koncept — radšej ho zahoď (koncept bez logov sa zmazať dá).
+    await supabase.from("workout_plans").delete().eq("id", plan.id);
+    return { error: dbErr(dayErr, "actions") };
+  }
+
+  revalidatePath("/dashboard/treningy");
+  revalidatePath(`/dashboard/klienti/${log.client_id}`);
+  redirect(`/dashboard/treningy/${plan.id}`);
 }
 
 export async function addCustomExerciseAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {

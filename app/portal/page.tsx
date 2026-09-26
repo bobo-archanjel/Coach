@@ -196,8 +196,11 @@ function previewResult(kind: string): PortalResult | null {
             completedCount: PREVIEW_DATA.session.exercises.length,
             loggedExercises: [
               { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
-              { entryId: "p2", name: "Rumunský mŕtvy ťah", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
+              { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
             ],
+            completedAt: new Date().toISOString(),
+            sessionRpe: 8,
+            sessionNote: "Dobrý tréning, koleno OK.",
           },
         },
       };
@@ -402,10 +405,14 @@ function PortalToday({ data }: { data: PortalData }) {
         )}
 
         {session.kind === "done" && session.dayId && (
-          // Vrátiť sa do tréningu = vidieť (a prípadne opraviť) to, čo si naozaj
-          // zapísal (Fáza B), nie znovu ponúkaný plán — inak by "hotovo" a zoznam
-          // pod tým vyzerali, akoby ešte len čakal na odcvičenie.
-          <DoneWorkoutView dayId={session.dayId} exercises={session.exercises} loggedExercises={session.loggedExercises} />
+          // Vrátiť sa do tréningu = vidieť to, čo si naozaj zapísal (Fáza B), nie
+          // znovu ponúkaný plán. Od 0048 len na čítanie — záznam je zamknutý v DB.
+          <DoneWorkoutView
+            loggedExercises={session.loggedExercises}
+            completedAt={session.completedAt}
+            sessionRpe={session.sessionRpe}
+            sessionNote={session.sessionNote}
+          />
         )}
 
         {/* Rozpis cvikov pred začatím sa tu už nezobrazuje (revízia 2026-09) —

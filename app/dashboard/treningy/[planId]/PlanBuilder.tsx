@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
 import { AddDayInline } from "./AddDayInline";
+import { DeleteDayControl } from "./DeleteDayControl";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "./builder.module.css";
@@ -19,10 +20,13 @@ export function PlanBuilder({
   planId,
   days,
   library,
+  completedDayIds = [],
 }: {
   planId: string;
   days: Day[];
   library: ExerciseLibraryRow[];
+  /** dni, z ktorých klient už odcvičil tréning (plan_snapshot.day_id, 0048) */
+  completedDayIds?: string[];
 }) {
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
 
@@ -80,6 +84,16 @@ export function PlanBuilder({
             </button>
           ))}
           <AddDayInline planId={planId} nextDayNumber={localDays.length + 1} />
+          {activeDay && (
+            <DeleteDayControl
+              key={activeDay.id}
+              planId={planId}
+              dayId={activeDay.id}
+              dayName={activeDay.name}
+              exerciseCount={activeDay.exercises.length}
+              hasCompleted={completedDayIds.includes(activeDay.id)}
+            />
+          )}
         </div>
 
         <div className={styles.dayPanel}>

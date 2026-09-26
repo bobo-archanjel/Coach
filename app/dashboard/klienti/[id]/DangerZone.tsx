@@ -77,7 +77,7 @@ export function DangerZone({
     <>
       {/* Ukončenie spolupráce (0020) — nesúvisí s GDPR výmazom nižšie, dáta ostávajú. */}
       {!deletionRequestedAt && (
-        <div className={styles.card}>
+        <div className={styles.dangerSection}>
           <h3>Spolupráca</h3>
           {endedAt ? (
             <>
@@ -118,7 +118,7 @@ export function DangerZone({
         </div>
       )}
 
-      <div className={styles.card}>
+      <div className={styles.dangerSection}>
         <h3>Zmazanie klienta</h3>
         {deletionRequestedAt ? (
           <>

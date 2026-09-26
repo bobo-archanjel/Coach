@@ -84,16 +84,22 @@ export interface PortalExercise {
   restSeconds: number | null;
 }
 
-/** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B). */
+/** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B).
+ *  Čas/vzdialenosť/RPE sú voliteľné (lib/workouts/completed.ts). */
 export interface LoggedSet {
   reps: number | null;
   weight: number | null;
+  durationS?: number | null;
+  distanceM?: number | null;
+  rpe?: number | null;
 }
 
 /** Skutočné hodnoty jedného cviku v rámci workout_logs.entries (Fáza B). */
 export interface LoggedExercise {
   entryId: string | null;
   name: string;
+  /** poznámka klienta k cviku (0048) */
+  note?: string | null;
   sets: LoggedSet[];
 }
 
@@ -125,6 +131,11 @@ export interface TodaySession {
    * žiadne hodnoty (len odklikol) — vtedy sa použije `exercises` ako fallback.
    */
   loggedExercises: LoggedExercise[] | null;
+  /** `kind: "done"` — čas ukončenia (workout_logs.completed_at, 0048); záznam je odvtedy len na čítanie */
+  completedAt?: string | null;
+  /** celkové RPE a poznámka klienta k tréningu (workout_logs.rpe / note) */
+  sessionRpe?: number | null;
+  sessionNote?: string | null;
   /** koľko cvikov je odškrtnutých (0 kým Fáza B nepostaví per-cvik odškrtávanie) */
   completedCount: number;
   /** id workout_day na zápis workout_logs pri "Ukončiť tréning" */

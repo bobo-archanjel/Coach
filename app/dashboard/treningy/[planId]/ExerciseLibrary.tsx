@@ -38,11 +38,12 @@ export function ExerciseLibrary({
   const [dayState, addToDay, dayPending] = useActionState(addCustomExerciseToDayAction, initialState);
   const customPending = libPending || dayPending;
   const [page, setPage] = useState(0);
-  // Klik na „Pridať do tréningu" bez vytvoreného dňa — okamžité upozornenie bez
-  // zbytočného volania servera. Zmizne, hneď ako existuje aktívny deň.
-  const [noDayHint, setNoDayHint] = useState(false);
+  // Klik na „Pridať do tréningu" alebo na cvik v zozname bez vytvoreného dňa —
+  // okamžité upozornenie pri mieste kliku, bez zbytočného volania servera.
+  // Zmizne, hneď ako existuje aktívny deň.
+  const [noDayHint, setNoDayHint] = useState<"custom" | "list" | null>(null);
   useEffect(() => {
-    if (activeDayId) setNoDayHint(false);
+    if (activeDayId) setNoDayHint(null);
   }, [activeDayId]);
 
   const filtered = useMemo(() => {
@@ -93,13 +94,13 @@ export function ExerciseLibrary({
             onClick={(e) => {
               if (!activeDayId) {
                 e.preventDefault();
-                setNoDayHint(true);
+                setNoDayHint("custom");
               }
             }}
           >
             {dayPending ? "Pridávam…" : "+ Pridať do tréningu"}
           </button>
-          {noDayHint && !activeDayId && <p className={styles.formError}>Najprv pridaj tréningový deň.</p>}
+          {noDayHint === "custom" && !activeDayId && <p className={styles.formError}>Najprv pridaj tréningový deň.</p>}
           {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
           <button type="submit" formAction={addToLibrary} className="btn btn-ghost btn-sm" disabled={customPending}>
             {libPending ? "Pridávam…" : "+ Pridať do knižnice"}
@@ -115,9 +116,22 @@ export function ExerciseLibrary({
           className={styles.librarySearch}
         />
 
+        {noDayHint === "list" && !activeDayId && (
+          <p className={styles.formError} role="alert">
+            Najprv pridaj tréningový deň.
+          </p>
+        )}
         <div className={styles.libraryList}>
           {paged.length > 0 ? (
-            paged.map((ex) => <LibraryItem key={ex.id} exercise={ex} dayId={activeDayId} planId={planId} />)
+            paged.map((ex) => (
+              <LibraryItem
+                key={ex.id}
+                exercise={ex}
+                dayId={activeDayId}
+                planId={planId}
+                onNoDay={() => setNoDayHint("list")}
+              />
+            ))
           ) : (
             <p className={styles.libraryEmpty}>Žiadny cvik nezodpovedá hľadaniu.</p>
           )}

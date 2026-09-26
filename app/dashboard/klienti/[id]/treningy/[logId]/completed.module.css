@@ -1,0 +1,209 @@
+/* Detail dokončeného tréningu (0048) — plán vs. realita, len na čítanie. Mobile-first. */
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-bottom: 12px;
+}
+.title {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+.sub {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--paper-dim);
+}
+.sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.doneBadge,
+.progressBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.doneBadge {
+  background: rgba(76, 122, 94, 0.18);
+  color: #8fc6a7;
+}
+.progressBadge {
+  background: rgba(230, 178, 58, 0.14);
+  color: var(--plate-yellow);
+}
+
+.readonlyNote,
+.backfillNote {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--paper-faint);
+  max-width: var(--measure);
+}
+.backfillNote {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--steel-line);
+  border-radius: var(--radius-s);
+}
+
+.actions {
+  margin: 14px 0 18px;
+}
+.duplicateBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.duplicateError {
+  color: var(--error);
+  font-size: 12.5px;
+}
+
+.sessionMeta {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  font-size: 14px;
+  color: var(--paper);
+}
+.metaLabel {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper-faint);
+}
+
+.exerciseList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.exercise {
+  padding: 14px 16px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+}
+.exerciseHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.exerciseName {
+  font-size: 15px;
+  font-weight: 700;
+}
+.chipMuted {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--steel-line);
+  background: var(--ink-3);
+  color: var(--paper-faint);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.plannedLine {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.setTable {
+  margin-top: 10px;
+  display: grid;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+.setHeadRow,
+.setRow {
+  display: grid;
+  grid-template-columns: 44px 1fr 1.2fr;
+  gap: 8px;
+  padding: 7px 0;
+  align-items: baseline;
+}
+.setHeadRow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  border-bottom: 1px solid var(--steel-line);
+}
+.setRow + .setRow {
+  border-top: 1px solid rgba(56, 53, 47, 0.6);
+}
+.setIndex {
+  color: var(--paper-faint);
+}
+.planned {
+  color: var(--paper-dim);
+}
+.actual {
+  font-weight: 700;
+  color: var(--paper);
+}
+.toneMet {
+  color: #8fc6a7;
+}
+.toneAbove {
+  color: #8fc6a7;
+}
+.toneBelow {
+  color: var(--plate-yellow);
+}
+.rpe {
+  font-weight: 500;
+  color: var(--paper-faint);
+}
+.exerciseNote {
+  margin-top: 10px;
+  padding-left: 10px;
+  border-left: 2px solid var(--steel-line);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (min-width: 720px) {
+  .metaLabel {
+    display: inline-block;
+    min-width: 128px;
+    margin-bottom: 0;
+  }
+  .title {
+    font-size: 1.8rem;
+  }
+  .setHeadRow,
+  .setRow {
+    grid-template-columns: 60px 1fr 1fr;
+  }
+}
