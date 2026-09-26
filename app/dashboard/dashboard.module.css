@@ -1093,6 +1093,14 @@ select.addClientInputSm {
   gap: 8px;
   margin: -12px 0 20px;
 }
+/* Deštruktívne tlačidlo v štýle btn-ghost — červený text, pri hoveri aj rám. */
+.dangerGhost {
+  color: var(--error);
+}
+.dangerGhost:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
 .planFooterActions {
   margin-top: 24px;
   padding-top: 16px;

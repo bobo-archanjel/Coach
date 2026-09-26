@@ -133,6 +133,33 @@ test.describe("názov plánu — ceruzka (?preview=builder)", () => {
   });
 });
 
+test.describe("zmazanie plánu dole pri PDF", () => {
+  test("koncept: dole len PDF (maže sa cez Zmazať koncept hore)", async ({ page }) => {
+    await page.goto("/dashboard/treningy/x?preview=builder");
+    await expect(page.getByRole("link", { name: "Stiahnuť PDF" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Zmazať", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Zmazať koncept" })).toBeVisible();
+  });
+
+  test("publikovaný: Zmazať vedľa PDF, potvrdenie, Zrušiť aj Esc nič nezmažú", async ({ page }) => {
+    await page.goto("/dashboard/treningy/x?preview=builder_live");
+    await expect(page.getByText("Publikovaný — klient ho vidí")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Zmazať koncept" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Zmazať", exact: true }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toContainText("Naozaj zmazať tréning „AI plán — hypertrofia“?");
+    await expect(dialog).toContainText("ostanú uložené");
+    await expect(page.getByRole("link", { name: "Stiahnuť PDF" })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Zrušiť" }).click();
+    await expect(page.getByRole("link", { name: "Stiahnuť PDF" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Zmazať", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  });
+});
+
 test.describe("PlanBuilder bez dní (?preview=builder_empty)", () => {
   test("klik na cvik v knižnici bez dňa ukáže hlášku namiesto mŕtveho tlačidla", async ({ page }) => {
     const errs = collectErrors(page);

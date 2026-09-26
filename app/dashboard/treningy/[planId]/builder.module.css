@@ -93,8 +93,9 @@
   border-radius: var(--radius-s);
 }
 @media (max-width: 760px) {
-  .librarySearch,
-  .customExerciseInput {
+  /* .customExerciseInput má vlastný mobilný override až ZA svojím základným
+     pravidlom nižšie — tu by ho prebil neskorší base (13px → iOS zoom pri focuse). */
+  .librarySearch {
     font-size: 16px;
     padding: 10px 12px;
   }
@@ -243,6 +244,14 @@
 }
 .customExerciseInput::placeholder {
   color: var(--paper-faint);
+}
+/* 16px = iOS Safari pri focuse nezoomuje stránku (pod 16px áno). Musí byť ZA
+   základným .customExerciseInput (rovnaká špecificita → vyhráva neskoršie). */
+@media (max-width: 760px) {
+  .customExerciseInput {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
 }
 
 /* ---------- canvas ---------- */

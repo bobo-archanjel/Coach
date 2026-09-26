@@ -5,6 +5,7 @@ import { PlanBuilder } from "./PlanBuilder";
 import { PublishActions, PublishBadge } from "./PublishControl";
 import { WorkoutTemplateTop } from "../../sablony/WorkoutTemplateControls";
 import { PlanTitle } from "./PlanTitle";
+import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
 import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import styles from "../../dashboard.module.css";
@@ -43,7 +44,12 @@ export default async function PlanDetailPage({
   const { preview } = await searchParams;
 
   // ?preview=builder_empty — nový plán bez dní (hláška pri kliku na cvik bez dňa).
-  if ((preview === "builder" || preview === "builder_empty") && process.env.NODE_ENV === "development") {
+  // ?preview=builder_live — publikovaný plán (dole "Zmazať" vedľa PDF).
+  if (
+    (preview === "builder" || preview === "builder_empty" || preview === "builder_live") &&
+    process.env.NODE_ENV === "development"
+  ) {
+    const livePreview = preview === "builder_live";
     return (
       <>
         <Link href="/dashboard/treningy" className={styles.backLink}>
@@ -55,10 +61,10 @@ export default async function PlanDetailPage({
             <PlanTitle planId={planId} name="AI plán — hypertrofia" />
             <div className={styles.clientGoal}>Ján Novák</div>
           </div>
-          <PublishBadge published={false} />
+          <PublishBadge published={livePreview} />
         </div>
         <div className={styles.planActions}>
-          <PublishActions planId={planId} published={false} />
+          <PublishActions planId={planId} published={livePreview} />
         </div>
         <PlanBuilder
           planId={planId}
@@ -66,6 +72,9 @@ export default async function PlanDetailPage({
           library={PREVIEW_LIBRARY}
           completedDayIds={["d2"]}
         />
+        <div className={styles.planFooterActions}>
+          <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted />
+        </div>
       </>
     );
   }
@@ -164,11 +173,12 @@ export default async function PlanDetailPage({
 
       {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
       <div className={styles.planFooterActions}>
-        <div className={styles.templateGrid}>
-          <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-            Stiahnuť PDF
-          </a>
-        </div>
+        <PlanFooterActions
+          planId={planId}
+          planName={plan.name}
+          published={plan.published}
+          hasCompleted={(completedLogs?.length ?? 0) > 0}
+        />
       </div>
     </>
   );

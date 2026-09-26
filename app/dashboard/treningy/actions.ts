@@ -396,10 +396,12 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
 }
 
 /**
- * Zmazanie plánu — len kým je koncept (`published: false`). Publikovaný plán
- * klient vidí v portáli, môže mať naň naviazané `workout_logs` — ten sa takto
- * nezmaže (tréner ho musí najprv vrátiť do konceptu). `workout_days` idú kaskádou
- * (FK `on delete cascade`, 0002).
+ * Zmazanie plánu — koncept ("Zmazať koncept" hore) aj už publikovaný plán
+ * ("Zmazať" dole pri PDF). `workout_days` idú kaskádou (FK `on delete cascade`,
+ * 0002); odcvičené tréningy ostanú: `workout_logs.workout_day_id` sa nastaví na
+ * null a záznam si drží vlastnú kópiu plánu (plan_snapshot, 0048 — zámok túto
+ * zmenu povoľuje). `clients.active_plan_id`/`active_day_id` sa cez FK vynulujú,
+ * portál klienta potom spadne na najnovší zostávajúci plán.
  */
 export async function deletePlanAction(planId: string): Promise<ActionState> {
   if (!planId) return { error: "Chýba ID plánu." };
@@ -410,19 +412,17 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
 
-  const { data: plan } = await supabase
+  const { data: deleted, error } = await supabase
     .from("workout_plans")
-    .select("id, published")
+    .delete()
     .eq("id", planId)
     .eq("trainer_id", user.id)
-    .maybeSingle();
-  if (!plan) return { error: "Plán sa nenašiel." };
-  if (plan.published) return { error: "Publikovaný plán sa takto nedá zmazať — najprv ho vráť do konceptu." };
-
-  const { error } = await supabase.from("workout_plans").delete().eq("id", planId).eq("trainer_id", user.id);
+    .select("client_id");
   if (error) return { error: dbErr(error, "actions") };
+  if (!deleted || deleted.length === 0) return { error: "Plán sa nenašiel." };
 
   revalidatePath("/dashboard/treningy");
+  revalidatePath(`/dashboard/klienti/${deleted[0].client_id}`);
   redirect("/dashboard/treningy");
 }
 
