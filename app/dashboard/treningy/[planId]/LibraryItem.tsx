@@ -67,8 +67,12 @@ export function LibraryItem({
           }}
         >
           <ExerciseThumb src={exercise.image_url[0] ?? null} alt="" size={28} />
-          <span>{name}</span>
-          {exercise.muscle_group && <span className={styles.libraryItemMuscle}>{exercise.muscle_group}</span>}
+          <span className={styles.libraryItemName}>{name}</span>
+          {exercise.muscle_group && (
+            <span className={styles.libraryItemMuscle} title={exercise.muscle_group}>
+              {exercise.muscle_group}
+            </span>
+          )}
         </button>
       </form>
       <button type="button" className={styles.libraryItemInfo} onClick={openDetail} aria-label={`Detail cviku ${name}`}>

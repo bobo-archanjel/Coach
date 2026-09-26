@@ -12,10 +12,23 @@ const CheckIcon = () => (
   </svg>
 );
 
-/** Potvrdenie plánu — kým je koncept, klient ho v portáli nevidí (viď actions.ts). */
-export function PublishControl({ planId, published }: { planId: string; published: boolean }) {
+/** Stav plánu pri názve — kým je koncept, klient ho v portáli nevidí (viď actions.ts). */
+export function PublishBadge({ published }: { published: boolean }) {
+  return (
+    <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
+      {published ? "Publikovaný — klient ho vidí" : "Koncept — klient ho ešte nevidí"}
+    </span>
+  );
+}
+
+/**
+ * "Potvrdiť a uložiť" + "Zmazať koncept" — v rovnakej 2-stĺpcovej mriežke ako
+ * riadok šablóny pod ním (templateGrid), aby boli tlačidlá na stránke plánu
+ * súmerné. Publikovanie je jednosmerné: po ňom obe akcie zmiznú.
+ */
+export function PublishActions({ planId, published }: { planId: string; published: boolean }) {
   const [state, formAction, pending] = useActionState(setPlanPublishedAction, initialState);
-  // Odznak hore sa mení trvalo (podľa `published` z DB), ale samotná zmena je
+  // Stav pri názve sa mení trvalo (podľa `published` z DB), ale samotná zmena je
   // ľahko prehliadnuteľná — táto správa na pár sekúnd jasne potvrdí, že klik
   // niečo reálne uložil (nie len že sa nič nestalo).
   const [justSaved, setJustSaved] = useState(false);
@@ -41,53 +54,49 @@ export function PublishControl({ planId, published }: { planId: string; publishe
     });
   };
 
-  return (
-    <div className={styles.publishBox}>
-      <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
-        {published ? "Publikovaný — klient ho vidí" : "Koncept — klient ho ešte nevidí"}
-      </span>
-      {/* Publikovanie je jednosmerné — publikovaný plán sa už cez UI nedá vrátiť
-          späť do konceptu (dá sa len zmazať koncept, kým ešte publikovaný nie je). */}
-      {!published && (
-        <form action={formAction}>
-          <input type="hidden" name="plan_id" value={planId} />
-          <input type="hidden" name="published" value="true" />
-          <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-            {pending ? "Ukladám…" : "Potvrdiť a uložiť"}
-          </button>
-        </form>
-      )}
+  const confirmMsg = justSaved && !state.error && (
+    <span className={`${styles.publishConfirm} ${styles.templateStatus}`} role="status">
+      <CheckIcon />
+      Uložené — klient tréning už vidí.
+    </span>
+  );
 
-      {!published &&
-        (confirmingDelete ? (
-          <span className={styles.publishDeleteConfirm}>
-            <span>Zmazať tento koncept?</span>
-            <button type="button" className="btn btn-primary btn-sm" onClick={doDelete} disabled={deletePending}>
-              {deletePending ? "Mažem…" : "Áno, zmazať"}
+  if (published) return confirmMsg || null;
+
+  return (
+    <div className={styles.templateGrid}>
+      {confirmingDelete ? (
+        <>
+          <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>Zmazať tento koncept?</p>
+          <button type="button" className="btn btn-primary btn-sm" onClick={doDelete} disabled={deletePending}>
+            {deletePending ? "Mažem…" : "Áno, zmazať"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setConfirmingDelete(false)}
+            disabled={deletePending}
+          >
+            Zrušiť
+          </button>
+        </>
+      ) : (
+        <>
+          <form action={formAction}>
+            <input type="hidden" name="plan_id" value={planId} />
+            <input type="hidden" name="published" value="true" />
+            <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
+              {pending ? "Ukladám…" : "Potvrdiť a uložiť"}
             </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={deletePending}
-            >
-              Zrušiť
-            </button>
-          </span>
-        ) : (
+          </form>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(true)}>
             Zmazať koncept
           </button>
-        ))}
-
-      {justSaved && !state.error && (
-        <span className={styles.publishConfirm} role="status">
-          <CheckIcon />
-          Uložené — klient tréning už vidí.
-        </span>
+        </>
       )}
-      {state.error && <p className={styles.publishError}>{state.error}</p>}
-      {deleteError && <p className={styles.publishError}>{deleteError}</p>}
+      {confirmMsg}
+      {state.error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{state.error}</p>}
+      {deleteError && <p className={`${styles.publishError} ${styles.templateStatus}`}>{deleteError}</p>}
     </div>
   );
 }

@@ -7,8 +7,11 @@
 /* Na mobile ide plátno (aktívny deň) prvé — tréner ho vidí bez scrollovania cez celú
    knižnicu cvikov. Knižnica je pod ním a defaultne zbalená (viď .library/.libraryBody). */
 @media (max-width: 760px) {
+  /* minmax(0, …), nie 1fr (= minmax(auto, 1fr)): inak stĺpec narástol podľa najdlhšej
+     nezalomiteľnej partie v rozbalenej knižnici (~417px na 390px displeji) — stránka
+     dostala horizontálny scroll, mobil odzoomoval a tlačidlá sa poposúvali. */
   .builderGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .canvas {
     order: 1;
@@ -139,7 +142,18 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* Dlhé partie („adduktory (vnútorné stehná)") sa skrátia trojbodkou — nesmú rozťahovať
+   riadok ani prekrývať ikonu detailu. Celý text je v title. */
+.libraryItemName {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .libraryItemMuscle {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--paper-faint);
   font-size: 11px;
   white-space: nowrap;

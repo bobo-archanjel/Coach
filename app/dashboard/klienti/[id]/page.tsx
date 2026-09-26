@@ -220,7 +220,7 @@ export default async function ClientDetailPage({
             )}
           </div>
 
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 6 }}>
             <DangerZone
               clientId={id}
               firstName={firstName}

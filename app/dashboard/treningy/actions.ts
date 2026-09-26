@@ -85,6 +85,38 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
   redirect(`/dashboard/treningy/${data.id}`);
 }
 
+/**
+ * Premenovanie plánu (ceruzka pri názve na detaile plánu). Nový názov vidí aj
+ * klient v portáli; šablóna sa odteraz ukladá pod týmto názvom. RLS
+ * workout_plans_update_own_trainer — cudzí plán vráti 0 riadkov, nie chybu.
+ */
+export async function renamePlanAction(planId: string, rawName: string): Promise<ActionState> {
+  if (!planId) return { error: "Chýba ID plánu." };
+  const name = rawName.trim();
+  if (!name) return { error: "Zadaj názov plánu." };
+  if (name.length > 120) return { error: "Názov môže mať najviac 120 znakov." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const { data, error } = await supabase
+    .from("workout_plans")
+    .update({ name })
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .select("client_id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: "Plán sa nepodarilo premenovať — skús obnoviť stránku." };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  revalidatePath("/dashboard/treningy");
+  revalidatePath(`/dashboard/klienti/${data[0].client_id}`);
+  return ok;
+}
+
 /** Potvrdenie/koncept plánu — kým je `published: false`, klient ho v portáli nevidí. */
 export async function setPlanPublishedAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();

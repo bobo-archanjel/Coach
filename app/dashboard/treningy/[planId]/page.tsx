@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PlanBuilder } from "./PlanBuilder";
-import { PublishControl } from "./PublishControl";
-import { SaveTemplateForm } from "../../sablony/SaveTemplateForm";
+import { PublishActions, PublishBadge } from "./PublishControl";
+import { WorkoutTemplateTop } from "../../sablony/WorkoutTemplateControls";
+import { PlanTitle } from "./PlanTitle";
 import type { WorkoutExerciseEntry } from "../actions";
 import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import styles from "../../dashboard.module.css";
@@ -50,11 +51,14 @@ export default async function PlanDetailPage({
           Späť na tréningy
         </Link>
         <div className={styles.detailHead}>
-          <div>
-            <h1>AI plán — hypertrofia</h1>
+          <div className={styles.detailTitle}>
+            <PlanTitle planId={planId} name="AI plán — hypertrofia" />
             <div className={styles.clientGoal}>Ján Novák</div>
           </div>
-          <PublishControl planId={planId} published={false} />
+          <PublishBadge published={false} />
+        </div>
+        <div className={styles.planActions}>
+          <PublishActions planId={planId} published={false} />
         </div>
         <PlanBuilder
           planId={planId}
@@ -107,20 +111,19 @@ export default async function PlanDetailPage({
       </Link>
 
       <div className={styles.detailHead}>
-        <div>
-          <h1>{plan.name}</h1>
+        <div className={styles.detailTitle}>
+          <PlanTitle planId={planId} name={plan.name} />
           <div className={styles.clientGoal}>
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
         </div>
-        <PublishControl planId={planId} published={plan.published} />
+        <PublishBadge published={plan.published} />
       </div>
 
-      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <SaveTemplateForm kind="workout" planId={planId} defaultName={plan.name} />
-        <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-          Stiahnuť PDF
-        </a>
+      {/* Publikovanie aj šablóna v rovnakej 2-stĺpcovej mriežke pod sebou — súmerné tlačidlá. */}
+      <div className={styles.planActions}>
+        <PublishActions planId={planId} published={plan.published} />
+        <WorkoutTemplateTop planId={planId} defaultName={plan.name} />
       </div>
 
       {completedLogs && completedLogs.length > 0 && (
@@ -158,6 +161,15 @@ export default async function PlanDetailPage({
           </div>
         </section>
       )}
+
+      {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
+      <div className={styles.planFooterActions}>
+        <div className={styles.templateGrid}>
+          <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
+            Stiahnuť PDF
+          </a>
+        </div>
+      </div>
     </>
   );
 }

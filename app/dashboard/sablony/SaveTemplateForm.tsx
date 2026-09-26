@@ -41,7 +41,7 @@ export function SaveTemplateForm({ kind, planId, defaultName }: { kind: "workout
       )}
       {kind === "workout" && (
         <select name="goal" disabled={pending} className={styles.addClientInput} defaultValue="" style={{ maxWidth: 170 }}>
-          <option value="">Bez cieľa (filter)</option>
+          <option value="">Bez cieľa</option>
           {PLAN_GOALS.map((g) => (
             <option key={g} value={g}>
               {PLAN_GOAL_LABEL_SK[g]}

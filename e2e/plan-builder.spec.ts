@@ -112,6 +112,27 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
   });
 });
 
+test.describe("názov plánu — ceruzka (?preview=builder)", () => {
+  test("ceruzka otvorí pole s názvom, Esc aj Zrušiť vrátia pôvodný nadpis", async ({ page }) => {
+    await page.goto("/dashboard/treningy/x?preview=builder");
+
+    await expect(page.getByRole("button", { name: "Iný názov" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Upraviť názov plánu" }).click();
+    const input = page.getByLabel("Názov plánu");
+    await expect(input).toHaveValue("AI plán — hypertrofia");
+    await input.fill("Nový názov");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("heading", { name: "AI plán — hypertrofia" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Upraviť názov plánu" }).click();
+    await page.getByLabel("Názov plánu").fill("   ");
+    await page.getByRole("button", { name: "Uložiť", exact: true }).click();
+    await expect(page.getByText("Zadaj názov plánu.")).toBeVisible();
+    await page.getByRole("button", { name: "Zrušiť" }).click();
+    await expect(page.getByRole("heading", { name: "AI plán — hypertrofia" })).toBeVisible();
+  });
+});
+
 test.describe("PlanBuilder bez dní (?preview=builder_empty)", () => {
   test("klik na cvik v knižnici bez dňa ukáže hlášku namiesto mŕtveho tlačidla", async ({ page }) => {
     const errs = collectErrors(page);

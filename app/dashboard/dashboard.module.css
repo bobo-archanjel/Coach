@@ -999,6 +999,110 @@ select.addClientInputSm {
   color: inherit;
   text-decoration: none;
 }
+/* Akcie šablóny/PDF na detaile tréningového plánu — súmerná mriežka 2 rovnakých
+   stĺpcov s rovnakou výškou tlačidiel aj polí (select/input/btn majú inak rôzne
+   paddingy). Na desktope max. 480px, aby sa tlačidlá neťahali cez celý obsah. */
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 480px;
+}
+.templateGrid > select,
+.templateGrid > button,
+.templateGrid > a,
+.templateGrid > form > button {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  box-sizing: border-box;
+}
+/* Stavová hláška (uložené/chyba) zaberie celý riadok mriežky. */
+.templateStatus {
+  grid-column: 1 / -1;
+}
+.templateGrid > form {
+  margin: 0;
+}
+.templateGrid > .publishDeleteConfirm {
+  margin: 0;
+  color: var(--paper);
+  font-size: 13.5px;
+}
+/* Názov plánu s ceruzkou (PlanTitle) — premenovanie priamo na mieste. */
+.detailTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.planTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.planTitleRow h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.planTitleEdit {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  color: var(--paper-faint);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.planTitleEdit:hover {
+  color: var(--paper);
+  border-color: var(--steel-line);
+}
+.planTitleForm {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+}
+.planTitleInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  background: var(--ink-2);
+  border: 1px solid var(--iron-red);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.planTitleInput:focus {
+  outline: none;
+}
+@media (max-width: 640px) {
+  .planTitleForm {
+    max-width: none;
+  }
+}
+/* Blok akcií pod nadpisom plánu (publikovanie + šablóna), riadky tesne pod sebou. */
+.planActions {
+  display: grid;
+  gap: 8px;
+  margin: -12px 0 20px;
+}
+.planFooterActions {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--steel-line);
+}
+@media (max-width: 640px) {
+  .templateGrid {
+    max-width: none;
+  }
+}
 .planLockedHint {
   margin: -8px 0 16px;
   font-size: 13px;
@@ -1445,6 +1549,19 @@ select.addClientInputSm {
   color: var(--iron-red);
   font-size: 12.5px;
   margin-top: 10px;
+}
+/* Sekcie Spolupráca / Zmazanie klienta vnútri karty Informácie — bez vlastného
+   rámu (karta v karte pôsobila preplnene), len oddelené čiarou ako riadky nad nimi. */
+.dangerSection {
+  padding-block: 16px;
+  border-top: 1px solid var(--steel-line);
+}
+.dangerSection:last-child {
+  padding-bottom: 0;
+}
+.dangerSection h3 {
+  font-size: 1.05rem;
+  margin-bottom: 10px;
 }
 
 /* ---------- macro viz ---------- */
