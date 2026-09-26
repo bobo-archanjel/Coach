@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { getExerciseLibrary } from "@/lib/portal/data";
@@ -283,24 +284,25 @@ export async function deleteClientPlanAction(planId: string): Promise<ActionStat
 }
 
 /**
- * Prepne, ktorý plán klienta riadi kartu Dnes (od trénera aj vlastný). Voliteľný
- * `dayId` (0022) nastaví aj konkrétny deň v rámci plánu — bez neho karta Dnes
- * ostáva pri automatickej rotácii dní (lib/portal/data.ts).
+ * "Začať tréning" / "Pozrieť tréning" v sekcii Tréning — prepne, ktorý plán (a
+ * deň, 0022) riadi kartu Dnes, a rovno na ňu presmeruje. `redirect` vnútri akcie
+ * = JEDEN round-trip: odpoveď akcie už nesie vykreslenú /portal. Predtým akcia
+ * vrátila ok (Next pritom kvôli revalidatePath znova vykreslil opúšťanú
+ * /portal/trening) a klient až potom spravil router.push → druhý request.
+ * Bez getUser(): RPC set_active_plan si prihlásenie overí sám (auth.uid(),
+ * 'not_authenticated') — ušetrí sieťový round-trip na Supabase Auth.
  */
 export async function setActivePlanAction(planId: string, dayId?: string): Promise<ActionState> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
 
   const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId, p_day_id: dayId ?? null });
   if (error) {
+    if (error.message.includes("not_authenticated")) return { error: "Nie si prihlásený." };
     if (error.message.includes("plan_not_found")) return { error: "Tréning sa nenašiel." };
     if (error.message.includes("day_not_found")) return { error: "Deň sa nenašiel." };
     return { error: dbErr(error, "actions") };
   }
 
   revalidatePath("/portal", "layout");
-  return ok;
+  redirect("/portal");
 }

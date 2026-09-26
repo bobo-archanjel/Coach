@@ -149,16 +149,30 @@ select pg_temp.chk('H: snapshot plánu vyplní DB (klientom poslaný sa ignoruje
   (select plan_snapshot->'exercises'->0->>'load_kg' = '60' and plan_snapshot->>'day_name' = 'Deň A'
           and status = 'completed' and completed_at > now() - interval '1 minute'
    from public.workout_logs where id = :'wlog'));
+-- 0049: v 24 h okne od ukončenia smie klient opraviť LEN hodnoty (entries/rpe/note)
+select pg_temp.try(:C, format($f$update public.workout_logs set entries = '[{"entryId":"e1","name":"Drep","sets":[{"reps":9,"weight":60}]}]', note = 'oprava' where id = %L$f$, :'wlog')) as h_c_fix \gset
+select pg_temp.chk('legit: klient v 24 h okne opraví hodnoty (edited_at nastaví DB)',
+  :'h_c_fix' = 'OK' and (select note = 'oprava' and entries->0->'sets'->0->>'reps' = '9' and edited_at is not null
+                         from public.workout_logs where id = :'wlog'), :'h_c_fix');
+select pg_temp.try(:C, format($f$update public.workout_logs set plan_snapshot = '{}', completed_at = now() + interval '1 year' where id = %L$f$, :'wlog')) as h_c_snap \gset
+select pg_temp.chk('H: klient ani v okne nezmení plán ani čas ukončenia',
+  (select plan_snapshot->>'day_name' = 'Deň A' and completed_at < now() + interval '1 day' from public.workout_logs where id = :'wlog'), :'h_c_snap');
+select pg_temp.try(:T2, format($f$update public.workout_logs set note = 'trener' where id = %L$f$, :'wlog')) as h_t_upd \gset
+select pg_temp.chk('H: tréner hodnoty klienta neprepíše', (select note = 'oprava' from public.workout_logs where id = :'wlog'), :'h_t_upd');
+-- fixture: posun ukončenia o 25 h do minulosti (bez triggerov, ako superuser)
+set session_replication_role = replica;
+update public.workout_logs set completed_at = now() - interval '25 hours' where id = :'wlog';
+set session_replication_role = origin;
 select pg_temp.try(:C, format($f$update public.workout_logs set entries = '[]', note = 'hack' where id = %L$f$, :'wlog')) as h_c_upd \gset
-select pg_temp.chk('H: klient nezmení hodnoty dokončeného tréningu',
-  (select entries <> '[]'::jsonb and note is distinct from 'hack' from public.workout_logs where id = :'wlog'), :'h_c_upd');
+select pg_temp.chk('H: po 24 h klient hodnoty nezmení',
+  (select entries <> '[]'::jsonb and note = 'oprava' from public.workout_logs where id = :'wlog'), :'h_c_upd');
 select pg_temp.try(:C, format('delete from public.workout_logs where id = %L', :'wlog')) as h_c_del \gset
 select pg_temp.try(:T2, format('delete from public.workout_logs where id = %L', :'wlog')) as h_t_del \gset
 select pg_temp.chk('H: klient ani tréner dokončený tréning nezmažú',
   exists (select 1 from public.workout_logs where id = :'wlog'), :'h_c_del' || ' ' || :'h_t_del');
 select pg_temp.try(null, format($f$update public.workout_logs set entries = '[]' where id = %L$f$, :'wlog'), 'service_role') as h_s_upd \gset
 select pg_temp.try(null, format('delete from public.workout_logs where id = %L', :'wlog'), 'service_role') as h_s_del \gset
-select pg_temp.chk('H: zámok platí aj pre service_role (trigger, nie len RLS)',
+select pg_temp.chk('H: zámok po 24 h platí aj pre service_role (trigger, nie len RLS)',
   :'h_s_upd' like 'ERR:%' and :'h_s_del' like 'ERR:%'
   and (select entries <> '[]'::jsonb from public.workout_logs where id = :'wlog'), :'h_s_upd' || ' ' || :'h_s_del');
 -- Pozn.: nekorelované poddopyty (InitPlan) sa vyhodnotia PRED volaním try() v tom istom

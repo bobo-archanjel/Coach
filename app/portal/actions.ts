@@ -344,6 +344,51 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   return ok;
 }
 
+/**
+ * "Upraviť hodnoty" — klient opraví zapísané série/RPE/poznámky dokončeného
+ * tréningu, najviac 24 h po ukončení (0049). Okno aj to, že sa mení LEN
+ * entries/rpe/note, vynucuje DB (trigger + RLS); tu len validácia vstupu
+ * rovnaká ako pri ukončení a zrozumiteľná hláška, keď okno uplynulo.
+ */
+export async function updateWorkoutLogAction(input: {
+  logId: string;
+  entries: string;
+  rpe: string;
+  note: string;
+}): Promise<ActionState> {
+  if (!input.logId) return { error: "Chýba záznam tréningu." };
+
+  let entries: IncomingExercise[] | null;
+  try {
+    entries = sanitizeEntries(JSON.parse(input.entries));
+  } catch {
+    entries = null;
+  }
+  if (entries === null) return { error: "Niektorá zapísaná hodnota nie je platná — skontroluj série a skús to znova." };
+
+  const rpeRaw = Number(input.rpe);
+  const rpe = input.rpe && Number.isInteger(rpeRaw) && rpeRaw >= 1 && rpeRaw <= 10 ? rpeRaw : null;
+  const note = input.note.trim().slice(0, 1000) || null;
+
+  const supabase = await createClient();
+  // RLS workout_logs_update_own_client: len vlastný záznam a len v 24 h okne —
+  // mimo neho vráti 0 riadkov (nie chybu), preto .select() a kontrola počtu.
+  const { data, error } = await supabase
+    .from("workout_logs")
+    .update({ entries, rpe, note })
+    .eq("id", input.logId)
+    .select("id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data || data.length === 0) {
+    return { error: "Hodnoty sa dajú upraviť len 24 hodín po ukončení tréningu." };
+  }
+
+  revalidatePath("/portal", "layout");
+  // tréner vidí opravené hodnoty (a štítok "Upravené") v detaile tréningu
+  revalidatePath("/dashboard", "layout");
+  return ok;
+}
+
 /** Dnešný dátum (YYYY-MM-DD) v Europe/Bratislava — rovnako ako todayInTz v lib/portal/data.ts. */
 function todayBratislava(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bratislava" }).format(new Date());

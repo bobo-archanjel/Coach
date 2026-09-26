@@ -120,17 +120,58 @@ test.describe("detail dokončeného tréningu — tréner (?preview=done)", () =
 });
 
 test.describe("portál — dokončený tréning na karte Dnes (?preview=done)", () => {
-  test("zapísané hodnoty + štítok Dokončený, bez Upraviť hodnoty", async ({ page }) => {
+  test("zapísané hodnoty + Upraviť hodnoty v 24 h okne (predvyplnený formulár, Zrušiť)", async ({ page }) => {
     const errs = collectErrors(page);
     await page.goto("/portal?preview=done");
 
-    await expect(page.getByText(/Dokončený – .*Zapísané hodnoty sa už nedajú meniť/)).toBeVisible();
     await expect(page.getByText("6 op. × 92 kg").first()).toBeVisible();
     await expect(page.getByText(/Posledná séria ťažká na úchop/)).toBeVisible();
     await expect(page.getByText(/RPE 8/)).toBeVisible();
-    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toHaveCount(0);
+    await expect(page.getByText(/Zabudnuté hodnoty môžeš opraviť do (dnes|zajtra) \d/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Začať tréning" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /Upraviť hodnoty/ }).click();
+    await expect(page.getByLabel("Drep s veľkou činkou, séria 1, opakovania")).toHaveValue("6");
+    await expect(page.getByLabel("Drep s veľkou činkou, séria 1, váha v kg")).toHaveValue("92");
+    await expect(page.getByLabel("Poznámka k cviku Rumunský mŕtvy ťah")).toHaveValue("Posledná séria ťažká na úchop");
+    await expect(page.getByLabel("Náročnosť tréningu (RPE)")).toHaveValue("8");
+    await page.getByRole("button", { name: "Zrušiť" }).click();
+    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
 
     expect(real(errs), real(errs).join("\n")).toEqual([]);
+  });
+});
+
+test.describe("portál — plán hotový (?preview=complete)", () => {
+  test("všetky dni odcvičené: žiadne Začať tréning", async ({ page }) => {
+    await page.goto("/portal?preview=complete");
+    await expect(page.getByRole("heading", { name: "Plán máš hotový" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Začať tréning" })).toHaveCount(0);
+  });
+});
+
+test.describe("sekcia Tréning — odcvičený deň (?preview=ok)", () => {
+  test("neodcvičený: Začať · odcvičený v okne: Upraviť hodnoty · po okne: uzavreté", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    await page.getByRole("button", { name: /Silový plán/ }).click().catch(() => {});
+    const plan = page.getByRole("button", { name: /Silový plán/ });
+    if ((await plan.getAttribute("aria-expanded")) !== "true") await plan.click();
+
+    await page.getByRole("button", { name: /Deň A — Tlak/ }).click();
+    await expect(page.getByRole("button", { name: "Začať tréning" })).toHaveCount(0);
+    await page.getByRole("button", { name: /Upraviť hodnoty/ }).click();
+    await expect(page.getByLabel("Bench press, séria 1, váha v kg")).toHaveValue("80");
+    await expect(page.getByRole("button", { name: "Uložiť zmeny" })).toBeVisible();
+    await page.getByRole("button", { name: "Zrušiť" }).click();
+
+    await page.getByRole("button", { name: "Všetky dni" }).click();
+    await page.getByRole("button", { name: /Deň B — Ťah/ }).click();
+    await expect(page.getByRole("button", { name: /Upraviť hodnoty|Začať tréning/ })).toHaveCount(0);
+    await expect(page.getByText(/teraz sú uzavreté/)).toBeVisible();
+
+    await page.getByRole("button", { name: /Moje kardio/ }).click();
+    await page.getByRole("button", { name: /Rozcvička/ }).click();
+    await expect(page.getByRole("button", { name: "Začať tréning" })).toBeVisible();
   });
 });
 
@@ -181,7 +222,7 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await page.getByLabel("Poznámka k tréningu").fill("OK");
 
     await page.getByRole("button", { name: "Ukončiť tréning" }).click();
-    await expect(page.getByText(/po ukončení sa už hodnoty nedajú meniť/)).toBeVisible();
+    await expect(page.getByText(/zabudnuté hodnoty môžeš opraviť ešte 24 hodín/)).toBeVisible();
   });
 
   test("K8: desatinná čiarka ostane „62,5“, placeholder ukazuje plánovanú váhu", async ({ page }) => {
@@ -200,7 +241,7 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await page.getByRole("button", { name: "Ukončiť tréning" }).click();
 
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
-    const invalidMsg = page.getByText("Oprav označené hodnoty — po ukončení sa už nedajú zmeniť.");
+    const invalidMsg = page.getByText("Oprav označené hodnoty.");
     await expect(invalidMsg).toBeVisible();
     await expect(reps(page, "Drep s veľkou činkou", 1)).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByText("Opakovania zadaj ako celé číslo.")).toBeVisible();
@@ -322,8 +363,8 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     trainer = await apiSignIn(env.trainerEmail!, env.trainerPassword!);
     client = await apiSignIn(env.clientEmail!, env.clientPassword!);
 
-    const probe = await trainer.api.from("workout_logs").select("completed_at").limit(1);
-    test.skip(probe.error?.code === "42703", "Migrácia 0048 ešte nie je spustená v Supabase.");
+    const probe = await trainer.api.from("workout_logs").select("completed_at, edited_at").limit(1);
+    test.skip(probe.error?.code === "42703", "Migrácie 0048/0049 ešte nie sú spustené v Supabase.");
 
     const { data: clientRow } = await client.api
       .from("clients")
@@ -378,16 +419,22 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     await page.getByLabel("Poznámka k tréningu").fill("E2E tréning");
     await page.getByRole("button", { name: "Ukončiť tréning" }).click();
     await page.getByRole("button", { name: "Áno, ukončiť" }).click();
-    await expect(page.getByText(/Zapísané hodnoty sa už nedajú meniť/)).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible({ timeout: 20_000 });
+
+    // --- 2b. klient v 24 h okne opraví zabudnutú hodnotu (0049)
+    await page.getByRole("button", { name: /Upraviť hodnoty/ }).click();
+    await page.getByLabel("Drep E2E, séria 2, opakovania").fill("8");
+    await page.getByRole("button", { name: "Uložiť zmeny" }).click();
+    await expect(page.getByText("8 op. × 62,5 kg")).toBeVisible({ timeout: 20_000 });
 
     const { data: log } = await client.api
       .from("workout_logs")
-      .select("id, status, completed_at, entries, plan_snapshot")
+      .select("id, status, completed_at, edited_at, entries, plan_snapshot")
       .eq("workout_day_id", day!.id)
       .single();
     expect(log?.status).toBe("completed");
     expect(log?.completed_at).toBeTruthy();
+    expect(log?.edited_at).toBeTruthy();
     const logId = log!.id as string;
 
     // --- 3. tréner zmení plán dňa (smie — ide o budúce tréningy) a pozrie detail
@@ -410,17 +457,19 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     const rows = ex.getByTestId("set-row");
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText("8 op. × 60 kg");
-    await expect(rows.nth(1)).toContainText("7 op. × 62.5 kg");
+    await expect(rows.nth(1)).toContainText("8 op. × 62.5 kg");
+    await expect(trainerPage.getByTestId("workout-edited")).toContainText("Klient hodnoty dodatočne upravil");
     await expect(ex.getByText("„Posledná séria ťažká“")).toBeVisible();
     await expect(trainerPage.getByText("„E2E tréning“")).toBeVisible();
     await expect(trainerPage.getByText("8/10")).toBeVisible();
     await expect(trainerPage.locator("main input, main textarea, main select")).toHaveCount(0);
     await expect(trainerPage.getByRole("button", { name: /Upraviť|Uložiť|Zmazať|Odobrať/i })).toHaveCount(0);
 
-    // --- 4. priame úpravy cez Supabase (obídenie UI) nič nezmenia
+    // --- 4. priame úpravy cez Supabase (obídenie UI): klient nezmení plán/stav ani nezmaže,
+    //        tréner nezmení ani nezmaže nič (hodnoty smie opraviť len klient v 24 h okne)
     const before = JSON.stringify(log!.entries);
     const attempts = [
-      await client.api.from("workout_logs").update({ entries: [] }).eq("id", logId).select("id"),
+      await client.api.from("workout_logs").update({ plan_snapshot: {}, status: "in_progress" }).eq("id", logId).select("id"),
       await client.api.from("workout_logs").delete().eq("id", logId).select("id"),
       await trainer.api.from("workout_logs").update({ note: "hack" }).eq("id", logId).select("id"),
       await trainer.api.from("workout_logs").delete().eq("id", logId).select("id"),
@@ -431,10 +480,11 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     }
     const { data: after } = await client.api
       .from("workout_logs")
-      .select("entries, note, status")
+      .select("entries, note, status, plan_snapshot")
       .eq("id", logId)
       .single();
     expect(JSON.stringify(after!.entries)).toBe(before);
+    expect((after!.plan_snapshot as { day_name?: string }).day_name).toBe(dayName);
     expect(after!.note).toBe("E2E tréning");
     expect(after!.status).toBe("completed");
 

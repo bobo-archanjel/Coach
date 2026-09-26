@@ -37,6 +37,8 @@ interface CompletedWorkoutView {
   clientName: string;
   status: string;
   completedAt: string | null;
+  /** klient hodnoty dodatočne opravil (24 h okno, 0049) */
+  editedAt: string | null;
   performedOn: string;
   rpe: number | null;
   note: string | null;
@@ -70,6 +72,7 @@ function previewView(clientId: string, logId: string): CompletedWorkoutView {
     clientName: "Ján Novák",
     status: "completed",
     completedAt: "2026-09-24T17:42:00Z",
+    editedAt: "2026-09-24T20:05:00Z",
     performedOn: "2026-09-24",
     rpe: 8,
     note: "Dobrý tréning, len chrbát trochu tlačil.",
@@ -125,7 +128,7 @@ export default async function CompletedWorkoutPage({
     const [{ data: log }, { data: client }] = await Promise.all([
       supabase
         .from("workout_logs")
-        .select("id, client_id, status, completed_at, performed_on, rpe, note, entries, plan_snapshot")
+        .select("id, client_id, status, completed_at, edited_at, performed_on, rpe, note, entries, plan_snapshot")
         .eq("id", logId)
         .eq("client_id", clientId)
         .maybeSingle(),
@@ -140,6 +143,7 @@ export default async function CompletedWorkoutPage({
       clientName: client.full_name,
       status: log.status,
       completedAt: log.completed_at,
+      editedAt: log.edited_at,
       performedOn: log.performed_on,
       rpe: log.rpe,
       note: log.note,
@@ -178,10 +182,20 @@ export default async function CompletedWorkoutPage({
         </span>
       </div>
 
+      {view.editedAt && (
+        <p className={styles.editedNote} data-testid="workout-edited">
+          Klient hodnoty dodatočne upravil – {formatCompletedDate(view.editedAt)}{" "}
+          {new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "numeric", minute: "2-digit" }).format(
+            new Date(view.editedAt),
+          )}
+          .
+        </p>
+      )}
+
       {completed && (
         <p className={styles.readonlyNote}>
-          Toto je záznam toho, čo klient odcvičil — nedá sa upraviť ani zmazať. Ak chceš tréning zopakovať
-          alebo zmeniť, vytvor si z neho novú kópiu.
+          Toto je záznam toho, čo klient odcvičil — ty ho upraviť ani zmazať nemôžeš (klient môže opraviť
+          zabudnuté hodnoty 24 hodín po ukončení). Ak chceš tréning zopakovať alebo zmeniť, vytvor si z neho novú kópiu.
         </p>
       )}
 
