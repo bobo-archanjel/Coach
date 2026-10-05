@@ -83,7 +83,7 @@ export default async function KalendarPage() {
         <p>Voľné termíny s klientmi — konzultácie, tréningy alebo čokoľvek mimo bežného tréningového plánu.</p>
       </div>
 
-      <div className={styles.card} style={{ marginBottom: 20 }}>
+      <div className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginBottom: 20 }}>
         <h3>Nový termín</h3>
         <AddAppointmentForm clients={clients ?? []} />
       </div>
@@ -91,7 +91,7 @@ export default async function KalendarPage() {
       {groups.length > 0 ? (
         <div className={styles.cardStack}>
           {groups.map((group) => (
-            <div key={group.key} className={styles.card}>
+            <div key={group.key} className={`${styles.card} ${styles.cardFlatMobile}`}>
               <h3>{group.label}</h3>
               <div className={styles.appointmentList}>
                 {group.items.map((a) => (

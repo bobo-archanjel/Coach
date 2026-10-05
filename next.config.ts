@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
   // (súbežný zápis do zdieľaného .next spôsoboval ENOENT/404 pády). Bez env
   // premennej sa správanie vôbec nemení (default ".next").
   ...(process.env.QA_DIST_DIR ? { distDir: process.env.QA_DIST_DIR } : {}),
+  // Testovanie na mobile cez LAN IP (`npm run dev:mobile`) — bez toho Next blokuje
+  // dev požiadavky (HMR, /_next) z iného originu než localhost. Len dev, produkcia ignoruje.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
   // Default ("loose") CSS chunking duplikoval celý portal.module.css (64 kB)
   // do KAŽDÉHO page-level CSS chunku popri layout.css, ktorý ho už obsahuje —
   // /portal/trening tak sťahoval 128 kB CSS namiesto 64 kB (viď commit). "strict"

@@ -62,7 +62,6 @@ async function validateAppointment(
   v: AppointmentFormValues,
 ): Promise<{ error: string } | { row: ValidatedAppointment }> {
   if (!v.client_id) return { error: "Vyber klienta." };
-  if (!v.title) return { error: "Zadaj názov termínu." };
   if (v.title.length > 200) return { error: "Názov je príliš dlhý (max 200 znakov)." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date)) return { error: "Zadaj dátum." };
   if (!/^\d{2}:\d{2}$/.test(v.time)) return { error: "Zadaj čas." };
@@ -80,7 +79,8 @@ async function validateAppointment(
   const endsAt = /^\d{2}:\d{2}$/.test(v.end_time) ? bratislavaToUtcIso(v.date, v.end_time) : null;
   if (endsAt && endsAt <= startsAt) return { error: "Koniec termínu musí byť po jeho začiatku." };
 
-  return { row: { client_id: v.client_id, title: v.title, starts_at: startsAt, ends_at: endsAt, note: v.note || null } };
+  // Názov je voliteľný (povinné sú klient, dátum a čas) — stĺpec je NOT NULL, preto fallback.
+  return { row: { client_id: v.client_id, title: v.title || "Termín", starts_at: startsAt, ends_at: endsAt, note: v.note || null } };
 }
 
 export async function createAppointmentAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {

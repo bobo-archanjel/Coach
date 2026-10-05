@@ -54,11 +54,11 @@ export function AppointmentRow({
         <div style={{ display: "flex", gap: 6 }}>
           <button
             type="button"
-            className="btn btn-ghost btn-sm"
+            className="btn btn-primary btn-sm"
             disabled={pending}
             onClick={() => startTransition(() => deleteAppointmentAction(id))}
           >
-            {pending ? "Mažem…" : "Naozaj"}
+            {pending ? "Mažem…" : "Zmazať termín"}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
             Zrušiť

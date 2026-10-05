@@ -43,6 +43,8 @@ test("poradie: správy, potom meškanie, potom digest", () => {
   const items = buildAttentionItems({ unread: 2, late: late(1), digest: digest(3) });
   expect(items.map((i) => i.id)).toEqual(["messages", "late", "digest"]);
   expect(items[0].href).toBe("/dashboard/spravy");
+  // nadpis meškajúcich nie je odkaz — klikateľní sú len konkrétni klienti pod ním
+  expect(items[1].href).toBeNull();
   expect(items[2].href).toBe("/dashboard/analytika");
 });
 

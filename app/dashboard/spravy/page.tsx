@@ -139,7 +139,7 @@ export default async function SpravyPage({
           clients={(clients ?? []).map((c) => ({ id: c.id, full_name: c.full_name }))}
           inboxContent={
             <div className={styles.inboxGrid} data-has-selection={selectedClientId ? "true" : "false"}>
-              <div className={`${styles.card} ${styles.inboxList}`}>
+              <div className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxList}`}>
                 <div className={styles.roster}>
                   {threads.map((t) => {
                     const active = t.id === selectedClientId;
@@ -167,7 +167,7 @@ export default async function SpravyPage({
                 </div>
               </div>
 
-              <div className={`${styles.card} ${styles.inboxThread}`}>
+              <div className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxThread}`}>
                 {selectedClientId && selectedName ? (
                   <>
                     <Link href="/dashboard/spravy" className={`${styles.backLink} ${styles.inboxBackLink}`}>

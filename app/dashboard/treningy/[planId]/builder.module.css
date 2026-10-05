@@ -399,6 +399,18 @@
   min-height: 160px;
 }
 
+/* Na mobile je rám panelu zbytočná druhá vrstva okolo kariet cvikov (tie majú
+   vlastný border) — zbytočne zužuje už aj tak úzky obsah. */
+@media (max-width: 760px) {
+  .dayPanel {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    min-height: 0;
+  }
+}
+
 .exerciseRow {
   display: flex;
   align-items: center;

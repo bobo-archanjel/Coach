@@ -60,6 +60,12 @@
     padding: 40px 32px 48px;
   }
 }
+/* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
+@media (max-width: 879px) {
+  :global(html[data-keyboard-open]) .main {
+    padding-bottom: 12px;
+  }
+}
 
 /* ---------- chat s trénerom ---------- */
 .chatPage {
@@ -75,6 +81,12 @@
   width: 100%;
   height: calc(100dvh - 118px - env(safe-area-inset-bottom));
   min-height: 0;
+}
+/* Bez lišty (otvorená klávesnica) — 118px rátalo s jej 84px odstupom v .main. */
+@media (max-width: 879px) {
+  :global(html[data-keyboard-open]) .chatPage {
+    height: calc(100dvh - 46px);
+  }
 }
 @media (min-width: 880px) {
   .chatPage {
@@ -1164,6 +1176,10 @@
   border-top: 1px solid var(--steel-line);
   padding-bottom: env(safe-area-inset-bottom);
 }
+/* Otvorená klávesnica (KeyboardState) — lišta by visela nad ňou a ubrala miesto na písanie. */
+:global(html[data-keyboard-open]) .nav {
+  display: none;
+}
 @media (min-width: 880px) {
   .nav {
     position: static;
@@ -2068,9 +2084,10 @@
   outline: 2px solid var(--plate-yellow);
   outline-offset: 2px;
 }
+/* Rám nesie obal (input vo vnútri je bez borderu) — rovnaký jemne červený focus
+   ako globálne textové polia (globals.css). */
 .metricField:focus-within {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
+  border-color: color-mix(in srgb, var(--iron-red) 60%, transparent);
 }
 .metricField .metricInput:focus-visible {
   outline: none;

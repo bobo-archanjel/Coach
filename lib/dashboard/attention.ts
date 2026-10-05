@@ -68,7 +68,8 @@ export interface AttentionItem {
   id: "messages" | "late" | "digest";
   tone: "alert" | "watch";
   title: string;
-  href: string;
+  /** null = nadpis nie je odkaz (klikateľné sú len podpoložky, napr. konkrétni meškajúci klienti) */
+  href: string | null;
   /** podpoložky (napr. konkrétni meškajúci klienti), max MAX_LINKS */
   links: AttentionLink[];
   /** "Označiť ako prečítané" (len správy) — nastaví skutočné read_at */
@@ -128,7 +129,7 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
       tone: "alert",
       // slovenská zhoda: 1 klient mešká / 2–4 klienti meškajú / 5+ klientov mešká
       title: `${n} ${plural(n, "klient mešká", "klienti meškajú", "klientov mešká")} s tréningom`,
-      href: "/dashboard",
+      href: null,
       links,
       markRead: false,
       dismiss: { keys: data.late.map((c) => c.key), days: DISMISS_LATE_DAYS },
