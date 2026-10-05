@@ -45,7 +45,7 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
       </div>
 
       <div className={styles.cardStack}>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.cardFlatMobile}`}>
           <h3>Tréningové šablóny</h3>
 
           {planTemplates && planTemplates.length > 0 && (
@@ -91,7 +91,7 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
           )}
         </div>
 
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.cardFlatMobile}`}>
           <h3>Jedálničkové šablóny</h3>
           {mealTemplates && mealTemplates.length > 0 ? (
             <div className={styles.templateRoster}>

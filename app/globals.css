@@ -89,6 +89,18 @@ a {
   border-radius: var(--radius-s);
 }
 
+/* Textové polia prehliadač považuje za :focus-visible aj po kliknutí myšou/prstom,
+   takže žltý tab-outline sa zobrazoval pri každom písaní. Pre polia na písanie ho
+   nahrádza jemne červený border (platí pre klik aj tab — kurzor v poli je
+   dostatočný indikátor). !important, aby to prebilo per-module :focus-visible
+   pravidlá s vyššou špecificitou; ostatné prvky (tlačidlá, odkazy) majú outline ďalej. */
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"]):focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: color-mix(in srgb, var(--iron-red) 60%, transparent) !important;
+}
+
 img,
 svg {
   display: block;

@@ -190,12 +190,18 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
             items.map((item) => (
               <div key={item.id} className={styles.bellItem}>
                 <div className={styles.bellItemHead}>
-                  <Link
-                    href={item.href}
-                    className={`${styles.bellItemMain} ${item.tone === "alert" ? styles.bellToneAlert : styles.bellToneWatch}`}
-                  >
-                    {item.title}
-                  </Link>
+                  {item.href ? (
+                    <Link
+                      href={item.href}
+                      className={`${styles.bellItemMain} ${item.tone === "alert" ? styles.bellToneAlert : styles.bellToneWatch}`}
+                    >
+                      {item.title}
+                    </Link>
+                  ) : (
+                    <span className={`${styles.bellItemMain} ${item.tone === "alert" ? styles.bellToneAlert : styles.bellToneWatch}`}>
+                      {item.title}
+                    </span>
+                  )}
                   {item.markRead && (
                     <button type="button" className={styles.bellAction} onClick={markRead}>
                       Označiť ako prečítané
@@ -216,7 +222,14 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                   <ul className={styles.bellLinks}>
                     {item.links.map((l) => (
                       <li key={l.href + l.label}>
-                        <Link href={l.href}>{l.label}</Link>
+                        <Link
+                          href={l.href}
+                          // Otvorením klienta tréner upozornenie "vybavil" — skryje sa rovnako
+                          // ako cez ×, t. j. na pár dní a vráti sa, ak klient stále mešká.
+                          onClick={l.dismissKey ? () => dismiss([l.dismissKey!], item.dismiss?.days ?? null) : undefined}
+                        >
+                          {l.label}
+                        </Link>
                         {l.meta && <span>{l.meta}</span>}
                         {l.dismissKey && (
                           <button

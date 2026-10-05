@@ -179,7 +179,7 @@
 .bellToneWatch::before {
   background: var(--steel);
 }
-.bellItemMain:hover {
+a.bellItemMain:hover {
   text-decoration: underline;
 }
 /* Riadok položky: nadpis vľavo, akcia ("Skryť", "Označiť ako prečítané") vpravo. */
@@ -299,6 +299,10 @@
     padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
   }
 }
+/* Otvorená klávesnica (KeyboardState) — lišta by visela nad ňou a ubrala miesto na písanie. */
+:global(html[data-keyboard-open]) .navList {
+  display: none;
+}
 .navLink {
   display: flex;
   align-items: center;
@@ -392,6 +396,12 @@
 @media (max-width: 880px) {
   .content {
     padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+/* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
+@media (max-width: 880px) {
+  :global(html[data-keyboard-open]) .content {
+    padding-bottom: 12px;
   }
 }
 
@@ -549,6 +559,11 @@ select.addClientInputSm {
   flex: 1 1 auto;
   width: 100%;
 }
+/* Chýbajúce povinné pole po pokuse o odoslanie (AddAppointmentForm). */
+.fieldMissing {
+  border-color: var(--error);
+  background-color: color-mix(in srgb, var(--error) 8%, var(--ink-2));
+}
 .timeFieldLabel {
   font-size: 10px;
   font-weight: 700;
@@ -580,6 +595,25 @@ select.addClientInputSm {
   }
   .addClientFieldsRow .timeField .addClientInputSm {
     padding-inline: 10px;
+  }
+  /* Dátum + Od + Do v jednom riadku sa na telefóne prekrývali — iOS kreslí date/time
+     input natívne s vlastnou minimálnou šírkou a bez appearance:none ignoruje
+     width:100% (rovnaký problém ako .metricInput v portáli). Dátum ide na vlastný
+     riadok, Od/Do pod ním vedľa seba. */
+  .addClientFieldsRow .timeField:has(input[type="date"]) {
+    flex-basis: 100%;
+  }
+  .timeField input[type="date"],
+  .timeField input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    min-height: 46px;
+    text-align: left;
+    color-scheme: dark;
+  }
+  .timeField input::-webkit-date-and-time-value {
+    text-align: left;
   }
 }
 .addClientInput::placeholder,
@@ -1244,6 +1278,17 @@ select.addClientInputSm {
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-m);
   padding: 20px 22px;
+}
+/* Karta, ktorej obsah sú samé ďalšie karty (šablóny, zoznam konverzácií) alebo chat — na mobile
+   je jej rám zbytočná druhá vrstva, ktorá zužuje obsah (rovnako ako .dayPanel v
+   editore tréningu). */
+@media (max-width: 760px) {
+  .cardFlatMobile {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
 }
 .card h3 {
   font-size: 1.05rem;
