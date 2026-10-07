@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "../components/AppLink";
 import { getPortalData } from "@/lib/portal/data";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { DoneWorkoutView } from "./DoneWorkoutView";

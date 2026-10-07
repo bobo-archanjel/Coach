@@ -5,18 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoWordmark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
+import { NavLinkPendingSignal } from "../components/NavigationProgress";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "./icons";
 import styles from "./portal.module.css";
 
 const NAV_ITEMS = [
-  { href: "/portal", label: "Dnes", Icon: TodayIcon, match: (p: string) => p === "/portal" },
-  { href: "/portal/trening", label: "Tréning", Icon: TrainingIcon, match: (p: string) => p.startsWith("/portal/trening") },
-  { href: "/portal/strava", label: "Strava", Icon: FoodIcon, match: (p: string) => p.startsWith("/portal/strava") },
-  { href: "/portal/dennik", label: "Denník", Icon: DiaryIcon, match: (p: string) => p.startsWith("/portal/dennik") },
-  { href: "/portal/chat", label: "Chat", Icon: ChatIcon, match: (p: string) => p.startsWith("/portal/chat") },
+  { href: "/portal", label: "Dnes", Icon: TodayIcon, tour: "nav-today", match: (p: string) => p === "/portal" },
+  { href: "/portal/trening", label: "Tréning", Icon: TrainingIcon, tour: "nav-trening", match: (p: string) => p.startsWith("/portal/trening") },
+  { href: "/portal/strava", label: "Strava", Icon: FoodIcon, tour: "nav-strava", match: (p: string) => p.startsWith("/portal/strava") },
+  { href: "/portal/dennik", label: "Denník", Icon: DiaryIcon, tour: "nav-dennik", match: (p: string) => p.startsWith("/portal/dennik") },
+  { href: "/portal/chat", label: "Chat", Icon: ChatIcon, tour: "nav-chat", match: (p: string) => p.startsWith("/portal/chat") },
   // AI Kouč sa pridáva podmienene (len klienti s prideleným trénerom) — viď aiKoucVisible nižšie.
-  { href: "/portal/ai-kouc", label: "AI Kouč", Icon: AiIcon, match: (p: string) => p.startsWith("/portal/ai-kouc") },
-  { href: "/portal/profil", label: "Profil", Icon: ProfileIcon, match: (p: string) => p.startsWith("/portal/profil") },
+  { href: "/portal/ai-kouc", label: "AI Kouč", Icon: AiIcon, tour: null, match: (p: string) => p.startsWith("/portal/ai-kouc") },
+  { href: "/portal/profil", label: "Profil", Icon: ProfileIcon, tour: "nav-profil", match: (p: string) => p.startsWith("/portal/profil") },
 ];
 
 /**
@@ -67,13 +68,14 @@ export function PortalNav({
         aria-label="Klientsky portál"
         aria-hidden={keyboardOpen || undefined}
       >
-        {items.map(({ href, label, Icon, match }) => {
+        {items.map(({ href, label, Icon, tour, match }) => {
           const active = match(pathname);
           const showDot = href === "/portal/chat" && chatUnread && !active;
           return (
             <Link
               key={href}
               href={href}
+              data-tour={tour ?? undefined}
               className={`${styles.navItem} ${active ? styles.navItemActive : ""}`}
               aria-current={active ? "page" : undefined}
             >
@@ -83,6 +85,7 @@ export function PortalNav({
               </span>
               {label}
               {showDot && <span className={styles.srOnly}> (nová správa)</span>}
+              <NavLinkPendingSignal id={href} />
             </Link>
           );
         })}

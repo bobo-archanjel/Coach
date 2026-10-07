@@ -3075,42 +3075,182 @@
   font-weight: 700;
 }
 
-/* ---------- loading skeleton (Next.js loading.tsx pre /portal/*) ---------- */
+/* ---------- loading skeleton (Next.js loading.tsx pre /portal/* + NavSkeletonOverlay) ----------
+   Tvar podľa skutočnej karty Dnes (prstenec postupu + text, CTA tlačidlo, týždenný
+   pás riadkov), nie generické rovnaké panely pod sebou. */
+/* Bez `gap` na wrapperi — každý blok nesie VLASTNÝ margin-bottom = .main gap
+   (26px, skutočný odstup medzi sekciami karty Dnes), nech po načítaní
+   skutočného obsahu nie je žiadny skok v layoute. */
 .skeletonWrap {
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
+/* Zdieľaný shimmer základ — KAŽDÝ tvarový prvok nižšie musí niesť
+   `styles.skeletonBlock` spolu so svojou veľkostnou triedou, inak nemá pozadie
+   vôbec (bolo to tak predtým). Shimmer zámerne NEUTRÁLNY (ink-2/paper 7%), nie
+   coral — coral nesie podľa DESIGN.md výhradne postup/primárnu akciu. */
 .skeletonBlock {
+  position: relative;
+  overflow: hidden;
   background: var(--ink-2);
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-m);
-  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+.skeletonBlock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, var(--paper) 7%, transparent) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.7s ease-in-out infinite;
 }
 .skeletonHead {
   height: 64px;
   width: 70%;
-  border: none;
-  background: transparent;
+  margin-bottom: 26px; /* = .main gap */
 }
-.skeletonPanel {
-  height: 220px;
+
+/* "dnešná karta" — prstenec vľavo + text vpravo + CTA pruh dole, tvarom ako
+   panel dňa. padding = .panel, vnútorný gap = .prep, CTA odstup = .startBtn. */
+.skeletonTodayBlock {
+  padding: 16px 17px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 26px;
 }
-.skeletonPanelSmall {
-  height: 96px;
+.skeletonTodayTop {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
-@keyframes skeletonPulse {
-  0%,
-  100% {
-    opacity: 0.55;
+.skeletonRing {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.skeletonTodayText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeletonCta {
+  height: 55px; /* = .startBtn: padding-block 16px×2 + 19px/800 text */
+  margin-top: 18px; /* = .startBtn margin-top */
+  border-radius: 999px;
+}
+
+/* "zoznam/pás" — riadky ako týždenná história alebo zoznam cvikov.
+   padding = .panel (rovnaká rodina panelov naprieč portálom). */
+.skeletonListBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonListRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 17px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+}
+.skeletonListText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeletonLine {
+  height: 12px;
+  width: 55%;
+}
+.skeletonLineShort {
+  height: 10px;
+  width: 32%;
+}
+.skeletonChip {
+  height: 22px;
+  width: 64px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* Ďalšie tvary (feature/navod pokračovanie) — každá záložka portálu má vlastný
+ * skeleton TVAROM podľa toho, čo sa tam naozaj načíta (viď RouteSkeletons.tsx),
+ * nie jeden univerzálny naprieč celým portálom. */
+.skeletonPanelBlock {
+  padding: 16px 17px; /* = .panel */
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonPanelLabel {
+  height: 10px;
+  width: 90px;
+  margin-bottom: 2px;
+}
+.skeletonBackLink {
+  height: 13px;
+  width: 88px;
+  margin-bottom: 16px;
+}
+/* Bublinová história ako ChatThread (chat.module.css) — max-width 82% zhodné
+ * so `.row`, striedavo vľavo/vpravo ako reálna konverzácia. */
+.skeletonBubbleRow {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+  margin-bottom: 12px;
+}
+.skeletonBubbleRowMine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.skeletonBubbleRowTheirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.skeletonBubble {
+  height: 34px;
+  border-radius: 14px;
+}
+.skeletonComposer {
+  height: 44px;
+  border-radius: 999px;
+  margin-top: 8px;
+}
+/* Veľké číslo (kcal súčet v Denníku) — tvarom ako .diaryKcal, nie prstenec. */
+.skeletonBigNumber {
+  height: 38px;
+  width: 130px;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 150% 0;
   }
-  50% {
-    opacity: 0.9;
+  100% {
+    background-position: -50% 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skeletonBlock {
+  .skeletonBlock::after {
     animation: none;
-    opacity: 0.7;
+    opacity: 0;
   }
 }

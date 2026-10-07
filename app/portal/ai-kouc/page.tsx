@@ -117,7 +117,7 @@ export default async function AiKoucPage({
         sendAction={sendAiKoucMessageAction}
         emptyTitle="Opýtaj sa AI Kouča"
         emptyText="Napríklad: čo mám zjesť, aby som splnil dnešný cieľ? Alebo: aký cvik mi navrhneš namiesto tohto?"
-        placeholder="Napíš AI Kočovi…"
+        placeholder="Napíš AI Koučovi…"
         fill
         // Súkromná konverzácia klient↔AI (0017) — bežná odpoveď príde synchrónne v
         // tej istej server action. Jediná výnimka je proaktívny AI check-in (0033,

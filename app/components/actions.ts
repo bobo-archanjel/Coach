@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { clearTourSeenCookie } from "@/lib/onboarding/actions";
 
 /**
  * Odhlásenie bežalo doteraz cez browser Supabase klient (`lib/supabase/client.ts`)
@@ -15,5 +16,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  // Cookie "tour videný" je viazaná len na prehliadač, nie na účet — bez tohto
+  // by ďalší účet prihlásený v tom istom prehliadači zdedil cudzí stav a jeho
+  // automatický onboarding tour by sa nikdy nespustil (viď lib/onboarding/actions.ts).
+  await clearTourSeenCookie();
   redirect("/prihlasenie");
 }

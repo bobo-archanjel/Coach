@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "../../components/AppLink";
 import { saveWorkoutTemplateAction, saveMealTemplateAction, type ActionState } from "./actions";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 import styles from "../dashboard.module.css";
