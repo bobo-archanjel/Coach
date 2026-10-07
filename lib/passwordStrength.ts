@@ -37,6 +37,27 @@ export interface PasswordCheck {
   issues: string[];
 }
 
+export interface PasswordCriterion {
+  key: string;
+  label: string;
+  met: boolean;
+}
+
+/**
+ * Rovnaké tri blokujúce podmienky ako `checkPassword` issues, ale ako
+ * jednotlivé zaškrtávacie položky pre živý checklist pri písaní hesla
+ * (feature/navod — "ukáž, čo už splnil"). Zámerne bez "bežné heslo" a
+ * "neobsahuje meno/e-mail" — tie sa vyhodnocujú binárne/pri submite,
+ * nie priebežne pri každom stlačení klávesy.
+ */
+export function passwordCriteria(password: string): PasswordCriterion[] {
+  return [
+    { key: "length", label: "Aspoň 8 znakov", met: password.length >= 8 },
+    { key: "letter", label: "Aspoň jedno písmeno", met: /[a-zA-Z]/.test(password) },
+    { key: "digit", label: "Aspoň jedno číslo", met: /[0-9]/.test(password) },
+  ];
+}
+
 const SCORE_LABELS = ["veľmi slabé", "slabé", "priemerné", "silné", "veľmi silné"];
 
 /**

@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { ThinkingOrb } from "thinking-orbs";
+import { AppLink as Link } from "../../components/AppLink";
+import { useLoadingMessage } from "../../components/useLoadingMessage";
 import { generatePlanWithAiAction, type ActionState } from "./actions";
 import {
   type PlanFocus,
@@ -15,6 +17,16 @@ import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
+/** Psychológia spinnerov (feature/navod) — rotujúci text namiesto statického
+ * "Generujem…", zobrazí sa až po ~500ms (useLoadingMessage), takže rýchla
+ * odpoveď nikdy nestihne mihnúť loading chrome. */
+const AI_GENERATING_MESSAGES = [
+  "Premýšľam nad plánom…",
+  "Vyberám cviky z knižnice…",
+  "Skladám dni dokopy…",
+  "Ešte chvíľu, dolaďujem to…",
+];
+
 type ClientOption = { id: string; full_name: string; sex: "muz" | "zena" | null };
 
 /** Predvyplnené celoplánové zameranie podľa pohlavia — len návrh, tréner ho vždy prepíše. */
@@ -26,6 +38,7 @@ function defaultFocusForSex(sex: "muz" | "zena" | null): WholePlanFocus {
 
 export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
   const [state, formAction, pending] = useActionState(generatePlanWithAiAction, initialState);
+  const loadingMessage = useLoadingMessage(pending, AI_GENERATING_MESSAGES);
   const [focus, setFocus] = useState<PlanFocus>("vyvazene");
   // Kým tréner sám nezmení zameranie, meníme ho podľa vybraného klienta.
   const [focusTouched, setFocusTouched] = useState(false);
@@ -133,6 +146,14 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
           ? `Appka vygeneruje presne 1 tréningový deň zameraný na „${DAY_CATEGORY_LABEL_SK[focus as (typeof DAY_CATEGORIES)[number]]}" — cviky výhradne z tejto partie, počet dní v týždni sa neberie do úvahy. Plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať.`
           : "Appka vygeneruje plán na zadaný počet dní, AI vyberie konkrétne cviky z knižnice s ohľadom na zvolené zameranie — plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať. Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná."}
       </p>
+      {pending && (
+        <div className={styles.aiPlanResult}>
+          <div className={styles.aiGeneratingRow}>
+            <ThinkingOrb state="solving" size={64} />
+            <p className={styles.aiGeneratingText}>{loadingMessage ?? "Generujem…"}</p>
+          </div>
+        </div>
+      )}
       {state.error && <p className={styles.addClientError}>{state.error}</p>}
       {state.planId && (
         <div className={styles.aiPlanResult}>
