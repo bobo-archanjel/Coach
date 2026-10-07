@@ -1,10 +1,12 @@
-import Link from "next/link";
+import { AppLink as Link } from "../../../components/AppLink";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { PlanBuilder } from "./PlanBuilder";
 import { PublishControl } from "./PublishControl";
 import { SaveTemplateForm } from "../../sablony/SaveTemplateForm";
 import type { WorkoutExerciseEntry } from "../actions";
+import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -36,6 +38,25 @@ export default async function PlanDetailPage({
   const { preview } = await searchParams;
 
   if (preview === "builder" && process.env.NODE_ENV === "development") {
+    // Knižnica cvikov v náhľade bola predtým prázdna (`library: []`) — appka
+    // nemá anonymný prístup k `exercises` (migrácia 0036 zrušila anon grant),
+    // takže bez session by dopyt cez bežný klient vrátil nič. Globálne cviky
+    // (trainer_id null) sú ale verejné dáta bez PII, takže na tento JEDEN
+    // dev-only náhľad (marketingové screenshoty/nahrávky s reálnymi obrázkami
+    // cvikov) čítame service-role klientom — nikdy v mene konkrétneho
+    // používateľa, len globálnu knižnicu, a len za NODE_ENV=development.
+    let previewLibrary: ExerciseLibraryRow[] = [];
+    const admin = tryCreateAdminClient();
+    if (admin) {
+      const { data } = await admin
+        .from("exercises")
+        .select("id, name, name_sk, muscle_group, image_url")
+        .is("trainer_id", null)
+        .not("image_url", "eq", "{}")
+        .order("name")
+        .limit(40);
+      previewLibrary = (data ?? []) as ExerciseLibraryRow[];
+    }
     return (
       <>
         <Link href="/dashboard/treningy" className={styles.backLink}>
@@ -49,7 +70,7 @@ export default async function PlanDetailPage({
           </div>
           <PublishControl planId={planId} published={false} />
         </div>
-        <PlanBuilder planId={planId} days={PREVIEW_DAYS} library={[]} />
+        <PlanBuilder planId={planId} days={PREVIEW_DAYS} library={previewLibrary} />
       </>
     );
   }
