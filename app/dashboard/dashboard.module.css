@@ -9,6 +9,10 @@
 @media (max-width: 880px) {
   .shell {
     grid-template-columns: 1fr;
+    /* Top bar + obsah pod sebou. Bez explicitných riadkov grid pri krátkej stránke
+       rozdelil voľné miesto z min-height:100vh aj do riadku top baru — pod ním
+       vznikla ~100px prázdna medzera (detail klienta, hotový plán, otvorený chat). */
+    grid-template-rows: auto 1fr;
   }
 }
 
@@ -859,6 +863,12 @@ select.addClientInputSm {
   font-size: 13.5px;
   color: var(--paper);
 }
+/* 16px = iOS Safari pri focuse nezoomuje (pod 16px zväčší stránku a nechá ju tak). */
+@media (max-width: 760px) {
+  .rosterSearchInput {
+    font-size: 16px;
+  }
+}
 .rosterSearchInput::placeholder {
   color: var(--paper-faint);
 }
@@ -906,6 +916,16 @@ select.addClientInputSm {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+/* Na úzkej karte sa stav + dátum zalamovali podľa dĺžky mena/cieľa (raz vedľa seba,
+   raz pod sebou) a štítok "N dní bez tréningu" tak skákal raz doľava, raz doprava.
+   Na mobile preto vždy pod sebou, zarovnané vpravo. */
+@media (max-width: 760px) {
+  .clientMeta {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
 }
 .clientSince {
   color: var(--paper-faint);
@@ -1321,10 +1341,39 @@ select.addClientInputSm {
 @media (max-width: 860px) {
   .inboxGrid {
     grid-template-columns: 1fr;
+    /* vlákno počas potiahnutia späť (ThreadSwipeBack) ide doprava za okraj —
+       bez orezania by stránka na okamih dostala vodorovný scroll */
+    overflow-x: clip;
   }
   /* Vybraná konverzácia → na mobile ukáž len vlákno (nie zoznam pod ním);
      na desktope ostávajú oba stĺpce vždy viditeľné, toto pravidlo tam nedopadá. */
   .inboxGrid[data-has-selection="true"] .inboxList {
+    display: none;
+  }
+  /* Zoznam bez vybranej konverzácie — karta "Vyber konverzáciu" pod zoznamom na mobile
+     nemá zmysel (klient sa vyberá práve zo zoznamu nad ňou). Zároveň skryje odchádzajúce
+     vlákno hneď po revealInboxList, nie až po odpovedi servera. */
+  .inboxGrid[data-has-selection="false"] .inboxThread {
+    display: none;
+  }
+  /* Otvorený chat vyplní obrazovku medzi top barom a spodnou lištou — pole na písanie
+     je hneď nad lištou (správy sa scrollujú vo vnútri vlákna), nie v strede s prázdnom
+     pod ním. 56 top bar + 28 horný padding .content + 76 rezerva pre lištu (= presne
+     výška obrazovky, stránka sa nescrolluje). */
+  .inboxGrid[data-has-selection="true"] .inboxThread {
+    /* svh, nie dvh: Safari pri otvorenej klávesnici dvh zmenší a po jej zatvorení ho
+       prepočíta až po scrolle — chat ostal skrátený o výšku klávesnice s čiernou
+       medzerou pod ním. svh je stabilná výška obrazovky, na klávesnicu nereaguje. */
+    height: calc(100vh - 160px - env(safe-area-inset-bottom, 0px));
+    height: calc(100svh - 160px - env(safe-area-inset-bottom, 0px));
+    min-height: 320px;
+  }
+  /* Hlavička stránky a "Hromadná správa" pri otvorenom vlákne — na mobile len chat.
+     Riadené tým istým atribútom ako zoznam (nie triedou zo servera), takže pri návrate
+     (revealInboxList) sa zoznam, hlavička aj tlačidlo ukážu v JEDNOM snímku — predtým
+     hlavička doskočila až s odpoveďou servera a zoznam pod ňou poskočil (bliknutie).
+     Zdvojená trieda — .pageHead/.spravyModeToggle (display:flex) sú v súbore neskôr. */
+  .spravyPage:has(.inboxGrid[data-has-selection="true"]) .hideOnThreadMobile.hideOnThreadMobile {
     display: none;
   }
 }
@@ -1343,14 +1392,6 @@ select.addClientInputSm {
   display: flex;
   flex-direction: column;
   min-height: 480px;
-}
-.inboxBackLink {
-  display: none;
-}
-@media (max-width: 860px) {
-  .inboxBackLink {
-    display: inline-flex;
-  }
 }
 
 .infoRow {
@@ -1861,7 +1902,7 @@ select.addClientInputSm {
 /* ---------- /dashboard/spravy — hromadná správa (feature/planing-groupMessage) ---------- */
 .spravyModeToggle {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-bottom: 14px;
 }
 .bulkClientRow {

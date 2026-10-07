@@ -27,7 +27,11 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Nutné volanie (aj bez použitia výsledku) — obnoví token a nastaví cookies do response.
-  await supabase.auth.getUser();
+  // getClaims (nie getUser): projekt podpisuje JWT asymetricky (ES256), takže podpis sa
+  // overí lokálne voči cachovanému JWKS — bez round-tripu na Supabase Auth pri KAŽDOM
+  // kliknutí v appke. Expirovaný token obnoví rovnako ako getUser; pri symetrickom
+  // (HS256) kľúči auth-js sám spadne späť na getUser.
+  await supabase.auth.getClaims();
 
   return supabaseResponse;
 }

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LogoWordmark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
 import { NotificationBell } from "./NotificationBell";
+import { revealInboxList } from "./spravy/ThreadSwipeBack";
 import styles from "./dashboard.module.css";
 
 const ClientsIcon = () => (
@@ -112,6 +113,9 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
               href={href}
               className={`${styles.navLink} ${active ? styles.navLinkActive : ""}`}
               aria-current={active ? "page" : undefined}
+              // Správy s otvoreným vláknom → zoznam ukázať hneď, nie až po odpovedi servera
+              // (inak na sekundu ostal viditeľný starý chat).
+              onClick={href === "/dashboard/spravy" && pathname === href ? revealInboxList : undefined}
             >
               <Icon />
               {label}

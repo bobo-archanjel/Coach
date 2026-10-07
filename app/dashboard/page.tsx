@@ -207,12 +207,23 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   // RLS scopuje messages na klientov tohto trénera samo) — paralelne. `user_id`
   // navyše oproti pôvodnému výberu — potrebné pre onboarding checklist (krok 3,
   // "klient sa pripojil cez svoj kód").
-  const [{ data: clients }, { data: unreadRows }, healthDigest, dismissed] = await Promise.all([
+  const [{ clients, lateStatus }, { data: unreadRows }, healthDigest, dismissed] = await Promise.all([
     supabase
       .from("clients")
       .select("id, full_name, goal, created_at, paired_at, ended_at, deletion_requested_at, user_id")
       .eq("trainer_id", user.id)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      // Stav meškania potrebuje len ID klientov — zreťazený priamo na ich dopyt,
+      // nečaká na digest/skrytia/správy (predtým ďalší round-trip po celej dávke).
+      // Zdieľané s proaktívnym AI check-in cronom (lib/dashboard/lateStatus.ts,
+      // migrácia 0033) — rovnaká definícia "meškania" na oboch miestach.
+      .then(async ({ data: clients }) => ({
+        clients,
+        lateStatus: await getLateStatusByClient(
+          supabase,
+          (clients ?? []).map((c) => c.id),
+        ),
+      })),
     // neprečítané správy od klientov → odznak pri klientovi
     supabase.from("messages").select("client_id").eq("sender", "client").is("read_at", null),
     // Weekly digest (feature/OnBoarding, migrácia 0034) — porovnanie posledných
@@ -224,10 +235,6 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const unread = new Map<string, number>();
   for (const r of unreadRows ?? []) unread.set(r.client_id, (unread.get(r.client_id) ?? 0) + 1);
 
-  const clientIds = (clients ?? []).map((c) => c.id);
-  // Zdieľané s proaktívnym AI check-in cronom (lib/dashboard/lateStatus.ts,
-  // migrácia 0033) — rovnaká definícia "meškania" na oboch miestach.
-  const lateStatus = await getLateStatusByClient(supabase, clientIds);
   const statusByClient = new Map<string, ClientStatus>(
     [...lateStatus].map(([clientId, s]) => [
       clientId,

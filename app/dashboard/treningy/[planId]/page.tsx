@@ -8,6 +8,7 @@ import { PlanTitle } from "./PlanTitle";
 import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
 import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
+import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -83,7 +84,7 @@ export default async function PlanDetailPage({
 
   // `plan`, `days` aj `exercises` berú `planId`/nič z route parametra — nezávislé,
   // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
-  const [{ data: plan }, { data: days }, { data: exercises }, { data: completedLogs }] = await Promise.all([
+  const [{ data: plan }, { days, locked }, { data: exercises }, { data: completedLogs }] = await Promise.all([
     supabase
       .from("workout_plans")
       // Explicitná FK: odkedy má `clients` aj `active_plan_id → workout_plans`
@@ -93,7 +94,18 @@ export default async function PlanDetailPage({
       .select("id, name, client_id, published, clients!workout_plans_client_id_fkey(full_name)")
       .eq("id", planId)
       .maybeSingle(),
-    supabase.from("workout_days").select("id, day_number, name, exercises").eq("plan_id", planId).order("day_number"),
+    // Plán celý odcvičený klientom (badge "Hotovo", rovnaká definícia ako zoznam
+    // Tréningy) = uzamknutý: bez buildera, len odcvičené tréningy, PDF a šablóna.
+    // Serverové akcie úprav to isté vynucujú cez isPlanLocked.
+    supabase
+      .from("workout_days")
+      .select("id, day_number, name, exercises")
+      .eq("plan_id", planId)
+      .order("day_number")
+      .then(async ({ data: days }) => {
+        const completion = await getPlanCompletion(supabase, [{ id: planId, dayIds: (days ?? []).map((d) => d.id) }]);
+        return { days, locked: completion.get(planId)?.allDone ?? false };
+      }),
     supabase.from("exercises").select("id, name, name_sk, muscle_group, image_url").order("name"),
     // Odcvičené tréningy z tohto plánu — podľa snapshotu (0048), nie workout_day_id,
     // aby sa ukázali aj po zmazaní dňa. Zamknuté, každý má vlastný detail plán/realita.
@@ -121,38 +133,48 @@ export default async function PlanDetailPage({
 
       <div className={styles.detailHead}>
         <div className={styles.detailTitle}>
-          <PlanTitle planId={planId} name={plan.name} />
+          {locked ? <h1>{plan.name}</h1> : <PlanTitle planId={planId} name={plan.name} />}
           <div className={styles.clientGoal}>
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
         </div>
-        <PublishBadge published={plan.published} />
+        {locked ? <span className={styles.planDoneBadge}>Hotovo</span> : <PublishBadge published={plan.published} />}
       </div>
 
-      {/* Publikovanie aj šablóna v rovnakej 2-stĺpcovej mriežke pod sebou — súmerné tlačidlá. */}
-      <div className={styles.planActions}>
-        <PublishActions planId={planId} published={plan.published} />
-        <WorkoutTemplateTop planId={planId} defaultName={plan.name} />
-      </div>
+      {/* Publikovanie aj šablóna v rovnakej 2-stĺpcovej mriežke pod sebou — súmerné tlačidlá.
+          Hotový plán ich hore nemá — šablóna je dole vedľa PDF (bez Zmazať). */}
+      {!locked && (
+        <div className={styles.planActions}>
+          <PublishActions planId={planId} published={plan.published} />
+          <WorkoutTemplateTop planId={planId} defaultName={plan.name} />
+        </div>
+      )}
 
-      {completedLogs && completedLogs.length > 0 && (
+      {locked ? (
+        <p className={styles.planLockedHint}>
+          Klient tento plán celý odcvičil — plán je uzamknutý. Dole si ho môžeš stiahnuť ako PDF alebo uložiť ako šablónu a z nej vytvoriť nový.
+        </p>
+      ) : completedLogs && completedLogs.length > 0 && (
         <p className={styles.planLockedHint}>
           Klient už z tohto plánu cvičil. Úpravy sa prejavia len v ďalších tréningoch — odcvičené tréningy ostávajú
           uložené presne tak, ako ich klient zapísal.
         </p>
       )}
 
-      <PlanBuilder
-        planId={planId}
-        days={days ?? []}
-        library={exercises ?? []}
-        completedDayIds={(completedLogs ?? [])
-          .map((l) => parsePlanSnapshot(l.plan_snapshot)?.dayId)
-          .filter((id): id is string => Boolean(id))}
-      />
+      {/* Hotový plán: prehľad dní/cvikov netreba — rovno odcvičené tréningy nižšie. */}
+      {!locked && (
+        <PlanBuilder
+          planId={planId}
+          days={days ?? []}
+          library={exercises ?? []}
+          completedDayIds={(completedLogs ?? [])
+            .map((l) => parsePlanSnapshot(l.plan_snapshot)?.dayId)
+            .filter((id): id is string => Boolean(id))}
+        />
+      )}
 
       {completedLogs && completedLogs.length > 0 && (
-        <section className={styles.card} style={{ marginTop: 20 }}>
+        <section className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginTop: 20 }}>
           <h3>Odcvičené tréningy</h3>
           <div className={styles.roster}>
             {completedLogs.map((log) => (
@@ -173,12 +195,26 @@ export default async function PlanDetailPage({
 
       {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
       <div className={styles.planFooterActions}>
-        <PlanFooterActions
-          planId={planId}
-          planName={plan.name}
-          published={plan.published}
-          hasCompleted={(completedLogs?.length ?? 0) > 0}
-        />
+        {locked ? (
+          // Hotový plán sa nemaže — ostáva ako záznam; namiesto "Zmazať" uloženie ako šablóna.
+          <WorkoutTemplateTop
+            planId={planId}
+            defaultName={plan.name}
+            withGoal={false}
+            leading={
+              <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
+                Stiahnuť PDF
+              </a>
+            }
+          />
+        ) : (
+          <PlanFooterActions
+            planId={planId}
+            planName={plan.name}
+            published={plan.published}
+            hasCompleted={(completedLogs?.length ?? 0) > 0}
+          />
+        )}
       </div>
     </>
   );

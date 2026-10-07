@@ -51,3 +51,27 @@ export async function getPlanCompletion(
   }
   return result;
 }
+
+/** Hláška pre úpravy plánu, ktorý klient celý odcvičil (badge "Hotovo"). */
+export const PLAN_LOCKED_ERROR = "Klient tento plán celý odcvičil — plán je uzamknutý a nedá sa upravovať.";
+
+/**
+ * Plán je uzamknutý, keď ho klient celý odcvičil (rovnaká definícia ako badge
+ * "Hotovo", getPlanCompletion). Builder vtedy úpravy neponúka a serverové akcie
+ * ich touto kontrolou odmietnu. S `dayId` sa plán berie z dňa (nie z `planId`
+ * z formulára), aby sa kontrola nedala obísť nesúhlasným párom ID.
+ */
+export async function isPlanLocked(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  planId: string,
+  dayId?: string | null,
+): Promise<boolean> {
+  let id = planId;
+  if (dayId) {
+    const { data: day } = await supabase.from("workout_days").select("plan_id").eq("id", dayId).maybeSingle();
+    if (day?.plan_id) id = day.plan_id as string;
+  }
+  const { data: days } = await supabase.from("workout_days").select("id").eq("plan_id", id);
+  const completion = await getPlanCompletion(supabase, [{ id, dayIds: (days ?? []).map((d) => d.id as string) }]);
+  return completion.get(id)?.allDone ?? false;
+}

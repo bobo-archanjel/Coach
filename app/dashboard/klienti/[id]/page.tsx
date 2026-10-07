@@ -124,7 +124,28 @@ export default async function ClientDetailPage({
   // `id` z route parametra priamo) — predtým čakal na svoj round-trip, kým sa
   // spustilo zvyšných 8. Beží teraz v tej istej dávke; ak klient neexistuje,
   // ostatné vrátia prázdno/null a zahodia sa spolu s `notFound()` nižšie.
-  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, { data: privateNote }] =
+  // Plány + ich odcvičenosť ako jeden reťazec v tej istej dávke: getPlanCompletion
+  // potrebuje len ID dní plánov — predtým čakal na dobehnutie CELEJ dávky (vrátane
+  // najpomalšieho dopytu) a pridal tak ďalší round-trip za ňou.
+  const plansWithCompletion = supabase
+    // `workout_days(id)` (nie `(count)`) — z tých istých ID sa počíta počet dní
+    // aj odcvičenosť (getPlanCompletion, zdieľané so zoznamom /dashboard/treningy).
+    .from("workout_plans")
+    .select("id, name, created_at, workout_days(id)")
+    .eq("client_id", id)
+    .order("created_at", { ascending: false })
+    .then(async ({ data: plans }) => ({
+      plans,
+      planCompletion: await getPlanCompletion(
+        supabase,
+        (plans ?? []).map((p) => ({
+          id: p.id,
+          dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
+        })),
+      ),
+    }));
+
+  const [{ data: client }, { plans, planCompletion }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, { data: privateNote }] =
     await Promise.all([
       supabase
         .from("clients")
@@ -133,13 +154,7 @@ export default async function ClientDetailPage({
         )
         .eq("id", id)
         .maybeSingle(),
-      supabase
-        // `workout_days(id)` (nie `(count)`) — z tých istých ID sa počíta počet dní
-        // aj odcvičenosť (getPlanCompletion, zdieľané so zoznamom /dashboard/treningy).
-        .from("workout_plans")
-        .select("id, name, created_at, workout_days(id)")
-        .eq("client_id", id)
-        .order("created_at", { ascending: false }),
+      plansWithCompletion,
       supabase
         .from("nutrition_profiles")
         .select("calories_target, protein_g, carbs_g, fat_g")
@@ -172,15 +187,6 @@ export default async function ClientDetailPage({
     month: "long",
     year: "numeric",
   });
-
-  // Odcvičenosť plánov — rovnaký zdroj pravdy ako zoznam /dashboard/treningy.
-  const planCompletion = await getPlanCompletion(
-    supabase,
-    (plans ?? []).map((p) => ({
-      id: p.id,
-      dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
-    })),
-  );
 
   const sections: ClientDetailSection[] = [
     {
@@ -252,7 +258,7 @@ export default async function ClientDetailPage({
       id: "treningy",
       label: "Tréningy",
       content: (
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.cardFlatMobile}`}>
           <h3>Tréningové plány</h3>
           {plans && plans.length > 0 ? (
             <div className={styles.roster}>

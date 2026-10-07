@@ -79,13 +79,17 @@
      fold a k poľu na písanie sa nedá dostať bez scrollovania celej appky. */
   flex: none;
   width: 100%;
-  height: calc(100dvh - 118px - env(safe-area-inset-bottom));
+  /* svh, nie dvh — viď .inboxThread v dashboard.module.css (dvh sa po zatvorení
+     klávesnice v Safari neprepočíta a pod chatom ostane čierna medzera). */
+  height: calc(100vh - 118px - env(safe-area-inset-bottom));
+  height: calc(100svh - 118px - env(safe-area-inset-bottom));
   min-height: 0;
 }
 /* Bez lišty (otvorená klávesnica) — 118px rátalo s jej 84px odstupom v .main. */
 @media (max-width: 879px) {
   :global(html[data-keyboard-open]) .chatPage {
-    height: calc(100dvh - 46px);
+    height: calc(100vh - 46px);
+    height: calc(100svh - 46px);
   }
 }
 @media (min-width: 880px) {

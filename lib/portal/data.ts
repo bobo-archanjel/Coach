@@ -166,6 +166,16 @@ function parseEntries(raw: unknown): ExerciseEntry[] {
 }
 
 /**
+ * Deň bez cvikov je pre klienta neúplný — tréner ho práve rozostavuje (napr. pridal
+ * deň do zverejneného plánu a ešte doň nedal cviky). V portáli sa neukazuje ani
+ * nedá spustiť; inak si ho klient mohol vybrať cez "Začať tréning" a karta Dnes
+ * potom ukazovala tréning bez jediného cviku.
+ */
+function hasExercises(day: { exercises: unknown }): boolean {
+  return parseEntries(day.exercises).length > 0;
+}
+
+/**
  * Prečíta workout_logs.entries do pohľadu histórie. Odolné voči obom tvarom, ktoré
  * v DB reálne existujú: nové logy `{entryId, name, sets}` (finishWorkoutAction) aj
  * staršie / seed logy bez zápisu (`[]`) alebo v snake tvare `{exercise_name}`.
@@ -319,42 +329,38 @@ export async function getPortalData(): Promise<PortalResult> {
 
     // "Aktívny" plán = clients.active_plan_id (klient si ho volí v sekcii Tréning),
     // inak najnovší plán (spätne kompatibilné). Platí pre plán od trénera aj vlastný.
-    let plan: { id: string; name: string } | null = null;
     // published: false = tréner ešte plán len rozostavuje (0021) — dovtedy sa
     // klientovi nesmie ukázať, ani ako "aktívny", ani ako "najnovší".
-    if (client.active_plan_id) {
-      const { data } = await supabase
+    // Aktívny aj najnovší plán súbežne (predtým najnovší až po neúspechu aktívneho)
+    // a dni ako embed v tom istom dopyte (predtým ďalší round-trip po pláne).
+    const planSelect = "id, name, workout_days(id, day_number, name, exercises)";
+    const [{ data: activePlan }, { data: newestPlan, error: planErr }] = await Promise.all([
+      client.active_plan_id
+        ? supabase
+            .from("workout_plans")
+            .select(planSelect)
+            .eq("id", client.active_plan_id)
+            .eq("client_id", client.id)
+            .eq("published", true)
+            .order("day_number", { referencedTable: "workout_days", ascending: true })
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
         .from("workout_plans")
-        .select("id, name")
-        .eq("id", client.active_plan_id)
-        .eq("client_id", client.id)
-        .eq("published", true)
-        .maybeSingle();
-      plan = data ?? null;
-    }
-    if (!plan) {
-      const { data, error: planErr } = await supabase
-        .from("workout_plans")
-        .select("id, name")
+        .select(planSelect)
         .eq("client_id", client.id)
         .eq("published", true)
         .order("created_at", { ascending: false })
+        .order("day_number", { referencedTable: "workout_days", ascending: true })
         .limit(1)
-        .maybeSingle();
-      if (planErr) return { state: "error", message: dbErr(planErr, "data") };
-      plan = data ?? null;
-    }
-    if (!plan) return await noPlanResult();
+        .maybeSingle(),
+    ]);
+    const planRow = activePlan ?? newestPlan;
+    if (!planRow && planErr) return { state: "error", message: dbErr(planErr, "data") };
+    if (!planRow) return await noPlanResult();
+    const plan = { id: planRow.id as string, name: planRow.name as string };
 
-    const { data: dayRows, error: daysErr } = await supabase
-      .from("workout_days")
-      .select("id, day_number, name, exercises")
-      .eq("plan_id", plan.id)
-      .order("day_number", { ascending: true });
-
-    if (daysErr) return { state: "error", message: dbErr(daysErr, "data") };
-
-    const days = (dayRows ?? []) as DayRow[];
+    const days = ((planRow.workout_days ?? []) as DayRow[]).filter(hasExercises);
     if (days.length === 0) return await noPlanResult();
 
     const { isoDate, hour, base } = todayInTz();
@@ -668,12 +674,16 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     // published: false = trénerov koncept (0021) — v klientovom zozname sa nezobrazí,
     // kým ho tréner výslovne nepotvrdí (vlastné plány klienta majú default true).
     // Najnovší prvý — nový tréning od trénera (alebo vlastný) má byť hneď navrchu.
+    // Dni plánov ako embed v tom istom dopyte (predtým samostatný round-trip po
+    // plánoch) — `workout_days` má na workout_plans jedinú FK (plan_id), embed je
+    // jednoznačný (rovnako ho používa /dashboard/klienti/[id]).
     const { data: planRows, error: planErr } = await supabase
       .from("workout_plans")
-      .select("id, name, trainer_id, created_at")
+      .select("id, name, trainer_id, created_at, workout_days(id, plan_id, name, exercises, day_number)")
       .eq("client_id", client.id)
       .eq("published", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("day_number", { referencedTable: "workout_days", ascending: true });
     if (planErr) return { state: "error", message: dbErr(planErr, "data") };
 
     const planList = planRows ?? [];
@@ -685,15 +695,9 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
 
     let plans: PortalPlan[] = [];
     if (planList.length > 0) {
-      const { data: dayRows, error: daysErr } = await supabase
-        .from("workout_days")
-        .select("id, plan_id, name, exercises, day_number")
-        .in(
-          "plan_id",
-          planList.map((p) => p.id),
-        )
-        .order("day_number", { ascending: true });
-      if (daysErr) return { state: "error", message: dbErr(daysErr, "data") };
+      const dayRows = planList
+        .flatMap((p) => (p.workout_days ?? []) as (DayRow & { plan_id: string })[])
+        .filter(hasExercises);
 
       const dayIds = (dayRows ?? []).map((d) => d.id);
       // Ktoré dni má klient už niekedy odcvičené (aspoň jeden záznam v histórii) —
@@ -732,7 +736,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       }
 
       const daysByPlan = new Map<string, PortalTrainingDay[]>();
-      for (const d of (dayRows ?? []) as (DayRow & { plan_id: string })[]) {
+      for (const d of dayRows) {
         const list = daysByPlan.get(d.plan_id) ?? [];
         list.push({
           id: d.id,
