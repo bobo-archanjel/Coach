@@ -1,5 +1,5 @@
-import { PortalSkeleton } from "../PortalSkeleton";
+import { PortalRouteSkeleton } from "../RouteSkeletons";
 
 export default function Loading() {
-  return <PortalSkeleton />;
+  return <PortalRouteSkeleton href="/portal/dennik" />;
 }

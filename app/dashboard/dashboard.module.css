@@ -386,6 +386,19 @@
   padding: 0 clamp(20px, 4vw, 48px);
 }
 .content {
+  /* `relative` — kotva pre NavSkeletonOverlay (feature/navod), ktorého tmavé
+     pozadie siaha cez celú `.content` (edge-to-edge). Samotný skeleton VNÚTRI
+     overlay-a sa vkladá do vlastnej `.wrap` triedy (nie duplikátu jej hodnôt),
+     takže má vždy presne rovnaký max-width/padding ako skutočný obsah. */
+  position: relative;
+  padding-block: clamp(28px, 5vw, 48px);
+}
+/* Na overlay OUTER div (feature/navod) — `.content`'s `padding-block` vyššie sa
+   NEAPLIKUJE na `position:absolute` deti (tie sa počítajú k padding boxu, teda
+   k okraju PRED týmto paddingom). `.wrap` sám padding-block nenesie (má ho len
+   `.content`), takže bez tejto triedy by skeleton začínal vyššie/nižšie než
+   skutočný obsah. Drž hodnotu v sync s `.content` padding-block vyššie. */
+.skeletonOuterInset {
   padding-block: clamp(28px, 5vw, 48px);
 }
 /* Priestor pre fixnú bottom tab bar (.navList na mobile), nech posledná karta nie je pod ňou. */
@@ -636,6 +649,18 @@ select.addClientInputSm {
   line-height: 1.45;
   color: var(--plate-yellow);
 }
+/* "Thinking orb" (thinking-orbs, feature/navod) namiesto statického "Generujem…"
+ * — signalizuje AI prácu, nie generický loading. */
+.aiGeneratingRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.aiGeneratingText {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
 
 /* ---------- meškajúci klienti: alert panel (Track "Tréner" #2, ROADMAP.md) ---------- */
 .alertPanel {
@@ -851,11 +876,16 @@ select.addClientInputSm {
   color: inherit;
   transition:
     border-color 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 .clientCard:hover {
   border-color: var(--paper-faint);
   background: var(--ink-3);
+  transform: translateY(-1px);
+}
+.clientCard:active {
+  transform: translateY(1px);
 }
 .clientName {
   font-weight: 700;
@@ -920,6 +950,15 @@ select.addClientInputSm {
 }
 .clientCardEnded:hover {
   opacity: 1;
+}
+.clientCardPending {
+  opacity: 0.6;
+  cursor: default;
+}
+.clientCardPending:hover {
+  border-color: var(--steel-line);
+  background: var(--ink-2);
+  transform: none;
 }
 .deletionChip {
   font-size: 11.5px;
@@ -1565,40 +1604,189 @@ select.addClientInputSm {
   gap: 12px;
 }
 
-/* ---------- loading skeleton (Next.js loading.tsx pre /dashboard/*) ---------- */
+/* ---------- loading skeleton (Next.js loading.tsx pre /dashboard/* + NavSkeletonOverlay) ----------
+   Tvar podľa skutočnej najčastejšej stránky (Klienti = formulár na pridanie +
+   zoznam kariet), nie tri rovnaké kartičky pod sebou — vyzeralo to ako placeholder,
+   nie ako appka. */
+/* Bez `gap` na wrapperi — každý blok nesie VLASTNÝ margin-bottom presne podľa
+   reálneho prvku, ktorý nahrádza (.pageHead, .addClientForm), nech je odstup
+   pred/po rovnaký ako po načítaní skutočného obsahu (žiadny "skok" layoutu). */
 .skeletonWrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
+/* Zdieľaný shimmer základ — KAŽDÝ tvarový prvok nižšie (label, input, avatar,
+   čiara, chip, ...) ho musí niesť spolu so svojou veľkostnou triedou
+   (`${skeletonBlock} ${skeletonFormLabel}`), inak nemá pozadie vôbec (bolo to
+   tak predtým — sub-prvky bez `.skeletonBlock` boli neviditeľné, splynuté
+   s pozadím karty). Shimmer je zámerne NEUTRÁLNY (ink-2/ink-3/paper 6%), nie
+   coral — coral nesie podľa DESIGN.md výhradne postup/primárnu akciu, všeobecný
+   "načítava sa" stav by tento význam riedil. */
 .skeletonBlock {
+  position: relative;
+  overflow: hidden;
   background: var(--ink-2);
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-m);
-  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+.skeletonBlock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, var(--paper) 7%, transparent) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.7s ease-in-out infinite;
 }
 .skeletonHead {
   height: 36px;
   width: 45%;
-  border: none;
-  background: transparent;
+  margin-bottom: 28px; /* = .pageHead margin-bottom */
 }
-.skeletonCard {
-  height: 120px;
+
+/* "formulár" blok — pár riadkov label+input, tvarom ako AddClientForm.
+   padding = .addClientPanel, gap = .addClientFields, margin-bottom = .addClientForm. */
+.skeletonFormBlock {
+  padding: 16px 18px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
 }
-@keyframes skeletonPulse {
-  0%,
-  100% {
-    opacity: 0.55;
+.skeletonFormLabel {
+  height: 11px;
+  width: 90px;
+}
+.skeletonFormInput {
+  height: 38px;
+}
+.skeletonFormButton {
+  height: 38px;
+  width: 140px;
+}
+
+/* "zoznam" blok — riadky s avatarom + dvomi textovými čiarami + chipom, tvarom
+   ako .roster. gap = .roster, padding/gap riadku = .clientCard. */
+.skeletonListBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonListRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+}
+.skeletonAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.skeletonListText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeletonLine {
+  height: 12px;
+  width: 55%;
+}
+.skeletonLineShort {
+  height: 10px;
+  width: 32%;
+}
+.skeletonChip {
+  height: 22px;
+  width: 74px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* Ďalšie tvary (feature/navod pokračovanie) — každá sekcia appky má vlastný
+ * skeleton TVAROM podľa toho, čo sa tam naozaj načíta (viď RouteSkeletons.tsx),
+ * nie jeden univerzálny naprieč celým dashboardom. Kontajnery znovupoužívajú
+ * SKUTOČNÉ triedy (.cardStack, .settingsGrid, .inboxGrid, .roster) pre presné
+ * medzery/mriežku — len obsah vnútri je skeletonBlock. */
+.skeletonCardBlock {
+  padding: 20px 22px; /* = .card */
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonCardTitle {
+  height: 15px;
+  width: 42%;
+  margin-bottom: 2px;
+}
+.skeletonBackLink {
+  height: 13px;
+  width: 88px;
+  margin-bottom: 18px; /* = .backLink */
+}
+.skeletonDetailHead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 28px; /* = .detailHead */
+}
+.skeletonDetailTitle {
+  height: 28px;
+  width: 38%;
+}
+.skeletonPillRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.skeletonPill {
+  height: 24px;
+  width: 72px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.skeletonSubNav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeletonSubNavItem {
+  height: 13px;
+  width: 80%;
+}
+.skeletonStat {
+  flex: 1 1 110px;
+  min-width: 0;
+  height: 58px; /* = .portfolioStat: padding 12px×2 + číslo + popisok */
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 150% 0;
   }
-  50% {
-    opacity: 0.9;
+  100% {
+    background-position: -50% 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skeletonBlock {
+  .skeletonBlock::after {
     animation: none;
-    opacity: 0.7;
+    opacity: 0;
   }
 }
 

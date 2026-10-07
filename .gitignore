@@ -47,3 +47,16 @@ tsconfig.tsbuildinfo
 scripts/.equipment-backfill-*.json
 # Supabase CLI: dočasné súbory (môžu obsahovať referencie na projekt) — nikdy do repa
 supabase/.temp/
+
+# /brag video výstupy — stovky vyrenderovaných PNG snímkov na beh (~100-500 MB
+# každý), čisto lokálne pracovné artefakty, nepatria do histórie repozitára.
+brag-output/
+brag-output-*/
+
+# graphify — lokálna cache znalostného grafu kódu (graph.json, graph.html,
+# manifest), regenerovateľná príkazom /graphify --update, nepatrí do repa.
+# (.graphifyignore ostáva sledovaný — je to konfigurácia, nie generovaný výstup.)
+graphify-out/
+
+# Osobné scratch poznámky/prompty mimo repo workflow
+Claude outputs/

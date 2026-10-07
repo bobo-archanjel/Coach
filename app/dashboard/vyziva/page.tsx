@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "../../components/AppLink";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import styles from "../dashboard.module.css";

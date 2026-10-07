@@ -55,9 +55,15 @@ test.describe("Prihlásenie /prihlasenie", () => {
 
     await expect(page.getByRole("tab", { name: "Prihlásenie" })).toHaveAttribute("aria-selected", "true");
 
-    // prázdny submit → validačná chyba
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
+    // feature/navod: tlačidlo je disabled, kým formulár nie je platný ("don't
+    // let users submit until everything is filled out correctly") — chyba sa
+    // teraz ukáže pri opustení neplatného poľa (blur), nie klikom na disabled submit.
+    const submitBtn = page.getByRole("button", { name: "Prihlásiť sa" });
+    await expect(submitBtn).toBeDisabled();
+    await page.locator("#login-email").fill("nieplatny-email");
+    await page.locator("#login-password").focus(); // blur z e-mailu spustí validáciu
     await expect(page.getByText(/Zadaj platnú e-mailovú adresu/i)).toBeVisible();
+    await expect(submitBtn).toBeDisabled();
 
     // password toggle
     const pw = page.locator("#login-password");
@@ -80,11 +86,12 @@ test.describe("Prihlásenie /prihlasenie", () => {
     await page.getByRole("button", { name: /^Som klient$/i }).click();
     await expect(page.getByRole("heading", { name: /Vytvor si/i })).toBeVisible();
     await expect(page.getByLabel(/Pozývací kód/i)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Vytvoriť účet/i })).toBeVisible();
+    const submitBtn = page.getByRole("button", { name: /Vytvoriť účet/i });
+    await expect(submitBtn).toBeVisible();
 
-    // prázdny submit → validácia na mene, nie na kóde
-    await page.getByRole("button", { name: /Vytvoriť účet/i }).click();
-    await expect(page.getByText(/Zadaj svoje meno/i)).toBeVisible();
+    // feature/navod: prázdny formulár → tlačidlo zostáva disabled, kým meno aj
+    // ostatné polia nie sú platné (rovnaký princíp ako prihlásenie vyššie).
+    await expect(submitBtn).toBeDisabled();
   });
 
   test("neúspešné prihlásenie ukáže chybu, nie crash", async ({ page }) => {

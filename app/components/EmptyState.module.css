@@ -1,0 +1,38 @@
+.wrap {
+  background: var(--ink-2);
+  border: 1px dashed var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: clamp(32px, 5vw, 48px);
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-m);
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  display: grid;
+  place-items: center;
+  color: var(--iron-red);
+  margin-bottom: 4px;
+}
+
+.wrap h2 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.wrap p {
+  color: var(--paper-dim);
+  font-size: 14.5px;
+  max-width: 46ch;
+  margin: 0;
+}
+
+.action {
+  margin-top: 6px;
+}

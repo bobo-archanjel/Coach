@@ -1,3 +1,4 @@
+import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SignOutButton } from "../../components/SignOutButton";
 import { DeleteAccountSection } from "./DeleteAccountSection";
@@ -100,6 +101,16 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
           <p className={styles.codeHint} style={{ marginTop: 0 }}>
             Vek, výška, váha, ciele a alergie z onboardingu si tu doplníš onedlho — potom uvidíš aj svoj progres v čase.
           </p>
+        </div>
+
+        <div className={styles.panel}>
+          <p className={styles.panelLabel}>Návod</p>
+          <p className={styles.codeHint} style={{ marginTop: 0, marginBottom: 14 }}>
+            Krátky sprievodca appkou, ktorý si videl pri prvom prihlásení.
+          </p>
+          <Link href="/portal?tour=1" className="btn btn-ghost btn-sm">
+            Spustiť návod znova
+          </Link>
         </div>
 
         <DeleteAccountSection requestedAt={view.deletionRequestedAt} requestedBy={view.deletionRequestedBy} />

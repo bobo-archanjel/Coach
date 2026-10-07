@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
+import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
+import { CLIENT_TOUR_STEPS } from "@/lib/onboarding/tourSteps";
+import { OnboardingTour } from "../components/OnboardingTour";
+import { NavigationProgressProvider } from "../components/NavigationProgress";
 import { PortalNav } from "./PortalNav";
+import { PortalSkeletonOverlay } from "./PortalSkeletonOverlay";
 import styles from "./portal.module.css";
 
 export const metadata: Metadata = {
@@ -46,20 +52,23 @@ export default async function PortalLayout({ children }: { children: React.React
     data: { user },
   } = await getUser();
 
+  // Cookie fast-path (žiadna sieť) — DB dopyt na tour_completed_at sa spraví
+  // len pri úplne prvej návšteve v tomto prehliadači, nie pri každej navigácii.
+  const tourSeenCookie = await hasTourSeenCookie();
+
   let chatUnread = false;
   let aiKoucVisible = false;
+  let tourSeen = true;
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
-    const { data: profile } = await getProfile(user.id);
-
-    if (profile?.role === "trainer") {
-      redirect("/dashboard");
-    }
-
-    // Nezávislé dopyty — paralelne namiesto sekvenčne (dva samostatné round-tripy
-    // na Supabase navyše na KAŽDÚ navigáciu v portáli, predtým čakali jeden na druhý).
-    const [{ count }, { data: clientRow }] = await Promise.all([
+    // Všetky štyri dopyty závisia len na `user.id`, nie jeden na druhom výsledku
+    // — predtým getProfile() bežalo sekvenčne PRED zvyškom (dve "kolá"
+    // round-tripov na KAŽDÚ navigáciu v portáli). Redirect rozhoduje sa
+    // použitím `profile` až PO tomto Promise.all, samotné dopytovanie beží
+    // súbežne. tourSeen sa z DB dopytuje len keď cookie chýba.
+    const [{ data: profile }, { count }, { data: clientRow }, dbTourSeen] = await Promise.all([
+      getProfile(user.id),
       // neprečítaná správa od trénera ALEBO systémová (napr. GDPR zmazanie, 0019) → bodka na tabe Chat
       supabase
         .from("messages")
@@ -74,21 +83,32 @@ export default async function PortalLayout({ children }: { children: React.React
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle(),
+      tourSeenCookie ? Promise.resolve(true) : getTourSeen(user.id),
     ]);
+    if (profile?.role === "trainer") {
+      redirect("/dashboard");
+    }
     chatUnread = (count ?? 0) > 0;
     aiKoucVisible = Boolean(clientRow?.trainer_id);
+    tourSeen = dbTourSeen;
   }
 
   return (
-    <div className={styles.viewport}>
-      {/* Sibling ku .column (nie vnorená) — nad 880px sa stáva ľavým sidebarom
-          v CSS grid .viewport, presne ako app/dashboard/layout.tsx. Pod 880px
-          ostáva position:fixed bottom nav, DOM poradie tam nehrá rolu. */}
-      <PortalNav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} />
-      <div className={styles.column}>
-        <div hidden aria-hidden="true" dangerouslySetInnerHTML={{ __html: `<!--\n${DIRECTION_CONTRACT}\n-->` }} />
-        <main className={styles.main}>{children}</main>
+    <NavigationProgressProvider>
+      <div className={styles.viewport}>
+        {/* Sibling ku .column (nie vnorená) — nad 880px sa stáva ľavým sidebarom
+            v CSS grid .viewport, presne ako app/dashboard/layout.tsx. Pod 880px
+            ostáva position:fixed bottom nav, DOM poradie tam nehrá rolu. */}
+        <PortalNav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} />
+        <div className={styles.column}>
+          <div hidden aria-hidden="true" dangerouslySetInnerHTML={{ __html: `<!--\n${DIRECTION_CONTRACT}\n-->` }} />
+          <main className={styles.main}>{children}</main>
+          <PortalSkeletonOverlay />
+        </div>
+        <Suspense fallback={null}>
+          <OnboardingTour steps={CLIENT_TOUR_STEPS} tourSeen={tourSeen} />
+        </Suspense>
       </div>
-    </div>
+    </NavigationProgressProvider>
   );
 }

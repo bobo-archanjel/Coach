@@ -1,5 +1,5 @@
-import { DashboardSkeleton } from "../DashboardSkeleton";
+import { DashboardRouteSkeleton } from "../RouteSkeletons";
 
 export default function Loading() {
-  return <DashboardSkeleton />;
+  return <DashboardRouteSkeleton href="/dashboard/treningy" />;
 }
