@@ -24,14 +24,24 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { verifyTurnstile, isHoneypotTripped } from "@/lib/turnstile";
+import { checkPassword } from "@/lib/passwordStrength";
 
 export interface LoginState {
   error: string | null;
   redirectTo: string | null;
 }
 
+export interface RegisterState {
+  error: string | null;
+  redirectTo: string | null;
+  needsConfirm: boolean;
+}
+
 const GENERIC_ERROR = "Nesprávny e-mail alebo heslo.";
 const LOCKOUT_ERROR = "Príliš veľa neúspešných pokusov. Skús to znova o 15 minút, alebo si obnov heslo.";
+const CAPTCHA_ERROR = "Overenie zlyhalo. Skús to prosím znova.";
+const REGISTER_GENERIC_ERROR = "Registráciu sa nepodarilo dokončiť. Skús to prosím znova.";
 
 const MAX_PER_EMAIL = 10;
 const MAX_PER_EMAIL_AND_IP = 5;
@@ -50,14 +60,23 @@ async function clientIp(): Promise<string> {
 }
 
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
+  // Honeypot skôr než čokoľvek iné — bot dostane rovnakú generickú chybu ako
+  // zlé heslo, žiadny odlišný signál, ktorý by mu prezradil, že bol odhalený.
+  if (isHoneypotTripped(formData)) return { error: GENERIC_ERROR, redirectTo: null };
+
   const email = ((formData.get("email") as string | null) ?? "").trim();
   const password = (formData.get("password") as string | null) ?? "";
   if (!email || !password) return { error: "Vyplň e-mail aj heslo.", redirectTo: null };
   if (email.length > MAX_INPUT_LENGTH || password.length > 1024) return { error: GENERIC_ERROR, redirectTo: null };
 
+  const ip = await clientIp();
+  const turnstileToken = (formData.get("turnstile_token") as string | null) ?? "";
+  const turnstile = await verifyTurnstile(turnstileToken, ip === "unknown" ? null : ip);
+  if (!turnstile.ok) return { error: CAPTCHA_ERROR, redirectTo: null };
+
   const supabase = await createClient();
 
-  const ipHash = shortHash(await clientIp());
+  const ipHash = shortHash(ip);
   const emailKey = email.toLowerCase();
   const ids = {
     email: emailKey,
@@ -116,4 +135,69 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   }
 
   return { error: null, redirectTo: profile?.role === "client" ? "/portal" : "/dashboard" };
+}
+
+/**
+ * Registrácia cez Server Action (feature/security) — predtým bežala priamo z
+ * prehliadača (`supabase.auth.signUp` v page.tsx), server o pokuse vôbec
+ * nevedel, takže sa nedala chrániť Turnstile/honeypotom rovnako ako prihlásenie.
+ * Kontrola sily hesla beží aj tu (nielen na klientovi) — priame volanie tejto
+ * akcie (mimo formulára) by inak vedelo obísť klientskú kontrolu úplne.
+ */
+export async function registerAction(_prevState: RegisterState, formData: FormData): Promise<RegisterState> {
+  if (isHoneypotTripped(formData)) return { error: REGISTER_GENERIC_ERROR, redirectTo: null, needsConfirm: false };
+
+  const name = ((formData.get("name") as string | null) ?? "").trim();
+  const email = ((formData.get("email") as string | null) ?? "").trim();
+  const password = (formData.get("password") as string | null) ?? "";
+  const role = (formData.get("role") as string | null) === "client" ? "client" : "trainer";
+  if (!name || !email || !password) {
+    return { error: "Vyplň všetky povinné polia.", redirectTo: null, needsConfirm: false };
+  }
+  if (name.length > MAX_INPUT_LENGTH || email.length > MAX_INPUT_LENGTH || password.length > 1024) {
+    return { error: REGISTER_GENERIC_ERROR, redirectTo: null, needsConfirm: false };
+  }
+
+  const pwCheck = checkPassword(password, [name, email.split("@")[0] ?? ""]);
+  if (!pwCheck.ok) {
+    return {
+      error: pwCheck.issues[0] ?? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla.",
+      redirectTo: null,
+      needsConfirm: false,
+    };
+  }
+
+  const ip = await clientIp();
+  const turnstileToken = (formData.get("turnstile_token") as string | null) ?? "";
+  const turnstile = await verifyTurnstile(turnstileToken, ip === "unknown" ? null : ip);
+  if (!turnstile.ok) return { error: CAPTCHA_ERROR, redirectTo: null, needsConfirm: false };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: name, role } },
+  });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    return {
+      error:
+        error.message === "User already registered"
+          ? "Registráciu sa nepodarilo dokončiť. Ak už účet máš, prihlás sa alebo si obnov heslo."
+          : msg.includes("rate limit")
+            ? "Priveľa registrácií za krátky čas z tejto adresy. Skús to o chvíľu znova."
+            : msg.includes("password")
+              ? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla."
+              : REGISTER_GENERIC_ERROR,
+      redirectTo: null,
+      needsConfirm: false,
+    };
+  }
+
+  if (!data.session) {
+    // Predvolené nastavenie Supabase: treba potvrdiť e-mail skôr, než vznikne session.
+    return { error: null, redirectTo: null, needsConfirm: true };
+  }
+
+  return { error: null, redirectTo: role === "client" ? "/portal" : "/dashboard", needsConfirm: false };
 }

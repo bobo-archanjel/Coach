@@ -4,12 +4,36 @@ import { startTransition, useActionState, useEffect, useRef, useState, type Form
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
+import { PasswordRequirements } from "../components/PasswordRequirements";
+import { useLoadingMessage } from "../components/useLoadingMessage";
+import { TurnstileScript, useTurnstile } from "../components/Turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { checkPassword } from "@/lib/passwordStrength";
-import { loginAction, type LoginState } from "./actions";
+import { loginAction, registerAction, type LoginState, type RegisterState } from "./actions";
 import styles from "./auth.module.css";
 
 const initialLoginState: LoginState = { error: null, redirectTo: null };
+const initialRegisterState: RegisterState = { error: null, redirectTo: null, needsConfirm: false };
+
+/** Honeypot — skryté pole, ktoré človek nikdy nevyplní, primitívny bot áno
+ * (rovnaký princíp ako waitlist/index.html). Mimo viditeľnej plochy AJ mimo
+ * tab poradia, nie len `display:none` — niektoré boty CSS `display` rešpektujú. */
+function Honeypot() {
+  return (
+    <input
+      type="text"
+      name="hp"
+      tabIndex={-1}
+      autoComplete="off"
+      aria-hidden="true"
+      style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+    />
+  );
+}
+
+// "Zapamätať si ma" — pre-fill e-mailu pri ďalšej návšteve (feature/navod, "pre-fill
+// what you can"). Zámerne len e-mail, nie heslo — appka si heslá nikdy neukladá.
+const REMEMBER_EMAIL_KEY = "fitpilot_remembered_email";
 
 const ErrorIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -65,8 +89,10 @@ export default function AuthPage() {
   // prehliadača, náš server o pokuse vôbec nevedel (nedal sa rate-limitovať ani
   // počítať na lockout). Server teraz rozhoduje o výsledku aj presmerovaní.
   const loginFormRef = useRef<HTMLFormElement>(null);
+  const loginTurnstile = useTurnstile();
   const [loginInvalid, setLoginInvalid] = useState<Record<string, boolean>>({});
   const [loginShowPassword, setLoginShowPassword] = useState(false);
+  const [loginCanSubmit, setLoginCanSubmit] = useState(false);
   const [loginState, loginFormAction, loginPending] = useActionState(loginAction, initialLoginState);
   const loginStatus: "idle" | "loading" | "success" = loginPending
     ? "loading"
@@ -74,6 +100,38 @@ export default function AuthPage() {
       ? "success"
       : "idle";
   const loginError = loginState.error;
+  // Token je jednorazový — po neúspechu treba nový na ďalší pokus.
+  useEffect(() => {
+    if (loginError) loginTurnstile.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginError]);
+  const loginLoadingText = useLoadingMessage(loginStatus === "loading", [
+    "Prihlasujem…",
+    "Overujem údaje…",
+    "Už to bude…",
+  ]);
+
+  // Pre-fill e-mailu z predošlého prihlásenia so zaškrtnutým "Zapamätať si ma".
+  // Priamo cez DOM (nie React `defaultValue` state) — defaultValue sa po mounte
+  // znova neaplikuje, takže neskoršie načítanie z localStorage by sa nezobrazilo.
+  useEffect(() => {
+    const form = loginFormRef.current;
+    if (!form) return;
+    try {
+      const saved = window.localStorage.getItem(REMEMBER_EMAIL_KEY);
+      if (saved) {
+        (form.elements.namedItem("email") as HTMLInputElement).value = saved;
+        (form.elements.namedItem("remember") as HTMLInputElement).checked = true;
+      }
+    } catch {
+      // localStorage nedostupný (privátne okno a pod.) — jednoducho bez pre-fillu.
+    }
+    updateLoginCanSubmit();
+  }, []);
+
+  function updateLoginCanSubmit() {
+    setLoginCanSubmit(loginFormRef.current?.checkValidity() ?? false);
+  }
 
   // Presmerovanie po úspechu — server už rozhodol kam (podľa role), tu len navigujeme.
   useEffect(() => {
@@ -85,10 +143,24 @@ export default function AuthPage() {
   function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
+    // Forgiving formatting — orežeme medzery pred/za e-mailom (bežné pri copy-paste).
+    const emailEl = form.elements.namedItem("email") as HTMLInputElement;
+    emailEl.value = emailEl.value.trim();
     const { invalid, hasInvalid } = validate(form, ["email", "password"]);
     setLoginInvalid(invalid);
     if (hasInvalid) return;
-    startTransition(() => loginFormAction(new FormData(form)));
+
+    const remember = (form.elements.namedItem("remember") as HTMLInputElement).checked;
+    try {
+      if (remember) window.localStorage.setItem(REMEMBER_EMAIL_KEY, emailEl.value);
+      else window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
+    } catch {
+      // localStorage nedostupný — prihlásenie samotné tým nie je ovplyvnené.
+    }
+
+    const fd = new FormData(form);
+    fd.set("turnstile_token", loginTurnstile.getToken());
+    startTransition(() => loginFormAction(fd));
   }
 
   // ---- zabudnuté heslo ----
@@ -97,12 +169,14 @@ export default function AuthPage() {
   const [forgotInvalid, setForgotInvalid] = useState(false);
   const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "success">("idle");
   const [forgotError, setForgotError] = useState<string | null>(null);
+  const forgotLoadingText = useLoadingMessage(forgotStatus === "loading", ["Odosielam…", "Ešte chvíľku…"]);
 
   async function handleForgotSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setForgotError(null);
     const form = e.currentTarget;
     const emailEl = form.elements.namedItem("email") as HTMLInputElement;
+    emailEl.value = emailEl.value.trim();
     if (!emailEl.checkValidity()) {
       setForgotInvalid(true);
       return;
@@ -124,38 +198,84 @@ export default function AuthPage() {
   }
 
   // ---- register form state ----
+  // Registrácia ide cez Server Action (./actions.ts, feature/security) — predtým
+  // volala supabase.auth.signUp priamo z prehliadača, server o pokuse vôbec
+  // nevedel (rovnaký dôvod ako pri prihlásení — Turnstile/honeypot sa dajú overiť
+  // len na serveri). Klientská pred-validácia (natívna HTML5 validita + sila
+  // hesla) ostáva — zachytí chyby OKAMŽITE, bez čakania na round-trip.
   const registerFormRef = useRef<HTMLFormElement>(null);
+  const registerTurnstile = useTurnstile();
   const [registerInvalid, setRegisterInvalid] = useState<Record<string, boolean>>({});
   const [registerShowPassword, setRegisterShowPassword] = useState(false);
-  const [registerStatus, setRegisterStatus] = useState<"idle" | "loading" | "success">("idle");
-  const [registerError, setRegisterError] = useState<string | null>(null);
-  const [registerNeedsConfirm, setRegisterNeedsConfirm] = useState(false);
+  const [registerClientError, setRegisterClientError] = useState<string | null>(null);
+  const [registerState, registerFormAction, registerActionPending] = useActionState(
+    registerAction,
+    initialRegisterState,
+  );
+  const registerStatus: "idle" | "loading" | "success" = registerActionPending
+    ? "loading"
+    : registerState.redirectTo || registerState.needsConfirm
+      ? "success"
+      : "idle";
+  const registerError = registerClientError ?? registerState.error;
+  const registerNeedsConfirm = registerState.needsConfirm;
+  useEffect(() => {
+    if (registerError) registerTurnstile.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerError]);
+  useEffect(() => {
+    if (!registerState.redirectTo) return;
+    router.push(registerState.redirectTo);
+    router.refresh();
+  }, [registerState.redirectTo, router]);
   // Živý ukazovateľ sily hesla (feature/optimalizacia, security audit) — kontext
   // (meno/e-mail) sa reálne vyhodnocuje až pri submite (handleRegisterSubmit má
   // finálne hodnoty všetkých polí), tu len dĺžka/rozmanitosť pre rýchlu spätnú väzbu.
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerPasswordIssues, setRegisterPasswordIssues] = useState<string[]>([]);
-  const registerPwLive = registerPassword ? checkPassword(registerPassword) : null;
+  const [registerCanSubmit, setRegisterCanSubmit] = useState(false);
   // Rola sa volí explicitne (tréner vs. klient). Klient sa registruje VŽDY
   // rovnako — bez pozývacieho kódu (feature/registracia-update): po registrácii
   // dostane vlastný kód, ktorý ukáže trénerovi. Tréner ho zadá v "Pridať klienta".
   const [registerRole, setRegisterRole] = useState<"trainer" | "client">("trainer");
   const isClientSignup = registerRole === "client";
+  const registerLoadingText = useLoadingMessage(registerStatus === "loading", [
+    "Vytváram účet…",
+    "Nastavujem profil…",
+    "Už to bude…",
+  ]);
 
-  async function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
+  // Tlačidlo ostáva disabled, kým nie je vyplnené a platné VŠETKO (natívna HTML5
+  // validita + vlastná kontrola hesla) — "don't let users submit until everything
+  // is filled out correctly". Kontext (meno/e-mail proti heslu) sa aj tak
+  // naplno overuje až pri submite, tu ide o rýchlu priebežnú spätnú väzbu.
+  function updateRegisterCanSubmit() {
+    const form = registerFormRef.current;
+    if (!form) return setRegisterCanSubmit(false);
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+    setRegisterCanSubmit(form.checkValidity() && checkPassword(password).ok);
+  }
+
+  function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setRegisterError(null);
+    setRegisterClientError(null);
     const form = e.currentTarget;
+    // Forgiving formatting — orežeme medzery pred/za menom a e-mailom.
+    const nameEl = form.elements.namedItem("name") as HTMLInputElement;
+    const emailEl = form.elements.namedItem("email") as HTMLInputElement;
+    nameEl.value = nameEl.value.trim();
+    emailEl.value = emailEl.value.trim();
     const { invalid, hasInvalid } = validate(form, ["name", "email", "password", "terms"]);
     setRegisterInvalid(invalid);
     if (hasInvalid) return;
 
-    const name = (form.elements.namedItem("name") as HTMLInputElement).value;
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const name = nameEl.value;
+    const email = emailEl.value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
-    // Kontrola sily hesla (feature/optimalizacia, security audit) — predtým len
-    // minLength={8} na klientovi, nič nezastavilo "12345678" alebo "password123".
+    // Kontrola sily hesla (feature/optimalizacia, security audit) — okamžitá
+    // spätná väzba bez čakania na server; rovnaká kontrola beží aj v
+    // registerAction (obísť klienta priamym volaním akcie by inak stačilo).
     const emailLocalPart = email.split("@")[0] ?? "";
     const pwCheck = checkPassword(password, [name, emailLocalPart]);
     if (!pwCheck.ok) {
@@ -165,47 +285,10 @@ export default function AuthPage() {
     }
     setRegisterPasswordIssues([]);
 
-    setRegisterStatus("loading");
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
-          role: isClientSignup ? "client" : "trainer",
-        },
-      },
-    });
-    if (error) {
-      setRegisterStatus("idle");
-      const msg = error.message.toLowerCase();
-      setRegisterError(
-        error.message === "User already registered"
-          ? "Registráciu sa nepodarilo dokončiť. Ak už účet máš, prihlás sa alebo si obnov heslo."
-          : msg.includes("email rate limit") || msg.includes("rate limit")
-            ? "Priveľa registrácií za krátky čas z tejto adresy. Skús to o chvíľu znova."
-            : msg.includes("password")
-              ? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla."
-              : "Registráciu sa nepodarilo dokončiť. Skús to prosím znova.",
-      );
-      return;
-    }
-
-    if (!data.session) {
-      // Predvolené nastavenie Supabase: treba potvrdiť e-mail skôr, než vznikne session.
-      // Pozývací kód sa v tomto prípade nespáruje hneď — spáruje sa až pri ďalšom
-      // prihlásení, kým to nepokryje samostatný krok (viď TODO nižšie).
-      setRegisterStatus("success");
-      setRegisterNeedsConfirm(true);
-      return;
-    }
-
-    // Potvrdenie e-mailu je v projekte vypnuté — session je aktívna hneď.
-    // Klientovi DB trigger (handle_new_user, 0032) už vytvoril vlastný `clients`
-    // riadok + kód — netreba nič nárokovať, ide rovno do portálu.
-    setRegisterStatus("success");
-    router.push(isClientSignup ? "/portal" : "/dashboard");
-    router.refresh();
+    const fd = new FormData(form);
+    fd.set("role", registerRole);
+    fd.set("turnstile_token", registerTurnstile.getToken());
+    startTransition(() => registerFormAction(fd));
   }
 
   function clearFieldError(
@@ -220,8 +303,27 @@ export default function AuthPage() {
     }
   }
 
+  /**
+   * Opak `clearFieldError` — nastaví chybu HNEĎ, keď človek pole opustí neplatné
+   * (nielen keď skúsi odoslať). Kritické pri disabled submit tlačidle: bez tohto
+   * nikdy neuvidí PREČO nejde ďalej, lebo disabled tlačidlo sa nedá kliknúť a
+   * handleSubmit (kde bola pôvodne jediná validácia) sa tak vôbec nespustí.
+   */
+  function validateFieldOnBlur(
+    e: React.FocusEvent<HTMLInputElement>,
+    invalidMap: Record<string, boolean>,
+    setInvalidMap: (v: Record<string, boolean>) => void
+  ) {
+    const el = e.currentTarget;
+    if (!el.value) return; // prázdne nedotknuté pole nehlásiť ako chybu hneď pri fokuse preč
+    const ok = el.checkValidity();
+    if (ok === !invalidMap[el.name]) return;
+    setInvalidMap({ ...invalidMap, [el.name]: !ok });
+  }
+
   return (
     <div className={styles.shell}>
+      <TurnstileScript />
       <aside className={styles.brandPanel}>
         <div className={styles.plateField} aria-hidden="true" />
         <div>
@@ -298,7 +400,8 @@ export default function AuthPage() {
                 <p>Prihlás sa do svojho konta.</p>
               </div>
 
-              <form ref={loginFormRef} noValidate onSubmit={handleLoginSubmit}>
+              <form ref={loginFormRef} noValidate onSubmit={handleLoginSubmit} onInput={updateLoginCanSubmit}>
+                <Honeypot />
                 <div className={styles.field}>
                   <label htmlFor="login-email">E-mail</label>
                   <input
@@ -311,6 +414,7 @@ export default function AuthPage() {
                     aria-invalid={loginInvalid.email}
                     data-valid={loginInvalid.email === false || undefined}
                     onChange={(e) => clearFieldError(e, loginInvalid, setLoginInvalid)}
+                    onBlur={(e) => validateFieldOnBlur(e, loginInvalid, setLoginInvalid)}
                   />
                   {loginInvalid.email && (
                     <span className={styles.fieldError}>
@@ -333,6 +437,7 @@ export default function AuthPage() {
                       minLength={8}
                       aria-invalid={loginInvalid.password}
                       onChange={(e) => clearFieldError(e, loginInvalid, setLoginInvalid)}
+                      onBlur={(e) => validateFieldOnBlur(e, loginInvalid, setLoginInvalid)}
                     />
                     <button
                       type="button"
@@ -361,9 +466,15 @@ export default function AuthPage() {
                   </button>
                 </div>
 
-                <button type="submit" className={`${styles.btnSubmit} ${loginStatus === "success" ? styles.success : ""}`} disabled={loginStatus === "loading"}>
+                <div ref={loginTurnstile.containerRef} style={{ marginBottom: 14 }} />
+
+                <button
+                  type="submit"
+                  className={`${styles.btnSubmit} ${loginStatus === "success" ? styles.success : ""}`}
+                  disabled={loginStatus === "loading" || !loginCanSubmit}
+                >
                   {loginStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{loginStatus === "loading" ? "Prihlasujem…" : "Prihlásiť sa"}</span>
+                  <span>{loginStatus === "loading" ? (loginLoadingText ?? "Prihlasujem…") : "Prihlásiť sa"}</span>
                 </button>
 
                 {loginStatus === "success" && (
@@ -423,7 +534,7 @@ export default function AuthPage() {
                   disabled={forgotStatus === "loading"}
                 >
                   {forgotStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{forgotStatus === "loading" ? "Odosielam…" : "Poslať odkaz na reset"}</span>
+                  <span>{forgotStatus === "loading" ? (forgotLoadingText ?? "Odosielam…") : "Poslať odkaz na reset"}</span>
                 </button>
 
                 {forgotStatus === "success" && (
@@ -494,7 +605,8 @@ export default function AuthPage() {
                 )}
               </div>
 
-              <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit}>
+              <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit} onInput={updateRegisterCanSubmit}>
+                <Honeypot />
                 <div className={styles.field}>
                   <label htmlFor="reg-name">Meno a priezvisko</label>
                   <input
@@ -506,6 +618,7 @@ export default function AuthPage() {
                     required
                     aria-invalid={registerInvalid.name}
                     onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
+                    onBlur={(e) => validateFieldOnBlur(e, registerInvalid, setRegisterInvalid)}
                   />
                   {registerInvalid.name && (
                     <span className={styles.fieldError}>
@@ -526,6 +639,7 @@ export default function AuthPage() {
                     required
                     aria-invalid={registerInvalid.email}
                     onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
+                    onBlur={(e) => validateFieldOnBlur(e, registerInvalid, setRegisterInvalid)}
                   />
                   {registerInvalid.email && (
                     <span className={styles.fieldError}>
@@ -562,8 +676,8 @@ export default function AuthPage() {
                       <EyeIcon />
                     </button>
                   </div>
-                  {registerPwLive && !registerInvalid.password ? (
-                    <span className={styles.fieldHint}>Sila hesla: {registerPwLive.label}</span>
+                  {registerPassword ? (
+                    <PasswordRequirements password={registerPassword} />
                   ) : (
                     <span className={styles.fieldHint}>Aspoň 8 znakov, kombinuj písmená aj čísla.</span>
                   )}
@@ -601,15 +715,17 @@ export default function AuthPage() {
                   )}
                 </div>
 
+                <div ref={registerTurnstile.containerRef} style={{ marginBottom: 14 }} />
+
                 <button
                   type="submit"
                   className={`${styles.btnSubmit} ${registerStatus === "success" ? styles.success : ""}`}
-                  disabled={registerStatus === "loading"}
+                  disabled={registerStatus === "loading" || !registerCanSubmit}
                 >
                   {registerStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
                   <span>
                     {registerStatus === "loading"
-                      ? "Vytváram účet…"
+                      ? (registerLoadingText ?? "Vytváram účet…")
                       : isClientSignup
                         ? "Vytvoriť účet"
                         : "Začať skúšobné obdobie"}
