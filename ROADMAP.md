@@ -14,7 +14,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 **Hotovo:** auth (obe role, pozývací kód, zabudnuté heslo/e-mailová verifikácia), klienti (CRUD + aktivita), tréningový builder (plány/dni/cviky), výživa (BMR/TDEE, makro cieľ, jedálničky, adherencia stravy pre trénera), klientský portál (Dnes/Tréning/Strava/Denník/Chat/AI Kouč, rotácia dní, história týždňov), odklikávanie tréningu Fáza B (skutočné série/opakovania/váha), food diary klienta (`/portal/dennik`, `0007`), obojsmerný chat tréner↔klient (`0008`, refresh-based) + centrálna schránka (`/dashboard/spravy`) a hromadná správa, vlastný tréning klienta + stopky, notifikácie o meškajúcich klientoch (v appke, bez e-mailu), skutočné logo/favicon z brand kitu, mobile-first responzívny dizajn na oboch stranách, **globálna knižnica cvikov s obrázkami (876, Free Exercise DB) a rozšírená knižnica potravín (83, USDA) + live vyhľadávanie značiek (Open Food Facts)**, **AI Kouč pre klienta, AI generátor tréningových plánov a AI sumarizácia progresu pre trénera**, **progres a analýza (per klient aj naprieč všetkými)**, **šablóny plánov**, **kalendár (voľné termíny)**, **detail klienta rozdelený na prehľadné sekcie** — viď sekcie nižšie.
 
-**Číslovanie migrácií — ďalšie voľné číslo je `0036`.** (`0030`–`0034` sú v `dev`, `0031`–`0034` potvrdené bežiace aj na cloud DB.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
+**Číslovanie migrácií — ďalšie voľné číslo je `0044`.** (Táto hlavička bola dlho neaktualizovaná — `0036`–`0041` sú už v `dev`/dokončené, tabuľka nižšie končí pri `0035`.) Dohodnite si vopred, kto berie ktoré číslo, nech sa nezraziť dva rovnaké súbory na dvoch vetvách:
 
 | # | Súbor | Track |
 |---|---|---|
@@ -53,7 +53,15 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 | 0033 | `ai_proactive_and_insights.sql` (proaktívny AI check-in + agregované AI Kouč insighty pre trénera, `feature/AI`, zmergované 2026-09-10) — **potvrdené bežiace na cloud DB 2026-09-15** | Zdieľané |
 | 0034 | `weekly_health_digest.sql` (`client_health_snapshots` + týždenný `pg_cron` digest portfolio-health, `feature/OnBoarding`, zmergované 2026-09-10) — **potvrdené bežiace na cloud DB 2026-09-15** | Zdieľané |
 | 0035 | `notification_dismissals.sql` (skrývanie upozornení v zvončeku a na hlavnej ploche trénera, `feature/funkcionalita`) — **treba manuálne spustiť v Supabase** | Zdieľané |
-| 0036+ | — voľné — | dohodnúť |
+| 0036 | `security_hardening.sql` | Zdieľané |
+| 0037 | `performance_indexes.sql` | Zdieľané |
+| 0038 | `waitlist.sql` | Zdieľané |
+| 0039 | `waitlist_role_client.sql` | Zdieľané |
+| 0040 | `waitlist_antispam.sql` | Zdieľané |
+| 0041 | `onboarding_tour.sql` (`profiles.tour_completed_at` — interaktívny spotlight tour, `feature/navod`) — **treba manuálne spustiť v Supabase** | Zdieľané |
+| 0042 | `clients_insert_trainer_only.sql` (RLS: zakladať klientov smie len rola tréner — klient si už nevie cez API "vyrobiť" vlastného klienta a obísť rolu) — **treba manuálne spustiť v Supabase** | Zdieľané |
+| 0043 | `waitlist_unsubscribe.sql` (`waitlist_signups.unsubscribe_token` — jednoklikové odhlásenie z čakacej listiny, § 116 zákona č. 452/2021 Z. z. + GDPR čl. 7 ods. 3) — **treba manuálne spustiť v Supabase**, aj nasadiť edge funkciu `waitlist-unsubscribe --no-verify-jwt` (`waitlist/README.md` bod 5.5) | Waitlist |
+| 0043+ | — voľné — | dohodnúť |
 
 **Poznámka (2026-09-15, overené priamo cez Supabase REST API service-role kľúčom z `.env.local`, bez zápisu):** `0031`/`0032`/`0033`/`0034` sú reálne aplikované na cloud DB (stĺpce/tabuľka/RPC funkcie existujú a odpovedajú). `0030` sa nedalo overiť bez zápisu (CHECK constraint na `text` stĺpci REST API neexponuje) — je idempotentná, bezpečné spustiť znova pre istotu. **VYRIEŠENÉ 2026-09-20** (`feature/plany`): equipment je doplnený úzkym backfillom (`scripts/backfill-exercise-equipment.mjs`) — zapisuje LEN stĺpec `equipment` a LEN kde je NULL, nie celý riadok ako `import-exercises.mjs` (ten by pri opätovnom spustení prepísal aj `name_sk`, `description`, `instructions`, `image_url`). Dry-run je predvolený, pri `--apply` sa uloží zoznam upravených ID pre návrat. Overené: 799 zapísaných, 0 chýb, obrázky/preklady/inštrukcie/vlastné cviky trénerov nedotknuté; filter vybavenia v AI generátore plánov teraz reálne funguje (len telo = 111 cvikov, domáce vybavenie = 529, posilňovňa = všetky). Pôvodný nález: `exercises.equipment` je na cloud DB síce vytvorený, ale **0/888 cvikov má hodnotu** — `scripts/import-exercises.mjs` re-import sa nikdy nespustil proti produkčnej DB, takže vybavenie-filter v AI generátore plánov reálne beží v tichom fallbacku (žiadny filter podľa vybavenia klienta), nie ako zamýšľané.
 
