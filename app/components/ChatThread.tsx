@@ -74,6 +74,7 @@ export function ChatThread({
   readOnly = false,
   checkNewAction,
   realtimeTable,
+  revealComposer = false,
 }: {
   messages: ChatMessage[];
   mySide: "trainer" | "client";
@@ -108,12 +109,26 @@ export function ChatThread({
    * (`pollMs`) ostáva bežať ako záložná sieť pre prípad výpadku Realtime spojenia.
    */
   realtimeTable?: string;
+  /**
+   * Po otvorení vlákna posunie stránku tak, aby bolo pole na písanie hneď viditeľné
+   * (trénerove Správy — vlákno je pod hlavičkou a na mobile bolo pole až pod okrajom).
+   * Bez focusu: na telefóne by sa inak hneď otvorila klávesnica.
+   */
+  revealComposer?: boolean;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(sendAction, initialState);
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLFormElement>(null);
+
+  // len pri otvorení (mount) — nie pri každej novej správe, aby to neťahalo stránku,
+  // keď tréner práve číta staršie správy vyššie
+  useEffect(() => {
+    if (revealComposer) composerRef.current?.scrollIntoView({ block: "end", behavior: "instant" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   type Row = ChatMessage & { _pending?: boolean };
   const [optimistic, addOptimistic] = useOptimistic<Row[], string>(messages, (curr, body) => [
@@ -283,7 +298,7 @@ export function ChatThread({
       </div>
 
       {!readOnly && (
-        <form className={styles.composer} onSubmit={submit}>
+        <form ref={composerRef} className={styles.composer} onSubmit={submit}>
           <textarea
             ref={inputRef}
             className={styles.input}

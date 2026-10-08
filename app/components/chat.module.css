@@ -52,6 +52,15 @@
   flex: none;
   height: 360px;
 }
+/* embedded + fill (trénerove Správy): na mobile vlákno vyplní výšku karty (tá má
+   pevnú výšku podľa obrazovky) — pole na písanie je pri spodku nad lištou. Na
+   desktope ostáva pevných 360px (karta tam výšku nemá, flex by rástol so správami). */
+@media (max-width: 860px) {
+  .embedded.fill .scroll {
+    flex: 1;
+    height: auto;
+  }
+}
 
 .daySep {
   align-self: center;
@@ -186,6 +195,13 @@
   gap: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--steel-line);
+}
+/* revealComposer (scrollIntoView) — na mobile musí pole zastať NAD fixnou spodnou
+   lištou navigácie, nie pod ňou. */
+@media (max-width: 880px) {
+  .composer {
+    scroll-margin-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  }
 }
 .input {
   flex: 1;

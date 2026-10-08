@@ -84,7 +84,17 @@ const PRUNE_AFTER_DAYS = 90;
  * nesie jej identitu, viď lib/dashboard/attention.ts). Kľúče sa validujú, server
  * neprijme ľubovoľný reťazec.
  */
-export async function dismissNotificationsAction(keys: string[], days: number | null): Promise<{ ok: boolean }> {
+/**
+ * `revalidate: false` — skrytie po kliknutí na klienta v zvončeku: tréner je už na
+ * inej stránke, revalidácia by zbytočne znova vyrenderovala práve otvorený detail
+ * klienta (všetky jeho dopyty druhýkrát). /dashboard je dynamická trasa, pri ďalšej
+ * návšteve sa načíta čerstvo aj tak.
+ */
+export async function dismissNotificationsAction(
+  keys: string[],
+  days: number | null,
+  revalidate = true,
+): Promise<{ ok: boolean }> {
   if (!Array.isArray(keys) || keys.length === 0 || keys.length > 200 || !keys.every(isValidDismissKey)) {
     return { ok: false };
   }
@@ -120,7 +130,7 @@ export async function dismissNotificationsAction(keys: string[], days: number | 
     .eq("trainer_id", user.id)
     .lt("created_at", new Date(now - PRUNE_AFTER_DAYS * DAY_MS).toISOString());
 
-  revalidatePath("/dashboard");
+  if (revalidate) revalidatePath("/dashboard");
   return { ok: true };
 }
 

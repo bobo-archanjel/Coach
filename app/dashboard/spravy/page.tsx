@@ -3,6 +3,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
 import { sendTrainerMessageAction, markTrainerChatSeenAction, getTrainerChatMarkerAction } from "../klienti/actions";
 import { SpravyView } from "./SpravyView";
+import { ThreadSwipeBack } from "./ThreadSwipeBack";
 import styles from "../dashboard.module.css";
 
 /* /dashboard/spravy — centrálna schránka správ (Track "Klient" bod 2, follow-up
@@ -55,11 +56,19 @@ export default async function SpravyPage({
   }
   const supabase = await createClient();
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, full_name")
-    .eq("trainer_id", user.id)
-    .order("full_name", { ascending: true });
+  // Vlákno vybraného klienta závisí len od `?client=` (RLS ho scopuje na tohto
+  // trénera) — beží súbežne so zoznamom, nie až po ňom a po náhľadoch konverzácií.
+  const [{ data: clients }, { data: msgRows }] = await Promise.all([
+    supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name", { ascending: true }),
+    selectedClientId
+      ? supabase
+          .from("messages")
+          .select("id, sender, body, created_at")
+          .eq("client_id", selectedClientId)
+          .order("created_at", { ascending: true })
+          .limit(300)
+      : Promise.resolve({ data: null }),
+  ]);
 
   const clientIds = (clients ?? []).map((c) => c.id);
   const nameById = new Map((clients ?? []).map((c) => [c.id, c.full_name]));
@@ -107,12 +116,6 @@ export default async function SpravyPage({
 
   let selectedMessages: { id: string; sender: "trainer" | "client" | "system"; body: string; createdAt: string }[] = [];
   if (selectedClientId) {
-    const { data: msgRows } = await supabase
-      .from("messages")
-      .select("id, sender, body, created_at")
-      .eq("client_id", selectedClientId)
-      .order("created_at", { ascending: true })
-      .limit(300);
     selectedMessages = (msgRows ?? []).map((m) => ({
       id: m.id as string,
       sender: m.sender as "trainer" | "client" | "system",
@@ -123,8 +126,10 @@ export default async function SpravyPage({
   const selectedName = selectedClientId ? nameById.get(selectedClientId) : undefined;
 
   return (
-    <>
-      <div className={styles.pageHead}>
+    <div className={styles.spravyPage}>
+      {/* Otvorený chat na mobile = len chat: hlavička aj "Hromadná správa" sa skryjú
+          (zoznam konverzácií už skrýva .inboxGrid[data-has-selection]). */}
+      <div className={`${styles.pageHead} ${styles.hideOnThreadMobile}`}>
         <h1>Správy</h1>
         <p>Všetky konverzácie s klientmi na jednom mieste.</p>
       </div>
@@ -167,14 +172,18 @@ export default async function SpravyPage({
                 </div>
               </div>
 
-              <div className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxThread}`}>
+              {/* Späť na zoznam (mobil): potiahnutím zľava doprava alebo ťuknutím na
+                  Správy v spodnej lište — bez tlačidla, otvorený chat je len chat. */}
+              <ThreadSwipeBack className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxThread}`}>
                 {selectedClientId && selectedName ? (
                   <>
-                    <Link href="/dashboard/spravy" className={`${styles.backLink} ${styles.inboxBackLink}`}>
-                      ← Späť na zoznam
-                    </Link>
                     <h3>{selectedName}</h3>
                     <ChatThread
+                      // key: nové vlákno = nový mount → posun na pole na písanie (revealComposer)
+                      // aj prázdny rozpísaný text, nie ten z predchádzajúceho klienta
+                      key={selectedClientId}
+                      revealComposer
+                      fill
                       messages={selectedMessages}
                       mySide="trainer"
                       sendAction={sendTrainerMessageAction}
@@ -195,11 +204,11 @@ export default async function SpravyPage({
                     <p>Klikni na klienta v zozname a otvor jeho vlákno.</p>
                   </div>
                 )}
-              </div>
+              </ThreadSwipeBack>
             </div>
           }
         />
       )}
-    </>
+    </div>
   );
 }

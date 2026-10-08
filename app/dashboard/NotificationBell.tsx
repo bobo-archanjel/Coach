@@ -49,6 +49,10 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   const buttonRef = useRef<HTMLButtonElement>(null);
   const lastFetch = useRef(0);
   const inFlight = useRef(false);
+  // Skrytie klienta, na ktorého tréner práve klikol — odošle sa až po dokončení
+  // navigácie (efekt na `pathname`). Server actions a navigácie Next spracúva v jednom
+  // poradí, takže akcia odoslaná pri kliknutí by prechod na klienta brzdila.
+  const pendingDismiss = useRef<{ keys: string[]; days: number | null } | null>(null);
 
   const refresh = useCallback(async (minAgeMs: number) => {
     if (inFlight.current || Date.now() - lastFetch.current < minAgeMs) return;
@@ -97,8 +101,19 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
     };
   }, [refresh]);
 
-  // zmena trasy = tréner mohol niečo vybaviť (prečítať správy, ...) — s throttlom
+  // zmena trasy = tréner mohol niečo vybaviť (prečítať správy, ...) — s throttlom.
+  // Odložené skrytie ide PRED refresh: akcie bežia za sebou, takže refresh už uvidí
+  // uložené skrytie a optimisticky odobratého klienta nevráti späť.
   useEffect(() => {
+    const pending = pendingDismiss.current;
+    if (pending) {
+      pendingDismiss.current = null;
+      void dismissNotificationsAction(pending.keys, pending.days, false)
+        .then((r) => {
+          if (!r.ok) setActionFailed(true);
+        })
+        .catch(() => setActionFailed(true));
+    }
     void refresh(30_000);
   }, [pathname, refresh]);
 
@@ -144,6 +159,22 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
         .catch(fail);
     },
     [refresh],
+  );
+
+  // Klik na klienta: z panelu zmizne hneď (optimisticky), na server sa skrytie pošle
+  // až po navigácii (pendingDismiss). Ak je to aktuálna stránka, navigácia nenastane
+  // a efekt na pathname by nebežal — vtedy rovno cez dismiss().
+  const dismissOnOpen = useCallback(
+    (href: string, keys: string[], days: number | null) => {
+      if (href === pathname) {
+        dismiss(keys, days);
+        return;
+      }
+      setActionFailed(false);
+      setData((d) => (d ? applyDismissals(d, new Set(keys)) : d));
+      pendingDismiss.current = { keys, days };
+    },
+    [pathname, dismiss],
   );
 
   const markRead = useCallback(() => {
@@ -226,7 +257,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                           href={l.href}
                           // Otvorením klienta tréner upozornenie "vybavil" — skryje sa rovnako
                           // ako cez ×, t. j. na pár dní a vráti sa, ak klient stále mešká.
-                          onClick={l.dismissKey ? () => dismiss([l.dismissKey!], item.dismiss?.days ?? null) : undefined}
+                          onClick={l.dismissKey ? () => dismissOnOpen(l.href, [l.dismissKey!], item.dismiss?.days ?? null) : undefined}
                         >
                           {l.label}
                         </Link>

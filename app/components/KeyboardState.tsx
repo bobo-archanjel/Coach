@@ -34,31 +34,57 @@ function revealFocused() {
   }
 }
 
+// Po zatvorení klávesnice iOS Safari občas nechá zobrazenie posunuté tak, ako bolo
+// pri otvorenej klávesnici (stránka bola vtedy kratšia — skrytá lišta, menší odstup)
+// a dole ostane čierna medzera, kým používateľ prstom nescrollne. scrollTo na tú istú
+// pozíciu Safari ignoruje, preto skutočný posun o 1px a späť v ďalšom snímku (to isté,
+// čo urobí prst). Ak sa stránka nemá kam scrollovať (napr. otvorený chat má presne
+// výšku obrazovky), na ten okamih sa o 1px predĺži.
+function realignViewport() {
+  const root = document.documentElement;
+  const max = Math.max(0, root.scrollHeight - window.innerHeight);
+  const target = Math.min(window.scrollY, max);
+  const needsRoom = max === 0;
+  if (needsRoom) root.style.minHeight = "calc(100vh + 1px)";
+  window.scrollTo({ top: target === 0 ? 1 : target - 1, behavior: "instant" });
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: target, behavior: "instant" });
+    if (needsRoom) root.style.minHeight = "";
+  });
+}
+
 export function KeyboardState() {
   useEffect(() => {
     const touch = window.matchMedia("(pointer: coarse)");
     const root = document.documentElement;
     const vv = window.visualViewport;
     let timers: ReturnType<typeof setTimeout>[] = [];
+    // Okno po zatvorení klávesnice, kedy resize visualViewportu znamená jej zasúvanie.
+    // Mimo neho sa resize deje aj pri bežnom scrollovaní (zbaľovanie lišty Safari) —
+    // tam sa zobrazenie posúvať nesmie.
+    let closingUntil = 0;
 
-    const scheduleReveal = () => {
+    const schedule = (fn: () => void) => {
       timers.forEach(clearTimeout);
-      // klávesnica sa vysúva ~250–300 ms; viac pokusov pokryje aj pomalšie zariadenia
-      timers = [50, 300, 600].map((ms) => setTimeout(revealFocused, ms));
+      // klávesnica sa vysúva/zasúva ~250–300 ms; viac pokusov pokryje aj pomalšie zariadenia
+      timers = [50, 300, 600].map((ms) => setTimeout(fn, ms));
     };
 
     const sync = () => {
       if (touch.matches && opensKeyboard(document.activeElement)) {
         const wasOpen = root.hasAttribute("data-keyboard-open");
         root.setAttribute("data-keyboard-open", "");
-        if (!wasOpen) scheduleReveal();
-      } else {
+        if (!wasOpen) schedule(revealFocused);
+      } else if (root.hasAttribute("data-keyboard-open")) {
         root.removeAttribute("data-keyboard-open");
+        closingUntil = Date.now() + 1000;
+        schedule(realignViewport);
       }
     };
-    // zmena výšky visualViewportu = klávesnica sa práve dovysunula
+    // zmena výšky visualViewportu = klávesnica sa práve dovysunula / zasunula
     const onViewportResize = () => {
       if (root.hasAttribute("data-keyboard-open")) revealFocused();
+      else if (Date.now() < closingUntil) realignViewport();
     };
     vv?.addEventListener("resize", onViewportResize);
     // focusout sa vyvolá skôr, než focus dopadne na ďalšie pole — pri preskakovaní
