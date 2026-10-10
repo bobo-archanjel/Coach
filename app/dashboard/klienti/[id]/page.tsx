@@ -189,6 +189,100 @@ export default async function ClientDetailPage({
   });
 
   const sections: ClientDetailSection[] = [
+    // Poradie = poradie kariet; prvá sa otvorí po kliknutí na klienta. Tréner sa
+    // najčastejšie pozerá na analytiku a tréningy, Info (kód, poznámky, ukončenie) je posledné.
+    {
+      id: "analytika",
+      label: "Analytika",
+      content: (
+        <AnalyticsPanel
+          clientId={id}
+          nutrition={nutrition}
+          adherence={adherence}
+          trainingAdherence={trainingAdherence}
+          bodyMetrics={bodyMetrics ?? []}
+          strengthNames={strengthProgress?.names ?? []}
+          strengthByExercise={strengthProgress?.byExercise ?? {}}
+          strengthPRs={strengthProgress?.prs ?? []}
+        />
+      ),
+    },
+    {
+      id: "treningy",
+      label: "Tréningy",
+      // Pridelené plány aj to, čo z nich klient odcvičil, na jednom mieste — predtým
+      // samostatná karta "Aktivita" pôsobila ako duplicita tejto.
+      content: (
+        <div className={styles.cardStack}>
+          <div className={`${styles.card} ${styles.cardFlatMobile}`}>
+            <h3>Tréningové plány</h3>
+            {plans && plans.length > 0 ? (
+              <div className={styles.roster}>
+                {plans.map((plan) => {
+                  const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
+                  const done = planCompletion.get(plan.id);
+                  return (
+                    <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
+                      <div className={styles.clientName}>{plan.name}</div>
+                      {done?.allDone ? (
+                        <span className={styles.planDoneBadge}>Hotovo</span>
+                      ) : (
+                        <span className={styles.clientSince}>
+                          {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.noWorkouts}>
+                Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <Link href="/dashboard/treningy">Tréningy</Link>.
+              </p>
+            )}
+          </div>
+          <div className={`${styles.card} ${styles.cardFlatMobile}`}>
+            <h3>Posledná aktivita</h3>
+            {logs && logs.length > 0 ? (
+              <div className={styles.roster}>
+                {logs.map((log) => {
+                  // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
+                  const dayName =
+                    parsePlanSnapshot(log.plan_snapshot)?.dayName ??
+                    (log.workout_days as unknown as { name: string } | null)?.name ??
+                    "Tréning";
+                  const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "numeric",
+                    timeZone: "UTC",
+                  });
+                  const loggedCount = parseLoggedEntries(log.entries).filter((e) => e.sets.length > 0).length;
+                  return (
+                    <Link key={log.id} href={`/dashboard/klienti/${id}/treningy/${log.id}`} className={styles.logLinkRow}>
+                      <span>
+                        <span className={styles.clientName}>{dayName}</span>
+                        <span className={styles.logLinkMeta}>
+                          {loggedCount > 0
+                            ? `${loggedCount} ${loggedCount === 1 ? "cvik zapísaný" : loggedCount < 5 ? "cviky zapísané" : "cvikov zapísaných"}`
+                            : "bez zapísaných hodnôt"}
+                        </span>
+                      </span>
+                      <span className={styles.logLinkSide}>
+                        {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>Dokončený</span>}
+                        <span className={styles.clientSince}>{performedOn}</span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
+            )}
+          </div>
+        </div>
+      ),
+    },
     {
       id: "info",
       label: "Info",
@@ -235,100 +329,6 @@ export default async function ClientDetailPage({
               deletionRequestedBy={client.deletion_requested_by}
             />
           </div>
-        </div>
-      ),
-    },
-    {
-      id: "analytika",
-      label: "Analytika",
-      content: (
-        <AnalyticsPanel
-          clientId={id}
-          nutrition={nutrition}
-          adherence={adherence}
-          trainingAdherence={trainingAdherence}
-          bodyMetrics={bodyMetrics ?? []}
-          strengthNames={strengthProgress?.names ?? []}
-          strengthByExercise={strengthProgress?.byExercise ?? {}}
-          strengthPRs={strengthProgress?.prs ?? []}
-        />
-      ),
-    },
-    {
-      id: "treningy",
-      label: "Tréningy",
-      content: (
-        <div className={`${styles.card} ${styles.cardFlatMobile}`}>
-          <h3>Tréningové plány</h3>
-          {plans && plans.length > 0 ? (
-            <div className={styles.roster}>
-              {plans.map((plan) => {
-                const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
-                const done = planCompletion.get(plan.id);
-                return (
-                  <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
-                    <div className={styles.clientName}>{plan.name}</div>
-                    {done?.allDone ? (
-                      <span className={styles.planDoneBadge}>Hotovo</span>
-                    ) : (
-                      <span className={styles.clientSince}>
-                        {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={styles.noWorkouts}>
-              Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <Link href="/dashboard/treningy">Tréningy</Link>.
-            </p>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "aktivita",
-      label: "Aktivita",
-      content: (
-        <div className={styles.card}>
-          <h3>Posledná aktivita</h3>
-          {logs && logs.length > 0 ? (
-            <div className={styles.roster}>
-              {logs.map((log) => {
-                // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
-                const dayName =
-                  parsePlanSnapshot(log.plan_snapshot)?.dayName ??
-                  (log.workout_days as unknown as { name: string } | null)?.name ??
-                  "Tréning";
-                const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "numeric",
-                  timeZone: "UTC",
-                });
-                const loggedCount = parseLoggedEntries(log.entries).filter((e) => e.sets.length > 0).length;
-                return (
-                  <Link key={log.id} href={`/dashboard/klienti/${id}/treningy/${log.id}`} className={styles.logLinkRow}>
-                    <span>
-                      <span className={styles.clientName}>{dayName}</span>
-                      <span className={styles.logLinkMeta}>
-                        {loggedCount > 0
-                          ? `${loggedCount} ${loggedCount === 1 ? "cvik zapísaný" : loggedCount < 5 ? "cviky zapísané" : "cvikov zapísaných"}`
-                          : "bez zapísaných hodnôt"}
-                      </span>
-                    </span>
-                    <span className={styles.logLinkSide}>
-                      {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>Dokončený</span>}
-                      <span className={styles.clientSince}>{performedOn}</span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
-          )}
         </div>
       ),
     },
