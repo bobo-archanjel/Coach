@@ -49,9 +49,10 @@ test.describe("Centrálna schránka správ /dashboard/spravy", () => {
     await expect(page.getByRole("heading", { name: clientName })).toBeVisible();
 
     if (isMobile) {
-      // na mobile sa po výbere zoznam skryje, zostáva len vlákno + späť
+      // na mobile sa po výbere zoznam aj hlavička stránky skryjú — ostáva len vlákno
+      // (späť potiahnutím zľava doprava alebo ťuknutím na Správy v spodnej lište)
       await expect(page.locator("a[href^='/dashboard/spravy?client=']").first()).toBeHidden();
-      await expect(page.getByText("Späť na zoznam")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Správy", exact: true })).toBeHidden();
     } else {
       // na desktope zoznam ostáva viditeľný vedľa vlákna
       await expect(page.locator("a[href^='/dashboard/spravy?client=']").first()).toBeVisible();
@@ -67,13 +68,13 @@ test.describe("Centrálna schránka správ /dashboard/spravy", () => {
     await expect(page.getByText(text)).toBeVisible();
   });
 
-  test("odkaz 'Späť na zoznam' na mobile vráti na plný zoznam", async ({ page, isMobile }) => {
-    test.skip(!isMobile, "back-link je relevantný len na mobile layoute");
+  test("ťuknutie na Správy v spodnej lište na mobile vráti na plný zoznam", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "návrat z vlákna na zoznam je relevantný len na mobile layoute");
     await loginAsTrainer(page);
     await page.goto("/dashboard/spravy");
     await page.locator("a[href^='/dashboard/spravy?client=']").first().click();
     await expect(page).toHaveURL(/client=/);
-    await page.getByText("Späť na zoznam").click();
+    await page.locator("nav a[href='/dashboard/spravy']").click();
     await expect(page).toHaveURL(/\/dashboard\/spravy$/);
     await expect(page.locator("a[href^='/dashboard/spravy?client=']").first()).toBeVisible();
   });

@@ -1137,14 +1137,16 @@ export async function getPortalChat(): Promise<PortalChatResult> {
         .from("messages")
         .select("id, sender, body, created_at")
         .eq("client_id", client.id)
-        .order("created_at", { ascending: true })
+        // POSLEDNÝCH 300 (zostupne + otočiť nižšie) — vzostupne s limitom by vrátilo
+        // prvých 300 a pri dlhšej spolupráci by sa nové správy prestali zobrazovať.
+        .order("created_at", { ascending: false })
         .limit(300),
       supabase.from("clients").select("trainer_id").eq("id", client.id).maybeSingle(),
     ]);
 
     if (msgErr) return { state: "error", message: dbErr(msgErr, "data") };
 
-    const messages: PortalChatMessage[] = (rows ?? []).map((m) => ({
+    const messages: PortalChatMessage[] = [...(rows ?? [])].reverse().map((m) => ({
       id: m.id,
       sender: m.sender as "trainer" | "client" | "system",
       body: m.body,
@@ -1197,11 +1199,12 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
       .from("ai_messages")
       .select("id, role, content, escalated, created_at")
       .eq("conversation_id", conv.id)
-      .order("created_at", { ascending: true })
+      // posledných 300, nie prvých — viď getPortalChat
+      .order("created_at", { ascending: false })
       .limit(300);
     if (msgErr) return { state: "error", message: dbErr(msgErr, "data") };
 
-    const messages: PortalAiChatMessage[] = (rows ?? []).map((m) => ({
+    const messages: PortalAiChatMessage[] = [...(rows ?? [])].reverse().map((m) => ({
       id: m.id,
       role: m.role as "user" | "assistant",
       // staršie odpovede sa uložili ešte s markdownom (pred stripMarkdown v chat.ts)

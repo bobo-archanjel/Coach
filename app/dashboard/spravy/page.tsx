@@ -65,7 +65,9 @@ export default async function SpravyPage({
           .from("messages")
           .select("id, sender, body, created_at")
           .eq("client_id", selectedClientId)
-          .order("created_at", { ascending: true })
+          // POSLEDNÝCH 300 (zostupne + otočiť nižšie) — vzostupne s limitom by vrátilo
+          // prvých 300 a pri dlhšej spolupráci by sa nové správy prestali zobrazovať.
+          .order("created_at", { ascending: false })
           .limit(300)
       : Promise.resolve({ data: null }),
   ]);
@@ -116,7 +118,7 @@ export default async function SpravyPage({
 
   let selectedMessages: { id: string; sender: "trainer" | "client" | "system"; body: string; createdAt: string }[] = [];
   if (selectedClientId) {
-    selectedMessages = (msgRows ?? []).map((m) => ({
+    selectedMessages = [...(msgRows ?? [])].reverse().map((m) => ({
       id: m.id as string,
       sender: m.sender as "trainer" | "client" | "system",
       body: m.body as string,

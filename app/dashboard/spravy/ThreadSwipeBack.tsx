@@ -12,6 +12,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 const MIN_DX = 70;
 const LOCK_DX = 12; // od koľkých px vodorovne sa pohyb berie ako ťah vlákna, nie scroll
 const ANIM_MS = 180;
+// Ťah začatý tu nie je gesto späť: v poli na písanie posúva kurzor / označuje text,
+// na tlačidlách a odkazoch je to ťuknutie. Inak by vodorovný pohyb v poli zavrel
+// chat a rozpísaná správa by sa stratila.
+const NO_SWIPE = "form, textarea, input, button, a, [data-no-swipe]";
 
 /**
  * Okamžite (bez čakania na server) prepne mobilné Správy z otvoreného vlákna na
@@ -70,7 +74,7 @@ export function ThreadSwipeBack({ className, children }: { className?: string; c
           : undefined
       }
       onTouchStart={(e) => {
-        if (!client || e.touches.length !== 1) {
+        if (!client || e.touches.length !== 1 || (e.target as Element).closest(NO_SWIPE)) {
           start.current = null;
           return;
         }
@@ -87,6 +91,10 @@ export function ThreadSwipeBack({ className, children }: { className?: string; c
         if (!s.dragging) {
           if (Math.abs(my) > LOCK_DX && Math.abs(my) > Math.abs(mx)) {
             start.current = null; // zvislý scroll správ — gesto vzdať
+            return;
+          }
+          if (window.getSelection()?.toString()) {
+            start.current = null; // používateľ označuje text v správe (dlhé podržanie + ťah)
             return;
           }
           if (mx > LOCK_DX) s.dragging = true;

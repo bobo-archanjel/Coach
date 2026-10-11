@@ -16,23 +16,25 @@ function opensKeyboard(el: Element | null): boolean {
   return el instanceof HTMLElement && el.isContentEditable;
 }
 
-// iOS posunie stránku k poľu ešte pred tým, než skrytie lišty (a jej rezervovaného
-// odstupu) stránku skráti — pole potom skončí pod klávesnicou. Po ustálení layoutu
-// ho preto dorovnáme do viditeľnej časti (visualViewport = plocha nad klávesnicou).
-function revealFocused() {
+// Pole na písanie k ploche nad klávesnicou posúva sám iOS — plynulo, spolu s jej
+// vysúvaním. Predtým sme ho 50 ms po ťuknutí posunuli ešte raz (skokom), oba posuny
+// sa sčítali a stránka vyletela príliš vysoko, kým sa nevrátila. Teraz len poistka:
+// až keď sa klávesnica ustáli, a len ak pole naozaj ostalo pod ňou (napr. stránka
+// sa skrátila skrytím lišty), dorovná sa plynulo o presne chýbajúci kus.
+function revealIfHidden(): boolean {
   const el = document.activeElement;
-  if (!opensKeyboard(el)) return;
+  if (!opensKeyboard(el)) return false;
   const vv = window.visualViewport;
-  const top = vv ? vv.offsetTop : 0;
   const bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
-  const rect = (el as HTMLElement).getBoundingClientRect();
-  const margin = 16;
-  if (rect.bottom + margin > bottom) {
-    window.scrollBy(0, rect.bottom + margin - bottom);
-  } else if (rect.top - margin < top) {
-    window.scrollBy(0, rect.top - margin - top);
-  }
+  const overlap = (el as HTMLElement).getBoundingClientRect().bottom + 12 - bottom;
+  if (overlap <= 1) return false;
+  window.scrollBy({ top: overlap, behavior: "smooth" });
+  return true;
 }
+/** Ako dlho po otvorení klávesnice ešte dorovnávať (potom by sme bojovali so scrollom používateľa). */
+const REVEAL_WINDOW_MS = 1500;
+/** Klávesnica je "ustálená", keď sa visualViewport takto dlho nezmenil (veľkosť ani posun). */
+const SETTLE_MS = 150;
 
 // Po zatvorení klávesnice iOS Safari občas nechá zobrazenie posunuté tak, ako bolo
 // pri otvorenej klávesnici (stránka bola vtedy kratšia — skrytá lišta, menší odstup)
@@ -59,6 +61,13 @@ export function KeyboardState() {
     const root = document.documentElement;
     const vv = window.visualViewport;
     let timers: ReturnType<typeof setTimeout>[] = [];
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    let openedAt = 0;
+    // Najviac jedno dorovnanie na jedno otvorenie klávesnice (dva plynulé posuny
+    // by sa mohli sčítať, kým prvý ešte beží).
+    let corrected = false;
+    // Hlásil prehliadač zmenu visualViewportu? Ak áno, poistný časovač netreba.
+    let sawViewportChange = false;
     // Okno po zatvorení klávesnice, kedy resize visualViewportu znamená jej zasúvanie.
     // Mimo neho sa resize deje aj pri bežnom scrollovaní (zbaľovanie lišty Safari) —
     // tam sa zobrazenie posúvať nesmie.
@@ -74,19 +83,44 @@ export function KeyboardState() {
       if (touch.matches && opensKeyboard(document.activeElement)) {
         const wasOpen = root.hasAttribute("data-keyboard-open");
         root.setAttribute("data-keyboard-open", "");
-        if (!wasOpen) schedule(revealFocused);
+        if (!wasOpen) {
+          openedAt = Date.now();
+          corrected = false;
+          sawViewportChange = false;
+          // poistka, ak by prehliadač zmenu visualViewportu vôbec neohlásil
+          timers.forEach(clearTimeout);
+          timers = [setTimeout(() => !sawViewportChange && settle(), 700)];
+        }
       } else if (root.hasAttribute("data-keyboard-open")) {
         root.removeAttribute("data-keyboard-open");
         closingUntil = Date.now() + 1000;
         schedule(realignViewport);
       }
     };
-    // zmena výšky visualViewportu = klávesnica sa práve dovysunula / zasunula
+    // Kontrola poľa až SETTLE_MS po poslednej zmene visualViewportu — kým iOS ešte
+    // vysúva klávesnicu a posúva výrez (resize aj scroll udalosti), nezasahujeme.
+    const settle = () => {
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        if (!corrected && revealIfHidden()) corrected = true;
+      }, SETTLE_MS);
+    };
+    const opening = () => root.hasAttribute("data-keyboard-open") && Date.now() - openedAt < REVEAL_WINDOW_MS;
+    // zmena výšky visualViewportu = klávesnica sa vysúva / zasúva
     const onViewportResize = () => {
-      if (root.hasAttribute("data-keyboard-open")) revealFocused();
-      else if (Date.now() < closingUntil) realignViewport();
+      if (root.hasAttribute("data-keyboard-open")) {
+        sawViewportChange = true;
+        if (opening()) settle();
+      } else if (Date.now() < closingUntil) realignViewport();
+    };
+    // posun výrezu počas vysúvania klávesnice (iOS) — ešte nie je ustálené
+    const onViewportScroll = () => {
+      if (!opening()) return;
+      sawViewportChange = true;
+      settle();
     };
     vv?.addEventListener("resize", onViewportResize);
+    vv?.addEventListener("scroll", onViewportScroll);
     // focusout sa vyvolá skôr, než focus dopadne na ďalšie pole — pri preskakovaní
     // medzi poliami by lišta krátko bliknula; preto kontrola až po dokončení presunu.
     const onFocusOut = () => setTimeout(sync, 0);
@@ -97,7 +131,9 @@ export function KeyboardState() {
       document.removeEventListener("focusin", sync);
       document.removeEventListener("focusout", onFocusOut);
       vv?.removeEventListener("resize", onViewportResize);
+      vv?.removeEventListener("scroll", onViewportScroll);
       timers.forEach(clearTimeout);
+      clearTimeout(settleTimer);
       root.removeAttribute("data-keyboard-open");
     };
   }, []);

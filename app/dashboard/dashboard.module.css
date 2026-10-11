@@ -1367,6 +1367,16 @@ select.addClientInputSm {
     height: calc(100vh - 160px - env(safe-area-inset-bottom, 0px));
     height: calc(100svh - 160px - env(safe-area-inset-bottom, 0px));
     min-height: 320px;
+    transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s;
+  }
+  /* Otvorená klávesnica: iOS posunie stránku tak, že nad klávesnicou skončí SPODOK
+     obrazovky (nie pole na písanie). Pole bolo ~100px nad ním (miesto pre spodnú lištu
+     + safe area) → nad klávesnicou ostal čierny pás. Vlákno sa preto natiahne až k
+     spodku obrazovky (56 top bar + 28 + 12 odstup) — pole skončí tesne nad klávesnicou.
+     Zmena výšky ide plynulo spolu s vysúvaním klávesnice (transition vyššie), nie skokom. */
+  :global(html[data-keyboard-open]) .inboxGrid[data-has-selection="true"] .inboxThread {
+    height: calc(100vh - 96px);
+    height: calc(100svh - 96px);
   }
   /* Hlavička stránky a "Hromadná správa" pri otvorenom vlákne — na mobile len chat.
      Riadené tým istým atribútom ako zoznam (nie triedou zo servera), takže pri návrate
@@ -1377,9 +1387,14 @@ select.addClientInputSm {
     display: none;
   }
 }
-.inboxList .roster {
-  max-height: calc(100vh - 260px);
-  overflow-y: auto;
+/* Vlastný scroll zoznamu len na desktope (stĺpec vedľa vlákna). Na mobile je zoznam
+   sám na obrazovke — scrolluje celá stránka; vnorený box tam pôsobil neprirodzene
+   a jeho spodok bol schovaný pod spodnou lištou navigácie. */
+@media (min-width: 861px) {
+  .inboxList .roster {
+    max-height: calc(100vh - 260px);
+    overflow-y: auto;
+  }
 }
 .inboxRow {
   align-items: start;
