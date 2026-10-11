@@ -85,11 +85,18 @@
   height: calc(100svh - 118px - env(safe-area-inset-bottom));
   min-height: 0;
 }
-/* Bez lišty (otvorená klávesnica) — 118px rátalo s jej 84px odstupom v .main. */
+/* Otvorená klávesnica: iOS posunie stránku tak, že nad klávesnicou skončí SPODOK
+   obrazovky — pole na písanie preto musí byť pri ňom, inak nad klávesnicou ostane
+   čierny pás (miesto po skrytej lište + safe area). Chat sa natiahne k spodku
+   obrazovky (34px = horný 22 + spodný 12 odstup .main), plynulo spolu
+   s vysúvaním klávesnice — nie skokom, pole by inak pri ťuknutí poskočilo. */
 @media (max-width: 879px) {
+  .chatPage {
+    transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s;
+  }
   :global(html[data-keyboard-open]) .chatPage {
-    height: calc(100vh - 46px);
-    height: calc(100svh - 46px);
+    height: calc(100vh - 34px);
+    height: calc(100svh - 34px);
   }
 }
 @media (min-width: 880px) {

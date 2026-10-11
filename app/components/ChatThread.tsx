@@ -59,6 +59,17 @@ function dayLabel(iso: string): string {
 
 const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" });
 
+/** Výška poľa podľa obsahu (max 120px, potom sa scrolluje vo vnútri). */
+function fitHeight(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+}
+
+const SEND_FAILED = "Správu sa nepodarilo odoslať — skontroluj pripojenie a skús znova.";
+/** Pri odstupe menšom než toto (px) od spodku sa nová správa ešte "dotiahne" dole. */
+const NEAR_BOTTOM_PX = 80;
+
 export function ChatThread({
   messages,
   mySide,
@@ -117,11 +128,34 @@ export function ChatThread({
   revealComposer?: boolean;
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(sendAction, initialState);
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLFormElement>(null);
+  // Bol fokus v poli, keď používateľ ťukol na Odoslať? (oprava zatvárania klávesnice)
+  const keepFocusRef = useRef(false);
+  // Je vlákno posunuté pri spodku? Mení sa pri scrollovaní, predvolene áno (otvorenie).
+  const nearBottomRef = useRef(true);
+
+  // Odoslanie odolné voči výpadku siete: zlyhaný fetch server action (slabý signál,
+  // výťah) predtým vyhodil výnimku a zhodil celú appku na "Application error".
+  // Pri akejkoľvek chybe (sieť aj odmietnutie serverom) sa text vráti do poľa —
+  // optimistická bublina zmizne, ale rozpísaná správa sa nestratí.
+  async function sendSafely(prev: ChatSendState, fd: FormData): Promise<ChatSendState> {
+    const body = String(fd.get("body") ?? "");
+    let res: ChatSendState;
+    try {
+      res = await sendAction(prev, fd);
+    } catch {
+      res = { error: SEND_FAILED };
+    }
+    if (res.error) {
+      setText((current) => current || body);
+      requestAnimationFrame(() => fitHeight(inputRef.current));
+    }
+    return res;
+  }
+  const [state, formAction, pending] = useActionState(sendSafely, initialState);
 
   // len pri otvorení (mount) — nie pri každej novej správe, aby to neťahalo stránku,
   // keď tréner práve číta staršie správy vyššie
@@ -136,11 +170,13 @@ export function ChatThread({
     { id: `pending-${curr.length}`, sender: mySide, body, createdAt: new Date().toISOString(), _pending: true },
   ]);
 
-  // auto-scroll na spodok pri nových správach
+  // Na spodok pri otvorení, po vlastnej správe, alebo keď už je používateľ pri spodku.
+  // Kto práve číta staršie správy vyššie, toho nová správa od protistrany nestiahne dole.
+  const lastSender = optimistic[optimistic.length - 1]?.sender;
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [optimistic.length]);
+    if (el && (lastSender === mySide || nearBottomRef.current)) el.scrollTop = el.scrollHeight;
+  }, [optimistic.length, lastSender, mySide]);
 
   // označ prečítané pri otvorení a pri návrate na kartu (nie na každý poll)
   useEffect(() => {
@@ -213,13 +249,6 @@ export function ChatThread({
     };
   }, [router, pollMs, checkNewAction, realtimeTable, mySide]);
 
-  function grow() {
-    const el = inputRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }
-
   function submit(e?: FormEvent) {
     e?.preventDefault();
     const body = text.trim();
@@ -232,7 +261,13 @@ export function ChatThread({
       formAction(fd);
     });
     setText("");
-    requestAnimationFrame(grow);
+    requestAnimationFrame(() => fitHeight(inputRef.current));
+    // Fallback k preventDefault na tlačidle: ak by prehliadač fokus predsa vzal,
+    // vráť ho (v rámci toho istého ťuknutia — iOS klávesnicu nechá otvorenú).
+    if (keepFocusRef.current) {
+      keepFocusRef.current = false;
+      inputRef.current?.focus({ preventScroll: true });
+    }
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -248,7 +283,18 @@ export function ChatThread({
 
   return (
     <div className={`${styles.thread} ${fill ? styles.fill : ""} ${embedded ? styles.embedded : ""}`}>
-      <div className={styles.scroll} ref={scrollRef} role="log" aria-live="polite" aria-label="História správ" tabIndex={0}>
+      <div
+        className={styles.scroll}
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="História správ"
+        tabIndex={0}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+        }}
+      >
         {hasMessages ? (
           optimistic.map((m, i) => {
             const prev = optimistic[i - 1];
@@ -307,12 +353,25 @@ export function ChatThread({
             placeholder={placeholder}
             onChange={(e) => {
               setText(e.target.value);
-              grow();
+              fitHeight(e.currentTarget);
             }}
             onKeyDown={onKeyDown}
             aria-label="Napísať správu"
           />
-          <button type="submit" className={styles.send} disabled={pending || !text.trim()} aria-label="Odoslať">
+          <button
+            type="submit"
+            className={styles.send}
+            disabled={pending || !text.trim()}
+            aria-label="Odoslať"
+            // Ťuknutie na Odoslať nesmie vziať fokus poľu — inak sa na telefóne po každej
+            // správe zatvorí klávesnica. preventDefault zabráni presunu fokusu, samotný
+            // click (odoslanie formulára) ostáva.
+            onPointerDown={(e) => {
+              keepFocusRef.current = document.activeElement === inputRef.current;
+              e.preventDefault();
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+          >
             <SendIcon />
           </button>
         </form>
