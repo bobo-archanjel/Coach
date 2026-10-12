@@ -26,6 +26,10 @@ const NO_SWIPE = "form, textarea, input, button, a, [data-no-swipe]";
  * systémovým gestom/tlačidlom späť (popstate).
  */
 export function revealInboxList(): void {
+  // Pole na písanie sa skryje (a potom zmizne) s fokusom — Safari vtedy neohlási
+  // focusout a KeyboardState by nechal spodnú lištu skrytú ako pri otvorenej klávesnici.
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active.closest('[data-has-selection="true"]')) active.blur();
   document.querySelector('[data-has-selection="true"]')?.setAttribute("data-has-selection", "false");
 }
 
