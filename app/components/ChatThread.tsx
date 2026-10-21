@@ -371,6 +371,17 @@ export function ChatThread({
               e.preventDefault();
             }}
             onMouseDown={(e) => e.preventDefault()}
+            // iOS: ťuknutie na Odoslať pri otvorenej klávesnici najprv zrušilo fokus poľa,
+            // klávesnica sa začala zasúvať, chat zmenil výšku a "click" prišiel už mimo
+            // tlačidla — odoslalo sa až na druhé ťuknutie. Odosielame preto hneď pri
+            // zdvihnutí prsta; preventDefault zabráni strate fokusu (klávesnica ostane)
+            // aj následnému click (žiadne dvojité odoslanie).
+            onTouchEnd={(e) => {
+              if (pending || !text.trim()) return;
+              e.preventDefault();
+              keepFocusRef.current = document.activeElement === inputRef.current;
+              submit();
+            }}
           >
             <SendIcon />
           </button>

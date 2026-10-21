@@ -62,8 +62,14 @@
 }
 /* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
 @media (max-width: 879px) {
+  /* Bez min-height a s malým odstupom — viď .content v dashboard.module.css (iOS 26
+     posúva na koniec dokumentu, pole tak skončí tesne nad adresnou lištou). */
   :global(html[data-keyboard-open]) .main {
     padding-bottom: 12px;
+  }
+  :global(html[data-keyboard-open]) .viewport,
+  :global(html[data-keyboard-open]) .column {
+    min-height: 0;
   }
 }
 
@@ -83,7 +89,18 @@
      klávesnice v Safari neprepočíta a pod chatom ostane čierna medzera). */
   height: calc(100vh - 118px - env(safe-area-inset-bottom));
   height: calc(100svh - 118px - env(safe-area-inset-bottom));
+  /* skutočná výška obrazovky — viď .inboxThread v dashboard.module.css; 93 px = horný
+     odstup .main 22 + spodná lišta s odstupom, pole končí ~10 px nad lištou */
+  height: calc(var(--app-h, 100svh) - 93px - env(safe-area-inset-bottom));
   min-height: 0;
+}
+/* Stránka chatu má presne výšku obrazovky (nescrolluje sa): odstup pod chatom len
+   toľko, koľko zaberá spodná lišta (22 + chat + 71 = --app-h). Pri otvorenej klávesnici
+   platí pravidlo pre otvorenú klávesnicu vyššie (vyššia špecificita). */
+@media (max-width: 879px) {
+  .main:has(> .chatPage) {
+    padding-bottom: calc(71px + env(safe-area-inset-bottom));
+  }
 }
 /* Otvorená klávesnica: iOS posunie stránku tak, že nad klávesnicou skončí SPODOK
    obrazovky — pole na písanie preto musí byť pri ňom, inak nad klávesnicou ostane

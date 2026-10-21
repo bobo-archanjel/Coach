@@ -10,7 +10,9 @@ import { useEffect } from "react";
 const NON_TEXT_INPUTS = new Set(["checkbox", "radio", "range", "button", "submit", "reset", "file", "color", "image"]);
 
 function opensKeyboard(el: Element | null): boolean {
-  if (!el) return false;
+  // Pole, ktoré už nie je na stránke alebo je skryté (napr. zatvorené vlákno chatu),
+  // klávesnicu nedrží — prehliadač pri jeho odstránení focusout nemusí ohlásiť.
+  if (!el || !el.isConnected || el.getClientRects().length === 0) return false;
   if (el instanceof HTMLTextAreaElement) return !el.readOnly;
   if (el instanceof HTMLInputElement) return !el.readOnly && !NON_TEXT_INPUTS.has(el.type);
   return el instanceof HTMLElement && el.isContentEditable;
@@ -30,6 +32,15 @@ function revealIfHidden(): boolean {
   if (overlap <= 1) return false;
   window.scrollBy({ top: overlap, behavior: "smooth" });
   return true;
+}
+// --app-h: skutočná výška obrazovky (innerHeight), na ktorej sedí fixná spodná lišta.
+// 100svh je na iOS 26 menšie (počíta s rozbaleným panelom Safari, ktorý ale prekrýva
+// stránku) — chat podľa neho končil ~70 px nad lištou. Nastavuje ho aj skript v <head>
+// (prvé vykreslenie); tu sa udržiava pri zmene veľkosti, nie počas otvorenej klávesnice
+// (vtedy innerHeight zmenšuje klávesnica a výšku chatu rieši iné pravidlo).
+function syncAppHeight() {
+  if (document.documentElement.hasAttribute("data-keyboard-open")) return;
+  document.documentElement.style.setProperty("--app-h", `${window.innerHeight}px`);
 }
 /** Ako dlho po otvorení klávesnice ešte dorovnávať (potom by sme bojovali so scrollom používateľa). */
 const REVEAL_WINDOW_MS = 1500;
@@ -66,6 +77,7 @@ export function KeyboardState() {
     // Najviac jedno dorovnanie na jedno otvorenie klávesnice (dva plynulé posuny
     // by sa mohli sčítať, kým prvý ešte beží).
     let corrected = false;
+
     // Hlásil prehliadač zmenu visualViewportu? Ak áno, poistný časovač netreba.
     let sawViewportChange = false;
     // Okno po zatvorení klávesnice, kedy resize visualViewportu znamená jej zasúvanie.
@@ -127,9 +139,19 @@ export function KeyboardState() {
 
     document.addEventListener("focusin", sync);
     document.addEventListener("focusout", onFocusOut);
+    // Poistka: ak fokus "zostal visieť" na odstránenom/skrytom poli (bez focusout),
+    // stav sa prekontroluje pri najbližšom dotyku obrazovky.
+    const onTouch = () => {
+      if (root.hasAttribute("data-keyboard-open")) setTimeout(sync, 0);
+    };
+    document.addEventListener("touchstart", onTouch, { passive: true, capture: true });
+    syncAppHeight();
+    window.addEventListener("resize", syncAppHeight);
     return () => {
       document.removeEventListener("focusin", sync);
       document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("touchstart", onTouch, { capture: true });
+      window.removeEventListener("resize", syncAppHeight);
       vv?.removeEventListener("resize", onViewportResize);
       vv?.removeEventListener("scroll", onViewportScroll);
       timers.forEach(clearTimeout);

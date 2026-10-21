@@ -404,8 +404,14 @@ a.bellItemMain:hover {
 }
 /* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
 @media (max-width: 880px) {
+  /* Otvorená klávesnica: dokument končí tesne pod obsahom (bez min-height celej
+     obrazovky). Safari na iOS 26 posúva stránku na koniec dokumentu — pole tak skončí
+     tesne nad adresnou lištou, nie s čiernym pásom pod sebou (overené na iPhone). */
   :global(html[data-keyboard-open]) .content {
     padding-bottom: 12px;
+  }
+  :global(html[data-keyboard-open]) .shell {
+    min-height: 0;
   }
 }
 
@@ -1366,6 +1372,9 @@ select.addClientInputSm {
        medzerou pod ním. svh je stabilná výška obrazovky, na klávesnicu nereaguje. */
     height: calc(100vh - 160px - env(safe-area-inset-bottom, 0px));
     height: calc(100svh - 160px - env(safe-area-inset-bottom, 0px));
+    /* --app-h = skutočná výška obrazovky (KeyboardState) — 100svh je na iOS 26 menšie
+       a pole na písanie končilo ~70 px nad spodnou lištou */
+    height: calc(var(--app-h, 100svh) - 160px - env(safe-area-inset-bottom, 0px));
     min-height: 320px;
     transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s;
   }
