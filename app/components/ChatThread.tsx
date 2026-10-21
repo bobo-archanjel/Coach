@@ -45,6 +45,75 @@ const ChatGlyph = () => (
   </svg>
 );
 
+const SmileIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M8.6 14.2c.8 1.2 2 1.8 3.4 1.8s2.6-.6 3.4-1.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <circle cx="9.3" cy="10" r="1.1" fill="currentColor" />
+    <circle cx="14.7" cy="10" r="1.1" fill="currentColor" />
+  </svg>
+);
+
+/** Rýchly výber emoji pre tréner ↔ klient chat, rozdelený do záložiek. Plný výber majú
+    používatelia v mobilnej klávesnici; tu sú tie, ktoré sa v tomto chate hodia najviac.
+    V rámci jednej kategórie nesmie byť emoji dvakrát (slúži ako React key). Prvých
+    ~7 v každej kategórii je na mobile vidno bez posúvania — najčastejšie dávaj dopredu. */
+const EMOJI_CATEGORIES: { label: string; icon: string; emoji: string[] }[] = [
+  {
+    label: "Nálada",
+    icon: "😊",
+    emoji: [
+      "👍", "❤️", "😊", "😄", "😂", "😅", "😍", "🤩",
+      "😎", "🥳", "😌", "🤔", "😐", "😕", "😔", "😢",
+      "😩", "😤", "😡", "🤯", "😴", "🤒", "🤕", "🙏",
+      "👏", "🙌", "💯", "✅",
+    ],
+  },
+  {
+    label: "Fitness",
+    icon: "💪",
+    emoji: [
+      "💪", "🔥", "🏋️", "🏃", "🚴", "🏊", "🧘", "🤸",
+      "🚶", "🥊", "⚽", "🎾", "⛰️", "🥵", "💦", "⚡",
+      "⏱️", "🎯", "📈", "📉", "🏆", "🥇", "🛌", "🦵",
+    ],
+  },
+  {
+    label: "Jedlo",
+    icon: "🥗",
+    emoji: [
+      "🥗", "🍎", "🍌", "🍓", "🫐", "🥑", "🥦", "🥕",
+      "🍗", "🥩", "🐟", "🥚", "🧀", "🥛", "🍚", "🍝",
+      "🥜", "🍞", "🍕", "🍔", "🍫", "🍰", "☕", "🍵",
+      "💧", "🍺", "🍽️",
+    ],
+  },
+];
+
+/** Posun prsta (px), nad ktorým ťuknutie v páse berieme ako scroll, nie výber emoji. */
+const TAP_SLOP_PX = 8;
+
+/**
+ * Správa len z 1–3 emoji (napr. "🔥" alebo "👍👍") sa vykreslí veľká a bez bubliny.
+ * Číslice a #/* sú v Unicode tiež "Emoji_Component", preto rátame len obrázkové znaky
+ * (Extended_Pictographic) a vlajky (Regional_Indicator) — "123" ostane bežná správa.
+ */
+function isJumboEmoji(text: string): boolean {
+  const s = text.trim();
+  if (!s || s.length > 32) return false;
+  if (!/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(s)) return false;
+  const rest = s.replace(
+    /\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|[‍️⃣\s]/gu,
+    "",
+  );
+  if (rest) return false;
+  const count =
+    typeof Intl !== "undefined" && "Segmenter" in Intl
+      ? [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s.replace(/\s/g, ""))].length
+      : 1;
+  return count <= 3;
+}
+
 function dayLabel(iso: string): string {
   const d = new Date(iso);
   const today = new Date();
@@ -136,6 +205,10 @@ export function ChatThread({
   const keepFocusRef = useRef(false);
   // Je vlákno posunuté pri spodku? Mení sa pri scrollovaní, predvolene áno (otvorenie).
   const nearBottomRef = useRef(true);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [emojiCat, setEmojiCat] = useState(0);
+  // začiatok dotyku v páse emoji — rozlíšenie ťuknutia od vodorovného scrollu
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Odoslanie odolné voči výpadku siete: zlyhaný fetch server action (slabý signál,
   // výťah) predtým vyhodil výnimku a zhodil celú appku na "Application error".
@@ -177,6 +250,24 @@ export function ChatThread({
     const el = scrollRef.current;
     if (el && (lastSender === mySide || nearBottomRef.current)) el.scrollTop = el.scrollHeight;
   }, [optimistic.length, lastSender, mySide]);
+
+  // Vlákno má na mobile pevnú výšku — keď pod ním narastie composer (otvorený pás emoji,
+  // viacriadkový text) alebo sa chat zmení s klávesnicou, zmenší sa plocha správ, ale
+  // scrollTop ostane rovnaký a posledné správy skončia schované pod composerom.
+  // Kto bol pri spodku, toho držíme pri spodku. Posúva sa len vnútro vlákna (nie
+  // stránka), takže to nezasahuje do posunov okolo klávesnice (KeyboardState).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let lastHeight = el.clientHeight;
+    const ro = new ResizeObserver(() => {
+      const h = el.clientHeight;
+      if (h !== lastHeight && nearBottomRef.current) el.scrollTop = el.scrollHeight;
+      lastHeight = h;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // označ prečítané pri otvorení a pri návrate na kartu (nie na každý poll)
   useEffect(() => {
@@ -270,6 +361,29 @@ export function ChatThread({
     }
   }
 
+  /**
+   * Vloží emoji na pozíciu kurzora. Ak bolo pole aktívne (otvorená klávesnica), fokus
+   * ostane a kurzor sa posunie za emoji. Ak nebolo, klávesnicu NEotvárame — klient
+   * môže poslať len "👍" jedným ťuknutím na emoji a druhým na Odoslať.
+   */
+  function insertEmoji(emoji: string) {
+    const el = inputRef.current;
+    const focused = !!el && document.activeElement === el;
+    const start = focused && el ? el.selectionStart : text.length;
+    const end = focused && el ? el.selectionEnd : text.length;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    requestAnimationFrame(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      fitHeight(input);
+      if (focused) {
+        const caret = start + emoji.length;
+        input.setSelectionRange(caret, caret);
+      }
+    });
+  }
+
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // Enter odošle len na desktope; na dotykových zariadeniach je Enter nový riadok.
     const enterSends = typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches;
@@ -324,7 +438,7 @@ export function ChatThread({
                 <div
                   className={`${styles.row} ${mine ? styles.mine : styles.theirs} ${turn && !newDay ? styles.turn : ""} ${pendingRow ? styles.pending : ""}`}
                 >
-                  <div className={styles.bubble}>{m.body}</div>
+                  <div className={`${styles.bubble} ${isJumboEmoji(m.body) ? styles.jumbo : ""}`}>{m.body}</div>
                   {(endOfTurn || pendingRow) && (
                     <span className={styles.meta}>{pendingRow ? "odosielam…" : timeOf(m.createdAt)}</span>
                   )}
@@ -344,7 +458,98 @@ export function ChatThread({
       </div>
 
       {!readOnly && (
-        <form ref={composerRef} className={styles.composer} onSubmit={submit}>
+        <form
+          ref={composerRef}
+          className={styles.composer}
+          onSubmit={submit}
+          // Celý composer je "pri poli": ťuknutie medzi tlačidlá (medzery v páse emoji,
+          // okraj okolo poľa) klávesnicu nezatvára. KeyboardState tu fokus nezruší
+          // (data-keep-keyboard) a preventDefault zabráni, aby ho zrušil Safari —
+          // inak klávesnicu niekedy zasunul s fokusom ponechaným v poli.
+          data-keep-keyboard=""
+          onTouchEnd={(e) => {
+            const target = e.target as Element;
+            if (target.closest("button, textarea")) return; // vlastná akcia / kurzor v poli
+            if (e.cancelable && document.activeElement === inputRef.current) e.preventDefault();
+          }}
+        >
+          {emojiOpen && (
+            <div id="chat-emoji-strip" className={styles.emojiPanel}>
+              <div className={styles.emojiTabs} role="tablist" aria-label="Kategórie emoji">
+                {EMOJI_CATEGORIES.map((cat, i) => (
+                  <button
+                    key={cat.label}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === emojiCat}
+                    className={`${styles.emojiTab} ${i === emojiCat ? styles.emojiTabOn : ""}`}
+                    // ani prepnutie záložky nesmie zatvoriť klávesnicu
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      setEmojiCat(i);
+                    }}
+                    onClick={() => setEmojiCat(i)}
+                  >
+                    <span className={styles.emojiTabIcon} aria-hidden="true">
+                      {cat.icon}
+                    </span>
+                    {/* na mobile len ikona (jeden riadok = viac miesta pre správy) */}
+                    <span className={styles.emojiTabLabel}>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div
+                // key = nová kategória začína od začiatku pásu, nie na pozícii predošlej
+                key={emojiCat}
+                className={styles.emojiStrip}
+                role="tabpanel"
+                aria-label={EMOJI_CATEGORIES[emojiCat].label}
+                onTouchStart={(e) => {
+                  const t = e.touches[0];
+                  touchStartRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+                }}
+              >
+                {EMOJI_CATEGORIES[emojiCat].emoji.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className={styles.emojiBtn}
+                    aria-label={`Vložiť ${emoji}`}
+                    // rovnaký vzor ako Odoslať: ťuknutie nesmie vziať fokus poľu (klávesnica ostane)
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchEnd={(e) => {
+                      const start = touchStartRef.current;
+                      const t = e.changedTouches[0];
+                      touchStartRef.current = null;
+                      // prst sa posunul = scroll pásu, nie výber
+                      if (start && t && Math.hypot(t.clientX - start.x, t.clientY - start.y) > TAP_SLOP_PX) return;
+                      e.preventDefault();
+                      insertEmoji(emoji);
+                    }}
+                    onClick={() => insertEmoji(emoji)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <button
+            type="button"
+            className={`${styles.emojiToggle} ${emojiOpen ? styles.emojiToggleOn : ""}`}
+            aria-label={emojiOpen ? "Skryť emoji" : "Pridať emoji"}
+            aria-expanded={emojiOpen}
+            aria-controls="chat-emoji-strip"
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              setEmojiOpen((o) => !o);
+            }}
+            onClick={() => setEmojiOpen((o) => !o)}
+          >
+            <SmileIcon />
+          </button>
           <textarea
             ref={inputRef}
             className={styles.input}
