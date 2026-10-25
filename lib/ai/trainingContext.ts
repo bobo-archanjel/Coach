@@ -44,35 +44,22 @@ function formatLogged(e: LoggedEntry): string {
  */
 export async function getTrainingContextBlock(supabase: SupabaseClient, clientId: string): Promise<string> {
   try {
-    const { data: client } = await supabase.from("clients").select("active_plan_id").eq("id", clientId).maybeSingle();
-
-    let plan: { id: string; name: string } | null = null;
-    if (client?.active_plan_id) {
-      const { data } = await supabase
+    // Aktívny plán klienta (clients.active_plan_id), inak najnovší zverejnený — ako karta
+    // Dnes. Klient, najnovší plán s dňami (embed) a logy v jednom kole; samostatný
+    // dopyt na aktívny plán len keď je iný než najnovší. Predtým 3-4 dopyty za sebou.
+    type PlanWithDays = { id: string; name: string; workout_days: { id: string; name: string; exercises: unknown }[] | null };
+    const planSelect = "id, name, workout_days(id, name, exercises, day_number)";
+    const [{ data: client }, { data: newest }, { data: logRows }] = await Promise.all([
+      supabase.from("clients").select("active_plan_id").eq("id", clientId).maybeSingle(),
+      supabase
         .from("workout_plans")
-        .select("id, name")
-        .eq("id", client.active_plan_id)
-        .eq("client_id", clientId)
-        .eq("published", true)
-        .maybeSingle();
-      plan = data ?? null;
-    }
-    if (!plan) {
-      const { data } = await supabase
-        .from("workout_plans")
-        .select("id, name")
+        .select(planSelect)
         .eq("client_id", clientId)
         .eq("published", true)
         .order("created_at", { ascending: false })
+        .order("day_number", { referencedTable: "workout_days", ascending: true })
         .limit(1)
-        .maybeSingle();
-      plan = data ?? null;
-    }
-
-    const [{ data: dayRows }, { data: logRows }] = await Promise.all([
-      plan
-        ? supabase.from("workout_days").select("id, name, exercises").eq("plan_id", plan.id).order("day_number")
-        : Promise.resolve({ data: [] as { id: string; name: string; exercises: unknown }[] }),
+        .maybeSingle(),
       supabase
         .from("workout_logs")
         .select("performed_on, workout_day_id, entries, workout_days(name)")
@@ -80,6 +67,20 @@ export async function getTrainingContextBlock(supabase: SupabaseClient, clientId
         .order("performed_on", { ascending: false })
         .limit(RECENT_LOGS),
     ]);
+
+    let plan = (newest as PlanWithDays | null) ?? null;
+    if (client?.active_plan_id && client.active_plan_id !== plan?.id) {
+      const { data: active } = await supabase
+        .from("workout_plans")
+        .select(planSelect)
+        .eq("id", client.active_plan_id)
+        .eq("client_id", clientId)
+        .eq("published", true)
+        .order("day_number", { referencedTable: "workout_days", ascending: true })
+        .maybeSingle();
+      if (active) plan = active as PlanWithDays;
+    }
+    const dayRows = plan?.workout_days ?? [];
 
     const lines: string[] = [];
     const days = dayRows ?? [];

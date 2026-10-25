@@ -45,15 +45,23 @@ export async function sendAiKoucMessageAction(
   if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
   if (!client.trainer_id) return { error: "AI Kouč je zatiaľ dostupný len klientom s prideleným trénerom." };
 
-  // nájsť alebo založiť konverzáciu (unique client_id — insert zlyhá na duplicite, potom len dočítať)
+  // Konverzácia aj jej história jedným dopytom (predtým dva za sebou); založí sa lazy
+  // pri prvej správe (unique client_id). História = POSLEDNÝCH N správ (zostupne +
+  // otočiť) — predtým vzostupne s limitom, čiže pri dlhej konverzácii najstaršie
+  // správy a model ako "nedávnu" históriu dostával dávno staré výmeny.
   let conversationId: string | null = null;
-  const { data: existingConv } = await supabase
+  let historyRows: { role: string; content: string; created_at: string }[] = [];
+  const { data: existingConv, error: existingErr } = await supabase
     .from("ai_conversations")
-    .select("id")
+    .select("id, ai_messages(role, content, created_at)")
     .eq("client_id", client.id)
+    .order("created_at", { referencedTable: "ai_messages", ascending: false })
+    .limit(HISTORY_FETCH_LIMIT, { referencedTable: "ai_messages" })
     .maybeSingle();
+  if (existingErr) return { error: dbErr(existingErr, "actions") };
   if (existingConv) {
     conversationId = existingConv.id;
+    historyRows = [...((existingConv.ai_messages as typeof historyRows | null) ?? [])].reverse();
   } else {
     const { data: newConv, error: convErr } = await supabase
       .from("ai_conversations")
@@ -65,33 +73,26 @@ export async function sendAiKoucMessageAction(
   }
   if (!conversationId) return { error: "Nepodarilo sa založiť konverzáciu." };
 
-  const { data: historyRows, error: historyErr } = await supabase
-    .from("ai_messages")
-    .select("role, content")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
-    .limit(HISTORY_FETCH_LIMIT);
-  if (historyErr) return { error: dbErr(historyErr, "actions") };
-
-  const history = (historyRows ?? []).map((r) => ({ role: r.role as "user" | "assistant", content: r.content }));
+  const history = historyRows.map((r) => ({ role: r.role as "user" | "assistant", content: r.content }));
 
   // Téma pre agregované insighty trénera (migrácia 0033, get_ai_topic_insights)
   // — pevná kategória, nikdy obsah správy. Tréner ju nikdy nevidí per-klient,
   // len ako súčet naprieč ≥3 klientmi (k-anonymita v RPC), viď lib/ai/topicClassify.ts.
   const topic = classifyTopic(body, needsHealthEscalation(body));
 
-  const { error: insertUserErr } = await supabase
-    .from("ai_messages")
-    .insert({ conversation_id: conversationId, role: "user", content: body, topic });
+  // Uloženie správy klienta a príprava odpovede AI naraz — história pre model je už
+  // načítaná vyššie, správa ide modelu zvlášť (userText), takže na zápis čakať netreba.
+  const [{ error: insertUserErr }, result] = await Promise.all([
+    supabase.from("ai_messages").insert({ conversation_id: conversationId, role: "user", content: body, topic }),
+    sendAiChatMessage(supabase, {
+      trainerId: client.trainer_id,
+      clientId: client.id,
+      conversationId,
+      userText: body,
+      history,
+    }),
+  ]);
   if (insertUserErr) return { error: dbErr(insertUserErr, "actions") };
-
-  const result = await sendAiChatMessage(supabase, {
-    trainerId: client.trainer_id,
-    clientId: client.id,
-    conversationId,
-    userText: body,
-    history,
-  });
 
   // Odpoveď asistenta zapisuje SERVER (service role), nie session klienta — od migrácie
   // 0036 klient smie vkladať len vlastné (user) správy, inak by si vedel podvrhnúť
