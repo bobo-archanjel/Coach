@@ -462,6 +462,9 @@ export function ChatThread({
     if (pollMs) {
       intervalId = window.setInterval(tick, pollMs);
       offReturn = onReturnToPage(() => void tick());
+      // Vlákno mohlo prísť z klientskej router cache (staleTimes, next.config.ts) —
+      // jeden lacný marker hneď pri otvorení, nie až po prvom tiku.
+      if (markerUrl) void tick();
     }
 
     // Realtime kanál je nezávislý od `pollMs` — aj keď je polling vypnutý (0),

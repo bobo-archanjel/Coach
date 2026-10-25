@@ -33,6 +33,16 @@ const nextConfig: NextConfig = {
   // skupín, čím sa táto duplicita neobjavuje.
   experimental: {
     cssChunking: "strict",
+    // Klientska router cache pre dynamické stránky (feature/faster-app): návrat na tab,
+    // kde používateľ bol pred chvíľou (Dnes ↔ Tréning ↔ Strava, Klienti ↔ detail), sa
+    // vykreslí okamžite z pamäte namiesto nového server renderu. Default v Next 15 je 0.
+    // Bezpečné, lebo každá zapisujúca server action volá revalidatePath (alebo nastaví
+    // cookies pri prihlásení), čo celú túto cache v prehliadači zahodí — vlastné zmeny
+    // sú vždy hneď vidieť. Zmeny od druhej strany (tréner ↔ klient) sa na už navštívenej
+    // stránke ukážu najneskôr po 30 s; chat má vlastný poll + Realtime.
+    staleTimes: {
+      dynamic: 30,
+    },
   },
   // Hlavička X-Powered-By: Next.js zbytočne prezrádza technológiu (usmerňuje útočníka
   // na známe zraniteľnosti konkrétneho frameworku) — nič nerobí, tak preč.
