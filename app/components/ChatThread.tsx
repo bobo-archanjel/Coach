@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  memo,
   startTransition,
   useActionState,
   useEffect,
+  useMemo,
   useOptimistic,
   useRef,
   useState,
@@ -11,7 +13,6 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import styles from "./chat.module.css";
 
 export type ChatMessage = {
@@ -107,26 +108,141 @@ function isJumboEmoji(text: string): boolean {
     "",
   );
   if (rest) return false;
-  const count =
-    typeof Intl !== "undefined" && "Segmenter" in Intl
-      ? [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s.replace(/\s/g, ""))].length
-      : 1;
+  const seg = graphemeSegmenter();
+  const count = seg ? [...seg.segment(s.replace(/\s/g, ""))].length : 1;
   return count <= 3;
 }
 
-function dayLabel(iso: string): string {
+// Formátovače vytvorené raz na modul, nie pri každej bubline a každom renderi
+// (toLocale*String si ich interne vytvára zakaždým nanovo — pri 300 správach a
+// re-renderi zoznamu to bol citeľný lag pri písaní na slabšom telefóne).
+const DAY_FMT = new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long" });
+const TIME_FMT = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" });
+let segmenter: Intl.Segmenter | null | undefined;
+function graphemeSegmenter(): Intl.Segmenter | null {
+  if (segmenter === undefined) {
+    segmenter = "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+  }
+  return segmenter;
+}
+
+function dayLabel(iso: string, now: Date): string {
   const d = new Date(iso);
-  const today = new Date();
-  const y = new Date(today);
+  const y = new Date(now);
   y.setDate(y.getDate() - 1);
   const sameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (sameDay(d, today)) return "Dnes";
+  if (sameDay(d, now)) return "Dnes";
   if (sameDay(d, y)) return "Včera";
-  return d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" });
+  return DAY_FMT.format(d);
 }
 
-const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" });
+const timeOf = (iso: string) => TIME_FMT.format(new Date(iso));
+
+/**
+ * Návrat na kartu / do appky. `visibilitychange` aj `focus` zvyčajne prídu obe naraz
+ * (predtým sa tak "označ prečítané" aj poll spustili dvakrát) — callback beží max.
+ * raz za sekundu. Vráti cleanup.
+ */
+function onReturnToPage(cb: () => void): () => void {
+  let last = 0;
+  const handler = () => {
+    if (document.visibilityState !== "visible") return;
+    const now = Date.now();
+    if (now - last < 1000) return;
+    last = now;
+    cb();
+  };
+  document.addEventListener("visibilitychange", handler);
+  window.addEventListener("focus", handler);
+  return () => {
+    document.removeEventListener("visibilitychange", handler);
+    window.removeEventListener("focus", handler);
+  };
+}
+
+/** Poradie Realtime kanálov — každý mount má vlastný topic, viď efekt pollu. */
+let channelSeq = 0;
+
+type Row = ChatMessage & { _pending?: boolean };
+
+/**
+ * Zoznam bublín. Samostatný `memo` komponent: písanie v poli mení len stav composera,
+ * takže zoznam (až 300 správ) sa pri každom stlačení klávesu znova nevykresľuje.
+ * Popisky dňa/času a "jumbo" emoji sa rátajú raz na zmenu zoznamu.
+ */
+const MessageList = memo(function MessageList({
+  rows,
+  mySide,
+  emptyTitle,
+  emptyText,
+}: {
+  rows: Row[];
+  mySide: "trainer" | "client";
+  emptyTitle: string;
+  emptyText: string;
+}) {
+  const view = useMemo(() => {
+    const now = new Date();
+    const days = rows.map((m) => dayLabel(m.createdAt, now));
+    return rows.map((m, i) => {
+      const prev = rows[i - 1];
+      const next = rows[i + 1];
+      return {
+        m,
+        day: days[i],
+        newDay: !prev || days[i - 1] !== days[i],
+        turn: !prev || prev.sender !== m.sender,
+        // čas len na poslednej bubline súvislej série od toho istého odosielateľa
+        endOfTurn: !next || next.sender !== m.sender || days[i + 1] !== days[i],
+        jumbo: m.sender !== "system" && isJumboEmoji(m.body),
+      };
+    });
+  }, [rows]);
+
+  if (view.length === 0) {
+    return (
+      <div className={styles.empty}>
+        <span className={styles.emptyTile} aria-hidden="true">
+          <ChatGlyph />
+        </span>
+        <p className={styles.emptyTitle}>{emptyTitle}</p>
+        <p className={styles.emptyHint}>{emptyText}</p>
+      </div>
+    );
+  }
+
+  return view.map(({ m, day, newDay, turn, endOfTurn, jumbo }) => {
+    const mine = m.sender === mySide;
+    const pendingRow = m._pending === true;
+
+    if (m.sender === "system") {
+      return (
+        <div key={m.id} className={styles.group}>
+          {newDay && <div className={styles.daySep}>{day}</div>}
+          <div className={styles.systemRow}>
+            <p className={styles.systemNote}>{m.body}</p>
+            <span className={styles.meta}>{timeOf(m.createdAt)}</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={m.id} className={styles.group}>
+        {newDay && <div className={styles.daySep}>{day}</div>}
+        <div
+          className={`${styles.row} ${mine ? styles.mine : styles.theirs} ${turn && !newDay ? styles.turn : ""} ${pendingRow ? styles.pending : ""}`}
+        >
+          <div className={`${styles.bubble} ${jumbo ? styles.jumbo : ""}`}>{m.body}</div>
+          {(endOfTurn || pendingRow) && (
+            <span className={styles.meta}>{pendingRow ? "odosielam…" : timeOf(m.createdAt)}</span>
+          )}
+        </div>
+      </div>
+    );
+  });
+});
 
 /** Výška poľa podľa obsahu (max 120px, potom sa scrolluje vo vnútri). */
 function fitHeight(el: HTMLTextAreaElement | null) {
@@ -152,8 +268,9 @@ export function ChatThread({
   extraFields,
   onSeen,
   readOnly = false,
-  checkNewAction,
+  markerUrl,
   realtimeTable,
+  realtimeFilter,
   revealComposer = false,
 }: {
   messages: ChatMessage[];
@@ -173,11 +290,12 @@ export function ChatThread({
   onSeen?: () => void | Promise<void>;
   /** len na čítanie — skryje composer (napr. tréner nahliadajúci do AI Kouč transkriptu klienta). */
   readOnly?: boolean;
-  /** Vráti ID poslednej správy vlákna — lacný dopyt na porovnanie pri polle, nech
-      router.refresh() (celý round-trip + rerender stránky) beží len keď sa vlákno
-      naozaj zmenilo, nie na každý tik. Bez tejto props padá na starší, drahší vzor
-      (vždy refresh) — držané kvôli spätnej kompatibilite, nové použitia by ju mali dať vždy. */
-  checkNewAction?: () => Promise<string | null>;
+  /** GET endpoint, ktorý vráti `{ marker }` = ID poslednej správy vlákna (app/api/chat/marker)
+      — lacný dopyt na porovnanie pri polle, nech router.refresh() (celý round-trip +
+      rerender stránky) beží len keď sa vlákno naozaj zmenilo, nie na každý tik.
+      Bez tejto props padá na starší, drahší vzor (vždy refresh). Fetch, nie server
+      action: tie idú cez jednu frontu a poll by zdržiaval odoslanie správy. */
+  markerUrl?: string;
   /**
    * Meno Postgres tabuľky (napr. "messages"), na ktorej sa má počúvať Supabase
    * Realtime INSERT namiesto čakania na ďalší poll tik — okamžitá odozva pri
@@ -189,6 +307,9 @@ export function ChatThread({
    * (`pollMs`) ostáva bežať ako záložná sieť pre prípad výpadku Realtime spojenia.
    */
   realtimeTable?: string;
+  /** Realtime filter (napr. `client_id=eq.<id>`) — tréner tak nedostáva udalosti
+      z vlákien ostatných klientov (každá by spustila zbytočný marker dopyt). */
+  realtimeFilter?: string;
   /**
    * Po otvorení vlákna posunie stránku tak, aby bolo pole na písanie hneď viditeľné
    * (trénerove Správy — vlákno je pod hlavičkou a na mobile bolo pole až pod okrajom).
@@ -237,7 +358,6 @@ export function ChatThread({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  type Row = ChatMessage & { _pending?: boolean };
   const [optimistic, addOptimistic] = useOptimistic<Row[], string>(messages, (curr, body) => [
     ...curr,
     { id: `pending-${curr.length}`, sender: mySide, body, createdAt: new Date().toISOString(), _pending: true },
@@ -269,20 +389,26 @@ export function ChatThread({
     return () => ro.disconnect();
   }, []);
 
+  // Server action prop (`onSeen`) príde po KAŽDEJ RSC odpovedi ako nová funkcia
+  // (tréner ju navyše .bind-uje). V deps efektu to bola slučka: onSeen → revalidatePath
+  // → nový strom → nové onSeen → efekt znova → … (zmerané 49–67 POSTov za 30 s
+  // nečinného chatu). Efekt preto beží len pri mounte a aktuálnu funkciu číta z refu.
+  const onSeenRef = useRef(onSeen);
+  useEffect(() => {
+    onSeenRef.current = onSeen;
+  });
+  const hasOnSeen = Boolean(onSeen);
+
   // označ prečítané pri otvorení a pri návrate na kartu (nie na každý poll)
   useEffect(() => {
-    if (!onSeen) return;
-    void Promise.resolve(onSeen()).catch(() => {});
-    const onFocus = () => {
-      if (document.visibilityState === "visible") void Promise.resolve(onSeen()).catch(() => {});
+    if (!hasOnSeen) return;
+    const markSeen = () => {
+      const fn = onSeenRef.current;
+      if (fn) void Promise.resolve(fn()).catch(() => {});
     };
-    document.addEventListener("visibilitychange", onFocus);
-    window.addEventListener("focus", onFocus);
-    return () => {
-      document.removeEventListener("visibilitychange", onFocus);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [onSeen]);
+    markSeen();
+    return onReturnToPage(markSeen);
+  }, [hasOnSeen]);
 
   // Marker poslednej správy, ktorú má stránka aktuálne vykreslenú — aktualizuje sa
   // pri každej zmene `messages` (vrátane tej, čo príde cez router.refresh() nižšie).
@@ -293,18 +419,38 @@ export function ChatThread({
 
   // refresh-based doručenie: poll kým je karta viditeľná + pri návrate na kartu,
   // plus (ak je `realtimeTable` zadané) okamžitý Realtime push namiesto čakania
-  // na ďalší tik. S `checkNewAction` ide o dvojkrokový poll — lacný dopyt na ID
+  // na ďalší tik. S `markerUrl` ide o dvojkrokový poll — lacný dopyt na ID
   // poslednej správy (jeden indexovaný riadok) namiesto vždy plného router.refresh()
   // (celý round-trip + rerender stránky, aj keď väčšinu tikov nepribudla žiadna
   // správa). Bez nej (napr. AI Kouč pri pollMs=0) sa polling úplne vypne.
+  // Deps sú len hodnoty (string/number), nie funkcie z RSC — efekt sa po refreshi
+  // znova nespúšťa, takže Realtime kanál ostáva prihlásený (predtým sa po každom
+  // refreshi odhlásil a nový s rovnakým topicom už nenabehol).
   useEffect(() => {
+    let alive = true;
+    let inflight: AbortController | null = null;
+
+    const fetchMarker = async (url: string): Promise<string | null | undefined> => {
+      inflight?.abort();
+      const ctrl = new AbortController();
+      inflight = ctrl;
+      try {
+        const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+        if (!res.ok) return undefined;
+        return ((await res.json()) as { marker: string | null }).marker;
+      } catch {
+        return undefined; // sieť / zrušené — ďalší tik to skúsi znova
+      }
+    };
+
     const tick = async () => {
       if (document.visibilityState !== "visible") return;
-      if (!checkNewAction) {
+      if (!markerUrl) {
         router.refresh();
         return;
       }
-      const marker = await checkNewAction().catch(() => lastMarkerRef.current);
+      const marker = await fetchMarker(markerUrl);
+      if (!alive || marker === undefined) return;
       if (marker !== lastMarkerRef.current) {
         lastMarkerRef.current = marker;
         router.refresh();
@@ -312,33 +458,48 @@ export function ChatThread({
     };
 
     let intervalId: number | null = null;
+    let offReturn: (() => void) | null = null;
     if (pollMs) {
       intervalId = window.setInterval(tick, pollMs);
-      document.addEventListener("visibilitychange", tick);
-      window.addEventListener("focus", tick);
+      offReturn = onReturnToPage(() => void tick());
     }
 
     // Realtime kanál je nezávislý od `pollMs` — aj keď je polling vypnutý (0),
     // Realtime samo o sebe stále dáva okamžitú odozvu (napr. by sa hodilo pre
     // AI Kouč pri budúcom proaktívnom oslovení klienta appkou).
-    let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
+    // Supabase browser klient (~55 kB gz) sa načíta až tu, nie v bundli stránky.
+    // Topic je unikátny na mount: kanál s rovnakým menom, ktorý sa ešte odhlasuje,
+    // by realtime-js vrátil namiesto nového a subscribe() by nič neurobil.
+    let removeChannel: (() => void) | null = null;
     if (realtimeTable) {
-      const supabase = createClient();
-      channel = supabase
-        .channel(`chat-${realtimeTable}-${mySide}`)
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: realtimeTable }, () => {
-          void tick();
-        })
-        .subscribe();
+      void import("@/lib/supabase/client").then(({ createClient }) => {
+        if (!alive) return;
+        const supabase = createClient();
+        const channel = supabase
+          .channel(`chat-${realtimeTable}-${mySide}-${++channelSeq}`)
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: realtimeTable, filter: realtimeFilter },
+            (payload) => {
+              // Vlastnú správu už doručila odosielacia akcia (revalidatePath) — bez
+              // tohto by každé odoslanie re-renderovalo stránku ešte raz.
+              if ((payload.new as { sender?: string } | undefined)?.sender === mySide) return;
+              void tick();
+            },
+          )
+          .subscribe();
+        removeChannel = () => void supabase.removeChannel(channel);
+      });
     }
 
     return () => {
+      alive = false;
+      inflight?.abort();
       if (intervalId != null) window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", tick);
-      window.removeEventListener("focus", tick);
-      if (channel) void channel.unsubscribe();
+      offReturn?.();
+      removeChannel?.();
     };
-  }, [router, pollMs, checkNewAction, realtimeTable, mySide]);
+  }, [router, pollMs, markerUrl, realtimeTable, realtimeFilter, mySide]);
 
   function submit(e?: FormEvent) {
     e?.preventDefault();
@@ -393,8 +554,6 @@ export function ChatThread({
     }
   }
 
-  const hasMessages = optimistic.length > 0;
-
   return (
     <div className={`${styles.thread} ${fill ? styles.fill : ""} ${embedded ? styles.embedded : ""}`}>
       <div
@@ -409,52 +568,7 @@ export function ChatThread({
           nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
         }}
       >
-        {hasMessages ? (
-          optimistic.map((m, i) => {
-            const prev = optimistic[i - 1];
-            const next = optimistic[i + 1];
-            const mine = m.sender === mySide;
-            const newDay = !prev || dayLabel(prev.createdAt) !== dayLabel(m.createdAt);
-            const turn = !prev || prev.sender !== m.sender;
-            const pendingRow = m._pending === true;
-            // čas len na poslednej bubline súvislej série od toho istého odosielateľa
-            const endOfTurn = !next || next.sender !== m.sender || dayLabel(next.createdAt) !== dayLabel(m.createdAt);
-
-            if (m.sender === "system") {
-              return (
-                <div key={m.id} className={styles.group}>
-                  {newDay && <div className={styles.daySep}>{dayLabel(m.createdAt)}</div>}
-                  <div className={styles.systemRow}>
-                    <p className={styles.systemNote}>{m.body}</p>
-                    <span className={styles.meta}>{timeOf(m.createdAt)}</span>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div key={m.id} className={styles.group}>
-                {newDay && <div className={styles.daySep}>{dayLabel(m.createdAt)}</div>}
-                <div
-                  className={`${styles.row} ${mine ? styles.mine : styles.theirs} ${turn && !newDay ? styles.turn : ""} ${pendingRow ? styles.pending : ""}`}
-                >
-                  <div className={`${styles.bubble} ${isJumboEmoji(m.body) ? styles.jumbo : ""}`}>{m.body}</div>
-                  {(endOfTurn || pendingRow) && (
-                    <span className={styles.meta}>{pendingRow ? "odosielam…" : timeOf(m.createdAt)}</span>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <div className={styles.empty}>
-            <span className={styles.emptyTile} aria-hidden="true">
-              <ChatGlyph />
-            </span>
-            <p className={styles.emptyTitle}>{emptyTitle}</p>
-            <p className={styles.emptyHint}>{emptyText}</p>
-          </div>
-        )}
+        <MessageList rows={optimistic} mySide={mySide} emptyTitle={emptyTitle} emptyText={emptyText} />
       </div>
 
       {!readOnly && (

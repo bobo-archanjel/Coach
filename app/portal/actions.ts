@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { getFoodLibrary, getPortalWeek } from "@/lib/portal/data";
@@ -543,32 +543,29 @@ export async function sendClientMessageAction(_prevState: ActionState, formData:
   return ok;
 }
 
-/** Chat — označí správy od trénera ako prečítané (volané pri otvorení / návrate na kartu). */
-export async function markClientChatSeenAction(): Promise<void> {
-  const supabase = await createClient();
-  const clientId = await currentClientId(supabase);
-  if (!clientId) return;
-  const { error } = await supabase.rpc("mark_messages_read", { p_client_id: clientId });
-  if (!error) revalidatePath("/portal", "layout");
-}
-
 /**
- * Chat polling (feature/optimalizacia) — ChatThread predtým volal router.refresh()
- * (celý round-trip + rerender stránky) každých pollMs, aj keď väčšinu času nepribudla
- * žiadna nová správa. Táto akcia vráti len ID poslednej správy (jeden riadok,
- * indexovaný dopyt) — ChatThread ho porovná s tým, čo už má vykreslené, a
- * router.refresh() zavolá len keď sa naozaj líši.
+ * Chat — označí správy od trénera ako prečítané (volané pri otvorení / návrate na kartu).
+ * Vlastný clients riadok + počet neprečítaných jedným dopytom; RPC aj revalidatePath
+ * (re-render celej stránky) len keď je naozaj čo označiť. Session overuje lokálne
+ * getUser (claims) — RPC si účastníka vlákna overí samo cez auth.uid() (0019).
  */
-export async function getClientChatMarkerAction(): Promise<string | null> {
+export async function markClientChatSeenAction(): Promise<void> {
+  const {
+    data: { user },
+  } = await getUser();
+  if (!user) return;
   const supabase = await createClient();
-  const clientId = await currentClientId(supabase);
-  if (!clientId) return null;
-  const { data } = await supabase
-    .from("messages")
-    .select("id")
-    .eq("client_id", clientId)
-    .order("created_at", { ascending: false })
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, messages(count)")
+    .eq("user_id", user.id)
+    .in("messages.sender", ["trainer", "system"])
+    .is("messages.read_at", null)
+    .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  return data?.id ?? null;
+  const unread = (client?.messages as { count: number }[] | undefined)?.[0]?.count ?? 0;
+  if (!client || unread === 0) return;
+  const { error } = await supabase.rpc("mark_messages_read", { p_client_id: client.id });
+  if (!error) revalidatePath("/portal", "layout");
 }

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { generateProgressSummary } from "@/lib/ai/progressSummary";
 import { dbErr } from "@/lib/dbError";
 
@@ -89,41 +89,32 @@ export async function bulkSendTrainerMessageAction(_prevState: BulkMessageState,
   return { error: null, sentCount: ownedIds.length };
 }
 
-/** Chat — tréner označí správy od klienta ako prečítané (pri otvorení detailu / návrate). */
+/**
+ * Chat — tréner označí správy od klienta ako prečítané (pri otvorení vlákna / návrate).
+ * Najprv lacný count neprečítaných: RPC aj revalidatePath (re-render celej stránky)
+ * len keď je naozaj čo označiť — väčšina otvorení / návratov na kartu nemá nič nové.
+ * Session overuje lokálne getUser (claims); samotné RPC si účastníka vlákna overí cez
+ * auth.uid() (0019), nič sa tým neobchádza.
+ */
 export async function markTrainerChatSeenAction(clientId: string): Promise<void> {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
   if (!user || !clientId) return;
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .eq("sender", "client")
+    .is("read_at", null);
+  if (!count) return;
   const { error } = await supabase.rpc("mark_messages_read", { p_client_id: clientId });
   if (!error) {
     revalidatePath(`/dashboard/klienti/${clientId}`);
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/spravy");
   }
-}
-
-/**
- * Chat polling (feature/optimalizacia) — pozri getClientChatMarkerAction (app/portal/actions.ts)
- * pre plné vysvetlenie. ID poslednej správy vlákna namiesto plného router.refresh()
- * pri každom polle — RLS (messages_select, 0008) aj tak obmedzí výsledok len na
- * vlákna vlastných klientov, explicitná kontrola tu je len rýchly bailout bez session.
- */
-export async function getTrainerChatMarkerAction(clientId: string): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user || !clientId) return null;
-  const { data } = await supabase
-    .from("messages")
-    .select("id")
-    .eq("client_id", clientId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data?.id ?? null;
 }
 
 /** Ukončenie spolupráce (nie GDPR výmaz) — dáta ostávajú, dá sa kedykoľvek obnoviť (0020). */

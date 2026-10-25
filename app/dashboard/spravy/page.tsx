@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
-import { sendTrainerMessageAction, markTrainerChatSeenAction, getTrainerChatMarkerAction } from "../klienti/actions";
+import { sendTrainerMessageAction, markTrainerChatSeenAction } from "../klienti/actions";
 import { SpravyView } from "./SpravyView";
 import { ThreadSwipeBack } from "./ThreadSwipeBack";
 import styles from "../dashboard.module.css";
@@ -191,8 +191,9 @@ export default async function SpravyPage({
                       sendAction={sendTrainerMessageAction}
                       extraFields={{ client_id: selectedClientId }}
                       onSeen={markTrainerChatSeenAction.bind(null, selectedClientId)}
-                      checkNewAction={getTrainerChatMarkerAction.bind(null, selectedClientId)}
+                      markerUrl={`/api/chat/marker?client=${encodeURIComponent(selectedClientId)}`}
                       realtimeTable="messages"
+                      realtimeFilter={`client_id=eq.${selectedClientId}`}
                       emptyTitle="Zatiaľ žiadne správy"
                       // Bez skloňovania mena — prípona tvorila "Evaa", "Martinaovi".
                       emptyText={`Napíš prvú správu — ${selectedName} ju uvidí v portáli.`}
