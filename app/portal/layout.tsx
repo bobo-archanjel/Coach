@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient, getProfile, getUser } from "@/lib/supabase/server";
+import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 import { PortalNav } from "./PortalNav";
 import styles from "./portal.module.css";
 
@@ -51,15 +51,11 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
-    const { data: profile } = await getProfile(user.id);
-
-    if (profile?.role === "trainer") {
-      redirect("/dashboard");
-    }
-
-    // Nezávislé dopyty — paralelne namiesto sekvenčne (dva samostatné round-tripy
-    // na Supabase navyše na KAŽDÚ navigáciu v portáli, predtým čakali jeden na druhý).
-    const [{ count }, { data: clientRow }] = await Promise.all([
+    // Nezávislé dopyty — všetky tri naraz (predtým počet a klient čakali na profil,
+    // round-trip navyše na KAŽDÚ navigáciu v portáli); redirect trénera až po nich.
+    // getMyClient je request-cache-ovaný — stránka pod layoutom ho dostane zadarmo.
+    const [{ data: profile }, { count }, { data: clientRow }] = await Promise.all([
+      getProfile(user.id),
       // neprečítaná správa od trénera ALEBO systémová (napr. GDPR zmazanie, 0019) → bodka na tabe Chat
       supabase
         .from("messages")
@@ -67,14 +63,12 @@ export default async function PortalLayout({ children }: { children: React.React
         .in("sender", ["trainer", "system"])
         .is("read_at", null),
       // AI Kouč len pre klientov s prideleným trénerom (dohodnuté v Kroku 4b).
-      supabase
-        .from("clients")
-        .select("trainer_id")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+      getMyClient(user.id),
     ]);
+
+    if (profile?.role === "trainer") {
+      redirect("/dashboard");
+    }
     chatUnread = (count ?? 0) > 0;
     aiKoucVisible = Boolean(clientRow?.trainer_id);
   }

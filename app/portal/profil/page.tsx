@@ -1,4 +1,4 @@
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getMyClient, getUser, MY_CLIENT_COLUMNS } from "@/lib/supabase/server";
 import { SignOutButton } from "../../components/SignOutButton";
 import { DeleteAccountSection } from "./DeleteAccountSection";
 import { TrainerConnection } from "./TrainerConnection";
@@ -55,22 +55,22 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
     let deletionRequestedBy: "trainer" | "client" | null = null;
 
     if (user) {
-      const clientQuery = () =>
-        supabase
+      // getMyClient je request-cache-ovaný (layout /portal ho už načítal) a nesie aj
+      // meno trénera embedom — predtým dva ďalšie dopyty za sebou (klient → tréner).
+      let { data: client } = await getMyClient(user.id);
+
+      // Poistka: klient bez riadku/kódu (starší účet, alebo vytvorený mimo appky) —
+      // dovytvor ho hneď, idempotentné (feature/registracia-update). Nový dopyt, nie
+      // cache — ten by vrátil stav spred RPC.
+      if (!client || !client.invite_code) {
+        await supabase.rpc("ensure_self_client");
+        ({ data: client } = await supabase
           .from("clients")
-          .select("invite_code, trainer_id, deletion_requested_at, deletion_requested_by")
+          .select(MY_CLIENT_COLUMNS)
           .eq("user_id", user.id)
           .order("created_at", { ascending: true })
           .limit(1)
-          .maybeSingle();
-
-      let { data: client } = await clientQuery();
-
-      // Poistka: klient bez riadku/kódu (starší účet, alebo vytvorený mimo appky) —
-      // dovytvor ho hneď, idempotentné (feature/registracia-update).
-      if (!client || !client.invite_code) {
-        await supabase.rpc("ensure_self_client");
-        ({ data: client } = await clientQuery());
+          .maybeSingle());
       }
 
       if (client) {
@@ -79,12 +79,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
         deletionRequestedBy = client.deletion_requested_by;
         if (client.trainer_id) {
           hasTrainer = true;
-          const { data: trainer } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", client.trainer_id)
-            .maybeSingle();
-          trainerName = trainer?.full_name ?? null;
+          trainerName = (client.trainer as unknown as { full_name: string | null } | null)?.full_name ?? null;
         }
       }
     }

@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { createClient, getProfile, getUser } from "@/lib/supabase/server";
+import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripMarkdown } from "@/lib/ai/plainText";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
@@ -296,15 +296,7 @@ export async function getPortalData(): Promise<PortalResult> {
     // doťahoval kvôli role guardu, tu je to teda de facto zadarmo.
     const [{ data: profile }, { data: client, error: clientErr }] = await Promise.all([
       getProfile(user.id),
-      supabase
-        .from("clients")
-        .select(
-          "id, full_name, trainer_id, active_plan_id, active_day_id, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by",
-        )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+      getMyClient(user.id),
     ]);
 
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
@@ -586,22 +578,14 @@ export async function getPortalData(): Promise<PortalResult> {
 }
 
 /** Nájde klienta prepojeného s prihláseným používateľom (rovnaká logika ako v getPortalData). */
-async function getLinkedClient(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+async function getLinkedClient(userId: string) {
   // Nezávislé dopyty (profil a klient sa nepotrebujú navzájom) — paralelne, nie
   // jeden po druhom; volané z takmer každej portálovej stránky, takže sekvenčný
   // pár tu bol zbytočný round-trip navyše na každú navigáciu. `getProfile` je
   // navyše request-cache-ovaný — ak layout už profil tohto usera doťahoval
   // (kvôli role guardu), táto vetva ho dostane zadarmo.
-  const [{ data: profile }, { data: client, error }] = await Promise.all([
-    getProfile(userId),
-    supabase
-      .from("clients")
-      .select("id, full_name, active_plan_id, trainer_id")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  // `getMyClient` je tiež request-cache-ovaný — layout /portal ho už doťahoval.
+  const [{ data: profile }, { data: client, error }] = await Promise.all([getProfile(userId), getMyClient(userId)]);
 
   const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
   return { client, firstName, error };
@@ -624,7 +608,7 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
     } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { client, error } = await getLinkedClient(supabase, user.id);
+    const { client, error } = await getLinkedClient(user.id);
     if (error) return { state: "error", message: dbErr(error, "data") };
     if (!client) return { state: "error", message: "Účet ešte nie je prepojený." };
 
@@ -664,7 +648,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { client, error: clientErr } = await getLinkedClient(supabase, user.id);
+    const { client, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
 
     if (!client) {
@@ -839,7 +823,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
     } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
@@ -963,7 +947,7 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
     } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
@@ -1124,7 +1108,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     // Bez trénera nie je s kým chatovať — po napojení sem príde systémová správa
@@ -1181,7 +1165,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     } = await getUser();
     if (!user) return { state: "error", message: "Session vypršala." };
 
-    const { client, firstName, error: clientErr } = await getLinkedClient(supabase, user.id);
+    const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     if (!client.trainer_id) return { state: "no_trainer" };

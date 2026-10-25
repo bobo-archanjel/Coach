@@ -29,21 +29,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } else {
     // Symetrický guard k app/portal/layout.tsx (ten posiela trénera na /dashboard) —
     // klient sa sem doteraz vedel dostať priamou URL bez presmerovania na svoj portál.
-    const { data: profile } = await getProfile(user.id);
+    // Celkový počet neprečítaných správ od klientov → odznak na nav položke "Správy"
+    // (RLS messages_select scopuje na klientov tohto trénera, netreba filtrovať client_id).
+    // Oba dopyty naraz (predtým počet čakal na profil — round-trip navyše pri každej
+    // navigácii); redirect klienta až po nich, jeho počet sa jednoducho zahodí.
+    const supabase = await createClient();
+    const [{ data: profile }, { count }] = await Promise.all([
+      getProfile(user.id),
+      supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("sender", "client")
+        .is("read_at", null),
+    ]);
     if (profile?.role === "client") {
       redirect("/portal");
     }
-
-    // Celkový počet neprečítaných správ od klientov → odznak na nav položke "Správy"
-    // (RLS messages_select scopuje na klientov tohto trénera, netreba filtrovať client_id).
-    // createClient() je cache()-ovaný (lib/supabase/server.ts) — v rámci tohto requestu
-    // len zdieľa inštanciu s getUser() vyššie, žiadny extra round-trip na auth.
-    const supabase = await createClient();
-    const { count } = await supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("sender", "client")
-      .is("read_at", null);
     unreadCount = count ?? 0;
   }
 
