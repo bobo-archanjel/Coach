@@ -22,6 +22,7 @@
 
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
@@ -96,7 +97,10 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   if (admin) {
     // Po úspechu sa vynuluje počítadlo účtu a dvojice; IP počítadlo ostáva (jedno úspešné
     // prihlásenie nesmie zmazať stopu credential stuffingu z tej istej adresy).
-    await Promise.all([ids.email, ids.pair].map((id) => admin.rpc("clear_login_attempts", { p_identifier: id })));
+    // Až po odoslaní odpovede (after) — presmerovanie na to nemusí čakať.
+    after(async () => {
+      await Promise.all([ids.email, ids.pair].map((id) => admin.rpc("clear_login_attempts", { p_identifier: id })));
+    });
   }
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
