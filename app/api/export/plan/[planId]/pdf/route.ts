@@ -25,19 +25,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nie si prihlásený." }, { status: 401 });
 
-  const { data: plan } = await supabase
-    .from("workout_plans")
-    .select("id, name, trainer_id, clients!workout_plans_client_id_fkey(full_name)")
-    .eq("id", planId)
-    .eq("trainer_id", user.id)
-    .maybeSingle();
+  // Plán aj dni naraz — dni potrebujú len planId (RLS ich obmedzí na trénera) a bez
+  // plánu sa aj tak zahodia (404).
+  const [{ data: plan }, { data: days }] = await Promise.all([
+    supabase
+      .from("workout_plans")
+      .select("id, name, trainer_id, clients!workout_plans_client_id_fkey(full_name)")
+      .eq("id", planId)
+      .eq("trainer_id", user.id)
+      .maybeSingle(),
+    supabase.from("workout_days").select("day_number, name, exercises").eq("plan_id", planId).order("day_number"),
+  ]);
   if (!plan) return NextResponse.json({ error: "Plán sa nenašiel." }, { status: 404 });
-
-  const { data: days } = await supabase
-    .from("workout_days")
-    .select("day_number, name, exercises")
-    .eq("plan_id", planId)
-    .order("day_number");
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
 

@@ -2,8 +2,9 @@
 
 // Zvonček upozornení trénera (feature/funkcionalita) — jeden pohľad na to, čo
 // dnes potrebuje pozornosť (neprečítané správy, meškajúci klienti, týždenný
-// digest). Skladanie a definície sú v lib/dashboard/attention.ts a v server
-// action ./attention/actions.ts; táto komponenta rieši len načítavanie a zobrazenie.
+// digest). Skladanie a definície sú v lib/dashboard/attention.ts a
+// lib/dashboard/attentionData.ts (GET /api/dashboard/attention); táto komponenta
+// rieši len načítavanie a zobrazenie.
 //
 // Načítavanie je zámerne MIMO kritickej cesty renderu: layout beží pri každej
 // navigácii a meškajúci klienti sú 3 dopyty, preto odznak štartuje z
@@ -15,9 +16,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { applyDismissals, attentionTotal, buildAttentionItems, type AttentionData } from "@/lib/dashboard/attention";
-import { dismissNotificationsAction, getAttentionAction, markAllMessagesReadAction } from "./attention/actions";
+import { dismissNotificationsAction, markAllMessagesReadAction } from "./attention/actions";
 import styles from "./dashboard.module.css";
 
 const BellIcon = () => (
@@ -34,6 +34,9 @@ const BellIcon = () => (
 
 const POLL_MS = 5 * 60_000;
 const REALTIME_DEBOUNCE_MS = 1_500;
+
+/** Poradie Realtime kanálov — unikátny topic na mount (viď ChatThread, rovnaký dôvod). */
+let channelSeq = 0;
 
 export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number }) {
   const pathname = usePathname();
@@ -53,14 +56,21 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   // navigácie (efekt na `pathname`). Server actions a navigácie Next spracúva v jednom
   // poradí, takže akcia odoslaná pri kliknutí by prechod na klienta brzdila.
   const pendingDismiss = useRef<{ keys: string[]; days: number | null } | null>(null);
+  // Optimisticky skryté kľúče / "prečítané", kým to server nepotvrdí. Načítanie je
+  // GET fetch (beží súbežne so zápismi, nie za nimi vo fronte server actions), takže
+  // odpoveď spred uloženia by skryté upozornenie inak vrátila späť.
+  const localDismissed = useRef(new Set<string>());
+  const markReadPending = useRef(false);
 
   const refresh = useCallback(async (minAgeMs: number) => {
     if (inFlight.current || Date.now() - lastFetch.current < minAgeMs) return;
     inFlight.current = true;
     try {
-      const result = await getAttentionAction();
+      const res = await fetch("/api/dashboard/attention", { cache: "no-store" });
+      const result = res.ok ? ((await res.json()) as { data: AttentionData | null }).data : null;
       if (result) {
-        setData(result);
+        const view = applyDismissals(result, localDismissed.current);
+        setData(markReadPending.current ? { ...view, unread: 0 } : view);
         setFailed(false);
       } else {
         setFailed(true);
@@ -83,36 +93,51 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
     window.addEventListener("focus", onFocus);
     const interval = window.setInterval(() => void refresh(60_000), POLL_MS);
 
+    // Len správy OD klientov — vlastné odoslané správy trénera upozornenia nemenia
+    // (predtým každá odoslaná správa prepočítala celý zvonček vrátane meškania).
+    // Supabase klient sa načíta až tu, nie v bundli každej dashboard stránky.
+    let alive = true;
     let debounce: number | undefined;
-    const channel = createClient()
-      .channel("bell-messages")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
-        window.clearTimeout(debounce);
-        debounce = window.setTimeout(() => void refresh(0), REALTIME_DEBOUNCE_MS);
-      })
-      .subscribe();
+    let removeChannel: (() => void) | null = null;
+    void import("@/lib/supabase/client").then(({ createClient }) => {
+      if (!alive) return;
+      const supabase = createClient();
+      const channel = supabase
+        .channel(`bell-messages-${++channelSeq}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "sender=eq.client" }, () => {
+          window.clearTimeout(debounce);
+          debounce = window.setTimeout(() => void refresh(0), REALTIME_DEBOUNCE_MS);
+        })
+        .subscribe();
+      removeChannel = () => void supabase.removeChannel(channel);
+    });
 
     return () => {
+      alive = false;
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("focus", onFocus);
       window.clearInterval(interval);
       window.clearTimeout(debounce);
-      void channel.unsubscribe();
+      removeChannel?.();
     };
   }, [refresh]);
 
   // zmena trasy = tréner mohol niečo vybaviť (prečítať správy, ...) — s throttlom.
-  // Odložené skrytie ide PRED refresh: akcie bežia za sebou, takže refresh už uvidí
-  // uložené skrytie a optimisticky odobratého klienta nevráti späť.
+  // Odložené skrytie: kľúče sú v localDismissed, takže ich refresh nevráti späť ani
+  // keby dobehol skôr než uloženie.
   useEffect(() => {
     const pending = pendingDismiss.current;
     if (pending) {
       pendingDismiss.current = null;
+      const undo = () => {
+        for (const k of pending.keys) localDismissed.current.delete(k);
+        setActionFailed(true);
+      };
       void dismissNotificationsAction(pending.keys, pending.days, false)
         .then((r) => {
-          if (!r.ok) setActionFailed(true);
+          if (!r.ok) undo();
         })
-        .catch(() => setActionFailed(true));
+        .catch(undo);
     }
     void refresh(30_000);
   }, [pathname, refresh]);
@@ -146,7 +171,9 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   const dismiss = useCallback(
     (keys: string[], days: number | null) => {
       const gone = new Set(keys);
+      for (const k of keys) localDismissed.current.add(k);
       const fail = () => {
+        for (const k of keys) localDismissed.current.delete(k);
         setActionFailed(true);
         void refresh(0);
       };
@@ -171,6 +198,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
         return;
       }
       setActionFailed(false);
+      for (const k of keys) localDismissed.current.add(k);
       setData((d) => (d ? applyDismissals(d, new Set(keys)) : d));
       pendingDismiss.current = { keys, days };
     },
@@ -183,12 +211,17 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
       void refresh(0);
     };
     setActionFailed(false);
+    markReadPending.current = true;
     setData((d) => (d ? { ...d, unread: 0 } : d));
     void markAllMessagesReadAction()
       .then((r) => {
+        markReadPending.current = false;
         if (!r.ok) fail();
       })
-      .catch(fail);
+      .catch(() => {
+        markReadPending.current = false;
+        fail();
+      });
   }, [refresh]);
 
   return (

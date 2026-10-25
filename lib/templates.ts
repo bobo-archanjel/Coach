@@ -40,14 +40,12 @@ export async function saveWorkoutPlanAsTemplate(
   templateName: string,
   goal?: string | null,
 ): Promise<TemplateResult> {
-  const { data: plan } = await supabase.from("workout_plans").select("id, name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle();
+  // vlastníctvo aj dni naraz (dni potrebujú len planId; RLS ich aj tak obmedzí na trénera)
+  const [{ data: plan }, { data: days, error: daysErr }] = await Promise.all([
+    supabase.from("workout_plans").select("id, name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle(),
+    supabase.from("workout_days").select("day_number, name, exercises").eq("plan_id", planId).order("day_number"),
+  ]);
   if (!plan) return { error: "Plán sa nenašiel." };
-
-  const { data: days, error: daysErr } = await supabase
-    .from("workout_days")
-    .select("day_number, name, exercises")
-    .eq("plan_id", planId)
-    .order("day_number");
   if (daysErr) return { error: dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: "Plán nemá žiadne dni na uloženie do šablóny." };
 
@@ -74,18 +72,13 @@ export async function applyWorkoutTemplateToClient(
   templateId: string,
   clientId: string,
 ): Promise<AppliedTemplateResult> {
-  const [{ data: template }, { data: client }] = await Promise.all([
+  const [{ data: template }, { data: client }, { data: templateDays, error: daysErr }] = await Promise.all([
     supabase.from("plan_templates").select("id, name").eq("id", templateId).eq("trainer_id", trainerId).maybeSingle(),
     supabase.from("clients").select("id").eq("id", clientId).eq("trainer_id", trainerId).maybeSingle(),
+    supabase.from("plan_template_days").select("day_number, name, exercises").eq("template_id", templateId).order("day_number"),
   ]);
   if (!template) return { error: "Šablóna sa nenašla.", planId: null };
   if (!client) return { error: "Tento klient nepatrí tebe.", planId: null };
-
-  const { data: templateDays, error: daysErr } = await supabase
-    .from("plan_template_days")
-    .select("day_number, name, exercises")
-    .eq("template_id", templateId)
-    .order("day_number");
   if (daysErr) return { error: dbErr(daysErr, "templates"), planId: null };
 
   // Nový plán je koncept (published: false), presne ako ručne vytvorený alebo AI vygenerovaný —
@@ -120,14 +113,11 @@ export async function saveMealPlanAsTemplate(
   planId: string,
   templateName: string,
 ): Promise<TemplateResult> {
-  const { data: plan } = await supabase.from("meal_plans").select("id, name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle();
+  const [{ data: plan }, { data: days, error: daysErr }] = await Promise.all([
+    supabase.from("meal_plans").select("id, name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle(),
+    supabase.from("meal_days").select("day_number, name, meals").eq("plan_id", planId).order("day_number"),
+  ]);
   if (!plan) return { error: "Jedálniček sa nenašiel." };
-
-  const { data: days, error: daysErr } = await supabase
-    .from("meal_days")
-    .select("day_number, name, meals")
-    .eq("plan_id", planId)
-    .order("day_number");
   if (daysErr) return { error: dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: "Jedálniček nemá žiadne dni na uloženie do šablóny." };
 
@@ -153,18 +143,13 @@ export async function applyMealTemplateToClient(
   templateId: string,
   clientId: string,
 ): Promise<AppliedTemplateResult> {
-  const [{ data: template }, { data: client }] = await Promise.all([
+  const [{ data: template }, { data: client }, { data: templateDays, error: daysErr }] = await Promise.all([
     supabase.from("meal_templates").select("id, name").eq("id", templateId).eq("trainer_id", trainerId).maybeSingle(),
     supabase.from("clients").select("id").eq("id", clientId).eq("trainer_id", trainerId).maybeSingle(),
+    supabase.from("meal_template_days").select("day_number, name, meals").eq("template_id", templateId).order("day_number"),
   ]);
   if (!template) return { error: "Šablóna sa nenašla.", planId: null };
   if (!client) return { error: "Tento klient nepatrí tebe.", planId: null };
-
-  const { data: templateDays, error: daysErr } = await supabase
-    .from("meal_template_days")
-    .select("day_number, name, meals")
-    .eq("template_id", templateId)
-    .order("day_number");
   if (daysErr) return { error: dbErr(daysErr, "templates"), planId: null };
 
   const { data: newPlan, error: planErr } = await supabase

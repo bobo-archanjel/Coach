@@ -225,7 +225,8 @@ export async function getAllStrengthProgress(
  * Nedávne osobné maximá naprieč viacerými klientmi (feature/analytika-v2, bod 3) —
  * pre widget "Posledné PR" na `/dashboard/analytika`. Jeden dotaz na workout_logs
  * pre všetkých klientov naraz (nie N+1). Celá história sa načíta (na určenie
- * all-time maxima), vráti sa len PR, ktoré padlo za posledných `sinceDays` dní.
+ * all-time maxima) — len pre klientov s tréningom v okne; vráti sa len PR, ktoré
+ * padlo za posledných `sinceDays` dní.
  * `null` len pri chybe načítania.
  */
 export async function getRecentPRs(
@@ -234,10 +235,24 @@ export async function getRecentPRs(
 ): Promise<Map<string, StrengthPR[]> | null> {
   if (clientIds.length === 0) return new Map();
   const supabase = await createClient();
+  const cutoff = new Date(Date.now() - sinceDays * 86_400_000).toISOString().slice(0, 10);
+
+  // PR "za posledných N dní" môže mať len klient, ktorý v tom okne cvičil — celú
+  // históriu (s JSONB entries aj cvikmi dňa) teda stačí ťahať len pre nich, nie pre
+  // všetkých aktívnych klientov (rástlo to s každým tréningom celého portfólia).
+  const { data: recent, error: recentErr } = await supabase
+    .from("workout_logs")
+    .select("client_id")
+    .in("client_id", clientIds)
+    .gte("performed_on", cutoff);
+  if (recentErr) return null;
+  const activeIds = [...new Set((recent ?? []).map((r) => r.client_id as string))];
+  if (activeIds.length === 0) return new Map();
+
   const { data, error } = await supabase
     .from("workout_logs")
     .select(`client_id, ${STRENGTH_LOG_COLUMNS}`)
-    .in("client_id", clientIds)
+    .in("client_id", activeIds)
     .order("performed_on", { ascending: true });
   if (error) return null;
   const nameOf = await buildExerciseNameResolver(supabase, (data ?? []) as StrengthLogRow[]);
@@ -250,7 +265,6 @@ export async function getRecentPRs(
     rowsByClient.set(cid, list);
   }
 
-  const cutoff = new Date(Date.now() - sinceDays * 86_400_000).toISOString().slice(0, 10);
   const result = new Map<string, StrengthPR[]>();
   for (const [clientId, rows] of rowsByClient) {
     const byExercise = strengthSeriesFromRows(rows, nameOf);

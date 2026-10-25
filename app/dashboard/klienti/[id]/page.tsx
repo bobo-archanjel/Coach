@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
@@ -120,6 +121,19 @@ export default async function ClientDetailPage({
 
   const supabase = await createClient();
 
+  // Analytika (adherencia, merania, celá história sily) je najpomalšia časť stránky —
+  // štartuje hneď, súbežne so zvyškom, ale stránka na ňu nečaká: hlavička, Tréningy
+  // aj Info sa vykreslia hneď a karta Analytika sa dostreamuje cez <Suspense>
+  // (predtým celá stránka čakala na najpomalší dopyt). Na notFound() ceste sa výsledok
+  // len zahodí — catch nech nezostane neobslúžené odmietnutie.
+  const analyticsData = Promise.all([
+    getNutritionAdherence(id),
+    getTrainingAdherence(id),
+    getBodyMetrics(id),
+    getAllStrengthProgress(id),
+  ]);
+  analyticsData.catch(() => {});
+
   // `client` samotný nie je vstupom pre žiadny z ostatných dopytov (všetky berú
   // `id` z route parametra priamo) — predtým čakal na svoj round-trip, kým sa
   // spustilo zvyšných 8. Beží teraz v tej istej dávke; ak klient neexistuje,
@@ -145,7 +159,7 @@ export default async function ClientDetailPage({
       ),
     }));
 
-  const [{ data: client }, { plans, planCompletion }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, { data: privateNote }] =
+  const [{ data: client }, { plans, planCompletion }, { data: nutrition }, { data: logs }, { data: privateNote }] =
     await Promise.all([
       supabase
         .from("clients")
@@ -166,10 +180,6 @@ export default async function ClientDetailPage({
         .eq("client_id", id)
         .order("performed_on", { ascending: false })
         .limit(8),
-      getNutritionAdherence(id),
-      getTrainingAdherence(id),
-      getBodyMetrics(id),
-      getAllStrengthProgress(id),
       // Súkromná poznámka trénera (trainer_private_notes, 0036) — klient ju nevidí.
       // Tabuľka ešte nemusí existovať (pred migráciou) → data je vtedy null, stránka funguje.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "client").maybeSingle(),
@@ -195,16 +205,9 @@ export default async function ClientDetailPage({
       id: "analytika",
       label: "Analytika",
       content: (
-        <AnalyticsPanel
-          clientId={id}
-          nutrition={nutrition}
-          adherence={adherence}
-          trainingAdherence={trainingAdherence}
-          bodyMetrics={bodyMetrics ?? []}
-          strengthNames={strengthProgress?.names ?? []}
-          strengthByExercise={strengthProgress?.byExercise ?? {}}
-          strengthPRs={strengthProgress?.prs ?? []}
-        />
+        <Suspense fallback={<AnalyticsSkeleton />}>
+          <ClientAnalytics clientId={id} nutrition={nutrition} data={analyticsData} />
+        </Suspense>
       ),
     },
     {
@@ -350,5 +353,46 @@ export default async function ClientDetailPage({
 
       <ClientDetailTabs sections={sections} />
     </>
+  );
+}
+
+type AnalyticsData = [
+  Awaited<ReturnType<typeof getNutritionAdherence>>,
+  Awaited<ReturnType<typeof getTrainingAdherence>>,
+  Awaited<ReturnType<typeof getBodyMetrics>>,
+  Awaited<ReturnType<typeof getAllStrengthProgress>>,
+];
+
+/** Karta Analytika — čaká na dopyty spustené už na začiatku stránky (viď vyššie). */
+async function ClientAnalytics({
+  clientId,
+  nutrition,
+  data,
+}: {
+  clientId: string;
+  nutrition: React.ComponentProps<typeof AnalyticsPanel>["nutrition"];
+  data: Promise<AnalyticsData>;
+}) {
+  const [adherence, trainingAdherence, bodyMetrics, strengthProgress] = await data;
+  return (
+    <AnalyticsPanel
+      clientId={clientId}
+      nutrition={nutrition}
+      adherence={adherence}
+      trainingAdherence={trainingAdherence}
+      bodyMetrics={bodyMetrics ?? []}
+      strengthNames={strengthProgress?.names ?? []}
+      strengthByExercise={strengthProgress?.byExercise ?? {}}
+      strengthPRs={strengthProgress?.prs ?? []}
+    />
+  );
+}
+
+function AnalyticsSkeleton() {
+  return (
+    <div className={styles.skeletonWrap} aria-hidden="true">
+      <div className={`${styles.skeletonBlock} ${styles.skeletonCard}`} />
+      <div className={`${styles.skeletonBlock} ${styles.skeletonCard}`} />
+    </div>
   );
 }

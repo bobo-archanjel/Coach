@@ -9,6 +9,7 @@ import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
 import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
+import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -84,7 +85,7 @@ export default async function PlanDetailPage({
 
   // `plan`, `days` aj `exercises` berú `planId`/nič z route parametra — nezávislé,
   // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
-  const [{ data: plan }, { days, locked }, { data: exercises }, { data: completedLogs }] = await Promise.all([
+  const [{ data: plan }, { days, locked }, exercises, { data: completedLogs }] = await Promise.all([
     supabase
       .from("workout_plans")
       // Explicitná FK: odkedy má `clients` aj `active_plan_id → workout_plans`
@@ -106,7 +107,9 @@ export default async function PlanDetailPage({
         const completion = await getPlanCompletion(supabase, [{ id: planId, dayIds: (days ?? []).map((d) => d.id) }]);
         return { days, locked: completion.get(planId)?.allDone ?? false };
       }),
-    supabase.from("exercises").select("id, name, name_sk, muscle_group, image_url").order("name"),
+    // Globálna knižnica z cache (lib/exerciseLibrary) + vlastné cviky trénera — predtým
+    // ~886 riadkov priamo z DB pri každom renderi aj po každej úprave plánu.
+    getTrainerExerciseLibrary(supabase),
     // Odcvičené tréningy z tohto plánu — podľa snapshotu (0048), nie workout_day_id,
     // aby sa ukázali aj po zmazaní dňa. Zamknuté, každý má vlastný detail plán/realita.
     supabase
@@ -166,7 +169,7 @@ export default async function PlanDetailPage({
         <PlanBuilder
           planId={planId}
           days={days ?? []}
-          library={exercises ?? []}
+          library={exercises}
           completedDayIds={(completedLogs ?? [])
             .map((l) => parsePlanSnapshot(l.plan_snapshot)?.dayId)
             .filter((id): id is string => Boolean(id))}
