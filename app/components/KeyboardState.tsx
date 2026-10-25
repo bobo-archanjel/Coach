@@ -46,6 +46,28 @@ function syncAppHeight() {
 const REVEAL_WINDOW_MS = 1500;
 /** Klávesnica je "ustálená", keď sa visualViewport takto dlho nezmenil (veľkosť ani posun). */
 const SETTLE_MS = 150;
+/**
+ * O koľko (px) musí byť viditeľná plocha menšia než pred otvorením, aby to bola klávesnica.
+ * Najmenšia softvérová klávesnica (iPhone SE, na šírku) má cez 150 px; zbalenie lišty
+ * Safari alebo návrhy slov nad klávesnicou sú zmeny pod touto hranicou.
+ */
+const KEYBOARD_MIN_PX = 150;
+
+/**
+ * Ťuknutie na tieto prvky klávesnicu nezatvára — majú vlastnú akciu (tlačidlo, pole,
+ * odkaz). [data-keep-keyboard] = celá oblasť, kde má klávesnica ostať (composer chatu).
+ */
+const KEEPS_KEYBOARD =
+  "input, textarea, select, button, a[href], label, [contenteditable=''], [contenteditable='true'], [role='button'], [role='tab'], [data-keep-keyboard]";
+/** Ťuknutie = prst sa pohol menej než toto (inak scroll) a … */
+const TAP_SLOP_PX = 10;
+/** … netrval dlhšie než toto (inak podržanie — výber textu v správe). */
+const TAP_MAX_MS = 500;
+
+/** Výška viditeľnej plochy v CSS px nezávisle od priblíženia prstami (pinch zoom). */
+function visibleHeight(vv: VisualViewport): number {
+  return vv.height * vv.scale;
+}
 
 // Po zatvorení klávesnice iOS Safari občas nechá zobrazenie posunuté tak, ako bolo
 // pri otvorenej klávesnici (stránka bola vtedy kratšia — skrytá lišta, menší odstup)
@@ -84,6 +106,12 @@ export function KeyboardState() {
     // Mimo neho sa resize deje aj pri bežnom scrollovaní (zbaľovanie lišty Safari) —
     // tam sa zobrazenie posúvať nesmie.
     let closingUntil = 0;
+    // Výška viditeľnej plochy tesne pred otvorením klávesnice (focusin príde skôr, než
+    // sa vysunie) a či sme klávesnicu naozaj videli (plocha klesla o KEYBOARD_MIN_PX).
+    // Bez tej druhej podmienky by sme na iPade s hardvérovou klávesnicou, kde sa
+    // softvérová nikdy neukáže, "zatvorenie" ohlásili hneď.
+    let baselineHeight = 0;
+    let keyboardSeen = false;
 
     const schedule = (fn: () => void) => {
       timers.forEach(clearTimeout);
@@ -99,6 +127,8 @@ export function KeyboardState() {
           openedAt = Date.now();
           corrected = false;
           sawViewportChange = false;
+          baselineHeight = vv ? visibleHeight(vv) : window.innerHeight;
+          keyboardSeen = false;
           // poistka, ak by prehliadač zmenu visualViewportu vôbec neohlásil
           timers.forEach(clearTimeout);
           timers = [setTimeout(() => !sawViewportChange && settle(), 700)];
@@ -119,9 +149,34 @@ export function KeyboardState() {
     };
     const opening = () => root.hasAttribute("data-keyboard-open") && Date.now() - openedAt < REVEAL_WINDOW_MS;
     // zmena výšky visualViewportu = klávesnica sa vysúva / zasúva
+    /**
+     * Zasunula sa klávesnica, hoci fokus ostal v poli? iOS Safari to robí po ťuknutí
+     * vedľa alebo potiahnutí klávesnice dole — focusout nepríde. Stránka by ostala
+     * v režime "otvorená klávesnica": skrytá lišta, chat vytiahnutý na výšku pre
+     * klávesnicu, stránka posunutá hore a pod poľom čierna plocha. Fokus preto
+     * zrušíme sami — bežný focusout → sync() → lišta späť + realignViewport (pole dole).
+     * Pole ďalším ťuknutím znova dostane fokus aj focusin (keby fokus ostal, ťuknutie
+     * by klávesnicu otvorilo bez focusin a stav by sa nezapol).
+     * Volá sa pri resize visualViewportu.
+     */
+    const checkKeyboardGone = (): boolean => {
+      if (!vv || !root.hasAttribute("data-keyboard-open")) return false;
+      const h = visibleHeight(vv);
+      if (h < baselineHeight - KEYBOARD_MIN_PX) {
+        keyboardSeen = true;
+        return false;
+      }
+      if (!keyboardSeen) return false;
+      keyboardSeen = false;
+      const el = document.activeElement;
+      if (el instanceof HTMLElement && opensKeyboard(el)) el.blur();
+      setTimeout(sync, 0);
+      return true;
+    };
     const onViewportResize = () => {
       if (root.hasAttribute("data-keyboard-open")) {
         sawViewportChange = true;
+        if (checkKeyboardGone()) return;
         if (opening()) settle();
       } else if (Date.now() < closingUntil) realignViewport();
     };
@@ -141,16 +196,50 @@ export function KeyboardState() {
     document.addEventListener("focusout", onFocusOut);
     // Poistka: ak fokus "zostal visieť" na odstránenom/skrytom poli (bez focusout),
     // stav sa prekontroluje pri najbližšom dotyku obrazovky.
-    const onTouch = () => {
-      if (root.hasAttribute("data-keyboard-open")) setTimeout(sync, 0);
+    //
+    // Ťuknutie na prázdne miesto pri otvorenej klávesnici (napr. čierna plocha medzi
+    // poľom a klávesnicou, správy): iOS Safari sa tu správa nevyspytateľne — niekedy
+    // klávesnicu nechá, niekedy ju zasunie a fokus v poli NECHÁ bez focusout. Stránka
+    // potom ostala v režime "otvorená klávesnica" (skrytá lišta, pole v strede, čierna
+    // plocha pod ním). Preto o tom rozhodujeme sami, ako natívne appky: ťuknutie mimo
+    // poľa a mimo ovládacích prvkov klávesnicu VŽDY zatvorí cez blur() → focusout →
+    // sync() → lišta späť + realignViewport. Scroll a podržanie (výber textu) nie.
+    let tap: { x: number; y: number; t: number; target: EventTarget | null } | null = null;
+    const onTouchStart = (e: TouchEvent) => {
+      if (!root.hasAttribute("data-keyboard-open")) {
+        tap = null;
+        return;
+      }
+      setTimeout(sync, 0);
+      const t = e.touches[0];
+      tap = e.touches.length === 1 && t ? { x: t.clientX, y: t.clientY, t: Date.now(), target: e.target } : null;
     };
-    document.addEventListener("touchstart", onTouch, { passive: true, capture: true });
+    const onTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (tap && t && Math.hypot(t.clientX - tap.x, t.clientY - tap.y) > TAP_SLOP_PX) tap = null;
+    };
+    const onTouchEnd = () => {
+      const current = tap;
+      tap = null;
+      if (!current || Date.now() - current.t > TAP_MAX_MS) return;
+      if (!root.hasAttribute("data-keyboard-open")) return;
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement) || !opensKeyboard(active)) return;
+      const target = current.target;
+      if (target instanceof Element && (active.contains(target) || target.closest(KEEPS_KEYBOARD))) return;
+      active.blur();
+    };
+    document.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true, capture: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true, capture: true });
     syncAppHeight();
     window.addEventListener("resize", syncAppHeight);
     return () => {
       document.removeEventListener("focusin", sync);
       document.removeEventListener("focusout", onFocusOut);
-      document.removeEventListener("touchstart", onTouch, { capture: true });
+      document.removeEventListener("touchstart", onTouchStart, { capture: true });
+      document.removeEventListener("touchmove", onTouchMove, { capture: true });
+      document.removeEventListener("touchend", onTouchEnd, { capture: true });
       window.removeEventListener("resize", syncAppHeight);
       vv?.removeEventListener("resize", onViewportResize);
       vv?.removeEventListener("scroll", onViewportScroll);

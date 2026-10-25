@@ -84,90 +84,114 @@ export function NutritionForm({ clientId, profile }: { clientId: string; profile
     <div className={styles.detailGrid}>
       <div className={styles.card}>
         <h3>Vstupné údaje</h3>
-        <form action={formAction} className={styles.addClientForm}>
+        <form action={formAction}>
           <input type="hidden" name="client_id" value={clientId} readOnly />
-          <div className={styles.addClientFields} style={{ flexDirection: "column", alignItems: "stretch" }}>
-            <select
-              name="sex"
-              value={sex}
-              onChange={(e) => setSex(e.target.value as Sex)}
-              className={styles.addClientInput}
-              disabled={pending}
-            >
-              <option value="muz">Muž</option>
-              <option value="zena">Žena</option>
-            </select>
-            <input
-              name="age"
-              type="number"
-              min={1}
-              max={119}
-              placeholder="Vek (roky)"
-              required
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className={styles.addClientInput}
-              disabled={pending}
-            />
-            <input
-              name="weight_kg"
-              type="number"
-              min={1}
-              step="0.1"
-              placeholder="Váha (kg)"
-              required
-              value={weightKg}
-              onChange={(e) => setWeightKg(e.target.value)}
-              className={styles.addClientInput}
-              disabled={pending}
-            />
-            <input
-              name="height_cm"
-              type="number"
-              min={1}
-              step="0.1"
-              placeholder="Výška (cm)"
-              required
-              value={heightCm}
-              onChange={(e) => setHeightCm(e.target.value)}
-              className={styles.addClientInput}
-              disabled={pending}
-            />
-            <select
-              name="activity_level"
-              value={activityLevel}
-              onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)}
-              className={styles.addClientInput}
-              disabled={pending}
-            >
-              {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <select
-              name="goal"
-              value={goal}
-              onChange={(e) => setGoal(e.target.value as Goal)}
-              className={styles.addClientInput}
-              disabled={pending}
-            >
-              {Object.entries(GOAL_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <textarea
-              name="notes"
-              placeholder="Poznámka (voliteľné)"
-              defaultValue={profile?.notes ?? ""}
-              className={styles.addClientInput}
-              disabled={pending}
-              rows={2}
-            />
-            <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
+          <div className={styles.fieldGrid}>
+            <label>
+              <span className={styles.timeFieldLabel}>Pohlavie</span>
+              <select
+                name="sex"
+                value={sex}
+                onChange={(e) => setSex(e.target.value as Sex)}
+                className={styles.addClientInput}
+                disabled={pending}
+              >
+                <option value="muz">Muž</option>
+                <option value="zena">Žena</option>
+              </select>
+            </label>
+            <label>
+              <span className={styles.timeFieldLabel}>Vek (roky)</span>
+              <input
+                name="age"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={119}
+                placeholder="napr. 30"
+                required
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className={styles.addClientInput}
+                disabled={pending}
+              />
+            </label>
+            <label>
+              <span className={styles.timeFieldLabel}>Váha (kg)</span>
+              <input
+                name="weight_kg"
+                type="number"
+                inputMode="decimal"
+                min={1}
+                step="0.1"
+                placeholder="napr. 75"
+                required
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value)}
+                className={styles.addClientInput}
+                disabled={pending}
+              />
+            </label>
+            <label>
+              <span className={styles.timeFieldLabel}>Výška (cm)</span>
+              <input
+                name="height_cm"
+                type="number"
+                inputMode="decimal"
+                min={1}
+                step="0.1"
+                placeholder="napr. 175"
+                required
+                value={heightCm}
+                onChange={(e) => setHeightCm(e.target.value)}
+                className={styles.addClientInput}
+                disabled={pending}
+              />
+            </label>
+            <label className={styles.fieldGridFull}>
+              <span className={styles.timeFieldLabel}>Aktivita</span>
+              <select
+                name="activity_level"
+                value={activityLevel}
+                onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)}
+                className={styles.addClientInput}
+                disabled={pending}
+              >
+                {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.fieldGridFull}>
+              <span className={styles.timeFieldLabel}>Cieľ</span>
+              <select
+                name="goal"
+                value={goal}
+                onChange={(e) => setGoal(e.target.value as Goal)}
+                className={styles.addClientInput}
+                disabled={pending}
+              >
+                {Object.entries(GOAL_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.fieldGridFull}>
+              <span className={styles.timeFieldLabel}>Poznámka (vidíš len ty)</span>
+              <textarea
+                name="notes"
+                placeholder="Voliteľné"
+                defaultValue={profile?.notes ?? ""}
+                className={styles.addClientInput}
+                disabled={pending}
+                rows={2}
+              />
+            </label>
+            <button type="submit" className={`btn btn-primary btn-sm ${styles.fieldGridFull}`} disabled={pending}>
               {pending ? "Ukladám…" : profile ? "Aktualizovať makro cieľ" : "Uložiť makro cieľ"}
             </button>
           </div>

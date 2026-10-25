@@ -5,6 +5,9 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* poistka: nič vo vnútri (pás emoji, dlhé slovo) nesmie vlákno roztiahnuť do šírky */
+  min-width: 0;
+  max-width: 100%;
 }
 .thread.fill {
   flex: 1;
@@ -119,6 +122,16 @@
 .row.pending .bubble {
   opacity: 0.55;
 }
+/* správa len z 1–3 emoji — veľká, bez bubliny (isJumboEmoji v ChatThread.tsx).
+   .row .bubble.jumbo prebíja .mine/.theirs .bubble špecifickosťou. */
+.row .bubble.jumbo {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 40px;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+}
 
 .meta {
   margin-top: 3px;
@@ -191,6 +204,7 @@
 /* ---------- composer ---------- */
 .composer {
   display: flex;
+  flex-wrap: wrap; /* pás emoji je celý riadok nad poľom */
   align-items: flex-end;
   gap: 8px;
   padding-top: 10px;
@@ -252,6 +266,205 @@
   width: 20px;
   height: 20px;
 }
+/* ---------- emoji ---------- */
+/* manipulation = žiadny zoom dvojitým ťuknutím. Bez toho iOS pri rýchlom ťukaní
+   (👍👍, prepínanie záložiek, ťuknutie vedľa tlačidla) priblížil celú stránku.
+   Pinch zoom ostáva povolený (prístupnosť). */
+.composer,
+.composer button {
+  touch-action: manipulation;
+}
+
+.emojiToggle {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.emojiToggle svg {
+  width: 24px;
+  height: 24px;
+}
+.emojiToggle:hover,
+.emojiToggleOn {
+  color: var(--paper);
+  background: var(--ink-3);
+}
+.emojiToggleOn {
+  border-color: var(--steel-line);
+}
+.emojiToggle:focus-visible {
+  outline: 2px solid var(--plate-yellow);
+  outline-offset: 2px;
+}
+
+/* Mobil: celý panel je JEDEN riadok (44 px) — záložky ako ikony vľavo, pás emoji
+   vpravo. Pri otvorenej klávesnici je miesta na správy málo, každý riadok sa počíta.
+   Panel je nad poľom v composeri; vlákno má pevnú výšku, takže stránka sa nepredĺži
+   (žiadny posun okolo klávesnice) — zmenší sa len plocha správ a ChatThread ju
+   drží pri spodku (ResizeObserver). */
+.emojiPanel {
+  flex-basis: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: emojiIn 0.16s ease-out;
+}
+.emojiTabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding-right: 6px;
+  border-right: 1px solid var(--steel-line);
+}
+.emojiTab {
+  flex: none;
+  width: 38px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--paper-faint);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.emojiTab:not(.emojiTabOn) .emojiTabIcon {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+}
+.emojiTabIcon {
+  font-size: 20px;
+  line-height: 1;
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+.emojiTabLabel {
+  display: none;
+}
+.emojiTabOn {
+  color: var(--paper);
+  background: var(--ink-3);
+  border-color: var(--steel-line);
+}
+.emojiTab:focus-visible {
+  outline: 2px solid var(--plate-yellow);
+  outline-offset: -2px;
+}
+
+.emojiStrip {
+  /* width:0 + flex-grow: pás si zoberie len zvyšné miesto a do šírky rodiča sa NEPOČÍTA.
+     Bez toho bola jeho "prirodzená" šírka celý riadok emoji (~1000 px) a v mriežke
+     trénerových Správ (stĺpec 1fr = min. šírka obsahu) roztiahla celé vlákno —
+     pole, Odoslať, vlastné správy aj tlačidlá hlavičky ušli za pravý okraj. */
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  /* jemné vyblednutie na pravom okraji napovie, že pás pokračuje */
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+}
+.emojiStrip::-webkit-scrollbar {
+  display: none;
+}
+.emojiBtn {
+  flex: none;
+  width: 42px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  scroll-snap-align: start;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.emojiBtn:active {
+  background: var(--ink-3);
+  transform: scale(0.9);
+}
+.emojiBtn:focus-visible {
+  outline: 2px solid var(--plate-yellow);
+  outline-offset: -2px;
+}
+
+/* Desktop (myš): záložky s textom nad mriežkou, všetko naraz bez vodorovného scrollu */
+@media (pointer: fine) {
+  .emojiPanel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .emojiTabs {
+    gap: 6px;
+    padding-right: 0;
+    border-right: none;
+  }
+  .emojiTab {
+    width: auto;
+    height: 32px;
+    padding: 0 12px;
+    border-color: var(--steel-line);
+    border-radius: 999px;
+  }
+  .emojiTabIcon {
+    font-size: 16px;
+  }
+  .emojiTabLabel {
+    display: inline;
+  }
+  .emojiStrip {
+    flex: none;
+    width: auto;
+    flex-wrap: wrap;
+    overflow: visible;
+    mask-image: none;
+  }
+  .emojiBtn {
+    width: 38px;
+    height: 38px;
+    font-size: 21px;
+  }
+  .emojiBtn:hover {
+    background: var(--ink-3);
+  }
+}
+@keyframes emojiIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .emojiPanel {
+    animation: none;
+  }
+}
+
 .error {
   font-size: 12px;
   color: var(--error);

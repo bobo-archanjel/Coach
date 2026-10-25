@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useActionState } from "react";
 import { addCustomFoodAction, type ActionState } from "../actions";
-import { FoodLibraryItem } from "./FoodLibraryItem";
+import { FoodLibraryItem, type LibraryFood } from "./FoodLibraryItem";
 import styles from "./builder.module.css";
 
 const initialState: ActionState = { error: null };
@@ -16,11 +16,11 @@ const ChevronIcon = ({ className }: { className?: string }) => (
 export function FoodLibrary({
   foods,
   activeDayId,
-  planId,
+  onAddFood,
 }: {
-  foods: { id: string; name: string; kcal_100g: number; protein_100g: number; carbs_100g: number; fat_100g: number }[];
+  foods: LibraryFood[];
   activeDayId: string | null;
-  planId: string;
+  onAddFood: (food: LibraryFood) => void;
 }) {
   const [query, setQuery] = useState("");
   // Na mobile defaultne zbalené — tréner vidí plátno (aktívny deň) prvé.
@@ -57,7 +57,7 @@ export function FoodLibrary({
 
         <div className={styles.libraryList}>
           {filtered.length > 0 ? (
-            filtered.map((food) => <FoodLibraryItem key={food.id} food={food} dayId={activeDayId} planId={planId} />)
+            filtered.map((food) => <FoodLibraryItem key={food.id} food={food} dayId={activeDayId} onAdd={onAddFood} />)
           ) : (
             <p className={styles.libraryEmpty}>Žiadna potravina nezodpovedá hľadaniu.</p>
           )}
