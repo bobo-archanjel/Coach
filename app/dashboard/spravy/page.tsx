@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
-import { sendTrainerMessageAction, markTrainerChatSeenAction, getTrainerChatMarkerAction } from "../klienti/actions";
+import { sendTrainerMessageAction, markTrainerChatSeenAction } from "../klienti/actions";
 import { SpravyView } from "./SpravyView";
 import { ThreadSwipeBack } from "./ThreadSwipeBack";
 import styles from "../dashboard.module.css";
@@ -56,10 +56,19 @@ export default async function SpravyPage({
   }
   const supabase = await createClient();
 
-  // Vlákno vybraného klienta závisí len od `?client=` (RLS ho scopuje na tohto
-  // trénera) — beží súbežne so zoznamom, nie až po ňom a po náhľadoch konverzácií.
-  const [{ data: clients }, { data: msgRows }] = await Promise.all([
-    supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name", { ascending: true }),
+  // Všetko jedným kolom (predtým dve dávky za sebou). Vlákno vybraného klienta závisí
+  // len od `?client=`; neprečítané RLS (messages_select) scopuje na klientov tohto
+  // trénera, netreba čakať na ich ID. Náhľad = posledná správa každého klienta
+  // embedom s limitom na rodiča — predtým 1000 celých správ a výber v JS, klient
+  // mimo 1000 najnovších správ portfólia ukázal "Zatiaľ žiadna správa".
+  const [{ data: clients }, { data: msgRows }, { data: unreadRows }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, full_name, messages(id, client_id, sender, body, created_at)")
+      .eq("trainer_id", user.id)
+      .order("full_name", { ascending: true })
+      .order("created_at", { referencedTable: "messages", ascending: false })
+      .limit(1, { referencedTable: "messages" }),
     selectedClientId
       ? supabase
           .from("messages")
@@ -70,38 +79,18 @@ export default async function SpravyPage({
           .order("created_at", { ascending: false })
           .limit(300)
       : Promise.resolve({ data: null }),
+    supabase.from("messages").select("client_id").eq("sender", "client").is("read_at", null),
   ]);
 
-  const clientIds = (clients ?? []).map((c) => c.id);
   const nameById = new Map((clients ?? []).map((c) => [c.id, c.full_name]));
 
   const lastByClient = new Map<string, MessageRow>();
   const unreadByClient = new Map<string, number>();
-
-  if (clientIds.length > 0) {
-    // Obe závisia len na `clientIds`, nie jedna na druhej — predtým bežali
-    // sekvenčne (2 zbytočné round-tripy navyše k dopytu na clients vyššie).
-    const [{ data: recentMessages }, { data: unreadRows }] = await Promise.all([
-      supabase
-        .from("messages")
-        .select("id, client_id, sender, body, created_at")
-        .in("client_id", clientIds)
-        .order("created_at", { ascending: false })
-        .limit(1000),
-      supabase
-        .from("messages")
-        .select("client_id")
-        .in("client_id", clientIds)
-        .eq("sender", "client")
-        .is("read_at", null),
-    ]);
-
-    // Zoradené zostupne podľa created_at — prvý výskyt na klienta je jeho posledná správa.
-    for (const m of (recentMessages ?? []) as MessageRow[]) {
-      if (!lastByClient.has(m.client_id)) lastByClient.set(m.client_id, m);
-    }
-    for (const r of unreadRows ?? []) unreadByClient.set(r.client_id, (unreadByClient.get(r.client_id) ?? 0) + 1);
+  for (const c of clients ?? []) {
+    const last = (c.messages as MessageRow[] | null)?.[0];
+    if (last) lastByClient.set(c.id, last);
   }
+  for (const r of unreadRows ?? []) unreadByClient.set(r.client_id, (unreadByClient.get(r.client_id) ?? 0) + 1);
 
   const threads = (clients ?? [])
     .map((c) => ({
@@ -191,8 +180,9 @@ export default async function SpravyPage({
                       sendAction={sendTrainerMessageAction}
                       extraFields={{ client_id: selectedClientId }}
                       onSeen={markTrainerChatSeenAction.bind(null, selectedClientId)}
-                      checkNewAction={getTrainerChatMarkerAction.bind(null, selectedClientId)}
+                      markerUrl={`/api/chat/marker?client=${encodeURIComponent(selectedClientId)}`}
                       realtimeTable="messages"
+                      realtimeFilter={`client_id=eq.${selectedClientId}`}
                       emptyTitle="Zatiaľ žiadne správy"
                       // Bez skloňovania mena — prípona tvorila "Evaa", "Martinaovi".
                       emptyText={`Napíš prvú správu — ${selectedName} ju uvidí v portáli.`}

@@ -76,10 +76,12 @@ export default function AuthPage() {
   const loginError = loginState.error;
 
   // Presmerovanie po úspechu — server už rozhodol kam (podľa role), tu len navigujeme.
+  // Bez router.refresh(): loginAction nastavil session cookies, čím Next sám zahodil
+  // router cache — push už načíta cieľ s novou session. Refresh navyše vykreslil
+  // celý dashboard/portál zo servera ešte druhýkrát hneď po prihlásení.
   useEffect(() => {
     if (!loginState.redirectTo) return;
     router.push(loginState.redirectTo);
-    router.refresh();
   }, [loginState.redirectTo, router]);
 
   function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {

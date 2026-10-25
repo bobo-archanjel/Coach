@@ -159,13 +159,17 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
   }, [dayId, timerDurationMs]);
 
   // ---- tik displeja (len keď niečo beží) ----
+  // 50 ms len keď sú vidieť stotiny (otvorené stopky). Zatvorený panel a časovač
+  // ukazujú celé sekundy — tam stačí 250 ms (5× menej re-renderov počas celého
+  // tréningu, šetrí batériu), odchýlka zobrazenia ostáva pod štvrť sekundy.
   const ticking = swRunning || timerStatus === "running";
+  const tickMs = open && mode === "stopwatch" ? 50 : 250;
   useEffect(() => {
     if (!ticking) return;
     setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 50);
+    const id = window.setInterval(() => setNow(Date.now()), tickMs);
     return () => window.clearInterval(id);
-  }, [ticking]);
+  }, [ticking, tickMs]);
 
   // ---- presné dobehnutie časovača (nezávislé od 50 ms tiku) ----
   const finishTimer = useCallback(() => {

@@ -9,6 +9,7 @@
 // Bez perzistencie zámerne (Krok "AI sumarizácia" v ROADMAP) — počíta sa
 // nanovo pri každom kliku, jedno lacné volanie Haiku, žiadna nová tabuľka.
 
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
@@ -113,7 +114,8 @@ export async function generateProgressSummary(
     DATA_IS_NOT_INSTRUCTIONS,
   ].join("\n");
 
-  // Atomická rezervácia denného limitu tesne pred volaním modelu (feature/security).
+  // Atomická rezervácia denného limitu tesne pred volaním modelu (feature/security) —
+  // zámerne až po kontrole "no_data", ktorá limit nemá míňať.
   const slot = await reserveAiSlot({
     supabase,
     kind: "progress_summary",
@@ -142,15 +144,19 @@ export async function generateProgressSummary(
     const textBlock = response.content.find((b) => b.type === "text");
     const summary = textBlock && textBlock.type === "text" ? textBlock.text.trim() : "Nepodarilo sa vygenerovať zhrnutie.";
 
-    await logAiUsage({
-      trainerId: params.trainerId,
-      clientId: params.clientId,
-      kind: "progress_summary",
-      model: AI_MODEL.PROGRESS_SUMMARY,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      reservationId: slot.reservationId,
-    });
+    // zápis spotreby až po odoslaní odpovede (after) — zhrnutie na neho nečaká
+    const usage = response.usage;
+    after(() =>
+      logAiUsage({
+        trainerId: params.trainerId,
+        clientId: params.clientId,
+        kind: "progress_summary",
+        model: AI_MODEL.PROGRESS_SUMMARY,
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+        reservationId: slot.reservationId,
+      }),
+    );
 
     return { status: "ok", summary };
   } catch (err) {

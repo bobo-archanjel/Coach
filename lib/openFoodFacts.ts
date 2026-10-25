@@ -1,7 +1,9 @@
 // Živé vyhľadávanie značkových potravín cez Open Food Facts — Fáza C.
 // Voľné, bez API kľúča, dáta pod ODbL licenciou. Fair-use politika OFF:
 // 1 API volanie = 1 reálne vyhľadávanie používateľa (nie hromadné sťahovanie) —
-// preto sa volá len naživo z formulára pridania jedla, nič sa nekešuje do DB.
+// preto sa volá len naživo z formulára pridania jedla, nič sa neukladá do DB.
+// Rovnaký dopyt sa hodinu berie z Next data cache (searchOpenFoodFactsCached) —
+// "rožok", "jogurt" hľadá veľa klientov, OFF tak dostane menej volaní, nie viac.
 //
 // Endpoint: search.openfoodfacts.org (Search-a-licious) — nástupca staršieho
 // world.openfoodfacts.org/api/v2/search, ktorý OFF sám označuje za zastaraný
@@ -10,6 +12,7 @@
 // toho SK/CZ výsledky len uprednostníme v triedení — nič sa tak nestratí, ak
 // je lokálne pokrytie pre daný produkt tenké.
 
+import { unstable_cache } from "next/cache";
 import type { PortalFoodOption } from "@/lib/portal/types";
 
 const SEARCH_URL = "https://search.openfoodfacts.org/search";
@@ -83,4 +86,21 @@ export async function searchOpenFoodFacts(query: string): Promise<PortalFoodOpti
     if (options.length >= 12) break;
   }
   return options;
+}
+
+const searchCached = unstable_cache(
+  (normalized: string) => searchOpenFoodFacts(normalized),
+  ["open-food-facts-search-v1"],
+  { revalidate: 3600 },
+);
+
+/**
+ * `searchOpenFoodFacts` s hodinovou cache podľa normalizovaného dopytu (bez ohľadu
+ * na veľkosť písmen a medzery). Chyba sa vyhodí, nie uloží — `unstable_cache`
+ * výnimku necachuje, takže výpadok OFF nezamrzne prázdny výsledok na hodinu.
+ */
+export async function searchOpenFoodFactsCached(query: string): Promise<PortalFoodOption[]> {
+  const normalized = query.trim().toLowerCase().replace(/\s+/g, " ");
+  if (normalized.length < 3) return [];
+  return searchCached(normalized);
 }

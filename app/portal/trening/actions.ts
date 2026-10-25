@@ -34,7 +34,11 @@ export async function getExerciseDetailAction(exerciseId: string): Promise<Exerc
 export async function getExerciseLibraryAction(): Promise<ExerciseOption[]> {
   // Knižnica sa číta service-role klientom (viď getExerciseLibrary) — server
   // action je verejný endpoint, takže najprv overiť, že volá prihlásený používateľ.
-  const user = await getUser();
+  // (Predtým `const user = await getUser()` — výsledok je vždy objekt { data },
+  // takže kontrola nikdy nezabrala.)
+  const {
+    data: { user },
+  } = await getUser();
   if (!user) return [];
   return getExerciseLibrary();
 }
@@ -184,71 +188,64 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
       .single();
     if (planErr || !plan) return { error: planErr?.message ?? "Tréning sa nepodarilo vytvoriť." };
 
-    if (cleaned.days.length > 0) {
-      const { error: daysErr } = await supabase.from("workout_days").insert(
-        cleaned.days.map((day, i) => ({
-          plan_id: plan.id,
-          day_number: i + 1,
-          name: day.name,
-          exercises: day.exercises,
-        })),
-      );
-      if (daysErr) return { error: dbErr(daysErr, "actions") };
-    }
+    // Vloženie dní a nastavenie aktívneho plánu potrebujú len plan.id — naraz.
+    const [{ error: daysErr }] = await Promise.all([
+      cleaned.days.length > 0
+        ? supabase.from("workout_days").insert(
+            cleaned.days.map((day, i) => ({
+              plan_id: plan.id,
+              day_number: i + 1,
+              name: day.name,
+              exercises: day.exercises,
+            })),
+          )
+        : Promise.resolve({ error: null }),
+      supabase.rpc("set_active_plan", { p_plan_id: plan.id }),
+    ]);
+    if (daysErr) return { error: dbErr(daysErr, "actions") };
 
-    await supabase.rpc("set_active_plan", { p_plan_id: plan.id });
     revalidatePath("/portal", "layout");
     return { error: null, planId: plan.id };
   }
 
   // ---------- úprava ----------
-  const { data: existing, error: exErr } = await supabase
-    .from("workout_plans")
-    .select("id, trainer_id, client_id")
-    .eq("id", planId)
-    .maybeSingle();
+  // Vlastníctvo a súčasné dni potrebujú len planId — naraz. Zápisy potom tiež naraz
+  // (premenovanie, každý deň, zmazanie odobratých): predtým šiel každý deň samostatným
+  // round-tripom za sebou, pri 7-dňovom pláne to boli sekundy čakania na mobile.
+  // workout_days nemá unique (plan_id, day_number), prečíslovanie sa tak nebije.
+  const [{ data: existing, error: exErr }, { data: currentDays, error: cdErr }] = await Promise.all([
+    supabase.from("workout_plans").select("id, trainer_id, client_id").eq("id", planId).maybeSingle(),
+    supabase.from("workout_days").select("id").eq("plan_id", planId),
+  ]);
   if (exErr) return { error: dbErr(exErr, "actions") };
   if (!existing || existing.trainer_id !== null || existing.client_id !== clientId) {
     return { error: "Tento tréning nemôžeš upraviť." };
   }
-
-  const { error: nameErr } = await supabase.from("workout_plans").update({ name: cleaned.name }).eq("id", planId);
-  if (nameErr) return { error: dbErr(nameErr, "actions") };
-
-  const { data: currentDays, error: cdErr } = await supabase
-    .from("workout_days")
-    .select("id")
-    .eq("plan_id", planId);
   if (cdErr) return { error: dbErr(cdErr, "actions") };
 
   const currentIds = new Set((currentDays ?? []).map((d) => d.id));
-  const keptIds = new Set<string>();
-
-  for (let i = 0; i < cleaned.days.length; i++) {
-    const day = cleaned.days[i];
-    if (day.id && currentIds.has(day.id)) {
-      keptIds.add(day.id);
-      const { error } = await supabase
-        .from("workout_days")
-        .update({ name: day.name, day_number: i + 1, exercises: day.exercises })
-        .eq("id", day.id);
-      if (error) return { error: dbErr(error, "actions") };
-    } else {
-      const { error } = await supabase.from("workout_days").insert({
-        plan_id: planId,
-        day_number: i + 1,
-        name: day.name,
-        exercises: day.exercises,
-      });
-      if (error) return { error: dbErr(error, "actions") };
-    }
-  }
-
+  const keptIds = new Set(cleaned.days.map((d) => d.id).filter((id): id is string => !!id && currentIds.has(id)));
   const toDelete = [...currentIds].filter((id) => !keptIds.has(id));
-  if (toDelete.length > 0) {
-    const { error } = await supabase.from("workout_days").delete().in("id", toDelete);
-    if (error) return { error: dbErr(error, "actions") };
-  }
+
+  const results = await Promise.all([
+    supabase.from("workout_plans").update({ name: cleaned.name }).eq("id", planId),
+    ...cleaned.days.map((day, i) =>
+      day.id && keptIds.has(day.id)
+        ? supabase
+            .from("workout_days")
+            .update({ name: day.name, day_number: i + 1, exercises: day.exercises })
+            .eq("id", day.id)
+        : supabase.from("workout_days").insert({
+            plan_id: planId,
+            day_number: i + 1,
+            name: day.name,
+            exercises: day.exercises,
+          }),
+    ),
+    ...(toDelete.length > 0 ? [supabase.from("workout_days").delete().in("id", toDelete)] : []),
+  ]);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: dbErr(failed.error, "actions") };
 
   revalidatePath("/portal", "layout");
   return { error: null, planId };

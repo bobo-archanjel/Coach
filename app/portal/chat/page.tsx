@@ -1,7 +1,7 @@
 import { ChatThread } from "../../components/ChatThread";
 import { getPortalChat } from "@/lib/portal/data";
 import type { PortalChatResult } from "@/lib/portal/types";
-import { getClientChatMarkerAction, markClientChatSeenAction, sendClientMessageAction } from "../actions";
+import { markClientChatSeenAction, sendClientMessageAction } from "../actions";
 import { AlertIcon, Notice } from "../Notice";
 import { ProfileIcon } from "../icons";
 import { RetryButton } from "../RetryButton";
@@ -109,7 +109,7 @@ export default async function ChatPage({
         mySide="client"
         sendAction={sendClientMessageAction}
         onSeen={markClientChatSeenAction}
-        checkNewAction={getClientChatMarkerAction}
+        markerUrl="/api/chat/marker"
         realtimeTable="messages"
         // Bez skloňovania mena — prípona k menu tvorila "QAa", "Martinaovi".
         emptyTitle="Napíš trénerovi"

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
 import type { PortalDiaryEntry, PortalFoodOption } from "@/lib/portal/types";
-import { getFoodLibraryAction, searchOnlineFoodAction } from "../actions";
+import { getFoodLibraryAction } from "../actions";
 import styles from "../portal.module.css";
 
 /** Ako dlho čakať po poslednom stlačení klávesy, kým sa spustí online vyhľadávanie
@@ -116,15 +116,28 @@ export function AddFoodDiaryEntry({
     }
     setOnlineLoading(true);
     const seq = ++onlineSeq.current;
+    // GET fetch, nie server action — nečaká vo fronte s "Pridať jedlo" a ďalšie
+    // písanie predošlé hľadanie zruší (abort) namiesto čakania na jeho výsledok.
+    const ctrl = new AbortController();
     const timer = setTimeout(() => {
-      searchOnlineFoodAction(q).then((res) => {
-        if (onlineSeq.current !== seq) return; // medzitým prišiel novší dopyt
-        setOnlineLoading(false);
-        setOnlineError(res.error);
-        setOnlineResults(res.results);
-      });
+      fetch(`/api/foods/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+        .then((r) => r.json() as Promise<{ error: string | null; results: PortalFoodOption[] }>)
+        .catch((err: unknown) =>
+          err instanceof DOMException && err.name === "AbortError"
+            ? null
+            : { error: "Vyhľadávanie momentálne nefunguje, skús to o chvíľu.", results: [] },
+        )
+        .then((res) => {
+          if (!res || onlineSeq.current !== seq) return; // zrušené / medzitým prišiel novší dopyt
+          setOnlineLoading(false);
+          setOnlineError(res.error);
+          setOnlineResults(res.results ?? []);
+        });
     }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
   }, [onlineQuery, source]);
 
   const wasPending = useRef(false);

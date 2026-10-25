@@ -12,7 +12,8 @@ import { AI_MODEL } from "@/lib/ai/client";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
 import { dbErr } from "@/lib/dbError";
 import { parsePlanSnapshot, snapshotToPlanEntries } from "@/lib/workouts/completed";
-import { isPlanLocked, PLAN_LOCKED_ERROR } from "@/lib/dashboard/planCompletion";
+import { getDayForEdit, isPlanLocked, PLAN_LOCKED_ERROR } from "@/lib/dashboard/planCompletion";
+import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 
 export interface ActionState {
   error: string | null;
@@ -43,8 +44,9 @@ export interface ExerciseListItem {
  */
 export async function getExerciseLibraryListAction(): Promise<ExerciseListItem[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("exercises").select("id, name, muscle_group").order("name");
-  return (data ?? []).map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group }));
+  // rovnaká cache globálnej knižnice ako builder (lib/exerciseLibrary)
+  const rows = await getTrainerExerciseLibrary(supabase);
+  return rows.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group }));
 }
 
 export interface WorkoutExerciseEntry {
@@ -96,12 +98,11 @@ export async function renamePlanAction(planId: string, rawName: string): Promise
   const name = rawName.trim();
   if (!name) return { error: "Zadaj názov plánu." };
   if (name.length > 120) return { error: "Názov môže mať najviac 120 znakov." };
-  if (await isPlanLocked(await createClient(), planId)) return { error: PLAN_LOCKED_ERROR };
 
+  // zámok aj session naraz (predtým za sebou)
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [locked, { data: { user } }] = await Promise.all([isPlanLocked(supabase, planId), supabase.auth.getUser()]);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!user) return { error: "Nie si prihlásený." };
 
   const { data, error } = await supabase
@@ -122,15 +123,13 @@ export async function renamePlanAction(planId: string, rawName: string): Promise
 /** Potvrdenie/koncept plánu — kým je `published: false`, klient ho v portáli nevidí. */
 export async function setPlanPublishedAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
-
   const planId = formData.get("plan_id") as string | null;
   const published = formData.get("published") === "true";
   if (!planId) return { error: "Chýba ID plánu." };
-  if (await isPlanLocked(await createClient(), planId)) return { error: PLAN_LOCKED_ERROR };
+
+  const [locked, { data: { user } }] = await Promise.all([isPlanLocked(supabase, planId), supabase.auth.getUser()]);
+  if (!user) return { error: "Nie si prihlásený." };
+  if (locked) return { error: PLAN_LOCKED_ERROR };
 
   const { error } = await supabase
     .from("workout_plans")
@@ -153,7 +152,7 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
 
   if (!planId) return { error: "Chýba ID plánu." };
   if (!name) return { error: "Zadaj názov dňa." };
-  if (await isPlanLocked(await createClient(), planId)) return { error: PLAN_LOCKED_ERROR };
+  if (await isPlanLocked(supabase, planId)) return { error: PLAN_LOCKED_ERROR };
 
   const { error } = await supabase.from("workout_days").insert({
     plan_id: planId,
@@ -178,12 +177,13 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
  */
 export async function deleteDayAction(planId: string, dayId: string): Promise<ActionState> {
   if (!planId || !dayId) return { error: "Chýba identifikátor dňa." };
-  if (await isPlanLocked(await createClient(), planId, dayId)) return { error: PLAN_LOCKED_ERROR };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [locked, { data: { user } }] = await Promise.all([
+    isPlanLocked(supabase, planId, dayId),
+    supabase.auth.getUser(),
+  ]);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!user) return { error: "Nie si prihlásený." };
 
   // RLS workout_days_delete_own_trainer — cudzí deň vráti 0 riadkov, nie chybu.
@@ -224,13 +224,15 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
 
   if (!dayId) return { error: "Najprv vytvor alebo vyber deň." };
   if (!planId) return { error: "Chýba ID plánu." };
-  if (await isPlanLocked(await createClient(), planId, dayId)) return { error: PLAN_LOCKED_ERROR };
   if (!exerciseId) return { error: "Vyber cvik." };
 
-  const { data: exercise } = await supabase.from("exercises").select("name, name_sk").eq("id", exerciseId).maybeSingle();
+  // Deň + zámok (jeden dopyt) a cvik naraz — predtým 5 dopytov za sebou pred zápisom.
+  const [{ day, locked }, { data: exercise }] = await Promise.all([
+    getDayForEdit(supabase, dayId),
+    supabase.from("exercises").select("name, name_sk").eq("id", exerciseId).maybeSingle(),
+  ]);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!exercise) return { error: "Cvik sa nenašiel." };
-
-  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
   if (!day) return { error: "Deň sa nenašiel." };
 
   const newEntry: WorkoutExerciseEntry = {
@@ -274,10 +276,10 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
 
   if (!dayId) return { error: "Najprv pridaj tréningový deň." };
   if (!planId) return { error: "Chýba ID plánu." };
-  if (await isPlanLocked(await createClient(), planId, dayId)) return { error: PLAN_LOCKED_ERROR };
   if (!name) return { error: "Zadaj názov cviku." };
 
-  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  const { day, locked } = await getDayForEdit(supabase, dayId);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!day) return { error: "Deň sa nenašiel." };
 
   const newEntry: WorkoutExerciseEntry = {
@@ -318,9 +320,9 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
   if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
   if (!Number.isFinite(sets) || sets < 1) return { error: "Zadaj počet sérií." };
   if (!reps) return { error: "Zadaj opakovania." };
-  if (await isPlanLocked(await createClient(), planId, dayId)) return { error: PLAN_LOCKED_ERROR };
 
-  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  const { day, locked } = await getDayForEdit(supabase, dayId);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!day) return { error: "Deň sa nenašiel." };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
@@ -359,10 +361,10 @@ export async function moveExerciseEntryAction(input: {
 }): Promise<ActionState> {
   const { planId, dayId, entryId, direction } = input;
   if (!planId || !dayId || !entryId) return { error: "Chýba identifikátor záznamu." };
-  if (await isPlanLocked(await createClient(), planId, dayId)) return { error: PLAN_LOCKED_ERROR };
 
   const supabase = await createClient();
-  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  const { day, locked } = await getDayForEdit(supabase, dayId);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!day) return { error: "Deň sa nenašiel." };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
@@ -390,9 +392,9 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
   const entryId = formData.get("entry_id") as string | null;
 
   if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
-  if (await isPlanLocked(await createClient(), planId, dayId)) return { error: PLAN_LOCKED_ERROR };
 
-  const { data: day } = await supabase.from("workout_days").select("exercises").eq("id", dayId).maybeSingle();
+  const { day, locked } = await getDayForEdit(supabase, dayId);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!day) return { error: "Deň sa nenašiel." };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
@@ -415,12 +417,10 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
  */
 export async function deletePlanAction(planId: string): Promise<ActionState> {
   if (!planId) return { error: "Chýba ID plánu." };
-  if (await isPlanLocked(await createClient(), planId)) return { error: PLAN_LOCKED_ERROR };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [locked, { data: { user } }] = await Promise.all([isPlanLocked(supabase, planId), supabase.auth.getUser()]);
+  if (locked) return { error: PLAN_LOCKED_ERROR };
   if (!user) return { error: "Nie si prihlásený." };
 
   const { data: deleted, error } = await supabase

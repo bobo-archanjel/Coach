@@ -76,3 +76,25 @@ export const getProfile = cache(async (userId: string) => {
   const supabase = await createClient();
   return supabase.from("profiles").select("role, full_name").eq("id", userId).maybeSingle();
 });
+
+/**
+ * Vlastný `clients` riadok prihláseného klienta (najstarší, ako všade v portáli).
+ * Layout /portal (viditeľnosť AI Kouča) aj stránky (getPortalData, getLinkedClient,
+ * profil) ho doťahovali každý zvlášť s inými stĺpcami — dva dopyty na ten istý
+ * riadok za request. `cache()` ich zlúči na jeden so zjednotením stĺpcov.
+ * Meno trénera ide embedom (klient smie čítať profil svojho trénera, 0041) —
+ * profil aj chat ho predtým dohľadávali ďalším dopytom až po tomto.
+ */
+export const MY_CLIENT_COLUMNS =
+  "id, full_name, trainer_id, active_plan_id, active_day_id, invite_code, ended_at, ended_notice_dismissed_at, deletion_requested_at, deletion_requested_by, trainer:profiles!clients_trainer_id_fkey(full_name)";
+
+export const getMyClient = cache(async (userId: string) => {
+  const supabase = await createClient();
+  return supabase
+    .from("clients")
+    .select(MY_CLIENT_COLUMNS)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+});

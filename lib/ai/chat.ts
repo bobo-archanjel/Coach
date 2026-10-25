@@ -12,6 +12,7 @@
 //    odpoveď zo skutočných dát — nevymýšľa makrá ani čas.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { after } from "next/server";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
 import { getMacroContext } from "./macroContext";
@@ -116,10 +117,58 @@ export async function sendAiChatMessage(
     return { status: "not_configured", reply: "AI chat zatiaľ nie je nastavený. Skús to prosím neskôr." };
   }
 
-  // ---------- 3. deterministický kontext ----------
-  const { context, error: ctxError } = await getMacroContext(supabase, clientId);
-  if (ctxError || !context) {
+  // ---------- 3. deterministický kontext + 3c. rezervácia limitu ----------
+  // Makrá, tréning, knižnica potravín a náhrady cvikov sa navzájom nepotrebujú —
+  // všetko naraz (predtým ~8 dopytov za sebou pred volaním modelu). Potraviny sa
+  // pýtajú len pri makro cieli a rezervácia limitu (atomická, nevracia sa) až keď
+  // sa makro kontext podaril — reťazené na ňu, nie čakajúce na celú dávku.
+  const macro = getMacroContext(supabase, clientId);
+  const [{ context, error: ctxError }, trainingBlock, foods, candidates, slot] = await Promise.all([
+    macro,
+    // Tréningový plán + história (deterministicky, viď trainingContext.ts) — posiela
+    // sa vždy, rovnako ako makrá: klient sa môže na tréning spýtať v ktorejkoľvek správe.
+    getTrainingContextBlock(supabase, clientId),
+    // ---------- 3a. reálne potraviny z knižnice, ak má klient makro cieľ (Krok 6) ----------
+    // Knižnica má len ~80-100 položiek — pošle sa celá vždy, keď má zmysel (klient
+    // môže potrebovať jedlo v ktorejkoľvek správe), nie len pri detegovanej "food" téme.
+    macro.then(({ context: ctx }) =>
+      ctx?.hasGoal
+        ? getFoodCandidates(supabase, trainerId).catch((err: unknown) => {
+            console.error("getFoodCandidates:", err instanceof Error ? err.message : err);
+            return [];
+          })
+        : [],
+    ),
+    // ---------- 3b. reálne cviky z knižnice, ak klient žiada náhradu (Krok 5) ----------
+    swapIntent
+      ? findExerciseAlternatives(supabase, userText).catch((err: unknown) => {
+          console.error("findExerciseAlternatives:", err instanceof Error ? err.message : err);
+          return { matched: null, alternatives: [] as ExerciseCandidate[] };
+        })
+      : null,
+    // (feature/security) atomická rezervácia denného limitu tesne pred volaním modelu
+    macro.then(({ context: ctx, error }) =>
+      error || !ctx
+        ? null
+        : reserveAiSlot({
+            supabase,
+            kind: "chat",
+            trainerId,
+            clientId,
+            model: AI_MODEL.CHAT,
+            subject: "client",
+            subjectLimit: AI_CHAT_DAILY_LIMIT(),
+          }),
+    ),
+  ]);
+  if (ctxError || !context || !slot) {
     return { status: "error", reply: "Nepodarilo sa načítať tvoje dáta. Skús to prosím znova." };
+  }
+  if (!slot.allowed) {
+    return {
+      status: "rate_limited",
+      reply: `Dosiahol/a si dnešný limit AI správ (${AI_CHAT_DAILY_LIMIT()}). Skús to znova zajtra, alebo napíš priamo trénerovi.`,
+    };
   }
 
   const contextBlock = context.hasGoal
@@ -134,35 +183,13 @@ export async function sendAiChatMessage(
     ? `Aktuálny čas zodpovedá jedlu dňa: ${context.currentMealSlotLabel} (hodina ${context.currentHour}).`
     : `Aktuálna hodina: ${context.currentHour} — mimo bežných časov jedla.`;
 
-  // Tréningový plán + história (deterministicky, viď trainingContext.ts) — posiela
-  // sa vždy, rovnako ako makrá: klient sa môže na tréning spýtať v ktorejkoľvek správe.
-  const trainingBlock = await getTrainingContextBlock(supabase, clientId);
+  const foodBlock =
+    foods.length > 0
+      ? `Knižnica potravín (vyber VÝHRADNE z tohto zoznamu, uveď aj gramáž):\n${formatFoodCandidates(foods)}`
+      : "";
 
-  // ---------- 3a. reálne potraviny z knižnice, ak má klient makro cieľ (Krok 6) ----------
-  // Knižnica má len ~80-100 položiek — pošle sa celá vždy, keď má zmysel (klient
-  // môže potrebovať jedlo v ktorejkoľvek správe), nie len pri detegovanej "food" téme.
-  let foodBlock = "";
-  if (context.hasGoal) {
-    try {
-      const foods = await getFoodCandidates(supabase, trainerId);
-      if (foods.length > 0) {
-        foodBlock = `Knižnica potravín (vyber VÝHRADNE z tohto zoznamu, uveď aj gramáž):\n${formatFoodCandidates(foods)}`;
-      }
-    } catch (err) {
-      console.error("getFoodCandidates:", err instanceof Error ? err.message : err);
-    }
-  }
-
-  // ---------- 3b. reálne cviky z knižnice, ak klient žiada náhradu (Krok 5) ----------
   let exerciseBlock = "";
-  if (swapIntent) {
-    let candidates: { matched: ExerciseCandidate | null; alternatives: ExerciseCandidate[] };
-    try {
-      candidates = await findExerciseAlternatives(supabase, userText);
-    } catch (err) {
-      console.error("findExerciseAlternatives:", err instanceof Error ? err.message : err);
-      candidates = { matched: null, alternatives: [] };
-    }
+  if (candidates) {
     const { matched, alternatives } = candidates;
     const nameOf = (c: ExerciseCandidate) => c.nameSk?.trim() || c.name;
     if (matched && alternatives.length > 0) {
@@ -182,23 +209,6 @@ export async function sendAiChatMessage(
   const recent = history.slice(-HISTORY_WINDOW);
   const softEscalation = healthTrigger && swapIntent;
 
-  // ---------- 3c. atomická rezervácia denného limitu (feature/security) ----------
-  const slot = await reserveAiSlot({
-    supabase,
-    kind: "chat",
-    trainerId,
-    clientId,
-    model: AI_MODEL.CHAT,
-    subject: "client",
-    subjectLimit: AI_CHAT_DAILY_LIMIT(),
-  });
-  if (!slot.allowed) {
-    return {
-      status: "rate_limited",
-      reply: `Dosiahol/a si dnešný limit AI správ (${AI_CHAT_DAILY_LIMIT()}). Skús to znova zajtra, alebo napíš priamo trénerovi.`,
-    };
-  }
-
   try {
     const response = await anthropic.messages.create({
       model: AI_MODEL.CHAT,
@@ -213,24 +223,29 @@ export async function sendAiChatMessage(
     const reply =
       textBlock && textBlock.type === "text" ? stripMarkdown(textBlock.text) : "Prepáč, nepodarilo sa mi odpovedať.";
 
-    await logAiUsage({
-      trainerId,
-      clientId,
-      kind: "chat",
-      model: AI_MODEL.CHAT,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      reservationId: slot.reservationId,
-    });
-
-    // mäkké FYI trénerovi — bežná výmena cviku kvôli nepohodliu, nie alarm (viď healthFilter.ts)
-    if (softEscalation) {
-      const { error } = await supabase.rpc("insert_ai_escalation_message", {
-        p_client_id: clientId,
-        p_body: buildSoftExerciseNoticeForTrainer(userText),
+    // Zápis spotreby a mäkké FYI trénerovi až po odoslaní odpovede klientovi (after) —
+    // odpoveď AI na ne nemusí čakať.
+    const usage = response.usage;
+    after(async () => {
+      await logAiUsage({
+        trainerId,
+        clientId,
+        kind: "chat",
+        model: AI_MODEL.CHAT,
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+        reservationId: slot.reservationId,
       });
-      if (error) console.error("insert_ai_escalation_message (soft):", error.message);
-    }
+
+      // mäkké FYI trénerovi — bežná výmena cviku kvôli nepohodliu, nie alarm (viď healthFilter.ts)
+      if (softEscalation) {
+        const { error } = await supabase.rpc("insert_ai_escalation_message", {
+          p_client_id: clientId,
+          p_body: buildSoftExerciseNoticeForTrainer(userText),
+        });
+        if (error) console.error("insert_ai_escalation_message (soft):", error.message);
+      }
+    });
 
     return { status: "ok", reply, escalated: softEscalation };
   } catch (err) {
