@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { MealSlot } from "@/lib/meals";
+import { MEAL_SLOT_ORDER, type MealSlot } from "@/lib/meals";
 import { dbErr } from "@/lib/dbError";
 
 export interface ActionState {
@@ -106,17 +106,18 @@ export async function deleteMealPlanAction(planId: string): Promise<ActionState>
   redirect(`/dashboard/vyziva/${plan.client_id}`);
 }
 
-export async function renameMealPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+/** Rovnaký podpis ako tréningový renamePlanAction — volá ho zdieľaná ceruzka PlanTitle. */
+export async function renameMealPlanAction(planId: string, rawName: string): Promise<ActionState> {
+  if (!planId) return { error: "Chýba ID jedálnička." };
+  const name = rawName.trim();
+  if (!name) return { error: "Zadaj názov jedálnička." };
+  if (name.length > 120) return { error: "Názov môže mať najviac 120 znakov." };
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
-
-  const planId = formData.get("plan_id") as string | null;
-  const name = (formData.get("name") as string | null)?.trim() ?? "";
-  if (!planId) return { error: "Chýba ID jedálnička." };
-  if (!name) return { error: "Zadaj názov jedálnička." };
 
   const { data, error } = await supabase
     .from("meal_plans")
@@ -133,151 +134,123 @@ export async function renameMealPlanAction(_prevState: ActionState, formData: Fo
   return ok;
 }
 
-export async function renameMealDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-  const dayId = formData.get("day_id") as string | null;
-  const planId = formData.get("plan_id") as string | null;
-  const name = (formData.get("name") as string | null)?.trim() ?? "";
-
-  if (!dayId || !planId) return { error: "Chýba identifikátor dňa." };
-  if (!name) return { error: "Zadaj názov dňa." };
-
-  // RLS (meal_days_update_own_trainer) pustí len deň vlastného jedálnička.
-  const { data, error } = await supabase.from("meal_days").update({ name }).eq("id", dayId).select("id").maybeSingle();
-  if (error) return { error: dbErr(error, "actions") };
-  if (!data) return { error: "Deň sa nenašiel." };
-
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  return ok;
+/** Deň jedálnička tak, ako ho posiela builder pri „Uložiť zmeny". */
+export interface MealDayDraft {
+  /** null = nový deň (ešte nie je v DB) */
+  id: string | null;
+  name: string;
+  meals: { entry_id: string; food_id: string; meal_slot: MealSlot; grams: number }[];
 }
 
-export async function deleteMealDayAction(dayId: string, planId: string): Promise<ActionState> {
-  if (!dayId || !planId) return { error: "Chýba identifikátor dňa." };
+const MAX_DAYS = 31;
+const MAX_ENTRIES_PER_DAY = 100;
+const ENTRY_ID_RE = /^[A-Za-z0-9-]{1,64}$/;
+
+/**
+ * Uloží celý jedálniček naraz — builder drží úpravy lokálne a posiela ich až po
+ * kliknutí na „Uložiť zmeny" (predtým sa každý klik hneď zapísal a zverejnený
+ * jedálniček sa klientovi menil priebežne). Dni chýbajúce v `days` sa zmažú, nové
+ * (id null) vložia, poradie = index. Názov a makrá potraviny sa berú z DB podľa
+ * food_id (snapshot ako pri pôvodnom pridaní), nie z prehliadača.
+ */
+export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[]): Promise<ActionState> {
+  if (!planId) return { error: "Chýba ID jedálnička." };
+  if (!Array.isArray(days) || days.length > MAX_DAYS) return { error: `Jedálniček môže mať najviac ${MAX_DAYS} dní.` };
+
+  for (const day of days) {
+    const name = typeof day.name === "string" ? day.name.trim() : "";
+    if (!name) return { error: "Každý deň musí mať názov." };
+    if (name.length > 120) return { error: "Názov dňa môže mať najviac 120 znakov." };
+    if (!Array.isArray(day.meals) || day.meals.length > MAX_ENTRIES_PER_DAY) {
+      return { error: `Deň „${name}" má priveľa položiek.` };
+    }
+    for (const m of day.meals) {
+      if (!MEAL_SLOT_ORDER.includes(m.meal_slot)) return { error: "Neplatné jedlo dňa." };
+      if (!Number.isFinite(m.grams) || m.grams <= 0 || m.grams > 5000) {
+        return { error: `Zadaj platnú gramáž (1–5000 g) v dni „${name}".` };
+      }
+    }
+  }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("meal_days").delete().eq("id", dayId).select("id").maybeSingle();
-  if (error) return { error: dbErr(error, "actions") };
-  if (!data) return { error: "Deň sa nenašiel." };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
 
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  return ok;
-}
+  const foodIds = [...new Set(days.flatMap((d) => d.meals.map((m) => m.food_id)))];
+  const [{ data: plan }, { data: existing }, { data: foods, error: foodsError }] = await Promise.all([
+    supabase.from("meal_plans").select("client_id").eq("id", planId).eq("trainer_id", user.id).maybeSingle(),
+    supabase.from("meal_days").select("id, meals").eq("plan_id", planId),
+    foodIds.length > 0
+      ? supabase.from("foods").select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g").in("id", foodIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (!plan) return { error: "Jedálniček sa nenašiel." };
+  if (foodsError) return { error: dbErr(foodsError, "actions") };
 
-export async function addMealDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-  const planId = formData.get("plan_id") as string | null;
-  const name = (formData.get("name") as string | null)?.trim() ?? "";
-  const dayNumber = Number(formData.get("day_number"));
-
-  if (!planId) return { error: "Chýba ID plánu." };
-  if (!name) return { error: "Zadaj názov dňa." };
-
-  const { error } = await supabase.from("meal_days").insert({
-    plan_id: planId,
-    day_number: Number.isFinite(dayNumber) ? dayNumber : 1,
-    name,
-    meals: [],
-  });
-
-  if (error) return { error: dbErr(error, "actions") };
-
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  return ok;
-}
-
-/** Klik na potravinu v knižnici → pridá ju do aktívneho dňa (100 g, raňajky), rovno editovateľné. */
-export async function addFoodToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-
-  const dayId = formData.get("day_id") as string | null;
-  const planId = formData.get("plan_id") as string | null;
-  const foodId = formData.get("food_id") as string | null;
-
-  if (!dayId) return { error: "Najprv vytvor alebo vyber deň." };
-  if (!planId) return { error: "Chýba ID plánu." };
-  if (!foodId) return { error: "Vyber potravinu." };
-
-  const { data: food } = await supabase
-    .from("foods")
-    .select("name, kcal_100g, protein_100g, carbs_100g, fat_100g")
-    .eq("id", foodId)
-    .maybeSingle();
-  if (!food) return { error: "Potravina sa nenašla." };
-
-  const { data: day } = await supabase.from("meal_days").select("meals").eq("id", dayId).maybeSingle();
-  if (!day) return { error: "Deň sa nenašiel." };
-
-  const newEntry: MealEntry = {
-    entry_id: randomUUID(),
-    food_id: foodId,
-    food_name: food.name,
-    meal_slot: "ranajky",
-    grams: 100,
-    kcal_100g: food.kcal_100g,
-    protein_100g: food.protein_100g,
-    carbs_100g: food.carbs_100g,
-    fat_100g: food.fat_100g,
-  };
-
-  const current = (Array.isArray(day.meals) ? day.meals : []) as MealEntry[];
-  const { error } = await supabase
-    .from("meal_days")
-    .update({ meals: [...current, newEntry] })
-    .eq("id", dayId);
-
-  if (error) return { error: dbErr(error, "actions") };
-
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  return ok;
-}
-
-export async function updateMealEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-
-  const dayId = formData.get("day_id") as string | null;
-  const planId = formData.get("plan_id") as string | null;
-  const entryId = formData.get("entry_id") as string | null;
-  const mealSlot = formData.get("meal_slot") as MealSlot | null;
-  const grams = Number(formData.get("grams"));
-
-  if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
-  if (!mealSlot) return { error: "Vyber jedlo dňa." };
-  if (!Number.isFinite(grams) || grams <= 0) return { error: "Zadaj gramáž." };
-
-  const { data: day } = await supabase.from("meal_days").select("meals").eq("id", dayId).maybeSingle();
-  if (!day) return { error: "Deň sa nenašiel." };
-
-  const current = (Array.isArray(day.meals) ? day.meals : []) as MealEntry[];
-  const updated = current.map((entry) =>
-    entry.entry_id === entryId ? { ...entry, meal_slot: mealSlot, grams } : entry
+  const foodById = new Map((foods ?? []).map((f) => [f.id, f]));
+  // Potravina medzitým zmazaná z knižnice → nechaj snapshot, ktorý už v dni bol.
+  const savedEntries = new Map(
+    (existing ?? []).flatMap((d) => ((Array.isArray(d.meals) ? d.meals : []) as MealEntry[]).map((e) => [e.entry_id, e])),
   );
 
-  const { error } = await supabase.from("meal_days").update({ meals: updated }).eq("id", dayId);
-  if (error) return { error: dbErr(error, "actions") };
+  const rows: { id: string | null; day_number: number; name: string; meals: MealEntry[] }[] = [];
+  for (const [i, day] of days.entries()) {
+    const meals: MealEntry[] = [];
+    for (const m of day.meals) {
+      const food = foodById.get(m.food_id);
+      const prev = savedEntries.get(m.entry_id);
+      const snapshot = food
+        ? { food_name: food.name, kcal_100g: food.kcal_100g, protein_100g: food.protein_100g, carbs_100g: food.carbs_100g, fat_100g: food.fat_100g }
+        : prev && prev.food_id === m.food_id
+          ? { food_name: prev.food_name, kcal_100g: prev.kcal_100g, protein_100g: prev.protein_100g, carbs_100g: prev.carbs_100g, fat_100g: prev.fat_100g }
+          : null;
+      if (!snapshot) return { error: "Niektorá potravina sa nenašla — obnov stránku a skús znova." };
+      meals.push({
+        entry_id: ENTRY_ID_RE.test(m.entry_id) ? m.entry_id : randomUUID(),
+        food_id: m.food_id,
+        meal_slot: m.meal_slot,
+        grams: Math.round(m.grams * 10) / 10,
+        ...snapshot,
+      });
+    }
+    rows.push({ id: day.id, day_number: i + 1, name: day.name.trim(), meals });
+  }
+
+  const existingIds = new Set((existing ?? []).map((d) => d.id));
+  if (rows.some((r) => r.id && !existingIds.has(r.id))) {
+    return { error: "Jedálniček sa medzitým zmenil — obnov stránku a skús znova." };
+  }
+  const keptIds = new Set(rows.flatMap((r) => (r.id ? [r.id] : [])));
+  const toDelete = [...existingIds].filter((id) => !keptIds.has(id));
+
+  if (toDelete.length > 0) {
+    const { error } = await supabase.from("meal_days").delete().in("id", toDelete).eq("plan_id", planId);
+    if (error) return { error: dbErr(error, "actions") };
+  }
+  const updates = await Promise.all(
+    rows
+      .filter((r) => r.id)
+      .map((r) =>
+        supabase
+          .from("meal_days")
+          .update({ day_number: r.day_number, name: r.name, meals: r.meals })
+          .eq("id", r.id as string)
+          .eq("plan_id", planId),
+      ),
+  );
+  const updateError = updates.find((u) => u.error)?.error;
+  if (updateError) return { error: dbErr(updateError, "actions") };
+
+  const inserts = rows.filter((r) => !r.id).map(({ day_number, name, meals }) => ({ plan_id: planId, day_number, name, meals }));
+  if (inserts.length > 0) {
+    const { error } = await supabase.from("meal_days").insert(inserts);
+    if (error) return { error: dbErr(error, "actions") };
+  }
 
   revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  return ok;
-}
-
-export async function removeMealEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-
-  const dayId = formData.get("day_id") as string | null;
-  const planId = formData.get("plan_id") as string | null;
-  const entryId = formData.get("entry_id") as string | null;
-
-  if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
-
-  const { data: day } = await supabase.from("meal_days").select("meals").eq("id", dayId).maybeSingle();
-  if (!day) return { error: "Deň sa nenašiel." };
-
-  const current = (Array.isArray(day.meals) ? day.meals : []) as MealEntry[];
-  const updated = current.filter((entry) => entry.entry_id !== entryId);
-
-  const { error } = await supabase.from("meal_days").update({ meals: updated }).eq("id", dayId);
-  if (error) return { error: dbErr(error, "actions") };
-
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
+  revalidatePath(`/dashboard/vyziva/${plan.client_id}`);
   return ok;
 }
 
@@ -310,5 +283,8 @@ export async function addCustomFoodAction(_prevState: ActionState, formData: For
 
   if (error) return { error: dbErr(error, "actions") };
 
+  // Nová potravina sa má hneď ukázať v knižnici — bez toho až po reloade, ktorý by
+  // zahodil neuložené úpravy jedálnička (builder ich drží lokálne).
+  revalidatePath("/dashboard/vyziva/jedalnicek/[planId]", "page");
   return ok;
 }

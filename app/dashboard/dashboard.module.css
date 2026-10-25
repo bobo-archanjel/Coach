@@ -653,6 +653,29 @@ select.addClientInputSm {
 .addClientInputSm[type="number"] {
   -moz-appearance: textfield;
 }
+/* Formulár s popiskami v mriežke (makro cieľ vo Výžive). Predtým tam bolo
+   .addClientFields prepnuté inline na column — zdedený flex-basis 200px z
+   .addClientInput sa v stĺpci uplatnil ako VÝŠKA a každé pole malo na desktope
+   ~200px. Tu sú polia v <label> (flex column), preto flex:none. */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+}
+.fieldGrid > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.fieldGrid .addClientInput {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+.fieldGridFull {
+  grid-column: 1 / -1;
+}
 .addClientError {
   margin-top: 8px;
   font-size: 13px;
@@ -1153,6 +1176,9 @@ select.addClientInputSm {
   gap: 8px;
   margin: -12px 0 20px;
 }
+.planActions:empty {
+  display: none;
+}
 /* Deštruktívne tlačidlo v štýle btn-ghost — červený text, pri hoveri aj rám. */
 .dangerGhost {
   color: var(--error);
@@ -1287,15 +1313,18 @@ select.addClientInputSm {
   font-size: 12.5px;
   color: var(--paper-dim);
 }
+/* minmax(0, …) namiesto holého 1fr — 1fr má minimum `auto` = min-content obsahu,
+   takže dlhý <select> (napr. „Stredná aktivita (3–5× týždenne)") roztiahol stĺpec
+   za okraj telefónu a karta vpravo pretiekla (odrezaná). */
 .detailGrid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   gap: 20px;
   align-items: start;
 }
 @media (max-width: 860px) {
   .detailGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

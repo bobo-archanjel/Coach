@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useActionState, useEffect, useRef } from "react";
-import { updateMealEntryAction, removeMealEntryAction, type ActionState, type MealEntry } from "../actions";
-import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros } from "@/lib/meals";
+import { useState } from "react";
+import type { MealEntry } from "../actions";
+import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
+import { MacroChips } from "./MacroChips";
 import styles from "./builder.module.css";
-
-const initialState: ActionState = { error: null };
 
 const EditIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -19,53 +18,81 @@ const TrashIcon = () => (
   </svg>
 );
 
-export function MealEntryRow({ entry, dayId, planId }: { entry: MealEntry; dayId: string; planId: string }) {
+/** Položka dňa — úprava aj odstránenie len lokálne, do DB ide cez „Uložiť zmeny". */
+export function MealEntryRow({
+  entry,
+  onUpdate,
+  onRemove,
+}: {
+  entry: MealEntry;
+  onUpdate: (patch: { meal_slot: MealSlot; grams: number }) => void;
+  onRemove: () => void;
+}) {
   const [editing, setEditing] = useState(false);
-  const [updateState, updateAction, updatePending] = useActionState(updateMealEntryAction, initialState);
-  const [removeState, removeAction, removePending] = useActionState(removeMealEntryAction, initialState);
-  const wasPending = useRef(false);
+  const [slot, setSlot] = useState<MealSlot>(entry.meal_slot);
+  const [grams, setGrams] = useState(String(entry.grams));
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (wasPending.current && !updatePending && !updateState.error) {
-      setEditing(false);
+  const startEdit = () => {
+    setSlot(entry.meal_slot);
+    setGrams(String(entry.grams));
+    setError(null);
+    setEditing(true);
+  };
+
+  const apply = () => {
+    const g = Number(grams.replace(",", "."));
+    if (!Number.isFinite(g) || g <= 0 || g > 5000) {
+      setError("Zadaj gramáž 1–5000 g.");
+      return;
     }
-    wasPending.current = updatePending;
-  }, [updatePending, updateState.error]);
+    onUpdate({ meal_slot: slot, grams: Math.round(g * 10) / 10 });
+    setEditing(false);
+  };
 
   const macros = scaleFoodMacros(entry, entry.grams);
 
   if (editing) {
     return (
-      <form action={updateAction} className={styles.editForm}>
-        <input type="hidden" name="day_id" value={dayId} readOnly />
-        <input type="hidden" name="plan_id" value={planId} readOnly />
-        <input type="hidden" name="entry_id" value={entry.entry_id} readOnly />
+      <form
+        className={styles.editForm}
+        onSubmit={(e) => {
+          e.preventDefault();
+          apply();
+        }}
+      >
         <span className={styles.editName}>{entry.food_name}</span>
         <div className={styles.editGrid}>
           <label className={`${styles.editField} ${styles.editFieldSlot}`}>
             <span className={styles.editFieldLabel}>Jedlo dňa</span>
-            <select name="meal_slot" defaultValue={entry.meal_slot}>
-              {MEAL_SLOT_ORDER.map((slot) => (
-                <option key={slot} value={slot}>
-                  {MEAL_SLOT_LABELS[slot]}
+            <select value={slot} onChange={(e) => setSlot(e.target.value as MealSlot)}>
+              {MEAL_SLOT_ORDER.map((s) => (
+                <option key={s} value={s}>
+                  {MEAL_SLOT_LABELS[s]}
                 </option>
               ))}
             </select>
           </label>
           <label className={`${styles.editField} ${styles.editFieldGrams}`}>
             <span className={styles.editFieldLabel}>Gramáž (g)</span>
-            <input name="grams" type="number" min={1} step="1" defaultValue={entry.grams} required />
+            <input
+              type="text"
+              inputMode="decimal"
+              value={grams}
+              onChange={(e) => setGrams(e.target.value)}
+              autoFocus
+            />
           </label>
         </div>
         <div className={styles.editActions}>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={updatePending}>
-            {updatePending ? "Ukladám…" : "Uložiť"}
+          <button type="submit" className="btn btn-primary btn-sm">
+            Hotovo
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)} disabled={updatePending}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>
             Zrušiť
           </button>
         </div>
-        {updateState.error && <p className={styles.formError}>{updateState.error}</p>}
+        {error && <p className={styles.formError}>{error}</p>}
       </form>
     );
   }
@@ -76,23 +103,15 @@ export function MealEntryRow({ entry, dayId, planId }: { entry: MealEntry; dayId
       <span className={styles.exerciseSummary}>
         {entry.grams} g · {macros.kcal} kcal
       </span>
-      <span className={styles.exerciseMeta}>
-        {macros.proteinG}g B · {macros.carbsG}g S · {macros.fatG}g T
-      </span>
+      <MacroChips proteinG={macros.proteinG} carbsG={macros.carbsG} fatG={macros.fatG} />
       <div className={styles.rowActions}>
-        <button type="button" className={styles.iconBtn} onClick={() => setEditing(true)} aria-label="Upraviť položku">
+        <button type="button" className={styles.iconBtn} onClick={startEdit} aria-label="Upraviť položku">
           <EditIcon />
         </button>
-        <form action={removeAction}>
-          <input type="hidden" name="day_id" value={dayId} readOnly />
-          <input type="hidden" name="plan_id" value={planId} readOnly />
-          <input type="hidden" name="entry_id" value={entry.entry_id} readOnly />
-          <button type="submit" className={styles.iconBtn} disabled={removePending} aria-label="Odstrániť položku">
-            <TrashIcon />
-          </button>
-        </form>
+        <button type="button" className={styles.iconBtn} onClick={onRemove} aria-label="Odstrániť položku">
+          <TrashIcon />
+        </button>
       </div>
-      {removeState.error && <p className={styles.formError}>{removeState.error}</p>}
     </div>
   );
 }

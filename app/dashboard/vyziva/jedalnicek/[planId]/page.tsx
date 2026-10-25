@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { MealPlanBuilder } from "./MealPlanBuilder";
-import { MealPlanControls } from "./MealPlanControls";
-import { SaveTemplateForm } from "../../../sablony/SaveTemplateForm";
+import { MealPlanFooterActions, MealPublishBadge } from "./MealPlanControls";
+import { PlanTitle } from "../../../treningy/[planId]/PlanTitle";
+import { renameMealPlanAction } from "../actions";
 import styles from "../../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -61,29 +62,30 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
         Späť na výživu
       </Link>
 
+      {/* Rovnaké rozloženie ako detail tréningového plánu: názov s ceruzkou + stav vpravo,
+          pod tým súmerná mriežka akcií konceptu, menej časté akcie dole za čiarou. */}
       <div className={styles.detailHead}>
-        <div>
-          <h1>{plan.name}</h1>
+        <div className={styles.detailTitle}>
+          <PlanTitle planId={planId} name={plan.name} rename={renameMealPlanAction} />
           <div className={styles.clientGoal}>
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
         </div>
-        <MealPlanControls
+        <MealPublishBadge published={plan.published} visibleToClient={visibleToClient} />
+      </div>
+
+      {/* Akcie konceptu (Zverejniť | Zmazať koncept) renderuje builder — potrebujú vedieť
+          o neuložených zmenách. */}
+      <MealPlanBuilder planId={planId} published={plan.published} days={days ?? []} library={foods ?? []} />
+
+      <div className={styles.planFooterActions}>
+        <MealPlanFooterActions
           planId={planId}
-          name={plan.name}
+          planName={plan.name}
           published={plan.published}
           visibleToClient={visibleToClient}
         />
       </div>
-
-      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <SaveTemplateForm kind="meal" planId={planId} defaultName={plan.name} />
-        <a href={`/api/export/meal-plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-          Stiahnuť PDF
-        </a>
-      </div>
-
-      <MealPlanBuilder planId={planId} days={days ?? []} library={foods ?? []} />
     </>
   );
 }

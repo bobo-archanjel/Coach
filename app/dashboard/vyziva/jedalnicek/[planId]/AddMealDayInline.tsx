@@ -1,22 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { addMealDayAction, type ActionState } from "../actions";
+import { useState } from "react";
 import styles from "./builder.module.css";
 
-const initialState: ActionState = { error: null };
-
-export function AddMealDayInline({ planId, nextDayNumber }: { planId: string; nextDayNumber: number }) {
+/** "+ deň" — pridá deň lokálne (uloží sa cez „Uložiť zmeny"). */
+export function AddMealDayInline({ nextDayNumber, onAdd }: { nextDayNumber: number; onAdd: (name: string) => void }) {
   const [adding, setAdding] = useState(false);
-  const [state, formAction, pending] = useActionState(addMealDayAction, initialState);
-  const wasPending = useRef(false);
-
-  useEffect(() => {
-    if (wasPending.current && !pending && !state.error) {
-      setAdding(false);
-    }
-    wasPending.current = pending;
-  }, [pending, state.error]);
+  const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   if (!adding) {
     return (
@@ -26,27 +17,43 @@ export function AddMealDayInline({ planId, nextDayNumber }: { planId: string; ne
     );
   }
 
+  const close = () => {
+    setAdding(false);
+    setName("");
+    setError(null);
+  };
+
   return (
-    <form action={formAction} className={styles.addDayForm}>
-      <input type="hidden" name="plan_id" value={planId} readOnly />
-      <input type="hidden" name="day_number" value={nextDayNumber} readOnly />
+    <form
+      className={styles.addDayForm}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const trimmed = name.trim();
+        // Vlastná slovenská hláška namiesto `required` (HTML5 bublina je v jazyku prehliadača).
+        if (!trimmed) return setError("Zadaj názov dňa.");
+        if (trimmed.length > 120) return setError("Názov dňa môže mať najviac 120 znakov.");
+        onAdd(trimmed);
+        close();
+      }}
+    >
       <input
-        name="name"
         type="text"
         placeholder={`napr. Deň ${nextDayNumber}`}
-        // Bez `required` — HTML5 bublina je v jazyku prehliadača; addMealDayAction
-        // prázdny názov odmietne slovenskou hláškou (rovnako ako AddDayInline).
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") close();
+        }}
         autoFocus
-        disabled={pending}
         className={styles.addDayInput}
       />
-      <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-        {pending ? "…" : "Pridať"}
+      <button type="submit" className="btn btn-primary btn-sm">
+        Pridať
       </button>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAdding(false)} disabled={pending}>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={close}>
         Zrušiť
       </button>
-      {state.error && <p className={styles.formError}>{state.error}</p>}
+      {error && <p className={styles.formError}>{error}</p>}
     </form>
   );
 }

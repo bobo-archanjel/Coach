@@ -11,8 +11,8 @@ const initialState: ActionState = { error: null };
 /**
  * "Uložiť ako šablónu" na detaile tréningového plánu — cieľ + uloženie v 2-stĺpcovej
  * mriežke (templateGrid) pod publikovaním. Šablóna sa ukladá pod názvom plánu;
- * iný názov = premenovať plán ceruzkou pri nadpise (PlanTitle). Jedálniček ďalej
- * používa SaveTemplateForm. `withGoal={false}` (uzamknutý, celý odcvičený plán) —
+ * iný názov = premenovať plán ceruzkou pri nadpise (PlanTitle). Jedálniček má
+ * vlastné tlačidlo v MealPlanFooterActions. `withGoal={false}` (uzamknutý, celý odcvičený plán) —
  * bez výberu cieľa, šablóna sa uloží bez neho; na jeho miesto v mriežke ide
  * `leading` (tam "Stiahnuť PDF" v spodných akciách plánu).
  */
