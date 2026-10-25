@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalPlan, PortalTrainingData } from "@/lib/portal/types";
 import { deleteClientPlanAction, getExerciseLibraryAction, setActivePlanAction } from "./actions";
@@ -63,7 +62,6 @@ function exWord(n: number): string {
 }
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
-  const router = useRouter();
   const { plans } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
@@ -101,9 +99,10 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setMode("list");
     setEditing(null);
   };
+  // Uloženie aj zmazanie revalidujú /portal — čerstvý zoznam prichádza v odpovedi
+  // akcie; router.refresh() navyše by celú stránku vykreslil zo servera druhýkrát.
   const onSaved = () => {
     closeBuilder();
-    router.refresh();
   };
 
   // Ťuk na tréning len rozbalí/zbalí zoznam jeho dní — nemení, čo beží na karte
@@ -134,7 +133,6 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       if (res.error) setError(res.error);
       else {
         setConfirmDelete(null);
-        router.refresh();
       }
     });
   };

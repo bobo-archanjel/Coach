@@ -5,8 +5,6 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { getFoodLibrary, getPortalWeek } from "@/lib/portal/data";
-import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
-import { allowWithinWindow } from "@/lib/rateLimitMemory";
 import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
 import { isValidReps, isValidWeight } from "@/lib/workouts/setInput";
@@ -16,30 +14,6 @@ export interface ActionState {
   error: string | null;
 }
 const ok: ActionState = { error: null };
-
-/** Živé vyhľadávanie značkových potravín (Open Food Facts, Fáza C) pre denník. */
-export async function searchOnlineFoodAction(query: string): Promise<{ error: string | null; results: PortalFoodOption[] }> {
-  // feature/security: akcia bola volateľná BEZ prihlásenia a bez limitu — server sa tak
-  // dal zneužiť ako otvorený proxy na Open Food Facts (vyčerpanie fair-use kvóty,
-  // zákaz IP adresy servera). Teraz len prihlásený, s obmedzenou dĺžkou a throttlom.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený.", results: [] };
-  if (typeof query !== "string" || query.length > 80) return { error: "Hľadaný text je príliš dlhý.", results: [] };
-  if (!allowWithinWindow(`off:${user.id}`, 20, 60_000)) {
-    return { error: "Príliš veľa vyhľadávaní naraz, skús to o chvíľu.", results: [] };
-  }
-
-  try {
-    const results = await searchOpenFoodFacts(query);
-    return { error: null, results };
-  } catch (err) {
-    console.error("searchOnlineFoodAction:", err);
-    return { error: "Vyhľadávanie momentálne nefunguje, skús to o chvíľu.", results: [] };
-  }
-}
 
 /** Detail cviku (obrázky + inštrukcie z Free Exercise DB) pre náhľadový modal klienta. */
 export async function getExerciseDetailAction(exerciseId: string): Promise<ExerciseDetail | null> {
@@ -118,10 +92,14 @@ async function currentClientId(supabase: Awaited<ReturnType<typeof createClient>
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  return clientIdForUser(supabase, user.id);
+}
+
+async function clientIdForUser(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<string | null> {
   const { data } = await supabase
     .from("clients")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -402,8 +380,6 @@ function todayBratislava(): string {
  */
 export async function addFoodLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
-  const clientId = await currentClientId(supabase);
-  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
 
   const foodId = (formData.get("food_id") as string | null) || null;
   const name = ((formData.get("food_name") as string | null) ?? "").trim();
@@ -440,21 +416,27 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
   };
   let foodName = name;
 
-  if (foodId) {
-    const { data: food } = await supabase
-      .from("foods")
-      .select("name, kcal_100g, protein_100g, carbs_100g, fat_100g")
-      .eq("id", foodId)
-      .maybeSingle();
-    if (food) {
-      macros = {
-        kcal_100g: food.kcal_100g,
-        protein_100g: food.protein_100g,
-        carbs_100g: food.carbs_100g,
-        fat_100g: food.fat_100g,
-      };
-      foodName = food.name;
-    }
+  // Klient a potravina sa nepotrebujú navzájom — oba dopyty naraz (predtým za sebou).
+  const [clientId, { data: food }] = await Promise.all([
+    currentClientId(supabase),
+    foodId
+      ? supabase
+          .from("foods")
+          .select("name, kcal_100g, protein_100g, carbs_100g, fat_100g")
+          .eq("id", foodId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  if (food) {
+    macros = {
+      kcal_100g: food.kcal_100g,
+      protein_100g: food.protein_100g,
+      carbs_100g: food.carbs_100g,
+      fat_100g: food.fat_100g,
+    };
+    foodName = food.name;
   }
 
   if (!foodName) return { error: "Chýba názov potraviny." };
@@ -476,10 +458,11 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 }
 
 /** Denník — zmena gramáže / jedla dňa zapísanej položky (RLS: food_logs_update_own_client, 0045). */
+// Úprava aj odobratie: RLS (food_logs_update/delete_own_client) pustí len riadky
+// vlastného klienta (tréner má na food_logs len čítanie), takže dohľadávanie
+// klienta pred zápisom (sieťový auth.getUser + dopyt) bolo 2 round-tripy navyše.
 export async function updateFoodLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
-  const clientId = await currentClientId(supabase);
-  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
 
   const id = formData.get("entry_id") as string | null;
   const grams = Number(formData.get("grams"));
@@ -490,7 +473,6 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
     .from("food_logs")
     .update({ grams })
     .eq("id", id)
-    .eq("client_id", clientId)
     .select("id")
     .maybeSingle();
   if (error) return { error: dbErr(error, "actions") };
@@ -503,14 +485,13 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
 /** Denník — odobrať záznam (RLS: food_logs_delete_own_client). */
 export async function removeFoodLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
-  const clientId = await currentClientId(supabase);
-  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
 
   const id = formData.get("entry_id") as string | null;
   if (!id) return { error: "Chýba identifikátor záznamu." };
 
-  const { error } = await supabase.from("food_logs").delete().eq("id", id).eq("client_id", clientId);
+  const { data, error } = await supabase.from("food_logs").delete().eq("id", id).select("id");
   if (error) return { error: dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: "Záznam sa nenašiel." };
 
   revalidatePath("/portal/dennik");
   return ok;
@@ -524,7 +505,8 @@ export async function sendClientMessageAction(_prevState: ActionState, formData:
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
 
-  const clientId = await currentClientId(supabase);
+  // Používateľ je už overený vyššie — currentClientId by sieťový auth.getUser() zopakoval.
+  const clientId = await clientIdForUser(supabase, user.id);
   if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
 
   const body = ((formData.get("body") as string | null) ?? "").trim();
