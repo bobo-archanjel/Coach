@@ -160,8 +160,12 @@
 .bellItem:first-of-type {
   border-top: 0;
 }
+/* Bodka visí vľavo (padding 15px = bodka 7px + medzera 8px, rovnako ako odsadenie
+   .bellLinks) — zalomený nadpis pokračuje pod textom, nie pod bodkou. */
 .bellItemMain {
+  position: relative;
   display: block;
+  padding-left: 15px;
   font-size: 13.5px;
   font-weight: 600;
   line-height: 1.4;
@@ -170,12 +174,13 @@
 }
 .bellItemMain::before {
   content: "";
-  display: inline-block;
+  position: absolute;
+  left: 0;
+  /* stred prvého riadku: polovica line-height (1.4em) mínus polovica bodky */
+  top: calc(0.7em - 3.5px);
   width: 7px;
   height: 7px;
-  margin-right: 8px;
   border-radius: 50%;
-  vertical-align: 1px;
 }
 .bellToneAlert::before {
   background: var(--iron-red);
@@ -256,7 +261,10 @@ a.bellItemMain:hover {
   color: var(--paper);
   text-decoration: underline;
 }
+/* Počet dní zarovnaný vpravo k × (nie v strede medzi menom a ×) — riadky sú pod
+   sebou bez ohľadu na dĺžku mena. Rovnako ako .alertPanelList. */
 .bellLinks span {
+  margin-left: auto;
   color: var(--paper-faint);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -462,6 +470,13 @@ a.bellItemMain:hover {
   border-radius: var(--radius-m);
   padding: 16px 18px;
 }
+/* Prepínač režimu + otáznik s vysvetlením (InfoTip) v jednom riadku. */
+.addClientModesRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
 .addClientModes {
   display: inline-flex;
   gap: 4px;
@@ -469,7 +484,6 @@ a.bellItemMain:hover {
   background: var(--ink);
   border: 1px solid var(--steel-line);
   border-radius: 999px;
-  margin-bottom: 14px;
 }
 .addClientModeBtn {
   padding: 6px 14px;
@@ -490,12 +504,6 @@ a.bellItemMain:hover {
 .addClientModeActive:hover {
   background: var(--ink-3);
   color: var(--paper);
-}
-.addClientHint {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--paper-faint);
-  margin-bottom: 12px;
 }
 .addClientOk {
   display: flex;
@@ -683,11 +691,6 @@ select.addClientInputSm {
 }
 
 /* ---------- AI generátor plánu (Track "Tréner" #4/5, ROADMAP.md) ---------- */
-.aiPlanHint {
-  margin-top: 8px;
-  font-size: 12.5px;
-  color: var(--paper-dim);
-}
 /* Výsledok generovania s varovaním (feature/ai-plan-zameranie) — plán je vytvorený,
    ale zameranie sa nedotiahlo, tak nepresmerúvame rovno doň. */
 .aiPlanResult {
@@ -1197,13 +1200,6 @@ select.addClientInputSm {
     max-width: none;
   }
 }
-.planLockedHint {
-  margin: -8px 0 16px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--paper-faint);
-  max-width: var(--measure);
-}
 .logLinkRow:hover {
   border-color: var(--paper-faint);
 }
@@ -1268,6 +1264,12 @@ select.addClientInputSm {
 .detailHead .clientGoal {
   font-size: 14.5px;
   margin-top: 6px;
+}
+/* Odznak stavu + otáznik s vysvetlením (InfoTip) vedľa seba. */
+.detailHeadStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .publishBox {
   display: flex;
@@ -2254,11 +2256,6 @@ select.addClientInputSm {
   font-weight: 600;
   text-align: right;
   white-space: nowrap;
-}
-.aiInsightsHint {
-  margin-top: 10px;
-  font-size: 11.5px;
-  color: var(--paper-faint);
 }
 
 /* ---------- kombinovaný súhrn na vrchu Analytiky klienta (feature/analytika-v2, bod 4) ---------- */

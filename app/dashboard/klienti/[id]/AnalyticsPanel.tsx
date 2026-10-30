@@ -5,6 +5,7 @@ import { BodyMetricsCard } from "./BodyMetricsCard";
 import { StrengthCard } from "./StrengthCard";
 import { ProgressSummaryCard } from "./ProgressSummaryCard";
 import { pluralSk } from "@/lib/portal/streak";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../../dashboard.module.css";
 
 /** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
@@ -92,7 +93,10 @@ export function AnalyticsPanel({
 
       <div className={styles.card}>
         <h3>Analytika</h3>
-        <h4 className={styles.cardSubhead}>Adherencia tréningu</h4>
+        <h4 className={styles.cardSubhead}>
+          Adherencia tréningu{" "}
+          <InfoTip title="Adherencia tréningu">% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</InfoTip>
+        </h4>
         {trainingAdherence ? (
           <>
             <div className={styles.adherenceWindowRow}>
@@ -105,9 +109,12 @@ export function AnalyticsPanel({
                 {trainingAdherence.window90.totalDays} dní)
               </span>
             </div>
-            <p className={styles.adherenceHint}>% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</p>
-
-            <h4 className={styles.cardSubhead}>Splnenie plánu</h4>
+            <h4 className={styles.cardSubhead}>
+              Splnenie plánu{" "}
+              <InfoTip title="Splnenie plánu">
+                Nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom z plánu (prekročenie sa počíta ako 100 %).
+              </InfoTip>
+            </h4>
             {planPct30?.pct != null || trainingAdherence.planCompletion.window90.pct != null ? (
               <>
                 <div className={styles.adherenceWindowRow}>
@@ -127,9 +134,6 @@ export function AnalyticsPanel({
                     {pluralSk(trainingAdherence.planCompletion.window90.sessionsScored, "tréning", "tréningy", "tréningov")})
                   </span>
                 </div>
-                <p className={styles.adherenceHint}>
-                  Nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom z plánu (prekročenie sa počíta ako 100 %).
-                </p>
               </>
             ) : (
               <p className={styles.adherenceHint}>

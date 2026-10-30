@@ -200,16 +200,8 @@ export default async function ClientDetailPage({
 
   const sections: ClientDetailSection[] = [
     // Poradie = poradie kariet; prvá sa otvorí po kliknutí na klienta. Tréner sa
-    // najčastejšie pozerá na analytiku a tréningy, Info (kód, poznámky, ukončenie) je posledné.
-    {
-      id: "analytika",
-      label: "Analytika",
-      content: (
-        <Suspense fallback={<AnalyticsSkeleton />}>
-          <ClientAnalytics clientId={id} nutrition={nutrition} data={analyticsData} />
-        </Suspense>
-      ),
-    },
+    // najčastejšie pozerá na tréningy, potom analytiku; Info (kód, poznámky, ukončenie)
+    // je posledné. Analytika sa dostreamuje na pozadí aj keď nie je otvorená.
     {
       id: "treningy",
       label: "Tréningy",
@@ -284,6 +276,15 @@ export default async function ClientDetailPage({
             )}
           </div>
         </div>
+      ),
+    },
+    {
+      id: "analytika",
+      label: "Analytika",
+      content: (
+        <Suspense fallback={<AnalyticsSkeleton />}>
+          <ClientAnalytics clientId={id} nutrition={nutrition} data={analyticsData} />
+        </Suspense>
       ),
     },
     {

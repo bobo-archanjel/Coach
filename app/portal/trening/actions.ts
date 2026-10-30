@@ -8,6 +8,7 @@ import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { getExerciseLibrary } from "@/lib/portal/data";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
+import { deleteWorkoutTemplate, saveOwnPlanAsTemplate } from "@/lib/templates";
 
 /* Vlastný tréning klienta — vytvorenie / úprava / zmazanie / prepnutie aktívneho.
    Klientské plány: workout_plans.trainer_id IS NULL (viď 0010_client_own_workouts.sql).
@@ -277,6 +278,39 @@ export async function deleteClientPlanAction(planId: string): Promise<ActionStat
 
   // active_plan_id sa vynuluje sám (on delete set null) → Dnes spadne na najnovší.
   revalidatePath("/portal", "layout");
+  return ok;
+}
+
+/** "Uložiť ako šablónu" pri vlastnom tréningu — kópia jeho dní do šablón klienta (lib/templates.ts). */
+export async function saveOwnTemplateAction(planId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const { clientId, error: cErr } = await ensureSelfClientId(supabase);
+  if (cErr || !clientId) return { error: cErr ?? "Nepodarilo sa nájsť tvoj profil." };
+
+  const res = await saveOwnPlanAsTemplate(supabase, user.id, clientId, planId);
+  if (res.error) return { error: res.error };
+
+  revalidatePath("/portal/trening");
+  return ok;
+}
+
+/** Zmazanie šablóny klienta (len vlastnej — filter na vlastníka v deleteWorkoutTemplate aj RLS). */
+export async function deleteOwnTemplateAction(templateId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const res = await deleteWorkoutTemplate(supabase, user.id, templateId);
+  if (res.error) return { error: res.error };
+
+  revalidatePath("/portal/trening");
   return ok;
 }
 

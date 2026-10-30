@@ -69,6 +69,20 @@ const PREVIEW: PortalTrainingData = {
       ],
     },
   ],
+  templates: [
+    {
+      id: "tpl-own",
+      name: "Moje kardio + core",
+      days: [
+        {
+          name: "Rozcvička",
+          exercises: [
+            { idx: "1", name: "Plank", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s", entryId: "e5", plannedSets: 3, plannedReps: "45 s", exerciseId: null, loadKg: null, restSeconds: 45 },
+          ],
+        },
+      ],
+    },
+  ],
 };
 
 /** Deň A odcvičený pred hodinou → ešte v 24 h okne na opravu (0049). */

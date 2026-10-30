@@ -23,6 +23,12 @@
   text-underline-offset: 3px;
 }
 
+/* Odznak stavu + otáznik s vysvetlením (InfoTip) vedľa seba. */
+.headStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .doneBadge,
 .progressBadge {
   display: inline-flex;
@@ -50,14 +56,11 @@
   font-weight: 600;
   color: var(--plate-yellow);
 }
-.readonlyNote,
 .backfillNote {
   font-size: 13px;
   line-height: 1.5;
   color: var(--paper-faint);
   max-width: var(--measure);
-}
-.backfillNote {
   margin: 12px 0 0;
   padding: 10px 12px;
   border: 1px dashed var(--steel-line);

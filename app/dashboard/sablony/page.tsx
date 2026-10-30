@@ -3,6 +3,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { TemplateRow } from "./TemplateRow";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../dashboard.module.css";
 
 export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ goal?: string }> }) {
@@ -37,11 +38,13 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Šablóny</h1>
-        <p>
-          Ulož si tréningový plán alebo jedálniček ako šablónu na detaile plánu (&bdquo;Uložiť ako šablónu&ldquo;) a znovu ju použi pre
-          ďalšieho klienta — vytvorí sa bežný koncept na doladenie, nič sa neposiela klientovi automaticky.
-        </p>
+        <h1>
+          Šablóny{" "}
+          <InfoTip title="Šablóny">
+            Ulož si tréningový plán alebo jedálniček ako šablónu na detaile plánu (&bdquo;Uložiť ako šablónu&ldquo;) a znovu
+            ju použi pre ďalšieho klienta — vytvorí sa bežný koncept na doladenie, nič sa neposiela klientovi automaticky.
+          </InfoTip>
+        </h1>
       </div>
 
       <div className={styles.cardStack}>

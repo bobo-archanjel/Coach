@@ -17,7 +17,13 @@ const DumbbellIcon = () => (
   </svg>
 );
 
-/** Malý štvorcový náhľad cviku (Free Exercise DB) — fallback ikona, ak obrázok chýba. */
+/**
+ * Malý štvorcový náhľad cviku (Free Exercise DB) — fallback ikona, ak obrázok chýba.
+ * Rozmer je priamo na <img> (width/height), nie `fill`: `fill` je absolútne
+ * pozicovaný na 100 % rodiča a malý ho drží len `position: relative` z CSS modulu.
+ * Keď sa ten štýl v prehliadači neaplikoval (iPhone, výber cviku v portáli),
+ * náhľad sa roztiahol na celú obrazovku. Takto má obrázok veľkosť vždy.
+ */
 export function ExerciseThumb({ src, alt, size = 32 }: { src: string | null; alt: string; size?: number }) {
   if (!src) {
     return (
@@ -28,7 +34,7 @@ export function ExerciseThumb({ src, alt, size = 32 }: { src: string | null; alt
   }
   return (
     <span className={styles.thumb} style={{ width: size, height: size }}>
-      <Image src={src} alt={alt} fill sizes={`${size}px`} className={styles.thumbImg} />
+      <Image src={src} alt={alt} width={size} height={size} className={styles.thumbImg} />
     </span>
   );
 }

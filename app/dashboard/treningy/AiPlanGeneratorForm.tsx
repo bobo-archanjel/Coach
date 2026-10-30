@@ -11,6 +11,7 @@ import {
   WHOLE_PLAN_FOCUS_LABEL_SK,
   isSingleDayFocus,
 } from "@/lib/ai/planCategories";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
@@ -127,12 +128,12 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
           {pending ? "Generujem…" : singleDay ? "Navrhnúť tréning na jeden deň" : "Navrhnúť plán s AI"}
         </button>
+        <InfoTip title="Ako funguje AI generátor">
+          {singleDay
+            ? `Appka vygeneruje presne 1 tréningový deň zameraný na „${DAY_CATEGORY_LABEL_SK[focus as (typeof DAY_CATEGORIES)[number]]}" — cviky výhradne z tejto partie, počet dní v týždni sa neberie do úvahy. Plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať.`
+            : "Appka vygeneruje plán na zadaný počet dní, AI vyberie konkrétne cviky z knižnice s ohľadom na zvolené zameranie — plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať. Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná."}
+        </InfoTip>
       </div>
-      <p className={styles.aiPlanHint}>
-        {singleDay
-          ? `Appka vygeneruje presne 1 tréningový deň zameraný na „${DAY_CATEGORY_LABEL_SK[focus as (typeof DAY_CATEGORIES)[number]]}" — cviky výhradne z tejto partie, počet dní v týždni sa neberie do úvahy. Plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať.`
-          : "Appka vygeneruje plán na zadaný počet dní, AI vyberie konkrétne cviky z knižnice s ohľadom na zvolené zameranie — plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať. Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná."}
-      </p>
       {state.error && <p className={styles.addClientError}>{state.error}</p>}
       {state.planId && (
         <div className={styles.aiPlanResult}>

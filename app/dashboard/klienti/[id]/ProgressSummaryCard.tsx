@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { generateProgressSummaryAction, type ProgressSummaryState } from "../actions";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../../dashboard.module.css";
 
 const initialState: ProgressSummaryState = { summary: null, error: null };
@@ -17,12 +18,14 @@ export function ProgressSummaryCard({ clientId }: { clientId: string }) {
 
   return (
     <div className={styles.card}>
-      <h3>AI zhrnutie progresu</h3>
-      <p className={styles.adherenceHint} style={{ marginTop: -4 }}>
-        Krátke zhrnutie adherencie, váhy a sily za posledné dni — appka spočíta čísla, AI ich len sformuluje.
-      </p>
+      <h3>
+        AI zhrnutie progresu{" "}
+        <InfoTip title="AI zhrnutie progresu">
+          Krátke zhrnutie adherencie, váhy a sily za posledné dni — appka spočíta čísla, AI ich len sformuluje.
+        </InfoTip>
+      </h3>
 
-      <form action={formAction} style={{ marginTop: 10 }}>
+      <form action={formAction}>
         <input type="hidden" name="client_id" value={clientId} />
         <button type="submit" className="btn btn-ghost btn-sm" disabled={pending}>
           {pending ? "Generujem…" : "Zhrnúť progres"}

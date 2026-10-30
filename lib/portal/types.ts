@@ -228,9 +228,17 @@ export interface PortalPlan {
   days: PortalTrainingDay[];
 }
 
+/** Šablóna z vlastného tréningu klienta (plan_templates, vlastník = klient) — "Použiť" otvorí builder s jej obsahom. */
+export interface PortalTemplate {
+  id: string;
+  name: string;
+  days: { name: string; exercises: PortalExercise[] }[];
+}
+
 export interface PortalTrainingData {
   plans: PortalPlan[];
   activePlanId: string | null;
+  templates: PortalTemplate[];
 }
 
 export interface ExerciseOption {
