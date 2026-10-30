@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AddAppointmentForm } from "./AddAppointmentForm";
 import { AppointmentRow } from "./AppointmentRow";
 import { InfoTip } from "@/app/components/InfoTip";
-import styles from "../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 interface AppointmentRow_ {
   id: string;
@@ -41,6 +41,7 @@ function dayGroupLabel(dateKey: string, todayKey: string, tomorrowKey: string): 
 }
 
 export default async function KalendarPage() {
+  const styles = await dashStyles();
   const {
     data: { user },
   } = await getUser();

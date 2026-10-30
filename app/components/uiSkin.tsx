@@ -7,10 +7,20 @@ import { createContext, useContext, type ReactNode } from "react";
    cez useSkinStyles(menný priestor, predvolený CSS modul). Mimo <SkinProvider>
    dostanú svoj pôvodný modul a pôvodnú cestu "/portal" — existujúca appka sa
    nemení. /v6design obalí portál providerom s vlastnými CSS modulmi s rovnakými
-   názvami tried, takže tlačidlá, stavy aj flow sú tie isté komponenty. */
+   názvami tried, takže tlačidlá, stavy aj flow sú tie isté komponenty. Dashboard
+   rovnako, len skin vyberá cookie (app/dashboard/dashSkin.ts), nie adresa. */
 
 export type CssModule = { readonly [key: string]: string };
-export type SkinNamespace = "portal" | "builder" | "chat" | "exerciseDetail" | "exerciseThumb";
+export type SkinNamespace =
+  | "portal"
+  | "builder"
+  | "chat"
+  | "exerciseDetail"
+  | "exerciseThumb"
+  | "dashboard"
+  | "mealBuilder"
+  | "completed"
+  | "infoTip";
 
 type Skin = {
   styles: Partial<Record<SkinNamespace, CssModule>>;

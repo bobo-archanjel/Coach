@@ -5,7 +5,8 @@ import { LogoMark } from "@/app/components/LogoMark";
 import { loadPortalShell } from "@/app/portal/portalShell";
 import { V6Skin } from "./V6Skin";
 import { V6Nav } from "./V6Nav";
-import { V6_THEME_COLOR, V6_THEME_COOKIE, parseV6Theme } from "./theme";
+import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "../theme";
+import t from "../styles/tokens.module.css";
 import s from "./styles/portal.module.css";
 
 /* /v6design/portal — dizajnový experiment klientskeho portálu ("liquid glass",
@@ -19,16 +20,7 @@ export const metadata: Metadata = {
 };
 
 export async function generateViewport(): Promise<Viewport> {
-  const theme = parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value);
-  if (theme === "auto") {
-    return {
-      themeColor: [
-        { media: "(prefers-color-scheme: light)", color: V6_THEME_COLOR.light },
-        { media: "(prefers-color-scheme: dark)", color: V6_THEME_COLOR.dark },
-      ],
-    };
-  }
-  return { themeColor: V6_THEME_COLOR[theme] };
+  return { themeColor: v6ThemeColor(parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value)) };
 }
 
 export default async function V6PortalLayout({ children }: { children: React.ReactNode }) {
@@ -37,7 +29,7 @@ export default async function V6PortalLayout({ children }: { children: React.Rea
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <div className={s.v6} data-theme={theme} data-v6-root="">
+    <div className={t.root} data-theme={theme} data-v6-root="">
       <V6Skin>
         <header className={s.v6Top}>
           <div className={s.v6TopInner}>

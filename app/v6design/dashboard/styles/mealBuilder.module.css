@@ -1,0 +1,754 @@
+.builderGrid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+/* Na mobile ide plátno (aktívny deň) prvé — tréner ho vidí bez scrollovania cez celú
+   knižnicu potravín. Knižnica je pod ním a defaultne zbalená (viď .library/.libraryBody). */
+@media (max-width: 760px) {
+  /* minmax(0, …), nie 1fr — dlhý obsah knižnice by inak roztiahol stĺpec za okraj
+     telefónu (rovnaká oprava ako v tréningovom builderi). */
+  .builderGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .canvas {
+    order: 1;
+  }
+  .library {
+    order: 2;
+  }
+}
+
+/* ---------- library sidebar ---------- */
+.library {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--card-shadow);
+}
+@media (min-width: 761px) {
+  .library {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+}
+.libraryToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.libraryChevron {
+  display: none;
+  flex: none;
+  color: var(--paper-faint);
+  transition: transform 0.15s ease;
+}
+.libraryChevronOpen {
+  transform: rotate(180deg);
+}
+.libraryHead {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+}
+.libraryBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .libraryChevron {
+    display: block;
+  }
+  .libraryBody.collapsed {
+    display: none;
+  }
+}
+.librarySearch {
+  width: 100%;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 9px 12px;
+  border-radius: var(--radius-s);
+}
+@media (max-width: 760px) {
+  .librarySearch,
+  .customExerciseInput {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+  .libraryItem {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}
+.librarySearch::placeholder {
+  color: var(--paper-faint);
+}
+.librarySearch:focus {
+  outline: none;
+  border-color: var(--iron-red);
+}
+.libraryList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.libraryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+.libraryItem:hover:not(:disabled) {
+  background: var(--fill-strong);
+  border-color: var(--steel-line);
+}
+.libraryItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.libraryItemMuscle {
+  color: var(--paper-faint);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.libraryEmpty {
+  color: var(--paper-faint);
+  font-size: 13px;
+}
+.libraryHint {
+  color: var(--paper-faint);
+  font-size: 12px;
+}
+.customExerciseForm {
+  border-top: 1px solid var(--steel-line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.customExerciseInput {
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+}
+.customExerciseInput::placeholder {
+  color: var(--paper-faint);
+}
+.customFoodMacros {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+/* ---------- canvas ---------- */
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Dni ako samostatné pilulky NAD panelom (nie „zliate" tab-y — tie sa pri viacerých
+   dňoch lámali do druhého riadku a aktívny tab pôsobil odseknutý). Panel je vlastná
+   uzavretá karta, výber dňa je vlastný ovládací prvok. */
+.dayTabs {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dayTab {
+  padding: 8px 14px;
+  border-radius: var(--radius-m);
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-dim);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.dayTab:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+/* Aktívny = aktuálny výber (coral obrys + jemný wash) — rovnaká „current selection"
+   rola coralu ako pri aktívnom pláne v portáli, povolené v Operate. */
+.dayTabActive,
+.dayTabActive:hover {
+  background: rgba(217, 105, 74, 0.09);
+  border-color: var(--iron-red);
+  color: var(--paper);
+}
+.addDayTab {
+  padding: 8px 14px;
+  border-radius: var(--radius-m);
+  background: transparent;
+  border: 1px dashed var(--steel-line);
+  color: var(--paper-faint);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.addDayTab:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+/* "Premenovať" / "Zmazať deň" — tichšie ako "+ deň" (bez rámu), deštruktívny odtieň
+   až pri hoveri (len Zmazať). */
+.renameDayTab,
+.deleteDayTab {
+  padding: 8px 10px;
+  border-radius: var(--radius-m);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper-faint);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.renameDayTab:hover {
+  color: var(--paper);
+  border-color: var(--steel-line);
+}
+.deleteDayTab:hover {
+  color: var(--error);
+  border-color: rgba(239, 106, 82, 0.4);
+}
+/* Potvrdenie zaberie celý riadok pod pilulkami dní, nech sa text nelepí medzi ne. */
+.deleteDayConfirm {
+  flex-basis: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(239, 106, 82, 0.4);
+  border-radius: var(--radius-m);
+  background: rgba(239, 106, 82, 0.06);
+}
+.deleteDayQuestion {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--paper);
+}
+.deleteDayActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 760px) {
+  .dayTab,
+  .addDayTab,
+  .renameDayTab,
+  .deleteDayTab {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+}
+.addDayForm {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.renameDayForm {
+  flex-basis: 100%;
+}
+.addDayInput {
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: var(--radius-s);
+  width: 200px;
+}
+@media (max-width: 760px) {
+  .addDayForm {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .addDayInput {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+}
+
+.dayPanel {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 160px;
+  box-shadow: var(--card-shadow);
+}
+/* Na mobile je rám panelu zbytočná druhá vrstva okolo kariet potravín (tie majú
+   vlastný border) — zbytočne zužuje už aj tak úzky obsah. */
+@media (max-width: 760px) {
+  .dayPanel {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    min-height: 0;
+  }
+}
+
+/* Súčet za celý deň nad skupinami jedál. */
+.dayTotals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 12px;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--steel-line);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.dayTotals > span:first-child {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--plate-yellow);
+}
+/* Makrá B/S/T (MacroChips) — farebná bodka + tučné gramy, aby boli čitateľné na prvý pohľad. */
+.macroChips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: none;
+}
+.macroChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 8px;
+  border-radius: 999px;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.macroChip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--macro-color);
+}
+.macro_protein {
+  --macro-color: var(--iron-red);
+}
+.macro_carbs {
+  --macro-color: var(--plate-yellow);
+}
+.macro_fat {
+  --macro-color: var(--moss);
+}
+.macroChipLetter {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper-dim);
+}
+.macroChipValue {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.macroChipsLg .macroChip {
+  padding: 5px 12px 5px 10px;
+}
+.macroChipsLg .macroChipValue {
+  font-size: 14.5px;
+}
+
+/* Skupina podľa jedla dňa (raňajky/obed/...). */
+.mealGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mealGroupHead {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+}
+
+.exerciseRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  font-size: 13.5px;
+}
+.exerciseName {
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
+}
+.exerciseSummary {
+  font-variant-numeric: tabular-nums;
+  color: var(--plate-yellow);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.rowActions {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.iconBtn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.iconBtn:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+/* Položka na mobile: meno+akcie hore (grid), zhrnutie a meta pod tým na plnú šírku —
+   namiesto vecí natlačených do jedného riadku. Ikonky na 44px kvôli dotyku prstom. */
+@media (max-width: 760px) {
+  .exerciseRow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 10px;
+    row-gap: 5px;
+  }
+  .exerciseName {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+  .rowActions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .exerciseSummary,
+  .macroChips {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+  .iconBtn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--fill);
+  border: 1px solid var(--iron-red-dim);
+  border-radius: var(--radius-s);
+}
+.editName {
+  font-weight: 700;
+}
+.editGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.editFieldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--paper-faint);
+}
+.editField input,
+.editField select {
+  background: var(--surface-solid);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border-radius: var(--radius-s);
+  width: 100%;
+}
+.editFieldSlot {
+  width: 140px;
+}
+.editFieldGrams {
+  width: 90px;
+}
+.editActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+/* Na mobile: 2-stĺpcový grid namiesto natlačených políčok, 44px vstupy na dotyk,
+   akcie na plnú šírku dole. */
+@media (max-width: 760px) {
+  .editGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .editFieldSlot,
+  .editFieldGrams {
+    width: auto;
+  }
+  .editField input,
+  .editField select {
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .editActions {
+    flex-wrap: wrap;
+  }
+  .editActions button {
+    flex: 1;
+    min-height: 44px;
+  }
+}
+
+.emptyDay {
+  color: var(--paper-faint);
+  font-size: 13.5px;
+}
+
+.formError {
+  font-size: 12px;
+  color: var(--error);
+  margin: 0;
+}
+
+/* Lišta „Neuložené zmeny · Zahodiť · Uložiť zmeny" — builder drží úpravy lokálne
+   (MealPlanBuilder). Prilepená k spodku obrazovky, nech je tlačidlo vždy po ruke;
+   na mobile nad fixnou spodnou navigáciou (dashboard.module.css .navList). */
+.saveBar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 14px 12px 18px;
+  background: var(--fill);
+  border: 1px solid var(--plate-yellow);
+  border-radius: var(--radius-m);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.saveBarText {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--paper);
+}
+.saveBarError {
+  color: var(--error);
+}
+.saveBarActions {
+  display: flex;
+  gap: 8px;
+}
+@media (max-width: 880px) {
+  .saveBar {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+  :global(html[data-keyboard-open]) .saveBar {
+    bottom: 8px;
+  }
+}
+@media (max-width: 640px) {
+  .saveBarActions {
+    width: 100%;
+  }
+  .saveBarActions > button {
+    flex: 1;
+    min-height: 44px;
+  }
+}
+
+/* ======================================================================
+   v6 — "liquid glass" vrstva nad kópiou pôvodného modulu (neskorší zápis vyhráva).
+   ====================================================================== */
+.library,
+.dayPanel {
+  border-radius: 26px;
+}
+.dayTab {
+  border-radius: 999px;
+  background: var(--surface-solid);
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-1);
+}
+.dayTabActive,
+.dayTabActive:hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.addDayTab,
+.deleteDayTab {
+  border-radius: 999px;
+}
+.deleteDayConfirm {
+  border-radius: 22px;
+}
+.exerciseRow {
+  border-radius: 20px;
+  border-color: var(--hairline);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+}
+.iconBtn {
+  border-radius: 50%;
+  border-color: var(--hairline);
+  background: var(--surface-solid);
+}
+.librarySearch,
+.customExerciseInput,
+.addDayInput {
+  border-radius: 999px;
+  border-color: var(--hairline);
+}
+.librarySearch:focus,
+.customExerciseInput:focus {
+  border-color: var(--accent);
+}
+.libraryItem {
+  border-radius: 16px;
+}
+.libraryItem:hover:not(:disabled) {
+  background: var(--fill);
+  border-color: transparent;
+}
+.exerciseSummary {
+  color: var(--accent-text);
+}
+.editForm {
+  border-radius: 22px;
+  border: 1.5px solid var(--accent);
+  background: var(--surface-solid);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.editField input {
+  border-radius: 14px;
+  border-color: var(--hairline);
+}
+.renameDayTab {
+  border-radius: 999px;
+}
+.macroChip {
+  border-radius: 999px;
+}
+.saveBar {
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 58%), var(--glass-bg);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+/* nad plávajúcou sklenenou lištou v6 (54 + 2×6 + 10 odstup + medzera) */
+@media (max-width: 880px) {
+  .saveBar {
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    border-radius: 26px;
+  }
+  :global(html[data-keyboard-open]) .saveBar {
+    bottom: 8px;
+  }
+}
+
+/* mazanie — červená (tokeny --danger v tokens.module.css), odlíšená od terakoty */
+.deleteDayTab,
+.deleteDayTab:hover {
+  color: var(--danger);
+}
+.deleteDayTab:hover {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.deleteDayConfirm {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.iconBtn:global(.btn-danger) {
+  color: var(--danger);
+}
+.iconBtn:global(.btn-danger):hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}

@@ -1,6 +1,7 @@
 "use client";
+import mealBuilderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
-import styles from "./builder.module.css";
 
 export interface LibraryFood {
   id: string;
@@ -21,6 +22,7 @@ export function FoodLibraryItem({
   dayId: string | null;
   onAdd: (food: LibraryFood) => void;
 }) {
+  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   return (
     <button
       type="button"

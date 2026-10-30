@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { deleteDayAction } from "../actions";
-import styles from "./builder.module.css";
+import builderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 function exercisesLabel(n: number): string {
   if (n === 0) return "";
@@ -29,6 +30,7 @@ export function DeleteDayControl({
   /** klient už tento deň odcvičil — ukážeme, že jeho záznamy ostanú */
   hasCompleted: boolean;
 }) {
+  const styles = useSkinStyles("builder", builderModule);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -66,7 +68,7 @@ export function DeleteDayControl({
         {hasCompleted && " Tréningy, ktoré klient z tohto dňa už odcvičil, ostanú uložené."}
       </p>
       <div className={styles.deleteDayActions}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={doDelete} disabled={pending}>
+        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={pending}>
           {pending ? "Mažem…" : "Áno, zmazať deň"}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { deletePlanAction } from "../actions";
-import styles from "../../dashboard.module.css";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 /**
  * Spodok detailu plánu: "Stiahnuť PDF" + "Zmazať" (len publikovaný plán — koncept
@@ -21,6 +22,7 @@ export function PlanFooterActions({
   published: boolean;
   hasCompleted: boolean;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -50,7 +52,7 @@ export function PlanFooterActions({
           Naozaj zmazať tréning „{planName}“? Klient ho prestane vidieť v portáli a nedá sa to vrátiť späť.
           {hasCompleted && " Tréningy, ktoré už klient odcvičil, ostanú uložené."}
         </p>
-        <button type="button" className="btn btn-primary btn-sm" onClick={doDelete} disabled={pending}>
+        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={pending}>
           {pending ? "Mažem…" : "Áno, zmazať"}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
@@ -67,7 +69,7 @@ export function PlanFooterActions({
         Stiahnuť PDF
       </a>
       {published && (
-        <button type="button" className={`btn btn-ghost btn-sm ${styles.dangerGhost}`} onClick={() => setConfirming(true)}>
+        <button type="button" className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`} onClick={() => setConfirming(true)}>
           Zmazať
         </button>
       )}

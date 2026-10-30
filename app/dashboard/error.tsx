@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import styles from "./dashboard.module.css";
+import dashboardModule from "./dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 // Záchranná sieť pre neočakávanú chybu na stránke dashboardu (napr. výpadok siete
 // počas akcie). Bez nej Next zobrazil čiernu obrazovku "Application error"; takto
 // ostane navigácia (layout) a ponúkne sa opätovné načítanie stránky.
 export default function DashboardError({ error }: { error: Error & { digest?: string } }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   useEffect(() => {
     console.error(error);
   }, [error]);

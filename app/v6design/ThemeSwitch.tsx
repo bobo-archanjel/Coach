@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { V6_THEME_COLOR, V6_THEME_COOKIE, type V6Theme } from "./theme";
-import s from "./styles/portal.module.css";
+import s from "./themeSwitch.module.css";
 
 const AutoIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -51,7 +51,8 @@ export function ThemeSwitch({ initial }: { initial: V6Theme }) {
 
   const choose = (next: V6Theme) => {
     setTheme(next);
-    document.cookie = `${V6_THEME_COOKIE}=${next}; path=/v6design; max-age=31536000; samesite=lax`;
+    // path=/ — tá istá téma pre portál (/v6design/portal) aj dashboard s v6 skinom (/dashboard)
+    document.cookie = `${V6_THEME_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
     document.querySelector("[data-v6-root]")?.setAttribute("data-theme", next);
     syncThemeColor(next);
   };

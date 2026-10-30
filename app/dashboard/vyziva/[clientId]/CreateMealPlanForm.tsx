@@ -2,11 +2,13 @@
 
 import { useActionState } from "react";
 import { createMealPlanAction, type ActionState } from "../jedalnicek/actions";
-import styles from "../../dashboard.module.css";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
 export function CreateMealPlanForm({ clientId }: { clientId: string }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(createMealPlanAction, initialState);
 
   return (

@@ -291,7 +291,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                           <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(null, t)}>
                             Použiť
                           </button>
-                          <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmTplDelete(t.id)}>
+                          <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(t.id)}>
                             Zmazať
                           </button>
                         </>
@@ -470,7 +470,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                 </button>
                                 <button
                                   type="button"
-                                  className={styles.trGhostBtn}
+                                  className={`${styles.trGhostBtn} btn-danger`}
                                   onClick={() => setConfirmDelete(plan.id)}
                                 >
                                   Zmazať

@@ -1,4 +1,5 @@
 /* FitPilot v6 — dizajnový experiment klientskeho portálu (/v6design/portal).
+   Tokeny, pozadie a koreň (.root) sú zdieľané v app/v6design/styles/tokens.module.css.
    "Liquid glass" nad teplým terakotovým svetlom, svetlá aj tmavá téma.
    Sklo (backdrop-filter) je LEN na plávajúcich vrstvách — hlavička, lišta, stopky,
    okná. Karty sú mäkké polopriehľadné plochy bez blur: fixné okná vykresľované
@@ -7,241 +8,6 @@
    transform/filter na kartách.
    Triedy zdieľaných komponentov majú rovnaké názvy ako app/portal/portal.module.css
    (useSkinStyles) — mení sa len vzhľad, tlačidlá aj flow sú tie isté komponenty. */
-
-/* ---------- tokeny: svetlá téma (predvolená) ---------- */
-.v6 {
-  --v6-bg: #f2ece6;
-  --v6-glow-a: rgba(234, 124, 92, 0.36);
-  --v6-glow-b: rgba(250, 190, 148, 0.52);
-  --v6-glow-c: rgba(217, 105, 74, 0.16);
-  --v6-glow-d: rgba(238, 150, 116, 0.3);
-  /* sklenené karty: priehľadná biela s odleskom — pod nimi presvitá teplé pozadie */
-  --surface: rgba(255, 255, 255, 0.5);
-  --card-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.34) 48%, rgba(255, 255, 255, 0.48) 100%);
-  --surface-solid: rgba(255, 255, 255, 0.66);
-  --surface-border: rgba(255, 255, 255, 0.8);
-  --hairline: rgba(42, 30, 24, 0.08);
-  --fill: rgba(42, 30, 24, 0.045);
-  --fill-strong: rgba(42, 30, 24, 0.09);
-  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92), inset 0 -1px 0 rgba(255, 255, 255, 0.3), 0 12px 32px -16px rgba(70, 40, 22, 0.22);
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.82);
-  --glass-hl: rgba(255, 255, 255, 0.95);
-  --glass-shadow: 0 18px 40px -16px rgba(70, 40, 22, 0.34), 0 2px 8px rgba(70, 40, 22, 0.06);
-  --glass-active: rgba(255, 255, 255, 0.92);
-  --glass-sheen: rgba(255, 255, 255, 0.45);
-  --scrim: rgba(38, 26, 20, 0.38);
-  /* okná (detail cviku, potvrdenie, stopky) — sklo, ale takmer nepriehľadné: text pod
-     nimi nesmie presvitať cez obsah okna */
-  --sheet-bg: rgba(250, 247, 244, 0.86);
-  --accent: #d9694a;
-  --accent-text: #b4492d;
-  --accent-soft: rgba(217, 105, 74, 0.13);
-  --accent-grad: linear-gradient(140deg, #ea8a6c 0%, #d9694a 46%, #bd5034 100%);
-  --accent-glow: 0 12px 24px -12px rgba(194, 85, 58, 0.7);
-  --on-accent: #ffffff;
-  --amber-soft: rgba(214, 150, 40, 0.15);
-  --moss-soft: rgba(47, 125, 82, 0.12);
-  --bar-off: rgba(42, 30, 24, 0.1);
-
-  /* pôvodné tokeny FitPilotu prepísané pre túto tému — globálne .btn a zdieľané
-     moduly ich čítajú, takže sa prefarbia bez vlastného pravidla */
-  --ink: #f3eee9;
-  --ink-2: #ffffff;
-  --ink-3: #f2ece6;
-  --ink-4: #e9e1d9;
-  --paper: #1f1a17;
-  --paper-dim: #574d47;
-  --paper-faint: #7d726a;
-  --iron-red: #d9694a;
-  --iron-red-dim: #b9573c;
-  --iron-red-deep: #c2553a;
-  --plate-yellow: #a46b10;
-  --steel: #8a8f96;
-  --steel-line: #e6ded6;
-  --moss: #2f7d52;
-  --error: #c43d26;
-  --radius-s: 14px;
-  --radius-m: 22px;
-  /* sklenené ovládacie prvky: svetlá horná hrana + jemný tieň */
-  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 3px rgba(60, 35, 20, 0.08);
-  --shadow-2: 0 18px 40px -18px rgba(60, 35, 20, 0.32);
-
-  color-scheme: light;
-  position: relative;
-  isolation: isolate;
-  min-height: 100dvh;
-  color: var(--paper);
-  /* clip (nie hidden) — nevytvára scroll kontajner, sticky hlavička funguje */
-  overflow-x: clip;
-}
-
-/* ---------- tokeny: tmavá téma (výslovne, alebo "auto" pri tmavom telefóne) ---------- */
-.v6[data-theme="dark"] {
-  --v6-bg: #0f0c0b;
-  --v6-glow-a: rgba(224, 110, 78, 0.32);
-  --v6-glow-b: rgba(150, 68, 40, 0.36);
-  --v6-glow-c: rgba(217, 105, 74, 0.13);
-  --v6-glow-d: rgba(196, 92, 60, 0.2);
-  --surface: rgba(255, 255, 255, 0.05);
-  --card-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.032) 50%, rgba(255, 255, 255, 0.058) 100%);
-  --surface-solid: rgba(255, 255, 255, 0.09);
-  --surface-border: rgba(255, 255, 255, 0.1);
-  --hairline: rgba(255, 255, 255, 0.075);
-  --fill: rgba(255, 255, 255, 0.05);
-  --fill-strong: rgba(255, 255, 255, 0.1);
-  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -1px 0 rgba(255, 255, 255, 0.02), 0 16px 36px -20px rgba(0, 0, 0, 0.85);
-  --glass-bg: rgba(38, 32, 29, 0.56);
-  --glass-border: rgba(255, 255, 255, 0.11);
-  --glass-hl: rgba(255, 255, 255, 0.09);
-  --glass-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.3);
-  --glass-active: rgba(255, 255, 255, 0.12);
-  --glass-sheen: rgba(255, 255, 255, 0.07);
-  --scrim: rgba(0, 0, 0, 0.55);
-  --sheet-bg: rgba(29, 24, 22, 0.86);
-  --accent: #e3795a;
-  --accent-text: #f0957a;
-  --accent-soft: rgba(227, 121, 90, 0.16);
-  --accent-glow: 0 12px 26px -12px rgba(227, 121, 90, 0.55);
-  --amber-soft: rgba(230, 178, 58, 0.14);
-  --moss-soft: rgba(111, 191, 143, 0.13);
-  --bar-off: rgba(255, 255, 255, 0.1);
-
-  --ink: #100d0c;
-  --ink-2: #1c1816;
-  --ink-3: #26211e;
-  --ink-4: #302925;
-  --paper: #f4efe9;
-  --paper-dim: #c9bfb6;
-  --paper-faint: #92877e;
-  --iron-red: #e3795a;
-  --iron-red-dim: #b9573c;
-  --iron-red-deep: #c2553a;
-  --plate-yellow: #e6b23a;
-  --steel-line: #2f2825;
-  --moss: #6fbf8f;
-  --error: #ef6a52;
-  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 18px 40px -16px rgba(0, 0, 0, 0.75);
-
-  color-scheme: dark;
-}
-@media (prefers-color-scheme: dark) {
-  .v6[data-theme="auto"] {
-    --v6-bg: #0f0c0b;
-    --v6-glow-a: rgba(224, 110, 78, 0.32);
-    --v6-glow-b: rgba(150, 68, 40, 0.36);
-    --v6-glow-c: rgba(217, 105, 74, 0.13);
-    --v6-glow-d: rgba(196, 92, 60, 0.2);
-    --surface: rgba(255, 255, 255, 0.05);
-    --card-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.032) 50%, rgba(255, 255, 255, 0.058) 100%);
-    --surface-solid: rgba(255, 255, 255, 0.09);
-    --surface-border: rgba(255, 255, 255, 0.1);
-    --hairline: rgba(255, 255, 255, 0.075);
-    --fill: rgba(255, 255, 255, 0.05);
-    --fill-strong: rgba(255, 255, 255, 0.1);
-    --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -1px 0 rgba(255, 255, 255, 0.02), 0 16px 36px -20px rgba(0, 0, 0, 0.85);
-    --glass-bg: rgba(38, 32, 29, 0.56);
-    --glass-border: rgba(255, 255, 255, 0.11);
-    --glass-hl: rgba(255, 255, 255, 0.09);
-    --glass-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.3);
-    --glass-active: rgba(255, 255, 255, 0.12);
-    --glass-sheen: rgba(255, 255, 255, 0.07);
-    --scrim: rgba(0, 0, 0, 0.55);
-  --sheet-bg: rgba(29, 24, 22, 0.86);
-    --accent: #e3795a;
-    --accent-text: #f0957a;
-    --accent-soft: rgba(227, 121, 90, 0.16);
-    --accent-glow: 0 12px 26px -12px rgba(227, 121, 90, 0.55);
-    --amber-soft: rgba(230, 178, 58, 0.14);
-    --moss-soft: rgba(111, 191, 143, 0.13);
-    --bar-off: rgba(255, 255, 255, 0.1);
-
-    --ink: #100d0c;
-    --ink-2: #1c1816;
-    --ink-3: #26211e;
-    --ink-4: #302925;
-    --paper: #f4efe9;
-    --paper-dim: #c9bfb6;
-    --paper-faint: #92877e;
-    --iron-red: #e3795a;
-    --iron-red-dim: #b9573c;
-    --iron-red-deep: #c2553a;
-    --plate-yellow: #e6b23a;
-    --steel-line: #2f2825;
-    --moss: #6fbf8f;
-    --error: #ef6a52;
-    --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 18px 40px -16px rgba(0, 0, 0, 0.75);
-
-    color-scheme: dark;
-  }
-}
-
-/* Pozadie: teplé svetlo, ktoré "presvitá" sklom lišty a hlavičky. Fixná vrstva
-   (nie background-attachment: fixed — iOS ju ignoruje). */
-.v6::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(75% 42% at 104% -6%, var(--v6-glow-a), transparent 70%),
-    radial-gradient(62% 40% at -14% 30%, var(--v6-glow-b), transparent 72%),
-    radial-gradient(55% 34% at 110% 62%, var(--v6-glow-d), transparent 70%),
-    radial-gradient(85% 46% at 40% 112%, var(--v6-glow-c), transparent 70%),
-    var(--v6-bg);
-}
-
-/* html/body (dorovnanie pri "pretiahnutí" stránky na iPhone) — farba témy, nie čierna z globals.css */
-:global(html):has(.v6),
-:global(body):has(.v6) {
-  background: #f3eee9;
-}
-:global(html):has(.v6[data-theme="dark"]),
-:global(body):has(.v6[data-theme="dark"]) {
-  background: #100d0c;
-}
-@media (prefers-color-scheme: dark) {
-  :global(html):has(.v6[data-theme="auto"]),
-  :global(body):has(.v6[data-theme="auto"]) {
-    background: #100d0c;
-  }
-}
-
-/* globálne tlačidlá appky (.btn) v jazyku v6 — pilulky, terakotový gradient */
-.v6 :global(.btn) {
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.v6 :global(.btn-primary),
-.v6 :global(.btn-primary:hover) {
-  background: var(--accent-grad);
-  color: var(--on-accent);
-  border-color: transparent;
-  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
-}
-.v6 :global(.btn-primary:disabled) {
-  opacity: 0.6;
-}
-.v6 :global(.btn-ghost) {
-  background: var(--surface-solid);
-  color: var(--paper);
-  border-color: var(--hairline);
-  box-shadow: var(--shadow-1);
-}
-.v6 :global(.btn-ghost:hover) {
-  background: var(--surface-solid);
-  border-color: var(--fill-strong);
-}
-.v6 :focus-visible {
-  outline-color: var(--accent);
-}
-.v6 ::selection {
-  background: var(--accent-soft);
-}
 
 /* ---------- hlavička (sticky sklo) ---------- */
 .v6Top {
@@ -2356,42 +2122,6 @@
   font-size: 13px;
   margin-top: 10px;
 }
-/* prepínač témy (Svetlá / Tmavá / Automaticky) */
-.themeSeg {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--fill);
-}
-.themeOpt {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 42px;
-  padding: 8px 6px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--paper-dim);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.themeOpt svg {
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
-.themeOptOn,
-.themeOptOn:hover {
-  background: var(--accent-grad);
-  color: var(--on-accent);
-  box-shadow: var(--accent-glow);
-}
 .oldDesignLink {
   display: inline-flex;
   margin-top: 12px;
@@ -3554,4 +3284,25 @@
 .stack {
   display: grid;
   gap: 14px;
+}
+
+/* mazanie — červená (tokeny --danger v tokens.module.css), odlíšená od terakoty */
+.trDangerBtn {
+  background: var(--danger-grad);
+  box-shadow: var(--danger-glow);
+}
+.trGhostBtn:global(.btn-danger) {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger-line);
+}
+.trGhostBtn:global(.btn-danger):hover:not(:disabled) {
+  border-color: var(--danger);
+}
+.removeBtn:global(.btn-danger) {
+  color: var(--danger);
+}
+.removeBtn:global(.btn-danger):hover {
+  color: var(--danger);
+  background: var(--danger-soft);
 }

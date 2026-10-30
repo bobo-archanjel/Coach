@@ -1,0 +1,37 @@
+/* Prepínač témy v6 (Auto / Svetlá / Tmavá) — Profil portálu aj Nastavenia dashboardu.
+   Tokeny z koreňa .root (app/v6design/styles/tokens.module.css). */
+.themeSeg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--fill);
+}
+.themeOpt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-dim);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.themeOpt svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.themeOptOn,
+.themeOptOn:hover {
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}

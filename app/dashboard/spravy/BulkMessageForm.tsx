@@ -2,11 +2,13 @@
 
 import { useActionState, useState, useRef, useEffect } from "react";
 import { bulkSendTrainerMessageAction, type BulkMessageState } from "../klienti/actions";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: BulkMessageState = { error: null, sentCount: null };
 
 export function BulkMessageForm({ clients }: { clients: { id: string; full_name: string }[] }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(bulkSendTrainerMessageAction, initialState);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const formRef = useRef<HTMLFormElement>(null);

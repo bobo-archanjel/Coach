@@ -6,10 +6,10 @@ import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adh
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
-import styles from "../../dashboard.module.css";
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -56,6 +56,7 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ preview?: string }>;
 }) {
+  const styles = await dashStyles();
   const { id } = await params;
   const { preview } = await searchParams;
 
@@ -389,7 +390,8 @@ async function ClientAnalytics({
   );
 }
 
-function AnalyticsSkeleton() {
+async function AnalyticsSkeleton() {
+  const styles = await dashStyles();
   return (
     <div className={styles.skeletonWrap} aria-hidden="true">
       <div className={`${styles.skeletonBlock} ${styles.skeletonCard}`} />

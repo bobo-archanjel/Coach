@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { DualLineChart, type DualLineChartPoint } from "../../DualLineChart";
 import type { StrengthPoint } from "@/lib/dashboard/bodyMetrics";
 import { InfoTip } from "@/app/components/InfoTip";
-import styles from "../../dashboard.module.css";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const UpIcon = () => (
   <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -35,6 +36,7 @@ export function StrengthCard({
   /** cviky, na ktorých je posledný záznam nové osobné maximum (feature/analytika-v2, bod 3) */
   prExerciseNames?: string[];
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [selected, setSelected] = useState(exerciseNames[0] ?? "");
   const isPR = prExerciseNames.includes(selected);
 

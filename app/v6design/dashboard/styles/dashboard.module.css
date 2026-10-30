@@ -1,0 +1,2643 @@
+/* Zdieľaný dizajnový systém pre celý /dashboard (shell, nav, karty, viz) — Operate, Restrained farba. */
+
+/* ---------- shell / sidebar nav ---------- */
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+}
+@media (max-width: 880px) {
+  .shell {
+    grid-template-columns: 1fr;
+    /* Top bar + obsah pod sebou. Bez explicitných riadkov grid pri krátkej stránke
+       rozdelil voľné miesto z min-height:100vh aj do riadku top baru — pod ním
+       vznikla ~100px prázdna medzera (detail klienta, hotový plán, otvorený chat). */
+    grid-template-rows: auto 1fr;
+  }
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  /* nad obsahom stránky — panel zvončeka (.bellPanel) presahuje šírku sidebaru */
+  z-index: 20;
+  height: 100vh;
+  background: var(--card-bg);
+  border-right: 1px solid var(--steel-line);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  box-shadow: var(--card-shadow);
+}
+/* Mobile-first appka: pod 880px sa sidebar zmenší na tenký top bar (brand + odhlásenie)
+   a hlavná navigácia (.navList nižšie) sa oddelí do fixnej bottom tab bar — palcom
+   dosiahnuteľná, podľa natívnych mobilných zvyklostí namiesto desktopového sidebaru. */
+@media (max-width: 880px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Výživa
+       bez profilov) dal iný výsledok než pri stránkach so scrollbarom — scrollbar
+       (Windows) uberá ~15-17px šírky, čo mierne mení, ako sa vojde "Odhlásiť sa"
+       vedľa loga, a bar tak vychádzal inak vysoký podľa stránky. Pevná výška to rieši. */
+    height: 56px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    border-right: none;
+    border-bottom: 1px solid var(--steel-line);
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .sidebarFoot :global(.btn) {
+    padding: 8px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
+
+.sidebarBrand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex: none;
+}
+
+/* Brand + zvonček upozornení (feature/funkcionalita). Na mobile sa blok natiahne
+   (flex: 1) a zvonček sa tak usadí vpravo vedľa "Odhlásiť sa". */
+.sidebarTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+@media (max-width: 880px) {
+  .sidebarTop {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ---------- zvonček upozornení ---------- */
+/* .bell nie je positioned: panel sa kotví na .sidebar (sticky = containing block), nie na tlačidlo. */
+.bell {
+  display: flex;
+}
+.bellBtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--paper-dim);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.bellBtn:hover,
+.bellBtnOpen {
+  background: var(--fill-strong);
+  color: var(--paper);
+}
+.bellBtn:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 2px;
+}
+.bellBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--iron-red-deep);
+  color: var(--on-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.bellPanel {
+  position: absolute;
+  top: 64px;
+  left: 12px;
+  z-index: 40;
+  width: min(344px, calc(100vw - 24px));
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--glass-shadow);
+}
+.bellPanelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+  margin-bottom: 4px;
+}
+.bellEmpty {
+  padding: 12px 0 4px;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.bellItem {
+  padding: 11px 0;
+  border-top: 1px solid var(--steel-line);
+}
+.bellItem:first-of-type {
+  border-top: 0;
+}
+/* Bodka visí vľavo (padding 15px = bodka 7px + medzera 8px, rovnako ako odsadenie
+   .bellLinks) — zalomený nadpis pokračuje pod textom, nie pod bodkou. */
+.bellItemMain {
+  position: relative;
+  display: block;
+  padding-left: 15px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--paper);
+  text-decoration: none;
+}
+.bellItemMain::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  /* stred prvého riadku: polovica line-height (1.4em) mínus polovica bodky */
+  top: calc(0.7em - 3.5px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.bellToneAlert::before {
+  background: var(--iron-red);
+}
+.bellToneWatch::before {
+  background: var(--steel);
+}
+a.bellItemMain:hover {
+  text-decoration: underline;
+}
+/* Riadok položky: nadpis vľavo, akcia ("Skryť", "Označiť ako prečítané") vpravo. */
+.bellItemHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bellItemHead .bellItemMain {
+  flex: 1;
+  min-width: 0;
+}
+.bellAction {
+  flex: none;
+  padding: 3px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--paper-faint);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bellAction:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+.bellAction:focus-visible,
+.bellX:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Malé × pri konkrétnom klientovi — dotykový cieľ ~28px, vizuálne nenápadné. */
+.bellX {
+  flex: none;
+  width: 28px;
+  height: 24px;
+  margin: -3px -6px -3px 0;
+  border: 0;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.bellX:hover {
+  color: var(--paper);
+}
+.bellLinks {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 0 0 0 15px;
+  list-style: none;
+}
+.bellLinks li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.bellLinks a {
+  color: var(--paper-dim);
+  text-decoration: none;
+}
+.bellLinks a:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+/* Počet dní zarovnaný vpravo k × (nie v strede medzi menom a ×) — riadky sú pod
+   sebou bez ohľadu na dĺžku mena. Rovnako ako .alertPanelList. */
+.bellLinks span {
+  margin-left: auto;
+  color: var(--paper-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Mobile: panel je "list" pod horným barom, nad spodnou tab barou (76px), na celú šírku. */
+@media (max-width: 880px) {
+  .bellBtn {
+    width: 44px;
+    height: 44px;
+  }
+  .bellPanel {
+    top: 62px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100dvh - 62px - 84px);
+  }
+}
+/* Mark + "FitPilot" ako jeden obrázok (LogoWordmark) — pomer strán zdroja ~3:1. */
+.brandLogo {
+  width: auto;
+  height: 22px;
+  flex: none;
+}
+
+.navList {
+  display: grid;
+  gap: 3px;
+}
+/* Fixná bottom tab bar na mobile — vytiahnutá z normálneho toku sidebaru (position: fixed),
+   takže .sidebar nad ňou zostáva len tenký top bar s brandom a odhlásením. */
+@media (max-width: 880px) {
+  .navList {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    gap: 0;
+    background: var(--card-bg);
+    border-top: 1px solid var(--steel-line);
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--card-shadow);
+}
+}
+/* Otvorená klávesnica (KeyboardState) — lišta by visela nad ňou a ubrala miesto na písanie. */
+:global(html[data-keyboard-open]) .navList {
+  display: none;
+}
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-s);
+  color: var(--paper-dim);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.navLink:hover {
+  color: var(--paper);
+  background: var(--fill-strong);
+}
+.navLinkActive {
+  color: var(--paper);
+  background: var(--fill-strong);
+  border: 1px solid var(--steel-line);
+}
+.navIcon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+.navBadge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--iron-red) 22%, var(--ink-3));
+  border: 1px solid color-mix(in srgb, var(--iron-red) 40%, var(--steel-line));
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+/* Bottom tab bar položky: ikona nad labelom, min. 44px výška na dotyk (palec). */
+@media (max-width: 880px) {
+  .navLink {
+    position: relative;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px;
+    min-height: 48px;
+    font-size: 10.5px;
+    text-align: center;
+    white-space: normal;
+    border-radius: var(--radius-s);
+  }
+  .navIcon {
+    width: 20px;
+    height: 20px;
+  }
+  /* Na bottom-bare je odznak malá dlaždica v rohu ikony, nie tretí riadok textu. */
+  .navBadge {
+    position: absolute;
+    top: 2px;
+    right: 10px;
+    margin-left: 0;
+    font-size: 10px;
+    padding: 0 5px;
+  }
+}
+
+.sidebarFoot {
+  margin-top: auto;
+}
+@media (max-width: 880px) {
+  .sidebarFoot {
+    margin-top: 0;
+  }
+}
+
+/* ---------- content ---------- */
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 48px);
+}
+.content {
+  padding-block: clamp(28px, 5vw, 48px);
+}
+/* Priestor pre fixnú bottom tab bar (.navList na mobile), nech posledná karta nie je pod ňou. */
+@media (max-width: 880px) {
+  .content {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+/* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
+@media (max-width: 880px) {
+  /* Otvorená klávesnica: dokument končí tesne pod obsahom (bez min-height celej
+     obrazovky). Safari na iOS 26 posúva stránku na koniec dokumentu — pole tak skončí
+     tesne nad adresnou lištou, nie s čiernym pásom pod sebou (overené na iPhone). */
+  :global(html[data-keyboard-open]) .content {
+    padding-bottom: 12px;
+  }
+  :global(html[data-keyboard-open]) .shell {
+    min-height: 0;
+  }
+}
+
+.pageHead {
+  margin-bottom: 28px;
+}
+.pageHead h1 {
+  font-size: clamp(1.6rem, 2.8vw, 2.1rem);
+}
+.pageHead p {
+  color: var(--paper-dim);
+  font-size: 14.5px;
+  margin-top: 6px;
+}
+
+/* ---------- status chip ---------- */
+.statusChip {
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.statusChip.active {
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+.statusChip.late {
+  background: rgba(217, 105, 74, 0.14);
+  color: var(--accent-text);
+}
+.statusChip.ended {
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-faint);
+}
+
+/* ---------- add client form ---------- */
+.addClientForm {
+  margin-bottom: 20px;
+}
+/* Rozbalený panel s dvomi cestami pridania klienta (feature/registracia-update). */
+.addClientPanel {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  padding: 16px 18px;
+  box-shadow: var(--card-shadow);
+}
+/* Prepínač režimu + otáznik s vysvetlením (InfoTip) v jednom riadku. */
+.addClientModesRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.addClientModes {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+}
+.addClientModeBtn {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-faint);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.addClientModeBtn:hover {
+  color: var(--paper);
+}
+.addClientModeActive,
+.addClientModeActive:hover {
+  background: var(--fill-strong);
+  color: var(--paper);
+}
+.addClientOk {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--moss);
+}
+.addClientFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.addClientFieldsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.addClientInput,
+.addClientInputSm {
+  /* flex-basis 200px je šírkový rozmer pre desktop (row) layout — pod 640px sa
+     .addClientFields prepína na flex-direction:column, kde by tá istá hodnota
+     ako flex-basis určovala VÝŠKU (main-axis v column je vertikálny), takže
+     polia narástli na ~200px vysoké boxy namiesto textového riadku. Mobile
+     media query nižšie preto basis resetuje na auto. */
+  flex: 1 1 200px;
+  background: var(--surface-solid);
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+}
+.addClientInputSm {
+  /* grow:0 (nie zdedené 1) — sú to krátke číselné polia, na širšom desktope
+     nemajú dôvod naťahovať sa na plnú šírku riadku ako meno/cieľ. Na mobile
+     to mobile media query nižšie prebije späť na rovnomerné vyplnenie riadku. */
+  flex: 0 1 110px;
+}
+select.addClientInput,
+select.addClientInputSm {
+  /* natívna šípka <select>u bola nalepená na pravom okraji boxu — appearance:none
+     + vlastná šípka s odsadením od kraja to opravuje pre všetky selecty v appke
+     (klient/cieľ/skúsenosti/vybavenie), ktoré túto triedu zdieľajú. */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5.5L7 9.5L11 5.5' stroke='%238f897d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  padding-right: 38px;
+}
+/* Časové polia (Od/Do v AddAppointmentForm) — dva vedľa seba nerozlíšené time
+   inputy pôsobili ako duplicita/chyba; viditeľný label nad každým to rieši
+   bez zásahu do vzhľadu samotného inputu (rovnaký vzor ako .editField v
+   app/dashboard/treningy/[planId]/builder.module.css). */
+.timeField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 0 1 110px;
+}
+.timeField .addClientInputSm {
+  flex: 1 1 auto;
+  width: 100%;
+}
+/* Chýbajúce povinné pole po pokuse o odoslanie (AddAppointmentForm). */
+.fieldMissing {
+  border-color: var(--error);
+  background-color: color-mix(in srgb, var(--error) 8%, var(--ink-2));
+}
+.timeFieldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--paper-faint);
+}
+@media (max-width: 640px) {
+  .addClientFields,
+  .addClientFieldsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .addClientFieldsRow {
+    flex-direction: row;
+  }
+  .addClientInput,
+  .addClientInputSm {
+    /* auto namiesto zdedeného basis (200px/110px) — pozri komentár vyššie. */
+    flex-basis: auto;
+    /* 16px = iOS Safari nezoomuje pri focuse; menšie písmo v inpute to spúšťa. */
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+  .addClientFieldsRow .addClientInputSm,
+  .addClientFieldsRow .timeField {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .addClientFieldsRow .timeField .addClientInputSm {
+    padding-inline: 10px;
+  }
+  /* Dátum + Od + Do v jednom riadku sa na telefóne prekrývali — iOS kreslí date/time
+     input natívne s vlastnou minimálnou šírkou a bez appearance:none ignoruje
+     width:100% (rovnaký problém ako .metricInput v portáli). Dátum ide na vlastný
+     riadok, Od/Do pod ním vedľa seba. */
+  .addClientFieldsRow .timeField:has(input[type="date"]) {
+    flex-basis: 100%;
+  }
+  .timeField input[type="date"],
+  .timeField input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    min-height: 46px;
+    text-align: left;
+    color-scheme: inherit;
+  }
+  .timeField input::-webkit-date-and-time-value {
+    text-align: left;
+  }
+}
+.addClientInput::placeholder,
+.addClientInputSm::placeholder {
+  color: var(--paper-faint);
+}
+.addClientInput:focus,
+.addClientInputSm:focus {
+  outline: none;
+  border-color: var(--iron-red);
+  /* background-color, nie skratka `background` — tá by na select.addClientInput
+     zmazala background-image (vlastná šípka) nastavenú vyššie. */
+  background-color: var(--surface-solid);
+}
+.addClientInput:disabled,
+.addClientInputSm:disabled {
+  opacity: 0.6;
+}
+/* number input spinnery: vlastný chevron by bol viac práce než hodnota pre
+   voliteľné, zriedka menené polia — schované, nie štylizované (rovnaký
+   vzor ako gramáž v dennníku, README 2026-08-28). */
+.addClientInputSm::-webkit-outer-spin-button,
+.addClientInputSm::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.addClientInputSm[type="number"] {
+  -moz-appearance: textfield;
+}
+/* Formulár s popiskami v mriežke (makro cieľ vo Výžive). Predtým tam bolo
+   .addClientFields prepnuté inline na column — zdedený flex-basis 200px z
+   .addClientInput sa v stĺpci uplatnil ako VÝŠKA a každé pole malo na desktope
+   ~200px. Tu sú polia v <label> (flex column), preto flex:none. */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+}
+.fieldGrid > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.fieldGrid .addClientInput {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+.fieldGridFull {
+  grid-column: 1 / -1;
+}
+.addClientError {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--error);
+}
+
+/* ---------- AI generátor plánu (Track "Tréner" #4/5, ROADMAP.md) ---------- */
+/* Výsledok generovania s varovaním (feature/ai-plan-zameranie) — plán je vytvorený,
+   ale zameranie sa nedotiahlo, tak nepresmerúvame rovno doň. */
+.aiPlanResult {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.aiPlanWarning {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--plate-yellow);
+}
+
+/* ---------- meškajúci klienti: alert panel (Track "Tréner" #2, ROADMAP.md) ---------- */
+.alertPanel {
+  background: rgba(217, 105, 74, 0.08);
+  border: 1px solid rgba(217, 105, 74, 0.28);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.alertPanelTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--accent-text);
+}
+.alertPanelList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  list-style: none;
+  padding: 0;
+}
+.alertPanelList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.alertPanelList a {
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+}
+.alertPanelList a:hover {
+  text-decoration: underline;
+}
+.alertPanelList li > span:last-of-type {
+  margin-left: auto;
+  color: var(--paper-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Skrývanie upozornení (feature/funkcionalita): hlavička panelu s "Skryť všetky" a × pri klientovi. */
+.alertPanelHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.alertPanelAction {
+  flex: none;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--paper-faint);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.alertPanelAction:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+.alertPanelX,
+.noticeClose {
+  border: 0;
+  background: none;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.alertPanelX {
+  flex: none;
+  width: 28px;
+  height: 24px;
+  margin: -3px -6px -3px 0;
+}
+.alertPanelX:hover,
+.noticeClose:hover {
+  color: var(--paper);
+}
+.alertPanelAction:focus-visible,
+.alertPanelX:focus-visible,
+.noticeClose:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Blok so zatváracím × v pravom hornom rohu (digest banner, checklist prvých krokov). */
+.noticeWrap {
+  position: relative;
+}
+/* obsah nechá miesto pre × (padding sa nedá spoľahlivo prebiť — .card ho definuje neskôr) */
+.noticeWrap > :not(.noticeClose) {
+  margin-right: 30px;
+}
+.noticeWrap > .noticeClose {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+}
+
+/* ---------- onboarding checklist (feature/OnBoarding) ---------- */
+.onboardingCard {
+  margin-bottom: 20px;
+}
+.onboardingList {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin-top: 4px;
+}
+.onboardingList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.onboardingList li a {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.onboardingCheck {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--steel-line);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--paper-faint);
+}
+.onboardingDone {
+  color: var(--paper-faint);
+  text-decoration: line-through;
+}
+.onboardingDone .onboardingCheck {
+  border-color: color-mix(in srgb, var(--moss) 45%, transparent);
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+
+/* ---------- weekly health digest banner (feature/OnBoarding) — steel, neutrálnejšie než alertPanel (coral) */
+.digestBanner {
+  background: rgba(127, 138, 149, 0.1);
+  border: 1px solid rgba(127, 138, 149, 0.32);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.digestBannerTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--steel);
+}
+.digestBannerText {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.digestBannerText a {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+/* ---------- roster search (feature/OnBoarding) ---------- */
+.rosterSearch {
+  margin-bottom: 12px;
+}
+.rosterSearchInput {
+  width: 100%;
+  background: var(--surface-solid);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+/* 16px = iOS Safari pri focuse nezoomuje (pod 16px zväčší stránku a nechá ju tak). */
+@media (max-width: 760px) {
+  .rosterSearchInput {
+    font-size: 16px;
+  }
+}
+.rosterSearchInput::placeholder {
+  color: var(--paper-faint);
+}
+.rosterSearchInput:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: 1px;
+}
+
+/* ---------- client roster ---------- */
+.roster {
+  display: grid;
+  gap: 10px;
+}
+.clientCard {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+  box-shadow: var(--card-shadow);
+}
+.clientCard:hover {
+  border-color: var(--paper-faint);
+  background: var(--fill-strong);
+}
+.clientName {
+  font-weight: 700;
+  font-size: 15px;
+}
+.clientGoal {
+  color: var(--paper-faint);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.clientMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* Na úzkej karte sa stav + dátum zalamovali podľa dĺžky mena/cieľa (raz vedľa seba,
+   raz pod sebou) a štítok "N dní bez tréningu" tak skákal raz doľava, raz doprava.
+   Na mobile preto vždy pod sebou, zarovnané vpravo. */
+@media (max-width: 760px) {
+  .clientMeta {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+}
+.clientSince {
+  color: var(--paper-faint);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+/* Plán, ktorý klient celý odcvičil — moss "splnený stav" (DESIGN.md: pravidlo
+   jedného accentu). Zhodné s .publishBadge + .publishBadgeLive; jeden zdroj
+   pravdy je lib/dashboard/planCompletion.ts, zdieľaný zoznamom Tréningy aj
+   detailom klienta. */
+.planDoneBadge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+.unreadPill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--iron-red) 22%, var(--ink-3));
+  border: 1px solid color-mix(in srgb, var(--iron-red) 40%, var(--steel-line));
+  color: var(--paper);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- klient na zmazanie (0013_client_deletion.sql, GDPR grace period) ---------- */
+.clientCardPendingDeletion {
+  opacity: 0.55;
+}
+.clientCardPendingDeletion:hover {
+  opacity: 0.8;
+  border-color: var(--steel-line);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+/* ---------- klient s ukončenou spoluprácou (0015) — dáta ostávajú, dá sa obnoviť ---------- */
+.clientCardEnded {
+  opacity: 0.75;
+}
+.clientCardEnded:hover {
+  opacity: 1;
+}
+.deletionChip {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Adherencia stravy: 7-dňový pás (follow-up k food diary) ---------- */
+.adherenceStrip {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+.adherenceDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.adherenceDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--steel-line);
+}
+.adherenceGood {
+  background: var(--moss);
+}
+.adherenceOff {
+  background: var(--iron-red);
+}
+.adherenceDayLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.adherenceHint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+.adherenceWindowRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--steel-line);
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.adherenceWindowRow strong {
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Posledná aktivita: riadok → detail dokončeného tréningu (plán vs. realita, 0048) ---------- */
+.logLinkRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: var(--card-shadow);
+}
+/* Akcie šablóny/PDF na detaile tréningového plánu — súmerná mriežka 2 rovnakých
+   stĺpcov s rovnakou výškou tlačidiel aj polí (select/input/btn majú inak rôzne
+   paddingy). Na desktope max. 480px, aby sa tlačidlá neťahali cez celý obsah. */
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 480px;
+}
+.templateGrid > select,
+.templateGrid > button,
+.templateGrid > a,
+.templateGrid > form > button {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  box-sizing: border-box;
+}
+/* Stavová hláška (uložené/chyba) zaberie celý riadok mriežky. */
+.templateStatus {
+  grid-column: 1 / -1;
+}
+.templateGrid > form {
+  margin: 0;
+}
+.templateGrid > .publishDeleteConfirm {
+  margin: 0;
+  color: var(--paper);
+  font-size: 13.5px;
+}
+/* Názov plánu s ceruzkou (PlanTitle) — premenovanie priamo na mieste. */
+.detailTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.planTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.planTitleRow h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.planTitleEdit {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  color: var(--paper-faint);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.planTitleEdit:hover {
+  color: var(--paper);
+  border-color: var(--steel-line);
+}
+.planTitleForm {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+}
+.planTitleInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  background: var(--surface-solid);
+  border: 1px solid var(--iron-red);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.planTitleInput:focus {
+  outline: none;
+}
+@media (max-width: 640px) {
+  .planTitleForm {
+    max-width: none;
+  }
+}
+/* Blok akcií pod nadpisom plánu (publikovanie + šablóna), riadky tesne pod sebou. */
+.planActions {
+  display: grid;
+  gap: 8px;
+  margin: -12px 0 20px;
+}
+.planActions:empty {
+  display: none;
+}
+/* Deštruktívne tlačidlo v štýle btn-ghost — červený text, pri hoveri aj rám. */
+.dangerGhost {
+  color: var(--error);
+}
+.dangerGhost:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+.planFooterActions {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--steel-line);
+}
+@media (max-width: 640px) {
+  .templateGrid {
+    max-width: none;
+  }
+}
+.logLinkRow:hover {
+  border-color: var(--paper-faint);
+}
+.logLinkMeta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+}
+.logLinkSide {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.emptyState {
+  background: var(--card-bg);
+  border: 1px dashed var(--steel-line);
+  border-radius: var(--radius-m);
+  padding: clamp(32px, 5vw, 48px);
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  box-shadow: var(--card-shadow);
+}
+.emptyState h2 {
+  font-size: 1.4rem;
+}
+.emptyState p {
+  color: var(--paper-dim);
+  font-size: 14.5px;
+  max-width: 46ch;
+}
+
+/* ---------- client detail ---------- */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--paper-faint);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.backLink:hover {
+  color: var(--paper);
+}
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.detailHead h1 {
+  font-size: clamp(1.6rem, 2.8vw, 2.1rem);
+}
+.detailHead .clientGoal {
+  font-size: 14.5px;
+  margin-top: 6px;
+}
+/* Odznak stavu + otáznik s vysvetlením (InfoTip) vedľa seba. */
+.detailHeadStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.publishBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.publishBadge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.publishBadgeDraft {
+  background: rgba(230, 178, 58, 0.16);
+  color: var(--plate-yellow);
+}
+.publishBadgeLive {
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+.publishError {
+  color: var(--accent-text);
+  font-size: 12.5px;
+  width: 100%;
+}
+.publishConfirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--moss);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+/* Dvojkrokové potvrdenie zmazania konceptu (feature/ai-plan-zameranie). */
+.publishDeleteConfirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}
+/* minmax(0, …) namiesto holého 1fr — 1fr má minimum `auto` = min-content obsahu,
+   takže dlhý <select> (napr. „Stredná aktivita (3–5× týždenne)") roztiahol stĺpec
+   za okraj telefónu a karta vpravo pretiekla (odrezaná). */
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .detailGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  padding: 20px 22px;
+  box-shadow: var(--card-shadow);
+}
+/* Karta, ktorej obsah sú samé ďalšie karty (šablóny, zoznam konverzácií) alebo chat — na mobile
+   je jej rám zbytočná druhá vrstva, ktorá zužuje obsah (rovnako ako .dayPanel v
+   editore tréningu). */
+@media (max-width: 760px) {
+  .cardFlatMobile {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+}
+.card h3 {
+  font-size: 1.05rem;
+  margin-bottom: 12px;
+}
+/* Podnadpis vnútri väčšej zloženej karty (napr. Analytika, Sledovanie jedálnička —
+   viacero pôvodne samostatných kariet spojených do jednej, feature/progress-analyst). */
+.cardSubhead {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+  margin: 20px 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--steel-line);
+}
+.cardStack {
+  display: grid;
+  gap: 16px;
+}
+
+/* ---------- /dashboard/spravy — centrálna schránka správ (ROADMAP.md follow-up) ---------- */
+.inboxGrid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .inboxGrid {
+    grid-template-columns: 1fr;
+    /* vlákno počas potiahnutia späť (ThreadSwipeBack) ide doprava za okraj —
+       bez orezania by stránka na okamih dostala vodorovný scroll */
+    overflow-x: clip;
+  }
+  /* Vybraná konverzácia → na mobile ukáž len vlákno (nie zoznam pod ním);
+     na desktope ostávajú oba stĺpce vždy viditeľné, toto pravidlo tam nedopadá. */
+  .inboxGrid[data-has-selection="true"] .inboxList {
+    display: none;
+  }
+  /* Zoznam bez vybranej konverzácie — karta "Vyber konverzáciu" pod zoznamom na mobile
+     nemá zmysel (klient sa vyberá práve zo zoznamu nad ňou). Zároveň skryje odchádzajúce
+     vlákno hneď po revealInboxList, nie až po odpovedi servera. */
+  .inboxGrid[data-has-selection="false"] .inboxThread {
+    display: none;
+  }
+  /* Otvorený chat vyplní obrazovku medzi top barom a spodnou lištou — pole na písanie
+     je hneď nad lištou (správy sa scrollujú vo vnútri vlákna), nie v strede s prázdnom
+     pod ním. 56 top bar + 28 horný padding .content + 76 rezerva pre lištu (= presne
+     výška obrazovky, stránka sa nescrolluje). */
+  .inboxGrid[data-has-selection="true"] .inboxThread {
+    /* svh, nie dvh: Safari pri otvorenej klávesnici dvh zmenší a po jej zatvorení ho
+       prepočíta až po scrolle — chat ostal skrátený o výšku klávesnice s čiernou
+       medzerou pod ním. svh je stabilná výška obrazovky, na klávesnicu nereaguje. */
+    height: calc(100vh - 160px - env(safe-area-inset-bottom, 0px));
+    height: calc(100svh - 160px - env(safe-area-inset-bottom, 0px));
+    /* --app-h = skutočná výška obrazovky (KeyboardState) — 100svh je na iOS 26 menšie
+       a pole na písanie končilo ~70 px nad spodnou lištou */
+    height: calc(var(--app-h, 100svh) - 160px - env(safe-area-inset-bottom, 0px));
+    min-height: 320px;
+    transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s;
+  }
+  /* Otvorená klávesnica: iOS posunie stránku tak, že nad klávesnicou skončí SPODOK
+     obrazovky (nie pole na písanie). Pole bolo ~100px nad ním (miesto pre spodnú lištu
+     + safe area) → nad klávesnicou ostal čierny pás. Vlákno sa preto natiahne až k
+     spodku obrazovky (56 top bar + 28 + 12 odstup) — pole skončí tesne nad klávesnicou.
+     Zmena výšky ide plynulo spolu s vysúvaním klávesnice (transition vyššie), nie skokom. */
+  :global(html[data-keyboard-open]) .inboxGrid[data-has-selection="true"] .inboxThread {
+    height: calc(100vh - 96px);
+    height: calc(100svh - 96px);
+  }
+  /* Hlavička stránky a "Hromadná správa" pri otvorenom vlákne — na mobile len chat.
+     Riadené tým istým atribútom ako zoznam (nie triedou zo servera), takže pri návrate
+     (revealInboxList) sa zoznam, hlavička aj tlačidlo ukážu v JEDNOM snímku — predtým
+     hlavička doskočila až s odpoveďou servera a zoznam pod ňou poskočil (bliknutie).
+     Zdvojená trieda — .pageHead/.spravyModeToggle (display:flex) sú v súbore neskôr. */
+  .spravyPage:has(.inboxGrid[data-has-selection="true"]) .hideOnThreadMobile.hideOnThreadMobile {
+    display: none;
+  }
+}
+/* Vlastný scroll zoznamu len na desktope (stĺpec vedľa vlákna). Na mobile je zoznam
+   sám na obrazovke — scrolluje celá stránka; vnorený box tam pôsobil neprirodzene
+   a jeho spodok bol schovaný pod spodnou lištou navigácie. */
+@media (min-width: 861px) {
+  .inboxList .roster {
+    max-height: calc(100vh - 260px);
+    overflow-y: auto;
+  }
+}
+.inboxRow {
+  align-items: start;
+}
+.inboxRowActive {
+  border-color: var(--iron-red);
+  background: var(--fill-strong);
+}
+.inboxThread {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+}
+
+.infoRow {
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+  padding-block: 10px;
+  border-top: 1px solid var(--steel-line);
+}
+.infoRow:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.infoLabel {
+  color: var(--paper-faint);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.infoValue {
+  color: var(--paper);
+}
+.notesEmpty {
+  color: var(--paper-faint);
+  font-style: italic;
+}
+
+/* ---------- workout viz ---------- */
+.workoutList {
+  display: grid;
+  gap: 16px;
+}
+.workoutBlock {
+  display: grid;
+  gap: 8px;
+}
+.workoutDay {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+}
+.workoutDate {
+  color: var(--paper-faint);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.exerciseRow {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  font-size: 13px;
+}
+.exIdx {
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-faint);
+  font-size: 11px;
+}
+.exName {
+  font-weight: 700;
+}
+.exLoad {
+  font-variant-numeric: tabular-nums;
+  color: var(--plate-yellow);
+  font-size: 12.5px;
+  justify-self: end;
+}
+.exRest {
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-faint);
+  font-size: 12px;
+  justify-self: end;
+}
+.noWorkouts {
+  color: var(--paper-faint);
+  font-size: 13.5px;
+}
+
+/* ---------- LineChart (Progres a analýza, feature/progress-analyst) ---------- */
+.chartWrap {
+  position: relative;
+}
+.chartSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+.chartEmpty {
+  color: var(--paper-faint);
+  font-size: 13.5px;
+  padding: 24px 0;
+  text-align: center;
+}
+.chartLastLabel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  line-height: 1.3;
+}
+.chartLastDate {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+.chartTooltip {
+  position: absolute;
+  bottom: 14px;
+  transform: translateX(-50%);
+  /* plávajúca bublina nad grafom — skoro nepriehľadná, čiara grafu nesmie presvitať cez text */
+  background: var(--sheet-bg-strong);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  padding: 5px 9px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-1);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.chartTooltip strong {
+  font-variant-numeric: tabular-nums;
+}
+.chartTooltip span {
+  color: var(--paper-faint);
+}
+.chartRange {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- DualLineChart legenda (váha + opakovania na jednom cviku) ---------- */
+.chartLegend {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.chartLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--paper-dim);
+}
+.chartLegendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.strengthTrend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.strengthTrendUp {
+  color: var(--moss);
+}
+.strengthTrendDown {
+  color: var(--accent-text);
+}
+.strengthTrendFlat {
+  color: var(--paper-faint);
+}
+.measurementsToggle {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 10px;
+  color: var(--paper-faint);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.measurementsToggle:hover {
+  color: var(--paper);
+}
+.chartHint {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--paper-faint);
+}
+
+/* ---------- Analytika — tlačidlo pod menom klienta (feature/progress-analyst) ---------- */
+.analyticsToggleWrap {
+  margin-bottom: 28px;
+}
+.analyticsToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+  box-shadow: var(--card-shadow);
+}
+.analyticsToggleBtn:hover {
+  border-color: var(--paper-dim);
+  background: var(--fill-strong);
+}
+.analyticsToggleIcon {
+  color: var(--paper-faint);
+  transition: transform 0.15s ease;
+}
+.analyticsToggleIconOpen {
+  transform: rotate(180deg);
+}
+
+/* ---------- GDPR — zmazanie klienta (0013_client_deletion.sql) ---------- */
+.dangerText {
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  margin-bottom: 12px;
+}
+.dangerActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dangerError {
+  color: var(--accent-text);
+  font-size: 12.5px;
+  margin-top: 10px;
+}
+/* Sekcie Spolupráca / Zmazanie klienta vnútri karty Informácie — bez vlastného
+   rámu (karta v karte pôsobila preplnene), len oddelené čiarou ako riadky nad nimi. */
+.dangerSection {
+  padding-block: 16px;
+  border-top: 1px solid var(--steel-line);
+}
+.dangerSection:last-child {
+  padding-bottom: 0;
+}
+.dangerSection h3 {
+  font-size: 1.05rem;
+  margin-bottom: 10px;
+}
+
+/* ---------- macro viz ---------- */
+.macroBarRow {
+  display: grid;
+  gap: 6px;
+}
+.macroTop {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}
+.macroVal {
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+}
+.macroTrack {
+  height: 8px;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.macroFill {
+  height: 100%;
+  border-radius: 999px;
+}
+.macroFill.protein {
+  background: var(--iron-red);
+}
+.macroFill.carbs {
+  background: var(--plate-yellow);
+}
+.macroFill.fat {
+  background: var(--moss);
+}
+
+/* ---------- tréningy / výživa list pages ---------- */
+.clientSectionGrid {
+  display: grid;
+  gap: 16px;
+}
+.clientSection {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  padding: 20px 22px;
+  box-shadow: var(--card-shadow);
+}
+.clientSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.clientSectionHead a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  text-decoration: none;
+}
+.clientSectionHead a:hover {
+  color: var(--paper);
+}
+
+/* ---------- tag list (knižnica cvikov) ---------- */
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tagList span {
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  color: var(--paper-dim);
+}
+
+/* ---------- nastavenia ---------- */
+.settingsGrid {
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+}
+.comingSoon {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+  border: 1px solid var(--steel-line);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.settingsRowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---------- loading skeleton (Next.js loading.tsx pre /dashboard/*) ---------- */
+.skeletonWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.skeletonBlock {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+  box-shadow: var(--card-shadow);
+}
+.skeletonHead {
+  height: 36px;
+  width: 45%;
+  border: none;
+  background: transparent;
+}
+.skeletonCard {
+  height: 120px;
+}
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeletonBlock {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ---------- /dashboard/klienti/[id] — sekcie namiesto jedného dlhého scrollu (feature/planing-groupMessage) ---------- */
+.clientDetailLayout {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.clientSubNav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: sticky;
+  top: 20px;
+}
+.clientSubNavItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--paper-faint);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.clientSubNavItem:hover {
+  color: var(--paper);
+  background: var(--fill-strong);
+}
+.clientSubNavItemActive {
+  color: var(--paper);
+  background: var(--card-bg);
+  border-color: var(--steel-line);
+  box-shadow: var(--card-shadow);
+}
+.clientSubNavMobile {
+  display: none;
+}
+/* Grid child s tabuľkami/dlhými kartami nesmie roztiahnuť stĺpec nad jeho šírku. */
+.clientDetailContent {
+  min-width: 0;
+}
+@media (max-width: 880px) {
+  .clientDetailLayout {
+    display: block;
+  }
+  .clientSubNav {
+    display: none;
+  }
+  .clientSubNavMobile {
+    display: block;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .clientSubNavMobileTrigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--surface-border);
+    background: var(--card-bg);
+    color: var(--paper);
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: var(--card-shadow);
+  }
+  /* Menu sekcií v toku stránky (nie plávajúce cez obsah): otvorené odsunie obsah
+     nižšie, zatvorené ho vráti — priehľadné sklo by inak prekrývalo karty pod ním. */
+  .clientSubNavMobileMenu {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 8px;
+    padding: 6px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--surface-border);
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
+  }
+  .clientSubNavMobileItem {
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: var(--radius-s);
+    border: none;
+    background: transparent;
+    color: var(--paper-faint);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .clientSubNavMobileItemActive {
+    color: var(--paper);
+    background: var(--fill-strong);
+  }
+}
+
+/* ---------- /dashboard/spravy — hromadná správa (feature/planing-groupMessage) ---------- */
+.spravyModeToggle {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 14px;
+}
+.bulkClientRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.bulkClientRow input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--iron-red);
+}
+.bulkClientList {
+  display: grid;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 8px;
+  margin: 6px 0 14px;
+  background: var(--fill);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+}
+.bulkTextarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--steel-line);
+  background: var(--fill);
+  color: var(--paper);
+  font: inherit;
+  resize: vertical;
+}
+.bulkTextarea:focus {
+  outline: none;
+  border-color: var(--paper-faint);
+}
+.bulkFooter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* ---------- /dashboard/kalendar — agenda termínov (feature/planing-groupMessage) ---------- */
+.appointmentList {
+  display: grid;
+  gap: 8px;
+}
+.appointmentRow {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--card-shadow);
+}
+.appointmentTime {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+}
+.appointmentTimeEnd {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--paper-faint);
+}
+.appointmentBody {
+  min-width: 0;
+}
+@media (max-width: 480px) {
+  .appointmentRow {
+    grid-template-columns: 44px 1fr;
+    row-gap: 8px;
+  }
+  .appointmentRow > button,
+  .appointmentRow > div:last-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+/* ---------- /dashboard/sablony — šablóny plánov a jedálničkov (feature/progress-AI-sablona) ---------- */
+.templateFilterRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.templateFilterPill {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--steel-line);
+  background: var(--fill);
+  color: var(--paper-faint);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.templateFilterPill:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+.templateFilterPillActive {
+  color: var(--paper);
+  border-color: var(--iron-red);
+  background: color-mix(in srgb, var(--iron-red) 16%, var(--ink-3));
+}
+.templateRoster {
+  display: grid;
+  gap: 10px;
+}
+/* Vlastná karta namiesto .clientCard — tá je grid s pevným "1fr auto" (link + chip
+   vpravo), zatiaľ čo šablóna potrebuje stĺpec: hlavička + form na "Použiť" pod sebou. */
+.templateCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--card-shadow);
+}
+.templateHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.templateHeadActions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.templateApplyForm {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.templateApplyForm select {
+  flex: 1;
+  min-width: 160px;
+}
+@media (max-width: 480px) {
+  .templateApplyForm {
+    flex-direction: column;
+  }
+  .templateApplyForm select,
+  .templateApplyForm button {
+    width: 100%;
+  }
+}
+
+/* ---------- /dashboard/analytika — zdravie portfólia + PR widget (feature/analytika-v2) ---------- */
+
+/* Počty klientov podľa zdravotného koša — glanceable stav celého portfólia nad rosterom.
+   Nie hero-metric dlaždice: kompaktný riadok, číslo + sémantický label, žiadny sprievodný graf. */
+.portfolioHealth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.portfolioStat {
+  flex: 1 1 110px;
+  min-width: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  padding: 12px 14px;
+  box-shadow: var(--card-shadow);
+}
+.portfolioStatCount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.portfolioStatLabel {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* Tón podľa troch sémantických rolí: moss = v poriadku, coral = riziko,
+   amber = sleduj (rovnaká "upozornenie, nie výčitka" rola ako over-goal v denníku),
+   neutrál = bez dát (žiadna z rolí — nie je to postup/kontext/úspech). */
+.phOk .portfolioStatCount,
+.phOk .portfolioStatLabel {
+  color: var(--moss);
+}
+.phWatch .portfolioStatCount,
+.phWatch .portfolioStatLabel {
+  color: var(--plate-yellow);
+}
+.phRisk .portfolioStatCount,
+.phRisk .portfolioStatLabel {
+  color: var(--accent-text);
+}
+.phNone .portfolioStatCount,
+.phNone .portfolioStatLabel {
+  color: var(--paper-faint);
+}
+
+/* Posledné osobné maximá naprieč klientmi — moss (splnený/úspešný stav), rýchly
+   dôvod niekomu napísať pochvalu. Rovnaká štruktúra ako .alertPanel, opačný náboj. */
+.prPanel {
+  background: var(--moss-soft);
+  border: 1px solid color-mix(in srgb, var(--moss) 45%, transparent);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.prPanelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--moss);
+}
+.prPanelList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  list-style: none;
+  padding: 0;
+}
+.prPanelList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.prPanelList a {
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+}
+.prPanelList a:hover {
+  text-decoration: underline;
+}
+.prPanelList span {
+  color: var(--paper-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ---------- AI Kouč agregované insighty (feature/AI) — amber "skorý signál", odlíšené od zeleného PR panelu ---------- */
+.aiInsightsPanel {
+  background: rgba(230, 178, 58, 0.08);
+  border: 1px solid rgba(230, 178, 58, 0.3);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.aiInsightsPanelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--plate-yellow);
+}
+.aiInsightsList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  list-style: none;
+  padding: 0;
+}
+.aiInsightsList li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--paper);
+}
+.aiInsightsList li span:first-child {
+  color: var(--paper-faint);
+}
+.aiInsightsList li span:last-child {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---------- kombinovaný súhrn na vrchu Analytiky klienta (feature/analytika-v2, bod 4) ---------- */
+.combinedSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  padding: 14px 18px;
+  box-shadow: var(--card-shadow);
+}
+.combinedSummary > span {
+  font-size: 13px;
+  color: var(--paper-dim);
+  white-space: nowrap;
+}
+.combinedSummary strong {
+  color: var(--paper);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- PR badge pri cviku v karte Sila (feature/analytika-v2, bod 3) ---------- */
+.prBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 8px 0 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--moss-soft);
+  color: var(--moss);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 480px) {
+  .portfolioStat {
+    flex: 1 1 calc(50% - 5px);
+  }
+  .prPanelList li,
+  .combinedSummary {
+    font-size: 12.5px;
+  }
+  /* Label sa na úzkom viewporte lámal na 2 riadky, kým hodnota ostávala
+     pripnutá vpravo cez `justify-content: space-between` — pôsobilo to ako
+     osamotený fragment bez vzťahu k textu nad ním. Pod sebou namiesto vedľa. */
+  .aiInsightsList li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .aiInsightsList li span:last-child {
+    text-align: left;
+  }
+}
+
+/* Skrývanie upozornení — na dotyku väčší cieľ pre × (aspoň ~44 × 36 px). */
+@media (max-width: 880px) {
+  .alertPanelX,
+  .bellX {
+    width: 44px;
+    height: 36px;
+    margin: -6px -10px -6px 0;
+    font-size: 20px;
+  }
+  .noticeWrap > .noticeClose {
+    width: 44px;
+    height: 44px;
+    top: 2px;
+    right: 2px;
+  }
+  .alertPanelAction,
+  .bellAction {
+    padding: 8px 0;
+  }
+}
+
+/* Chyba pri ukladaní skrytia — viditeľná, nie tichý návrat upozornenia. */
+.noticeError,
+.bellError {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--accent-text);
+}
+
+/* ======================================================================
+   v6 — "liquid glass" vrstva nad pravidlami vyššie (tie sú kópia
+   app/dashboard/dashboard.module.css s tokenmi v6). Rovnaká špecificita, neskorší
+   zápis vyhráva. Tokeny a téma z koreňa .root (app/v6design/styles/tokens.module.css).
+   ====================================================================== */
+
+/* ---------- shell: bočný panel / mobilná hlavička ako sklo ---------- */
+/* Sklo cez pseudo-element, nie backdrop-filter na .sidebar: mobilná lišta (.navList,
+   position: fixed) je vnútri .sidebar a filter na rodičovi by z neho spravil jej
+   containing block — lišta by sa prilepila k hlavičke namiesto spodku obrazovky. */
+.sidebar {
+  background: transparent;
+  border-right: 1px solid var(--hairline);
+  gap: 26px;
+}
+.sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%),
+    color-mix(in srgb, var(--v6-bg) 55%, transparent);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+}
+@media (max-width: 880px) {
+  .sidebar {
+    height: calc(60px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    border-bottom: 1px solid var(--hairline);
+  }
+}
+.brandMark {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.brandText {
+  margin-left: 9px;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--paper);
+}
+
+/* ---------- navigácia ---------- */
+.navList {
+  gap: 4px;
+}
+.navLink {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 10px 14px;
+  color: var(--paper-dim);
+  font-weight: 650;
+}
+.navLink:hover {
+  background: var(--fill);
+  color: var(--paper);
+}
+.navLinkActive,
+.navLinkActive:hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.navBadge {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-text);
+}
+.navLinkActive .navBadge {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--on-accent);
+}
+/* mobil: plávajúca sklenená pilulka namiesto lišty na celú šírku */
+@media (max-width: 880px) {
+  .navList {
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    max-width: 560px;
+    margin: 0 auto;
+    gap: 2px;
+    padding: 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--glass-sheen), transparent 58%), var(--glass-bg);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+  .navLink {
+    min-height: 54px;
+    padding: 6px 2px;
+    gap: 3px;
+    font-size: 9.5px;
+    border-radius: 999px;
+  }
+  .navLinkActive,
+  .navLinkActive:hover {
+    background: var(--glass-active);
+    color: var(--accent-text);
+    box-shadow: inset 0 1px 0 var(--glass-hl), 0 6px 14px -8px rgba(70, 40, 22, 0.35);
+  }
+  .navLinkActive .navBadge {
+    background: var(--accent-grad);
+    color: var(--on-accent);
+  }
+  .navBadge {
+    top: 0;
+    right: 6px;
+    background: var(--accent-grad);
+    color: var(--on-accent);
+  }
+  .content {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  }
+  .sidebarFoot :global(.btn) {
+    padding: 8px 14px;
+  }
+}
+
+/* ---------- zvonček: sklenené tlačidlo a panel ---------- */
+.bellBtn {
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+}
+.bellBtn:hover,
+.bellBtnOpen {
+  background: var(--surface-solid);
+  color: var(--accent-text);
+}
+.bellBadge {
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: 0 0 0 2px var(--surface-solid);
+}
+.bellPanel {
+  padding: 16px 18px;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%), var(--sheet-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+}
+.bellPanelTitle {
+  font-size: 12.5px;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.bellItem {
+  border-top-color: var(--hairline);
+}
+.bellToneAlert::before {
+  background: var(--accent);
+}
+
+/* ---------- obsah ---------- */
+.pageHead h1 {
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+.pageHead p {
+  font-size: 15px;
+}
+
+/* ---------- karty ---------- */
+.card {
+  border-radius: 26px;
+  padding: 22px 24px;
+}
+.card h3 {
+  font-size: 1.12rem;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+@media (max-width: 760px) {
+  .card {
+    padding: 18px;
+  }
+}
+.cardSubhead {
+  border-top-color: var(--hairline);
+  font-size: 12.5px;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.clientCard {
+  border-radius: 22px;
+  padding: 16px 18px;
+}
+.clientCard:hover {
+  border-color: var(--surface-border);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.4), transparent), var(--card-bg);
+}
+.clientName {
+  font-weight: 720;
+  letter-spacing: -0.015em;
+}
+
+/* čipy a odznaky ako mäkké pilulky */
+.statusChip.ended {
+  border-color: transparent;
+}
+.unreadPill {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: var(--on-accent);
+}
+
+/* formuláre: pilulkové polia, terakotový fokus */
+.addClientInput,
+.addClientInputSm,
+.rosterSearchInput {
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-1);
+}
+.rosterSearchInput {
+  border-radius: 999px;
+  padding: 12px 18px;
+}
+.addClientInput:focus,
+.addClientInputSm:focus,
+.rosterSearchInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.addClientModes {
+  background: var(--fill);
+  border-color: transparent;
+  padding: 4px;
+}
+.addClientModeActive,
+.addClientModeActive:hover {
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+
+/* upozornenia na vrchu Klientov */
+.alertPanel {
+  border-radius: 24px;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: linear-gradient(150deg, rgba(217, 105, 74, 0.14), rgba(217, 105, 74, 0.05)), var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+.digestBanner {
+  border-radius: 24px;
+  border-color: var(--surface-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+/* načítavanie */
+.skeletonBlock {
+  border-radius: 26px;
+}
+/* mobil: karta, ktorej obsah sú ďalšie karty (Šablóny, Správy) — bez rámu, tieňa aj
+   paddingu, aby vnútorné karty mali plnú šírku ako na Klientoch. Musí ísť až za
+   mobilný padding .card vyššie (rovnaká špecificita, inak by ho prebil). */
+@media (max-width: 760px) {
+  .cardFlatMobile {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import styles from "../../dashboard.module.css";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const HamburgerIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -25,6 +26,7 @@ export interface ClientDetailSection {
  * vyrenderovaný na serveri a poslaný sem ako hotové React nody.
  */
 export function ClientDetailTabs({ sections }: { sections: ClientDetailSection[] }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
   const [mobileOpen, setMobileOpen] = useState(false);
   const active = sections.find((s) => s.id === activeId) ?? sections[0];

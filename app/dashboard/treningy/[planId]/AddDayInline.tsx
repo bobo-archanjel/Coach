@@ -2,11 +2,13 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addDayAction, type ActionState } from "../actions";
-import styles from "./builder.module.css";
+import builderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
 export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDayNumber: number }) {
+  const styles = useSkinStyles("builder", builderModule);
   const [adding, setAdding] = useState(false);
   const [state, formAction, pending] = useActionState(addDayAction, initialState);
   const wasPending = useRef(false);

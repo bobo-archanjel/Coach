@@ -11,7 +11,8 @@ import {
 } from "../actions";
 import type { ExerciseDetail, ExerciseLibraryRow } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import styles from "./builder.module.css";
+import builderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -56,6 +57,7 @@ export function ExerciseRow({
   reorderPending?: boolean;
   onMove?: (direction: "up" | "down") => void;
 }) {
+  const styles = useSkinStyles("builder", builderModule);
   const [editing, setEditing] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState(updateExerciseEntryAction, initialState);
   const [removeState, removeAction, removePending] = useActionState(removeExerciseEntryAction, initialState);
@@ -177,7 +179,7 @@ export function ExerciseRow({
           <input type="hidden" name="day_id" value={dayId} readOnly />
           <input type="hidden" name="plan_id" value={planId} readOnly />
           <input type="hidden" name="entry_id" value={entry.entry_id} readOnly />
-          <button type="submit" className={styles.iconBtn} disabled={removePending} aria-label="Odstrániť cvik">
+          <button type="submit" className={`${styles.iconBtn} btn-danger`} disabled={removePending} aria-label="Odstrániť cvik">
             <TrashIcon />
           </button>
         </form>

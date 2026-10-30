@@ -10,8 +10,9 @@ import { MealPublishActions } from "./MealPlanControls";
 import type { LibraryFood } from "./FoodLibraryItem";
 import { saveMealPlanDaysAction, type MealEntry } from "../actions";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
-import styles from "./builder.module.css";
-import dashStyles from "../../../dashboard.module.css";
+import mealBuilderModule from "./builder.module.css";
+import dashboardModule from "../../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 interface Day {
   /** "new-…" = deň pridaný lokálne, v DB ešte nie je */
@@ -48,6 +49,8 @@ export function MealPlanBuilder({
   days: Day[];
   library: LibraryFood[];
 }) {
+  const dashStyles = useSkinStyles("dashboard", dashboardModule);
+  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const [saved, setSaved] = useState(days);
   const [draft, setDraft] = useState(days);
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);

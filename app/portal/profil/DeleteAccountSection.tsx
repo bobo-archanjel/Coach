@@ -65,7 +65,7 @@ export function DeleteAccountSection({
             30 dní (dá sa zrušiť), potom sa natrvalo odstránia.
           </p>
           <div className={styles.dzActions}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={request} disabled={pending}>
+            <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={request} disabled={pending}>
               Áno, zmazať
             </button>
             <button
@@ -79,7 +79,7 @@ export function DeleteAccountSection({
           </div>
         </>
       ) : (
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
+        <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
           Požiadať o zmazanie mojich dát
         </button>
       )}

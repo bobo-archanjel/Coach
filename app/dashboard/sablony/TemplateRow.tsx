@@ -10,7 +10,8 @@ import {
 } from "./actions";
 import { PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
 import { pluralSk } from "@/lib/portal/streak";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -34,6 +35,7 @@ export function TemplateRow({
   goal: string | null;
   clients: { id: string; full_name: string }[];
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const applyAction = kind === "workout" ? applyWorkoutTemplateAction : applyMealTemplateAction;
   const [state, formAction, applyPending] = useActionState(applyAction, initialState);
   const [deletePending, startDelete] = useTransition();
@@ -59,7 +61,7 @@ export function TemplateRow({
         <div className={styles.templateHeadActions}>
           {confirmingDelete ? (
             <>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={handleDelete} disabled={deletePending}>
+              <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={handleDelete} disabled={deletePending}>
                 {deletePending ? "Mažem…" : "Naozaj zmazať"}
               </button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(false)} disabled={deletePending}>
@@ -67,7 +69,7 @@ export function TemplateRow({
               </button>
             </>
           ) : (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(true)}>
+            <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirmingDelete(true)}>
               Zmazať
             </button>
           )}

@@ -1,4 +1,5 @@
-import styles from "./builder.module.css";
+import mealBuilderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 /**
  * B / S / T ako výrazné čipy (farebná bodka + tučné gramy) — predtým drobný sivý text
@@ -17,6 +18,8 @@ export function MacroChips({
   /** "lg" = súčet za deň nad zoznamom */
   size?: "md" | "lg";
 }) {
+  // používa sa len v klientskych komponentoch buildera jedálnička — hook, nie serverový helper
+  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const items = [
     { key: "protein", letter: "B", title: "Bielkoviny", value: proteinG },
     { key: "carbs", letter: "S", title: "Sacharidy", value: carbsG },

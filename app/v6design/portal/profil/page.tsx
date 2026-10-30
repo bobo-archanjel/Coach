@@ -4,8 +4,8 @@ import { SignOutButton } from "@/app/components/SignOutButton";
 import { DeleteAccountSection } from "@/app/portal/profil/DeleteAccountSection";
 import { TrainerConnection } from "@/app/portal/profil/TrainerConnection";
 import { loadProfilView } from "@/app/portal/profil/profilView";
-import { ThemeSwitch } from "../ThemeSwitch";
-import { V6_THEME_COOKIE, parseV6Theme } from "../theme";
+import { ThemeSwitch } from "../../ThemeSwitch";
+import { V6_THEME_COOKIE, parseV6Theme } from "../../theme";
 import s from "../styles/portal.module.css";
 
 /* /v6design/portal/profil — tie isté údaje (loadProfilView) a akcie ako /portal/profil

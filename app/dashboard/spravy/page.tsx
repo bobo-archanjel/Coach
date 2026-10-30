@@ -4,7 +4,7 @@ import { ChatThread } from "@/app/components/ChatThread";
 import { sendTrainerMessageAction, markTrainerChatSeenAction } from "../klienti/actions";
 import { SpravyView } from "./SpravyView";
 import { ThreadSwipeBack } from "./ThreadSwipeBack";
-import styles from "../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 /* /dashboard/spravy — centrálna schránka správ (Track "Klient" bod 2, follow-up
    z ROADMAP.md). Predtým sa dalo písať len z detailu konkrétneho klienta
@@ -42,6 +42,7 @@ export default async function SpravyPage({
 }: {
   searchParams: Promise<{ client?: string }>;
 }) {
+  const styles = await dashStyles();
   const { client: selectedClientId } = await searchParams;
   const {
     data: { user },

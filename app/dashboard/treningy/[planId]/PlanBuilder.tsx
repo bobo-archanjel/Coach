@@ -7,7 +7,8 @@ import { AddDayInline } from "./AddDayInline";
 import { DeleteDayControl } from "./DeleteDayControl";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
-import styles from "./builder.module.css";
+import builderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 interface Day {
   id: string;
@@ -28,6 +29,7 @@ export function PlanBuilder({
   /** dni, z ktorých klient už odcvičil tréning (plan_snapshot.day_id, 0048) */
   completedDayIds?: string[];
 }) {
+  const styles = useSkinStyles("builder", builderModule);
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
 
   // Lokálna kópia dní kvôli optimistickému presunu poradia cvikov — po revalidácii

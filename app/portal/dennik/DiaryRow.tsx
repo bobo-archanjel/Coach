@@ -102,7 +102,7 @@ export function DiaryRow({
       <span className={styles.diaryKcalCell}>{entry.kcal} kcal</span>
       {mode === "confirmRemove" ? (
         <span style={{ display: "flex", gap: 6 }}>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => onRemove(entry.id)}>
+          <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => onRemove(entry.id)}>
             Odobrať
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("view")}>
@@ -125,7 +125,7 @@ export function DiaryRow({
           </button>
           <button
             type="button"
-            className={styles.removeBtn}
+            className={`${styles.removeBtn} btn-danger`}
             disabled={pendingRow}
             onClick={() => setMode("confirmRemove")}
             aria-label={`Odobrať ${entry.name}`}

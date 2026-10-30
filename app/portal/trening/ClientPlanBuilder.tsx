@@ -347,7 +347,7 @@ export function ClientPlanBuilder({
                     Naozaj zmazať deň „{activeDay.name}“{exercisesLabel(activeDay.exercises.length)}?
                   </p>
                   <div className={b.deleteDayActions}>
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => removeDay(activeDay.key)}>
+                    <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
                       Áno, zmazať deň
                     </button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
@@ -420,7 +420,7 @@ export function ClientPlanBuilder({
                         </button>
                         <button
                           type="button"
-                          className={b.iconBtn}
+                          className={`${b.iconBtn} btn-danger`}
                           onClick={() => removeExercise(activeDay.key, ex.key)}
                           aria-label="Odstrániť cvik"
                         >

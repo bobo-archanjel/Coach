@@ -2,11 +2,13 @@
 
 import { useActionState } from "react";
 import { createPlanAction, type ActionState } from "./actions";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
 export function CreatePlanForm({ clients }: { clients: { id: string; full_name: string }[] }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(createPlanAction, initialState);
 
   if (clients.length === 0) {

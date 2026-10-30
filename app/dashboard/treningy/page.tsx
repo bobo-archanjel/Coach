@@ -6,9 +6,10 @@ import { CreatePlanForm } from "./CreatePlanForm";
 import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
 import { ExerciseLibraryList } from "./ExerciseLibraryList";
-import styles from "../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 export default async function TreningyPage() {
+  const styles = await dashStyles();
   const supabase = await createClient();
   const {
     data: { user },

@@ -18,19 +18,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { applyDismissals, attentionTotal, buildAttentionItems, type AttentionData } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction, markAllMessagesReadAction } from "./attention/actions";
-import styles from "./dashboard.module.css";
+import dashboardModule from "./dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
-const BellIcon = () => (
-  <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2h-15L6 16.5ZM10 20.5a2 2 0 0 0 4 0"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+function BellIcon() {
+  const styles = useSkinStyles("dashboard", dashboardModule);
+  return (
+    <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2h-15L6 16.5ZM10 20.5a2 2 0 0 0 4 0"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 const POLL_MS = 5 * 60_000;
 const REALTIME_DEBOUNCE_MS = 1_500;
@@ -39,6 +43,7 @@ const REALTIME_DEBOUNCE_MS = 1_500;
 let channelSeq = 0;
 
 export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const pathname = usePathname();
   const [data, setData] = useState<AttentionData | null>(null);
   const [failed, setFailed] = useState(false);

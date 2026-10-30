@@ -500,3 +500,19 @@
   color: var(--error);
   margin: 0;
 }
+
+/* mazanie — červená (tokeny --danger v tokens.module.css), odlíšená od terakoty */
+.deleteDayTab,
+.deleteDayTab:hover {
+  color: var(--danger);
+}
+.deleteDayTab:hover {
+  background: var(--danger-soft);
+}
+.iconBtn:global(.btn-danger) {
+  color: var(--danger);
+}
+.iconBtn:global(.btn-danger):hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+}

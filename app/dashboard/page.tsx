@@ -9,7 +9,7 @@ import { getActiveDismissals } from "@/lib/dashboard/dismissals";
 import { digestDismissKey, lateDismissKey, ONBOARDING_DISMISS_KEY } from "@/lib/dashboard/attention";
 import { DismissibleNotice, LateAlertPanel } from "./DashboardNotices";
 import { pluralSk } from "@/lib/portal/streak";
-import styles from "./dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 /** Grace period pred hard delete (0018_client_deletion.sql, pg_cron `purge_deleted_clients`). */
 const DELETION_GRACE_DAYS = 30;
@@ -64,6 +64,7 @@ const DELETION_PREVIEW = [
 ];
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+  const styles = await dashStyles();
   const { preview } = await searchParams;
 
   // DEV náhľad formulára "Pridať klienta" bez session (feature/registracia-update).
