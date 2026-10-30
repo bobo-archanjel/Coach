@@ -2,6 +2,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AddAppointmentForm } from "./AddAppointmentForm";
 import { AppointmentRow } from "./AppointmentRow";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../dashboard.module.css";
 
 interface AppointmentRow_ {
@@ -79,8 +80,12 @@ export default async function KalendarPage() {
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Kalendár</h1>
-        <p>Voľné termíny s klientmi — konzultácie, tréningy alebo čokoľvek mimo bežného tréningového plánu.</p>
+        <h1>
+          Kalendár{" "}
+          <InfoTip title="Kalendár">
+            Voľné termíny s klientmi — konzultácie, tréningy alebo čokoľvek mimo bežného tréningového plánu.
+          </InfoTip>
+        </h1>
       </div>
 
       <div className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginBottom: 20 }}>

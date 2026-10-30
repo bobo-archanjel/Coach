@@ -17,6 +17,7 @@ import {
 import dashboardStyles from "../../../../dashboard.module.css";
 import styles from "./completed.module.css";
 import { DuplicateWorkoutButton } from "./DuplicateWorkoutButton";
+import { InfoTip } from "@/app/components/InfoTip";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -171,13 +172,21 @@ export default async function CompletedWorkoutPage({
             {view.snapshot?.planName && <> · {view.snapshot.planName}</>}
           </p>
         </div>
-        <span className={completed ? styles.doneBadge : styles.progressBadge} data-testid="workout-status">
-          {completed ? (
-            <>
-              <LockIcon /> Dokončený – {dateLabel}
-            </>
-          ) : (
-            "Prebieha"
+        <span className={styles.headStatus}>
+          <span className={completed ? styles.doneBadge : styles.progressBadge} data-testid="workout-status">
+            {completed ? (
+              <>
+                <LockIcon /> Dokončený – {dateLabel}
+              </>
+            ) : (
+              "Prebieha"
+            )}
+          </span>
+          {completed && (
+            <InfoTip title="Záznam tréningu">
+              Toto je záznam toho, čo klient odcvičil — ty ho upraviť ani zmazať nemôžeš (klient môže opraviť zabudnuté
+              hodnoty 24 hodín po ukončení). Ak chceš tréning zopakovať alebo zmeniť, vytvor si z neho novú kópiu.
+            </InfoTip>
           )}
         </span>
       </div>
@@ -189,13 +198,6 @@ export default async function CompletedWorkoutPage({
             new Date(view.editedAt),
           )}
           .
-        </p>
-      )}
-
-      {completed && (
-        <p className={styles.readonlyNote}>
-          Toto je záznam toho, čo klient odcvičil — ty ho upraviť ani zmazať nemôžeš (klient môže opraviť
-          zabudnuté hodnoty 24 hodín po ukončení). Ak chceš tréning zopakovať alebo zmeniť, vytvor si z neho novú kópiu.
         </p>
       )}
 

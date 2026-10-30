@@ -49,9 +49,48 @@ export async function saveWorkoutPlanAsTemplate(
   if (daysErr) return { error: dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: "Plán nemá žiadne dni na uloženie do šablóny." };
 
+  return insertPlanTemplate(supabase, trainerId, cleanName(templateName, plan.name), isPlanGoal(goal) ? goal : null, days);
+}
+
+/**
+ * Vlastný tréning klienta (workout_plans.trainer_id IS NULL) ako šablóna klienta.
+ * Rovnaké tabuľky ako trénerove: plan_templates.trainer_id je v skutočnosti vlastník
+ * (RLS trainer_id = auth.uid(), bez kontroly roly) — šablóny klienta vidí len klient,
+ * tréner nie (ani naopak), migrácia netreba. Šablóna dostane názov tréningu.
+ */
+export async function saveOwnPlanAsTemplate(
+  supabase: SupabaseClient,
+  ownerId: string,
+  clientId: string,
+  planId: string,
+): Promise<TemplateResult> {
+  const [{ data: plan }, { data: days, error: daysErr }] = await Promise.all([
+    supabase
+      .from("workout_plans")
+      .select("id, name")
+      .eq("id", planId)
+      .eq("client_id", clientId)
+      .is("trainer_id", null)
+      .maybeSingle(),
+    supabase.from("workout_days").select("day_number, name, exercises").eq("plan_id", planId).order("day_number"),
+  ]);
+  if (!plan) return { error: "Šablónu sa dá uložiť len z tvojho vlastného tréningu." };
+  if (daysErr) return { error: dbErr(daysErr, "templates") };
+  if (!days || days.length === 0) return { error: "Tréning nemá žiadne dni na uloženie do šablóny." };
+
+  return insertPlanTemplate(supabase, ownerId, cleanName(plan.name, "Šablóna"), null, days);
+}
+
+async function insertPlanTemplate(
+  supabase: SupabaseClient,
+  ownerId: string,
+  name: string,
+  goal: string | null,
+  days: { day_number: number; name: string; exercises: unknown }[],
+): Promise<TemplateResult> {
   const { data: template, error: templateErr } = await supabase
     .from("plan_templates")
-    .insert({ trainer_id: trainerId, name: cleanName(templateName, plan.name), goal: isPlanGoal(goal) ? goal : null })
+    .insert({ trainer_id: ownerId, name, goal })
     .select("id")
     .single();
   if (templateErr || !template) return { error: templateErr?.message ?? "Šablónu sa nepodarilo vytvoriť." };

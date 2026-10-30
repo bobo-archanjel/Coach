@@ -41,6 +41,7 @@ import type {
   PortalNutritionResult,
   PortalPlan,
   PortalResult,
+  PortalTemplate,
   PortalTrainingDay,
   PortalTrainingResult,
   StreakDayState,
@@ -659,7 +660,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
 
     if (!client) {
-      return { state: "ok", data: { plans: [], activePlanId: null } };
+      return { state: "ok", data: { plans: [], activePlanId: null, templates: [] } };
     }
 
     // published: false = trénerov koncept (0021) — v klientovom zozname sa nezobrazí,
@@ -669,16 +670,36 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     // round-tripmi za sebou) — `workout_days` má na workout_plans jedinú FK (plan_id),
     // embed je jednoznačný (rovnako ho používa /dashboard/klienti/[id]); logy sú cez
     // RLS len tohto klienta.
-    const { data: planRows, error: planErr } = await supabase
-      .from("workout_plans")
-      .select(
-        "id, name, trainer_id, created_at, workout_days(id, plan_id, name, exercises, day_number, workout_logs(id, workout_day_id, performed_on, completed_at, entries, rpe, note))",
-      )
-      .eq("client_id", client.id)
-      .eq("published", true)
-      .order("created_at", { ascending: false })
-      .order("day_number", { referencedTable: "workout_days", ascending: true });
+    // Šablóny klienta (z vlastných tréningov) naraz s plánmi. plan_templates.trainer_id
+    // je v skutočnosti vlastník (RLS trainer_id = auth.uid()), tu = prihlásený klient.
+    const [{ data: planRows, error: planErr }, { data: tplRows, error: tplErr }] = await Promise.all([
+      supabase
+        .from("workout_plans")
+        .select(
+          "id, name, trainer_id, created_at, workout_days(id, plan_id, name, exercises, day_number, workout_logs(id, workout_day_id, performed_on, completed_at, entries, rpe, note))",
+        )
+        .eq("client_id", client.id)
+        .eq("published", true)
+        .order("created_at", { ascending: false })
+        .order("day_number", { referencedTable: "workout_days", ascending: true }),
+      supabase
+        .from("plan_templates")
+        .select("id, name, plan_template_days(day_number, name, exercises)")
+        .eq("trainer_id", user.id)
+        .order("created_at", { ascending: false })
+        .order("day_number", { referencedTable: "plan_template_days", ascending: true }),
+    ]);
     if (planErr) return { state: "error", message: dbErr(planErr, "data") };
+    // Šablóny sú doplnok — ich chyba nezhodí celú sekciu Tréning, len sa nezobrazia.
+    if (tplErr) console.error("getPortalTraining templates:", tplErr.message);
+    const templates: PortalTemplate[] = (tplRows ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      days: ((t.plan_template_days ?? []) as { name: string; exercises: unknown }[]).map((d) => ({
+        name: d.name,
+        exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
+      })),
+    }));
 
     const planList = planRows ?? [];
     const newestId = planList.length > 0 ? planList[0].id : null;
@@ -747,7 +768,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       }));
     }
 
-    return { state: "ok", data: { plans, activePlanId } };
+    return { state: "ok", data: { plans, activePlanId, templates } };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
   }

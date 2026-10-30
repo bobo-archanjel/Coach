@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { DualLineChart, type DualLineChartPoint } from "../../DualLineChart";
 import type { StrengthPoint } from "@/lib/dashboard/bodyMetrics";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../../dashboard.module.css";
 
 const UpIcon = () => (
@@ -56,7 +57,15 @@ export function StrengthCard({
 
   return (
     <div>
-      <h4 className={styles.cardSubhead}>Sila</h4>
+      <h4 className={styles.cardSubhead}>
+        Sila
+        {exerciseNames.length > 0 && (
+          <>
+            {" "}
+            <InfoTip title="Graf sily">Najťažšia séria pri každom zázname tréningu s týmto cvikom.</InfoTip>
+          </>
+        )}
+      </h4>
       {exerciseNames.length > 0 ? (
         <>
           <select
@@ -93,7 +102,6 @@ export function StrengthCard({
             seriesA={{ label: "Váha", unit: "kg", color: "var(--plate-yellow)" }}
             seriesB={{ label: "Opakovania", unit: "op.", color: "var(--moss)" }}
           />
-          <p className={styles.chartHint}>Najťažšia séria pri každom zázname tréningu s týmto cvikom.</p>
         </>
       ) : (
         <p className={styles.noWorkouts}>

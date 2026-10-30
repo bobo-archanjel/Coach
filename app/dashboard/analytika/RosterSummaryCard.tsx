@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { generateRosterSummaryAction } from "./actions";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../dashboard.module.css";
 
 /**
@@ -32,13 +33,15 @@ export function RosterSummaryCard({ previewSummary }: { previewSummary?: string 
 
   return (
     <div className={styles.card} style={{ marginBottom: 20 }}>
-      <h3>AI zhrnutie portfólia</h3>
-      <p className={styles.adherenceHint} style={{ marginTop: -4 }}>
-        Krátky týždenný prehľad — na koho sa tento týždeň zamerať a prečo. Appka spočíta čísla, AI ich len sformuluje.
-      </p>
+      <h3>
+        AI zhrnutie portfólia{" "}
+        <InfoTip title="AI zhrnutie portfólia">
+          Krátky týždenný prehľad — na koho sa tento týždeň zamerať a prečo. Appka spočíta čísla, AI ich len sformuluje.
+        </InfoTip>
+      </h3>
 
       {!previewSummary && (
-        <button type="button" onClick={run} className="btn btn-ghost btn-sm" disabled={pending} style={{ marginTop: 10 }}>
+        <button type="button" onClick={run} className="btn btn-ghost btn-sm" disabled={pending}>
           {pending ? "Generujem…" : "Zhrnúť týždeň"}
         </button>
       )}

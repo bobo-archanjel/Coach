@@ -8,6 +8,7 @@ import { pluralSk } from "@/lib/portal/streak";
 import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { RosterSummaryCard } from "./RosterSummaryCard";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../dashboard.module.css";
 
 /** Prehľad naprieč klientmi — Progres a analýza (feature/progress-analyst), rozšírené feature/analytika-v2. */
@@ -143,7 +144,16 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Analytika</h1>
+        <h1>
+          Analytika{" "}
+          {rows.length > 0 && (
+            <InfoTip title="Ako čítať percentá">
+              % = podiel dní za posledných 30 dní, kedy bol klient „v poriadku“ (strava 85–115&nbsp;% cieľa, tréning =
+              odcvičil aspoň jeden deň). „Plán“ = nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom
+              z tréningového plánu. Klient bez makro cieľa nemá stravu s čím porovnať.
+            </InfoTip>
+          )}
+        </h1>
         <p>
           {activeClients.length === 0
             ? "Zatiaľ nemáš klientov na analýzu."
@@ -222,12 +232,6 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
           <p>Pridaj klientov a nechaj ich zbierať dáta (tréningy, strava, merania).</p>
         </div>
       )}
-
-      <p className={styles.chartHint} style={{ marginTop: 20 }}>
-        % = podiel dní za posledných 30 dní, kedy bol klient „v poriadku“ (strava 85–115&nbsp;% cieľa, tréning = odcvičil
-        aspoň jeden deň). „Plán“ = nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom z tréningového plánu.
-        Klient bez makro cieľa nemá stravu s čím porovnať.
-      </p>
     </>
   );
 }
@@ -269,7 +273,12 @@ async function AiInsightsPanel({ data }: { data: Promise<AiTopicInsight[] | null
   if (!aiInsights || aiInsights.length === 0) return null;
   return (
     <div className={styles.aiInsightsPanel}>
-      <p className={styles.aiInsightsPanelTitle}>AI Kouč · skoré signály · {"posledných 7 dní"}</p>
+      <p className={styles.aiInsightsPanelTitle}>
+        AI Kouč · skoré signály · {"posledných 7 dní"}{" "}
+        <InfoTip title="AI Kouč · skoré signály">
+          Agregované naprieč aspoň 3 klientmi, bez prístupu appky k obsahu konverzácie — AI Kouč zostáva súkromný chat.
+        </InfoTip>
+      </p>
       <ul className={styles.aiInsightsList}>
         {aiInsights.map((i) => (
           <li key={i.topic}>
@@ -281,9 +290,6 @@ async function AiInsightsPanel({ data }: { data: Promise<AiTopicInsight[] | null
           </li>
         ))}
       </ul>
-      <p className={styles.aiInsightsHint}>
-        Agregované naprieč aspoň 3 klientmi, bez prístupu appky k obsahu konverzácie — AI Kouč zostáva súkromný chat.
-      </p>
     </div>
   );
 }

@@ -2979,6 +2979,98 @@
   padding: 0 2px;
 }
 
+/* "Uložiť ako šablónu" — potvrdenie/chyba na vlastnom riadku pod tlačidlami tréningu. */
+.trTplNote {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+}
+.trTplNoteError {
+  color: var(--error);
+}
+
+/* Moje šablóny (z vlastných tréningov) — zbaliteľná karta nad tréningami. Zbalená
+   je len jeden riadok (štítok + počet + šípka), rozbalená pod ním riadky šablón:
+   názov + počty vľavo, Použiť / Zmazať vpravo (na úzkom pod tým). */
+.trTplBox {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+}
+.trTplToggle {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 15px;
+  background: transparent;
+  border: 0;
+  color: var(--paper);
+  text-align: left;
+  cursor: pointer;
+}
+.trTplToggleLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.trTplCount {
+  margin-right: auto;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-dim);
+}
+.trTplList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--steel-line);
+}
+.trTpl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 12px 15px;
+}
+.trTpl + .trTpl {
+  border-top: 1px solid var(--steel-line);
+}
+.trTplText {
+  flex: 1 1 150px;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.trTplName {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.trTplMeta {
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+.trTplActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ---------- builder ---------- */
 .trBuilderTop {
   display: flex;
@@ -3039,262 +3131,24 @@
   outline-offset: 2px;
 }
 
-.trDayTabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.trDayTab {
-  padding: 8px 13px;
-  border-radius: 999px;
-  border: 1px solid var(--steel-line);
-  background: var(--ink-3);
-  color: var(--paper-dim);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease,
-    background 0.15s ease;
-}
-.trDayTab:hover {
-  color: var(--paper);
-}
-.trDayTabOn {
-  background: color-mix(in srgb, var(--iron-red) 16%, var(--ink-3));
-  border-color: var(--iron-red);
-  color: var(--paper);
-}
-.trAddDayTab {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 13px;
-  border-radius: 999px;
-  border: 1px dashed var(--steel-line);
-  background: transparent;
-  color: var(--paper-faint);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.trAddDayTab:hover {
-  color: var(--paper);
-  border-color: var(--paper-dim);
-}
-
-.trBuilderPanel {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  padding: 14px;
-}
-.trDayNameRow {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.trDayNameInput {
-  flex: 1;
-  min-width: 0;
-  padding: 9px 11px;
-  font-size: 16px; /* ≥16px: iOS nezoomuje */
-  font-weight: 700;
-  background: var(--ink);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  color: var(--paper);
-}
-.trDayNameInput:focus-visible {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
-}
-
-.trExList {
-  list-style: none;
-  margin: 0 0 12px;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-.trExItem {
-  background: var(--ink);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  padding: 10px 11px;
-}
-.trExHead {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.trExName {
-  flex: 1;
-  min-width: 0;
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.trExHeadBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-.trExMeta {
-  font-size: 11.5px;
-  color: var(--paper-faint);
-  margin-top: 6px;
-  padding-left: 37px;
-  font-variant-numeric: tabular-nums;
-}
-.trIconBtn {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 4px 8px;
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--paper-dim);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-.trIconBtn:hover {
-  color: var(--paper);
-  border-color: var(--paper-dim);
-}
-
-.trExEdit {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 10px;
-}
-.trField {
-  display: grid;
-  gap: 4px;
-}
-.trField span {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--paper-faint);
-}
-.trField input {
-  width: 100%;
-  padding: 9px 10px;
-  font-size: 16px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  color: var(--paper);
-  font-variant-numeric: tabular-nums;
-}
-.trField input:focus-visible {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
-}
-.trField:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
-}
-
-.trAddExBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-radius: var(--radius-s);
-  border: 1px dashed var(--steel-line);
-  background: transparent;
-  color: var(--paper-dim);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.trAddExBtn:hover {
-  color: var(--paper);
-  border-color: var(--paper-dim);
-}
-
-.trPicker {
-  display: grid;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 12px;
-  background: var(--ink);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-}
-.trPickerSearch {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 16px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  color: var(--paper);
-}
-.trPickerSearch:focus-visible {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
-}
-.trPickerList {
-  display: grid;
-  gap: 4px;
-  max-height: 240px;
-  overflow-y: auto;
-}
-.trPickerItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 11px;
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  background: var(--ink-2);
-  color: var(--paper);
-  font-size: 13.5px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-}
-.trPickerItem:hover {
-  border-color: var(--paper-dim);
-  background: var(--ink-3);
-}
-.trPickerItemLabel {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.trPickerMuscle {
-  font-size: 11px;
-  color: var(--paper-faint);
-  flex: none;
-}
-.trPickerCustom {
-  color: var(--iron-red);
-  border-color: color-mix(in srgb, var(--iron-red) 40%, transparent);
-  font-weight: 700;
+/* Dni, cviky a knižnica používajú trénerov builder.module.css (rovnaký vzhľad).
+   Ten prepína na 2 stĺpce (knižnica | plátno) od 761px, ale portálový stĺpec má
+   do 879px len 460px — v tom pásme (iPad na výšku) ostane jeden stĺpec ako na
+   mobile: plátno prvé, knižnica pod ním, bez sticky. Zdvojená trieda kvôli
+   poradiu CSS chunkov (rovnaká špecificita ako .builderGrid by mohla prehrať). */
+@media (min-width: 761px) and (max-width: 879px) {
+  .trBuilderGrid.trBuilderGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trBuilderCanvas.trBuilderCanvas {
+    order: 1;
+  }
+  .trBuilderLib.trBuilderLib {
+    order: 2;
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 /* ---------- loading skeleton (Next.js loading.tsx pre /portal/*) ---------- */

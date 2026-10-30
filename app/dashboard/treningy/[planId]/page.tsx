@@ -10,6 +10,7 @@ import type { WorkoutExerciseEntry } from "../actions";
 import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
+import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -141,7 +142,24 @@ export default async function PlanDetailPage({
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
         </div>
-        {locked ? <span className={styles.planDoneBadge}>Hotovo</span> : <PublishBadge published={plan.published} />}
+        {/* Vysvetlenie stavu plánu na požiadanie (otáznik vedľa odznaku), nie odsek pod hlavičkou. */}
+        <div className={styles.detailHeadStatus}>
+          {locked ? <span className={styles.planDoneBadge}>Hotovo</span> : <PublishBadge published={plan.published} />}
+          {locked ? (
+            <InfoTip title="Plán je uzamknutý">
+              Klient tento plán celý odcvičil — plán je uzamknutý. Dole si ho môžeš stiahnuť ako PDF alebo uložiť ako
+              šablónu a z nej vytvoriť nový.
+            </InfoTip>
+          ) : (
+            completedLogs &&
+            completedLogs.length > 0 && (
+              <InfoTip title="Úpravy plánu">
+                Klient už z tohto plánu cvičil. Úpravy sa prejavia len v ďalších tréningoch — odcvičené tréningy ostávajú
+                uložené presne tak, ako ich klient zapísal.
+              </InfoTip>
+            )
+          )}
+        </div>
       </div>
 
       {/* Publikovanie aj šablóna v rovnakej 2-stĺpcovej mriežke pod sebou — súmerné tlačidlá.
@@ -151,17 +169,6 @@ export default async function PlanDetailPage({
           <PublishActions planId={planId} published={plan.published} />
           <WorkoutTemplateTop planId={planId} defaultName={plan.name} />
         </div>
-      )}
-
-      {locked ? (
-        <p className={styles.planLockedHint}>
-          Klient tento plán celý odcvičil — plán je uzamknutý. Dole si ho môžeš stiahnuť ako PDF alebo uložiť ako šablónu a z nej vytvoriť nový.
-        </p>
-      ) : completedLogs && completedLogs.length > 0 && (
-        <p className={styles.planLockedHint}>
-          Klient už z tohto plánu cvičil. Úpravy sa prejavia len v ďalších tréningoch — odcvičené tréningy ostávajú
-          uložené presne tak, ako ich klient zapísal.
-        </p>
       )}
 
       {/* Hotový plán: prehľad dní/cvikov netreba — rovno odcvičené tréningy nižšie. */}
