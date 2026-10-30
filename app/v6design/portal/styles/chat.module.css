@@ -1,0 +1,440 @@
+/* v6 — vlákno správ (ChatThread) pre /v6design/portal/chat a AI Kouč.
+   Rovnaké názvy tried ako app/components/chat.module.css (useSkinStyles "chat");
+   rozmery, výšky a správanie emoji panela sú prevzaté bez zmeny, mení sa vzhľad:
+   moje správy terakotové, trénerove biele, pole na písanie ako sklenená kapsula.
+   Tokeny prichádzajú z koreňa .v6 (styles/portal.module.css). */
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+.thread.fill {
+  flex: 1;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 2px 12px;
+}
+.scroll::before {
+  content: "";
+  margin-top: auto;
+}
+.scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 18px;
+}
+.scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--fill-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 8px;
+}
+.group {
+  display: contents;
+}
+.embedded .scroll {
+  flex: none;
+  height: 360px;
+}
+@media (max-width: 860px) {
+  .embedded.fill .scroll {
+    flex: 1;
+    height: auto;
+  }
+}
+
+.daySep {
+  align-self: center;
+  margin: 12px 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+  background: var(--fill);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+}
+.row.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.row.theirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.row + .row {
+  margin-top: 3px;
+}
+.row.turn {
+  margin-top: 14px;
+}
+
+.bubble {
+  padding: 10px 15px;
+  border-radius: 22px;
+  font-size: 15px;
+  line-height: 1.42;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mine .bubble {
+  background: var(--accent-grad);
+  border: 0;
+  border-bottom-right-radius: 7px;
+  color: var(--on-accent);
+  box-shadow: 0 8px 18px -12px rgba(194, 85, 58, 0.75);
+}
+.theirs .bubble {
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-bottom-left-radius: 7px;
+  color: var(--paper);
+  box-shadow: var(--shadow-1);
+}
+.row.pending .bubble {
+  opacity: 0.55;
+}
+.row .bubble.jumbo {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0 2px;
+  font-size: 40px;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+}
+
+.meta {
+  margin-top: 4px;
+  padding-inline: 4px;
+  font-size: 11px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.systemRow {
+  align-self: center;
+  max-width: 90%;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.systemNote {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+  background: var(--fill);
+  border-radius: 18px;
+  padding: 9px 14px;
+}
+.systemRow .meta {
+  margin-top: 4px;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 30px 20px;
+}
+.emptyTile {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.emptyTile svg {
+  width: 26px;
+  height: 26px;
+}
+.emptyTitle {
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  color: var(--paper);
+}
+.emptyHint {
+  font-size: 13.5px;
+  color: var(--paper-faint);
+  line-height: 1.5;
+  max-width: 34ch;
+}
+
+/* ---------- composer: kapsula s poľom a okrúhlym Odoslať ---------- */
+.composer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 5px;
+  border-radius: 28px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+}
+@media (max-width: 880px) {
+  .composer {
+    scroll-margin-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  max-height: 120px;
+  padding: 10px 6px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  background: transparent;
+  border: 0;
+  border-radius: 18px;
+  color: var(--paper);
+}
+.input::placeholder {
+  color: var(--paper-faint);
+}
+.input:focus-visible {
+  outline: none;
+}
+.send {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+}
+.send:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.send:disabled {
+  background: var(--fill-strong);
+  color: var(--paper-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.send svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- emoji ---------- */
+.composer,
+.composer button {
+  touch-action: manipulation;
+}
+.emojiToggle {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.emojiToggle svg {
+  width: 24px;
+  height: 24px;
+}
+.emojiToggle:hover,
+.emojiToggleOn {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+.emojiToggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.emojiPanel {
+  flex-basis: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px 4px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 2px;
+  animation: emojiIn 0.16s ease-out;
+}
+.emojiTabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding-right: 6px;
+  border-right: 1px solid var(--hairline);
+}
+.emojiTab {
+  flex: none;
+  width: 38px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--paper-faint);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.emojiTab:not(.emojiTabOn) .emojiTabIcon {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+}
+.emojiTabIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+.emojiTabLabel {
+  display: none;
+}
+.emojiTabOn {
+  color: var(--paper);
+  background: var(--fill);
+}
+.emojiTab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.emojiStrip {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+}
+.emojiStrip::-webkit-scrollbar {
+  display: none;
+}
+.emojiBtn {
+  flex: none;
+  width: 42px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  scroll-snap-align: start;
+  padding: 0;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.emojiBtn:active {
+  background: var(--fill);
+  transform: scale(0.9);
+}
+.emojiBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+@media (pointer: fine) {
+  .emojiPanel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .emojiTabs {
+    gap: 6px;
+    padding-right: 0;
+    border-right: none;
+  }
+  .emojiTab {
+    width: auto;
+    height: 32px;
+    padding: 0 12px;
+    border-color: var(--hairline);
+    border-radius: 999px;
+  }
+  .emojiTabIcon {
+    font-size: 16px;
+  }
+  .emojiTabLabel {
+    display: inline;
+  }
+  .emojiStrip {
+    flex: none;
+    width: auto;
+    flex-wrap: wrap;
+    overflow: visible;
+    mask-image: none;
+  }
+  .emojiBtn {
+    width: 38px;
+    height: 38px;
+    font-size: 21px;
+  }
+  .emojiBtn:hover {
+    background: var(--fill);
+  }
+}
+@keyframes emojiIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .emojiPanel {
+    animation: none;
+  }
+}
+
+.error {
+  font-size: 12.5px;
+  color: var(--error);
+  padding: 6px 6px 0;
+}

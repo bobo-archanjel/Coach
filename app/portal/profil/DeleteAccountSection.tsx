@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { cancelOwnDeletionAction, requestOwnDeletionAction } from "../actions";
-import styles from "../portal.module.css";
+import portalStyles from "../portal.module.css";
+import { useSkinStyles } from "../../components/uiSkin";
 
 const GRACE_DAYS = 30;
 
@@ -24,6 +25,7 @@ export function DeleteAccountSection({
   requestedAt: string | null;
   requestedBy: "trainer" | "client" | null;
 }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
 import type { PortalDiaryEntry, PortalFoodOption } from "@/lib/portal/types";
 import { getFoodLibraryAction } from "../actions";
-import styles from "../portal.module.css";
+import portalStyles from "../portal.module.css";
+import { useSkinStyles } from "../../components/uiSkin";
 
 /** Ako dlho čakať po poslednom stlačení klávesy, kým sa spustí online vyhľadávanie
     (Open Food Facts) — nech nevoláme API pri každom písmene. */
@@ -72,6 +73,7 @@ export function AddFoodDiaryEntry({
   pending: boolean;
   error: string | null;
 }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [open, setOpen] = useState(false);
   // Knižnica potravín (~80 riadkov) sa predtým ťahala pri KAŽDOM načítaní denníka,
   // aj keď je tento panel defaultne zbalený — teraz na požiadanie, len keď klient

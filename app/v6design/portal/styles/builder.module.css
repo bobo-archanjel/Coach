@@ -1,0 +1,502 @@
+/* v6 — builder vlastného tréningu (ClientPlanBuilder / ClientExerciseLibrary).
+   Rovnaké názvy tried ako trénerov app/dashboard/treningy/[planId]/builder.module.css
+   (useSkinStyles "builder"). Portál je úzky stĺpec, preto vždy jeden stĺpec:
+   plátno (dni + cviky) hore, knižnica pod ním a dá sa zbaliť na každej šírke.
+   Tokeny (--surface, --accent…) prichádzajú z koreňa .v6 (styles/portal.module.css). */
+
+.builderGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.canvas {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---------- dni ---------- */
+.dayTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dayTab,
+.addDayTab,
+.deleteDayTab {
+  min-height: 42px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.dayTab {
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  color: var(--paper-dim);
+  box-shadow: var(--shadow-1);
+}
+.dayTab:hover {
+  color: var(--paper);
+}
+.dayTabActive,
+.dayTabActive:hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.addDayTab {
+  background: transparent;
+  border: 1.5px dashed var(--fill-strong);
+  color: var(--paper-dim);
+}
+.addDayTab:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+.deleteDayTab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper-faint);
+}
+.deleteDayTab:hover {
+  color: var(--error);
+}
+.deleteDayConfirm {
+  flex-basis: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--error) 9%, var(--surface-solid));
+  border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+}
+.deleteDayQuestion {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--paper);
+}
+.deleteDayActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.addDayForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.addDayInput {
+  flex: 1 1 100%;
+  min-height: 48px;
+  padding: 11px 16px;
+  font-family: inherit;
+  font-size: 16px; /* iOS nezoomuje */
+  font-weight: 650;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--paper);
+  box-shadow: var(--shadow-1);
+}
+
+/* ---------- cviky dňa ---------- */
+.dayPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.exerciseRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 12px 12px 12px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 22px;
+  box-shadow: var(--card-shadow);
+  font-size: 14px;
+}
+.exerciseNameBtn,
+.exerciseNameStatic {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.exerciseNameBtn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.exerciseNameBtn:hover .exerciseName {
+  text-decoration: underline;
+  text-decoration-color: var(--fill-strong);
+  text-underline-offset: 3px;
+}
+.exerciseName {
+  font-weight: 720;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+.exerciseSummary,
+.exerciseMeta {
+  grid-column: 1 / -1;
+  font-variant-numeric: tabular-nums;
+}
+.exerciseSummary {
+  margin-top: 4px;
+  justify-self: start;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 750;
+}
+.exerciseMeta {
+  padding-left: 2px;
+  color: var(--paper-faint);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.rowActions {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: var(--fill);
+  border: 0;
+  border-radius: 50%;
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.iconBtn:hover:not(:disabled) {
+  color: var(--paper);
+  background: var(--fill-strong);
+}
+.iconBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+/* šípky poradia nad sebou, bez podkladu — jemný "nudge" ovládač */
+.reorderBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.reorderBtns .iconBtn {
+  width: 34px;
+  height: 19px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--paper-faint);
+}
+.reorderBtns .iconBtn:hover:not(:disabled) {
+  background: var(--fill);
+}
+.reorderDown svg {
+  transform: rotate(180deg);
+}
+.emptyDay {
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--fill);
+  color: var(--paper-dim);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* úprava cviku */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface-solid);
+  border: 1.5px solid var(--accent);
+  border-radius: 22px;
+  box-shadow: 0 0 0 4px var(--accent-soft), var(--card-shadow);
+}
+.editName {
+  font-size: 15px;
+  font-weight: 750;
+}
+.editGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.editFieldLabel {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.editField input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  background: var(--fill);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 16px; /* iOS nezoomuje */
+  font-weight: 650;
+}
+.editField input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface-solid);
+}
+.editFieldSets,
+.editFieldReps,
+.editFieldLoad,
+.editFieldRest {
+  width: auto;
+}
+.editActions {
+  display: flex;
+  gap: 8px;
+}
+.editActions button {
+  flex: 1;
+  min-height: 46px;
+}
+
+/* ---------- knižnica cvikov ---------- */
+.library {
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 26px;
+  box-shadow: var(--card-shadow);
+}
+.libraryToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.libraryHead {
+  font-size: 15px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+}
+.libraryChevron {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 8px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper-dim);
+  transition: transform 0.2s ease;
+}
+.libraryChevronOpen {
+  transform: rotate(180deg);
+}
+.libraryHint {
+  color: var(--paper-faint);
+  font-size: 13px;
+}
+.libraryBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.libraryBody.collapsed {
+  display: none;
+}
+.customExerciseForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+}
+.customExerciseInput,
+.librarySearch {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 16px;
+  font-family: inherit;
+  font-size: 16px; /* iOS nezoomuje */
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--paper);
+}
+.customExerciseInput::placeholder,
+.librarySearch::placeholder {
+  color: var(--paper-faint);
+}
+.librarySearch:focus,
+.customExerciseInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.libraryList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.libraryItemRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.libraryItemForm {
+  flex: 1;
+  min-width: 0;
+}
+.libraryItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.libraryItem:hover:not(:disabled) {
+  background: var(--fill);
+}
+.libraryItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.libraryItemName {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.libraryItemMuscle {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--paper-faint);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.libraryItemInfo {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.libraryItemInfo:hover {
+  color: var(--paper);
+  background: var(--fill);
+}
+.libraryEmpty {
+  padding: 8px 4px;
+  color: var(--paper-faint);
+  font-size: 13.5px;
+}
+.libraryPager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.libraryPagerBtn {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  color: var(--paper);
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+}
+.libraryPagerBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.libraryPagerPrev {
+  transform: rotate(180deg);
+}
+.libraryPagerLabel {
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-dim);
+}
+
+.formError {
+  font-size: 12.5px;
+  color: var(--error);
+  margin: 0;
+}

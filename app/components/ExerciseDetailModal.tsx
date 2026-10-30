@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { displayExerciseName } from "@/lib/exercises";
-import styles from "./exerciseDetail.module.css";
+import exerciseDetailStyles from "./exerciseDetail.module.css";
+import { useSkinStyles } from "./uiSkin";
 
 const CloseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -39,6 +40,7 @@ export function ExerciseDetailModal({
   fallbackName: string;
   onClose: () => void;
 }) {
+  const styles = useSkinStyles("exerciseDetail", exerciseDetailStyles);
   const [imgIdx, setImgIdx] = useState(0);
 
   useEffect(() => {

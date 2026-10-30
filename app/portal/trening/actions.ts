@@ -322,8 +322,13 @@ export async function deleteOwnTemplateAction(templateId: string): Promise<Actio
  * /portal/trening) a klient až potom spravil router.push → druhý request.
  * Bez getUser(): RPC set_active_plan si prihlásenie overí sám (auth.uid(),
  * 'not_authenticated') — ušetrí sieťový round-trip na Supabase Auth.
+ * `portalBase` = odkiaľ sa volá (dizajnový experiment /v6design/portal má vlastné
+ * URL) — návrat na kartu Dnes v tom istom dizajne. Len známe hodnoty, nie
+ * ľubovoľná adresa z klienta (open redirect).
  */
-export async function setActivePlanAction(planId: string, dayId?: string): Promise<ActionState> {
+const PORTAL_BASES = new Set(["/portal", "/v6design/portal"]);
+
+export async function setActivePlanAction(planId: string, dayId?: string, portalBase?: string): Promise<ActionState> {
   const supabase = await createClient();
 
   const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId, p_day_id: dayId ?? null });
@@ -335,5 +340,5 @@ export async function setActivePlanAction(planId: string, dayId?: string): Promi
   }
 
   revalidatePath("/portal", "layout");
-  redirect("/portal");
+  redirect(portalBase && PORTAL_BASES.has(portalBase) ? portalBase : "/portal");
 }

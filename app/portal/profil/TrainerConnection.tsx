@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { leaveTrainerAction } from "../actions";
-import styles from "../portal.module.css";
+import portalStyles from "../portal.module.css";
+import { useSkinStyles } from "../../components/uiSkin";
 
 const CopyIcon = () => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -38,6 +39,7 @@ export function TrainerConnection({
    * nepodarilo zistiť); šablóny nižšie preto meno vypisujú len keď je k dispozícii. */
   trainerName: string | null;
 }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
