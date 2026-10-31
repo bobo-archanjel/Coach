@@ -24,7 +24,7 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export default async function V6PortalLayout({ children }: { children: React.ReactNode }) {
-  const [{ chatUnread, aiKoucVisible, displayName }, cookieStore] = await Promise.all([loadPortalShell(), cookies()]);
+  const [{ chatUnread, aiKoucVisible, displayName }, cookieStore] = await Promise.all([loadPortalShell("/v6design/prihlasenie"), cookies()]);
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
@@ -42,8 +42,10 @@ export default async function V6PortalLayout({ children }: { children: React.Rea
             </Link>
           </div>
         </header>
-        <main className={s.v6Main}>{children}</main>
-        <V6Nav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} />
+        <V6Nav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} displayName={displayName} />
+        <div className={s.v6Frame}>
+          <main className={s.v6Main}>{children}</main>
+        </div>
       </V6Skin>
     </div>
   );

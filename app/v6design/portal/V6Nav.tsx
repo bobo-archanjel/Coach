@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoMark } from "@/app/components/LogoMark";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "@/app/portal/icons";
 import s from "./styles/portal.module.css";
 
@@ -20,10 +21,20 @@ const NAV_ITEMS = [
 ];
 
 /**
- * Plávajúca sklenená lišta v6 — tie isté položky, podmienky (AI Kouč, bodka
- * neprečítanej správy) a skrývanie pri otvorenej klávesnici ako PortalNav.
+ * Navigácia v6 — tie isté položky, podmienky (AI Kouč, bodka neprečítanej správy)
+ * a skrývanie pri otvorenej klávesnici ako PortalNav. Mobil: plávajúca sklenená
+ * lišta dole. Počítač (od 880px): bočný panel ako trénerov dashboard v6 — logo,
+ * položky pod sebou a klient dole (odkaz na Profil); hlavička sa skryje.
  */
-export function V6Nav({ chatUnread = false, aiKoucVisible = true }: { chatUnread?: boolean; aiKoucVisible?: boolean }) {
+export function V6Nav({
+  chatUnread = false,
+  aiKoucVisible = true,
+  displayName = null,
+}: {
+  chatUnread?: boolean;
+  aiKoucVisible?: boolean;
+  displayName?: string | null;
+}) {
   const pathname = usePathname();
   const items = aiKoucVisible ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== `${BASE}/ai-kouc`);
 
@@ -42,30 +53,45 @@ export function V6Nav({ chatUnread = false, aiKoucVisible = true }: { chatUnread
   }, []);
 
   return (
-    <nav
-      className={`${s.v6Nav} ${keyboardOpen ? s.v6NavHidden : ""}`}
-      aria-label="Klientsky portál"
-      aria-hidden={keyboardOpen || undefined}
-    >
-      {items.map(({ href, label, Icon, match }) => {
-        const active = match(pathname);
-        const showDot = href === `${BASE}/chat` && chatUnread && !active;
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={`${s.v6NavItem} ${active ? s.v6NavItemOn : ""}`}
-            aria-current={active ? "page" : undefined}
-          >
-            <span className={s.v6NavIconWrap}>
-              <Icon className={s.v6NavIcon} />
-              {showDot && <span className={s.v6NavDot} aria-hidden="true" />}
-            </span>
-            {label}
-            {showDot && <span className={s.srOnly}> (nová správa)</span>}
-          </Link>
-        );
-      })}
-    </nav>
+    <aside className={s.v6Side}>
+      <Link href={BASE} className={s.v6SideBrand}>
+        <LogoMark className={s.v6BrandMark} />
+        <span className={s.v6BrandText}>FitPilot</span>
+      </Link>
+      <nav
+        className={`${s.v6Nav} ${keyboardOpen ? s.v6NavHidden : ""}`}
+        aria-label="Klientsky portál"
+        aria-hidden={keyboardOpen || undefined}
+      >
+        {items.map(({ href, label, Icon, match }) => {
+          const active = match(pathname);
+          const showDot = href === `${BASE}/chat` && chatUnread && !active;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`${s.v6NavItem} ${active ? s.v6NavItemOn : ""}`}
+              aria-current={active ? "page" : undefined}
+            >
+              <span className={s.v6NavIconWrap}>
+                <Icon className={s.v6NavIcon} />
+                {showDot && <span className={s.v6NavDot} aria-hidden="true" />}
+              </span>
+              {label}
+              {showDot && <span className={s.srOnly}> (nová správa)</span>}
+            </Link>
+          );
+        })}
+      </nav>
+      <Link
+        href={`${BASE}/profil`}
+        className={`${s.v6SideUser} ${pathname.startsWith(`${BASE}/profil`) ? s.v6SideUserOn : ""}`}
+      >
+        <span className={s.v6SideAvatar} aria-hidden="true">
+          {displayName?.trim().charAt(0).toUpperCase() || "?"}
+        </span>
+        <span className={s.v6SideName}>{displayName?.trim() || "Profil"}</span>
+      </Link>
+    </aside>
   );
 }

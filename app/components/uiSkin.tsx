@@ -20,12 +20,15 @@ export type SkinNamespace =
   | "dashboard"
   | "mealBuilder"
   | "completed"
-  | "infoTip";
+  | "infoTip"
+  | "auth";
 
 type Skin = {
   styles: Partial<Record<SkinNamespace, CssModule>>;
   /** základ ciest portálu pre odkazy v zdieľaných komponentoch */
   portalBase: string;
+  /** vstup do dashboardu po prihlásení trénera (v6: zapne dizajn cez /v6design/dashboard) */
+  dashboardEntry?: string;
 };
 
 const DEFAULT_SKIN: Skin = { styles: {}, portalBase: "/portal" };
@@ -43,4 +46,9 @@ export function useSkinStyles<T extends CssModule>(namespace: SkinNamespace, def
 /** "/portal" alebo "/v6design/portal" — pre odkazy a návraty v zdieľaných komponentoch. */
 export function usePortalBase(): string {
   return useContext(SkinContext).portalBase;
+}
+
+/** "/dashboard" alebo "/v6design/dashboard" — kam ide tréner po prihlásení. */
+export function useDashboardEntry(): string {
+  return useContext(SkinContext).dashboardEntry ?? "/dashboard";
 }

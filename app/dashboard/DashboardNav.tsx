@@ -162,7 +162,7 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
       </nav>
 
       <div className={styles.sidebarFoot}>
-        <SignOutButton />
+        <SignOutButton to={skinned ? "/v6design/prihlasenie" : undefined} />
       </div>
     </aside>
   );

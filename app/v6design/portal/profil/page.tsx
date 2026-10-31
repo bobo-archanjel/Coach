@@ -45,7 +45,7 @@ export default async function V6ProfilPage({ searchParams }: { searchParams: Pro
         <DeleteAccountSection requestedAt={view.deletionRequestedAt} requestedBy={view.deletionRequestedBy} />
 
         <div className={s.signOut}>
-          <SignOutButton />
+          <SignOutButton to="/v6design/prihlasenie" />
         </div>
       </div>
     </>
