@@ -114,11 +114,58 @@ function isJumboEmoji(text: string): boolean {
   return count <= 3;
 }
 
-// Formátovače vytvorené raz na modul, nie pri každej bubline a každom renderi
-// (toLocale*String si ich interne vytvára zakaždým nanovo — pri 300 správach a
+// Formátovač vytvorený raz na modul, nie pri každej bubline a každom renderi
+// (toLocale*String si ho interne vytvára zakaždým nanovo — pri 300 správach a
 // re-renderi zoznamu to bol citeľný lag pri písaní na slabšom telefóne).
-const DAY_FMT = new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long" });
-const TIME_FMT = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" });
+// Popisky dňa a času sa vykreslia na serveri aj v prehliadači a musia vyjsť
+// rovnako (inak React hlási hydration mismatch): pevná zóna appky ako v
+// lib/portal/data.ts (server na Verceli beží v UTC) a z Intl len čísla — slovenský
+// text z Intl sa medzi ICU servera a Safari líši ("utorok 22. septembra" vs.
+// "utorok, 22. septembra"), preto názvy dní a mesiacov z vlastných tabuliek.
+const TZ = "Europe/Bratislava";
+const PARTS_FMT = new Intl.DateTimeFormat("en-US", {
+  timeZone: TZ,
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  weekday: "short",
+  hour: "numeric",
+  minute: "numeric",
+  hourCycle: "h23",
+});
+const WEEKDAY_SK: Record<string, string> = {
+  Mon: "pondelok",
+  Tue: "utorok",
+  Wed: "streda",
+  Thu: "štvrtok",
+  Fri: "piatok",
+  Sat: "sobota",
+  Sun: "nedeľa",
+};
+const MONTH_SK = [
+  "januára", "februára", "marca", "apríla", "mája", "júna",
+  "júla", "augusta", "septembra", "októbra", "novembra", "decembra",
+];
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** dátum a čas v zóne appky; `key` = "YYYY-MM-DD" na porovnanie dní */
+function zoned(date: Date) {
+  const p: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
+  for (const { type, value } of PARTS_FMT.formatToParts(date)) p[type] = value;
+  const year = Number(p.year);
+  const month = Number(p.month);
+  const day = Number(p.day);
+  return {
+    key: `${year}-${pad2(month)}-${pad2(day)}`,
+    year,
+    month,
+    day,
+    weekday: WEEKDAY_SK[p.weekday ?? ""] ?? "",
+    // % 24 — niektoré staršie enginy vrátia o polnoci "24" aj pri h23
+    time: `${pad2(Number(p.hour) % 24)}:${pad2(Number(p.minute))}`,
+  };
+}
+
 let segmenter: Intl.Segmenter | null | undefined;
 function graphemeSegmenter(): Intl.Segmenter | null {
   if (segmenter === undefined) {
@@ -127,18 +174,14 @@ function graphemeSegmenter(): Intl.Segmenter | null {
   return segmenter;
 }
 
-function dayLabel(iso: string, now: Date): string {
-  const d = new Date(iso);
-  const y = new Date(now);
-  y.setDate(y.getDate() - 1);
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (sameDay(d, now)) return "Dnes";
-  if (sameDay(d, y)) return "Včera";
-  return DAY_FMT.format(d);
+function dayLabel(iso: string, todayKey: string, yesterdayKey: string): string {
+  const d = zoned(new Date(iso));
+  if (d.key === todayKey) return "Dnes";
+  if (d.key === yesterdayKey) return "Včera";
+  return `${d.weekday} ${d.day}. ${MONTH_SK[d.month - 1]}`;
 }
 
-const timeOf = (iso: string) => TIME_FMT.format(new Date(iso));
+const timeOf = (iso: string) => zoned(new Date(iso)).time;
 
 /**
  * Návrat na kartu / do appky. `visibilitychange` aj `focus` zvyčajne prídu obe naraz
@@ -185,8 +228,10 @@ const MessageList = memo(function MessageList({
 }) {
   const styles = useSkinStyles("chat", chatStyles);
   const view = useMemo(() => {
-    const now = new Date();
-    const days = rows.map((m) => dayLabel(m.createdAt, now));
+    const today = zoned(new Date());
+    // včerajší kalendárny deň (nie "teraz − 24 h", to by pri zmene času raz za rok minulo)
+    const yesterdayKey = new Date(Date.UTC(today.year, today.month - 1, today.day - 1)).toISOString().slice(0, 10);
+    const days = rows.map((m) => dayLabel(m.createdAt, today.key, yesterdayKey));
     return rows.map((m, i) => {
       const prev = rows[i - 1];
       const next = rows[i + 1];
