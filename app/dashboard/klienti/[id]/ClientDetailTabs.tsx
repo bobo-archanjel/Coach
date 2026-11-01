@@ -10,6 +10,12 @@ const HamburgerIcon = () => (
   </svg>
 );
 
+const ChevronIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <path d="M3 5.5L7 9.5L11 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export interface ClientDetailSection {
   id: string;
   label: string;
@@ -18,7 +24,7 @@ export interface ClientDetailSection {
 
 /**
  * Detail klienta bol jeden dlhý scroll cez všetky karty naraz — neprehľadné pri
- * viacerých sekciách (Info, Analytika, Tréningy, Aktivita). Toto je lokálne
+ * viacerých sekciách (Tréningy, Jedálničky, Analytika, Info). Toto je lokálne
  * menu sekcií SCOPOVANÉ na túto stránku (nie globálna dashboard nav vľavo) —
  * na desktope tenký vertikálny zoznam vedľa obsahu, na mobile hamburger nad
  * obsahom (rovnaký breakpoint 880px ako globálna nav v DashboardNav.tsx).
@@ -45,6 +51,7 @@ export function ClientDetailTabs({ sections }: { sections: ClientDetailSection[]
             type="button"
             className={`${styles.clientSubNavItem} ${s.id === active?.id ? styles.clientSubNavItemActive : ""}`}
             onClick={() => select(s.id)}
+            aria-current={s.id === active?.id ? "true" : undefined}
           >
             {s.label}
           </button>
@@ -60,6 +67,9 @@ export function ClientDetailTabs({ sections }: { sections: ClientDetailSection[]
         >
           <HamburgerIcon />
           {active?.label}
+          <span className={`${styles.clientSubNavChevron} ${mobileOpen ? styles.clientSubNavChevronOpen : ""}`}>
+            <ChevronIcon />
+          </span>
         </button>
         {mobileOpen && (
           <div className={styles.clientSubNavMobileMenu}>

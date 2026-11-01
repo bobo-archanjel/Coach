@@ -2706,3 +2706,159 @@ select.addClientInputSm {
   font-size: 13px;
   font-weight: 600;
 }
+
+/* ---------- detail klienta: jednotné sekcie (Tréningy, Jedálničky, Analytika, Info) ----------
+   Každá sekcia = stĺpec kariet .card (aj na mobile, bez .cardFlatMobile), hlavička karty
+   .sectionHead = nadpis + počet/akcia vpravo. Riadky zoznamov vo vnútri karty sú ľahšie
+   (bez tieňa, menší rádius), aby karta v karte nepôsobila ako dve vrstvy skla. */
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 14px;
+}
+.card .sectionHead h3 {
+  margin: 0;
+}
+.sectionMeta {
+  color: var(--paper-faint);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.sectionLink {
+  color: var(--accent-text);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sectionLink:hover {
+  text-decoration: underline;
+}
+.sectionEmpty {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+.sectionEmpty .noWorkouts {
+  margin: 0;
+}
+.clientDetailContent .card .roster {
+  gap: 8px;
+}
+.clientDetailContent .card .clientCard,
+.clientDetailContent .card .logLinkRow {
+  padding: 12px 14px;
+  border-color: var(--hairline);
+  border-radius: 16px;
+  background: var(--surface-solid);
+  box-shadow: none;
+}
+.clientDetailContent .card .clientCard:hover,
+.clientDetailContent .card .logLinkRow:hover {
+  border-color: var(--surface-border);
+  background: var(--fill-strong);
+}
+/* mobil: stav, kcal a dátum pod názvom — vedľa neho by názov zúžili na pár znakov na riadok */
+@media (max-width: 640px) {
+  .clientDetailContent .card .logLinkRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .clientDetailContent .card .logLinkSide {
+    justify-content: flex-start;
+  }
+}
+/* Info → Spolupráca / Zmazanie klienta: vlastná karta, nadpisy ako ostatné karty */
+.clientDetailContent .card .dangerSection:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+.clientDetailContent .card .dangerSection h3 {
+  font-size: 1.12rem;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+/* Vstupné údaje pre jedálniček — na počítači mriežka buniek ako tabuľka (8 údajov v 4,
+   resp. 2 stĺpcoch, alergie/preferencie cez celý riadok), na mobile 2-stĺpcový zoznam
+   kľúč – hodnota. Čiary medzi bunkami = 1px medzera nad pozadím v farbe čiary. */
+.factTable {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--hairline);
+}
+.factRow {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--surface-solid);
+}
+.factRow:last-child {
+  grid-column: 1 / -1;
+}
+.factRow dt {
+  color: var(--paper-faint);
+  font-size: 11.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.factRow dd {
+  margin: 0;
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.factRow dd.factEmpty {
+  color: var(--paper-faint);
+  font-weight: 500;
+}
+@media (max-width: 1180px) {
+  .factTable {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .factTable {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .factRow {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: baseline;
+    gap: 12px;
+    padding: 11px 14px;
+  }
+  .factRow dt {
+    font-size: 12.5px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .factRow dd {
+    text-align: right;
+  }
+}
+
+/* mobilné menu sekcií klienta — šípka rozbalenia vpravo */
+.clientSubNavChevron {
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  color: var(--paper-faint);
+  transition: transform 0.15s ease;
+}
+.clientSubNavChevronOpen {
+  transform: rotate(180deg);
+}

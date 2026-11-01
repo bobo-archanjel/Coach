@@ -2294,3 +2294,33 @@ select.addClientInputSm {
   line-height: 1.4;
   color: var(--iron-red);
 }
+
+/* Detail klienta — sekcia Jedálničky a hlavičky kariet. Pôvodný dizajn len kostra,
+   vzhľad v app/v6design/dashboard/styles/dashboard.module.css. */
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.sectionMeta,
+.factEmpty {
+  color: var(--paper-faint);
+}
+.sectionEmpty,
+.factTable {
+  display: grid;
+  gap: 10px;
+}
+.factRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.factRow dt {
+  color: var(--paper-faint);
+}
+.factRow dd {
+  margin: 0;
+}

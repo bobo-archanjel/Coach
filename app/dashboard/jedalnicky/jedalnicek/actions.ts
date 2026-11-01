@@ -49,6 +49,7 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
   if (error || !data) return { error: error?.message ?? "Jedálniček sa nepodarilo vytvoriť." };
 
   revalidatePath(`/dashboard/jedalnicky/${clientId}`);
+  revalidatePath(`/dashboard/klienti/${clientId}`);
   redirect(`/dashboard/jedalnicky/jedalnicek/${data.id}`);
 }
 
@@ -78,7 +79,11 @@ export async function publishMealPlanAction(_prevState: ActionState, formData: F
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
   revalidatePath(`/dashboard/jedalnicky/${data.client_id}`);
-  for (const clientId of delivery.delivered) revalidatePath(`/dashboard/jedalnicky/${clientId}`);
+  revalidatePath(`/dashboard/klienti/${data.client_id}`);
+  for (const clientId of delivery.delivered) {
+    revalidatePath(`/dashboard/jedalnicky/${clientId}`);
+    revalidatePath(`/dashboard/klienti/${clientId}`);
+  }
   if (delivery.error) return { error: delivery.error };
   return ok;
 }
@@ -109,6 +114,7 @@ export async function deleteMealPlanAction(planId: string): Promise<ActionState>
   if (error) return { error: dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/jedalnicky/${plan.client_id}`);
+  revalidatePath(`/dashboard/klienti/${plan.client_id}`);
   redirect(`/dashboard/jedalnicky/${plan.client_id}`);
 }
 
@@ -137,6 +143,7 @@ export async function renameMealPlanAction(planId: string, rawName: string): Pro
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
   revalidatePath(`/dashboard/jedalnicky/${data.client_id}`);
+  revalidatePath(`/dashboard/klienti/${data.client_id}`);
   return ok;
 }
 
@@ -257,5 +264,6 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
   revalidatePath(`/dashboard/jedalnicky/${plan.client_id}`);
+  revalidatePath(`/dashboard/klienti/${plan.client_id}`);
   return ok;
 }
