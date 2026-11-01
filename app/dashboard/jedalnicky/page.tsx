@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { CreateMealPlanForm } from "./CreateMealPlanForm";
+import { mealPlanAvgDayKcal } from "@/lib/meals";
+import { pluralSk } from "@/lib/portal/streak";
 import { dashStyles } from "@/app/dashboard/dashSkin";
 
-interface NutritionSummary {
-  calories_target: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-}
-
+/**
+ * Jedálničky trénera — rovnaké rozloženie ako Tréningy: hore „Nový jedálniček“ (aj pre
+ * viacerých klientov), pod ním všetky jedálničky od najnovšieho. Makro cieľ (vstupné
+ * údaje + výsledok) je v detaile klienta, záložka Jedálničky.
+ */
 export default async function JedalnickyPage() {
   const styles = await dashStyles();
   const supabase = await createClient();
@@ -23,45 +24,73 @@ export default async function JedalnickyPage() {
     redirect("/prihlasenie");
   }
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, full_name, nutrition_profiles(calories_target, protein_g, carbs_g, fat_g)")
-    .eq("trainer_id", user.id)
-    .order("full_name");
+  const [{ data: clients }, { data: plans }] = await Promise.all([
+    supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
+    supabase
+      .from("meal_plans")
+      // meal_days(meals) kvôli priemerným kcal na deň (lib/meals.ts)
+      .select("id, name, created_at, published, client_id, clients(full_name), meal_days(meals)")
+      .eq("trainer_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  // Portál ukazuje klientovi jeho najnovší ZVEREJNENÝ jedálniček (zoradené od najnovšieho).
+  const activeByClient = new Map<string, string>();
+  for (const p of plans ?? []) {
+    if (p.published && !activeByClient.has(p.client_id)) activeByClient.set(p.client_id, p.id);
+  }
 
   return (
     <>
       <div className={styles.pageHead}>
         <h1>Jedálničky</h1>
-        <p>Makro cieľ a jedálničky pre každého klienta.</p>
+        <p>Zostav jedálniček klientovi — dni, jedlá a gramáže. Makro cieľ nastavíš v detaile klienta.</p>
       </div>
 
-      {clients && clients.length > 0 ? (
-        <div className={styles.roster}>
-          {clients.map((client) => {
-            // nutrition_profiles.client_id je unique → PostgREST vráti objekt, nie pole
-            // (rovnako ošetrené v treningy/page.tsx).
-            const raw = client.nutrition_profiles as unknown as NutritionSummary | NutritionSummary[] | null;
-            const profile = (Array.isArray(raw) ? raw[0] : raw) ?? null;
+      <div className={styles.card} style={{ marginBottom: 20 }}>
+        <h3>Nový jedálniček</h3>
+        <CreateMealPlanForm clients={clients ?? []} />
+      </div>
+
+      {plans && plans.length > 0 ? (
+        <div className={styles.roster} style={{ marginBottom: 28 }}>
+          {plans.map((plan) => {
+            const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
+            const days = (plan.meal_days as unknown as { meals: unknown }[] | null) ?? [];
+            const kcal = mealPlanAvgDayKcal(days);
             return (
-              <Link key={client.id} href={`/dashboard/jedalnicky/${client.id}`} className={styles.clientCard}>
+              <Link key={plan.id} href={`/dashboard/jedalnicky/jedalnicek/${plan.id}`} className={styles.clientCard}>
                 <div>
-                  <div className={styles.clientName}>{client.full_name}</div>
+                  <div className={styles.clientName}>
+                    {plan.name}
+                    {!plan.published ? (
+                      <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>
+                        Koncept
+                      </span>
+                    ) : (
+                      activeByClient.get(plan.client_id) === plan.id && (
+                        <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`} style={{ marginLeft: 8 }}>
+                          Aktívny
+                        </span>
+                      )
+                    )}
+                  </div>
                   <div className={styles.clientGoal}>
-                    {profile
-                      ? `${profile.protein_g} B · ${profile.carbs_g} S · ${profile.fat_g} T (g)`
-                      : "Makro cieľ zatiaľ nenastavený"}
+                    {clientName}
+                    {kcal != null && ` · ≈ ${kcal} kcal/deň`}
                   </div>
                 </div>
-                <span className={styles.clientSince}>{profile ? `${profile.calories_target} kcal` : "—"}</span>
+                <span className={styles.clientSince}>
+                  {days.length} {pluralSk(days.length, "deň", "dni", "dní")}
+                </span>
               </Link>
             );
           })}
         </div>
       ) : (
-        <div className={styles.emptyState}>
-          <h2>Zatiaľ žiadni klienti</h2>
-          <p>Pridaj klienta na stránke Klienti a potom mu tu nastav makro cieľ a jedálniček.</p>
+        <div className={styles.emptyState} style={{ marginBottom: 28 }}>
+          <h2>Zatiaľ žiadne jedálničky</h2>
+          <p>Vytvor prvý jedálniček vyššie.</p>
         </div>
       )}
     </>

@@ -83,7 +83,6 @@ export async function saveNutritionProfileAction(
     await supabase.from("trainer_private_notes").delete().eq("client_id", clientId).eq("scope", "nutrition");
   }
 
-  revalidatePath(`/dashboard/jedalnicky/${clientId}`);
   revalidatePath("/dashboard/jedalnicky");
   revalidatePath(`/dashboard/klienti/${clientId}`);
 

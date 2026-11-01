@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { saveNutritionProfileAction, type ActionState } from "../actions";
+import { saveNutritionProfileAction, type ActionState } from "@/app/dashboard/jedalnicky/actions";
 import {
   ACTIVITY_LABELS,
   GOAL_LABELS,
@@ -32,14 +32,23 @@ interface SavedProfile {
   fat_g: number;
 }
 
-export function NutritionForm({ clientId, profile }: { clientId: string; profile: SavedProfile | null }) {
+export function NutritionForm({
+  clientId,
+  profile,
+  defaults,
+}: {
+  clientId: string;
+  profile: SavedProfile | null;
+  /** bez uloženého profilu: vek/váha/výška z karty klienta (Pridať klienta, 0009) */
+  defaults?: { age: number | null; weight_kg: number | null; height_cm: number | null };
+}) {
   const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(saveNutritionProfileAction, initialState);
 
   const [sex, setSex] = useState<Sex>(profile?.sex ?? "muz");
-  const [age, setAge] = useState(profile?.age?.toString() ?? "");
-  const [weightKg, setWeightKg] = useState(profile?.weight_kg?.toString() ?? "");
-  const [heightCm, setHeightCm] = useState(profile?.height_cm?.toString() ?? "");
+  const [age, setAge] = useState((profile?.age ?? defaults?.age)?.toString() ?? "");
+  const [weightKg, setWeightKg] = useState((profile?.weight_kg ?? defaults?.weight_kg)?.toString() ?? "");
+  const [heightCm, setHeightCm] = useState((profile?.height_cm ?? defaults?.height_cm)?.toString() ?? "");
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(profile?.activity_level ?? "stredna");
   const [goal, setGoal] = useState<Goal>(profile?.goal ?? "udrzanie");
 

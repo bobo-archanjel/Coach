@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { deliverPlanToRecipients } from "@/lib/planRecipients";
+import { addPlanRecipients, areTrainerClients, deliverPlanToRecipients, MAX_PLAN_CLIENTS, uniqueClientIds } from "@/lib/planRecipients";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -33,11 +33,17 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
 
-  const clientId = formData.get("client_id") as string | null;
+  const clientIds = uniqueClientIds(formData.getAll("client_id"));
   const name = (formData.get("name") as string | null)?.trim() ?? "";
 
-  if (!clientId) return { error: "Chýba klient." };
+  if (clientIds.length === 0) return { error: "Vyber klienta." };
+  if (clientIds.length > MAX_PLAN_CLIENTS) return { error: `Naraz najviac ${MAX_PLAN_CLIENTS} klientov.` };
   if (!name) return { error: "Zadaj názov jedálničku." };
+
+  // Viacerí klienti → JEDEN koncept pre prvého, ostatní sú jeho príjemcovia (0052) —
+  // po odoslaní dostane každý vlastnú kópiu (lib/planRecipients), rovnako ako tréning.
+  const [clientId, ...others] = clientIds;
+  if (!(await areTrainerClients(supabase, user.id, others))) return { error: "Niektorý z vybraných klientov nepatrí tebe." };
 
   const { data, error } = await supabase
     .from("meal_plans")
@@ -48,7 +54,14 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
 
   if (error || !data) return { error: error?.message ?? "Jedálniček sa nepodarilo vytvoriť." };
 
-  revalidatePath(`/dashboard/jedalnicky/${clientId}`);
+  const recipientsError = await addPlanRecipients(supabase, user.id, "meal", data.id, others);
+  if (recipientsError) {
+    // bez príjemcov by koncept dostal len prvý klient — radšej nič a jasná chyba
+    await supabase.from("meal_plans").delete().eq("id", data.id);
+    return { error: `Ďalších klientov sa nepodarilo pridať: ${recipientsError}` };
+  }
+
+  revalidatePath("/dashboard/jedalnicky");
   revalidatePath(`/dashboard/klienti/${clientId}`);
   redirect(`/dashboard/jedalnicky/jedalnicek/${data.id}`);
 }
@@ -78,12 +91,9 @@ export async function publishMealPlanAction(_prevState: ActionState, formData: F
   const delivery = await deliverPlanToRecipients(supabase, user.id, "meal", planId);
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
-  revalidatePath(`/dashboard/jedalnicky/${data.client_id}`);
+  revalidatePath("/dashboard/jedalnicky");
   revalidatePath(`/dashboard/klienti/${data.client_id}`);
-  for (const clientId of delivery.delivered) {
-    revalidatePath(`/dashboard/jedalnicky/${clientId}`);
-    revalidatePath(`/dashboard/klienti/${clientId}`);
-  }
+  for (const clientId of delivery.delivered) revalidatePath(`/dashboard/klienti/${clientId}`);
   if (delivery.error) return { error: delivery.error };
   return ok;
 }
@@ -113,9 +123,9 @@ export async function deleteMealPlanAction(planId: string): Promise<ActionState>
   const { error } = await supabase.from("meal_plans").delete().eq("id", planId).eq("trainer_id", user.id);
   if (error) return { error: dbErr(error, "actions") };
 
-  revalidatePath(`/dashboard/jedalnicky/${plan.client_id}`);
+  revalidatePath("/dashboard/jedalnicky");
   revalidatePath(`/dashboard/klienti/${plan.client_id}`);
-  redirect(`/dashboard/jedalnicky/${plan.client_id}`);
+  redirect("/dashboard/jedalnicky");
 }
 
 /** Rovnaký podpis ako tréningový renamePlanAction — volá ho zdieľaná ceruzka PlanTitle. */
@@ -142,7 +152,7 @@ export async function renameMealPlanAction(planId: string, rawName: string): Pro
   if (!data) return { error: "Jedálniček sa nenašiel." };
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
-  revalidatePath(`/dashboard/jedalnicky/${data.client_id}`);
+  revalidatePath("/dashboard/jedalnicky");
   revalidatePath(`/dashboard/klienti/${data.client_id}`);
   return ok;
 }
@@ -263,7 +273,7 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
   }
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
-  revalidatePath(`/dashboard/jedalnicky/${plan.client_id}`);
+  revalidatePath("/dashboard/jedalnicky");
   revalidatePath(`/dashboard/klienti/${plan.client_id}`);
   return ok;
 }

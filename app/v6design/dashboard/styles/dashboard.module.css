@@ -2712,16 +2712,6 @@ select.addClientInputSm {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.sectionLink {
-  color: var(--accent-text);
-  font-size: 13.5px;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.sectionLink:hover {
-  text-decoration: underline;
-}
 .sectionEmpty {
   display: grid;
   justify-items: start;
@@ -2768,69 +2758,3 @@ select.addClientInputSm {
   margin-bottom: 12px;
 }
 
-/* Vstupné údaje pre jedálniček — na počítači mriežka buniek ako tabuľka (8 údajov v 4,
-   resp. 2 stĺpcoch, alergie/preferencie cez celý riadok), na mobile 2-stĺpcový zoznam
-   kľúč – hodnota. Čiary medzi bunkami = 1px medzera nad pozadím v farbe čiary. */
-.factTable {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  margin: 0;
-  border: 1px solid var(--hairline);
-  border-radius: 16px;
-  overflow: hidden;
-  background: var(--hairline);
-}
-.factRow {
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  padding: 12px 14px;
-  background: var(--surface-solid);
-}
-.factRow:last-child {
-  grid-column: 1 / -1;
-}
-.factRow dt {
-  color: var(--paper-faint);
-  font-size: 11.5px;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.factRow dd {
-  margin: 0;
-  color: var(--paper);
-  font-size: 14px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.factRow dd.factEmpty {
-  color: var(--paper-faint);
-  font-weight: 500;
-}
-@media (max-width: 1180px) {
-  .factTable {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 640px) {
-  .factTable {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .factRow {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    align-items: baseline;
-    gap: 12px;
-    padding: 11px 14px;
-  }
-  .factRow dt {
-    font-size: 12.5px;
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0;
-  }
-  .factRow dd {
-    text-align: right;
-  }
-}

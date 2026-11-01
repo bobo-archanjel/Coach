@@ -47,9 +47,11 @@ test.describe("výpočty pre zoznam jedálničkov", () => {
 });
 
 /**
- * Detail klienta → sekcia „Jedálničky“ (nový dizajn v6) proti reálnej DB: tabuľka vstupných
- * údajov, zoznam jedálničkov od najnovšieho so stavom a kcal, odkaz na detail, prázdny stav
- * s „Vytvoriť jedálniček“. Testovacie jedálničky a dočasného klienta po sebe zmaže.
+ * Detail klienta → sekcia „Jedálničky“ (nový dizajn v6) proti reálnej DB: vstupné údaje
+ * a výsledok makier (NutritionForm, predtým /dashboard/jedalnicky/[clientId] — teraz tam
+ * presmerovanie), zoznam jedálničkov od najnovšieho so stavom a kcal, prázdny stav
+ * s „Vytvoriť jedálniček“; stránka /dashboard/jedalnicky ako Tréningy (Nový jedálniček aj
+ * pre viacerých klientov + všetky jedálničky). Testovacie dáta a dočasného klienta zmaže.
  *   E2E_TRAINER_EMAIL, E2E_TRAINER_PASSWORD, E2E_CLIENT_EMAIL, E2E_CLIENT_PASSWORD
  */
 try {
@@ -156,7 +158,7 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
   }
 
-  test("vstupné údaje + zoznam jedálničkov od najnovšieho so stavom, kcal a odkazom", async ({ page, context, baseURL, isMobile }) => {
+  test("vstupné údaje a výsledok makier + zoznam jedálničkov od najnovšieho so stavom, kcal a odkazom", async ({ page, context, baseURL }) => {
     test.setTimeout(90_000);
     await login(page, context, baseURL!);
     await page.goto(`/dashboard/klienti/${qaClientId}`);
@@ -172,17 +174,15 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await openSection(page, "Jedálničky");
     await expect(page.getByRole("tabpanel", { name: "Jedálničky" })).toBeVisible();
 
-    const facts = page.getByLabel("Vstupné údaje pre jedálniček");
-    for (const label of ["Váha", "Výška", "Vek", "Pohlavie", "Úroveň aktivity", "Cieľ", "Kalorický cieľ", "Makrá (B · S · T)", "Alergie, intolerancie a preferencie"]) {
-      await expect(facts.getByText(label, { exact: true })).toBeVisible();
+    // vstupné údaje (editovateľné) a výsledok s uloženým kalorickým cieľom QA klienta
+    const panel = page.getByRole("tabpanel", { name: "Jedálničky" });
+    await expect(panel.getByRole("heading", { name: "Vstupné údaje" })).toBeVisible();
+    for (const label of ["Pohlavie", "Vek (roky)", "Váha (kg)", "Výška (cm)", "Aktivita", "Cieľ", "Poznámka (vidíš len ty)"]) {
+      await expect(panel.getByLabel(label)).toBeVisible();
     }
-    // mobil: kľúč a hodnota v jednom riadku (2 stĺpce), nič nepreteká do strany
-    if (isMobile) {
-      const dt = await facts.getByText("Kalorický cieľ", { exact: true }).boundingBox();
-      const dd = await facts.locator("dd").nth(6).boundingBox();
-      expect(Math.abs(dt!.y - dd!.y)).toBeLessThan(12);
-      expect(dd!.x).toBeGreaterThan(dt!.x + dt!.width);
-    }
+    await expect(panel.getByRole("heading", { name: /^Výsledok/ })).toBeVisible();
+    const { data: profile } = await trainer.api.from("nutrition_profiles").select("calories_target").eq("client_id", qaClientId).maybeSingle();
+    if (profile) await expect(panel.getByText(`${profile.calories_target} kcal/deň`, { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 
     const rows = page.getByRole("link", { name: new RegExp(prefix) });
@@ -202,24 +202,84 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await expect(page.getByRole("heading", { name: `${prefix} aktívny` })).toBeVisible();
   });
 
-  test("bez jedálničkov: prázdny stav, chýbajúce údaje „—“ a Vytvoriť jedálniček", async ({ page, context, baseURL }, testInfo) => {
+  test("nový klient: makro cieľ priamo v detaile klienta, prázdny stav a Vytvoriť jedálniček", async ({ page, context, baseURL }, testInfo) => {
     test.setTimeout(90_000);
     await login(page, context, baseURL!);
-    await page.goto(`/dashboard/klienti/${tempClientId}`);
-    await openSection(page, "Jedálničky");
-
-    const facts = page.getByLabel("Vstupné údaje pre jedálniček");
-    await expect(facts.locator("dd", { hasText: /^—$/ })).toHaveCount(9);
-    await expect(page.getByRole("link", { name: "Nastaviť makrá →" })).toHaveAttribute("href", `/dashboard/jedalnicky/${tempClientId}`);
-    await expect(page.getByText("Klient zatiaľ nemá žiadny jedálniček.")).toBeVisible();
+    // stará adresa jedálničkov klienta → detail klienta s otvorenou záložkou Jedálničky
+    await page.goto(`/dashboard/jedalnicky/${tempClientId}`);
+    await page.waitForURL(new RegExp(`/dashboard/klienti/${tempClientId}\\?sekcia=jedalnicky$`), { timeout: 30_000 });
+    const panel = page.getByRole("tabpanel", { name: "Jedálničky" });
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Uložiť makro cieľ" })).toBeVisible();
+    await expect(panel.getByText("Klient zatiaľ nemá žiadny jedálniček.")).toBeVisible();
 
     // zápis do DB len raz (desktop)
     if (testInfo.project.name !== "desktop") return;
+    await panel.getByLabel("Vek (roky)").fill("30");
+    await panel.getByLabel("Váha (kg)").fill("80");
+    await panel.getByLabel("Výška (cm)").fill("180");
+    await expect(panel.getByRole("heading", { name: /^Výsledok/ })).toContainText("náhľad");
+    await panel.getByRole("button", { name: "Uložiť makro cieľ" }).click();
+    await expect(panel.getByRole("button", { name: "Aktualizovať makro cieľ" })).toBeVisible({ timeout: 15_000 });
+    const { data: saved } = await trainer.api.from("nutrition_profiles").select("age, weight_kg, calories_target").eq("client_id", tempClientId).single();
+    expect(saved).toMatchObject({ age: 30, weight_kg: 80 });
+    expect(saved!.calories_target).toBeGreaterThan(1000);
+    // obnovenie stránky ostane na záložke Jedálničky
+    await page.reload();
+    await expect(page.getByRole("tab", { name: "Jedálničky" })).toHaveAttribute("aria-selected", "true");
+
     await page.getByRole("button", { name: "Vytvoriť jedálniček" }).click();
     await page.waitForURL(/\/dashboard\/jedalnicky\/jedalnicek\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: /^Jedálniček \d/ })).toBeVisible();
     const { data } = await trainer.api.from("meal_plans").select("published").eq("client_id", tempClientId);
     expect(data).toEqual([{ published: false }]);
+  });
+
+  test("Analytika → „Upraviť →“ pri makro cieli otvorí záložku Jedálničky", async ({ page, context, baseURL }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "Stačí raz (desktop).");
+    test.setTimeout(90_000);
+    const { data: profile } = await trainer.api.from("nutrition_profiles").select("id").eq("client_id", qaClientId).maybeSingle();
+    test.skip(!profile, "QA klient nemá makro cieľ.");
+    await login(page, context, baseURL!);
+    await page.goto(`/dashboard/klienti/${qaClientId}`);
+    await openSection(page, "Analytika");
+    await page.getByRole("tabpanel").getByRole("link", { name: "Upraviť →" }).click();
+    await expect(page.getByRole("tab", { name: "Jedálničky" })).toHaveAttribute("aria-selected", "true", { timeout: 15_000 });
+    await expect(page.getByRole("tabpanel", { name: "Jedálničky" }).getByRole("heading", { name: "Vstupné údaje" })).toBeVisible();
+  });
+
+  test("stránka Jedálničky: všetky jedálničky + Nový jedálniček pre viacerých klientov", async ({ page, context, baseURL }, testInfo) => {
+    test.setTimeout(90_000);
+    await login(page, context, baseURL!);
+    await page.goto("/dashboard/jedalnicky");
+    await expect(page.getByRole("heading", { name: "Jedálničky", level: 1 })).toBeVisible();
+
+    // zoznam všetkých jedálničkov (nie klientov) — s menom klienta a stavom
+    const rows = page.getByRole("link", { name: new RegExp(prefix) });
+    await expect(rows.filter({ hasText: `${prefix} koncept` })).toContainText("Koncept");
+    await expect(rows.filter({ hasText: `${prefix} aktívny` })).toContainText("Aktívny");
+    await expect(rows.filter({ hasText: `${prefix} aktívny` })).toContainText("≈ 400 kcal/deň");
+    await expect(rows.filter({ hasText: `${prefix} archív` })).not.toContainText("Aktívny");
+
+    // zápis do DB len raz (desktop)
+    if (testInfo.project.name !== "desktop") return;
+    const form = page.getByRole("form", { name: "Nový jedálniček" });
+    await form.getByRole("button", { name: "Vyber klientov" }).click();
+    const group = form.getByRole("group", { name: "Klienti" });
+    await group.getByRole("checkbox", { name: "QA Klient Agent" }).click();
+    await group.getByRole("checkbox", { name: `${prefix} klient` }).click();
+    await form.getByPlaceholder(/Názov jedálničku/).fill(`${prefix} pre dvoch`);
+    await form.getByRole("button", { name: "Vytvoriť jedálniček pre 2 klientov" }).click();
+    await page.waitForURL(/\/dashboard\/jedalnicky\/jedalnicek\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+    await expect(page.getByText("Pošle sa aj:")).toBeVisible();
+    const planId = page.url().split("/").pop()!;
+    const { data: recipients } = await trainer.api.from("plan_recipients").select("client_id").eq("meal_plan_id", planId);
+    expect(recipients).toHaveLength(1);
+    // späť na zoznam všetkých jedálničkov
+    await page.getByRole("link", { name: "Späť na jedálničky" }).click();
+    await page.waitForURL(/\/dashboard\/jedalnicky$/);
+    await expect(page.getByRole("link", { name: new RegExp(`${prefix} pre dvoch`) })).toBeVisible();
+    await trainer.api.from("meal_plans").delete().eq("id", planId);
   });
 
   test("RLS: klient jedálničky iného klienta toho istého trénera nevidí", async () => {

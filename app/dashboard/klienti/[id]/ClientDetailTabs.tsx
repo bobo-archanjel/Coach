@@ -16,14 +16,26 @@ export interface ClientDetailSection {
  * SCOPOVANÉ na túto stránku (nie globálna dashboard nav): rad tlačidiel hore — na
  * počítači aj na mobile — a obsah vybranej sekcie pod nimi. Prepínanie je čisto
  * klientské (žiadna re-fetch dát) — obsah sekcií je už vyrenderovaný na serveri
- * a poslaný sem ako hotové React nody.
+ * a poslaný sem ako hotové React nody. Úvodná sekcia z `?sekcia=` (napr. odkaz
+ * „Upraviť makrá“ → jedalnicky); prepnutie ju zapíše do adresy bez navigácie,
+ * takže obnovenie stránky ostane na tej istej záložke.
  */
-export function ClientDetailTabs({ sections }: { sections: ClientDetailSection[] }) {
+export function ClientDetailTabs({ sections, initialId }: { sections: ClientDetailSection[]; initialId?: string }) {
   const styles = useSkinStyles("dashboard", dashboardModule);
   const baseId = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
+  const [activeId, setActiveIdState] = useState(
+    initialId && sections.some((s) => s.id === initialId) ? initialId : (sections[0]?.id ?? ""),
+  );
   const active = sections.find((s) => s.id === activeId) ?? sections[0];
+
+  const setActiveId = (id: string) => {
+    setActiveIdState(id);
+    const url = new URL(window.location.href);
+    if (id === sections[0]?.id) url.searchParams.delete("sekcia");
+    else url.searchParams.set("sekcia", id);
+    window.history.replaceState(window.history.state, "", url);
+  };
 
   // šípky ←/→, Home/End medzi záložkami (WAI-ARIA tabs)
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {

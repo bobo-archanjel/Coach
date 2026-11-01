@@ -170,7 +170,7 @@ export async function AnalyticsPanel({
                 {nutrition.protein_g} g B · {nutrition.carbs_g} g S · {nutrition.fat_g} g T
               </span>
             </div>
-            <Link href={`/dashboard/jedalnicky/${clientId}`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
+            <Link href={`/dashboard/klienti/${clientId}?sekcia=jedalnicky`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
               Upraviť →
             </Link>
 
@@ -205,7 +205,7 @@ export async function AnalyticsPanel({
           </>
         ) : (
           <p className={styles.noWorkouts}>
-            Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/jedalnicky/${clientId}`}>vypočítať teraz</Link>. Bez cieľa sa
+            Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/klienti/${clientId}?sekcia=jedalnicky`}>vypočítať teraz</Link>. Bez cieľa sa
             nedá počítať ani adherencia stravy.
           </p>
         )}

@@ -10,8 +10,8 @@ import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { CreateMealPlanButton } from "./CreateMealPlanButton";
+import { NutritionForm } from "./NutritionForm";
 import { dashStyles } from "@/app/dashboard/dashSkin";
-import { ACTIVITY_LABELS, GOAL_LABELS, type ActivityLevel, type Goal } from "@/lib/nutrition";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
 import { pluralSk } from "@/lib/portal/streak";
 
@@ -58,11 +58,11 @@ export default async function ClientDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ preview?: string }>;
+  searchParams: Promise<{ preview?: string; sekcia?: string }>;
 }) {
   const styles = await dashStyles();
   const { id } = await params;
-  const { preview } = await searchParams;
+  const { preview, sekcia } = await searchParams;
 
   if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV === "development") {
     const empty = preview === "progress_empty";
@@ -181,10 +181,10 @@ export default async function ClientDetailPage({
         .eq("id", id)
         .maybeSingle(),
       plansWithCompletion,
-      // Vstupné údaje jedálnička (sekcia Jedálničky) aj makro cieľ pre Analytiku.
+      // Vstupné údaje a výsledok makier (sekcia Jedálničky, NutritionForm) aj makro cieľ pre Analytiku.
       supabase
         .from("nutrition_profiles")
-        .select("sex, age, weight_kg, height_cm, activity_level, goal, calories_target, protein_g, carbs_g, fat_g")
+        .select("sex, age, weight_kg, height_cm, activity_level, goal, bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
         .eq("client_id", id)
         .maybeSingle(),
       supabase
@@ -203,7 +203,7 @@ export default async function ClientDetailPage({
         .select("id, name, created_at, published, meal_days(meals)")
         .eq("client_id", id)
         .order("created_at", { ascending: false }),
-      // Poznámka trénera k strave (alergie, intolerancie, preferencie) — klient ju nevidí.
+      // Poznámka trénera k strave (alergie, intolerancie, preferencie) — klient ju nevidí; v NutritionForm.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "nutrition").maybeSingle(),
     ]);
 
@@ -233,26 +233,6 @@ export default async function ClientDetailPage({
     </span>
   );
 
-  // Jedálničky: vstupné údaje (profil makier má prednosť pred základnými údajmi z karty klienta)
-  const nutritionGoal = nutrition?.goal as Goal | undefined;
-  const activity = nutrition?.activity_level as ActivityLevel | undefined;
-  const age = nutrition?.age ?? client.age;
-  const weight = nutrition?.weight_kg ?? client.weight_kg;
-  const height = nutrition?.height_cm ?? client.height_cm;
-  const mealFacts: { label: string; value: string | null }[] = [
-    { label: "Váha", value: weight ? `${weight} kg` : null },
-    { label: "Výška", value: height ? `${height} cm` : null },
-    { label: "Vek", value: age ? `${age} ${pluralSk(age, "rok", "roky", "rokov")}` : null },
-    { label: "Pohlavie", value: nutrition?.sex === "muz" ? "Muž" : nutrition?.sex === "zena" ? "Žena" : null },
-    { label: "Úroveň aktivity", value: activity ? ACTIVITY_LABELS[activity] : null },
-    { label: "Cieľ", value: nutritionGoal ? GOAL_LABELS[nutritionGoal] : (client.goal ?? null) },
-    { label: "Kalorický cieľ", value: nutrition ? `${nutrition.calories_target} kcal/deň` : null },
-    {
-      label: "Makrá (B · S · T)",
-      value: nutrition ? `${nutrition.protein_g} g · ${nutrition.carbs_g} g · ${nutrition.fat_g} g` : null,
-    },
-    { label: "Alergie, intolerancie a preferencie", value: nutritionNote?.notes?.trim() || null },
-  ];
   // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
   const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
   const shortDate = (iso: string) =>
@@ -344,22 +324,13 @@ export default async function ClientDetailPage({
       label: "Jedálničky",
       content: (
         <div className={styles.cardStack}>
-          <div className={styles.card}>
-            {cardHead(
-              "Vstupné údaje",
-              <Link href={`/dashboard/jedalnicky/${id}`} className={styles.sectionLink}>
-                {nutrition ? "Upraviť →" : "Nastaviť makrá →"}
-              </Link>,
-            )}
-            <dl className={styles.factTable} aria-label="Vstupné údaje pre jedálniček">
-              {mealFacts.map((f) => (
-                <div key={f.label} className={styles.factRow}>
-                  <dt>{f.label}</dt>
-                  <dd className={f.value ? undefined : styles.factEmpty}>{f.value ?? "—"}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          {/* Vstupné údaje + Výsledok (BMR, TDEE, kalorický cieľ, makrá) — predtým na
+              /dashboard/jedalnicky/[clientId], teraz rovno pri klientovi. */}
+          <NutritionForm
+            clientId={id}
+            profile={nutrition ? { ...nutrition, notes: nutritionNote?.notes ?? null } : null}
+            defaults={{ age: client.age, weight_kg: client.weight_kg, height_cm: client.height_cm }}
+          />
           <div className={styles.card}>
             {cardHead(
               "Jedálničky",
@@ -477,7 +448,8 @@ export default async function ClientDetailPage({
         </div>
       </div>
 
-      <ClientDetailTabs sections={sections} />
+      {/* key: odkaz na inú ?sekcia= (napr. z Analytiky) prepne záložku aj bez reloadu */}
+      <ClientDetailTabs key={sekcia ?? ""} sections={sections} initialId={sekcia} />
     </>
   );
 }
