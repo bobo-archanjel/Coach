@@ -1952,106 +1952,70 @@ select.addClientInputSm {
   }
 }
 
-/* ---------- /dashboard/klienti/[id] — sekcie namiesto jedného dlhého scrollu (feature/planing-groupMessage) ---------- */
-.clientDetailLayout {
+/* ---------- /dashboard/klienti/[id] — záložky sekcií hore, obsah pod nimi ----------
+   Rovnaký vzhľad ako záložky Tréningy | Jedálničky v Šablónach (templates.module.css).
+   Na úzkom telefóne sa rad posúva do strany namiesto lámania na dva riadky. */
+.clientDetail {
   display: grid;
-  grid-template-columns: 190px 1fr;
-  gap: 24px;
-  align-items: start;
+  gap: 16px;
 }
-.clientSubNav {
+.clientTabs {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  position: sticky;
-  top: 20px;
+  gap: 4px;
+  max-width: 560px;
+  padding: 4px;
+  border-radius: 20px;
+  background: var(--fill-strong);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.clientSubNavItem {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 9px 12px;
-  border-radius: var(--radius-s);
-  border: 1px solid transparent;
+.clientTabs::-webkit-scrollbar {
+  display: none;
+}
+.clientTab {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 16px;
   background: transparent;
-  color: var(--paper-faint);
+  color: var(--paper-dim);
+  font-family: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+    color 0.15s ease;
 }
-.clientSubNavItem:hover {
+.clientTab:hover {
   color: var(--paper);
-  background: var(--fill-strong);
 }
-.clientSubNavItemActive {
+.clientTab:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: -2px;
+}
+.clientTabActive,
+.clientTabActive:hover {
+  background: var(--surface-solid);
   color: var(--paper);
-  background: var(--card-bg);
-  border-color: var(--steel-line);
-  box-shadow: var(--card-shadow);
-}
-.clientSubNavMobile {
-  display: none;
+  box-shadow: var(--shadow-1);
 }
 /* Grid child s tabuľkami/dlhými kartami nesmie roztiahnuť stĺpec nad jeho šírku. */
 .clientDetailContent {
   min-width: 0;
 }
-@media (max-width: 880px) {
-  .clientDetailLayout {
-    display: block;
+@media (max-width: 640px) {
+  .clientTabs {
+    max-width: none;
   }
-  .clientSubNav {
-    display: none;
-  }
-  .clientSubNavMobile {
-    display: block;
-    position: relative;
-    margin-bottom: 16px;
-  }
-  .clientSubNavMobileTrigger {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: var(--radius-m);
-    border: 1px solid var(--surface-border);
-    background: var(--card-bg);
-    color: var(--paper);
-    font-size: 14px;
-    font-weight: 700;
-    box-shadow: var(--card-shadow);
-  }
-  /* Menu sekcií v toku stránky (nie plávajúce cez obsah): otvorené odsunie obsah
-     nižšie, zatvorené ho vráti — priehľadné sklo by inak prekrývalo karty pod ním. */
-  .clientSubNavMobileMenu {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-top: 8px;
-    padding: 6px;
-    border-radius: var(--radius-m);
-    border: 1px solid var(--surface-border);
-    background: var(--card-bg);
-    box-shadow: var(--card-shadow);
-  }
-  .clientSubNavMobileItem {
-    text-align: left;
-    padding: 10px 12px;
-    border-radius: var(--radius-s);
-    border: none;
-    background: transparent;
-    color: var(--paper-faint);
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .clientSubNavMobileItemActive {
-    color: var(--paper);
-    background: var(--fill-strong);
+  .clientTab {
+    padding: 8px 10px;
+    font-size: 13.5px;
   }
 }
 
@@ -2849,16 +2813,4 @@ select.addClientInputSm {
   .factRow dd {
     text-align: right;
   }
-}
-
-/* mobilné menu sekcií klienta — šípka rozbalenia vpravo */
-.clientSubNavChevron {
-  display: grid;
-  place-items: center;
-  margin-left: auto;
-  color: var(--paper-faint);
-  transition: transform 0.15s ease;
-}
-.clientSubNavChevronOpen {
-  transform: rotate(180deg);
 }

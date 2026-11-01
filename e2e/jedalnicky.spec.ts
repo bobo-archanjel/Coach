@@ -76,14 +76,11 @@ async function apiSignIn(email: string, password: string): Promise<{ api: Supaba
   return { api, userId: data.user.id };
 }
 
-async function openSection(page: Page, isMobile: boolean, name: string) {
-  if (isMobile) {
-    // mobil: menu sekcií sa rozbalí pod spúšťačom s názvom aktuálnej sekcie
-    await page.locator("button[aria-expanded]", { hasText: "Tréningy" }).first().click();
-    await page.getByRole("button", { name, exact: true }).last().click();
-  } else {
-    await page.getByRole("navigation", { name: "Sekcie klienta" }).getByRole("button", { name, exact: true }).click();
-  }
+/** Záložky sekcií detailu klienta — rad hore, rovnaký na počítači aj na mobile. */
+async function openSection(page: Page, name: string) {
+  const tab = page.getByRole("tablist", { name: "Sekcie klienta" }).getByRole("tab", { name, exact: true });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
 }
 
 const meal = (grams: number, kcal100: number) => ({
@@ -164,12 +161,16 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await login(page, context, baseURL!);
     await page.goto(`/dashboard/klienti/${qaClientId}`);
 
-    // sekcie v poradí: Jedálničky hneď pod Tréningami
-    if (!isMobile) {
-      const order = await page.getByRole("navigation", { name: "Sekcie klienta" }).getByRole("button").allTextContents();
-      expect(order).toEqual(["Tréningy", "Jedálničky", "Analytika", "Info"]);
-    }
-    await openSection(page, isMobile, "Jedálničky");
+    // záložky hore v poradí: Jedálničky hneď za Tréningami, prvá otvorená sú Tréningy;
+    // obsah sekcie je pod radom záložiek
+    const tablist = page.getByRole("tablist", { name: "Sekcie klienta" });
+    expect(await tablist.getByRole("tab").allTextContents()).toEqual(["Tréningy", "Jedálničky", "Analytika", "Info"]);
+    await expect(tablist.getByRole("tab", { name: "Tréningy" })).toHaveAttribute("aria-selected", "true");
+    const tabsBox = await tablist.boundingBox();
+    const panelBox = await page.getByRole("tabpanel").boundingBox();
+    expect(panelBox!.y).toBeGreaterThanOrEqual(tabsBox!.y + tabsBox!.height);
+    await openSection(page, "Jedálničky");
+    await expect(page.getByRole("tabpanel", { name: "Jedálničky" })).toBeVisible();
 
     const facts = page.getByLabel("Vstupné údaje pre jedálniček");
     for (const label of ["Váha", "Výška", "Vek", "Pohlavie", "Úroveň aktivity", "Cieľ", "Kalorický cieľ", "Makrá (B · S · T)", "Alergie, intolerancie a preferencie"]) {
@@ -201,11 +202,11 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await expect(page.getByRole("heading", { name: `${prefix} aktívny` })).toBeVisible();
   });
 
-  test("bez jedálničkov: prázdny stav, chýbajúce údaje „—“ a Vytvoriť jedálniček", async ({ page, context, baseURL, isMobile }, testInfo) => {
+  test("bez jedálničkov: prázdny stav, chýbajúce údaje „—“ a Vytvoriť jedálniček", async ({ page, context, baseURL }, testInfo) => {
     test.setTimeout(90_000);
     await login(page, context, baseURL!);
     await page.goto(`/dashboard/klienti/${tempClientId}`);
-    await openSection(page, isMobile, "Jedálničky");
+    await openSection(page, "Jedálničky");
 
     const facts = page.getByLabel("Vstupné údaje pre jedálniček");
     await expect(facts.locator("dd", { hasText: /^—$/ })).toHaveCount(9);

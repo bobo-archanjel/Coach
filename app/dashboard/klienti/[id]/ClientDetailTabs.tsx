@@ -1,20 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import dashboardModule from "../../dashboard.module.css";
 import { useSkinStyles } from "@/app/components/uiSkin";
-
-const HamburgerIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M2 4.5h12M2 8h12M2 11.5h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-  </svg>
-);
-
-const ChevronIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path d="M3 5.5L7 9.5L11 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 export interface ClientDetailSection {
   id: string;
@@ -24,70 +12,68 @@ export interface ClientDetailSection {
 
 /**
  * Detail klienta bol jeden dlhý scroll cez všetky karty naraz — neprehľadné pri
- * viacerých sekciách (Tréningy, Jedálničky, Analytika, Info). Toto je lokálne
- * menu sekcií SCOPOVANÉ na túto stránku (nie globálna dashboard nav vľavo) —
- * na desktope tenký vertikálny zoznam vedľa obsahu, na mobile hamburger nad
- * obsahom (rovnaký breakpoint 880px ako globálna nav v DashboardNav.tsx).
- * Prepínanie je čisto klientské (žiadna re-fetch dát) — obsah sekcií je už
- * vyrenderovaný na serveri a poslaný sem ako hotové React nody.
+ * viacerých sekciách (Tréningy, Jedálničky, Analytika, Info). Toto sú záložky sekcií
+ * SCOPOVANÉ na túto stránku (nie globálna dashboard nav): rad tlačidiel hore — na
+ * počítači aj na mobile — a obsah vybranej sekcie pod nimi. Prepínanie je čisto
+ * klientské (žiadna re-fetch dát) — obsah sekcií je už vyrenderovaný na serveri
+ * a poslaný sem ako hotové React nody.
  */
 export function ClientDetailTabs({ sections }: { sections: ClientDetailSection[] }) {
   const styles = useSkinStyles("dashboard", dashboardModule);
+  const baseId = useId();
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
-  const [mobileOpen, setMobileOpen] = useState(false);
   const active = sections.find((s) => s.id === activeId) ?? sections[0];
 
-  function select(id: string) {
-    setActiveId(id);
-    setMobileOpen(false);
+  // šípky ←/→, Home/End medzi záložkami (WAI-ARIA tabs)
+  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    const i = sections.findIndex((s) => s.id === active?.id);
+    const next =
+      e.key === "ArrowRight" ? (i + 1) % sections.length
+      : e.key === "ArrowLeft" ? (i - 1 + sections.length) % sections.length
+      : e.key === "Home" ? 0
+      : e.key === "End" ? sections.length - 1
+      : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    setActiveId(sections[next].id);
+    tabRefs.current[next]?.focus();
   }
 
   return (
-    <div className={styles.clientDetailLayout}>
-      <nav className={styles.clientSubNav} aria-label="Sekcie klienta">
-        {sections.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className={`${styles.clientSubNavItem} ${s.id === active?.id ? styles.clientSubNavItemActive : ""}`}
-            onClick={() => select(s.id)}
-            aria-current={s.id === active?.id ? "true" : undefined}
-          >
-            {s.label}
-          </button>
-        ))}
-      </nav>
-
-      <div className={styles.clientSubNavMobile}>
-        <button
-          type="button"
-          className={styles.clientSubNavMobileTrigger}
-          onClick={() => setMobileOpen((o) => !o)}
-          aria-expanded={mobileOpen}
-        >
-          <HamburgerIcon />
-          {active?.label}
-          <span className={`${styles.clientSubNavChevron} ${mobileOpen ? styles.clientSubNavChevronOpen : ""}`}>
-            <ChevronIcon />
-          </span>
-        </button>
-        {mobileOpen && (
-          <div className={styles.clientSubNavMobileMenu}>
-            {sections.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={`${styles.clientSubNavMobileItem} ${s.id === active?.id ? styles.clientSubNavMobileItemActive : ""}`}
-                onClick={() => select(s.id)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
+    <div className={styles.clientDetail}>
+      <div className={styles.clientTabs} role="tablist" aria-label="Sekcie klienta" onKeyDown={onKeyDown}>
+        {sections.map((s, i) => {
+          const selected = s.id === active?.id;
+          return (
+            <button
+              key={s.id}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`${baseId}-tab-${s.id}`}
+              aria-selected={selected}
+              aria-controls={`${baseId}-panel`}
+              tabIndex={selected ? 0 : -1}
+              className={`${styles.clientTab} ${selected ? styles.clientTabActive : ""}`}
+              onClick={() => setActiveId(s.id)}
+            >
+              {s.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className={styles.clientDetailContent}>{active?.content}</div>
+      <div
+        id={`${baseId}-panel`}
+        role="tabpanel"
+        aria-labelledby={active ? `${baseId}-tab-${active.id}` : undefined}
+        className={styles.clientDetailContent}
+      >
+        {active?.content}
+      </div>
     </div>
   );
 }
