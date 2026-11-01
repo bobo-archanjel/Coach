@@ -50,9 +50,9 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
 
   return (
     <>
-      <Link href="/dashboard/vyziva" className={styles.backLink}>
+      <Link href="/dashboard/jedalnicky" className={styles.backLink}>
         <BackIcon />
-        Späť na výživu
+        Späť na jedálničky
       </Link>
 
       <div className={styles.detailHead}>
@@ -74,7 +74,7 @@ export default async function NutritionDetailPage({ params }: { params: Promise<
               // Portál ukazuje najnovší ZVEREJNENÝ jedálniček (zoradené od najnovšieho).
               const visibleToClient = plan.id === mealPlans.find((p) => p.published)?.id;
               return (
-                <Link key={plan.id} href={`/dashboard/vyziva/jedalnicek/${plan.id}`} className={styles.clientCard}>
+                <Link key={plan.id} href={`/dashboard/jedalnicky/jedalnicek/${plan.id}`} className={styles.clientCard}>
                   <div className={styles.clientName}>
                     {plan.name}
                     {!plan.published && (

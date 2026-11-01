@@ -48,8 +48,8 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
 
   if (error || !data) return { error: error?.message ?? "Jedálniček sa nepodarilo vytvoriť." };
 
-  revalidatePath(`/dashboard/vyziva/${clientId}`);
-  redirect(`/dashboard/vyziva/jedalnicek/${data.id}`);
+  revalidatePath(`/dashboard/jedalnicky/${clientId}`);
+  redirect(`/dashboard/jedalnicky/jedalnicek/${data.id}`);
 }
 
 /** Zverejnenie jedálnička — kým je koncept, klient ho v portáli nevidí (0044). */
@@ -76,9 +76,9 @@ export async function publishMealPlanAction(_prevState: ActionState, formData: F
   // šablóna pre viacerých klientov (0052): každý ďalší príjemca dostane vlastnú kópiu
   const delivery = await deliverPlanToRecipients(supabase, user.id, "meal", planId);
 
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  revalidatePath(`/dashboard/vyziva/${data.client_id}`);
-  for (const clientId of delivery.delivered) revalidatePath(`/dashboard/vyziva/${clientId}`);
+  revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
+  revalidatePath(`/dashboard/jedalnicky/${data.client_id}`);
+  for (const clientId of delivery.delivered) revalidatePath(`/dashboard/jedalnicky/${clientId}`);
   if (delivery.error) return { error: delivery.error };
   return ok;
 }
@@ -108,8 +108,8 @@ export async function deleteMealPlanAction(planId: string): Promise<ActionState>
   const { error } = await supabase.from("meal_plans").delete().eq("id", planId).eq("trainer_id", user.id);
   if (error) return { error: dbErr(error, "actions") };
 
-  revalidatePath(`/dashboard/vyziva/${plan.client_id}`);
-  redirect(`/dashboard/vyziva/${plan.client_id}`);
+  revalidatePath(`/dashboard/jedalnicky/${plan.client_id}`);
+  redirect(`/dashboard/jedalnicky/${plan.client_id}`);
 }
 
 /** Rovnaký podpis ako tréningový renamePlanAction — volá ho zdieľaná ceruzka PlanTitle. */
@@ -135,8 +135,8 @@ export async function renameMealPlanAction(planId: string, rawName: string): Pro
   if (error) return { error: dbErr(error, "actions") };
   if (!data) return { error: "Jedálniček sa nenašiel." };
 
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  revalidatePath(`/dashboard/vyziva/${data.client_id}`);
+  revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
+  revalidatePath(`/dashboard/jedalnicky/${data.client_id}`);
   return ok;
 }
 
@@ -255,7 +255,7 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
     if (error) return { error: dbErr(error, "actions") };
   }
 
-  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
-  revalidatePath(`/dashboard/vyziva/${plan.client_id}`);
+  revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
+  revalidatePath(`/dashboard/jedalnicky/${plan.client_id}`);
   return ok;
 }

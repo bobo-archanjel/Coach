@@ -106,7 +106,7 @@ function SettingsIcon() {
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, match: (p: string) => p.startsWith("/dashboard/treningy") },
-  { href: "/dashboard/vyziva", label: "Výživa", Icon: NutritionIcon, match: (p: string) => p.startsWith("/dashboard/vyziva") },
+  { href: "/dashboard/jedalnicky", label: "Jedálničky", Icon: NutritionIcon, match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
   { href: "/dashboard/kalendar", label: "Kalendár", Icon: CalendarIcon, match: (p: string) => p.startsWith("/dashboard/kalendar") },
   { href: "/dashboard/sablony", label: "Šablóny", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/dashboard/sablony") },
   { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, match: (p: string) => p.startsWith("/dashboard/spravy") },

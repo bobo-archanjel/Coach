@@ -125,7 +125,7 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
             </>
           ) : (
             <>
-              Zatiaľ žiadne jedálničkové šablóny — otvor jedálniček na <Link href="/dashboard/vyziva">Výžive</Link> a ulož
+              Zatiaľ žiadne jedálničkové šablóny — otvor jedálniček v sekcii <Link href="/dashboard/jedalnicky">Jedálničky</Link> a ulož
               ho ako šablónu.
             </>
           )}

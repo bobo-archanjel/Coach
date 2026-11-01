@@ -63,9 +63,9 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
 
   return (
     <>
-      <Link href={`/dashboard/vyziva/${plan.client_id}`} className={styles.backLink}>
+      <Link href={`/dashboard/jedalnicky/${plan.client_id}`} className={styles.backLink}>
         <BackIcon />
-        Späť na výživu
+        Späť na jedálničky klienta
       </Link>
 
       {/* Rovnaké rozloženie ako detail tréningového plánu: názov s ceruzkou + stav vpravo,

@@ -19,8 +19,7 @@ export async function generateViewport(): Promise<Viewport> {
 
 /**
  * Auth guard + shell pre celý /dashboard. Klienti bežia na reálnych Supabase dátach
- * (tabuľka `clients`, RLS scoped na trainer_id). Tréningy/Výživa sú zatiaľ honestné
- * "ešte nepostavené" — čakajú na tréningový builder a nutričný modul.
+ * (tabuľka `clients`, RLS scoped na trainer_id).
  */
 /** DEV: `next dev` bez session (lokál bez platných Supabase kľúčov) — nechá prejsť,
     nech sa dajú pozerať povrchy cez `?preview=`. V produkcii guard nepodmienený.

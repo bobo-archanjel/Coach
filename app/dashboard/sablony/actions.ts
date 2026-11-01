@@ -37,7 +37,7 @@ export async function saveWorkoutTemplateAction(_prevState: ActionState, formDat
   return ok;
 }
 
-/** "Uložiť ako šablónu" na detaile jedálničku (`/dashboard/vyziva/jedalnicek/[planId]`). */
+/** "Uložiť ako šablónu" na detaile jedálničku (`/dashboard/jedalnicky/jedalnicek/[planId]`). */
 export async function saveMealTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
   const {
@@ -111,10 +111,10 @@ export async function applyTemplateToClientsAction(
     return fail(`Ďalších klientov sa nepodarilo pridať: ${recipientsError}`);
   }
 
-  revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/vyziva");
+  revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/jedalnicky");
   return {
     error: null,
-    href: kind === "workout" ? `/dashboard/treningy/${applied.planId}` : `/dashboard/vyziva/jedalnicek/${applied.planId}`,
+    href: kind === "workout" ? `/dashboard/treningy/${applied.planId}` : `/dashboard/jedalnicky/jedalnicek/${applied.planId}`,
   };
 }
 

@@ -10,7 +10,7 @@ interface NutritionSummary {
   fat_g: number;
 }
 
-export default async function VyzivaPage() {
+export default async function JedalnickyPage() {
   const styles = await dashStyles();
   const supabase = await createClient();
   const {
@@ -32,8 +32,8 @@ export default async function VyzivaPage() {
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Výživa</h1>
-        <p>BMR/TDEE výpočet a makro cieľ pre každého klienta.</p>
+        <h1>Jedálničky</h1>
+        <p>Makro cieľ a jedálničky pre každého klienta.</p>
       </div>
 
       {clients && clients.length > 0 ? (
@@ -44,7 +44,7 @@ export default async function VyzivaPage() {
             const raw = client.nutrition_profiles as unknown as NutritionSummary | NutritionSummary[] | null;
             const profile = (Array.isArray(raw) ? raw[0] : raw) ?? null;
             return (
-              <Link key={client.id} href={`/dashboard/vyziva/${client.id}`} className={styles.clientCard}>
+              <Link key={client.id} href={`/dashboard/jedalnicky/${client.id}`} className={styles.clientCard}>
                 <div>
                   <div className={styles.clientName}>{client.full_name}</div>
                   <div className={styles.clientGoal}>
@@ -61,7 +61,7 @@ export default async function VyzivaPage() {
       ) : (
         <div className={styles.emptyState}>
           <h2>Zatiaľ žiadni klienti</h2>
-          <p>Pridaj klienta na stránke Klienti a potom mu tu nastav makro cieľ.</p>
+          <p>Pridaj klienta na stránke Klienti a potom mu tu nastav makro cieľ a jedálniček.</p>
         </div>
       )}
     </>

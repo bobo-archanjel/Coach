@@ -38,7 +38,7 @@
     position: sticky;
     top: 0;
     z-index: 25;
-    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Výživa
+    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Jedálničky
        bez profilov) dal iný výsledok než pri stránkach so scrollbarom — scrollbar
        (Windows) uberá ~15-17px šírky, čo mierne mení, ako sa vojde "Odhlásiť sa"
        vedľa loga, a bar tak vychádzal inak vysoký podľa stránky. Pevná výška to rieši. */
@@ -664,7 +664,7 @@ select.addClientInputSm {
 .addClientInputSm[type="number"] {
   -moz-appearance: textfield;
 }
-/* Formulár s popiskami v mriežke (makro cieľ vo Výžive). Predtým tam bolo
+/* Formulár s popiskami v mriežke (makro cieľ v Jedálničkoch). Predtým tam bolo
    .addClientFields prepnuté inline na column — zdedený flex-basis 200px z
    .addClientInput sa v stĺpci uplatnil ako VÝŠKA a každé pole malo na desktope
    ~200px. Tu sú polia v <label> (flex column), preto flex:none. */
@@ -1759,7 +1759,7 @@ select.addClientInputSm {
   background: var(--moss);
 }
 
-/* ---------- tréningy / výživa list pages ---------- */
+/* ---------- tréningy / jedálničky list pages ---------- */
 .clientSectionGrid {
   display: grid;
   gap: 16px;

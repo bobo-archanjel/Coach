@@ -120,7 +120,7 @@ test.describe("builder jedálnička: riadky jedál a panel Pridať jedlo (reáln
     await page.locator("#login-password").fill(env.trainerPassword!);
     await page.getByRole("button", { name: "Prihlásiť sa" }).click();
     await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
-    await page.goto(`/dashboard/vyziva/jedalnicek/${planId}`);
+    await page.goto(`/dashboard/jedalnicky/jedalnicek/${planId}`);
 
     // riadky jedál sú zbalené; koncept sa posiela tlačidlom „Poslať klientovi“
     await expect(page.getByRole("button", { name: /^Obed/ })).toHaveAttribute("aria-expanded", "false");
