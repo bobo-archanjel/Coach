@@ -172,7 +172,7 @@ export function ClientPlanBuilder({
   const addDay = () => {
     const trimmed = dayName.trim();
     if (!trimmed) {
-      setDayError("Zadaj názov dňa.");
+      setDayError("Zadaj názov tréningu.");
       return;
     }
     if (days.length >= MAX_DAYS) {
@@ -213,7 +213,7 @@ export function ClientPlanBuilder({
   const save = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("Zadaj názov tréningu.");
+      setError("Zadaj názov tréningového plánu.");
       return;
     }
     if (days.length === 0) {
@@ -258,16 +258,16 @@ export function ClientPlanBuilder({
       </div>
 
       <label className={styles.trNameField}>
-        <span className={styles.panelLabel}>Názov tréningu</span>
+        <span className={styles.panelLabel}>Názov tréningového plánu</span>
         <input
           type="text"
           value={name}
           onChange={(e) => {
             setName(e.target.value);
             // Hláška o chýbajúcom názve nemá visieť, keď ho klient už dopĺňa (QA 2026-09-23).
-            if (error === "Zadaj názov tréningu.") setError(null);
+            if (error === "Zadaj názov tréningového plánu.") setError(null);
           }}
-          placeholder="napr. Horná časť tela"
+          placeholder="napr. white monster plan"
           maxLength={60}
           className={styles.trNameInput}
         />
@@ -298,13 +298,18 @@ export function ClientPlanBuilder({
 
             {addingDay ? (
               <form
-                className={b.addDayForm}
+                className={`${b.addDayForm} ${styles.trAddDayForm}`}
                 onSubmit={(e) => {
                   e.preventDefault();
                   addDay();
                 }}
               >
+                {/* deň plánu = jeden tréning (napr. "Deň 1 — Push") */}
+                <label htmlFor="client-day-name" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
+                  Názov tréningu
+                </label>
                 <input
+                  id="client-day-name"
                   type="text"
                   value={dayName}
                   onChange={(e) => {
@@ -316,7 +321,6 @@ export function ClientPlanBuilder({
                   // Pri novom tréningu je formulár otvorený hneď — focus by preskočil názov tréningu.
                   autoFocus={days.length > 0}
                   className={b.addDayInput}
-                  aria-label="Názov dňa"
                 />
                 <button type="submit" className="btn btn-primary btn-sm">
                   Pridať

@@ -122,7 +122,7 @@ function cleanDraft(raw: unknown): { name: string; days: CleanDay[] } | { error:
   if (!raw || typeof raw !== "object") return { error: "Chýbajú dáta tréningu." };
   const d = raw as Record<string, unknown>;
   const name = cleanText(d.name, 60);
-  if (!name) return { error: "Zadaj názov tréningu." };
+  if (!name) return { error: "Zadaj názov tréningového plánu." };
 
   const daysRaw = Array.isArray(d.days) ? d.days.slice(0, MAX_DAYS) : [];
   const days: CleanDay[] = daysRaw
