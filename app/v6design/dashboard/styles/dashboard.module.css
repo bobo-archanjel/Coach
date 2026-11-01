@@ -1194,7 +1194,7 @@ select.addClientInputSm {
 .templateGrid > a,
 .templateGrid > form > button {
   width: 100%;
-  min-height: 44px;
+  min-height: 40px;
   margin: 0;
   box-sizing: border-box;
 }
@@ -1293,6 +1293,22 @@ select.addClientInputSm {
 @media (max-width: 640px) {
   .templateGrid {
     max-width: none;
+  }
+  /* Kompaktné tlačidlá a výber v polovičnom stĺpci: pri mobilnom .btn-sm (13px 18px)
+     sa „Uložiť ako šablónu“ zalomilo na dva riadky a celý riadok mriežky narástol
+     na ~70px (select sa natiahol na rovnakú výšku). Select ostáva 16px — iOS inak zoomuje. */
+  .templateGrid > button,
+  .templateGrid > a,
+  .templateGrid > form > button {
+    padding: 9px 12px;
+    font-size: 13.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .templateGrid > select {
+    padding: 8px 34px 8px 14px;
+    background-position: right 12px center;
   }
 }
 .logLinkRow:hover {
