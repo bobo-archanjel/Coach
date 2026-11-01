@@ -25,7 +25,9 @@ const nextConfig: NextConfig = {
   ...(process.env.QA_DIST_DIR ? { distDir: process.env.QA_DIST_DIR } : {}),
   // Testovanie na mobile cez LAN IP (`npm run dev:mobile`) — bez toho Next blokuje
   // dev požiadavky (HMR, /_next) z iného originu než localhost. Len dev, produkcia ignoruje.
-  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
+  // *.trycloudflare.com — HTTPS tunel (`cloudflared tunnel --url http://localhost:3000`),
+  // kamera skenera čiarových kódov na telefóne funguje len cez HTTPS.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.trycloudflare.com"],
   // Default ("loose") CSS chunking duplikoval celý portal.module.css (64 kB)
   // do KAŽDÉHO page-level CSS chunku popri layout.css, ktorý ho už obsahuje —
   // /portal/trening tak sťahoval 128 kB CSS namiesto 64 kB (viď commit). "strict"
@@ -75,10 +77,12 @@ const nextConfig: NextConfig = {
     // Plausible (feature/security#2) — script aj beacon idú na ich vlastnú
     // doménu, treba explicitne povoliť v CSP, inak by script-src/connect-src
     // tichým zamietnutím zablokoval analytics bez akejkoľvek chyby v konzole.
+    // 'wasm-unsafe-eval' (feature/barcode-scanner) — povolí LEN kompiláciu WebAssembly
+    // (ZXing čítačka čiarových kódov z /wasm/, skener v denníku na iPhone), nie eval() JS.
     const isDev = process.env.NODE_ENV === "development";
     const scriptSrc = isDev
-      ? "'self' 'unsafe-inline' 'unsafe-eval' https://plausible.io"
-      : "'self' 'unsafe-inline' https://plausible.io";
+      ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://plausible.io"
+      : "'self' 'unsafe-inline' 'wasm-unsafe-eval' https://plausible.io";
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
@@ -109,7 +113,8 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          // camera=(self) — skener čiarových kódov v denníku (len vlastná doména, nie vložené rámce)
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
           // Izoluje okno od cudzích okien (ochrana pred tabnabbingom a únikmi cez
           // window.opener). Appka nepoužíva popup OAuth, takže nič nerozbije.

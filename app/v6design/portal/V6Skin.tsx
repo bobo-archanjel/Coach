@@ -7,11 +7,12 @@ import builder from "./styles/builder.module.css";
 import chat from "./styles/chat.module.css";
 import exerciseDetail from "./styles/exerciseDetail.module.css";
 import exerciseThumb from "./styles/exerciseThumb.module.css";
+import food from "../styles/food.module.css";
 
 /* Komponenty portálu (tie isté ako na /portal) dostanú pod /v6design štýly
    nového dizajnu a cesty /v6design/portal — správanie aj flow ostávajú ich. */
 const V6_SKIN = {
-  styles: { portal, builder, chat, exerciseDetail, exerciseThumb },
+  styles: { portal, builder, chat, exerciseDetail, exerciseThumb, food },
   portalBase: "/v6design/portal",
 };
 

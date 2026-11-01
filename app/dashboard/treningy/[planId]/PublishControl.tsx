@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { setPlanPublishedAction, deletePlanAction, type ActionState } from "../actions";
 import dashboardModule from "../../dashboard.module.css";
 import { useSkinStyles } from "@/app/components/uiSkin";
@@ -28,13 +28,24 @@ export function PublishBadge({ published }: { published: boolean }) {
  * riadok šablóny pod ním (templateGrid), aby boli tlačidlá na stránke plánu
  * súmerné. Publikovanie je jednosmerné: po ňom obe akcie zmiznú.
  */
-export function PublishActions({ planId, published }: { planId: string; published: boolean }) {
+export function PublishActions({
+  planId,
+  published,
+  recipientCount = 0,
+}: {
+  planId: string;
+  published: boolean;
+  /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
+  recipientCount?: number;
+}) {
   const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(setPlanPublishedAction, initialState);
   // Stav pri názve sa mení trvalo (podľa `published` z DB), ale samotná zmena je
   // ľahko prehliadnuteľná — táto správa na pár sekúnd jasne potvrdí, že klik
   // niečo reálne uložil (nie len že sa nič nestalo).
   const [justSaved, setJustSaved] = useState(false);
+  // koľkým klientom sa posielalo — po odoslaní príjemcovia z DB zmiznú (prop je potom 0)
+  const sentTo = useRef(1);
 
   // Zmazanie konceptu — dvojkrokové inline potvrdenie (rovnaký vzor ako DangerZone).
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -60,7 +71,7 @@ export function PublishActions({ planId, published }: { planId: string; publishe
   const confirmMsg = justSaved && !state.error && (
     <span className={`${styles.publishConfirm} ${styles.templateStatus}`} role="status">
       <CheckIcon />
-      Uložené — klient tréning už vidí.
+      {sentTo.current > 1 ? `Poslané ${sentTo.current} klientom — tréning už vidia.` : "Uložené — klient tréning už vidí."}
     </span>
   );
 
@@ -85,11 +96,11 @@ export function PublishActions({ planId, published }: { planId: string; publishe
         </>
       ) : (
         <>
-          <form action={formAction}>
+          <form action={formAction} onSubmit={() => (sentTo.current = 1 + recipientCount)}>
             <input type="hidden" name="plan_id" value={planId} />
             <input type="hidden" name="published" value="true" />
             <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-              {pending ? "Ukladám…" : "Potvrdiť a uložiť"}
+              {pending ? "Posielam…" : recipientCount > 0 ? `Poslať ${recipientCount + 1} klientom` : "Potvrdiť a uložiť"}
             </button>
           </form>
           <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirmingDelete(true)}>

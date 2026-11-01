@@ -1,184 +1,5 @@
-.builderGrid {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 20px;
-  align-items: start;
-}
-/* Na mobile ide plátno (aktívny deň) prvé — tréner ho vidí bez scrollovania cez celú
-   knižnicu potravín. Knižnica je pod ním a defaultne zbalená (viď .library/.libraryBody). */
-@media (max-width: 760px) {
-  /* minmax(0, …), nie 1fr — dlhý obsah knižnice by inak roztiahol stĺpec za okraj
-     telefónu (rovnaká oprava ako v tréningovom builderi). */
-  .builderGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .canvas {
-    order: 1;
-  }
-  .library {
-    order: 2;
-  }
-}
-
-/* ---------- library sidebar ---------- */
-.library {
-  background: var(--card-bg);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-m);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: var(--card-shadow);
-}
-@media (min-width: 761px) {
-  .library {
-    position: sticky;
-    top: 20px;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
-  }
-}
-.libraryToggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 8px;
-  background: none;
-  border: none;
-  padding: 0;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.libraryChevron {
-  display: none;
-  flex: none;
-  color: var(--paper-faint);
-  transition: transform 0.15s ease;
-}
-.libraryChevronOpen {
-  transform: rotate(180deg);
-}
-.libraryHead {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--paper-faint);
-}
-.libraryBody {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-@media (max-width: 760px) {
-  .libraryChevron {
-    display: block;
-  }
-  .libraryBody.collapsed {
-    display: none;
-  }
-}
-.librarySearch {
-  width: 100%;
-  background: var(--fill);
-  border: 1px solid var(--steel-line);
-  color: var(--paper);
-  font-family: inherit;
-  font-size: 13.5px;
-  padding: 9px 12px;
-  border-radius: var(--radius-s);
-}
-@media (max-width: 760px) {
-  .librarySearch,
-  .customExerciseInput {
-    font-size: 16px;
-    padding: 10px 12px;
-  }
-  .libraryItem {
-    min-height: 44px;
-    padding: 10px 12px;
-  }
-}
-.librarySearch::placeholder {
-  color: var(--paper-faint);
-}
-.librarySearch:focus {
-  outline: none;
-  border-color: var(--iron-red);
-}
-.libraryList {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.libraryItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: var(--radius-s);
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--paper);
-  font-family: inherit;
-  font-size: 13.5px;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease;
-}
-.libraryItem:hover:not(:disabled) {
-  background: var(--fill-strong);
-  border-color: var(--steel-line);
-}
-.libraryItem:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.libraryItemMuscle {
-  color: var(--paper-faint);
-  font-size: 11px;
-  white-space: nowrap;
-}
-.libraryEmpty {
-  color: var(--paper-faint);
-  font-size: 13px;
-}
-.libraryHint {
-  color: var(--paper-faint);
-  font-size: 12px;
-}
-.customExerciseForm {
-  border-top: 1px solid var(--steel-line);
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.customExerciseInput {
-  background: var(--fill);
-  border: 1px solid var(--steel-line);
-  color: var(--paper);
-  font-family: inherit;
-  font-size: 13px;
-  padding: 8px 10px;
-  border-radius: var(--radius-s);
-}
-.customExerciseInput::placeholder {
-  color: var(--paper-faint);
-}
-.customFoodMacros {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-}
+/* Knižnica potravín už nie je bočný panel — potraviny pridáva „+“ v riadku jedla cez
+   panel app/components/food/FoodPickerSheet (štýly v food.module.css). */
 
 /* ---------- canvas ---------- */
 .canvas {
@@ -417,18 +238,6 @@
 }
 
 /* Skupina podľa jedla dňa (raňajky/obed/...). */
-.mealGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.mealGroupHead {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--paper-faint);
-}
 
 .exerciseRow {
   display: flex;
@@ -641,7 +450,6 @@
 /* ======================================================================
    v6 — "liquid glass" vrstva nad kópiou pôvodného modulu (neskorší zápis vyhráva).
    ====================================================================== */
-.library,
 .dayPanel {
   border-radius: 26px;
 }
@@ -676,22 +484,9 @@
   border-color: var(--hairline);
   background: var(--surface-solid);
 }
-.librarySearch,
-.customExerciseInput,
 .addDayInput {
   border-radius: 999px;
   border-color: var(--hairline);
-}
-.librarySearch:focus,
-.customExerciseInput:focus {
-  border-color: var(--accent);
-}
-.libraryItem {
-  border-radius: 16px;
-}
-.libraryItem:hover:not(:disabled) {
-  background: var(--fill);
-  border-color: transparent;
 }
 .exerciseSummary {
   color: var(--accent-text);
@@ -751,4 +546,10 @@
   color: var(--danger);
   border-color: var(--danger-line);
   background: var(--danger-soft);
+}
+
+/* Duplikovať (rovnaký štýl ako Premenovať) — zablokované, keď má jedálniček maximum dní */
+.renameDayTab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

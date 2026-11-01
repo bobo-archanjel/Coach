@@ -2063,80 +2063,8 @@ select.addClientInputSm {
   }
 }
 
-/* ---------- /dashboard/sablony — šablóny plánov a jedálničkov (feature/progress-AI-sablona) ---------- */
-.templateFilterRow {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-.templateFilterPill {
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--steel-line);
-  background: var(--fill);
-  color: var(--paper-faint);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-decoration: none;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-.templateFilterPill:hover {
-  color: var(--paper);
-  border-color: var(--paper-faint);
-}
-.templateFilterPillActive {
-  color: var(--paper);
-  border-color: var(--iron-red);
-  background: color-mix(in srgb, var(--iron-red) 16%, var(--ink-3));
-}
-.templateRoster {
-  display: grid;
-  gap: 10px;
-}
-/* Vlastná karta namiesto .clientCard — tá je grid s pevným "1fr auto" (link + chip
-   vpravo), zatiaľ čo šablóna potrebuje stĺpec: hlavička + form na "Použiť" pod sebou. */
-.templateCard {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 18px;
-  background: var(--card-bg);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-m);
-  box-shadow: var(--card-shadow);
-}
-.templateHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.templateHeadActions {
-  display: flex;
-  gap: 6px;
-  flex: none;
-}
-.templateApplyForm {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.templateApplyForm select {
-  flex: 1;
-  min-width: 160px;
-}
-@media (max-width: 480px) {
-  .templateApplyForm {
-    flex-direction: column;
-  }
-  .templateApplyForm select,
-  .templateApplyForm button {
-    width: 100%;
-  }
-}
+/* /dashboard/sablony má vlastný modul (menný priestor skinu „templates“):
+   app/dashboard/sablony/templates.module.css, v6: app/v6design/dashboard/styles/templates.module.css */
 
 /* ---------- /dashboard/analytika — zdravie portfólia + PR widget (feature/analytika-v2) ---------- */
 
@@ -2640,4 +2568,52 @@ select.addClientInputSm {
     padding: 0;
     box-shadow: none;
   }
+}
+
+/* ---------- ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) ---------- */
+.recipients {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.recipientsLabel {
+  color: var(--paper-faint);
+  font-size: 13px;
+  font-weight: 650;
+}
+.recipientChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 650;
+}
+.recipientRemove {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.recipientRemove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.recipientsError {
+  flex-basis: 100%;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
 }

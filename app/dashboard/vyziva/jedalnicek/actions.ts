@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
+import { deliverPlanToRecipients } from "@/lib/planRecipients";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -72,8 +73,13 @@ export async function publishMealPlanAction(_prevState: ActionState, formData: F
   if (error) return { error: dbErr(error, "actions") };
   if (!data) return { error: "Jedálniček sa nenašiel." };
 
+  // šablóna pre viacerých klientov (0052): každý ďalší príjemca dostane vlastnú kópiu
+  const delivery = await deliverPlanToRecipients(supabase, user.id, "meal", planId);
+
   revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
   revalidatePath(`/dashboard/vyziva/${data.client_id}`);
+  for (const clientId of delivery.delivered) revalidatePath(`/dashboard/vyziva/${clientId}`);
+  if (delivery.error) return { error: delivery.error };
   return ok;
 }
 
@@ -251,40 +257,5 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
 
   revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
   revalidatePath(`/dashboard/vyziva/${plan.client_id}`);
-  return ok;
-}
-
-export async function addCustomFoodAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
-
-  const name = (formData.get("name") as string | null)?.trim() ?? "";
-  const kcal = Number(formData.get("kcal_100g"));
-  const protein = Number(formData.get("protein_100g"));
-  const carbs = Number(formData.get("carbs_100g"));
-  const fat = Number(formData.get("fat_100g"));
-
-  if (!name) return { error: "Zadaj názov potraviny." };
-  if (![kcal, protein, carbs, fat].every((n) => Number.isFinite(n) && n >= 0)) {
-    return { error: "Zadaj platné makrá na 100 g." };
-  }
-
-  const { error } = await supabase.from("foods").insert({
-    trainer_id: user.id,
-    name,
-    kcal_100g: kcal,
-    protein_100g: protein,
-    carbs_100g: carbs,
-    fat_100g: fat,
-  });
-
-  if (error) return { error: dbErr(error, "actions") };
-
-  // Nová potravina sa má hneď ukázať v knižnici — bez toho až po reloade, ktorý by
-  // zahodil neuložené úpravy jedálnička (builder ich drží lokálne).
-  revalidatePath("/dashboard/vyziva/jedalnicek/[planId]", "page");
   return ok;
 }

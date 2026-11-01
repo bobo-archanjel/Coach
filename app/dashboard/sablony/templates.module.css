@@ -1,0 +1,170 @@
+/* Šablóny — pôvodný dizajn: len funkčná kostra (rozloženie), bez dolaďovania.
+   Vzhľad sa robí v novom dizajne: app/v6design/dashboard/styles/templates.module.css
+   (rovnaké triedy, menný priestor skinu „templates“). */
+
+.tabs,
+.goals,
+.cardActions,
+.cardMeta,
+.deleteConfirm,
+.dialogActions,
+.dialogHead,
+.clientOption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.tabs,
+.goals {
+  margin-bottom: 14px;
+}
+.tab,
+.goal {
+  padding: 8px 14px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper-dim);
+  text-decoration: none;
+}
+.tabActive,
+.goalActive {
+  border-color: var(--iron-red);
+  color: var(--paper);
+}
+.tabCount {
+  color: var(--paper-faint);
+}
+.search {
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: var(--ink-2);
+  color: var(--paper);
+  font-size: 16px;
+}
+.empty,
+.previewEmpty,
+.cardMeta,
+.previewCount,
+.previewItems,
+.dialogSub {
+  color: var(--paper-faint);
+  font-size: 13px;
+}
+.grid,
+.preview,
+.clientList,
+.cardHead,
+.previewDay {
+  display: grid;
+  gap: 10px;
+}
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+.card,
+.dialog {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+  background: var(--ink-2);
+}
+.cardName {
+  font-size: 16px;
+}
+.previewToggle,
+.deleteBtn {
+  border: 0;
+  background: none;
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.deleteBtn,
+.error {
+  color: var(--error);
+}
+.deleteBtn,
+.deleteConfirm {
+  margin-left: auto;
+}
+.chevronOpen {
+  transform: rotate(90deg);
+}
+.preview {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dialogLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.dialogScrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+.dialog {
+  position: relative;
+  width: min(460px, 100%);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.dialogHead {
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+.dialogClose {
+  border: 1px solid var(--steel-line);
+  border-radius: 50%;
+  background: none;
+  color: var(--paper);
+  width: 36px;
+  height: 36px;
+}
+.clientOption {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--paper);
+  text-align: left;
+}
+.clientOptionOn {
+  border-color: var(--iron-red);
+}
+.dialogActions {
+  justify-content: flex-end;
+}
+
+/* výber viacerých klientov */
+.selectRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.selectAll {
+  border: 0;
+  background: none;
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.clientName {
+  flex: 1;
+}
+.clientCheckOn::after {
+  content: "✓";
+}

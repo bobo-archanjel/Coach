@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { deleteMealPlanAction, publishMealPlanAction, type ActionState } from "../actions";
 import { saveMealTemplateAction } from "../../../sablony/actions";
@@ -64,25 +64,31 @@ function useDeleteMealPlan(planId: string) {
 }
 
 /**
- * "Zverejniť" | "Zmazať koncept" — len kým je jedálniček koncept. S neuloženými
- * zmenami v builderi (`dirty`) zverejní až po ich uložení („Uložiť a zverejniť").
+ * "Poslať klientovi" (= zverejniť) | "Zmazať koncept" — len kým je jedálniček koncept.
+ * S neuloženými zmenami v builderi (`dirty`) ho pošle až po ich uložení („Uložiť a poslať").
  */
 export function MealPublishActions({
   planId,
   published,
   dirty = false,
   saveFirst,
+  recipientCount = 0,
 }: {
   planId: string;
   published: boolean;
   dirty?: boolean;
   saveFirst?: () => Promise<boolean>;
+  /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
+  recipientCount?: number;
 }) {
   const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(publishMealPlanAction, initialState);
   const [, startPublish] = useTransition();
+  // koľkým klientom sa posielalo — po odoslaní príjemcovia z DB zmiznú (prop je potom 0)
+  const sentTo = useRef(1);
   const publish = async () => {
     if (dirty && saveFirst && !(await saveFirst())) return;
+    sentTo.current = 1 + recipientCount;
     const fd = new FormData();
     fd.set("plan_id", planId);
     startPublish(() => formAction(fd));
@@ -100,7 +106,7 @@ export function MealPublishActions({
   const confirmMsg = justPublished && !state.error && (
     <span className={`${styles.publishConfirm} ${styles.templateStatus}`} role="status">
       <CheckIcon />
-      Zverejnené — klient jedálniček už vidí.
+      {sentTo.current > 1 ? `Poslané ${sentTo.current} klientom — jedálniček už vidia.` : "Poslané — klient jedálniček už vidí."}
     </span>
   );
 
@@ -126,8 +132,14 @@ export function MealPublishActions({
       ) : (
         <>
           <button type="button" className="btn btn-primary btn-sm" onClick={() => void publish()} disabled={pending}>
-            {/* Krátko — „Potvrdiť a zverejniť" sa v polovičnej šírke na telefóne lámalo. */}
-            {pending ? "Zverejňujem…" : dirty ? "Uložiť a zverejniť" : "Zverejniť"}
+            {/* Krátko — dlhý text sa v polovičnej šírke na telefóne lámal („Uložiť a poslať"). */}
+            {pending
+              ? "Posielam…"
+              : recipientCount > 0
+                ? `${dirty ? "Uložiť a poslať" : "Poslať"} ${recipientCount + 1} klientom`
+                : dirty
+                  ? "Uložiť a poslať"
+                  : "Poslať klientovi"}
           </button>
           <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => del.setConfirming(true)}>
             Zmazať koncept

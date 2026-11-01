@@ -130,6 +130,8 @@ async function main() {
     const { error } = await supabase.from("foods").upsert(
       {
         trainer_id: null,
+        // 0050: default stĺpca je 'user' (s autorom) — import je globálna knižnica
+        source: "import",
         external_id: String(food.fdcId),
         name: entry.nameSk,
         ...macros,

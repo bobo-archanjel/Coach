@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
+import { listPlanRecipients } from "@/lib/planRecipients";
 import { MealPlanBuilder } from "./MealPlanBuilder";
 import { MealPlanFooterActions, MealPublishBadge } from "./MealPlanControls";
 import { PlanTitle } from "../../../treningy/[planId]/PlanTitle";
@@ -34,7 +36,8 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
       .eq("id", planId)
       .maybeSingle(),
     supabase.from("meal_days").select("id, day_number, name, meals").eq("plan_id", planId).order("day_number"),
-    supabase.from("foods").select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g").order("name"),
+    // bez produktov uložených skenerom klientov (source='off', 0050) — knižnica by nimi rástla
+    supabase.from("foods").select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g").neq("source", "off").order("name"),
   ]);
 
   if (!plan) {
@@ -42,6 +45,8 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   }
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
+  // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú jedálniček aj títo
+  const recipients = await listPlanRecipients(supabase, "meal", planId);
 
   // Portál ukazuje najnovší zverejnený jedálniček — je to tento?
   let visibleToClient = false;
@@ -71,13 +76,20 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
           <div className={styles.clientGoal}>
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
+          <PlanRecipients kind="meal" planId={planId} published={plan.published} recipients={recipients} />
         </div>
         <MealPublishBadge published={plan.published} visibleToClient={visibleToClient} />
       </div>
 
       {/* Akcie konceptu (Zverejniť | Zmazať koncept) renderuje builder — potrebujú vedieť
           o neuložených zmenách. */}
-      <MealPlanBuilder planId={planId} published={plan.published} days={days ?? []} library={foods ?? []} />
+      <MealPlanBuilder
+        planId={planId}
+        published={plan.published}
+        days={days ?? []}
+        library={foods ?? []}
+        recipientCount={recipients.length}
+      />
 
       <div className={styles.planFooterActions}>
         <MealPlanFooterActions

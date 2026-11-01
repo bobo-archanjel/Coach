@@ -311,10 +311,34 @@ export interface PortalFoodOption {
   protein100g: number;
   carbs100g: number;
   fat100g: number;
-  /** len pri "z plánu" — koľko gramov tréner naplánoval a v ktorom jedle dňa */
-  plannedGrams?: number;
-  plannedSlot?: MealSlot;
+  /** skener (0050): pôvod potraviny — pri 'off' karta ukáže „Zdroj: Open Food Facts“ */
+  source?: FoodSource;
+  barcode?: string | null;
+  /** veľkosť porcie v g — predvyplnená gramáž po skene (inak 100 g) */
+  servingGrams?: number | null;
+  fiber100g?: number | null;
+  sugars100g?: number | null;
+  salt100g?: number | null;
 }
+
+export type FoodSource = "import" | "off" | "user";
+
+/** Čo o kóde vieme, keď produkt nemáme celý — predvyplní formulár „Založiť potravinu“. */
+export interface BarcodePrefill {
+  barcode: string;
+  name: string | null;
+  brand: string | null;
+  kcal100g: number | null;
+  protein100g: number | null;
+  carbs100g: number | null;
+  fat100g: number | null;
+}
+
+/** Odpoveď GET /api/potraviny/kod/[ean]. */
+export type BarcodeLookupResult =
+  | { status: "found"; food: PortalFoodOption }
+  | { status: "not_found"; food: BarcodePrefill }
+  | { status: "invalid" | "error"; error: string };
 
 export interface PortalDiaryEntry {
   id: string;
@@ -338,13 +362,9 @@ export interface PortalDiaryData {
   today: string; // ISO (YYYY-MM-DD), Europe/Bratislava
   /** zobrazený deň denníka (YYYY-MM-DD) — dnešok alebo deň zvolený cez ?date= */
   date: string;
-  /** hodina dňa 0-23 — na predvolený výber jedla dňa pri pridávaní */
-  hour: number;
   goal: PortalMacroGoal | null;
   groups: PortalDiaryGroup[];
   totals: { kcal: number; proteinG: number; carbsG: number; fatG: number };
-  /** položky z najnovšieho trénerovho jedálnička na rýchle pridanie */
-  planFoods: PortalFoodOption[];
 }
 
 export type PortalDiaryResult =

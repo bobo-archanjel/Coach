@@ -52,3 +52,24 @@ export function sumMacros(items: ScaledMacros[]): ScaledMacros {
     { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   );
 }
+
+/**
+ * Kontrola zadaných hodnôt na 100 g: kcal by mali zhruba sedieť s 4·B + 4·S + 9·T.
+ * Vráti odhad z makier, ak sa líši o viac ako `tolerance` (15 %), inak null — len
+ * upozornenie, nie chyba (alkohol, vláknina či polyoly odhad prirodzene posunú).
+ * Pri veľmi nízkych hodnotách (voda, light nápoje) sa nekontroluje — tam je aj
+ * pár kcal rozdielu veľké percento.
+ */
+export function kcalMismatch(
+  kcal: number,
+  protein: number,
+  carbs: number,
+  fat: number,
+  tolerance = 0.15,
+): { estimatedKcal: number } | null {
+  if (![kcal, protein, carbs, fat].every((n) => Number.isFinite(n) && n >= 0)) return null;
+  const estimated = 4 * protein + 4 * carbs + 9 * fat;
+  const larger = Math.max(kcal, estimated);
+  if (larger < 20) return null;
+  return Math.abs(kcal - estimated) / larger > tolerance ? { estimatedKcal: Math.round(estimated) } : null;
+}
