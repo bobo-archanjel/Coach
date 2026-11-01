@@ -8,6 +8,25 @@ import { dbErr } from "@/lib/dbError";
 
 export type PlanKind = "workout" | "meal";
 
+/** Najviac klientov naraz pre jeden koncept (šablóna, Nový plán). */
+export const MAX_PLAN_CLIENTS = 50;
+
+/** Platné, unikátne ID klientov z formulára (FormData.getAll / pole z prehliadača). */
+export function uniqueClientIds(raw: unknown[]): string[] {
+  return [...new Set(raw.filter((id): id is string => typeof id === "string" && id !== ""))];
+}
+
+/** Patria všetci klienti trénerovi? (pred vytvorením konceptu — inak by vznikol zbytočne) */
+export async function areTrainerClients(supabase: SupabaseClient, trainerId: string, clientIds: string[]): Promise<boolean> {
+  if (clientIds.length === 0) return true;
+  const { count } = await supabase
+    .from("clients")
+    .select("id", { count: "exact", head: true })
+    .in("id", clientIds)
+    .eq("trainer_id", trainerId);
+  return count === clientIds.length;
+}
+
 const PLAN_COLUMN = { workout: "workout_plan_id", meal: "meal_plan_id" } as const;
 
 export interface PlanRecipient {

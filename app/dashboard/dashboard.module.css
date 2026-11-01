@@ -684,6 +684,27 @@ select.addClientInputSm {
 .fieldGridFull {
   grid-column: 1 / -1;
 }
+/* Nový plán / AI pre viacerých klientov — pôvodný dizajn len kostra, vzhľad v v6. */
+.formHint,
+.aiBatchError {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.aiBatch,
+.aiBatchList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.aiBatchBar {
+  height: 6px;
+  background: var(--steel-line);
+}
+.aiBatchBar > span {
+  display: block;
+  height: 100%;
+  background: var(--iron-red);
+}
 .addClientError {
   margin-top: 8px;
   font-size: 13px;

@@ -23,7 +23,8 @@ export type SkinNamespace =
   | "infoTip"
   | "auth"
   | "food"
-  | "templates";
+  | "templates"
+  | "clientPicker";
 
 type Skin = {
   styles: Partial<Record<SkinNamespace, CssModule>>;

@@ -60,6 +60,8 @@ export interface PlanGeneratorInput {
   /** ID z reserveAiSlot() — dokončí sa po volaní modelu (viď lib/ai/rateLimit.ts) */
   reservationId?: string | null;
   focus: PlanFocus;
+  /** „Údaje o klientovi“ (lib/ai/planClientContext.ts) — plán sa prispôsobí konkrétnemu klientovi */
+  clientContext?: string[];
 }
 
 export interface GeneratedExercise {
@@ -399,6 +401,15 @@ export async function generateWorkoutPlan(
   if (!singleDay) {
     const focusLine = FOCUS_PROMPT[input.focus as WholePlanFocus];
     if (focusLine) userMessageParts.push("", focusLine);
+  }
+  if (input.clientContext && input.clientContext.length > 0) {
+    // Cieľ a skúsenosť vyššie zadal tréner (aj pre viacerých klientov naraz) — údaje
+    // konkrétneho klienta ich spresňujú; obmedzenia z poznámky trénera majú prednosť.
+    userMessageParts.push(
+      "",
+      "Údaje o klientovi — prispôsob im výber cvikov a objem. Zdravotné obmedzenia a zranenia z poznámky trénera VŽDY rešpektuj (vynechaj cviky, ktoré by ich zaťažovali):",
+      ...input.clientContext,
+    );
   }
   userMessageParts.push(
     "",
