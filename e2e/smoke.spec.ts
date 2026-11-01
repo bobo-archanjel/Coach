@@ -102,7 +102,7 @@ test.describe("Prihlásenie /prihlasenie", () => {
 test.describe("Auth guardy", () => {
   // Layout má DEV_OPEN (ako portál) — v `next dev` neredirectuje; tieto stránky
   // však robia vlastný `if (!user) redirect("/prihlasenie")`, takže chránené sú aj tak.
-  for (const path of ["/dashboard", "/dashboard/treningy", "/dashboard/vyziva"]) {
+  for (const path of ["/dashboard", "/dashboard/treningy", "/dashboard/jedalnicky"]) {
     test(`${path} bez session → /prihlasenie`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/prihlasenie/);

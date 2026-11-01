@@ -10,7 +10,7 @@ import {
   applyMealTemplateToClient,
   deleteMealTemplate,
 } from "@/lib/templates";
-import { addPlanRecipients } from "@/lib/planRecipients";
+import { addPlanRecipients, areTrainerClients, MAX_PLAN_CLIENTS, uniqueClientIds } from "@/lib/planRecipients";
 
 export interface ActionState {
   error: string | null;
@@ -37,7 +37,7 @@ export async function saveWorkoutTemplateAction(_prevState: ActionState, formDat
   return ok;
 }
 
-/** "Uložiť ako šablónu" na detaile jedálničku (`/dashboard/vyziva/jedalnicek/[planId]`). */
+/** "Uložiť ako šablónu" na detaile jedálničku (`/dashboard/jedalnicky/jedalnicek/[planId]`). */
 export async function saveMealTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
   const {
@@ -62,9 +62,6 @@ export interface ApplyToClientsResult {
   href: string | null;
 }
 
-/** horná hranica naraz — šablóna pre celú skupinu klientov, nie hromadný import */
-const MAX_APPLY_CLIENTS = 50;
-
 /**
  * „Použiť“ šablónu pre jedného alebo viacerých klientov — vznikne JEDEN koncept (pre prvého
  * vybraného klienta) a ostatní sa uložia ako jeho ďalší príjemcovia (0052). Tréner koncept
@@ -83,20 +80,12 @@ export async function applyTemplateToClientsAction(
   } = await supabase.auth.getUser();
   if (!user) return fail("Nie si prihlásený.");
   if (!templateId) return fail("Chýba šablóna.");
-  const ids = [...new Set(clientIds.filter((id) => typeof id === "string" && id))];
+  const ids = uniqueClientIds(clientIds);
   if (ids.length === 0) return fail("Vyber aspoň jedného klienta.");
-  if (ids.length > MAX_APPLY_CLIENTS) return fail(`Naraz najviac ${MAX_APPLY_CLIENTS} klientov.`);
+  if (ids.length > MAX_PLAN_CLIENTS) return fail(`Naraz najviac ${MAX_PLAN_CLIENTS} klientov.`);
 
   const [mainClientId, ...others] = ids;
-  if (others.length > 0) {
-    // ostatní musia byť tiež trénerovi klienti — inak by sa koncept vytvoril zbytočne
-    const { count } = await supabase
-      .from("clients")
-      .select("id", { count: "exact", head: true })
-      .in("id", others)
-      .eq("trainer_id", user.id);
-    if (count !== others.length) return fail("Niektorý z vybraných klientov nepatrí tebe.");
-  }
+  if (!(await areTrainerClients(supabase, user.id, others))) return fail("Niektorý z vybraných klientov nepatrí tebe.");
 
   const applied =
     kind === "workout"
@@ -111,10 +100,10 @@ export async function applyTemplateToClientsAction(
     return fail(`Ďalších klientov sa nepodarilo pridať: ${recipientsError}`);
   }
 
-  revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/vyziva");
+  revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/jedalnicky");
   return {
     error: null,
-    href: kind === "workout" ? `/dashboard/treningy/${applied.planId}` : `/dashboard/vyziva/jedalnicek/${applied.planId}`,
+    href: kind === "workout" ? `/dashboard/treningy/${applied.planId}` : `/dashboard/jedalnicky/jedalnicek/${applied.planId}`,
   };
 }
 

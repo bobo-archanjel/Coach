@@ -49,6 +49,14 @@ const nextConfig: NextConfig = {
   // Hlavička X-Powered-By: Next.js zbytočne prezrádza technológiu (usmerňuje útočníka
   // na známe zraniteľnosti konkrétneho frameworku) — nič nerobí, tak preč.
   poweredByHeader: false,
+  // Sekcia „Výživa“ sa premenovala na „Jedálničky“ — staré odkazy (záložky, notifikácie,
+  // e-maily) nech trvalo vedú na novú adresu vrátane podstránok (klient, jedálniček).
+  async redirects() {
+    return [
+      { source: "/dashboard/vyziva", destination: "/dashboard/jedalnicky", permanent: true },
+      { source: "/dashboard/vyziva/:path*", destination: "/dashboard/jedalnicky/:path*", permanent: true },
+    ];
+  },
   images: {
     // Obrázky cvikov z Free Exercise DB (scripts/import-exercises.mjs) — len
     // externé URL, žiadne kopírovanie do Supabase Storage (šetrí 2 GB free

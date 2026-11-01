@@ -54,6 +54,25 @@ export function sumMacros(items: ScaledMacros[]): ScaledMacros {
 }
 
 /**
+ * Priemerné kcal na deň jedálnička (zoznam jedálničkov v detaile klienta). Počíta len dni,
+ * ktoré majú aspoň jednu položku; `meals` je JSONB z meal_days (neplatné položky sa preskočia).
+ * Jedálniček bez jedál → null.
+ */
+export function mealPlanAvgDayKcal(days: { meals: unknown }[]): number | null {
+  const dayKcal: number[] = [];
+  for (const day of days) {
+    const entries = (Array.isArray(day.meals) ? day.meals : []).filter(
+      (e): e is FoodMacros100g & { grams: number } =>
+        !!e && typeof e === "object" && Number.isFinite((e as { grams?: unknown }).grams) && Number.isFinite((e as { kcal_100g?: unknown }).kcal_100g),
+    );
+    if (entries.length === 0) continue;
+    dayKcal.push(entries.reduce((sum, e) => sum + (e.kcal_100g * e.grams) / 100, 0));
+  }
+  if (dayKcal.length === 0) return null;
+  return Math.round(dayKcal.reduce((a, b) => a + b, 0) / dayKcal.length);
+}
+
+/**
  * Kontrola zadaných hodnôt na 100 g: kcal by mali zhruba sedieť s 4·B + 4·S + 9·T.
  * Vráti odhad z makier, ak sa líši o viac ako `tolerance` (15 %), inak null — len
  * upozornenie, nie chyba (alkohol, vláknina či polyoly odhad prirodzene posunú).

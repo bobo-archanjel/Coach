@@ -5,7 +5,7 @@
 import { createPdfContext, PdfWriter, truncate, type TableColumn } from "./document";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 
-/** Tvar položky v meal_days.meals (JSONB), viď MealEntry v app/dashboard/vyziva/jedalnicek/actions.ts. */
+/** Tvar položky v meal_days.meals (JSONB), viď MealEntry v app/dashboard/jedalnicky/jedalnicek/actions.ts. */
 export interface MealPlanReportEntry {
   food_name?: string;
   meal_slot?: MealSlot;

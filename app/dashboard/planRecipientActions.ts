@@ -6,7 +6,7 @@ import { deliverPlanToRecipients, type PlanKind } from "@/lib/planRecipients";
 import { dbErr } from "@/lib/dbError";
 
 const builderPath = (kind: PlanKind, planId: string) =>
-  kind === "workout" ? `/dashboard/treningy/${planId}` : `/dashboard/vyziva/jedalnicek/${planId}`;
+  kind === "workout" ? `/dashboard/treningy/${planId}` : `/dashboard/jedalnicky/jedalnicek/${planId}`;
 
 /** Odobrať ďalšieho príjemcu konceptu (šablóna pre viacerých klientov, 0052) — ešte pred odoslaním. */
 export async function removePlanRecipientAction(kind: PlanKind, planId: string, clientId: string): Promise<{ error: string | null }> {
@@ -42,6 +42,6 @@ export async function sendToRemainingRecipientsAction(kind: PlanKind, planId: st
   if (!plan?.published) return { error: "Plán ešte nie je odoslaný." };
   const delivery = await deliverPlanToRecipients(supabase, user.id, kind, planId);
   revalidatePath(builderPath(kind, planId));
-  revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/vyziva");
+  revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/jedalnicky");
   return { error: delivery.error };
 }

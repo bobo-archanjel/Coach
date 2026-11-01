@@ -9,7 +9,11 @@ import { parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed"
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
+import { CreateMealPlanButton } from "./CreateMealPlanButton";
+import { NutritionForm } from "./NutritionForm";
 import { dashStyles } from "@/app/dashboard/dashSkin";
+import { mealPlanAvgDayKcal } from "@/lib/meals";
+import { pluralSk } from "@/lib/portal/streak";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -54,11 +58,11 @@ export default async function ClientDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ preview?: string }>;
+  searchParams: Promise<{ preview?: string; sekcia?: string }>;
 }) {
   const styles = await dashStyles();
   const { id } = await params;
-  const { preview } = await searchParams;
+  const { preview, sekcia } = await searchParams;
 
   if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV === "development") {
     const empty = preview === "progress_empty";
@@ -160,8 +164,15 @@ export default async function ClientDetailPage({
       ),
     }));
 
-  const [{ data: client }, { plans, planCompletion }, { data: nutrition }, { data: logs }, { data: privateNote }] =
-    await Promise.all([
+  const [
+    { data: client },
+    { plans, planCompletion },
+    { data: nutrition },
+    { data: logs },
+    { data: privateNote },
+    { data: mealPlans },
+    { data: nutritionNote },
+  ] = await Promise.all([
       supabase
         .from("clients")
         .select(
@@ -170,9 +181,10 @@ export default async function ClientDetailPage({
         .eq("id", id)
         .maybeSingle(),
       plansWithCompletion,
+      // Vstupné údaje a výsledok makier (sekcia Jedálničky, NutritionForm) aj makro cieľ pre Analytiku.
       supabase
         .from("nutrition_profiles")
-        .select("calories_target, protein_g, carbs_g, fat_g")
+        .select("sex, age, weight_kg, height_cm, activity_level, goal, bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
         .eq("client_id", id)
         .maybeSingle(),
       supabase
@@ -184,6 +196,15 @@ export default async function ClientDetailPage({
       // Súkromná poznámka trénera (trainer_private_notes, 0036) — klient ju nevidí.
       // Tabuľka ešte nemusí existovať (pred migráciou) → data je vtedy null, stránka funguje.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "client").maybeSingle(),
+      // Jedálničky klienta od najnovšieho — RLS meal_plans_select_own_trainer: len tréner klienta.
+      // meal_days(meals) kvôli priemerným kcal na deň (lib/meals.ts).
+      supabase
+        .from("meal_plans")
+        .select("id, name, created_at, published, meal_days(meals)")
+        .eq("client_id", id)
+        .order("created_at", { ascending: false }),
+      // Poznámka trénera k strave (alergie, intolerancie, preferencie) — klient ju nevidí; v NutritionForm.
+      supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "nutrition").maybeSingle(),
     ]);
 
   if (!client) {
@@ -199,10 +220,29 @@ export default async function ClientDetailPage({
     year: "numeric",
   });
 
+  // Hlavička karty sekcie — rovnaká vo všetkých sekciách (nadpis + počet/akcia vpravo).
+  const cardHead = (title: string, side?: React.ReactNode) => (
+    <div className={styles.sectionHead}>
+      <h3>{title}</h3>
+      {side}
+    </div>
+  );
+  const count = (n: number, one: string, few: string, many: string) => (
+    <span className={styles.sectionMeta}>
+      {n} {pluralSk(n, one, few, many)}
+    </span>
+  );
+
+  // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
+  const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
+  const shortDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Bratislava" });
+
   const sections: ClientDetailSection[] = [
     // Poradie = poradie kariet; prvá sa otvorí po kliknutí na klienta. Tréner sa
-    // najčastejšie pozerá na tréningy, potom analytiku; Info (kód, poznámky, ukončenie)
-    // je posledné. Analytika sa dostreamuje na pozadí aj keď nie je otvorená.
+    // najčastejšie pozerá na tréningy, potom jedálničky a analytiku; Info (kód, poznámky,
+    // ukončenie) je posledné. Analytika sa dostreamuje na pozadí aj keď nie je otvorená.
+    // Každá sekcia = stĺpec kariet .card s rovnakou hlavičkou (cardHead) — aj na mobile.
     {
       id: "treningy",
       label: "Tréningy",
@@ -210,8 +250,8 @@ export default async function ClientDetailPage({
       // samostatná karta "Aktivita" pôsobila ako duplicita tejto.
       content: (
         <div className={styles.cardStack}>
-          <div className={`${styles.card} ${styles.cardFlatMobile}`}>
-            <h3>Tréningové plány</h3>
+          <div className={styles.card}>
+            {cardHead("Tréningové plány", plans && plans.length > 0 ? count(plans.length, "plán", "plány", "plánov") : undefined)}
             {plans && plans.length > 0 ? (
               <div className={styles.roster}>
                 {plans.map((plan) => {
@@ -237,8 +277,8 @@ export default async function ClientDetailPage({
               </p>
             )}
           </div>
-          <div className={`${styles.card} ${styles.cardFlatMobile}`}>
-            <h3>Posledná aktivita</h3>
+          <div className={styles.card}>
+            {cardHead("Posledná aktivita")}
             {logs && logs.length > 0 ? (
               <div className={styles.roster}>
                 {logs.map((log) => {
@@ -280,6 +320,60 @@ export default async function ClientDetailPage({
       ),
     },
     {
+      id: "jedalnicky",
+      label: "Jedálničky",
+      content: (
+        <div className={styles.cardStack}>
+          {/* Vstupné údaje + Výsledok (BMR, TDEE, kalorický cieľ, makrá) — predtým na
+              /dashboard/jedalnicky/[clientId], teraz rovno pri klientovi. */}
+          <NutritionForm
+            clientId={id}
+            profile={nutrition ? { ...nutrition, notes: nutritionNote?.notes ?? null } : null}
+            defaults={{ age: client.age, weight_kg: client.weight_kg, height_cm: client.height_cm }}
+          />
+          <div className={styles.card}>
+            {cardHead(
+              "Jedálničky",
+              mealPlans && mealPlans.length > 0 ? count(mealPlans.length, "jedálniček", "jedálničky", "jedálničkov") : undefined,
+            )}
+            {mealPlans && mealPlans.length > 0 ? (
+              <div className={styles.roster}>
+                {mealPlans.map((plan) => {
+                  const days = (plan.meal_days as unknown as { meals: unknown }[] | null) ?? [];
+                  const kcal = mealPlanAvgDayKcal(days);
+                  return (
+                    <Link key={plan.id} href={`/dashboard/jedalnicky/jedalnicek/${plan.id}`} className={styles.logLinkRow}>
+                      <span>
+                        <span className={styles.clientName}>{plan.name}</span>
+                        <span className={styles.logLinkMeta}>
+                          Vytvorený {shortDate(plan.created_at)} · {days.length} {pluralSk(days.length, "deň", "dni", "dní")}
+                        </span>
+                      </span>
+                      <span className={styles.logLinkSide}>
+                        <span className={styles.clientSince}>{kcal != null ? `≈ ${kcal} kcal/deň` : "bez jedál"}</span>
+                        {!plan.published ? (
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>Koncept</span>
+                        ) : plan.id === activeMealPlanId ? (
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>Aktívny</span>
+                        ) : (
+                          <span className={`${styles.statusChip} ${styles.ended}`}>Archivovaný</span>
+                        )}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.sectionEmpty}>
+                <p className={styles.noWorkouts}>Klient zatiaľ nemá žiadny jedálniček.</p>
+                <CreateMealPlanButton clientId={id} defaultName={`Jedálniček ${shortDate(new Date().toISOString())}`} />
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
       id: "analytika",
       label: "Analytika",
       content: (
@@ -292,40 +386,41 @@ export default async function ClientDetailPage({
       id: "info",
       label: "Info",
       content: (
-        <div className={styles.card}>
-          <h3>Informácie</h3>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Klient od</span>
-            <span className={styles.infoValue}>{memberSince}</span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Pozývací kód</span>
-            <span className={styles.infoValue}>{client.invite_code}</span>
-          </div>
-          {(client.age || client.weight_kg || client.height_cm) && (
+        <div className={styles.cardStack}>
+          <div className={styles.card}>
+            {cardHead("Informácie")}
             <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Vek / váha / výška</span>
-              <span className={styles.infoValue}>
-                {[
-                  client.age ? `${client.age} rokov` : null,
-                  client.weight_kg ? `${client.weight_kg} kg` : null,
-                  client.height_cm ? `${client.height_cm} cm` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
+              <span className={styles.infoLabel}>Klient od</span>
+              <span className={styles.infoValue}>{memberSince}</span>
             </div>
-          )}
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Poznámky</span>
-            {privateNote?.notes ? (
-              <span className={styles.infoValue}>{privateNote.notes}</span>
-            ) : (
-              <span className={styles.notesEmpty}>Žiadne poznámky</span>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Pozývací kód</span>
+              <span className={styles.infoValue}>{client.invite_code}</span>
+            </div>
+            {(client.age || client.weight_kg || client.height_cm) && (
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Vek / váha / výška</span>
+                <span className={styles.infoValue}>
+                  {[
+                    client.age ? `${client.age} rokov` : null,
+                    client.weight_kg ? `${client.weight_kg} kg` : null,
+                    client.height_cm ? `${client.height_cm} cm` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              </div>
             )}
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Poznámky</span>
+              {privateNote?.notes ? (
+                <span className={styles.infoValue}>{privateNote.notes}</span>
+              ) : (
+                <span className={styles.notesEmpty}>Žiadne poznámky</span>
+              )}
+            </div>
           </div>
-
-          <div style={{ marginTop: 6 }}>
+          <div className={styles.card}>
             <DangerZone
               clientId={id}
               firstName={firstName}
@@ -353,7 +448,8 @@ export default async function ClientDetailPage({
         </div>
       </div>
 
-      <ClientDetailTabs sections={sections} />
+      {/* key: odkaz na inú ?sekcia= (napr. z Analytiky) prepne záložku aj bez reloadu */}
+      <ClientDetailTabs key={sekcia ?? ""} sections={sections} initialId={sekcia} />
     </>
   );
 }

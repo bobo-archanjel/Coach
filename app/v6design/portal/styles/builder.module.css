@@ -26,6 +26,7 @@
 }
 .dayTab,
 .addDayTab,
+.dayActionTab,
 .deleteDayTab {
   min-height: 42px;
   padding: 9px 16px;
@@ -65,6 +66,19 @@
   background: transparent;
   border: 1px solid transparent;
   color: var(--paper-faint);
+}
+/* "Duplikovať" — tiché ako "Zmazať deň", bez deštruktívneho odtieňa */
+.dayActionTab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper-faint);
+}
+.dayActionTab:hover:not(:disabled) {
+  color: var(--paper);
+}
+.dayActionTab:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .deleteDayTab:hover {
   color: var(--error);

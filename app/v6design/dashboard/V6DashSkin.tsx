@@ -12,11 +12,12 @@ import exerciseDetail from "../portal/styles/exerciseDetail.module.css";
 import exerciseThumb from "../portal/styles/exerciseThumb.module.css";
 import food from "../styles/food.module.css";
 import templates from "./styles/templates.module.css";
+import clientPicker from "./styles/clientPicker.module.css";
 
 /* Klientske komponenty dashboardu (tie isté ako bez skinu) dostanú štýly v6 —
    layout /dashboard ho nasadí len pri zapnutom experimente (cookie fp-dash-skin). */
 const V6_DASH_SKIN = {
-  styles: { dashboard, builder, mealBuilder, completed, infoTip, chat, exerciseDetail, exerciseThumb, food, templates },
+  styles: { dashboard, builder, mealBuilder, completed, infoTip, chat, exerciseDetail, exerciseThumb, food, templates, clientPicker },
   portalBase: "/portal",
 };
 

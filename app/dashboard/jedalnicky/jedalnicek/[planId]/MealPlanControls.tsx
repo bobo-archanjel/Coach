@@ -65,19 +65,26 @@ function useDeleteMealPlan(planId: string) {
 
 /**
  * "Poslať klientovi" (= zverejniť) | "Zmazať koncept" — len kým je jedálniček koncept.
- * S neuloženými zmenami v builderi (`dirty`) ho pošle až po ich uložení („Uložiť a poslať").
+ * S neuloženými zmenami v builderi (`dirty`) ho pošle až po ich uložení („Uložiť a poslať") —
+ * koncept nemá spodnú lištu „Uložiť zmeny", ukladá sa len týmto tlačidlom.
  */
 export function MealPublishActions({
   planId,
   published,
   dirty = false,
   saveFirst,
+  saving = false,
+  saveError = null,
   recipientCount = 0,
 }: {
   planId: string;
   published: boolean;
   dirty?: boolean;
   saveFirst?: () => Promise<boolean>;
+  /** builder práve ukladá zmeny pred odoslaním */
+  saving?: boolean;
+  /** chyba uloženia zmien z buildera (koncept nemá spodnú lištu, kde by sa ukázala) */
+  saveError?: string | null;
   /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
   recipientCount?: number;
 }) {
@@ -131,15 +138,17 @@ export function MealPublishActions({
         </>
       ) : (
         <>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => void publish()} disabled={pending}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => void publish()} disabled={pending || saving}>
             {/* Krátko — dlhý text sa v polovičnej šírke na telefóne lámal („Uložiť a poslať"). */}
-            {pending
-              ? "Posielam…"
-              : recipientCount > 0
-                ? `${dirty ? "Uložiť a poslať" : "Poslať"} ${recipientCount + 1} klientom`
-                : dirty
-                  ? "Uložiť a poslať"
-                  : "Poslať klientovi"}
+            {saving
+              ? "Ukladám…"
+              : pending
+                ? "Posielam…"
+                : recipientCount > 0
+                  ? `${dirty ? "Uložiť a poslať" : "Poslať"} ${recipientCount + 1} klientom`
+                  : dirty
+                    ? "Uložiť a poslať"
+                    : "Poslať klientovi"}
           </button>
           <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => del.setConfirming(true)}>
             Zmazať koncept
@@ -147,6 +156,11 @@ export function MealPublishActions({
         </>
       )}
       {confirmMsg}
+      {saveError && (
+        <p className={`${styles.publishError} ${styles.templateStatus}`} role="alert">
+          {saveError}
+        </p>
+      )}
       {state.error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{state.error}</p>}
       {del.error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{del.error}</p>}
     </div>

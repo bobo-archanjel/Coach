@@ -149,7 +149,7 @@ test.describe("šablóny trénera (reálna DB, dizajn v6)", () => {
       await mealDialog.getByRole("checkbox", { name: new RegExp(clientRow!.full_name) }).click();
       await mealDialog.getByRole("checkbox", { name: new RegExp(secondName) }).click();
       await mealDialog.getByRole("button", { name: "Vytvoriť koncept pre 2 klientov" }).click();
-      await page.waitForURL(/\/dashboard\/vyziva\/jedalnicek\/[0-9a-f-]{36}/, { timeout: 30_000 });
+      await page.waitForURL(/\/dashboard\/jedalnicky\/jedalnicek\/[0-9a-f-]{36}/, { timeout: 30_000 });
       await expect(page.getByText("Pošle sa aj:")).toBeVisible();
       await expect(page.getByRole("button", { name: "Poslať 2 klientom" })).toBeVisible();
       await page.getByRole("button", { name: `Odobrať príjemcu ${secondName}` }).click();

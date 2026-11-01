@@ -57,9 +57,10 @@ function localId(): string {
 
 /**
  * Builder jedálnička. Úpravy (dni, potraviny, gramáže) sa držia LOKÁLNE a do DB idú
- * až cez „Uložiť zmeny" — predtým sa každý klik hneď zapísal, takže zverejnený
- * jedálniček sa klientovi menil priebežne a nechcená zmena sa nedala vziať späť.
- * „Zahodiť" vráti posledný uložený stav.
+ * až na pokyn — predtým sa každý klik hneď zapísal, takže zverejnený jedálniček sa
+ * klientovi menil priebežne a nechcená zmena sa nedala vziať späť. Koncept sa ukladá
+ * len horným „Uložiť a poslať" (bez duplicitnej spodnej lišty); zverejnený jedálniček
+ * má dole lištu „Uložiť zmeny" / „Zahodiť" (vráti posledný uložený stav).
  *
  * Deň = riadky jedál (Raňajky … Iné, zbalené ako v denníku klienta); „+“ otvorí panel
  * FoodPickerSheet pre to jedlo — Knižnica, značky online, skener, nová potravina.
@@ -220,7 +221,8 @@ export function MealPlanBuilder({
           resolve(false);
           return;
         }
-        setJustSaved(true);
+        // koncept: uloženie je súčasť „Uložiť a poslať" — potvrdí ho „Poslané…" hore
+        if (published) setJustSaved(true);
         resolve(true);
       });
     });
@@ -247,6 +249,8 @@ export function MealPlanBuilder({
           published={published}
           dirty={dirty}
           saveFirst={save}
+          saving={savePending}
+          saveError={published ? null : saveError}
           recipientCount={recipientCount}
         />
       </div>
@@ -341,15 +345,14 @@ export function MealPlanBuilder({
         />
       )}
 
-      {(dirty || saveError || justSaved) && (
+      {/* len zverejnený jedálniček — koncept sa ukladá horným „Uložiť a poslať" */}
+      {published && (dirty || saveError || justSaved) && (
         <div className={styles.saveBar} role="region" aria-label="Uloženie zmien">
           <span className={`${styles.saveBarText} ${saveError ? styles.saveBarError : ""}`} role="status">
             {saveError
               ? saveError
               : dirty
-                ? published
-                  ? "Neuložené zmeny — klient ich uvidí až po uložení."
-                  : "Neuložené zmeny"
+                ? "Neuložené zmeny — klient ich uvidí až po uložení."
                 : "Zmeny uložené."}
           </span>
           {dirty && (

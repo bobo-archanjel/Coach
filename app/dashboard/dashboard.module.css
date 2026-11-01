@@ -37,7 +37,7 @@
     position: sticky;
     top: 0;
     z-index: 25;
-    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Výživa
+    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Jedálničky
        bez profilov) dal iný výsledok než pri stránkach so scrollbarom — scrollbar
        (Windows) uberá ~15-17px šírky, čo mierne mení, ako sa vojde "Odhlásiť sa"
        vedľa loga, a bar tak vychádzal inak vysoký podľa stránky. Pevná výška to rieši. */
@@ -661,7 +661,7 @@ select.addClientInputSm {
 .addClientInputSm[type="number"] {
   -moz-appearance: textfield;
 }
-/* Formulár s popiskami v mriežke (makro cieľ vo Výžive). Predtým tam bolo
+/* Formulár s popiskami v mriežke (makro cieľ v Jedálničkoch). Predtým tam bolo
    .addClientFields prepnuté inline na column — zdedený flex-basis 200px z
    .addClientInput sa v stĺpci uplatnil ako VÝŠKA a každé pole malo na desktope
    ~200px. Tu sú polia v <label> (flex column), preto flex:none. */
@@ -683,6 +683,27 @@ select.addClientInputSm {
 }
 .fieldGridFull {
   grid-column: 1 / -1;
+}
+/* Nový plán / AI pre viacerých klientov — pôvodný dizajn len kostra, vzhľad v v6. */
+.formHint,
+.aiBatchError {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.aiBatch,
+.aiBatchList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.aiBatchBar {
+  height: 6px;
+  background: var(--steel-line);
+}
+.aiBatchBar > span {
+  display: block;
+  height: 100%;
+  background: var(--iron-red);
 }
 .addClientError {
   margin-top: 8px;
@@ -1749,7 +1770,7 @@ select.addClientInputSm {
   background: var(--moss);
 }
 
-/* ---------- tréningy / výživa list pages ---------- */
+/* ---------- tréningy / jedálničky list pages ---------- */
 .clientSectionGrid {
   display: grid;
   gap: 16px;
@@ -1851,107 +1872,35 @@ select.addClientInputSm {
   }
 }
 
-/* ---------- /dashboard/klienti/[id] — sekcie namiesto jedného dlhého scrollu (feature/planing-groupMessage) ---------- */
-.clientDetailLayout {
+/* ---------- /dashboard/klienti/[id] — záložky sekcií hore, obsah pod nimi ----------
+   Pôvodný dizajn len kostra, vzhľad v app/v6design/dashboard/styles/dashboard.module.css. */
+.clientDetail {
   display: grid;
-  grid-template-columns: 190px 1fr;
-  gap: 24px;
-  align-items: start;
+  gap: 16px;
 }
-.clientSubNav {
+.clientTabs {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  position: sticky;
-  top: 20px;
+  gap: 4px;
+  overflow-x: auto;
 }
-.clientSubNavItem {
-  display: block;
-  width: 100%;
-  text-align: left;
+.clientTab {
+  flex: 1 0 auto;
   padding: 9px 12px;
+  border: 1px solid var(--steel-line);
   border-radius: var(--radius-s);
-  border: 1px solid transparent;
   background: transparent;
   color: var(--paper-faint);
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
 }
-.clientSubNavItem:hover {
+.clientTabActive {
+  border-color: var(--iron-red);
   color: var(--paper);
-  background: var(--ink-3);
 }
-.clientSubNavItemActive {
-  color: var(--paper);
-  background: var(--ink-2);
-  border-color: var(--steel-line);
-}
-.clientSubNavMobile {
-  display: none;
-}
-/* Grid child s tabuľkami/dlhými kartami nesmie roztiahnuť stĺpec nad jeho šírku. */
 .clientDetailContent {
   min-width: 0;
-}
-@media (max-width: 880px) {
-  .clientDetailLayout {
-    display: block;
-  }
-  .clientSubNav {
-    display: none;
-  }
-  .clientSubNavMobile {
-    display: block;
-    position: relative;
-    margin-bottom: 16px;
-  }
-  .clientSubNavMobileTrigger {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: var(--radius-m);
-    border: 1px solid var(--steel-line);
-    background: var(--ink-2);
-    color: var(--paper);
-    font-size: 14px;
-    font-weight: 700;
-  }
-  .clientSubNavMobileMenu {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(100% + 6px);
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 6px;
-    border-radius: var(--radius-m);
-    border: 1px solid var(--steel-line);
-    background: var(--ink-2);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
-  }
-  .clientSubNavMobileItem {
-    text-align: left;
-    padding: 10px 12px;
-    border-radius: var(--radius-s);
-    border: none;
-    background: transparent;
-    color: var(--paper-faint);
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .clientSubNavMobileItemActive {
-    color: var(--paper);
-    background: var(--ink-3);
-  }
 }
 
 /* ---------- /dashboard/spravy — hromadná správa (feature/planing-groupMessage) ---------- */
@@ -2272,4 +2221,21 @@ select.addClientInputSm {
   font-size: 12px;
   line-height: 1.4;
   color: var(--iron-red);
+}
+
+/* Detail klienta — hlavičky kariet a prázdny stav sekcie. Pôvodný dizajn len kostra,
+   vzhľad v app/v6design/dashboard/styles/dashboard.module.css. */
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.sectionMeta {
+  color: var(--paper-faint);
+}
+.sectionEmpty {
+  display: grid;
+  gap: 10px;
 }

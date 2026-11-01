@@ -2,12 +2,15 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { deliverPlanToRecipients } from "@/lib/planRecipients";
+import { addPlanRecipients, areTrainerClients, deliverPlanToRecipients, MAX_PLAN_CLIENTS, uniqueClientIds } from "@/lib/planRecipients";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { displayExerciseName, fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
-import { generateWorkoutPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
+import { generateWorkoutPlan, type GeneratedPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
 import { PLAN_FOCUSES, isSingleDayFocus, type PlanFocus } from "@/lib/ai/planCategories";
+import { defaultFocusForSex, planClientContextLines } from "@/lib/ai/planClientContext";
+import type { ActivityLevel, Goal } from "@/lib/nutrition";
 import { reserveAiSlot, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { AI_MODEL } from "@/lib/ai/client";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
@@ -69,11 +72,17 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
 
-  const clientId = formData.get("client_id") as string | null;
+  const clientIds = uniqueClientIds(formData.getAll("client_id"));
   const name = (formData.get("name") as string | null)?.trim() ?? "";
 
-  if (!clientId) return { error: "Vyber klienta." };
+  if (clientIds.length === 0) return { error: "Vyber klienta." };
+  if (clientIds.length > MAX_PLAN_CLIENTS) return { error: `Naraz najviac ${MAX_PLAN_CLIENTS} klientov.` };
   if (!name) return { error: "Zadaj názov plánu." };
+
+  // Viacerí klienti → JEDEN koncept pre prvého, ostatní sú jeho príjemcovia (0052) —
+  // po odoslaní dostane každý vlastnú kópiu (lib/planRecipients), rovnako ako šablóny.
+  const [clientId, ...others] = clientIds;
+  if (!(await areTrainerClients(supabase, user.id, others))) return { error: "Niektorý z vybraných klientov nepatrí tebe." };
 
   const { data, error } = await supabase
     .from("workout_plans")
@@ -84,6 +93,13 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
     .single();
 
   if (error || !data) return { error: error?.message ?? "Plán sa nepodarilo vytvoriť." };
+
+  const recipientsError = await addPlanRecipients(supabase, user.id, "workout", data.id, others);
+  if (recipientsError) {
+    // bez príjemcov by koncept dostal len prvý klient — radšej nič a jasná chyba
+    await supabase.from("workout_plans").delete().eq("id", data.id);
+    return { error: `Ďalších klientov sa nepodarilo pridať: ${recipientsError}` };
+  }
 
   revalidatePath("/dashboard/treningy");
   redirect(`/dashboard/treningy/${data.id}`);
@@ -217,6 +233,68 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
   revalidatePath(`/dashboard/treningy/${planId}`);
   revalidatePath("/dashboard/treningy");
   return ok;
+}
+
+/**
+ * "Premenovať" deň v builderi (rovnako ako v jedálničku). Nový názov vidí aj klient
+ * (pilulky dní v portáli); odcvičené tréningy si držia pôvodný názov v plan_snapshot (0048).
+ */
+export async function renameDayAction(planId: string, dayId: string, rawName: string): Promise<ActionState> {
+  if (!planId || !dayId) return { error: "Chýba identifikátor dňa." };
+  const name = rawName.trim();
+  if (!name) return { error: "Zadaj názov dňa." };
+  if (name.length > 120) return { error: "Názov dňa môže mať najviac 120 znakov." };
+
+  const supabase = await createClient();
+  if (await isPlanLocked(supabase, planId, dayId)) return { error: PLAN_LOCKED_ERROR };
+
+  // RLS workout_days_update_own_trainer — cudzí deň vráti 0 riadkov, nie chybu.
+  const { data, error } = await supabase
+    .from("workout_days")
+    .update({ name })
+    .eq("id", dayId)
+    .eq("plan_id", planId)
+    .select("id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: "Deň sa nepodarilo premenovať — skús obnoviť stránku." };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+/**
+ * "Duplikovať" v builderi (rovnako ako v jedálničku) — kópia dňa aj s cvikmi (nové entry_id)
+ * na koniec plánu, názov „… (kópia)“. Vráti ID nového dňa, builder sa naň prepne.
+ * Uzamknutý (celý odcvičený) plán sa nemení; RLS — cudzí deň/plán sa nenájde.
+ */
+export async function duplicateDayAction(planId: string, dayId: string): Promise<{ error: string | null; dayId: string | null }> {
+  const fail = (error: string) => ({ error, dayId: null });
+  if (!planId || !dayId) return fail("Chýba identifikátor dňa.");
+
+  const supabase = await createClient();
+  const [locked, { data: src }, { count }] = await Promise.all([
+    isPlanLocked(supabase, planId),
+    supabase.from("workout_days").select("name, exercises").eq("id", dayId).eq("plan_id", planId).maybeSingle(),
+    supabase.from("workout_days").select("id", { count: "exact", head: true }).eq("plan_id", planId),
+  ]);
+  if (locked) return fail(PLAN_LOCKED_ERROR);
+  if (!src) return fail("Deň sa nenašiel — skús obnoviť stránku.");
+
+  const exercises = (Array.isArray(src.exercises) ? (src.exercises as WorkoutExerciseEntry[]) : []).map((e) => ({
+    ...e,
+    entry_id: randomUUID(),
+  }));
+  const { data, error } = await supabase
+    .from("workout_days")
+    // dni sú po zmazaní prečíslované 1..n (deleteDayAction) → kópia ide za posledný
+    .insert({ plan_id: planId, day_number: (count ?? 0) + 1, name: `${src.name} (kópia)`.slice(0, 120), exercises })
+    .select("id")
+    .single();
+  if (error || !data) return fail(error ? dbErr(error, "actions") : "Deň sa nepodarilo skopírovať.");
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  revalidatePath("/dashboard/treningy");
+  return { error: null, dayId: data.id };
 }
 
 /** Klik na cvik v knižnici → pridá ho do aktívneho dňa s rozumnými defaultmi (rovno editovateľné). */
@@ -525,45 +603,88 @@ export async function addCustomExerciseAction(_prevState: ActionState, formData:
 const PLAN_EXPERIENCES: PlanExperience[] = ["zaciatocnik", "stredne_pokrocily", "pokrocily"];
 const PLAN_EQUIPMENT: PlanEquipment[] = ["plna_posilnovna", "domace_vybavenie", "len_telo"];
 
-/**
- * AI generátor plánu (Track "Tréner" bod 4/5, ROADMAP.md). Vytvorí bežný
- * koncept (`published: false`, presne ako ručne vytvorený plán, 0021) a
- * presmeruje do existujúceho PlanBuilderu na plnú editáciu pred publikovaním
- * — draft-then-approve bez potreby novej tabuľky.
- */
-export async function generatePlanWithAiAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+/** Vstupy AI generátora z formulára — rovnaké pre všetkých vybraných klientov. */
+export interface AiPlanParams {
+  goal: string;
+  experience: string;
+  equipment: string;
+  /** zameranie, alebo „auto“ = podľa pohlavia každého klienta (výber viacerých klientov) */
+  focus: string;
+  daysPerWeek: number | null;
+}
 
-  const clientId = formData.get("client_id") as string | null;
-  const goal = formData.get("goal") as string | null;
-  const experience = formData.get("experience") as string | null;
-  const equipment = formData.get("equipment") as string | null;
+interface ValidAiPlanParams {
+  goal: PlanGoal;
+  experience: PlanExperience;
+  equipment: PlanEquipment;
+  focus: PlanFocus | "auto";
+  daysPerWeek: number;
+}
+
+function parseAiPlanParams(raw: AiPlanParams): ValidAiPlanParams | { error: string } {
   // Zameranie je voliteľné — chýbajúce / neznáme = "vyvážene" (bezpečný fallback).
-  const focusRaw = (formData.get("focus") as string | null) ?? "vyvazene";
-  const focus: PlanFocus = PLAN_FOCUSES.includes(focusRaw as PlanFocus) ? (focusRaw as PlanFocus) : "vyvazene";
+  const focus: PlanFocus | "auto" =
+    raw.focus === "auto" ? "auto" : PLAN_FOCUSES.includes(raw.focus as PlanFocus) ? (raw.focus as PlanFocus) : "vyvazene";
   // Partiové (jednodňové) zameranie ignoruje počet dní — UI ho skryje, appka vygeneruje presne 1 deň.
-  const singleDay = isSingleDayFocus(focus);
-  const daysPerWeek = singleDay ? 1 : Number(formData.get("days_per_week"));
+  const singleDay = focus !== "auto" && isSingleDayFocus(focus);
+  const daysPerWeek = singleDay ? 1 : Number(raw.daysPerWeek);
 
-  if (!clientId) return { error: "Vyber klienta." };
-  if (!goal || !PLAN_GOALS.includes(goal as PlanGoal)) return { error: "Vyber cieľ." };
-  if (!experience || !PLAN_EXPERIENCES.includes(experience as PlanExperience)) return { error: "Vyber skúsenosť klienta." };
-  if (!equipment || !PLAN_EQUIPMENT.includes(equipment as PlanEquipment)) return { error: "Vyber dostupné vybavenie." };
+  if (!raw.goal || !PLAN_GOALS.includes(raw.goal as PlanGoal)) return { error: "Vyber cieľ." };
+  if (!raw.experience || !PLAN_EXPERIENCES.includes(raw.experience as PlanExperience)) return { error: "Vyber skúsenosť klienta." };
+  if (!raw.equipment || !PLAN_EQUIPMENT.includes(raw.equipment as PlanEquipment)) return { error: "Vyber dostupné vybavenie." };
   if (!singleDay && (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7)) {
     return { error: "Zadaj počet dní 1-7." };
   }
+  return {
+    goal: raw.goal as PlanGoal,
+    experience: raw.experience as PlanExperience,
+    equipment: raw.equipment as PlanEquipment,
+    focus,
+    daysPerWeek,
+  };
+}
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select("id, full_name")
-    .eq("id", clientId)
-    .eq("trainer_id", user.id)
-    .maybeSingle();
+const firstRow = <T,>(raw: T | T[] | null): T | null => (Array.isArray(raw) ? (raw[0] ?? null) : raw);
+
+/**
+ * Jeden AI plán pre jedného klienta — vytvorí bežný koncept (`published: false`, presne
+ * ako ručne vytvorený plán, 0021). Model dostane aj údaje klienta (lib/ai/planClientContext),
+ * takže pri výbere viacerých klientov je každý plán prispôsobený svojmu klientovi.
+ */
+async function generateAiPlanForClient(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  trainerId: string,
+  params: ValidAiPlanParams,
+  clientId: string,
+): Promise<{ error: string } | { planId: string; warnings: string[] }> {
+  const [{ data: client }, { data: privateNote }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, goal, age, weight_kg, height_cm, nutrition_profiles(sex, age, weight_kg, height_cm, activity_level, goal)")
+      .eq("id", clientId)
+      .eq("trainer_id", trainerId)
+      .maybeSingle(),
+    // Súkromná poznámka trénera (0036) — obmedzenia/zranenia; klient ju nevidí.
+    supabase.from("trainer_private_notes").select("notes").eq("client_id", clientId).eq("scope", "client").maybeSingle(),
+  ]);
   if (!client) return { error: "Klient sa nenašiel." };
+
+  // nutrition_profiles.client_id je unique → PostgREST vráti objekt (ošetrené aj pole)
+  const profile = firstRow(
+    client.nutrition_profiles as unknown as {
+      sex: "muz" | "zena";
+      age: number;
+      weight_kg: number;
+      height_cm: number;
+      activity_level: ActivityLevel;
+      goal: Goal;
+    } | null,
+  );
+  const focus: PlanFocus = params.focus === "auto" ? defaultFocusForSex(profile?.sex ?? null) : params.focus;
+  const singleDay = isSingleDayFocus(focus);
+
+  const fixture = await devAiPlanFixture(supabase, clientId, focus);
+  if (fixture) return fixture.error ? { error: fixture.error } : insertAiPlan(supabase, trainerId, clientId, params, fixture.plan!);
 
   // Atomická rezervácia PRED volaním modelu — nulové náklady pri zamietnutí a paralelné
   // požiadavky ju neobídu (lib/ai/rateLimit.ts, migrácia 0036). Per tréner, nie per
@@ -571,7 +692,7 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   const slot = await reserveAiSlot({
     supabase,
     kind: "plan_gen",
-    trainerId: user.id,
+    trainerId,
     clientId,
     model: AI_MODEL.PLAN_GENERATOR,
     subject: "trainer",
@@ -582,26 +703,46 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   }
 
   const result = await generateWorkoutPlan(supabase, {
-    trainerId: user.id,
+    trainerId,
     clientId,
-    goal: goal as PlanGoal,
-    daysPerWeek,
-    experience: experience as PlanExperience,
-    equipment: equipment as PlanEquipment,
+    goal: params.goal,
+    daysPerWeek: singleDay ? 1 : params.daysPerWeek,
+    experience: params.experience,
+    equipment: params.equipment,
     focus,
     reservationId: slot.reservationId,
+    clientContext: planClientContextLines({
+      goal: client.goal,
+      sex: profile?.sex ?? null,
+      age: profile?.age ?? client.age,
+      weightKg: profile?.weight_kg ?? client.weight_kg,
+      heightCm: profile?.height_cm ?? client.height_cm,
+      activityLevel: profile?.activity_level ?? null,
+      nutritionGoal: profile?.goal ?? null,
+      trainerNote: privateNote?.notes ?? null,
+    }),
   });
   if ("error" in result) return { error: result.error };
+  return insertAiPlan(supabase, trainerId, clientId, params, result.plan);
+}
 
+/** Vygenerovaný návrh → koncept plánu (workout_plans + workout_days). */
+async function insertAiPlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  trainerId: string,
+  clientId: string,
+  params: ValidAiPlanParams,
+  plan: GeneratedPlan,
+): Promise<{ error: string } | { planId: string; warnings: string[] }> {
   // Partiové (jednodňové) generovanie pomenuje plán podľa kategórie + dátumu
   // (napr. "Chrbát — 18. 9. 2026"), inak default podľa cieľa ako doteraz.
-  const planName = result.plan.planName ?? `AI plán — ${PLAN_GOAL_LABEL_SK[goal as PlanGoal]}`;
+  const planName = plan.planName ?? `AI plán — ${PLAN_GOAL_LABEL_SK[params.goal]}`;
 
   const { data: newPlan, error: planErr } = await supabase
     .from("workout_plans")
     .insert({
       client_id: clientId,
-      trainer_id: user.id,
+      trainer_id: trainerId,
       name: planName,
       published: false,
     })
@@ -609,7 +750,7 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
     .single();
   if (planErr || !newPlan) return { error: planErr?.message ?? "Plán sa nepodarilo vytvoriť." };
 
-  const dayRows = result.plan.days.map((day, i) => ({
+  const dayRows = plan.days.map((day, i) => ({
     plan_id: newPlan.id,
     day_number: i + 1,
     name: day.name,
@@ -626,16 +767,106 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   }));
 
   const { error: daysErr } = await supabase.from("workout_days").insert(dayRows);
-  if (daysErr) return { error: dbErr(daysErr, "actions") };
+  if (daysErr) {
+    // prázdny koncept bez dní by v zozname len mätol
+    await supabase.from("workout_plans").delete().eq("id", newPlan.id);
+    return { error: dbErr(daysErr, "actions") };
+  }
+  return { planId: newPlan.id, warnings: plan.warnings ?? [] };
+}
+
+/**
+ * DEV seam pre e2e (e2e/treningy-multi-klient.spec.ts) — hlavička `x-e2e-ai-fixture` nahradí
+ * volanie modelu deterministickým návrhom z prvých cvikov knižnice (bez AI limitu a kreditu);
+ * `fail:<clientId>` simuluje zlyhanie pre jedného klienta. Zvyšok toku (údaje klienta,
+ * zameranie, uloženie konceptu) beží naostro. Mimo `next dev` sa hlavička ignoruje.
+ */
+async function devAiPlanFixture(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clientId: string,
+  focus: PlanFocus,
+): Promise<{ error?: string; plan?: GeneratedPlan } | null> {
+  if (process.env.NODE_ENV !== "development") return null;
+  const raw = (await headers()).get("x-e2e-ai-fixture");
+  if (!raw) return null;
+  if (raw === `fail:${clientId}`) return { error: "Simulované zlyhanie AI (e2e)." };
+  const { data: exercises } = await supabase.from("exercises").select("id, name").order("name").limit(3);
+  return {
+    plan: {
+      planName: `E2E AI · ${focus}`,
+      days: [
+        {
+          name: "Deň 1",
+          exercises: (exercises ?? []).map((e) => ({ exerciseId: e.id, exerciseName: e.name, sets: 3, reps: "8-10", restSeconds: 90 })),
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * AI generátor plánu (Track "Tréner" bod 4/5, ROADMAP.md) — formulár pre JEDNÉHO klienta.
+ * Vytvorí koncept a presmeruje do existujúceho PlanBuilderu na plnú editáciu pred
+ * publikovaním — draft-then-approve bez potreby novej tabuľky. Viacerí klienti idú
+ * z prehliadača po jednom cez generateAiPlanForClientAction (priebeh „Generujem 2/5…“).
+ */
+export async function generatePlanWithAiAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const clientId = formData.get("client_id") as string | null;
+  if (!clientId) return { error: "Vyber klienta." };
+  const params = parseAiPlanParams({
+    goal: formData.get("goal") as string,
+    experience: formData.get("experience") as string,
+    equipment: formData.get("equipment") as string,
+    focus: (formData.get("focus") as string | null) ?? "vyvazene",
+    daysPerWeek: Number(formData.get("days_per_week")),
+  });
+  if ("error" in params) return { error: params.error };
+
+  const generated = await generateAiPlanForClient(supabase, user.id, params, clientId);
+  if ("error" in generated) return { error: generated.error };
 
   revalidatePath("/dashboard/treningy");
 
   // Keď deterministická kontrola zamerania nechala varovania, plán existuje, ale
   // rovno doň nepresmerujeme — tréner nech najprv uvidí, čo nebolo dotiahnuté,
   // a otvorí koncept sám (link vo formulári).
-  if (result.plan.warnings && result.plan.warnings.length > 0) {
-    return { error: null, planId: newPlan.id, warnings: result.plan.warnings };
+  if (generated.warnings.length > 0) {
+    return { error: null, planId: generated.planId, warnings: generated.warnings };
   }
 
-  redirect(`/dashboard/treningy/${newPlan.id}`);
+  redirect(`/dashboard/treningy/${generated.planId}`);
+}
+
+export interface AiPlanForClientResult {
+  error: string | null;
+  planId: string | null;
+  warnings: string[];
+}
+
+/**
+ * AI plán pre jedného z viacerých vybraných klientov — prehliadač volá postupne klienta
+ * po klientovi (priebeh v UI, chyba jedného nezastaví ostatných). Bez presmerovania.
+ */
+export async function generateAiPlanForClientAction(raw: AiPlanParams, clientId: string): Promise<AiPlanForClientResult> {
+  const fail = (error: string): AiPlanForClientResult => ({ error, planId: null, warnings: [] });
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fail("Nie si prihlásený.");
+  if (!clientId) return fail("Vyber klienta.");
+  const params = parseAiPlanParams(raw);
+  if ("error" in params) return fail(params.error);
+
+  const generated = await generateAiPlanForClient(supabase, user.id, params, clientId);
+  if ("error" in generated) return fail(generated.error);
+  revalidatePath("/dashboard/treningy");
+  revalidatePath(`/dashboard/klienti/${clientId}`);
+  return { error: null, planId: generated.planId, warnings: generated.warnings };
 }

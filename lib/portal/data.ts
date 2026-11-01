@@ -804,7 +804,7 @@ export async function getExerciseLibrary(): Promise<ExerciseOption[]> {
   }
 }
 
-/** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/vyziva/jedalnicek/actions.ts. */
+/** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/jedalnicky/jedalnicek/actions.ts. */
 type MealEntryRow = {
   entry_id?: string;
   food_name?: string;
