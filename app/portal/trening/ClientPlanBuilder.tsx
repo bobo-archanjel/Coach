@@ -18,7 +18,7 @@ const ExerciseDetailModal = dynamic(() =>
 /* Builder vlastného tréningu klienta — plne klientský draft, uloží sa jedným
    ťukom na "Uložiť". Vzhľad aj ovládanie sú rovnaké ako trénerov builder
    (builder.module.css, dashboard/treningy/[planId]): pilulky dní s "+ deň" /
-   "Zmazať deň", karty cvikov so šípkami poradia, ceruzkou a košom, knižnica
+   "Premenovať" / "Duplikovať" / "Zmazať deň", karty cvikov so šípkami poradia, ceruzkou a košom, knižnica
    cvikov s vlastným cvikom navrchu. Používa sa aj na úpravu existujúceho
    vlastného plánu (initial). */
 
@@ -124,6 +124,9 @@ export function ClientPlanBuilder({
   const [dayName, setDayName] = useState("");
   const [dayError, setDayError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // „Premenovať“ aktívny deň (lokálne, do DB až „Uložiť“) — null = zatvorené
+  const [renameValue, setRenameValue] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [editKey, setEditKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -148,17 +151,21 @@ export function ClientPlanBuilder({
   const selectDay = (key: string) => {
     setActiveKey(key);
     setConfirmDelete(false);
+    setRenameValue(null);
   };
 
-  // Esc = zrušiť potvrdenie zmazania dňa.
+  // Esc = zrušiť potvrdenie zmazania dňa aj premenovanie.
+  const renaming = renameValue !== null;
   useEffect(() => {
-    if (!confirmDelete) return;
+    if (!confirmDelete && !renaming) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setConfirmDelete(false);
+      if (e.key !== "Escape") return;
+      setConfirmDelete(false);
+      setRenameValue(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [confirmDelete]);
+  }, [confirmDelete, renaming]);
 
   const patchDay = (key: string, fn: (d: BDay) => BDay) =>
     setDays((prev) => prev.map((d) => (d.key === key ? fn(d) : d)));
@@ -190,6 +197,30 @@ export function ClientPlanBuilder({
   const removeDay = (key: string) => {
     setDays((prev) => prev.filter((d) => d.key !== key));
     selectDay("");
+  };
+  const renameDay = (key: string) => {
+    const trimmed = (renameValue ?? "").trim();
+    if (!trimmed) {
+      setRenameError("Zadaj názov tréningu.");
+      return;
+    }
+    patchDay(key, (d) => ({ ...d, name: trimmed }));
+    setRenameValue(null);
+    setRenameError(null);
+  };
+  /** „Duplikovať“ (ako v jedálničku trénera): kópia dňa aj s cvikmi na koniec, prepne sa na ňu.
+      Nový deň aj cviky bez id — server im pri „Uložiť“ pridelí nové (ako pri šablóne). */
+  const duplicateDay = (key: string) => {
+    const src = days.find((d) => d.key === key);
+    if (!src || days.length >= MAX_DAYS) return;
+    const copy: BDay = {
+      key: uid(),
+      id: null,
+      name: `${src.name} (kópia)`.slice(0, 60),
+      exercises: src.exercises.map((e) => ({ ...e, key: uid(), entryId: undefined })),
+    };
+    setDays((prev) => [...prev, copy]);
+    selectDay(copy.key);
   };
 
   const addExercise = (exName: string, exerciseId: string | null): string | null => {
@@ -339,13 +370,58 @@ export function ClientPlanBuilder({
                 {dayError && <p className={b.formError}>{dayError}</p>}
               </form>
             ) : (
-              <button type="button" className={b.addDayTab} onClick={() => setAddingDay(true)}>
+              <button
+                type="button"
+                className={b.addDayTab}
+                onClick={() => {
+                  setAddingDay(true);
+                  setRenameValue(null);
+                }}
+              >
                 + deň
               </button>
             )}
 
             {activeDay &&
-              (confirmDelete ? (
+              (renaming ? (
+                <form
+                  className={`${b.addDayForm} ${styles.trAddDayForm}`}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    renameDay(activeDay.key);
+                  }}
+                >
+                  <label htmlFor="client-day-rename" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
+                    Názov tréningu
+                  </label>
+                  <input
+                    id="client-day-rename"
+                    type="text"
+                    value={renameValue ?? ""}
+                    onChange={(e) => {
+                      setRenameValue(e.target.value);
+                      if (renameError) setRenameError(null);
+                    }}
+                    maxLength={60}
+                    autoFocus
+                    className={b.addDayInput}
+                  />
+                  <button type="submit" className="btn btn-primary btn-sm">
+                    Hotovo
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setRenameValue(null);
+                      setRenameError(null);
+                    }}
+                  >
+                    Zrušiť
+                  </button>
+                  {renameError && <p className={b.formError}>{renameError}</p>}
+                </form>
+              ) : confirmDelete ? (
                 <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
                   <p id="delete-day-question" className={b.deleteDayQuestion}>
                     Naozaj zmazať deň „{activeDay.name}“{exercisesLabel(activeDay.exercises.length)}?
@@ -360,9 +436,35 @@ export function ClientPlanBuilder({
                   </div>
                 </div>
               ) : (
-                <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
-                  Zmazať deň
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={b.dayActionTab}
+                    onClick={() => {
+                      setRenameValue(activeDay.name);
+                      setRenameError(null);
+                      setAddingDay(false);
+                    }}
+                  >
+                    Premenovať
+                  </button>
+                  <button
+                    type="button"
+                    className={b.dayActionTab}
+                    onClick={() => duplicateDay(activeDay.key)}
+                    disabled={days.length >= MAX_DAYS}
+                    title={
+                      days.length >= MAX_DAYS
+                        ? `Tréning môže mať najviac ${MAX_DAYS} dní`
+                        : "Pridá kópiu tohto dňa aj s cvikmi na koniec"
+                    }
+                  >
+                    Duplikovať
+                  </button>
+                  <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
+                    Zmazať deň
+                  </button>
+                </>
               ))}
           </div>
 

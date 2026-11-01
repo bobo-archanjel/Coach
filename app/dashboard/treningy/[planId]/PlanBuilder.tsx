@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
 import { AddDayInline } from "./AddDayInline";
 import { DeleteDayControl } from "./DeleteDayControl";
+import { DuplicateDayButton } from "./DuplicateDayButton";
+import { RenameDayForm } from "./RenameDayForm";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import builderModule from "./builder.module.css";
@@ -31,15 +33,31 @@ export function PlanBuilder({
 }) {
   const styles = useSkinStyles("builder", builderModule);
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
+  // „Premenovať“ otvorený pre aktívny deň — prepnutie dňa ho zavrie
+  const [renaming, setRenaming] = useState(false);
 
   // Lokálna kópia dní kvôli optimistickému presunu poradia cvikov — po revalidácii
   // sa zosúladí so serverovou pravdou (nový `days` prop pri každom refetchi).
   const [localDays, setLocalDays] = useState(days);
   useEffect(() => setLocalDays(days), [days]);
   const [reorderPending, startReorder] = useTransition();
+  // Práve skopírovaný deň (Duplikovať) — prepneme sa naň, keď ho revalidácia prinesie
+  // (môže prísť pred aj po návrate akcie, preto aj ref s aktuálnymi dňami).
+  const pendingDayId = useRef<string | null>(null);
+  const localDaysRef = useRef(localDays);
+  useEffect(() => {
+    localDaysRef.current = localDays;
+  }, [localDays]);
 
   // Ak aktívny deň zmizol (napr. z iného tabu) alebo ešte nebol vybraný, spadni na prvý dostupný.
   useEffect(() => {
+    const wanted = pendingDayId.current;
+    if (wanted) {
+      if (!localDays.some((d) => d.id === wanted)) return;
+      pendingDayId.current = null;
+      if (activeDayId !== wanted) setActiveDayId(wanted);
+      return;
+    }
     if (localDays.length === 0) {
       if (activeDayId !== null) setActiveDayId(null);
       return;
@@ -79,23 +97,49 @@ export function PlanBuilder({
               key={day.id}
               type="button"
               className={`${styles.dayTab} ${day.id === activeDayId ? styles.dayTabActive : ""}`}
-              onClick={() => setActiveDayId(day.id)}
+              onClick={() => {
+                setActiveDayId(day.id);
+                setRenaming(false);
+              }}
               aria-current={day.id === activeDayId ? "true" : undefined}
             >
               {day.name}
             </button>
           ))}
           <AddDayInline planId={planId} nextDayNumber={localDays.length + 1} />
-          {activeDay && (
-            <DeleteDayControl
-              key={activeDay.id}
-              planId={planId}
-              dayId={activeDay.id}
-              dayName={activeDay.name}
-              exerciseCount={activeDay.exercises.length}
-              hasCompleted={completedDayIds.includes(activeDay.id)}
-            />
-          )}
+          {activeDay &&
+            (renaming ? (
+              <RenameDayForm
+                key={`rename-${activeDay.id}`}
+                planId={planId}
+                dayId={activeDay.id}
+                name={activeDay.name}
+                onClose={() => setRenaming(false)}
+              />
+            ) : (
+              <>
+                <button type="button" className={styles.dayActionTab} onClick={() => setRenaming(true)}>
+                  Premenovať
+                </button>
+                <DuplicateDayButton
+                  key={`dup-${activeDay.id}`}
+                  planId={planId}
+                  dayId={activeDay.id}
+                  onDuplicated={(newDayId) => {
+                    if (localDaysRef.current.some((d) => d.id === newDayId)) setActiveDayId(newDayId);
+                    else pendingDayId.current = newDayId;
+                  }}
+                />
+                <DeleteDayControl
+                  key={activeDay.id}
+                  planId={planId}
+                  dayId={activeDay.id}
+                  dayName={activeDay.name}
+                  exerciseCount={activeDay.exercises.length}
+                  hasCompleted={completedDayIds.includes(activeDay.id)}
+                />
+              </>
+            ))}
         </div>
 
         <div className={styles.dayPanel}>

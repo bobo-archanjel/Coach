@@ -235,6 +235,68 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
   return ok;
 }
 
+/**
+ * "Premenovať" deň v builderi (rovnako ako v jedálničku). Nový názov vidí aj klient
+ * (pilulky dní v portáli); odcvičené tréningy si držia pôvodný názov v plan_snapshot (0048).
+ */
+export async function renameDayAction(planId: string, dayId: string, rawName: string): Promise<ActionState> {
+  if (!planId || !dayId) return { error: "Chýba identifikátor dňa." };
+  const name = rawName.trim();
+  if (!name) return { error: "Zadaj názov dňa." };
+  if (name.length > 120) return { error: "Názov dňa môže mať najviac 120 znakov." };
+
+  const supabase = await createClient();
+  if (await isPlanLocked(supabase, planId, dayId)) return { error: PLAN_LOCKED_ERROR };
+
+  // RLS workout_days_update_own_trainer — cudzí deň vráti 0 riadkov, nie chybu.
+  const { data, error } = await supabase
+    .from("workout_days")
+    .update({ name })
+    .eq("id", dayId)
+    .eq("plan_id", planId)
+    .select("id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: "Deň sa nepodarilo premenovať — skús obnoviť stránku." };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+/**
+ * "Duplikovať" v builderi (rovnako ako v jedálničku) — kópia dňa aj s cvikmi (nové entry_id)
+ * na koniec plánu, názov „… (kópia)“. Vráti ID nového dňa, builder sa naň prepne.
+ * Uzamknutý (celý odcvičený) plán sa nemení; RLS — cudzí deň/plán sa nenájde.
+ */
+export async function duplicateDayAction(planId: string, dayId: string): Promise<{ error: string | null; dayId: string | null }> {
+  const fail = (error: string) => ({ error, dayId: null });
+  if (!planId || !dayId) return fail("Chýba identifikátor dňa.");
+
+  const supabase = await createClient();
+  const [locked, { data: src }, { count }] = await Promise.all([
+    isPlanLocked(supabase, planId),
+    supabase.from("workout_days").select("name, exercises").eq("id", dayId).eq("plan_id", planId).maybeSingle(),
+    supabase.from("workout_days").select("id", { count: "exact", head: true }).eq("plan_id", planId),
+  ]);
+  if (locked) return fail(PLAN_LOCKED_ERROR);
+  if (!src) return fail("Deň sa nenašiel — skús obnoviť stránku.");
+
+  const exercises = (Array.isArray(src.exercises) ? (src.exercises as WorkoutExerciseEntry[]) : []).map((e) => ({
+    ...e,
+    entry_id: randomUUID(),
+  }));
+  const { data, error } = await supabase
+    .from("workout_days")
+    // dni sú po zmazaní prečíslované 1..n (deleteDayAction) → kópia ide za posledný
+    .insert({ plan_id: planId, day_number: (count ?? 0) + 1, name: `${src.name} (kópia)`.slice(0, 120), exercises })
+    .select("id")
+    .single();
+  if (error || !data) return fail(error ? dbErr(error, "actions") : "Deň sa nepodarilo skopírovať.");
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  revalidatePath("/dashboard/treningy");
+  return { error: null, dayId: data.id };
+}
+
 /** Klik na cvik v knižnici → pridá ho do aktívneho dňa s rozumnými defaultmi (rovno editovateľné). */
 export async function addExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
