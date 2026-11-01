@@ -11,7 +11,7 @@ function foodsLabel(n: number): string {
 }
 
 /**
- * "Premenovať deň" + "Zmazať deň" vedľa "+ deň" v riadku pilulek — rovnaký vzor ako
+ * "Premenovať" + "Duplikovať" + "Zmazať deň" vedľa "+ deň" v riadku pilulek — rovnaký vzor ako
  * DeleteDayControl v tréningovom builderi. Premenovanie aj potvrdenie zmazania
  * zaberú celý riadok pod pilulkami; Esc = zrušiť. Zmeny sú lokálne, do DB idú cez
  * „Uložiť zmeny". Rodič ho kľúčuje podľa dňa, takže prepnutie dňa formulár zahodí.
@@ -19,12 +19,17 @@ function foodsLabel(n: number): string {
 export function MealDayActions({
   name,
   foodCount,
+  canDuplicate,
   onRename,
+  onDuplicate,
   onDelete,
 }: {
   name: string;
   foodCount: number;
+  /** false = jedálniček má už maximum dní */
+  canDuplicate: boolean;
   onRename: (name: string) => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const styles = useSkinStyles("mealBuilder", mealBuilderModule);
@@ -99,7 +104,16 @@ export function MealDayActions({
           setMode("renaming");
         }}
       >
-        Premenovať deň
+        Premenovať
+      </button>
+      <button
+        type="button"
+        className={styles.renameDayTab}
+        onClick={onDuplicate}
+        disabled={!canDuplicate}
+        title={canDuplicate ? "Pridá kópiu tohto dňa aj s potravinami na koniec" : "Jedálniček má už maximum dní"}
+      >
+        Duplikovať
       </button>
       <button type="button" className={styles.deleteDayTab} onClick={() => setMode("confirmingDelete")}>
         Zmazať deň

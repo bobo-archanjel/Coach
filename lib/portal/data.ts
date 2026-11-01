@@ -33,7 +33,6 @@ import type {
   PortalDiaryGroup,
   PortalDiaryResult,
   PortalExercise,
-  PortalFoodOption,
   PortalMealDay,
   PortalMealEntry,
   PortalMealGroup,
@@ -926,22 +925,11 @@ type FoodLogRow = {
   fat_100g: number;
 };
 
-type FoodRow = {
-  id: string;
-  name: string;
-  kcal_100g: number;
-  protein_100g: number;
-  carbs_100g: number;
-  fat_100g: number;
-};
 
 /**
- * Denník — čo klient dnes zjedol, oproti makro cieľu, plus položky z najnovšieho
- * jedálnička na rýchle pridanie. Zápis: app/portal/actions.ts (addFoodLogAction /
- * removeFoodLogAction). Knižnica potravín na vyhľadávanie (`getFoodLibrary`
- * nižšie) sa sem predtým ťahala vždy, hoci panel "Pridať jedlo" je defaultne
- * zbalený (`AddFoodDiaryEntry` `open=false`) — teraz na požiadanie cez
- * `getFoodLibraryAction`, rovnaký dôvod ako knižnica cvikov v `getPortalTraining`.
+ * Denník — čo klient zjedol v zobrazený deň, oproti makro cieľu. Zápis:
+ * app/portal/actions.ts (addFoodLogAction / removeFoodLogAction). Potraviny na
+ * pridanie hľadá panel AddFoodSheet sám (značky online, skener čiarových kódov).
  */
 export async function getPortalFoodDiary(requestedDate?: string): Promise<PortalDiaryResult> {
   try {
@@ -955,15 +943,11 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
     if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
-    const { isoDate: todayIso, hour } = todayInTz();
+    const { isoDate: todayIso } = todayInTz();
     // Zobrazený deň — dnešok, alebo klientom zvolený deň v povolenom rozsahu (?date=).
     const isoDate = validDiaryDate(requestedDate, todayIso) ?? todayIso;
 
-    const [
-      { data: profile, error: profileErr },
-      { data: logRows, error: logErr },
-      { data: plan, error: planErr },
-    ] = await Promise.all([
+    const [{ data: profile, error: profileErr }, { data: logRows, error: logErr }] = await Promise.all([
       supabase
         .from("nutrition_profiles")
         .select("bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
@@ -975,21 +959,10 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
         .eq("client_id", client.id)
         .eq("eaten_on", isoDate)
         .order("created_at", { ascending: true }),
-      // Jedlá z dní jedálnička embedom (predtým ďalší round-trip až po pláne).
-      supabase
-        .from("meal_plans")
-        .select("id, meal_days(meals, day_number)")
-        .eq("client_id", client.id)
-        .eq("published", true) // koncept vidí len tréner (0044)
-        .order("created_at", { ascending: false })
-        .order("day_number", { referencedTable: "meal_days", ascending: true })
-        .limit(1)
-        .maybeSingle(),
     ]);
 
     if (profileErr) return { state: "error", message: dbErr(profileErr, "data") };
     if (logErr) return { state: "error", message: dbErr(logErr, "data") };
-    if (planErr) return { state: "error", message: dbErr(planErr, "data") };
 
     const goal = profile
       ? {
@@ -1038,61 +1011,17 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
 
     const totals = sumMacros(scaled.map(({ macros }) => macros));
 
-    // ---------- položky z trénerovho jedálnička na rýchle pridanie ----------
-    const planFoods: PortalFoodOption[] = [];
-    if (plan) {
-      const seen = new Set<string>();
-      for (const day of (plan.meal_days ?? []) as { meals: unknown }[]) {
-        const entries = (Array.isArray(day.meals) ? day.meals : []) as MealEntryRow[];
-        for (const e of entries) {
-          const key = `${e.food_name ?? ""}|${e.meal_slot ?? ""}`;
-          if (!e.food_name || seen.has(key)) continue;
-          seen.add(key);
-          planFoods.push({
-            foodId: null,
-            name: e.food_name,
-            kcal100g: e.kcal_100g ?? 0,
-            protein100g: e.protein_100g ?? 0,
-            carbs100g: e.carbs_100g ?? 0,
-            fat100g: e.fat_100g ?? 0,
-            plannedGrams: e.grams ?? 100,
-            plannedSlot: e.meal_slot,
-          });
-        }
-      }
-    }
-
     const data: PortalDiaryData = {
       today: todayIso,
       date: isoDate,
-      hour,
       goal,
       groups,
       totals,
-      planFoods,
     };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
   }
-}
-
-/** Knižnica potravín (globálna + trénerove vlastné, RLS) na vyhľadávanie — na požiadanie, viď getPortalFoodDiary vyššie. */
-export async function getFoodLibrary(): Promise<PortalFoodOption[]> {
-  const supabase = await createClient();
-  const { data: foodRows, error } = await supabase
-    .from("foods")
-    .select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g")
-    .order("name", { ascending: true });
-  if (error) return [];
-  return ((foodRows ?? []) as FoodRow[]).map((f) => ({
-    foodId: f.id,
-    name: f.name,
-    kcal100g: f.kcal_100g,
-    protein100g: f.protein_100g,
-    carbs100g: f.carbs_100g,
-    fat100g: f.fat_100g,
-  }));
 }
 
 /**

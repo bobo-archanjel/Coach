@@ -21,7 +21,9 @@ export type SkinNamespace =
   | "mealBuilder"
   | "completed"
   | "infoTip"
-  | "auth";
+  | "auth"
+  | "food"
+  | "templates";
 
 type Skin = {
   styles: Partial<Record<SkinNamespace, CssModule>>;

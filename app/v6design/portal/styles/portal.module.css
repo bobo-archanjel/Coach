@@ -2462,132 +2462,6 @@
     grid-template-columns: minmax(0, 1fr) auto 44px;
   }
 }
-.addToggle {
-  width: 100%;
-  justify-content: center;
-  margin-top: 2px;
-}
-.slotChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.slotChip {
-  font-size: 13px;
-  font-weight: 650;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--surface-solid);
-  border: 1px solid var(--hairline);
-  color: var(--paper-dim);
-  cursor: pointer;
-}
-.slotChip:hover {
-  color: var(--paper);
-}
-.slotChipActive,
-.slotChipActive:hover {
-  border-color: transparent;
-  background: var(--accent-grad);
-  color: var(--on-accent);
-  box-shadow: var(--accent-glow);
-}
-.sourceTabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  background: var(--fill-strong);
-  border-radius: 999px;
-  padding: 4px;
-}
-.sourceTab {
-  font-size: 13px;
-  font-weight: 700;
-  padding: 9px 6px;
-  border: none;
-  background: transparent;
-  color: var(--paper-dim);
-  border-radius: 999px;
-  cursor: pointer;
-}
-.sourceTabActive {
-  background: var(--surface-solid);
-  color: var(--paper);
-  box-shadow: var(--shadow-1);
-}
-.foodSearch {
-  width: 100%;
-  padding: 12px 16px;
-  font-size: 16px;
-  background: var(--surface-solid);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  color: var(--paper);
-}
-.foodSearch:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.foodList {
-  list-style: none;
-  margin: 0;
-  padding: 4px;
-  max-height: 230px;
-  overflow-y: auto;
-  border-radius: 18px;
-  background: var(--surface-solid);
-  border: 1px solid var(--hairline);
-}
-.foodPick {
-  width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--paper);
-  text-align: left;
-  cursor: pointer;
-}
-.foodPick:hover {
-  background: var(--fill);
-}
-.foodPickName {
-  font-size: 13.5px;
-  font-weight: 650;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.foodPickMacro {
-  font-size: 11.5px;
-  color: var(--paper-faint);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.foodEmpty {
-  padding: 14px 12px;
-  font-size: 13px;
-  color: var(--paper-faint);
-  text-align: center;
-}
-.gramRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 8px;
-}
-.gramPicked {
-  font-size: 13.5px;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .gramField {
   display: flex;
   align-items: center;
@@ -2615,28 +2489,6 @@
 .gramInput:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-.customFood {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.customFoodGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-.customFoodField {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--paper-faint);
-}
-.customFoodField .gramInput {
-  width: 100%;
-  text-align: left;
 }
 
 /* ======================================================================
@@ -3477,4 +3329,49 @@
     border-radius: 24px;
     padding: 14px 4px 12px;
   }
+}
+
+/* Denník: riadky jedál, panel „Pridať jedlo“ a skener sú zdieľané komponenty
+   app/components/food/ so štýlmi vo food.module.css. */
+
+/* tlačidlá upraviť / odobrať pri zapísanom jedle — 40 × 40 s podkladom; neskorší zápis
+   prebije aj staršie mobilné 44px pravidlo vyššie */
+.diaryRow {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.removeBtn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper-dim);
+}
+.removeBtn:hover {
+  color: var(--paper);
+  background: var(--surface-solid);
+}
+.removeBtn:global(.btn-danger) {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* úprava gramáže / potvrdenie odobratia v riadku denníka: menšie tlačidlá (mobilné .btn-sm
+   má ~48 px), pri úprave názov na celý riadok a pole + tlačidlá pod ním */
+.diaryRowEdit {
+  grid-template-columns: minmax(0, 1fr);
+}
+.diaryName {
+  overflow-wrap: anywhere;
+}
+.diaryRowActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.diaryRowActions :global(.btn) {
+  padding: 8px 14px;
+  font-size: 13.5px;
 }

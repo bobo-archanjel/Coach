@@ -16,7 +16,9 @@ const eslintConfig = [
     // ani lintovať, Next si ho sám prepíše nabudúce.
     // supabase/functions/** beží na Deno (edge functions), nie na Next/Node —
     // iný runtime, iné globály (Deno.*), netreba ho lintovať rovnakou konfiguráciou.
-    ignores: ["design/**", ".next/**", "public/**", "next-env.d.ts", "supabase/functions/**"],
+    // .next-*/** — build výstupy paralelných dev serverov (QA_DIST_DIR v next.config.ts,
+    // napr. .next-qa-client, .next-v6) — rovnaké artefakty ako .next/.
+    ignores: ["design/**", ".next/**", ".next-*/**", "public/**", "next-env.d.ts", "supabase/functions/**"],
   },
 ];
 

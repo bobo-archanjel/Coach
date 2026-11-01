@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
-import { getFoodLibrary, getPortalWeek } from "@/lib/portal/data";
-import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
+import { getPortalWeek } from "@/lib/portal/data";
+import type { PortalWeekResult } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
 import { isValidReps, isValidWeight } from "@/lib/workouts/setInput";
 import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
@@ -24,15 +24,6 @@ export async function getExerciseDetailAction(exerciseId: string): Promise<Exerc
 /** Pás „Tento týždeň" — načíta iný (spravidla minulý) týždeň pri listovaní. */
 export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeekResult> {
   return getPortalWeek(mondayIso);
-}
-
-/**
- * Knižnica potravín pre vyhľadávanie v denníku — na požiadanie, len keď klient
- * otvorí panel "Pridať jedlo" (`AddFoodDiaryEntry`, defaultne zbalený), nie ako
- * súčasť každého načítania /portal/dennik (viď lib/portal/data.ts).
- */
-export async function getFoodLibraryAction(): Promise<PortalFoodOption[]> {
-  return getFoodLibrary();
 }
 
 /** GDPR — klient požiada o zmazanie vlastných dát (30-dňová grace period, 0013_client_deletion.sql). */

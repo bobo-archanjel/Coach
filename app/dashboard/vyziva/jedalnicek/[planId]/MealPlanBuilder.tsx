@@ -1,18 +1,39 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { FoodLibrary } from "./FoodLibrary";
 import { MealEntryRow } from "./MealEntryRow";
 import { AddMealDayInline } from "./AddMealDayInline";
 import { MealDayActions } from "./MealDayActions";
 import { MacroChips } from "./MacroChips";
 import { MealPublishActions } from "./MealPlanControls";
-import type { LibraryFood } from "./FoodLibraryItem";
 import { saveMealPlanDaysAction, type MealEntry } from "../actions";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import type { PortalFoodOption } from "@/lib/portal/types";
+import { FoodPickerSheet } from "@/app/components/food/FoodPickerSheet";
+import { MealSlotSection } from "@/app/components/food/MealSlotSection";
+import foodModule from "@/app/components/food/food.module.css";
 import mealBuilderModule from "./builder.module.css";
 import dashboardModule from "../../../dashboard.module.css";
 import { useSkinStyles } from "@/app/components/uiSkin";
+
+/** Riadok knižnice potravín (page.tsx: globálna knižnica + vlastné potraviny trénera). */
+export interface LibraryFood {
+  id: string;
+  name: string;
+  kcal_100g: number;
+  protein_100g: number;
+  carbs_100g: number;
+  fat_100g: number;
+}
+
+const toOption = (f: LibraryFood): PortalFoodOption => ({
+  foodId: f.id,
+  name: f.name,
+  kcal100g: Number(f.kcal_100g),
+  protein100g: Number(f.protein_100g),
+  carbs100g: Number(f.carbs_100g),
+  fat100g: Number(f.fat_100g),
+});
 
 interface Day {
   /** "new-…" = deň pridaný lokálne, v DB ešte nie je */
@@ -23,6 +44,8 @@ interface Day {
 }
 
 const NEW_PREFIX = "new-";
+/** rovnaký limit ako saveMealPlanDaysAction (actions.ts) */
+const MAX_DAYS = 31;
 const UNSAVED_MSG = "Máš neuložené zmeny v jedálničku. Odísť bez uloženia?";
 
 // crypto.randomUUID existuje len v secure contexte — na iPhone cez LAN (http://192.168…)
@@ -37,17 +60,23 @@ function localId(): string {
  * až cez „Uložiť zmeny" — predtým sa každý klik hneď zapísal, takže zverejnený
  * jedálniček sa klientovi menil priebežne a nechcená zmena sa nedala vziať späť.
  * „Zahodiť" vráti posledný uložený stav.
+ *
+ * Deň = riadky jedál (Raňajky … Iné, zbalené ako v denníku klienta); „+“ otvorí panel
+ * FoodPickerSheet pre to jedlo — Knižnica, značky online, skener, nová potravina.
  */
 export function MealPlanBuilder({
   planId,
   published,
   days,
   library,
+  recipientCount = 0,
 }: {
   planId: string;
   published: boolean;
   days: Day[];
   library: LibraryFood[];
+  /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
+  recipientCount?: number;
 }) {
   const dashStyles = useSkinStyles("dashboard", dashboardModule);
   const styles = useSkinStyles("mealBuilder", mealBuilderModule);
@@ -57,6 +86,19 @@ export function MealPlanBuilder({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [savePending, startSave] = useTransition();
+  const food = useSkinStyles("food", foodModule);
+  // Knižnica pre panel — plus potraviny, ktoré tréner založí počas práce (do DB idú hneď,
+  // stránka ich pri ďalšom načítaní dodá sama).
+  const [libraryOptions, setLibraryOptions] = useState(() => library.map(toOption));
+  const [expanded, setExpanded] = useState<ReadonlySet<MealSlot>>(() => new Set());
+  const [addSlot, setAddSlot] = useState<MealSlot | null>(null);
+  const toggleSlot = (slot: MealSlot) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(slot)) next.delete(slot);
+      else next.add(slot);
+      return next;
+    });
 
   // Nová serverová pravda (po uložení) → prepíše lokálny stav. Revalidácia z iného
   // dôvodu (premenovanie jedálnička, zverejnenie) dni nemení → rozpracované úpravy ostanú.
@@ -131,20 +173,33 @@ export function MealPlanBuilder({
     setActiveDayId(id);
   };
 
-  const addFood = (food: LibraryFood) => {
-    if (!activeDayId) return;
+  /** Kópia dňa aj s potravinami (nové entry_id) na koniec; prepne sa na ňu. */
+  const duplicateDay = (dayId: string) => {
+    const src = draft.find((d) => d.id === dayId);
+    if (!src || draft.length >= MAX_DAYS) return;
+    const id = `${NEW_PREFIX}${localId()}`;
+    const name = `${src.name} (kópia)`.slice(0, 120);
+    edit((ds) => [...ds, { id, day_number: ds.length + 1, name, meals: src.meals.map((m) => ({ ...m, entry_id: localId() })) }]);
+    setActiveDayId(id);
+  };
+
+  /** Potravina z panela do jedla `slot` aktívneho dňa (panel zaručí food_id). */
+  const addFood = (option: PortalFoodOption, grams: number, slot: MealSlot) => {
+    if (!activeDayId || !option.foodId) return;
     const entry: MealEntry = {
       entry_id: localId(),
-      food_id: food.id,
-      food_name: food.name,
-      meal_slot: "ranajky",
-      grams: 100,
-      kcal_100g: food.kcal_100g,
-      protein_100g: food.protein_100g,
-      carbs_100g: food.carbs_100g,
-      fat_100g: food.fat_100g,
+      food_id: option.foodId,
+      food_name: option.name,
+      meal_slot: slot,
+      grams,
+      kcal_100g: option.kcal100g,
+      protein_100g: option.protein100g,
+      carbs_100g: option.carbs100g,
+      fat_100g: option.fat100g,
     };
     editDay(activeDayId, (d) => ({ ...d, meals: [...d.meals, entry] }));
+    // pridané jedlo hneď vidno — jeho riadok sa rozbalí
+    setExpanded((prev) => (prev.has(slot) ? prev : new Set(prev).add(slot)));
   };
 
   /** Uloží rozpracovaný stav; true = podarilo sa (volá ho aj „Uložiť a zverejniť"). */
@@ -187,88 +242,104 @@ export function MealPlanBuilder({
       {/* Vždy v DOM (aj po zverejnení) — inak by revalidácia odmontovala potvrdenie
           „Zverejnené"; prázdny blok skryje .planActions:empty. */}
       <div className={dashStyles.planActions}>
-        <MealPublishActions planId={planId} published={published} dirty={dirty} saveFirst={save} />
+        <MealPublishActions
+          planId={planId}
+          published={published}
+          dirty={dirty}
+          saveFirst={save}
+          recipientCount={recipientCount}
+        />
       </div>
 
-      <div className={styles.builderGrid}>
-        <FoodLibrary foods={library} activeDayId={activeDay?.id ?? null} onAddFood={addFood} />
+      <div className={styles.canvas}>
+        <div className={styles.dayTabs}>
+          {draft.map((day) => (
+            <button
+              key={day.id}
+              type="button"
+              className={`${styles.dayTab} ${day.id === activeDayId ? styles.dayTabActive : ""}`}
+              onClick={() => setActiveDayId(day.id)}
+              aria-current={day.id === activeDayId ? "true" : undefined}
+            >
+              {day.name}
+            </button>
+          ))}
+          <AddMealDayInline nextDayNumber={draft.length + 1} onAdd={addDay} />
+          {activeDay && (
+            // key: po premenovaní/prepnutí dňa sa zavrie rozpracovaný formulár
+            <MealDayActions
+              key={`${activeDay.id}-${activeDay.name}`}
+              name={activeDay.name}
+              foodCount={activeDay.meals.length}
+              canDuplicate={draft.length < MAX_DAYS}
+              onDuplicate={() => duplicateDay(activeDay.id)}
+              onRename={(name) => editDay(activeDay.id, (d) => ({ ...d, name }))}
+              onDelete={() => edit((ds) => ds.filter((d) => d.id !== activeDay.id))}
+            />
+          )}
+        </div>
 
-        <div className={styles.canvas}>
-          <div className={styles.dayTabs}>
-            {draft.map((day) => (
-              <button
-                key={day.id}
-                type="button"
-                className={`${styles.dayTab} ${day.id === activeDayId ? styles.dayTabActive : ""}`}
-                onClick={() => setActiveDayId(day.id)}
-                aria-current={day.id === activeDayId ? "true" : undefined}
-              >
-                {day.name}
-              </button>
-            ))}
-            <AddMealDayInline nextDayNumber={draft.length + 1} onAdd={addDay} />
-            {activeDay && (
-              // key: po premenovaní/prepnutí dňa sa zavrie rozpracovaný formulár
-              <MealDayActions
-                key={`${activeDay.id}-${activeDay.name}`}
-                name={activeDay.name}
-                foodCount={activeDay.meals.length}
-                onRename={(name) => editDay(activeDay.id, (d) => ({ ...d, name }))}
-                onDelete={() => edit((ds) => ds.filter((d) => d.id !== activeDay.id))}
-              />
-            )}
-          </div>
-
-          <div className={styles.dayPanel}>
-            {activeDay ? (
-              activeDay.meals.length > 0 ? (
-                <>
-                  {dayTotal && (
-                    <div className={styles.dayTotals}>
-                      <span>{dayTotal.kcal} kcal / deň</span>
-                      <MacroChips proteinG={dayTotal.proteinG} carbsG={dayTotal.carbsG} fatG={dayTotal.fatG} size="lg" />
-                    </div>
-                  )}
-                  {MEAL_SLOT_ORDER.map((slot) => {
-                    const entries = activeDay.meals.filter((m) => m.meal_slot === slot);
-                    if (entries.length === 0) return null;
-                    return (
-                      <div key={slot} className={styles.mealGroup}>
-                        <div className={styles.mealGroupHead}>{MEAL_SLOT_LABELS[slot]}</div>
-                        {entries.map((entry) => (
-                          <MealEntryRow
-                            key={entry.entry_id}
-                            entry={entry}
-                            onUpdate={(patch: { meal_slot: MealSlot; grams: number }) =>
-                              editDay(activeDay.id, (d) => ({
-                                ...d,
-                                meals: d.meals.map((m) => (m.entry_id === entry.entry_id ? { ...m, ...patch } : m)),
-                              }))
-                            }
-                            onRemove={() =>
-                              editDay(activeDay.id, (d) => ({
-                                ...d,
-                                meals: d.meals.filter((m) => m.entry_id !== entry.entry_id),
-                              }))
-                            }
-                          />
-                        ))}
-                      </div>
-                    );
-                  })}
-                </>
-              ) : (
-                <p className={styles.emptyDay}>
-                  Zatiaľ žiadne potraviny — klikni na potravinu v knižnici, pridá sa sem (100 g,
-                  raňajky) a hneď si to upravíš.
-                </p>
-              )
-            ) : (
-              <p className={styles.emptyDay}>Vytvor prvý deň vyššie.</p>
-            )}
-          </div>
+        <div className={styles.dayPanel}>
+          {activeDay ? (
+            <>
+              {dayTotal && activeDay.meals.length > 0 && (
+                <div className={styles.dayTotals}>
+                  <span>{dayTotal.kcal} kcal / deň</span>
+                  <MacroChips proteinG={dayTotal.proteinG} carbsG={dayTotal.carbsG} fatG={dayTotal.fatG} size="lg" />
+                </div>
+              )}
+              <div className={food.slots}>
+                {MEAL_SLOT_ORDER.map((slot) => {
+                  const entries = activeDay.meals.filter((m) => m.meal_slot === slot);
+                  return (
+                    <MealSlotSection
+                      key={slot}
+                      slot={slot}
+                      label={MEAL_SLOT_LABELS[slot]}
+                      kcal={sumMacros(entries.map((e) => scaleFoodMacros(e, e.grams))).kcal}
+                      count={entries.length}
+                      open={expanded.has(slot)}
+                      onToggle={() => toggleSlot(slot)}
+                      onAdd={() => setAddSlot(slot)}
+                    >
+                      {entries.map((entry) => (
+                        <MealEntryRow
+                          key={entry.entry_id}
+                          entry={entry}
+                          onUpdate={(patch: { meal_slot: MealSlot; grams: number }) =>
+                            editDay(activeDay.id, (d) => ({
+                              ...d,
+                              meals: d.meals.map((m) => (m.entry_id === entry.entry_id ? { ...m, ...patch } : m)),
+                            }))
+                          }
+                          onRemove={() =>
+                            editDay(activeDay.id, (d) => ({
+                              ...d,
+                              meals: d.meals.filter((m) => m.entry_id !== entry.entry_id),
+                            }))
+                          }
+                        />
+                      ))}
+                    </MealSlotSection>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <p className={styles.emptyDay}>Vytvor prvý deň vyššie.</p>
+          )}
         </div>
       </div>
+
+      {addSlot && activeDay && (
+        <FoodPickerSheet
+          title={`${activeDay.name} · ${MEAL_SLOT_LABELS[addSlot]}`}
+          library={libraryOptions}
+          onSubmit={(option, grams) => addFood(option, grams, addSlot)}
+          onFoodCreated={(option) => setLibraryOptions((prev) => [...prev, option])}
+          onClose={() => setAddSlot(null)}
+        />
+      )}
 
       {(dirty || saveError || justSaved) && (
         <div className={styles.saveBar} role="region" aria-label="Uloženie zmien">

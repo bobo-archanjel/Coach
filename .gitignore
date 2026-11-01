@@ -51,3 +51,6 @@ supabase/.temp/
 qa-results/
 .next-qa-trainer/
 .next-qa-client/
+
+# ZXing WASM pre skener čiarových kódov — kopíruje scripts/copy-zxing-wasm.mjs (postinstall/prebuild)
+/public/wasm/

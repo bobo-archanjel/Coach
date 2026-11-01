@@ -19,12 +19,17 @@ export interface FoodCandidate {
   fat100g: number;
 }
 
-/** Globálna knižnica + vlastné potraviny trénera klienta (rovnaká viditeľnosť ako v jedálničku). */
+/**
+ * Globálna knižnica + vlastné potraviny trénera klienta (rovnaká viditeľnosť ako v jedálničku).
+ * Bez produktov uložených skenerom (source='off', 0050) — celý zoznam ide do promptu
+ * a skeny všetkých používateľov by ho nafukovali.
+ */
 export async function getFoodCandidates(supabase: SupabaseClient, trainerId: string): Promise<FoodCandidate[]> {
   const { data, error } = await supabase
     .from("foods")
     .select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g")
     .or(`trainer_id.is.null,trainer_id.eq.${trainerId}`)
+    .neq("source", "off")
     .order("name", { ascending: true });
   if (error) {
     console.error("getFoodCandidates:", error.message);

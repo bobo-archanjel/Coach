@@ -6,7 +6,7 @@ import portalStyles from "../portal.module.css";
 import { useSkinStyles } from "../../components/uiSkin";
 
 const TrashIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path
       d="M5 7h14M10 11v6M14 11v6M6 7l1 12.5A1.5 1.5 0 0 0 8.5 21h7a1.5 1.5 0 0 0 1.5-1.4L18 7M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"
       stroke="currentColor"
@@ -18,7 +18,7 @@ const TrashIcon = () => (
 );
 
 const PencilIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path
       d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4"
       stroke="currentColor"
@@ -57,29 +57,31 @@ export function DiaryRow({
     if (g !== entry.grams) onUpdateGrams(entry.id, g);
   }
 
+  // Úprava: názov na celý riadok, pole gramáže a tlačidlá pod ním — dlhý názov sa inak
+  // tlačil do úzkeho stĺpca vedľa poľa a pretekal cez neho.
   if (mode === "edit") {
     return (
-      <li className={styles.diaryRow}>
+      <li className={`${styles.diaryRow} ${styles.diaryRowEdit}`}>
         <span className={styles.diaryName}>{entry.name}</span>
-        <span className={styles.gramField}>
-          <input
-            className={styles.gramInput}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={5000}
-            value={grams}
-            onChange={(e) => setGrams(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") saveGrams();
-              if (e.key === "Escape") setMode("view");
-            }}
-            aria-label={`Gramáž ${entry.name}`}
-            autoFocus
-          />
-          <span className={styles.gramUnit}>g</span>
-        </span>
-        <span style={{ display: "flex", gap: 6 }}>
+        <span className={styles.diaryRowActions}>
+          <span className={styles.gramField}>
+            <input
+              className={styles.gramInput}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={5000}
+              value={grams}
+              onChange={(e) => setGrams(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveGrams();
+                if (e.key === "Escape") setMode("view");
+              }}
+              aria-label={`Gramáž ${entry.name}`}
+              autoFocus
+            />
+            <span className={styles.gramUnit}>g</span>
+          </span>
           <button type="button" className="btn btn-primary btn-sm" onClick={saveGrams}>
             Uložiť
           </button>
@@ -101,7 +103,7 @@ export function DiaryRow({
       </span>
       <span className={styles.diaryKcalCell}>{entry.kcal} kcal</span>
       {mode === "confirmRemove" ? (
-        <span style={{ display: "flex", gap: 6 }}>
+        <span className={styles.diaryRowActions}>
           <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => onRemove(entry.id)}>
             Odobrať
           </button>
@@ -110,7 +112,7 @@ export function DiaryRow({
           </button>
         </span>
       ) : (
-        <span style={{ display: "flex", gap: 2 }}>
+        <span style={{ display: "flex", gap: 6 }}>
           <button
             type="button"
             className={styles.removeBtn}

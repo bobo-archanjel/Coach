@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PlanBuilder } from "./PlanBuilder";
+import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
+import { listPlanRecipients } from "@/lib/planRecipients";
 import { PublishActions, PublishBadge } from "./PublishControl";
 import { WorkoutTemplateTop } from "../../sablony/WorkoutTemplateControls";
 import { PlanTitle } from "./PlanTitle";
@@ -128,6 +130,8 @@ export default async function PlanDetailPage({
   }
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
+  // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú plán aj títo
+  const recipients = await listPlanRecipients(supabase, "workout", planId);
 
   return (
     <>
@@ -142,6 +146,7 @@ export default async function PlanDetailPage({
           <div className={styles.clientGoal}>
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
+          <PlanRecipients kind="workout" planId={planId} published={plan.published} recipients={recipients} />
         </div>
         {/* Vysvetlenie stavu plánu na požiadanie (otáznik vedľa odznaku), nie odsek pod hlavičkou. */}
         <div className={styles.detailHeadStatus}>
@@ -167,7 +172,7 @@ export default async function PlanDetailPage({
           Hotový plán ich hore nemá — šablóna je dole vedľa PDF (bez Zmazať). */}
       {!locked && (
         <div className={styles.planActions}>
-          <PublishActions planId={planId} published={plan.published} />
+          <PublishActions planId={planId} published={plan.published} recipientCount={recipients.length} />
           <WorkoutTemplateTop planId={planId} defaultName={plan.name} />
         </div>
       )}

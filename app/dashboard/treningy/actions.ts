@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import { deliverPlanToRecipients } from "@/lib/planRecipients";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { displayExerciseName, fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
@@ -139,8 +140,12 @@ export async function setPlanPublishedAction(_prevState: ActionState, formData: 
 
   if (error) return { error: dbErr(error, "actions") };
 
+  // šablóna pre viacerých klientov (0052): každý ďalší príjemca dostane vlastnú kópiu
+  const delivery = published ? await deliverPlanToRecipients(supabase, user.id, "workout", planId) : null;
+
   revalidatePath(`/dashboard/treningy/${planId}`);
   revalidatePath("/dashboard/treningy");
+  if (delivery?.error) return { error: delivery.error };
   return ok;
 }
 

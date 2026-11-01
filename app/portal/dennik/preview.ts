@@ -4,7 +4,6 @@ import type { PortalDiaryData, PortalDiaryResult } from "@/lib/portal/types";
 const PREVIEW: PortalDiaryData = {
   today: "2026-08-28",
   date: "2026-08-28",
-  hour: 14,
   goal: { bmr: 1780, tdee: 2560, caloriesTarget: 2350, proteinG: 175, carbsG: 240, fatG: 70 },
   totals: { kcal: 1420, proteinG: 118, carbsG: 132, fatG: 44 },
   groups: [
@@ -28,10 +27,6 @@ const PREVIEW: PortalDiaryData = {
         { id: "p6", slot: "obed", name: "Brokolica (varená)", grams: 200, kcal: 70, proteinG: 4.8, carbsG: 14, fatG: 0.8 },
       ],
     },
-  ],
-  planFoods: [
-    { foodId: null, name: "Tvaroh (polotučný)", kcal100g: 98, protein100g: 12, carbs100g: 3.5, fat100g: 4.3, plannedGrams: 250, plannedSlot: "vecera" },
-    { foodId: null, name: "Losos (surový)", kcal100g: 208, protein100g: 20, carbs100g: 0, fat100g: 13, plannedGrams: 150, plannedSlot: "vecera" },
   ],
 };
 

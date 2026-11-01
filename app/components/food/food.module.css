@@ -1,0 +1,524 @@
+/* Výber potraviny — zdieľané komponenty app/components/food/ (denník klienta aj builder
+   jedálnička trénera): riadky jedál dňa s „+“, panel „Pridať jedlo“ (spodný panel / okno),
+   vyhľadávanie (knižnica / značky online), skener čiarových kódov, formulár novej potraviny.
+   Pôvodný dizajn; dizajn v6 má rovnaké triedy v app/v6design/styles/food.module.css
+   (menný priestor skinu „food“). Vlastný modul = vlastné názvy tried — nekolidujú s portálom
+   ani dashboardom. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+.formField .gramInput {
+  width: 100%;
+}
+.meta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--paper-faint);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.textBtn {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 6px;
+  border: none;
+  background: transparent;
+  color: var(--paper-dim);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.search {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 16px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+}
+.search:focus-visible {
+  outline: 2px solid var(--plate-yellow);
+  outline-offset: 2px;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+}
+.pick {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: none;
+  border-top: 1px solid var(--steel-line);
+  background: transparent;
+  color: var(--paper);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.pick:first-child {
+  border-top: none;
+}
+.pick:hover {
+  background: var(--ink-3);
+}
+.pickName {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pickMacro {
+  font-size: 11px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.empty {
+  padding: 14px 12px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  text-align: center;
+}
+.gramRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+.gramPicked {
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gramField {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.gramUnit {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper-faint);
+}
+.gramInput {
+  width: 58px;
+  padding: 9px 8px;
+  font-size: 16px;
+  text-align: right;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.gramInput::-webkit-outer-spin-button,
+.gramInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.gramInput:focus-visible {
+  outline: 2px solid var(--plate-yellow);
+  outline-offset: 2px;
+}
+.error {
+  font-size: 12px;
+  color: var(--error);
+}
+.searchRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.searchRow .search {
+  flex: 1;
+  min-width: 0;
+}
+.scanBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 0 14px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: var(--ink-2);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.scanBtn:hover {
+  border-color: var(--paper-faint);
+}
+.scanResult {
+  display: grid;
+  gap: 8px;
+}
+.scanResultTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.scanCode {
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.scanActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.source {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--paper-faint);
+}
+.warn {
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--plate-yellow) 35%, transparent);
+  border-radius: var(--radius-s);
+  background: color-mix(in srgb, var(--plate-yellow) 12%, transparent);
+  color: var(--plate-yellow);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.scanOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #000;
+  color: #fff;
+}
+.scanVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scanShade {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  overflow: hidden;
+}
+.scanFrame {
+  width: min(78vw, 340px);
+  aspect-ratio: 2.2 / 1;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+}
+.scanTop {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 0;
+}
+.scanIconBtn {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+}
+.scanIconBtnOn {
+  background: #fff;
+  color: #111;
+}
+.scanBottom {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 40px 16px calc(18px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.78) 34%);
+}
+.scanHint {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+.scanError {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffd0c7;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.scanManual {
+  display: grid;
+  gap: 6px;
+}
+.scanManualLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+.scanManualRow {
+  display: flex;
+  gap: 8px;
+}
+.scanManualInput {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-s);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.scanManualInput::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+.scanManualInput:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.slots {
+  padding: 4px 6px;
+}
+.slot + .slot {
+  border-top: 1px solid var(--steel-line);
+}
+.slotHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.slotToggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 8px;
+  border: 0;
+  background: none;
+  color: var(--paper);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.slotIcon {
+  flex: none;
+  color: var(--iron-red);
+}
+.slotName {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.slotKcal {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+}
+.slotKcalEmpty {
+  color: var(--paper-faint);
+}
+.slotChevron {
+  flex: none;
+  color: var(--paper-faint);
+  transition: transform 0.18s ease;
+}
+.slotChevronOpen {
+  transform: rotate(90deg);
+}
+.slotAdd {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--steel-line);
+  border-radius: 50%;
+  background: var(--ink-3);
+  color: var(--paper);
+  cursor: pointer;
+}
+.slotAdd:hover {
+  border-color: var(--iron-red);
+  color: var(--iron-red);
+}
+.slotBody {
+  /* medzera medzi položkami (builder jedálnička: riadky MealEntryRow priamo pod sebou) */
+  display: grid;
+  gap: 6px;
+  padding: 0 8px 12px;
+}
+.slotEmpty {
+  padding: 0 0 2px 32px;
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.ok {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--moss);
+}
+.sheetLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheetScrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  height: min(86dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ink-2);
+  border-top: 1px solid var(--steel-line);
+  border-radius: 20px 20px 0 0;
+  animation: sheetUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sheet .list {
+  max-height: none;
+}
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sheetTitle {
+  font-size: 17px;
+  font-weight: 700;
+}
+.sheetClose {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--steel-line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+}
+@keyframes sheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@media (min-width: 720px) {
+  .sheetLayer {
+    align-items: center;
+    padding: 24px;
+  }
+  .sheet {
+    height: min(80vh, 680px);
+    border: 1px solid var(--steel-line);
+    border-radius: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}
+
+/* karta okolo riadkov jedál (denník) — builder ich má vnútri plochy dňa bez karty */
+.slotsCard {
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-m);
+}
+.slotBody > ul {
+  margin-top: 0;
+}
+
+/* záložky zdroja v paneli (tréner: Knižnica | Značky (online) | Nová potravina) */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: var(--ink-3);
+}
+.tab {
+  flex: 1;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--paper-dim);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tabActive {
+  background: var(--ink-2);
+  color: var(--paper);
+}
