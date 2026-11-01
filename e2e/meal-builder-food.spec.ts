@@ -9,7 +9,8 @@ import { gs1CheckDigit } from "../lib/barcode";
  * Celý tok proti reálnej Supabase DB s QA trénerom a klientom: plán sa vytvorí cez
  * API → tréner cez „+“ pri jedle pridá potravinu z knižnice (Obed), produkt skenom
  * (Večera; Open Food Facts mockuje DEV hlavička x-e2e-off-fixture) a novú vlastnú
- * potravinu (Desiata) → „Uložiť zmeny“ → v meal_days sú položky so správnym jedlom
+ * potravinu (Desiata) → „Uložiť a poslať“ (koncept nemá spodnú lištu „Uložiť zmeny“) →
+ * v meal_days sú položky so správnym jedlom
  * dňa, gramážou a food_id; „Duplikovať“ pridá kópiu dňa aj s potravinami. Tlačidlá
  * „Poslať klientovi“ / „Uložiť a poslať“ a „Premenovať“. Klient trénerovu novú
  * potravinu nevidí (RLS 0050/0051).
@@ -164,17 +165,22 @@ test.describe("builder jedálnička: riadky jedál a panel Pridať jedlo (reáln
     await sheet.getByRole("button", { name: "Pridať", exact: true }).click();
     await sheet.getByRole("button", { name: "Zavrieť" }).click();
 
-    // s neuloženými zmenami posiela „Uložiť a poslať“ (neklikáme — plán ostáva koncept)
+    // koncept: s neuloženými zmenami je hore „Uložiť a poslať“, dole žiadna duplicitná lišta
     await expect(page.getByRole("button", { name: "Uložiť a poslať" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Uloženie zmien" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Uložiť zmeny" })).toHaveCount(0);
 
     // Duplikovať: kópia dňa aj s potravinami na koniec, prepne sa na ňu
     await page.getByRole("button", { name: "Duplikovať", exact: true }).click();
     await expect(page.getByRole("button", { name: `${dayName} (kópia)` })).toHaveAttribute("aria-current", "true");
     await expect(page.getByRole("button", { name: /^Obed/ })).toContainText("kcal");
 
-    // uloženie konceptu
-    await page.getByRole("button", { name: "Uložiť zmeny" }).click();
-    await expect(page.getByText("Zmeny uložené.")).toBeVisible({ timeout: 15_000 });
+    // uloženie + odoslanie konceptu jedným tlačidlom hore
+    await page.getByRole("button", { name: "Uložiť a poslať" }).click();
+    await expect(page.getByText("Poslané — klient jedálniček už vidí.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Zmeny uložené.")).toHaveCount(0);
+    const { data: sent } = await trainer.api.from("meal_plans").select("published").eq("id", planId).single();
+    expect(sent?.published).toBe(true);
 
     const { data: days } = await trainer.api
       .from("meal_days")
