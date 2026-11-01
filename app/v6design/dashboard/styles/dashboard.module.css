@@ -1953,7 +1953,7 @@ select.addClientInputSm {
 }
 
 /* ---------- /dashboard/klienti/[id] — záložky sekcií hore, obsah pod nimi ----------
-   Rovnaký vzhľad ako záložky Tréningy | Jedálničky v Šablónach (templates.module.css).
+   Tvar ako záložky v Šablónach (templates.module.css), vybraná vo farbe hlavného menu.
    Na úzkom telefóne sa rad posúva do strany namiesto lámania na dva riadky. */
 .clientDetail {
   display: grid;
@@ -1999,11 +1999,15 @@ select.addClientInputSm {
   outline: 2px solid var(--iron-red);
   outline-offset: -2px;
 }
+/* vybraná záložka vo farbe ako aktívna položka hlavného menu (.navLinkActive) */
 .clientTabActive,
 .clientTabActive:hover {
-  background: var(--surface-solid);
-  color: var(--paper);
-  box-shadow: var(--shadow-1);
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.clientTabActive:focus-visible {
+  outline-color: var(--on-accent);
 }
 /* Grid child s tabuľkami/dlhými kartami nesmie roztiahnuť stĺpec nad jeho šírku. */
 .clientDetailContent {
