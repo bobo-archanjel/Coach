@@ -3,7 +3,8 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addClientAction, addClientByCodeAction, type AddClientState, type AddByCodeState } from "./actions";
 import { InfoTip } from "@/app/components/InfoTip";
-import styles from "./dashboard.module.css";
+import dashboardModule from "./dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: AddClientState = { error: null };
 const initialCodeState: AddByCodeState = { error: null, addedName: null };
@@ -22,6 +23,7 @@ const CheckIcon = () => (
  *     ktorý si klient pri registrácii nárokuje — pôvodný flow, ostáva funkčný).
  */
 export function AddClientForm() {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"code" | "manual">("code");
 

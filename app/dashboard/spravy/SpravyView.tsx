@@ -2,7 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { BulkMessageForm } from "./BulkMessageForm";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 /**
  * Prepínač medzi normálnou schránkou (1:1 vlákna) a hromadnou správou (viacerým
@@ -16,6 +17,7 @@ export function SpravyView({
   inboxContent: ReactNode;
   clients: { id: string; full_name: string }[];
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [bulk, setBulk] = useState(false);
 
   return (

@@ -5,7 +5,7 @@ import { MealPlanBuilder } from "./MealPlanBuilder";
 import { MealPlanFooterActions, MealPublishBadge } from "./MealPlanControls";
 import { PlanTitle } from "../../../treningy/[planId]/PlanTitle";
 import { renameMealPlanAction } from "../actions";
-import styles from "../../../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -14,6 +14,7 @@ const BackIcon = () => (
 );
 
 export default async function MealPlanDetailPage({ params }: { params: Promise<{ planId: string }> }) {
+  const styles = await dashStyles();
   const { planId } = await params;
   const supabase = await createClient();
   const {

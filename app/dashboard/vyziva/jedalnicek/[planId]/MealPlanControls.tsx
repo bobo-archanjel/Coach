@@ -4,7 +4,8 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { deleteMealPlanAction, publishMealPlanAction, type ActionState } from "../actions";
 import { saveMealTemplateAction } from "../../../sablony/actions";
-import styles from "../../../dashboard.module.css";
+import dashboardModule from "../../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -24,6 +25,7 @@ const CheckIcon = () => (
  */
 
 export function MealPublishBadge({ published, visibleToClient }: { published: boolean; visibleToClient: boolean }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
       {!published
@@ -76,6 +78,7 @@ export function MealPublishActions({
   dirty?: boolean;
   saveFirst?: () => Promise<boolean>;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(publishMealPlanAction, initialState);
   const [, startPublish] = useTransition();
   const publish = async () => {
@@ -108,7 +111,7 @@ export function MealPublishActions({
       {del.confirming ? (
         <>
           <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>Zmazať tento koncept?</p>
-          <button type="button" className="btn btn-primary btn-sm" onClick={del.doDelete} disabled={del.pending}>
+          <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={del.doDelete} disabled={del.pending}>
             {del.pending ? "Mažem…" : "Áno, zmazať"}
           </button>
           <button
@@ -126,7 +129,7 @@ export function MealPublishActions({
             {/* Krátko — „Potvrdiť a zverejniť" sa v polovičnej šírke na telefóne lámalo. */}
             {pending ? "Zverejňujem…" : dirty ? "Uložiť a zverejniť" : "Zverejniť"}
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => del.setConfirming(true)}>
+          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => del.setConfirming(true)}>
             Zmazať koncept
           </button>
         </>
@@ -153,6 +156,7 @@ export function MealPlanFooterActions({
   published: boolean;
   visibleToClient: boolean;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [templateState, templateAction, templatePending] = useActionState(saveMealTemplateAction, initialState);
   const [, startTemplate] = useTransition();
   const del = useDeleteMealPlan(planId);
@@ -174,7 +178,7 @@ export function MealPlanFooterActions({
             : ""}{" "}
           Jeho denník jedla ostáva.
         </p>
-        <button type="button" className="btn btn-primary btn-sm" onClick={del.doDelete} disabled={del.pending}>
+        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={del.doDelete} disabled={del.pending}>
           {del.pending ? "Mažem…" : "Áno, zmazať"}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => del.setConfirming(false)} disabled={del.pending}>
@@ -194,7 +198,7 @@ export function MealPlanFooterActions({
         {templatePending ? "Ukladám…" : "Uložiť ako šablónu"}
       </button>
       {published && (
-        <button type="button" className={`btn btn-ghost btn-sm ${styles.dangerGhost}`} onClick={() => del.setConfirming(true)}>
+        <button type="button" className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`} onClick={() => del.setConfirming(true)}>
           Zmazať
         </button>
       )}

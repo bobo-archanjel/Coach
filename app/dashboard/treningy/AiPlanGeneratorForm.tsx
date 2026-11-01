@@ -12,7 +12,8 @@ import {
   isSingleDayFocus,
 } from "@/lib/ai/planCategories";
 import { InfoTip } from "@/app/components/InfoTip";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -26,6 +27,7 @@ function defaultFocusForSex(sex: "muz" | "zena" | null): WholePlanFocus {
 }
 
 export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(generatePlanWithAiAction, initialState);
   const [focus, setFocus] = useState<PlanFocus>("vyvazene");
   // Kým tréner sám nezmení zameranie, meníme ho podľa vybraného klienta.

@@ -14,14 +14,20 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import styles from "../portal.module.css";
+import portalStyles from "../portal.module.css";
+import { usePortalBase, useSkinStyles } from "../../components/uiSkin";
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
 // naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
 // existujúce plány. Vlastný chunk, stiahne sa až pri "Vlastný tréning"/"Upraviť".
 const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) => m.ClientPlanBuilder), {
-  loading: () => <p className={styles.trEmptyDay}>Načítavam…</p>,
+  loading: () => <BuilderLoading />,
 });
+
+function BuilderLoading() {
+  const styles = useSkinStyles("portal", portalStyles);
+  return <p className={styles.trEmptyDay}>Načítavam…</p>;
+}
 
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
    Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a akčné
@@ -68,6 +74,8 @@ function exWord(n: number): string {
 }
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
+  const styles = useSkinStyles("portal", portalStyles);
+  const portalBase = usePortalBase();
   const { plans, templates } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
@@ -189,7 +197,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setError(null);
     markWorkoutStarted(dayId);
     startTransition(async () => {
-      const res = await setActivePlanAction(plan.id, dayId);
+      const res = await setActivePlanAction(plan.id, dayId, portalBase);
       // Úspech → redirect vnútri akcie, sem sa vrátime len pri chybe.
       if (res?.error) {
         clearWorkoutStarted();
@@ -283,7 +291,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                           <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(null, t)}>
                             Použiť
                           </button>
-                          <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmTplDelete(t.id)}>
+                          <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(t.id)}>
                             Zmazať
                           </button>
                         </>
@@ -462,7 +470,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                 </button>
                                 <button
                                   type="button"
-                                  className={styles.trGhostBtn}
+                                  className={`${styles.trGhostBtn} btn-danger`}
                                   onClick={() => setConfirmDelete(plan.id)}
                                 >
                                   Zmazať

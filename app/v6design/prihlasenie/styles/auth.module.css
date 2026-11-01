@@ -1,0 +1,440 @@
+/* /v6design/prihlasenie — vzhľad v6 pre zdieľaný AuthView (app/prihlasenie/AuthView.tsx).
+   Rovnaké názvy tried ako app/prihlasenie/auth.module.css; tokeny z koreňa .root
+   (app/v6design/styles/tokens.module.css). Počítač: vľavo značka a hodnoty, vpravo
+   sklenená karta s formulárom. Mobil: logo → formulár → hodnoty → kontakt (panel
+   značky má display: contents, jeho časti sa radia okolo formulára). */
+
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+  align-items: center;
+  gap: clamp(40px, 6vw, 96px);
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(32px, 5vw, 64px) clamp(20px, 4vw, 48px);
+}
+
+/* ---------- značka (počítač: ľavý stĺpec) ---------- */
+.brandPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  min-width: 0;
+}
+.plateField {
+  display: none;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--paper);
+  text-decoration: none;
+}
+.logoMark {
+  width: 22px;
+  height: 26px;
+  flex: none;
+}
+.brandTagline {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.brandMid h1 {
+  max-width: 11ch;
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  font-weight: 760;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  color: var(--paper);
+}
+.brandMid :global(.bar-rule) {
+  display: none;
+}
+.valueList {
+  display: grid;
+  gap: 10px;
+  max-width: 420px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.valueList li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 12px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--surface-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--paper-dim);
+}
+.valueList li svg {
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  flex: none;
+}
+.brandFoot {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.brandFoot a {
+  color: var(--paper-dim);
+  text-decoration: underline;
+  text-decoration-color: var(--fill-strong);
+  text-underline-offset: 3px;
+}
+.brandFoot a:hover {
+  color: var(--accent-text);
+}
+
+/* ---------- formulár ---------- */
+.formPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.authCard {
+  width: 100%;
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: 32px;
+  border: 1px solid var(--surface-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow), var(--shadow-2);
+  /* sklo len tu — karta nemá vo vnútri fixné okná (pravidlo v tokens.module.css) */
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+}
+
+/* segmentované pilulky: Prihlásenie | Registrácia, Som tréner | Som klient */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 26px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--fill);
+}
+.tabBtn {
+  appearance: none;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-faint);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.tabBtn[aria-selected="true"],
+.tabBtn[aria-pressed="true"] {
+  background: var(--glass-active);
+  color: var(--paper);
+  box-shadow: var(--shadow-1);
+}
+.tabBtn:hover:not([aria-selected="true"]):not([aria-pressed="true"]) {
+  color: var(--paper-dim);
+}
+
+.authHead {
+  margin-bottom: 24px;
+}
+.authHead h2 {
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+.authHead p {
+  margin-top: 8px;
+  color: var(--paper-dim);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.field label {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--paper-dim);
+}
+.inputWrap {
+  position: relative;
+}
+/* :not(checkbox) — súhlas s podmienkami je tiež v .field */
+.field input:not([type="checkbox"]) {
+  width: 100%;
+  padding: 13px 18px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
+  font-family: inherit;
+  /* 16px = iOS Safari nezoomuje pri focuse */
+  font-size: 16px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.field input:not([type="checkbox"])::placeholder {
+  color: var(--paper-faint);
+}
+.field input:not([type="checkbox"]):hover {
+  border-color: var(--fill-strong);
+}
+.field input:not([type="checkbox"]):focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field input:not([type="checkbox"]):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.field input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+.field input[data-valid="true"] {
+  border-color: var(--moss);
+}
+.hasToggle input:not([type="checkbox"]) {
+  padding-right: 52px;
+}
+.toggleVisibility {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.toggleVisibility:hover {
+  color: var(--paper);
+  background: var(--fill);
+}
+.fieldError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--error);
+}
+.fieldError svg {
+  flex: none;
+}
+.fieldHint {
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+
+.rowBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 22px;
+  font-size: 13.5px;
+}
+/* Blok (nie flex): súhlas s podmienkami je text s odkazmi — vo flexe by sa každý
+   kúsok textu a odkaz stal samostatným stĺpcom. Zaškrtávacie pole vľavo absolútne. */
+.checkboxRow,
+.field .checkboxRow {
+  position: relative;
+  display: block;
+  padding-left: 28px;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--paper-dim);
+}
+.checkboxRow input[type="checkbox"] {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.btnSubmit {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-grad);
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    opacity 0.15s ease,
+    scale 0.15s ease;
+}
+.btnSubmit:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.btnSubmit:active:not(:disabled) {
+  scale: 0.985;
+}
+.btnSubmit:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+.btnSubmit.success {
+  background: linear-gradient(140deg, #5aa77a 0%, #2f7d52 100%);
+  box-shadow: 0 12px 24px -12px rgba(47, 125, 82, 0.6);
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  animation: spin 0.7s linear infinite;
+  flex: none;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.formStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--moss) 40%, transparent);
+  background: var(--moss-soft);
+  color: var(--moss);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.formStatus svg {
+  flex: none;
+}
+/* ikony majú farbu natvrdo pre pôvodnú tmavú tému — tu podľa textu hlášky */
+.formStatus svg * {
+  stroke: currentColor;
+}
+.formStatus.error {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.switchLine {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--paper-faint);
+}
+
+/* prepínač témy pod kartou (vkladá ho len /v6design/prihlasenie) */
+.themeRow {
+  width: min(100%, 340px);
+  margin: 0 auto;
+}
+
+/* ---------- mobil ---------- */
+@media (max-width: 880px) {
+  .shell {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 520px;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  }
+  .brandPanel {
+    display: contents;
+  }
+  /* blok s logom a sloganom (2. dieťa panelu, za skrytým .plateField) */
+  .brandPanel > div:nth-child(2) {
+    order: 0;
+    padding: 6px 4px 0;
+  }
+  .formPanel {
+    order: 1;
+  }
+  .brandMid {
+    order: 2;
+    margin-top: 10px;
+    padding: 0 4px;
+  }
+  .brandFoot {
+    order: 3;
+    text-align: center;
+  }
+  .brandMid h1 {
+    max-width: none;
+    font-size: 2rem;
+  }
+  .valueList {
+    max-width: none;
+    margin-top: 16px;
+  }
+  .authCard {
+    padding: 22px 18px 24px;
+    border-radius: 28px;
+  }
+}

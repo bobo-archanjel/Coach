@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { displayExerciseName } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import b from "../../dashboard/treningy/[planId]/builder.module.css";
-import styles from "../portal.module.css";
+import builderStyles from "../../dashboard/treningy/[planId]/builder.module.css";
+import portalStyles from "../portal.module.css";
+import { useSkinStyles } from "../../components/uiSkin";
 
 const PAGE_SIZE = 7;
 
@@ -48,6 +49,8 @@ export function ClientExerciseLibrary({
   onAdd: (name: string, exerciseId: string | null) => string | null;
   onDetail: (exerciseId: string, name: string) => void;
 }) {
+  const b = useSkinStyles("builder", builderStyles);
+  const styles = useSkinStyles("portal", portalStyles);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(defaultOpen);
   const [customName, setCustomName] = useState("");

@@ -55,7 +55,7 @@ test.describe("mobil: polia ≥ 16px (iOS nezoomuje) a bez horizontálneho scrol
 
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
-    await page.getByLabel("Názov dňa").first().waitFor();
+    await page.getByLabel("Názov tréningu", { exact: true }).first().waitFor();
     expect(await smallInputs(page)).toEqual([]);
     await noHorizontalScroll(page);
   });

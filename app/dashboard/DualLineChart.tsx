@@ -2,7 +2,8 @@
 
 import { useId, useMemo, useState } from "react";
 import { pluralSk } from "@/lib/portal/streak";
-import styles from "./dashboard.module.css";
+import dashboardModule from "./dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 export interface DualLineChartPoint {
   /** YYYY-MM-DD */
@@ -35,6 +36,7 @@ export function DualLineChart({
   seriesB: Series;
   height?: number;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const gradientIdA = useId();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 

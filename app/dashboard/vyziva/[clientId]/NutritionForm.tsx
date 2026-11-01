@@ -11,7 +11,8 @@ import {
   type NutritionResult,
   type Sex,
 } from "@/lib/nutrition";
-import styles from "../../dashboard.module.css";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -32,6 +33,7 @@ interface SavedProfile {
 }
 
 export function NutritionForm({ clientId, profile }: { clientId: string; profile: SavedProfile | null }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(saveNutritionProfileAction, initialState);
 
   const [sex, setSex] = useState<Sex>(profile?.sex ?? "muz");

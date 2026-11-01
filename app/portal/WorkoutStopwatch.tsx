@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StopwatchIcon } from "./icons";
-import styles from "./portal.module.css";
+import portalStyles from "./portal.module.css";
 import {
   WORKOUT_STARTED_EVENT,
   clearWorkoutDraft,
@@ -11,6 +11,7 @@ import {
   hideStopwatchFor,
   isStopwatchHidden,
 } from "./workoutSession";
+import { useSkinStyles } from "../components/uiSkin";
 
 /**
  * Plávajúce stopky pre klienta počas tréningu. Po "Začať tréning" sa dole (nad
@@ -53,6 +54,7 @@ function fmtClock(ms: number): string {
 }
 
 export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished: boolean }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState(false);
   const [entrance, setEntrance] = useState(false); // pop-in len pri "Začať tréning", nie pri obnove z LS

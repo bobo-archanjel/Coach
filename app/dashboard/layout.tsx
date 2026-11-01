@@ -1,12 +1,21 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { redirect } from "next/navigation";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { DashboardNav } from "./DashboardNav";
-import styles from "./dashboard.module.css";
+import { dashStyles, isV6Dashboard, v6Theme } from "@/app/dashboard/dashSkin";
+import { V6DashSkin } from "@/app/v6design/dashboard/V6DashSkin";
+import { v6ThemeColor } from "@/app/v6design/theme";
+import tokens from "@/app/v6design/styles/tokens.module.css";
 
 export const metadata: Metadata = {
   title: "FitPilot — Dashboard",
 };
+
+/** Farba stavového riadku len pri dizajnovom experimente v6 (svetlá/tmavá téma). */
+export async function generateViewport(): Promise<Viewport> {
+  if (!(await isV6Dashboard())) return {};
+  return { themeColor: v6ThemeColor(await v6Theme()) };
+}
 
 /**
  * Auth guard + shell pre celý /dashboard. Klienti bežia na reálnych Supabase dátach
@@ -19,6 +28,7 @@ export const metadata: Metadata = {
 const DEV_OPEN = process.env.NODE_ENV === "development";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const styles = await dashStyles();
   const {
     data: { user },
   } = await getUser();
@@ -48,12 +58,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
     unreadCount = count ?? 0;
   }
 
-  return (
+  const shell = (
     <div className={styles.shell}>
       <DashboardNav unreadCount={unreadCount} />
       <main className={styles.content}>
         <div className={styles.wrap}>{children}</div>
       </main>
+    </div>
+  );
+  if (!(await isV6Dashboard())) return shell;
+
+  // Dizajnový experiment v6 (cookie z /v6design/dashboard) — ten istý dashboard,
+  // koreň s tokenmi/témou a štýly v6 pre klientske komponenty (SkinProvider).
+  return (
+    <div className={tokens.root} data-theme={await v6Theme()} data-v6-root="">
+      <V6DashSkin>{shell}</V6DashSkin>
     </div>
   );
 }

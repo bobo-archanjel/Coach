@@ -1,11 +1,13 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getTrainerAiUsageSummary } from "@/lib/ai/usageSummary";
 import { pluralSk } from "@/lib/portal/streak";
-import styles from "../dashboard.module.css";
+import { dashStyles, isV6Dashboard, v6Theme } from "@/app/dashboard/dashSkin";
+import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
 
 export default async function NastaveniaPage() {
+  const styles = await dashStyles();
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,6 +16,7 @@ export default async function NastaveniaPage() {
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";
   const aiUsage = user ? await getTrainerAiUsageSummary(supabase, user.id) : null;
+  const v6 = await isV6Dashboard();
 
   return (
     <>
@@ -23,6 +26,20 @@ export default async function NastaveniaPage() {
       </div>
 
       <div className={styles.settingsGrid}>
+        {v6 && (
+          // len pri dizajnovom experimente v6 (cookie z /v6design/dashboard)
+          <div className={styles.card}>
+            <h3>Vzhľad</h3>
+            <ThemeSwitch initial={await v6Theme()} />
+            <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>
+              Auto prepína svetlú a tmavú tému podľa nastavenia zariadenia.
+            </p>
+            {/* <a>, nie Link — route handler nastaví cookie a presmeruje */}
+            <a href="/v6design/dashboard/off" className="btn btn-ghost btn-sm" style={{ marginTop: 12 }}>
+              Prepnúť na pôvodný dizajn
+            </a>
+          </div>
+        )}
         <div className={styles.card}>
           <h3>Profil</h3>
           <div className={styles.infoRow}>

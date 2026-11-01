@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import { TemplateRow } from "./TemplateRow";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
 import { InfoTip } from "@/app/components/InfoTip";
-import styles from "../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ goal?: string }> }) {
+  const styles = await dashStyles();
   const {
     data: { user },
   } = await getUser();

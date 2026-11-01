@@ -4,7 +4,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { NutritionForm } from "./NutritionForm";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
 import { pluralSk } from "@/lib/portal/streak";
-import styles from "../../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -13,6 +13,7 @@ const BackIcon = () => (
 );
 
 export default async function NutritionDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
+  const styles = await dashStyles();
   const { clientId } = await params;
   const supabase = await createClient();
   const {

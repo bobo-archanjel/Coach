@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
-import styles from "../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 interface NutritionSummary {
   calories_target: number;
@@ -11,6 +11,7 @@ interface NutritionSummary {
 }
 
 export default async function VyzivaPage() {
+  const styles = await dashStyles();
   const supabase = await createClient();
   const {
     data: { user },

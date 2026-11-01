@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import { addExerciseToDayAction, getExerciseDetailAction, type ActionState } from "../actions";
 import { displayExerciseName, type ExerciseDetail, type ExerciseLibraryRow } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import styles from "./builder.module.css";
+import builderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -32,6 +33,7 @@ export function LibraryItem({
   /** klik bez vytvoreného dňa — rodič ukáže hlášku (namiesto mŕtveho, neaktívneho tlačidla) */
   onNoDay?: () => void;
 }) {
+  const styles = useSkinStyles("builder", builderModule);
   const [, formAction, pending] = useActionState(addExerciseToDayAction, initialState);
   const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
   const [showDetail, setShowDetail] = useState(false);

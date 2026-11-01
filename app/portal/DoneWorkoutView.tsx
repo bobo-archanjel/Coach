@@ -10,7 +10,8 @@ import {
   isStillEditable,
 } from "@/lib/workouts/completed";
 import { LoggedWorkoutEditor } from "./LoggedWorkoutEditor";
-import styles from "./portal.module.css";
+import portalStyles from "./portal.module.css";
+import { useSkinStyles } from "../components/uiSkin";
 
 const LockIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -63,6 +64,7 @@ export function DoneWorkoutView({
   editableUntil?: string | null;
   exercises: PortalExercise[];
 }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [editing, setEditing] = useState(false);
   const canEdit = !!logId && isStillEditable(editableUntil);
 

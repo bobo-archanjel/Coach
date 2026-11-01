@@ -3,7 +3,8 @@
 import { useMemo, useState, useActionState } from "react";
 import { addCustomFoodAction, type ActionState } from "../actions";
 import { FoodLibraryItem, type LibraryFood } from "./FoodLibraryItem";
-import styles from "./builder.module.css";
+import mealBuilderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -22,6 +23,7 @@ export function FoodLibrary({
   activeDayId: string | null;
   onAddFood: (food: LibraryFood) => void;
 }) {
+  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const [query, setQuery] = useState("");
   // Na mobile defaultne zbalené — tréner vidí plátno (aktívny deň) prvé.
   const [open, setOpen] = useState(false);

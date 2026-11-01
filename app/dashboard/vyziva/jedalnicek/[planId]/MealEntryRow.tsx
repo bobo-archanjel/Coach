@@ -4,7 +4,8 @@ import { useState } from "react";
 import type { MealEntry } from "../actions";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
 import { MacroChips } from "./MacroChips";
-import styles from "./builder.module.css";
+import mealBuilderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const EditIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -28,6 +29,7 @@ export function MealEntryRow({
   onUpdate: (patch: { meal_slot: MealSlot; grams: number }) => void;
   onRemove: () => void;
 }) {
+  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const [editing, setEditing] = useState(false);
   const [slot, setSlot] = useState<MealSlot>(entry.meal_slot);
   const [grams, setGrams] = useState(String(entry.grams));
@@ -108,7 +110,7 @@ export function MealEntryRow({
         <button type="button" className={styles.iconBtn} onClick={startEdit} aria-label="Upraviť položku">
           <EditIcon />
         </button>
-        <button type="button" className={styles.iconBtn} onClick={onRemove} aria-label="Odstrániť položku">
+        <button type="button" className={`${styles.iconBtn} btn-danger`} onClick={onRemove} aria-label="Odstrániť položku">
           <TrashIcon />
         </button>
       </div>

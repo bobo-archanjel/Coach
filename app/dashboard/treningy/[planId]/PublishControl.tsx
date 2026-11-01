@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { setPlanPublishedAction, deletePlanAction, type ActionState } from "../actions";
-import styles from "../../dashboard.module.css";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -14,6 +15,7 @@ const CheckIcon = () => (
 
 /** Stav plánu pri názve — kým je koncept, klient ho v portáli nevidí (viď actions.ts). */
 export function PublishBadge({ published }: { published: boolean }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
       {published ? "Publikovaný — klient ho vidí" : "Koncept — klient ho ešte nevidí"}
@@ -27,6 +29,7 @@ export function PublishBadge({ published }: { published: boolean }) {
  * súmerné. Publikovanie je jednosmerné: po ňom obe akcie zmiznú.
  */
 export function PublishActions({ planId, published }: { planId: string; published: boolean }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(setPlanPublishedAction, initialState);
   // Stav pri názve sa mení trvalo (podľa `published` z DB), ale samotná zmena je
   // ľahko prehliadnuteľná — táto správa na pár sekúnd jasne potvrdí, že klik
@@ -68,7 +71,7 @@ export function PublishActions({ planId, published }: { planId: string; publishe
       {confirmingDelete ? (
         <>
           <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>Zmazať tento koncept?</p>
-          <button type="button" className="btn btn-primary btn-sm" onClick={doDelete} disabled={deletePending}>
+          <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={deletePending}>
             {deletePending ? "Mažem…" : "Áno, zmazať"}
           </button>
           <button
@@ -89,7 +92,7 @@ export function PublishActions({ planId, published }: { planId: string; publishe
               {pending ? "Ukladám…" : "Potvrdiť a uložiť"}
             </button>
           </form>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(true)}>
+          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirmingDelete(true)}>
             Zmazať koncept
           </button>
         </>

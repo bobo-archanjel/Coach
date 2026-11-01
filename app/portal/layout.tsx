@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 import { PortalNav } from "./PortalNav";
+import { loadPortalShell } from "./portalShell";
 import styles from "./portal.module.css";
 
 export const metadata: Metadata = {
@@ -29,49 +28,9 @@ SIGNATURE: prstenec postupu sa pri načítaní poskladá — obkreslí sa ghost 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict,
   DESIGN.md, and every shipping raster carrying its provenance`;
 
-/**
- * Auth guard + mobilný shell pre celý /portal. Portál je klientsky povrch:
- * bez session → /prihlasenie, tréner → /dashboard. Prázdne stavy (neprepojený
- * klient, chýbajúci plán) rieši samotná obrazovka cez lib/portal/data.ts.
- *
- * DEV výnimka: keď beží `next dev` a nie je session (napr. lokálne bez platných
- * Supabase kľúčov), guard neredirectuje — nech sa dá pozerať povrch cez
- * `/portal?preview=ok|unlinked|no_plan|error`. V produkcii je guard nepodmienený.
- */
-const DEV_OPEN = process.env.NODE_ENV === "development";
-
+/** Mobilný shell pre celý /portal — auth guard a údaje navigácie v loadPortalShell (portalShell.ts). */
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await getUser();
-
-  let chatUnread = false;
-  let aiKoucVisible = false;
-  if (!user) {
-    if (!DEV_OPEN) redirect("/prihlasenie");
-  } else {
-    // Nezávislé dopyty — všetky tri naraz (predtým počet a klient čakali na profil,
-    // round-trip navyše na KAŽDÚ navigáciu v portáli); redirect trénera až po nich.
-    // getMyClient je request-cache-ovaný — stránka pod layoutom ho dostane zadarmo.
-    const [{ data: profile }, { count }, { data: clientRow }] = await Promise.all([
-      getProfile(user.id),
-      // neprečítaná správa od trénera ALEBO systémová (napr. GDPR zmazanie, 0019) → bodka na tabe Chat
-      supabase
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .in("sender", ["trainer", "system"])
-        .is("read_at", null),
-      // AI Kouč len pre klientov s prideleným trénerom (dohodnuté v Kroku 4b).
-      getMyClient(user.id),
-    ]);
-
-    if (profile?.role === "trainer") {
-      redirect("/dashboard");
-    }
-    chatUnread = (count ?? 0) > 0;
-    aiKoucVisible = Boolean(clientRow?.trainer_id);
-  }
+  const { chatUnread, aiKoucVisible } = await loadPortalShell();
 
   return (
     <div className={styles.viewport}>

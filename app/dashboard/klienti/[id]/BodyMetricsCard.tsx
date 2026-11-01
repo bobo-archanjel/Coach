@@ -1,6 +1,6 @@
 import { LineChart, type LineChartPoint } from "../../LineChart";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
-import styles from "../../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 /**
  * Váha v čase (feature/progress-analyst) — len na čítanie. Zápis merania robí
@@ -9,7 +9,8 @@ import styles from "../../dashboard.module.css";
  * dáta priamo pri sebe, tréner len sleduje trend). Sekcia vnútri karty
  * "Analytika" (`page.tsx`) — nevykresľuje vlastnú `.card`.
  */
-export function BodyMetricsCard({ entries }: { entries: BodyMetricEntry[] }) {
+export async function BodyMetricsCard({ entries }: { entries: BodyMetricEntry[] }) {
+  const styles = await dashStyles();
   const weightPoints: LineChartPoint[] = entries
     .filter((e) => e.weightKg != null)
     .map((e) => ({ date: e.measuredOn, value: e.weightKg as number }));

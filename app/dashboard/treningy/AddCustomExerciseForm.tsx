@@ -2,11 +2,13 @@
 
 import { useActionState } from "react";
 import { addCustomExerciseAction, type ActionState } from "./actions";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
 export function AddCustomExerciseForm() {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(addCustomExerciseAction, initialState);
 
   return (

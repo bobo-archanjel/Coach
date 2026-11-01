@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { dismissCooperationNoticeAction } from "./actions";
-import styles from "./portal.module.css";
+import portalStyles from "./portal.module.css";
+import { useSkinStyles } from "../components/uiSkin";
 
 const CloseIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">
@@ -13,6 +14,7 @@ const CloseIcon = () => (
 /* Banner "spolupráca ukončená" (0020) — X zavrie natrvalo (dismiss_cooperation_notice),
    kým sa spolupráca znova neukončí. Skryje sa hneď po kliku, server si to dobehne na pozadí. */
 export function CooperationNotice() {
+  const styles = useSkinStyles("portal", portalStyles);
   const [dismissed, setDismissed] = useState(false);
   const [, startTransition] = useTransition();
 

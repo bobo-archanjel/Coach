@@ -7,7 +7,8 @@ import {
   requestClientDeletionAction,
   resumeClientCooperationAction,
 } from "../actions";
-import styles from "../../dashboard.module.css";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const GRACE_DAYS = 30;
 
@@ -35,6 +36,7 @@ export function DangerZone({
   deletionRequestedAt: string | null;
   deletionRequestedBy: "trainer" | "client" | null;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -96,7 +98,7 @@ export function DangerZone({
                 aj denník zostanú uložené a spoluprácu môžeš kedykoľvek obnoviť.
               </p>
               <div className={styles.dangerActions}>
-                <button type="button" className="btn btn-primary btn-sm" onClick={endCooperation} disabled={coopPending}>
+                <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={endCooperation} disabled={coopPending}>
                   Áno, ukončiť
                 </button>
                 <button
@@ -110,7 +112,7 @@ export function DangerZone({
               </div>
             </>
           ) : (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingEnd(true)}>
+            <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirmingEnd(true)}>
               Ukončiť spoluprácu
             </button>
           )}
@@ -137,7 +139,7 @@ export function DangerZone({
               potom sa natrvalo odstránia.
             </p>
             <div className={styles.dangerActions}>
-              <button type="button" className="btn btn-primary btn-sm" onClick={request} disabled={pending}>
+              <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={request} disabled={pending}>
                 Áno, zmazať
               </button>
               <button
@@ -151,7 +153,7 @@ export function DangerZone({
             </div>
           </>
         ) : (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
+          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
             Požiadať o zmazanie klienta
           </button>
         )}

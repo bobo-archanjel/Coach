@@ -4,7 +4,8 @@ import { useActionState, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { saveWorkoutTemplateAction, type ActionState } from "./actions";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -27,6 +28,7 @@ export function WorkoutTemplateTop({
   withGoal?: boolean;
   leading?: ReactNode;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(saveWorkoutTemplateAction, initialState);
   const [, startTransition] = useTransition();
   const [goal, setGoal] = useState("");

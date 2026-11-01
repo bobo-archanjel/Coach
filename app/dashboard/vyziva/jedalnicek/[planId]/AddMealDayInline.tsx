@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import styles from "./builder.module.css";
+import mealBuilderModule from "./builder.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 /** "+ deň" — pridá deň lokálne (uloží sa cez „Uložiť zmeny"). */
 export function AddMealDayInline({ nextDayNumber, onAdd }: { nextDayNumber: number; onAdd: (name: string) => void }) {
+  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
