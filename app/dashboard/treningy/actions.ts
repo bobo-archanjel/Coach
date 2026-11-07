@@ -10,6 +10,7 @@ import { displayExerciseName, fetchExerciseDetail, type ExerciseDetail } from "@
 import { generateWorkoutPlan, type GeneratedPlan, type PlanGoal, type PlanExperience, type PlanEquipment } from "@/lib/ai/planGenerator";
 import { PLAN_FOCUSES, isSingleDayFocus, type PlanFocus } from "@/lib/ai/planCategories";
 import { defaultFocusForSex, planClientContextLines } from "@/lib/ai/planClientContext";
+import { getTrainingHistoryLines } from "@/lib/ai/trainingHistoryContext";
 import type { ActivityLevel, Goal } from "@/lib/nutrition";
 import { reserveAiSlot, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { AI_MODEL } from "@/lib/ai/client";
@@ -711,16 +712,22 @@ async function generateAiPlanForClient(
     equipment: params.equipment,
     focus,
     reservationId: slot.reservationId,
-    clientContext: planClientContextLines({
-      goal: client.goal,
-      sex: profile?.sex ?? null,
-      age: profile?.age ?? client.age,
-      weightKg: profile?.weight_kg ?? client.weight_kg,
-      heightCm: profile?.height_cm ?? client.height_cm,
-      activityLevel: profile?.activity_level ?? null,
-      nutritionGoal: profile?.goal ?? null,
-      trainerNote: privateNote?.notes ?? null,
-    }),
+    clientContext: [
+      ...planClientContextLines({
+        goal: client.goal,
+        sex: profile?.sex ?? null,
+        age: profile?.age ?? client.age,
+        weightKg: profile?.weight_kg ?? client.weight_kg,
+        heightCm: profile?.height_cm ?? client.height_cm,
+        activityLevel: profile?.activity_level ?? null,
+        nutritionGoal: profile?.goal ?? null,
+        trainerNote: privateNote?.notes ?? null,
+      }),
+      // feature/AIupgrade: plán sa doteraz generoval "od nuly" bez ohľadu na to,
+      // čo klient už reálne odcvičil — pridáva nedávne cviky/váhy a stagnáciu,
+      // nech nový koncept stavia na progrese, nie na náhodnom resete.
+      ...(await getTrainingHistoryLines(clientId)),
+    ],
   });
   if ("error" in result) return { error: result.error };
   return insertAiPlan(supabase, trainerId, clientId, params, result.plan);
