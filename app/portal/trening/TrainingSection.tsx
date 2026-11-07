@@ -300,6 +300,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
           )}
         </div>
       )}
+      {/* čiara oddelí šablóny od tréningov pod nimi — karty vyzerajú rovnako a splývali */}
+      {templates.length > 0 && <hr className={styles.trDivider} />}
 
       {plans.length === 0 ? (
         <div className={styles.panel}>

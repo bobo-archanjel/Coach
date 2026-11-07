@@ -2827,6 +2827,13 @@
   color: var(--error);
 }
 /* Moje šablóny — zbaliteľná karta */
+/* deliaca čiara medzi Moje šablóny a zoznamom tréningov */
+.trDivider {
+  height: 1px;
+  margin: 2px 4px;
+  border: 0;
+  background: var(--fill-strong);
+}
 .trTplBox {
   background: var(--card-bg);
   border: 1px solid var(--surface-border);
