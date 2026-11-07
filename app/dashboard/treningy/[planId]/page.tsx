@@ -36,8 +36,8 @@ const PREVIEW_DAYS = [
 ];
 
 const PREVIEW_LIBRARY = [
-  { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [] },
-  { id: "lib2", name: "Farmer's Walk", name_sk: "Farmárska chôdza", muscle_group: "predlaktia", image_url: [] },
+  { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [], equipment: "barbell" },
+  { id: "lib2", name: "Farmer's Walk", name_sk: "Farmárska chôdza", muscle_group: "predlaktia", image_url: [], equipment: "dumbbell" },
 ];
 
 export default async function PlanDetailPage({
@@ -71,7 +71,7 @@ export default async function PlanDetailPage({
     if (admin) {
       const { data } = await admin
         .from("exercises")
-        .select("id, name, name_sk, muscle_group, image_url")
+        .select("id, name, name_sk, muscle_group, image_url, equipment")
         .is("trainer_id", null)
         .not("image_url", "eq", "{}")
         .order("name")

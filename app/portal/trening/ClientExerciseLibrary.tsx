@@ -3,6 +3,16 @@
 import { useMemo, useState } from "react";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { displayExerciseName } from "@/lib/exercises";
+import {
+  LIBRARY_MUSCLE_FILTERS,
+  LIBRARY_MUSCLE_LABEL_SK,
+  LIBRARY_EQUIPMENT_FILTERS,
+  LIBRARY_EQUIPMENT_LABEL_SK,
+  exerciseMatchesMuscleFilter,
+  exerciseMatchesEquipmentFilter,
+  type LibraryMuscleFilter,
+  type LibraryEquipmentFilter,
+} from "@/lib/exerciseFilters";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import builderStyles from "../../dashboard/treningy/[planId]/builder.module.css";
 import portalStyles from "../portal.module.css";
@@ -52,6 +62,8 @@ export function ClientExerciseLibrary({
   const b = useSkinStyles("builder", builderStyles);
   const styles = useSkinStyles("portal", portalStyles);
   const [query, setQuery] = useState("");
+  const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
+  const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);
   const [open, setOpen] = useState(defaultOpen);
   const [customName, setCustomName] = useState("");
   const [page, setPage] = useState(0);
@@ -60,14 +72,17 @@ export function ClientExerciseLibrary({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return library;
-    return library.filter(
-      (ex) =>
+    return library.filter((ex) => {
+      if (muscleFilter && !exerciseMatchesMuscleFilter(ex.muscleGroup, muscleFilter)) return false;
+      if (equipmentFilter && !exerciseMatchesEquipmentFilter(ex.equipment, equipmentFilter)) return false;
+      if (!q) return true;
+      return (
         ex.name.toLowerCase().includes(q) ||
         ex.nameSk?.toLowerCase().includes(q) ||
-        ex.muscleGroup?.toLowerCase().includes(q),
-    );
-  }, [library, query]);
+        ex.muscleGroup?.toLowerCase().includes(q)
+      );
+    });
+  }, [library, query, muscleFilter, equipmentFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -133,6 +148,57 @@ export function ClientExerciseLibrary({
           className={b.librarySearch}
           aria-label="Hľadať cvik"
         />
+
+        <div className={b.libraryFilterRow} role="group" aria-label="Filter podľa partie">
+          <button
+            type="button"
+            className={`${b.libraryFilterChip} ${muscleFilter === null ? b.libraryFilterChipActive : ""}`}
+            onClick={() => {
+              setMuscleFilter(null);
+              setPage(0);
+            }}
+          >
+            Všetky partie
+          </button>
+          {LIBRARY_MUSCLE_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`${b.libraryFilterChip} ${muscleFilter === f ? b.libraryFilterChipActive : ""}`}
+              onClick={() => {
+                setMuscleFilter(muscleFilter === f ? null : f);
+                setPage(0);
+              }}
+            >
+              {LIBRARY_MUSCLE_LABEL_SK[f]}
+            </button>
+          ))}
+        </div>
+        <div className={b.libraryFilterRow} role="group" aria-label="Filter podľa vybavenia">
+          <button
+            type="button"
+            className={`${b.libraryFilterChip} ${equipmentFilter === null ? b.libraryFilterChipActive : ""}`}
+            onClick={() => {
+              setEquipmentFilter(null);
+              setPage(0);
+            }}
+          >
+            Akékoľvek vybavenie
+          </button>
+          {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`${b.libraryFilterChip} ${equipmentFilter === f ? b.libraryFilterChipActive : ""}`}
+              onClick={() => {
+                setEquipmentFilter(equipmentFilter === f ? null : f);
+                setPage(0);
+              }}
+            >
+              {LIBRARY_EQUIPMENT_LABEL_SK[f]}
+            </button>
+          ))}
+        </div>
 
         {hint?.at === "list" && (
           <p className={b.formError} role="alert">

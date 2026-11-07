@@ -185,6 +185,33 @@
   color: var(--paper);
   border-color: var(--steel-line);
 }
+/* Filter podľa partie/vybavenia (feature/AIupgrade) — viď pôvodný builder.module.css. */
+.libraryFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: -4px;
+}
+.libraryFilterChip {
+  padding: 5px 10px;
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.libraryFilterChip:hover {
+  color: var(--paper);
+  border-color: var(--paper-faint);
+}
+.libraryFilterChipActive {
+  background: var(--iron-red);
+  border-color: var(--iron-red);
+  color: var(--paper);
+}
 .libraryEmpty {
   color: var(--paper-faint);
   font-size: 13px;

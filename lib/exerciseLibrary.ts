@@ -18,7 +18,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { createClient } from "@/lib/supabase/server";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 
-const LIBRARY_COLUMNS = "id, name, name_sk, muscle_group, image_url";
+const LIBRARY_COLUMNS = "id, name, name_sk, muscle_group, image_url, equipment";
 
 /** Buildery zobrazujú len prvý obrázok (náhľad) — zvyšok len zbytočne nafukoval payload. */
 function toRow(e: {
@@ -27,6 +27,7 @@ function toRow(e: {
   name_sk: string | null;
   muscle_group: string | null;
   image_url: string[] | null;
+  equipment: string | null;
 }): ExerciseLibraryRow {
   return {
     id: e.id,
@@ -34,6 +35,7 @@ function toRow(e: {
     name_sk: e.name_sk ?? null,
     muscle_group: e.muscle_group ?? null,
     image_url: Array.isArray(e.image_url) && e.image_url.length > 0 ? [e.image_url[0]] : [],
+    equipment: e.equipment ?? null,
   };
 }
 

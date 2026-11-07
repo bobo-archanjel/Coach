@@ -249,6 +249,8 @@ export interface ExerciseOption {
   muscleGroup: string | null;
   /** prvý obrázok cviku (miniatúra) — externé URL, Free Exercise DB */
   imageUrl: string | null;
+  /** štruktúrovaný filter vybavenia (migrácia 0031) — null = appka ho berie ako "plná posilňovňa". */
+  equipment: string | null;
 }
 
 export type PortalTrainingResult =

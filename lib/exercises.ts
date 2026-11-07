@@ -12,6 +12,8 @@ export interface ExerciseLibraryRow {
   name_sk: string | null;
   muscle_group: string | null;
   image_url: string[];
+  /** štruktúrovaný filter vybavenia (migrácia 0031) — null = appka ho berie ako "plná posilňovňa" (konzervatívne). */
+  equipment: string | null;
 }
 
 export interface ExerciseDetail {

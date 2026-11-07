@@ -4,6 +4,16 @@ import { useEffect, useMemo, useState, useActionState } from "react";
 import { addCustomExerciseAction, addCustomExerciseToDayAction, type ActionState } from "../actions";
 import { LibraryItem } from "./LibraryItem";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
+import {
+  LIBRARY_MUSCLE_FILTERS,
+  LIBRARY_MUSCLE_LABEL_SK,
+  LIBRARY_EQUIPMENT_FILTERS,
+  LIBRARY_EQUIPMENT_LABEL_SK,
+  exerciseMatchesMuscleFilter,
+  exerciseMatchesEquipmentFilter,
+  type LibraryMuscleFilter,
+  type LibraryEquipmentFilter,
+} from "@/lib/exerciseFilters";
 import builderModule from "./builder.module.css";
 import { useSkinStyles } from "@/app/components/uiSkin";
 
@@ -33,6 +43,8 @@ export function ExerciseLibrary({
 }) {
   const styles = useSkinStyles("builder", builderModule);
   const [query, setQuery] = useState("");
+  const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
+  const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);
   // Na mobile defaultne zbalené (viď builderGrid poradie) — tréner vidí plátno prvé.
   // Nad 760px CSS `.collapsed` pravidlo neplatí, takže tento stav tam vizuálne nič nemení.
   const [open, setOpen] = useState(false);
@@ -50,19 +62,22 @@ export function ExerciseLibrary({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return exercises;
-    return exercises.filter(
-      (ex) =>
+    return exercises.filter((ex) => {
+      if (muscleFilter && !exerciseMatchesMuscleFilter(ex.muscle_group, muscleFilter)) return false;
+      if (equipmentFilter && !exerciseMatchesEquipmentFilter(ex.equipment, equipmentFilter)) return false;
+      if (!q) return true;
+      return (
         ex.name.toLowerCase().includes(q) ||
         ex.name_sk?.toLowerCase().includes(q) ||
         ex.muscle_group?.toLowerCase().includes(q)
-    );
-  }, [exercises, query]);
+      );
+    });
+  }, [exercises, query, muscleFilter, equipmentFilter]);
 
-  // Nová hľadaná fráza mení výsledky pod nohami stránkovania — späť na prvú stranu.
+  // Nová hľadaná fráza/filter mení výsledky pod nohami stránkovania — späť na prvú stranu.
   useEffect(() => {
     setPage(0);
-  }, [query]);
+  }, [query, muscleFilter, equipmentFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -117,6 +132,45 @@ export function ExerciseLibrary({
           onChange={(e) => setQuery(e.target.value)}
           className={styles.librarySearch}
         />
+
+        <div className={styles.libraryFilterRow} role="group" aria-label="Filter podľa partie">
+          <button
+            type="button"
+            className={`${styles.libraryFilterChip} ${muscleFilter === null ? styles.libraryFilterChipActive : ""}`}
+            onClick={() => setMuscleFilter(null)}
+          >
+            Všetky partie
+          </button>
+          {LIBRARY_MUSCLE_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`${styles.libraryFilterChip} ${muscleFilter === f ? styles.libraryFilterChipActive : ""}`}
+              onClick={() => setMuscleFilter(muscleFilter === f ? null : f)}
+            >
+              {LIBRARY_MUSCLE_LABEL_SK[f]}
+            </button>
+          ))}
+        </div>
+        <div className={styles.libraryFilterRow} role="group" aria-label="Filter podľa vybavenia">
+          <button
+            type="button"
+            className={`${styles.libraryFilterChip} ${equipmentFilter === null ? styles.libraryFilterChipActive : ""}`}
+            onClick={() => setEquipmentFilter(null)}
+          >
+            Akékoľvek vybavenie
+          </button>
+          {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`${styles.libraryFilterChip} ${equipmentFilter === f ? styles.libraryFilterChipActive : ""}`}
+              onClick={() => setEquipmentFilter(equipmentFilter === f ? null : f)}
+            >
+              {LIBRARY_EQUIPMENT_LABEL_SK[f]}
+            </button>
+          ))}
+        </div>
 
         {noDayHint === "list" && !activeDayId && (
           <p className={styles.formError} role="alert">

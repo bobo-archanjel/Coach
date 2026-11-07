@@ -790,6 +790,7 @@ async function getGlobalExerciseLibrary(): Promise<ExerciseOption[]> {
     nameSk: e.name_sk,
     muscleGroup: e.muscle_group,
     imageUrl: e.image_url[0] ?? null,
+    equipment: e.equipment,
   }));
 }
 
