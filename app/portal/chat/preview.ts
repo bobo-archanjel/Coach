@@ -1,4 +1,4 @@
-/* DEV náhľady chatu (?preview=…) — zdieľané /portal a /v6design/portal. */
+/* DEV náhľady chatu (?preview=…). */
 import type { PortalChatResult } from "@/lib/portal/types";
 
 const PREVIEW: PortalChatResult = {

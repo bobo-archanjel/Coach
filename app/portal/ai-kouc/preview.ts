@@ -1,4 +1,4 @@
-/* DEV náhľad AI Kouča (?preview=ok) — zdieľané /portal a /v6design/portal. */
+/* DEV náhľad AI Kouča (?preview=ok). */
 import type { PortalAiChatResult } from "@/lib/portal/types";
 
 // DEV náhľad (?preview=ok) bez session, rovnaký vzor ako ostatné portálové

@@ -11,7 +11,7 @@ import { FoodPickerSheet } from "../../components/food/FoodPickerSheet";
 import { MealSlotSection } from "../../components/food/MealSlotSection";
 import foodModule from "../../components/food/food.module.css";
 import { DiaryRow } from "./DiaryRow";
-import { usePortalBase, useSkinStyles } from "../../components/uiSkin";
+import { useSkinStyles } from "../../components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -88,8 +88,8 @@ function dayLabel(date: string, today: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function diaryHref(base: string, date: string, today: string): string {
-  return date === today ? `${base}/dennik` : `${base}/dennik?date=${date}`;
+function diaryHref(date: string, today: string): string {
+  return date === today ? "/portal/dennik" : `/portal/dennik?date=${date}`;
 }
 
 function buildFormData(option: PortalFoodOption, slot: MealSlot, grams: number): FormData {
@@ -146,7 +146,6 @@ function buildGroups(entries: PortalDiaryEntry[]): PortalDiaryGroup[] {
 export function DiaryView({ data }: { data: PortalDiaryData }) {
   const styles = useSkinStyles("portal", portalStyles);
   const food = useSkinStyles("food", foodModule);
-  const portalBase = usePortalBase();
   const { goal, date, today } = data;
   const isToday = date === today;
   const prevDate = shiftDiaryDate(date, -1);
@@ -212,7 +211,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
       <div className={`${styles.panel} ${styles.diaryHero}`}>
         <nav className={styles.diaryDateNav} aria-label="Deň denníka">
           {canGoBack ? (
-            <Link href={diaryHref(portalBase, prevDate, today)} className={styles.diaryDateArrow} aria-label="Predošlý deň">
+            <Link href={diaryHref(prevDate, today)} className={styles.diaryDateArrow} aria-label="Predošlý deň">
               ‹
             </Link>
           ) : (
@@ -226,7 +225,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
               ›
             </span>
           ) : (
-            <Link href={diaryHref(portalBase, shiftDiaryDate(date, 1), today)} className={styles.diaryDateArrow} aria-label="Nasledujúci deň">
+            <Link href={diaryHref(shiftDiaryDate(date, 1), today)} className={styles.diaryDateArrow} aria-label="Nasledujúci deň">
               ›
             </Link>
           )}

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { displayExerciseName } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import builderStyles from "../../dashboard/treningy/[planId]/builder.module.css";
+import builderStyles from "./builder.module.css";
 import portalStyles from "../portal.module.css";
 import { useSkinStyles } from "../../components/uiSkin";
 

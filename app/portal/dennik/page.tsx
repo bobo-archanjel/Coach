@@ -1,14 +1,13 @@
 import { getPortalFoodDiary } from "@/lib/portal/data";
+import { previewResult } from "@/app/portal/dennik/preview";
+import { DiaryView } from "@/app/portal/dennik/DiaryView";
+import { ProfileIcon } from "@/app/portal/icons";
+import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
-import { ProfileIcon } from "../icons";
-import { RetryButton } from "../RetryButton";
-import { DiaryView } from "./DiaryView";
-import { previewResult } from "./preview";
+import s from "../portal.module.css";
 
-/* /portal/dennik — food diary. Klient loguje, čo skutočne zjedol, oproti makro cieľu.
-   Protikus k /portal/strava (čo MÁ jesť podľa trénera). Dáta: lib/portal/data.ts,
-   migrácia 0007_food_logs.sql. Render (hero + makro pruhy + zoznam + pridávanie)
-   je v DiaryView.tsx — client component s optimistic UI (feature/optimalizacia). */
+/* /portal/dennik — denník stravy (DiaryView: optimistické pridávanie, úprava gramáže,
+   listovanie dňami, skener čiarových kódov). */
 
 export default async function DennikPage({
   searchParams,
@@ -34,6 +33,14 @@ export default async function DennikPage({
     );
   }
 
-  // key: pri prepnutí dňa sa optimistický zoznam aj rozpracovaný formulár začnú odznova.
-  return <DiaryView key={result.data.date} data={result.data} />;
+  return (
+    <>
+      <header>
+        <h1 className={s.pageTitle}>Denník</h1>
+        <p className={s.pageSub}>Čo si naozaj zjedol, oproti tvojmu cieľu.</p>
+      </header>
+      {/* key: pri prepnutí dňa sa optimistický zoznam aj formulár začnú odznova (ako /portal) */}
+      <DiaryView key={result.data.date} data={result.data} />
+    </>
+  );
 }

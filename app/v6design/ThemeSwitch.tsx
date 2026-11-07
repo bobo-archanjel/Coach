@@ -51,7 +51,7 @@ export function ThemeSwitch({ initial }: { initial: V6Theme }) {
 
   const choose = (next: V6Theme) => {
     setTheme(next);
-    // path=/ — tá istá téma pre portál (/v6design/portal) aj dashboard s v6 skinom (/dashboard)
+    // path=/ — tá istá téma pre portál (/portal), dashboard (/dashboard) aj prihlásenie v6
     document.cookie = `${V6_THEME_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
     document.querySelector("[data-v6-root]")?.setAttribute("data-theme", next);
     syncThemeColor(next);

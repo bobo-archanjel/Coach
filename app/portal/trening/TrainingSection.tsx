@@ -15,7 +15,7 @@ import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
 import portalStyles from "../portal.module.css";
-import { usePortalBase, useSkinStyles } from "../../components/uiSkin";
+import { useSkinStyles } from "../../components/uiSkin";
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
 // naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
@@ -75,7 +75,6 @@ function exWord(n: number): string {
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const styles = useSkinStyles("portal", portalStyles);
-  const portalBase = usePortalBase();
   const { plans, templates } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
@@ -197,7 +196,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setError(null);
     markWorkoutStarted(dayId);
     startTransition(async () => {
-      const res = await setActivePlanAction(plan.id, dayId, portalBase);
+      const res = await setActivePlanAction(plan.id, dayId);
       // Úspech → redirect vnútri akcie, sem sa vrátime len pri chybe.
       if (res?.error) {
         clearWorkoutStarted();

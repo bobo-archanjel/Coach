@@ -2,9 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 
 /**
- * Auth guard + údaje navigácie portálu — zdieľané /portal a /v6design/portal
- * (dizajnový experiment), nech oba vzhľady strážia a rátajú presne rovnako.
- * Portál je klientsky povrch: bez session → prihlásenie (`loginPath` — v6 má vlastné),
+ * Auth guard + údaje navigácie portálu (layout /portal).
+ * Portál je klientsky povrch: bez session → prihlásenie v novom dizajne (/v6design/prihlasenie),
  * tréner → /dashboard.
  * Prázdne stavy (neprepojený klient, chýbajúci plán) rieši samotná obrazovka
  * cez lib/portal/data.ts.
@@ -18,18 +17,18 @@ const DEV_OPEN = process.env.NODE_ENV === "development";
 export type PortalShell = {
   chatUnread: boolean;
   aiKoucVisible: boolean;
-  /** celé meno klienta (profil, inak záznam klienta) — iniciála v hlavičke /v6design */
+  /** celé meno klienta (profil, inak záznam klienta) — iniciála v hlavičke portálu */
   displayName: string | null;
 };
 
-export async function loadPortalShell(loginPath = "/prihlasenie"): Promise<PortalShell> {
+export async function loadPortalShell(): Promise<PortalShell> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await getUser();
 
   if (!user) {
-    if (!DEV_OPEN) redirect(loginPath);
+    if (!DEV_OPEN) redirect("/v6design/prihlasenie");
     return { chatUnread: false, aiKoucVisible: false, displayName: null };
   }
 

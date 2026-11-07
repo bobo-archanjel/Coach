@@ -1,4 +1,4 @@
-/* DEV náhľady karty Dnes (?preview=…) — zdieľané /portal a /v6design/portal. */
+/* DEV náhľady karty Dnes (?preview=…). */
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 
 const PREVIEW_DATA: PortalData = {

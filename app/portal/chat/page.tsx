@@ -1,24 +1,15 @@
-import { ChatThread } from "../../components/ChatThread";
+import { ChatThread } from "@/app/components/ChatThread";
 import { getPortalChat } from "@/lib/portal/data";
-import { markClientChatSeenAction, sendClientMessageAction } from "../actions";
+import { markClientChatSeenAction, sendClientMessageAction } from "@/app/portal/actions";
+import { previewResult } from "@/app/portal/chat/preview";
+import { ChatIcon, ProfileIcon } from "@/app/portal/icons";
+import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
-import { ProfileIcon } from "../icons";
-import { RetryButton } from "../RetryButton";
-import { previewResult } from "./preview";
-import styles from "../portal.module.css";
+import s from "../portal.module.css";
 
-/* /portal/chat — obojsmerné vlákno s trénerom (Track "Klient" bod 2).
-   coach_notes (dnešný odkaz na karte Dnes) ostáva samostatný.
-   Refresh-based: ChatThread polluje (len lacný marker-check, feature/optimalizacia)
-   ako záložná sieť, doručenie novej správy je teraz primárne okamžité cez
-   Supabase Realtime (feature/AI, realtimeTable="messages" v ChatThread).
-   sendClientMessageAction revaliduje. */
+/* /portal/chat — vlákno s trénerom (ChatThread: Realtime, marker poll, označenie prečítaných). */
 
-export default async function ChatPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ preview?: string }>;
-}) {
+export default async function ChatPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
   const result = (preview && previewResult(preview)) || (await getPortalChat());
 
@@ -48,13 +39,22 @@ export default async function ChatPage({
   }
 
   const { messages, trainerName } = result.data;
-  // trainerName je null keď sa meno nepodarilo zistiť (napr. chýbajúce/nečitateľné
-  // full_name) — nikdy nezreťazuj s "Tréner"/"Napíš …ovi", vznikne duplicitné
-  // "Tréner tréner"; namiesto toho použi holý fallback text bez mena.
+  // trainerName je null, keď sa meno nepodarilo zistiť — bez "Tréner tréner"
+  const initial = trainerName?.trim().charAt(0).toUpperCase();
 
   return (
-    <div className={styles.chatPage}>
-      <h1 className={styles.chatTitle}>{trainerName ? `Tréner ${trainerName}` : "Tréner"}</h1>
+    <div className={s.chatPage}>
+      <div className={s.chatHead}>
+        <div className={s.chatWho}>
+          <span className={s.chatAvatar} aria-hidden="true">
+            {initial || <ChatIcon />}
+          </span>
+          <div>
+            <h1 className={s.chatTitle}>{trainerName ? `Tréner ${trainerName}` : "Tréner"}</h1>
+            <p className={s.chatSub}>Správy s tvojím trénerom</p>
+          </div>
+        </div>
+      </div>
       <ChatThread
         messages={messages}
         mySide="client"
@@ -62,7 +62,6 @@ export default async function ChatPage({
         onSeen={markClientChatSeenAction}
         markerUrl="/api/chat/marker"
         realtimeTable="messages"
-        // Bez skloňovania mena — prípona k menu tvorila "QAa", "Martinaovi".
         emptyTitle="Napíš trénerovi"
         emptyText="Otázka k plánu, pocit z tréningu, čokoľvek — tréner ti odpovie sem."
         placeholder="Správa pre trénera…"
