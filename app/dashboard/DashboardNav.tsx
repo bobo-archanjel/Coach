@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark, LogoWordmark } from "../components/LogoMark";
+import { LogoMark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
 import { NotificationBell } from "./NotificationBell";
 import { revealInboxList } from "./spravy/ThreadSwipeBack";
@@ -115,22 +115,15 @@ const NAV_ITEMS = [
 
 export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
   const styles = useSkinStyles("dashboard", dashboardModule);
-  const skinned = styles !== dashboardModule;
   const pathname = usePathname();
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarTop}>
         <Link href="/dashboard" className={styles.sidebarBrand}>
-          {skinned ? (
-            // v6: wordmark je raster so svetlým textom — na svetlom skle by zmizol
-            <>
-              <LogoMark className={styles.brandMark} />
-              <span className={styles.brandText}>FitPilot</span>
-            </>
-          ) : (
-            <LogoWordmark className={styles.brandLogo} />
-          )}
+          {/* značka + text (wordmark je raster so svetlým textom — na svetlom skle by zmizol) */}
+          <LogoMark className={styles.brandMark} />
+          <span className={styles.brandText}>FitPilot</span>
         </Link>
         <NotificationBell initialUnread={unreadCount} />
       </div>
@@ -162,7 +155,7 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
       </nav>
 
       <div className={styles.sidebarFoot}>
-        <SignOutButton to={skinned ? "/v6design/prihlasenie" : undefined} />
+        <SignOutButton to="/v6design/prihlasenie" />
       </div>
     </aside>
   );

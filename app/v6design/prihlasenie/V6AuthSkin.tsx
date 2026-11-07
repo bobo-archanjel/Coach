@@ -5,12 +5,11 @@ import { SkinProvider } from "@/app/components/uiSkin";
 import auth from "./styles/auth.module.css";
 
 /* Formulár prihlásenia (ten istý AuthView ako na /prihlasenie) dostane štýly v6
-   a po prihlásení pošle klienta do /portal, trénera cez /v6design/dashboard
-   (zapne v6 dashboard a otvorí /dashboard). */
+   a po prihlásení pošle klienta do /portal a trénera do /dashboard. */
 const V6_AUTH_SKIN = {
   styles: { auth },
   portalBase: "/portal",
-  dashboardEntry: "/v6design/dashboard",
+  dashboardEntry: "/dashboard",
 };
 
 export function V6AuthSkin({ children }: { children: ReactNode }) {

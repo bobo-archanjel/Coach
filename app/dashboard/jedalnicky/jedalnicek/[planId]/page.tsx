@@ -7,7 +7,7 @@ import { MealPlanBuilder } from "./MealPlanBuilder";
 import { MealPlanFooterActions, MealPublishBadge } from "./MealPlanControls";
 import { PlanTitle } from "../../../treningy/[planId]/PlanTitle";
 import { renameMealPlanAction } from "../actions";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -16,7 +16,6 @@ const BackIcon = () => (
 );
 
 export default async function MealPlanDetailPage({ params }: { params: Promise<{ planId: string }> }) {
-  const styles = await dashStyles();
   const { planId } = await params;
   const supabase = await createClient();
   const {
@@ -24,7 +23,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   } = await getUser();
 
   if (!user) {
-    redirect("/prihlasenie");
+    redirect("/v6design/prihlasenie");
   }
 
   // `plan`, `days` aj `foods` berú `planId`/nič z route parametra — nezávislé,

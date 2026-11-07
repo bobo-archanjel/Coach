@@ -60,6 +60,9 @@ const nextConfig: NextConfig = {
       { source: "/v6design", destination: "/portal", permanent: true },
       { source: "/v6design/portal", destination: "/portal", permanent: true },
       { source: "/v6design/portal/:path*", destination: "/portal/:path*", permanent: true },
+      // bývalý prepínač dizajnu dashboardu (cookie fp-dash-skin) — dashboard má len nový dizajn
+      { source: "/v6design/dashboard", destination: "/dashboard", permanent: true },
+      { source: "/v6design/dashboard/off", destination: "/dashboard/nastavenia", permanent: true },
     ];
   },
   images: {

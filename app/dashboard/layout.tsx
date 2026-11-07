@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { redirect } from "next/navigation";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { DashboardNav } from "./DashboardNav";
-import { dashStyles, isV6Dashboard, v6Theme } from "@/app/dashboard/dashSkin";
-import { V6DashSkin } from "@/app/v6design/dashboard/V6DashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
+import { v6Theme } from "@/app/dashboard/dashTheme";
 import { v6ThemeColor } from "@/app/v6design/theme";
 import tokens from "@/app/v6design/styles/tokens.module.css";
 
@@ -11,9 +11,8 @@ export const metadata: Metadata = {
   title: "FitPilot — Dashboard",
 };
 
-/** Farba stavového riadku len pri dizajnovom experimente v6 (svetlá/tmavá téma). */
+/** Farba stavového riadku podľa témy (svetlá/tmavá/auto). */
 export async function generateViewport(): Promise<Viewport> {
-  if (!(await isV6Dashboard())) return {};
   return { themeColor: v6ThemeColor(await v6Theme()) };
 }
 
@@ -27,14 +26,13 @@ export async function generateViewport(): Promise<Viewport> {
 const DEV_OPEN = process.env.NODE_ENV === "development";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const styles = await dashStyles();
   const {
     data: { user },
   } = await getUser();
 
   let unreadCount = 0;
   if (!user) {
-    if (!DEV_OPEN) redirect("/prihlasenie");
+    if (!DEV_OPEN) redirect("/v6design/prihlasenie");
   } else {
     // Symetrický guard k app/portal/layout.tsx (ten posiela trénera na /dashboard) —
     // klient sa sem doteraz vedel dostať priamou URL bez presmerovania na svoj portál.
@@ -57,21 +55,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     unreadCount = count ?? 0;
   }
 
-  const shell = (
-    <div className={styles.shell}>
-      <DashboardNav unreadCount={unreadCount} />
-      <main className={styles.content}>
-        <div className={styles.wrap}>{children}</div>
-      </main>
-    </div>
-  );
-  if (!(await isV6Dashboard())) return shell;
-
-  // Dizajnový experiment v6 (cookie z /v6design/dashboard) — ten istý dashboard,
-  // koreň s tokenmi/témou a štýly v6 pre klientske komponenty (SkinProvider).
+  // koreň s tokenmi a témou dizajnu v6 (data-v6-root — sem idú aj okná cez createPortal)
   return (
     <div className={tokens.root} data-theme={await v6Theme()} data-v6-root="">
-      <V6DashSkin>{shell}</V6DashSkin>
+      <div className={styles.shell}>
+        <DashboardNav unreadCount={unreadCount} />
+        <main className={styles.content}>
+          <div className={styles.wrap}>{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

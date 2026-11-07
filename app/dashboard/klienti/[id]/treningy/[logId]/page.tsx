@@ -16,7 +16,8 @@ import {
 } from "@/lib/workouts/completed";
 import { DuplicateWorkoutButton } from "./DuplicateWorkoutButton";
 import { InfoTip } from "@/app/components/InfoTip";
-import { completedStyles, dashStyles } from "@/app/dashboard/dashSkin";
+import dashboardStyles from "@/app/dashboard/dashboard.module.css";
+import styles from "./completed.module.css";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -106,7 +107,7 @@ function actualCell(row: CompareRow): string {
   return parts.join(" × ") || "—";
 }
 
-// kľúče tried, nie triedy — štýly sa berú až v stránke (completedStyles, v6 skin)
+// kľúče tried v completed.module.css (styles[TONE_CLASS[tone]])
 const TONE_CLASS = { below: "toneBelow", above: "toneAbove", met: "toneMet" } as const;
 const TONE_LABEL = { below: "pod plánom", above: "nad plán", met: "podľa plánu" } as const;
 
@@ -117,8 +118,6 @@ export default async function CompletedWorkoutPage({
   params: Promise<{ id: string; logId: string }>;
   searchParams: Promise<{ preview?: string }>;
 }) {
-  const dashboardStyles = await dashStyles();
-  const styles = await completedStyles();
   const { id: clientId, logId } = await params;
   const { preview } = await searchParams;
 
