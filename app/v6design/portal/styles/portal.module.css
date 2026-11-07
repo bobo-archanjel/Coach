@@ -3375,3 +3375,209 @@
   padding: 8px 14px;
   font-size: 13.5px;
 }
+
+/* ---------- zvonček upozornení (feature/AIupgrade) ---------- */
+/* Mobil: v existujúcej hlavičke (.v6TopInner) vedľa avatara. Desktop: vo .v6Side
+   paneli vedľa loga (.v6SideTopRow). Na rozdiel od pôvodného /portal (bez hlavičky
+   na mobile, zvonček tam rieši vlastný fixed) tu oba kontexty už majú miesto. */
+.v6TopActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.v6SideTopRow {
+  display: contents;
+}
+@media (min-width: 880px) {
+  .v6SideTopRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.bell {
+  position: relative;
+  display: flex;
+}
+.bellBtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-s);
+  background: var(--surface-solid);
+  color: var(--paper-dim);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.bellBtn:hover,
+.bellBtnOpen {
+  background: var(--fill-strong);
+  color: var(--paper);
+}
+.bellBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.bellBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger-grad);
+  color: var(--on-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.bellPanel {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  z-index: 40;
+  width: min(344px, calc(100vw - 24px));
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+  padding: 14px 16px;
+  background: var(--sheet-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--glass-shadow);
+}
+.bellPanelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+  margin-bottom: 4px;
+}
+.bellEmpty {
+  padding: 12px 0 4px;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.bellItem {
+  padding: 11px 0;
+  border-top: 1px solid var(--hairline);
+}
+.bellItem:first-of-type {
+  border-top: 0;
+}
+.bellItemMain {
+  position: relative;
+  display: block;
+  padding-left: 15px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--paper);
+  text-decoration: none;
+}
+.bellItemMain::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(0.7em - 3.5px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.bellToneAlert::before {
+  background: var(--danger);
+}
+.bellToneWatch::before {
+  background: var(--accent);
+}
+a.bellItemMain:hover {
+  text-decoration: underline;
+}
+.bellItemHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bellItemHead .bellItemMain {
+  flex: 1;
+  min-width: 0;
+}
+.bellAction {
+  flex: none;
+  padding: 3px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--paper-faint);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bellAction:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+.bellAction:focus-visible,
+.bellX:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.bellX {
+  flex: none;
+  width: 28px;
+  height: 24px;
+  margin: -3px -6px -3px 0;
+  border: 0;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.bellX:hover {
+  color: var(--paper);
+}
+.bellLinks {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 0 0 0 15px;
+  list-style: none;
+}
+.bellLinks li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.bellLinks a {
+  color: var(--paper-dim);
+  text-decoration: none;
+}
+.bellLinks a:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+.bellLinks span {
+  margin-left: auto;
+  color: var(--paper-faint);
+  font-size: 12px;
+}
+.bellError {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--danger);
+}

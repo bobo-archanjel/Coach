@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { LogoMark } from "@/app/components/LogoMark";
 import { loadPortalShell } from "@/app/portal/portalShell";
+import { NotificationBell } from "@/app/portal/NotificationBell";
 import { V6Skin } from "./V6Skin";
 import { V6Nav } from "./V6Nav";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "../theme";
@@ -37,9 +38,12 @@ export default async function V6PortalLayout({ children }: { children: React.Rea
               <LogoMark className={s.v6BrandMark} />
               <span className={s.v6BrandText}>FitPilot</span>
             </Link>
-            <Link href="/v6design/portal/profil" className={s.v6Avatar} aria-label="Profil">
-              {initial}
-            </Link>
+            <div className={s.v6TopActions}>
+              <NotificationBell />
+              <Link href="/v6design/portal/profil" className={s.v6Avatar} aria-label="Profil">
+                {initial}
+              </Link>
+            </div>
           </div>
         </header>
         <V6Nav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} displayName={displayName} />

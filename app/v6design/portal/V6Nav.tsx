@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/app/components/LogoMark";
+import { NotificationBell } from "@/app/portal/NotificationBell";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "@/app/portal/icons";
 import s from "./styles/portal.module.css";
 
@@ -54,10 +55,13 @@ export function V6Nav({
 
   return (
     <aside className={s.v6Side}>
-      <Link href={BASE} className={s.v6SideBrand}>
-        <LogoMark className={s.v6BrandMark} />
-        <span className={s.v6BrandText}>FitPilot</span>
-      </Link>
+      <div className={s.v6SideTopRow}>
+        <Link href={BASE} className={s.v6SideBrand}>
+          <LogoMark className={s.v6BrandMark} />
+          <span className={s.v6BrandText}>FitPilot</span>
+        </Link>
+        <NotificationBell />
+      </div>
       <nav
         className={`${s.v6Nav} ${keyboardOpen ? s.v6NavHidden : ""}`}
         aria-label="Klientsky portál"

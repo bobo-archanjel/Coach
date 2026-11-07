@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogoWordmark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
 import { NavLinkPendingSignal } from "../components/NavigationProgress";
+import { NotificationBell } from "./NotificationBell";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "./icons";
 import styles from "./portal.module.css";
 
@@ -59,9 +60,12 @@ export function PortalNav({
 
   return (
     <aside className={styles.navShell}>
-      <Link href="/portal" className={styles.navBrand}>
-        <LogoWordmark className={styles.brandLogo} />
-      </Link>
+      <div className={styles.navTopRow}>
+        <Link href="/portal" className={styles.navBrand}>
+          <LogoWordmark className={styles.brandLogo} />
+        </Link>
+        <NotificationBell />
+      </div>
 
       <nav
         className={`${styles.nav} ${keyboardOpen ? styles.navKeyboardHidden : ""}`}
