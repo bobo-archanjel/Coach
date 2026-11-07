@@ -17,6 +17,7 @@ import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
 import { getMacroContext } from "./macroContext";
 import { getTrainingContextBlock } from "./trainingContext";
+import { getProgressContextBlock } from "./progressContext";
 import { stripMarkdown } from "./plainText";
 import {
   needsHealthEscalation,
@@ -48,6 +49,7 @@ function buildSystemPrompt(exerciseSwapGuard: boolean): string {
   const lines = [
     "Si AI Kouč vo fitness aplikácii FitPilot. Rozprávaš sa priamo s klientom trénera, po slovensky, stručne a vecne.",
     "Tvoja úloha: pomôcť s výživou (čo a koľko zjesť podľa cieľa) a s tréningom (čo má dnes cvičiť podľa plánu, ako mu idú tréningy, alternatívy cvikov) — VÝHRADNE na základe dát, ktoré ti pošle appka v tejto správe. Tréningový plán aj históriu tréningov klienta máš nižšie, nikdy netvrď, že ich nevidíš. Nikdy si nevymýšľaj čísla makier, potraviny, cviky ani tréningy, ktoré ti neboli poskytnuté.",
+    "Na otázky typu 'ako mi to ide', 'som na dobrej ceste', 'aký mám progres' NEODPOVEDAJ len opisom aktuálneho plánu — použi blok 'Objektívny progres klienta' nižšie (adherencia tréningu/stravy, trend váhy vs. cieľ). To je skutočné hodnotenie, plán je len čo má robiť, nie ako sa mu darí.",
     "Keď navrhuješ konkrétne jedlo (aj celý jedálniček na deň), VYBERAJ VÝHRADNE z 'Knižnica potravín' nižšie (ak je priložená) — to JE kompletný zoznam všetkého, čo appka má, nič viac neexistuje. NIKDY sa klienta nepýtaj, aké potraviny má rád/dostupné, ani ho neposielaj za trénerom po túto informáciu — knižnicu už máš, rozdeľ ju sám rozumne medzi jedlá dňa podľa zostávajúcich makier. Ak klientovi niečo z návrhu nechutí, povie ti to sám v ďalšej správe a ty navrhneš inú položku z tej istej knižnice — nepýtaj sa na to vopred.",
     "Nikdy nenavrhuj potravinu ani cvik mimo poskytnutých zoznamov a nikdy nehovor klientovi, že mu nevieš pomôcť s jedlom/cvikom, keď je príslušný zoznam priložený.",
     "Zdravotné témy (bolesť, zranenie, diagnóza, čo s tým robiť) NIKDY neriešiš — appka väčšinu zachytáva skôr, než sa k tebe dostanú, ale ak by sa aj tak objavila zmienka o bolesti/zranení bez žiadosti o náhradu cviku, okamžite odporuč konzultáciu s trénerom a nič k tomu neradíš.",
@@ -123,11 +125,15 @@ export async function sendAiChatMessage(
   // pýtajú len pri makro cieli a rezervácia limitu (atomická, nevracia sa) až keď
   // sa makro kontext podaril — reťazené na ňu, nie čakajúce na celú dávku.
   const macro = getMacroContext(supabase, clientId);
-  const [{ context, error: ctxError }, trainingBlock, foods, candidates, slot] = await Promise.all([
+  const [{ context, error: ctxError }, trainingBlock, progressBlock, foods, candidates, slot] = await Promise.all([
     macro,
     // Tréningový plán + história (deterministicky, viď trainingContext.ts) — posiela
     // sa vždy, rovnako ako makrá: klient sa môže na tréning spýtať v ktorejkoľvek správe.
     getTrainingContextBlock(supabase, clientId),
+    // Objektívny progres (adherencia + trend váhy, viď progressContext.ts) — bez tohto
+    // AI vedela na "ako mi to ide" len opísať štruktúru aktuálneho plánu, nie
+    // odpovedať na základe skutočných dát za posledné týždne.
+    getProgressContextBlock(clientId),
     // ---------- 3a. reálne potraviny z knižnice, ak má klient makro cieľ (Krok 6) ----------
     // Knižnica má len ~80-100 položiek — pošle sa celá vždy, keď má zmysel (klient
     // môže potrebovať jedlo v ktorejkoľvek správe), nie len pri detegovanej "food" téme.
@@ -213,7 +219,15 @@ export async function sendAiChatMessage(
     const response = await anthropic.messages.create({
       model: AI_MODEL.CHAT,
       max_tokens: MAX_REPLY_TOKENS,
-      system: [buildSystemPrompt(softEscalation), contextBlock, timeBlock, trainingBlock, foodBlock, exerciseBlock]
+      system: [
+        buildSystemPrompt(softEscalation),
+        contextBlock,
+        timeBlock,
+        trainingBlock,
+        progressBlock,
+        foodBlock,
+        exerciseBlock,
+      ]
         .filter(Boolean)
         .join("\n\n"),
       messages: [...recent.map((m) => ({ role: m.role, content: m.content })), { role: "user" as const, content: userText }],
