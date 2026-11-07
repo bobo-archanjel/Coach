@@ -1,4 +1,4 @@
-import { test, expect, type BrowserContext, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { defaultFocusForSex } from "../lib/ai/planClientContext";
 
@@ -38,8 +38,7 @@ async function apiSignIn(email: string, password: string): Promise<{ api: Supaba
   return { api, userId: data.user.id };
 }
 
-async function loginTrainerV6(page: Page, context: BrowserContext, baseURL: string) {
-  await context.addCookies([{ name: "fp-dash-skin", value: "v6", url: baseURL }]);
+async function loginTrainerV6(page: Page) {
   await page.goto("/prihlasenie");
   await page.locator("#login-email").fill(env.trainerEmail!);
   await page.locator("#login-password").fill(env.trainerPassword!);
@@ -91,9 +90,9 @@ test.describe("Tréningy: výber viacerých klientov (reálna DB, dizajn v6)", (
     }
   });
 
-  test("výber klientov: hľadanie bez diakritiky, Vybrať všetkých, čipy s odobratím", async ({ page, context, baseURL }) => {
+  test("výber klientov: hľadanie bez diakritiky, Vybrať všetkých, čipy s odobratím", async ({ page }) => {
     test.setTimeout(90_000);
-    await loginTrainerV6(page, context, baseURL!);
+    await loginTrainerV6(page);
     await page.goto("/dashboard/treningy");
     const form = page.getByRole("form", { name: "Nový plán" });
 
@@ -126,10 +125,10 @@ test.describe("Tréningy: výber viacerých klientov (reálna DB, dizajn v6)", (
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
-  test("Nový plán: viacerí klienti → jeden koncept s príjemcami, jeden klient ako doteraz", async ({ page, context, baseURL }, testInfo) => {
+  test("Nový plán: viacerí klienti → jeden koncept s príjemcami, jeden klient ako doteraz", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(120_000);
-    await loginTrainerV6(page, context, baseURL!);
+    await loginTrainerV6(page);
     await page.goto("/dashboard/treningy");
     let form = page.getByRole("form", { name: "Nový plán" });
 
@@ -172,11 +171,11 @@ test.describe("Tréningy: výber viacerých klientov (reálna DB, dizajn v6)", (
   test("AI generátor: plán pre každého klienta zvlášť, priebeh, zlyhanie jedného, súhrn, Skúsiť znova", async ({
     page,
     context,
-    baseURL,
+    
   }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(150_000);
-    await loginTrainerV6(page, context, baseURL!);
+    await loginTrainerV6(page);
     await context.setExtraHTTPHeaders({ "x-e2e-ai-fixture": `fail:${temp[1].id}` });
     // spomalí volania akcií, nech je priebeh „Generujem x/3…“ vidieť
     await page.route("**/dashboard/treningy", async (route) => {
@@ -232,10 +231,10 @@ test.describe("Tréningy: výber viacerých klientov (reálna DB, dizajn v6)", (
     }
   });
 
-  test("AI generátor: jeden klient ako doteraz → rovno koncept v builderi", async ({ page, context, baseURL }, testInfo) => {
+  test("AI generátor: jeden klient ako doteraz → rovno koncept v builderi", async ({ page, context }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(90_000);
-    await loginTrainerV6(page, context, baseURL!);
+    await loginTrainerV6(page);
     await context.setExtraHTTPHeaders({ "x-e2e-ai-fixture": "ok" });
     await page.goto("/dashboard/treningy");
     const form = page.getByRole("form", { name: "AI generátor plánu" });

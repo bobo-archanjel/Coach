@@ -1,4 +1,4 @@
-import { test, expect, type BrowserContext, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { mealPlanAvgDayKcal } from "../lib/meals";
 
@@ -149,8 +149,7 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     }
   });
 
-  async function login(page: Page, context: BrowserContext, baseURL: string) {
-    await context.addCookies([{ name: "fp-dash-skin", value: "v6", url: baseURL }]);
+  async function login(page: Page) {
     await page.goto("/prihlasenie");
     await page.locator("#login-email").fill(env.trainerEmail!);
     await page.locator("#login-password").fill(env.trainerPassword!);
@@ -158,9 +157,9 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
   }
 
-  test("vstupné údaje a výsledok makier + zoznam jedálničkov od najnovšieho so stavom, kcal a odkazom", async ({ page, context, baseURL }) => {
+  test("vstupné údaje a výsledok makier + zoznam jedálničkov od najnovšieho so stavom, kcal a odkazom", async ({ page }) => {
     test.setTimeout(90_000);
-    await login(page, context, baseURL!);
+    await login(page);
     await page.goto(`/dashboard/klienti/${qaClientId}`);
 
     // záložky hore v poradí: Jedálničky hneď za Tréningami, prvá otvorená sú Tréningy;
@@ -202,9 +201,9 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await expect(page.getByRole("heading", { name: `${prefix} aktívny` })).toBeVisible();
   });
 
-  test("nový klient: makro cieľ priamo v detaile klienta, prázdny stav a Vytvoriť jedálniček", async ({ page, context, baseURL }, testInfo) => {
+  test("nový klient: makro cieľ priamo v detaile klienta, prázdny stav a Vytvoriť jedálniček", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
-    await login(page, context, baseURL!);
+    await login(page);
     // stará adresa jedálničkov klienta → detail klienta s otvorenou záložkou Jedálničky
     await page.goto(`/dashboard/jedalnicky/${tempClientId}`);
     await page.waitForURL(new RegExp(`/dashboard/klienti/${tempClientId}\\?sekcia=jedalnicky$`), { timeout: 30_000 });
@@ -235,12 +234,12 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     expect(data).toEqual([{ published: false }]);
   });
 
-  test("Analytika → „Upraviť →“ pri makro cieli otvorí záložku Jedálničky", async ({ page, context, baseURL }, testInfo) => {
+  test("Analytika → „Upraviť →“ pri makro cieli otvorí záložku Jedálničky", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Stačí raz (desktop).");
     test.setTimeout(90_000);
     const { data: profile } = await trainer.api.from("nutrition_profiles").select("id").eq("client_id", qaClientId).maybeSingle();
     test.skip(!profile, "QA klient nemá makro cieľ.");
-    await login(page, context, baseURL!);
+    await login(page);
     await page.goto(`/dashboard/klienti/${qaClientId}`);
     await openSection(page, "Analytika");
     await page.getByRole("tabpanel").getByRole("link", { name: "Upraviť →" }).click();
@@ -248,9 +247,9 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await expect(page.getByRole("tabpanel", { name: "Jedálničky" }).getByRole("heading", { name: "Vstupné údaje" })).toBeVisible();
   });
 
-  test("stránka Jedálničky: všetky jedálničky + Nový jedálniček pre viacerých klientov", async ({ page, context, baseURL }, testInfo) => {
+  test("stránka Jedálničky: všetky jedálničky + Nový jedálniček pre viacerých klientov", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
-    await login(page, context, baseURL!);
+    await login(page);
     await page.goto("/dashboard/jedalnicky");
     await expect(page.getByRole("heading", { name: "Jedálničky", level: 1 })).toBeVisible();
 
