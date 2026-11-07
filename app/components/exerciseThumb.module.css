@@ -1,5 +1,4 @@
-/* v6 — malý náhľad cviku (ExerciseThumb): okrúhly, rovnaké názvy tried ako
-   app/components/exerciseThumb.module.css (useSkinStyles "exerciseThumb"). */
+/* Malý náhľad cviku (ExerciseThumb): okrúhly (dizajn v6). */
 .thumb {
   position: relative;
   flex: none;

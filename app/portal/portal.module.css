@@ -1,13 +1,11 @@
-/* FitPilot v6 — dizajnový experiment klientskeho portálu (/v6design/portal).
+/* FitPilot — klientsky portál (/portal), dizajn v6.
    Tokeny, pozadie a koreň (.root) sú zdieľané v app/v6design/styles/tokens.module.css.
    "Liquid glass" nad teplým terakotovým svetlom, svetlá aj tmavá téma.
    Sklo (backdrop-filter) je LEN na plávajúcich vrstvách — hlavička, lišta, stopky,
    okná. Karty sú mäkké polopriehľadné plochy bez blur: fixné okná vykresľované
    vnútri kariet (potvrdenie ukončenia, detail cviku, náhľad dňa) by inak dostali
    kartu ako containing block namiesto obrazovky. Z rovnakého dôvodu žiadny
-   transform/filter na kartách.
-   Triedy zdieľaných komponentov majú rovnaké názvy ako app/portal/portal.module.css
-   (useSkinStyles) — mení sa len vzhľad, tlačidlá aj flow sú tie isté komponenty. */
+   transform/filter na kartách. */
 
 /* ---------- hlavička (sticky sklo) ---------- */
 .v6Top {

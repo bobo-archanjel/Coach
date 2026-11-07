@@ -1,5 +1,4 @@
-/* Výber potraviny v dizajne v6 — rovnaké triedy ako app/components/food/food.module.css
-   (menný priestor skinu „food“; portál aj dashboard v6). Tokeny z koreňa .root
+/* Výber potraviny (portál aj dashboard, dizajn v6). Tokeny z koreňa .root
    (app/v6design/styles/tokens.module.css). Keyframes sú lokálne — CSS moduly ich menujú
    po súboroch, z portal.module.css by sa nedali použiť. */
 

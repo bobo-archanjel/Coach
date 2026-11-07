@@ -1,8 +1,6 @@
-/* v6 — vlákno správ (ChatThread) pre /v6design/portal/chat a AI Kouč.
-   Rovnaké názvy tried ako app/components/chat.module.css (useSkinStyles "chat");
-   rozmery, výšky a správanie emoji panela sú prevzaté bez zmeny, mení sa vzhľad:
-   moje správy terakotové, trénerove biele, pole na písanie ako sklenená kapsula.
-   Tokeny prichádzajú z koreňa .v6 (styles/portal.module.css). */
+/* Vlákno správ (ChatThread) — chat portálu, AI Kouč aj Správy trénera (dizajn v6):
+   moje správy terakotové, druhá strana biela, pole na písanie ako sklenená kapsula.
+   Tokeny z koreňa .root (app/v6design/styles/tokens.module.css). */
 
 .thread {
   display: flex;

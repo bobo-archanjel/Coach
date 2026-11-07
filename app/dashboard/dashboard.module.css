@@ -2136,8 +2136,7 @@ select.addClientInputSm {
   }
 }
 
-/* /dashboard/sablony má vlastný modul (menný priestor skinu „templates“):
-   app/dashboard/sablony/templates.module.css, v6: app/v6design/dashboard/styles/templates.module.css */
+/* /dashboard/sablony má vlastný modul: app/dashboard/sablony/templates.module.css */
 
 /* ---------- /dashboard/analytika — zdravie portfólia + PR widget (feature/analytika-v2) ---------- */
 

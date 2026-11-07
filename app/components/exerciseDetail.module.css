@@ -1,6 +1,5 @@
-/* v6 — náhľad cviku (ExerciseDetailModal) ako sklenené okno; na telefóne spodný list.
-   Rovnaké názvy tried ako app/components/exerciseDetail.module.css (useSkinStyles
-   "exerciseDetail"). Tokeny z koreňa .v6 (styles/portal.module.css). */
+/* Náhľad cviku (ExerciseDetailModal) ako sklenené okno; na telefóne spodný list (dizajn v6).
+   Tokeny z koreňa .root (app/v6design/styles/tokens.module.css). */
 
 .scrim {
   position: fixed;

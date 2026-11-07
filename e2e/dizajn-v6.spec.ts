@@ -1,27 +1,33 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Po prihlásení existuje len nový dizajn (v6) na /dashboard a /portal — bývalé adresy
- * dizajnového experimentu (/v6design/portal/*, prepínač /v6design/dashboard) trvalo
- * presmerujú (next.config.ts) a prihlasovacie stránky ostávajú v oboch vzhľadoch.
+ * Po prihlásení existuje len nový dizajn (v6) na /dashboard a /portal — bývalý portál
+ * /v6design/portal/* trvalo presmeruje (next.config.ts), bývalý prepínač dizajnu
+ * dashboardu (/v6design/dashboard, …/off) už neexistuje a prihlasovacie stránky
+ * ostávajú v oboch vzhľadoch.
  * Bez session: redirecty rieši next.config, dashboard a portál sa v deve vykreslia cez
  * DEV náhľady (?preview=, DEV_OPEN v layoutoch).
  */
 
 test.describe("jeden dizajn po prihlásení", () => {
-  test("bývalé /v6design adresy trvalo presmerujú na /portal a /dashboard", async ({ request, baseURL }) => {
+  test("bývalý portál /v6design/portal trvalo presmeruje na /portal", async ({ request, baseURL }) => {
     const cases: [string, string][] = [
       ["/v6design", "/portal"],
       ["/v6design/portal", "/portal"],
       ["/v6design/portal/trening", "/portal/trening"],
       ["/v6design/portal/dennik", "/portal/dennik"],
-      ["/v6design/dashboard", "/dashboard"],
-      ["/v6design/dashboard/off", "/dashboard/nastavenia"],
     ];
     for (const [from, to] of cases) {
       const res = await request.get(from, { maxRedirects: 0 });
       expect(res.status(), from).toBe(308);
       expect(new URL(res.headers().location, baseURL).pathname, from).toBe(to);
+    }
+  });
+
+  test("bývalý prepínač dizajnu dashboardu už neexistuje", async ({ request }) => {
+    for (const path of ["/v6design/dashboard", "/v6design/dashboard/off"]) {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect(res.status(), path).toBe(404);
     }
   });
 
