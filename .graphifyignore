@@ -1,0 +1,21 @@
+# Vygenerované pracovné súbory z /brag videí — stovky jednotlivých PNG snímkov
+# a zvukových stopov na priečinok, žiadna sémantická hodnota pre graf kódu.
+brag-output*/work/frames/
+brag-output*/work/stills/
+brag-output*/work/shots/
+brag-output*/work/_tmp_*/
+brag-output*/ref/
+brag-output*/work/*.wav
+brag-output*/work/*.mp4
+brag-output*/work/*.webm
+brag-output*/*.mp4
+brag-output*/*.jpg
+# Duplicované marketingové screenshoty + knižničné SFX/hudba nakopírované do
+# každého brag-output behu — žiadna nová informácia oproti originálom v docs/.
+brag-output*/**/assets/
+brag-output*/composition/snapshots/
+brag-output*/work/*.png
+# Referenčné/nahraté video appky — tiché screen recordingy bez reči, prepis by
+# nepriniesol zmysluplný text do grafu.
+brag-output*/converted.webm
+docs/marketing/recordings/

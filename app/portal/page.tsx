@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "../components/AppLink";
 import { getPortalData } from "@/lib/portal/data";
 import { MIN_VISIBLE_STREAK, pluralSk, type PortalStreaks } from "@/lib/portal/streak";
 import type { PortalData } from "@/lib/portal/types";

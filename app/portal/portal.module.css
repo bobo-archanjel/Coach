@@ -72,6 +72,10 @@
 }
 
 /* ---------- obsah ---------- */
+/* kotva pre NavSkeletonOverlay — skeleton pri navigácii prekryje len stĺpec obsahu */
+.v6Stage {
+  position: relative;
+}
 .v6Main {
   max-width: 720px;
   margin: 0 auto;
@@ -3229,46 +3233,163 @@
 }
 
 /* ======================================================================
-   Načítavanie (loading.tsx)
+   Načítavanie (loading.tsx a NavSkeletonOverlay pri navigácii)
+   Tvar podľa cieľovej záložky (RouteSkeletons.tsx). Kontajnery sú karty v6 (ako .panel,
+   .hero), tvarové prvky v nich (.skeletonBlock + veľkostná trieda) jemné plochy
+   s neutrálnym leskom. Wrapper bez gap — bloky nesú odstup .v6Main (22px).
    ====================================================================== */
 .skeletonWrap {
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 .skeletonBlock {
-  background: var(--card-bg);
-  border: 1px solid var(--surface-border);
-  border-radius: 26px;
-  animation: skeletonPulse 1.6s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+  background: var(--fill-strong);
+  border-radius: 999px;
+}
+.skeletonBlock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 25%, var(--glass-sheen) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.7s ease-in-out infinite;
 }
 .skeletonHead {
-  height: 80px;
-  width: 72%;
-  border: none;
-  background: var(--fill);
+  height: 64px;
+  width: 70%;
+  border-radius: 20px;
+  margin-bottom: 22px;
+}
+.skeletonTodayBlock,
+.skeletonListRow,
+.skeletonPanelBlock {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+}
+/* ďalší tréning (tvar .hero: text vľavo, prstenec vpravo, akcia dole) */
+.skeletonTodayBlock {
+  padding: 20px 18px;
+  border-radius: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.skeletonTodayTop {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.skeletonRing {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+.skeletonTodayText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonCta {
+  height: 54px;
+}
+/* zoznam (týždeň, plány, položky denníka) */
+.skeletonListBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonListRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 22px;
+}
+.skeletonListText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeletonLine {
+  height: 12px;
+  width: 55%;
+}
+.skeletonLineShort {
+  height: 10px;
+  width: 32%;
+}
+.skeletonChip {
+  height: 24px;
+  width: 64px;
+  flex-shrink: 0;
+}
+/* panel (tvar .panel) */
+.skeletonPanelBlock {
+  padding: 18px;
+  border-radius: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonPanelLabel {
+  height: 11px;
+  width: 90px;
+  margin-bottom: 2px;
+}
+.skeletonBackLink {
+  height: 13px;
+  width: 88px;
+  margin-bottom: 16px;
+}
+/* chat: striedavé bubliny + pole na písanie */
+.skeletonBubbleRow {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+  margin-bottom: 12px;
+}
+.skeletonBubbleRowMine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.skeletonBubbleRowTheirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.skeletonBubble {
+  height: 38px;
+  width: 220px;
+  max-width: 100%;
   border-radius: 20px;
 }
-.skeletonHero {
-  height: 230px;
-  border-radius: 30px;
+.skeletonComposer {
+  height: 48px;
+  margin-top: 8px;
 }
-.skeletonPanelSmall {
-  height: 110px;
+/* veľké číslo (kcal v Denníku) */
+.skeletonBigNumber {
+  height: 38px;
+  width: 130px;
+  border-radius: 12px;
 }
-@keyframes skeletonPulse {
-  0%,
-  100% {
-    opacity: 0.55;
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 150% 0;
   }
-  50% {
-    opacity: 0.95;
+  100% {
+    background-position: -50% 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skeletonBlock {
+  .skeletonBlock::after {
     animation: none;
-    opacity: 0.75;
+    opacity: 0;
   }
 }
 

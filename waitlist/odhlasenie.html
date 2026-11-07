@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Odhlásiť sa | FitPilot</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="/assets/icon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" />
+  <link rel="stylesheet" href="css/tailwind.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-ink text-paper font-sans antialiased">
+  <div class="max-w-md mx-auto px-5 sm:px-8 py-14 sm:py-20">
+    <a href="index.html" class="text-sm text-paperdim hover:text-paper underline">&larr; Späť na FitPilot</a>
+
+    <div class="card mt-6 p-7 sm:p-8 text-center">
+      <img src="assets/logo-wordmark.png" alt="FitPilot" class="h-8 w-auto mx-auto mb-6" />
+
+      <!-- Tri stavy, len jeden vždy viditeľný — JS v odhlasenie.js prepína cez .hidden. -->
+      <div id="state-loading">
+        <p class="text-paperdim">Overujem odkaz…</p>
+      </div>
+
+      <div id="state-confirm" class="hidden">
+        <h1 class="text-xl font-bold text-paper">Odhlásiť sa z čakacej listiny?</h1>
+        <p class="mt-3 text-sm text-paperdim leading-relaxed">
+          <span id="confirm-greeting"></span>naozaj chceš, aby sme vymazali tvoje údaje z čakacej listiny FitPilot?
+          Túto akciu nie je možné vrátiť späť.
+        </p>
+        <button id="confirm-btn" type="button" class="btn-primary w-full rounded-s px-6 py-3.5 font-bold text-base mt-6">
+          Áno, odhlásiť ma
+        </button>
+        <p id="confirm-error" class="hidden mt-3 text-sm text-[var(--iron-red)]"></p>
+      </div>
+
+      <div id="state-done" class="hidden">
+        <h1 class="text-xl font-bold text-paper">Hotovo, si odhlásený/-á</h1>
+        <p class="mt-3 text-sm text-paperdim leading-relaxed">
+          Tvoje údaje sme vymazali z čakacej listiny FitPilot. Už ti od nás nepríde žiadny ďalší e-mail.
+        </p>
+      </div>
+
+      <div id="state-invalid" class="hidden">
+        <h1 class="text-xl font-bold text-paper">Odkaz už neplatí</h1>
+        <p class="mt-3 text-sm text-paperdim leading-relaxed">
+          Buď je tento odkaz neplatný, alebo si sa už odhlásil/-a skôr. Ak si na čakacej listine aj napriek tomu,
+          napíš nám na <a href="mailto:info@myfitpilot.sk" class="underline hover:text-paper">info@myfitpilot.sk</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/odhlasenie.js"></script>
+</body>
+</html>

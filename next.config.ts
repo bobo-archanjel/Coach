@@ -93,9 +93,15 @@ const nextConfig: NextConfig = {
     // 'wasm-unsafe-eval' (feature/barcode-scanner) — povolí LEN kompiláciu WebAssembly
     // (ZXing čítačka čiarových kódov z /wasm/, skener v denníku na iPhone), nie eval() JS.
     const isDev = process.env.NODE_ENV === "development";
+    // Cloudflare Turnstile (feature/security, bot ochrana na /prihlasenie) —
+    // script aj CAPTCHA výzva bežia z challenges.cloudflare.com, treba ich
+    // explicitne povoliť v troch smeroch: script-src (načítanie api.js),
+    // frame-src (samotný widget je iframe — bez tejto direktívy by spadol pod
+    // prísnejší default-src 'self' a nikdy by sa nezobrazil) a connect-src
+    // (interná komunikácia widgetu so serverom Cloudflare).
     const scriptSrc = isDev
-      ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://plausible.io"
-      : "'self' 'unsafe-inline' 'wasm-unsafe-eval' https://plausible.io";
+      ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://plausible.io https://challenges.cloudflare.com"
+      : "'self' 'unsafe-inline' 'wasm-unsafe-eval' https://plausible.io https://challenges.cloudflare.com";
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
@@ -108,9 +114,10 @@ const nextConfig: NextConfig = {
       // own, confirmed via a real CSP violation while wiring this in).
       "media-src 'self' blob:",
       "font-src 'self' data:",
+      "frame-src https://challenges.cloudflare.com",
       // wss:// je pre Supabase Realtime (ChatThread, NotificationBell) — `https://` v
       // connect-src WebSocket NEpokrýva; bez toho prehliadač spojenie ticho zablokuje.
-      `connect-src 'self' ${supabaseConnectHosts()} https://plausible.io`,
+      `connect-src 'self' ${supabaseConnectHosts()} https://plausible.io https://challenges.cloudflare.com`,
       "object-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'self'",

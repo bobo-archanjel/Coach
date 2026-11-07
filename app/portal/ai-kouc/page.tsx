@@ -77,7 +77,7 @@ export default async function AiKoucPage({ searchParams }: { searchParams: Promi
         sendAction={sendAiKoucMessageAction}
         emptyTitle="Opýtaj sa AI Kouča"
         emptyText="Napríklad: čo mám zjesť, aby som splnil dnešný cieľ? Alebo: aký cvik mi navrhneš namiesto tohto?"
-        placeholder="Napíš AI Kočovi…"
+        placeholder="Napíš AI Koučovi…"
         fill
         // proaktívny check-in príde max. raz za pár dní — bez pollu (ako /portal/ai-kouc)
         pollMs={0}

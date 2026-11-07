@@ -44,6 +44,26 @@ test.describe("jeden dizajn po prihlásení", () => {
     }
   });
 
+  test("onboarding návod (?tour=1) prejde krokmi v novom dizajne a zavrie sa", async ({ page }) => {
+    test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
+    for (const [path, first, last] of [
+      ["/dashboard/nastavenia?tour=1", "Klienti", "Nastavenia"],
+      ["/portal?preview=ok&tour=1", "Dnes", "Profil"],
+    ] as const) {
+      await page.goto(path);
+      const tour = page.getByRole("dialog", { name: `Návod: ${first}` });
+      await expect(tour, path).toBeVisible();
+      await expect(page.locator("[data-v6-root]").getByRole("dialog"), path).toHaveCount(1);
+      // prejsť všetky kroky až po posledný a dokončiť
+      while (!(await page.getByRole("dialog", { name: `Návod: ${last}` }).isVisible())) {
+        await page.getByRole("button", { name: "Ďalej" }).click();
+      }
+      await page.getByRole("button", { name: "Dokončiť" }).click();
+      await expect(page.getByRole("dialog"), path).toHaveCount(0);
+      await expect(page, path).not.toHaveURL(/tour=1/);
+    }
+  });
+
   test("prihlasovacie stránky ostávajú: /prihlasenie pôvodný vzhľad, /v6design/prihlasenie nový", async ({ page }) => {
     await page.goto("/prihlasenie");
     await expect(page.getByRole("button", { name: "Prihlásiť sa" })).toBeVisible();

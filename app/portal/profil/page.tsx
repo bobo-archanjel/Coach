@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { AppLink as Link } from "@/app/components/AppLink";
 import { SignOutButton } from "@/app/components/SignOutButton";
 import { DeleteAccountSection } from "@/app/portal/profil/DeleteAccountSection";
 import { TrainerConnection } from "@/app/portal/profil/TrainerConnection";
@@ -7,7 +8,8 @@ import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 import { V6_THEME_COOKIE, parseV6Theme } from "@/app/v6design/theme";
 import s from "../portal.module.css";
 
-/* /portal/profil — údaje a akcie profilu (loadProfilView) + vzhľad (téma Auto/Svetlá/Tmavá). */
+/* /portal/profil — údaje a akcie profilu (loadProfilView) + vzhľad (téma Auto/Svetlá/Tmavá)
+   + opätovné spustenie onboarding návodu (?tour=1 na Dnes). */
 
 export default async function ProfilPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
@@ -35,6 +37,16 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
           <p className={s.codeHint} style={{ marginTop: 0 }}>
             Vek, výška, váha, ciele a alergie z onboardingu si tu doplníš onedlho — potom uvidíš aj svoj progres v čase.
           </p>
+        </div>
+
+        <div className={s.panel}>
+          <p className={s.panelLabel}>Návod</p>
+          <p className={s.codeHint} style={{ marginTop: 0, marginBottom: 14 }}>
+            Krátky sprievodca appkou, ktorý si videl pri prvom prihlásení.
+          </p>
+          <Link href="/portal?tour=1" className="btn btn-ghost btn-sm">
+            Spustiť návod znova
+          </Link>
         </div>
 
         <DeleteAccountSection requestedAt={view.deletionRequestedAt} requestedBy={view.deletionRequestedBy} />

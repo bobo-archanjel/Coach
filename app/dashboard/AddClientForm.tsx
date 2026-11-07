@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { addClientAction, addClientByCodeAction, type AddClientState, type AddByCodeState } from "./actions";
+import type { RosterItem } from "./ClientRoster";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "./dashboard.module.css";
 
@@ -21,15 +22,25 @@ const CheckIcon = () => (
  *  2. Klient ešte nemá účet → tréner mu vytvorí záznam ako doteraz (a dá mu kód,
  *     ktorý si klient pri registrácii nárokuje — pôvodný flow, ostáva funkčný).
  */
-export function AddClientForm() {
+/** Očakávaný tvar kódu: FP- + 20 hex znakov (viď add_client_by_code RPC). */
+const CODE_PREFIX = "FP-";
+const CODE_BODY_LEN = 20;
+
+/** Forgiving formatting — veľké písmená, bez medzier, zachová "FP-" prefix aj
+ * keď ho niekto pri copy-paste čiastočne prepíše. */
+function normalizeCode(raw: string): string {
+  return raw.toUpperCase().replace(/\s+/g, "");
+}
+
+export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: RosterItem) => void }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"code" | "manual">("code");
+  const [codeValue, setCodeValue] = useState("");
 
   const [manualState, manualAction, manualPending] = useActionState(addClientAction, initialState);
   const [codeState, codeAction, codePending] = useActionState(addClientByCodeAction, initialCodeState);
 
   const prevManualPending = useRef(false);
-  const codeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (prevManualPending.current && !manualPending && !manualState.error) setOpen(false);
@@ -37,13 +48,24 @@ export function AddClientForm() {
   }, [manualPending, manualState.error]);
 
   // Po úspešnom pridaní kódom vyčisti pole — tréner môže rovno pridať ďalšieho.
+  // `value={codeValue}` už robí toto pole plne kontrolovaným — priame nastavenie
+  // `input.value` cez ref (predtým tu bolo) obchádza Reactovo sledovanie hodnoty
+  // a spôsobovalo "changing from controlled to uncontrolled" warning.
   useEffect(() => {
-    if (codeState.addedName && codeInputRef.current) codeInputRef.current.value = "";
+    if (codeState.addedName) setCodeValue("");
   }, [codeState.addedName]);
+
+  // Skok z prázdneho stavu zoznamu ("#add-client", EmptyState CTA) otvorí panel
+  // rovno — inak by človek pristál len pri skrytom "+ Nový klient" tlačidle.
+  useEffect(() => {
+    if (window.location.hash === "#add-client") setOpen(true);
+  }, []);
+
+  const codeDigitsLen = Math.max(0, codeValue.length - CODE_PREFIX.length);
 
   if (!open) {
     return (
-      <div className={styles.addClientForm}>
+      <div id="add-client" className={styles.addClientForm}>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
           + Nový klient
         </button>
@@ -52,7 +74,7 @@ export function AddClientForm() {
   }
 
   return (
-    <div className={`${styles.addClientForm} ${styles.addClientPanel}`}>
+    <div id="add-client" className={`${styles.addClientForm} ${styles.addClientPanel}`}>
       {/* Prepínač + otáznik s vysvetlením zvolenej cesty (InfoTip) v jednom riadku. */}
       <div className={styles.addClientModesRow}>
         <div className={styles.addClientModes} role="tablist" aria-label="Ako pridať klienta">
@@ -91,9 +113,10 @@ export function AddClientForm() {
         <form action={codeAction}>
           <div className={styles.addClientFields}>
             <input
-              ref={codeInputRef}
               name="code"
               type="text"
+              value={codeValue}
+              onChange={(e) => setCodeValue(normalizeCode(e.currentTarget.value))}
               placeholder="FP-XXXXXXXXXXXXXXXXXXXX"
               autoComplete="off"
               autoCapitalize="characters"
@@ -102,6 +125,7 @@ export function AddClientForm() {
               disabled={codePending}
               className={styles.addClientInput}
               aria-label="Kód klienta"
+              aria-describedby="add-client-code-count"
             />
             <button type="submit" className="btn btn-primary btn-sm" disabled={codePending}>
               {codePending ? "Pridávam…" : "Pridať klienta"}
@@ -110,6 +134,11 @@ export function AddClientForm() {
               Zavrieť
             </button>
           </div>
+          {codeValue.length > 0 && (
+            <p id="add-client-code-count" className={styles.addClientHint} style={{ marginTop: -8 }}>
+              {codeDigitsLen}/{CODE_BODY_LEN} znakov
+            </p>
+          )}
           {codeState.error && <p className={styles.addClientError}>{codeState.error}</p>}
           {codeState.addedName && !codeState.error && (
             <p className={styles.addClientOk} role="status">
@@ -119,7 +148,31 @@ export function AddClientForm() {
           )}
         </form>
       ) : (
-        <form action={manualAction}>
+        <form
+          action={manualAction}
+          onSubmit={(e) => {
+            if (!onOptimisticAdd) return;
+            const fd = new FormData(e.currentTarget);
+            const fullName = String(fd.get("full_name") ?? "").trim();
+            if (!fullName) return;
+            const goal = String(fd.get("goal") ?? "").trim();
+            startTransition(() => {
+              onOptimisticAdd({
+                id: `optimistic-${Date.now()}`,
+                fullName,
+                goal: goal || null,
+                since: new Date().toISOString(),
+                unread: 0,
+                pendingDeletion: false,
+                deletionLabel: null,
+                ended: false,
+                statusLabel: null,
+                statusTone: null,
+                pending: true,
+              });
+            });
+          }}
+        >
           <div className={styles.addClientFields}>
             <input name="full_name" type="text" placeholder="Meno a priezvisko" required disabled={manualPending} className={styles.addClientInput} />
             <input name="goal" type="text" placeholder="Cieľ (napr. chudnutie)" disabled={manualPending} className={styles.addClientInput} />

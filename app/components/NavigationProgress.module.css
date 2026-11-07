@@ -1,0 +1,13 @@
+.overlay {
+  /* `absolute` v rámci `.content`/`.column` (obe majú `position: relative`) —
+     prekryje LEN obsahovú oblasť, nie sidebar/nav, ktorý ostáva reálny a
+     viditeľný počas navigácie (je rovnaký na každej stránke, netreba ho skeletonovať). */
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  /* pozadie dizajnu v6 (teplé svetlo) zarovnané s oknom ako fixná vrstva .root::before */
+  background: var(--v6-backdrop, var(--ink));
+  background-attachment: fixed;
+  overflow: auto;
+  /* Bez animácie vstupu — má sa objaviť OKAMŽITE, oneskorenie by porazilo zmysel. */
+}

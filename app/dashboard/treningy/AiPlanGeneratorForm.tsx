@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState, useTransition, type FormEvent } from "react";
-import Link from "next/link";
+import { ThinkingOrb } from "thinking-orbs";
+import { AppLink as Link } from "../../components/AppLink";
+import { useLoadingMessage } from "../../components/useLoadingMessage";
 import {
   generatePlanWithAiAction,
   generateAiPlanForClientAction,
@@ -23,6 +25,16 @@ import { ClientMultiSelect } from "../ClientMultiSelect";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
+
+/** Psychológia spinnerov (feature/navod) — rotujúci text namiesto statického
+ * "Generujem…", zobrazí sa až po ~500ms (useLoadingMessage), takže rýchla
+ * odpoveď nikdy nestihne mihnúť loading chrome. */
+const AI_GENERATING_MESSAGES = [
+  "Premýšľam nad plánom…",
+  "Vyberám cviky z knižnice…",
+  "Skladám dni dokopy…",
+  "Ešte chvíľu, dolaďujem to…",
+];
 
 type ClientOption = { id: string; full_name: string; sex: "muz" | "zena" | null };
 /** „auto“ = zameranie podľa pohlavia každého klienta zvlášť (len pri viacerých klientoch) */
@@ -46,6 +58,7 @@ interface Batch {
 
 export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
   const [state, formAction, singlePending] = useActionState(generatePlanWithAiAction, initialState);
+  const loadingMessage = useLoadingMessage(singlePending, AI_GENERATING_MESSAGES);
   const [batchPending, startBatch] = useTransition();
   const [selected, setSelected] = useState<string[]>(() => (clients.length === 1 ? [clients[0].id] : []));
   const [missingClient, setMissingClient] = useState(false);
@@ -210,6 +223,14 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
         </InfoTip>
       </div>
       {missingClient && <p className={styles.addClientError}>Vyber aspoň jedného klienta.</p>}
+      {singlePending && (
+        <div className={styles.aiPlanResult}>
+          <div className={styles.aiGeneratingRow}>
+            <ThinkingOrb state="solving" size={64} />
+            <p className={styles.aiGeneratingText}>{loadingMessage ?? "Generujem…"}</p>
+          </div>
+        </div>
+      )}
       {state.error && <p className={styles.addClientError}>{state.error}</p>}
       {state.planId && (
         <div className={styles.aiPlanResult}>

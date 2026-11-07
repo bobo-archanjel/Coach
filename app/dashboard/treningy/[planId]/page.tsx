@@ -1,6 +1,7 @@
-import Link from "next/link";
+import { AppLink as Link } from "../../../components/AppLink";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { PlanBuilder } from "./PlanBuilder";
 import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
 import { listPlanRecipients } from "@/lib/planRecipients";
@@ -9,6 +10,7 @@ import { WorkoutTemplateTop } from "../../sablony/WorkoutTemplateControls";
 import { PlanTitle } from "./PlanTitle";
 import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
+import type { ExerciseLibraryRow } from "@/lib/exercises";
 import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
@@ -55,6 +57,26 @@ export default async function PlanDetailPage({
     process.env.NODE_ENV === "development"
   ) {
     const livePreview = preview === "builder_live";
+
+    // Knižnica cvikov v náhľade bola predtým prázdna (`library: []`) — appka
+    // nemá anonymný prístup k `exercises` (migrácia 0036 zrušila anon grant),
+    // takže bez session by dopyt cez bežný klient vrátil nič. Globálne cviky
+    // (trainer_id null) sú ale verejné dáta bez PII, takže na tento JEDEN
+    // dev-only náhľad (marketingové screenshoty/nahrávky s reálnymi obrázkami
+    // cvikov) čítame service-role klientom — nikdy v mene konkrétneho
+    // používateľa, len globálnu knižnicu, a len za NODE_ENV=development.
+    let previewLibrary: ExerciseLibraryRow[] = PREVIEW_LIBRARY;
+    const admin = tryCreateAdminClient();
+    if (admin) {
+      const { data } = await admin
+        .from("exercises")
+        .select("id, name, name_sk, muscle_group, image_url")
+        .is("trainer_id", null)
+        .not("image_url", "eq", "{}")
+        .order("name")
+        .limit(40);
+      if (data && data.length > 0) previewLibrary = data as ExerciseLibraryRow[];
+    }
     return (
       <>
         <Link href="/dashboard/treningy" className={styles.backLink}>
@@ -74,7 +96,7 @@ export default async function PlanDetailPage({
         <PlanBuilder
           planId={planId}
           days={preview === "builder_empty" ? [] : PREVIEW_DAYS}
-          library={PREVIEW_LIBRARY}
+          library={previewLibrary}
           completedDayIds={["d2"]}
         />
         <div className={styles.planFooterActions}>

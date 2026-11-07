@@ -8,8 +8,16 @@
 // sa neoplatí.
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "../components/AppLink";
+import { EmptyState } from "../components/EmptyState";
 import styles from "./dashboard.module.css";
+
+const ClientsIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M4 20c0-3.3 2.2-5.5 5-5.5s5 2.2 5 5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+);
 
 export interface RosterItem {
   id: string;
@@ -23,6 +31,9 @@ export interface RosterItem {
   ended: boolean;
   statusLabel: string | null;
   statusTone: "active" | "late" | null;
+  /** Optimistic UI (useOptimistic v ClientsBoard) — karta zobrazená hneď po odoslaní
+   * formulára, kým server ešte nepotvrdil zápis. Nemá reálne `id`, takže neklika. */
+  pending?: boolean;
 }
 
 /** Zbaví diakritiky pre tolerantnejšie hľadanie ("stastie" nájde "šťastie"). */
@@ -61,50 +72,77 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
 
       {filtered.length > 0 ? (
         <div className={styles.roster}>
-          {filtered.map((client) => (
-            <Link
-              key={client.id}
-              href={`/dashboard/klienti/${client.id}`}
-              className={`${styles.clientCard} ${
-                client.pendingDeletion ? styles.clientCardPendingDeletion : client.ended ? styles.clientCardEnded : ""
-              }`}
-            >
-              <div>
-                <div className={styles.clientName}>{client.fullName}</div>
-                {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
+          {filtered.map((client) => {
+            const cardClassName = `${styles.clientCard} ${
+              client.pendingDeletion ? styles.clientCardPendingDeletion : client.ended ? styles.clientCardEnded : ""
+            } ${client.pending ? styles.clientCardPending : ""}`;
+            const cardContent = (
+              <>
+                <div>
+                  <div className={styles.clientName}>{client.fullName}</div>
+                  {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
+                </div>
+                <span className={styles.clientMeta}>
+                  {client.pending ? (
+                    <span className={styles.statusChip}>pridávam…</span>
+                  ) : (
+                    <>
+                      {client.unread > 0 && (
+                        <span className={styles.unreadPill} title={`${client.unread} neprečítaných správ`}>
+                          {client.unread} {client.unread === 1 ? "správa" : client.unread >= 2 && client.unread <= 4 ? "správy" : "správ"}
+                        </span>
+                      )}
+                      {client.pendingDeletion ? (
+                        <span className={styles.deletionChip}>Zmaže sa {client.deletionLabel}</span>
+                      ) : client.ended ? (
+                        <span className={`${styles.statusChip} ${styles.ended}`}>spolupráca ukončená</span>
+                      ) : (
+                        client.statusLabel && (
+                          <span className={`${styles.statusChip} ${styles[client.statusTone ?? "active"]}`}>
+                            {client.statusLabel}
+                          </span>
+                        )
+                      )}
+                    </>
+                  )}
+                  <span className={styles.clientSince}>od {new Date(client.since).toLocaleDateString("sk-SK")}</span>
+                </span>
+              </>
+            );
+            // Optimistická karta (feature/navod) nemá reálne DB id — kým server
+            // zápis nepotvrdí, nedá sa na ňu klikať (404 na neexistujúci detail).
+            return client.pending ? (
+              <div key={client.id} className={cardClassName} aria-busy="true">
+                {cardContent}
               </div>
-              <span className={styles.clientMeta}>
-                {client.unread > 0 && (
-                  <span className={styles.unreadPill} title={`${client.unread} neprečítaných správ`}>
-                    {client.unread} {client.unread === 1 ? "správa" : client.unread >= 2 && client.unread <= 4 ? "správy" : "správ"}
-                  </span>
-                )}
-                {client.pendingDeletion ? (
-                  <span className={styles.deletionChip}>Zmaže sa {client.deletionLabel}</span>
-                ) : client.ended ? (
-                  <span className={`${styles.statusChip} ${styles.ended}`}>spolupráca ukončená</span>
-                ) : (
-                  client.statusLabel && (
-                    <span className={`${styles.statusChip} ${styles[client.statusTone ?? "active"]}`}>
-                      {client.statusLabel}
-                    </span>
-                  )
-                )}
-                <span className={styles.clientSince}>od {new Date(client.since).toLocaleDateString("sk-SK")}</span>
-              </span>
-            </Link>
-          ))}
+            ) : (
+              <Link key={client.id} href={`/dashboard/klienti/${client.id}`} className={cardClassName}>
+                {cardContent}
+              </Link>
+            );
+          })}
         </div>
       ) : items.length > 0 ? (
-        <div className={styles.emptyState}>
-          <h2>Nič sa nenašlo</h2>
-          <p>Skús iné meno alebo cieľ.</p>
-        </div>
+        <EmptyState
+          title="Nič sa nenašlo"
+          body="Skús iné meno alebo cieľ."
+          action={
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQuery("")}>
+              Vymazať hľadanie
+            </button>
+          }
+        />
       ) : (
-        <div className={styles.emptyState}>
-          <h2>Zatiaľ nemáš žiadnych klientov</h2>
-          <p>Pridaj prvého klienta cez „+ Nový klient“.</p>
-        </div>
+        <EmptyState
+          icon={<ClientsIcon />}
+          title="Zatiaľ nemáš žiadnych klientov"
+          body="Pridaj prvého klienta a začni mu stavať tréningový plán aj jedálniček."
+          action={
+            <a href="#add-client" className="btn btn-primary btn-sm">
+              + Pridať prvého klienta
+            </a>
+          }
+        />
       )}
     </>
   );

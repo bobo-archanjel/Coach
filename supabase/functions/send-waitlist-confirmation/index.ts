@@ -19,11 +19,18 @@ interface WaitlistWebhookPayload {
     full_name: string;
     email: string;
     confirmation_sent_at: string | null;
+    unsubscribe_token: string;
   };
 }
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_ADDRESS = "FitPilot <info@myfitpilot.sk>";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+
+// Prevádzkovateľ (GDPR čl. 13 ods. 1 písm. a) — musí byť v každom e-maile
+// identifikovateľný, nielen na privacy.html.
+const CONTROLLER_NAME = "Boris Rosival";
+const CONTROLLER_ADDRESS = "Pod lipami 75, 940 02 Nové Zámky";
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -35,7 +42,7 @@ function escapeHtml(value: string): string {
 // Preheader (skrytý text na začiatku <body>) je to, čo klient zobrazí ako
 // náhľad vedľa predmetu — bez neho by tam bolo surové "FitPilot" alebo prvý
 // kus HTML. Brand tokeny rovnaké ako DESIGN.md/app/globals.css.
-function buildConfirmationEmailHtml(safeName: string): string {
+function buildConfirmationEmailHtml(safeName: string, unsubscribeUrl: string): string {
   const preheader = `Si na čakacej listine — ozveme sa hneď, ako appku spustíme.`;
   return `<!DOCTYPE html>
 <html lang="sk">
@@ -62,8 +69,8 @@ function buildConfirmationEmailHtml(safeName: string): string {
                 Si na zozname, ${safeName}!
               </h1>
               <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#cfc9bd;text-align:left;">
-                Ďakujeme za zápis na čakaciu listinu FitPilot — appky pre fitness trénerov na Slovensku
-                a v Česku. Ozveme sa ti hneď, ako appku spustíme naostro.
+                Ďakujeme za zápis na čakaciu listinu FitPilot — appky pre fitness trénerov, ich klientov aj ľudí,
+                ktorí trénujú sami, na Slovensku a v Česku. Ozveme sa ti hneď, ako appku spustíme naostro.
               </p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr><td style="border-top:1px solid #38352f;font-size:1px;line-height:1px;">&nbsp;</td></tr>
@@ -79,8 +86,11 @@ function buildConfirmationEmailHtml(safeName: string): string {
           <tr>
             <td style="padding:20px 32px 0;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8f897d;">
               FitPilot · <a href="https://myfitpilot.sk" style="color:#8f897d;">myfitpilot.sk</a><br />
+              ${CONTROLLER_NAME}, ${CONTROLLER_ADDRESS}<br />
               Prihlásil sa niekto iný tvojím e-mailom omylom? Napíš na
-              <a href="mailto:info@myfitpilot.sk" style="color:#8f897d;">info@myfitpilot.sk</a> a vymažeme ťa zo zoznamu.
+              <a href="mailto:info@myfitpilot.sk" style="color:#8f897d;">info@myfitpilot.sk</a> a vymažeme ťa zo zoznamu.<br />
+              <a href="${unsubscribeUrl}" style="color:#8f897d;">Odhlásiť sa z čakacej listiny</a> ·
+              <a href="https://myfitpilot.sk/privacy.html" style="color:#8f897d;">Ochrana súkromia</a>
             </td>
           </tr>
         </table>
@@ -91,18 +101,21 @@ function buildConfirmationEmailHtml(safeName: string): string {
 </html>`;
 }
 
-function buildConfirmationEmailText(safeName: string): string {
+function buildConfirmationEmailText(safeName: string, unsubscribeUrl: string): string {
   return [
     `Si na zozname, ${safeName}!`,
     ``,
-    `Ďakujeme za zápis na čakaciu listinu FitPilot — appky pre fitness trénerov na Slovensku a v Česku.`,
-    `Ozveme sa ti hneď, ako appku spustíme naostro.`,
+    `Ďakujeme za zápis na čakaciu listinu FitPilot — appky pre fitness trénerov, ich klientov aj ľudí,`,
+    `ktorí trénujú sami, na Slovensku a v Česku. Ozveme sa ti hneď, ako appku spustíme naostro.`,
     ``,
     `Toto je jediný e-mail, ktorý od nás zatiaľ dostaneš. Ďalší príde presne vtedy, keď bude appka pripravená`,
     `na spustenie — žiadny ďalší spam, žiadne zdieľanie tretím stranám.`,
     ``,
     `FitPilot · https://myfitpilot.sk`,
+    `${CONTROLLER_NAME}, ${CONTROLLER_ADDRESS}`,
     `Prihlásil sa niekto iný tvojím e-mailom omylom? Napíš na info@myfitpilot.sk a vymažeme ťa zo zoznamu.`,
+    `Odhlásiť sa z čakacej listiny: ${unsubscribeUrl}`,
+    `Ochrana súkromia: https://myfitpilot.sk/privacy.html`,
   ].join("\n");
 }
 
@@ -145,6 +158,22 @@ Deno.serve(async (req: Request) => {
   // celé meno pôsobí v tomto kontexte formálne/čudne, priezvisko sa vynecháva.
   const firstName = safeName.split(/\s+/)[0] || safeName;
 
+  // Jednoklikové odhlásenie (0055_waitlist_unsubscribe.sql, waitlist-unsubscribe
+  // edge funkcia) — § 116 zákona č. 452/2021 Z. z. a GDPR čl. 7 ods. 3 vyžadujú,
+  // aby odvolanie súhlasu bolo rovnako jednoduché ako jeho udelenie.
+  //
+  // Odkaz, na ktorý KLIKNE ČLOVEK, musí ísť na myfitpilot.sk (waitlist/odhlasenie.html),
+  // NIE priamo na *.supabase.co — Supabase vynucuje na edge funkciách Content-Type:
+  // text/plain + CSP sandbox (ochrana pred phishingom na zdieľanej doméne), takže
+  // priamy odkaz na funkciu by sa v prehliadači nikdy nevykreslil ako stránka,
+  // len ako surový text (zistené naživo). Stránka na myfitpilot.sk potom funkciu
+  // volá cez fetch() — rovnaký vzor ako formulár na index.html.
+  const unsubscribePageUrl = `https://myfitpilot.sk/odhlasenie.html?token=${encodeURIComponent(record.unsubscribe_token)}`;
+  // List-Unsubscribe/-Post (RFC 2369/8058) naopak SMIE mieriť priamo na funkciu —
+  // toto POSTuje mailový server (Gmail/Yahoo), nie prehliadač človeka, takže mu
+  // nezáleží na Content-Type odpovede, len na stavovom kóde.
+  const unsubscribeApiUrl = `${SUPABASE_URL}/functions/v1/waitlist-unsubscribe?token=${encodeURIComponent(record.unsubscribe_token)}`;
+
   const emailRes = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
@@ -152,8 +181,17 @@ Deno.serve(async (req: Request) => {
       from: FROM_ADDRESS,
       to: record.email,
       subject: "Si na čakacej listine FitPilot 🎉",
-      html: buildConfirmationEmailHtml(firstName),
-      text: buildConfirmationEmailText(firstName),
+      html: buildConfirmationEmailHtml(firstName, unsubscribePageUrl),
+      text: buildConfirmationEmailText(firstName, unsubscribePageUrl),
+      // List-Unsubscribe (RFC 2369) + List-Unsubscribe-Post (RFC 8058, "one-click")
+      // — Gmail/Yahoo/Outlook ukážu vlastné "Unsubscribe" tlačidlo pri predmete,
+      // ktoré POSTne priamo na náš odkaz bez otvárania e-mailu. Mailboxy s vysokým
+      // objemom (Gmail, Yahoo) to od februára 2024 pri hromadných e-mailoch vyžadujú
+      // pre dobrú doručiteľnosť, aj keď toto je transakčný, nie hromadný e-mail.
+      headers: {
+        "List-Unsubscribe": `<${unsubscribeApiUrl}>, <mailto:info@myfitpilot.sk?subject=unsubscribe>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     }),
   });
 

@@ -17,11 +17,13 @@ React (Next.js), Tailwind CSS, mobile-first. Backend/DB: Supabase (Postgres, Aut
 
 ## Product Purpose
 
-SaaS aplikácia pre fitness trénerov na slovenskom a českom trhu — jedno miesto na správu klientov, tréningových plánov, výživy/makier a komunikácie, s AI ako asistentom (nie náhradou) trénera. Úspech = tréner šetrí čas na administratíve a klient má jasný, motivujúci prehľad svojho plánu a progresu.
+SaaS aplikácia postavená **primárne pre fitness trénerov** na slovenskom a českom trhu — jedno miesto na správu klientov, tréningových plánov, výživy/makier a komunikácie, s AI ako asistentom (nie náhradou) trénera. **Appku ale vie plnohodnotne používať aj klient úplne sám, bez trénera** — registrácia je pre obe role rovnaká, klient nepotrebuje pozvánku ani kód od trénera na to, aby sa appka dala použiť. Trénera pridáva dobrovoľne, keď chce ľudský dohľad a schvaľovanie plánov; prepojenie je kedykoľvek zrušiteľné bez straty dát. Úspech = tréner šetrí čas na administratíve a portfóliu klientov, a hociktorý používateľ (s trénerom aj bez neho) má jasný, motivujúci prehľad svojho plánu a progresu.
 
 ## Positioning
 
 Prvý skutočne AI-native, natívne slovenský/český nástroj pre fitness trénerov, kde je nutrícia plnohodnotnou core funkciou od začiatku (nie platený add-on) a AI chat má kontextovú pamäť (profil, plán, história) namiesto generického promptu. Konkurencia (Trainerize, Everfit, TrueCoach, GYMIFY) toto nemá kombinované.
+
+Primárny nákup appky robí tréner (SaaS predplatné) a appka je navrhnutá okolo jeho workflow (portfólio klientov, builder, AI generátor, business vrstva). Klient bez trénera je plnohodnotný sekundárny use-case — dostane rovnaký tréningový builder, AI generátor plánov a AI kouča, len bez ľudského schválenia a spätnej väzby od trénera navyše. Táto "reverzná" flexibilita onboardingu (kdokoľvek sa zaregistruje rovnako, prepojenie je voliteľné a obojsmerne zrušiteľné) je súčasť diferenciácie, nie vedľajší detail.
 
 ## Operating Context
 

@@ -1,0 +1,129 @@
+/* FitPilot — interaktívny onboarding tour v dizajne v6 (vykresľuje sa vnútri koreňa
+   s tokenmi app/v6design/styles/tokens.module.css): sklenená bublina, terakotová
+   hlavná akcia, pilulkové bodky. Pôvodné tokeny ostávajú ako záloha. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: auto;
+}
+
+/* Spotlight cez veľký box-shadow spread namiesto clip-path — jednoduchšie a
+   spoľahlivo funguje aj s border-radius na cieli, žiadna ručná polygon matika. */
+.spotlight {
+  position: fixed;
+  border-radius: var(--radius-m, 12px);
+  box-shadow: 0 0 0 9999px rgba(9, 8, 8, 0.78);
+  border: 2px solid var(--accent, var(--iron-red, #e0402a));
+  transition:
+    top 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.tooltip {
+  position: fixed;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: var(--sheet-bg-strong, var(--ink-2, #1b1a18));
+  border: 1px solid var(--glass-border, var(--steel-line, #38352f));
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow, var(--shadow-2, 0 12px 32px -12px rgba(0, 0, 0, 0.65)));
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  padding: 18px;
+  transition:
+    top 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--fill-strong, var(--steel-line, #38352f));
+}
+
+.dotActive {
+  background: var(--accent, var(--iron-red, #e0402a));
+  width: 16px;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  color: var(--paper, #f3efe6);
+}
+
+.body {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim, #cfc9bd);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.actionsRight {
+  display: flex;
+  gap: 8px;
+}
+
+.skipBtn {
+  background: none;
+  border: none;
+  color: var(--paper-faint, #8f897d);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.skipBtn:hover {
+  color: var(--paper-dim, #cfc9bd);
+}
+
+.backBtn {
+  background: var(--surface-solid, none);
+  border: 1px solid var(--hairline, var(--steel-line, #38352f));
+  color: var(--paper-dim, #cfc9bd);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.nextBtn {
+  background: var(--accent-grad, var(--iron-red-deep, #c3341f));
+  color: var(--on-accent, var(--paper, #f3efe6));
+  box-shadow: var(--accent-glow, none);
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.nextBtn:hover {
+  filter: brightness(1.05);
+}

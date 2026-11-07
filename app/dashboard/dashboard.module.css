@@ -404,6 +404,13 @@ a.bellItemMain:hover {
   padding: 0 clamp(20px, 4vw, 48px);
 }
 .content {
+  /* kotva pre NavSkeletonOverlay (skeleton pri navigácii prekryje len obsah, nie menu) */
+  position: relative;
+  padding-block: clamp(28px, 5vw, 48px);
+}
+/* vonkajší obal overlay skeletonu — absolútne deti .content ignorujú jej padding-block,
+   preto ho overlay nesie sám (drž v sync s .content) */
+.skeletonOuterInset {
   padding-block: clamp(28px, 5vw, 48px);
 }
 /* Priestor pre fixnú bottom tab bar (.navList na mobile), nech posledná karta nie je pod ňou. */
@@ -692,6 +699,12 @@ select.addClientInputSm {
   font-size: 13px;
   color: var(--error);
 }
+/* počítadlo znakov kódu klienta pod poľom (FP-…) */
+.addClientHint {
+  font-size: 12px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------- AI generátor plánu (Track "Tréner" #4/5, ROADMAP.md) ---------- */
 /* Výsledok generovania s varovaním (feature/ai-plan-zameranie) — plán je vytvorený,
@@ -702,6 +715,17 @@ select.addClientInputSm {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
+}
+/* AI generátor práve pracuje — orb (thinking-orbs) + striedajúci sa text */
+.aiGeneratingRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.aiGeneratingText {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--paper-dim);
 }
 .aiPlanWarning {
   margin: 0;
@@ -1100,6 +1124,15 @@ select.addClientInputSm {
 }
 .clientCardEnded:hover {
   opacity: 1;
+}
+/* optimisticky pridaný klient (ClientsBoard) — kým server zápis nepotvrdí, neklikateľný */
+.clientCardPending {
+  opacity: 0.6;
+  cursor: default;
+}
+.clientCardPending:hover {
+  border-color: var(--surface-border);
+  background: var(--card-bg);
 }
 .deletionChip {
   font-size: 11.5px;
@@ -1930,41 +1963,174 @@ select.addClientInputSm {
   gap: 12px;
 }
 
-/* ---------- loading skeleton (Next.js loading.tsx pre /dashboard/*) ---------- */
+/* ---------- loading skeleton (loading.tsx pre /dashboard/* a NavSkeletonOverlay pri navigácii) ----------
+   Tvar podľa cieľovej stránky (RouteSkeletons.tsx). Kontajnery (formulár, riadok zoznamu,
+   karta) sú sklenené karty v6, tvarové prvky v nich (.skeletonBlock + veľkostná trieda)
+   jemné plochy s neutrálnym leskom — terakota patrí len postupu a hlavnej akcii.
+   Wrapper bez gap — každý blok nesie odstup reálneho prvku, ktorý nahrádza (bez skoku). */
 .skeletonWrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 .skeletonBlock {
-  background: var(--card-bg);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-m);
-  animation: skeletonPulse 1.6s ease-in-out infinite;
-  box-shadow: var(--card-shadow);
+  position: relative;
+  overflow: hidden;
+  background: var(--fill-strong);
+  border-radius: 999px;
+}
+.skeletonBlock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 25%, var(--glass-sheen) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.7s ease-in-out infinite;
 }
 .skeletonHead {
-  height: 36px;
+  height: 38px;
   width: 45%;
-  border: none;
-  background: transparent;
+  border-radius: 14px;
+  margin-bottom: 28px; /* = .pageHead */
 }
+/* celá karta ako jedna plocha (náhradný obsah analytiky klienta) */
 .skeletonCard {
   height: 120px;
+  border-radius: 26px;
+  margin-bottom: 16px;
 }
-@keyframes skeletonPulse {
-  0%,
-  100% {
-    opacity: 0.55;
+.skeletonFormBlock,
+.skeletonListRow,
+.skeletonCardBlock {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+}
+/* formulár (pridanie klienta) */
+.skeletonFormBlock {
+  padding: 16px 18px;
+  border-radius: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.skeletonFormLabel {
+  height: 11px;
+  width: 90px;
+}
+.skeletonFormInput {
+  height: 42px;
+}
+.skeletonFormButton {
+  height: 38px;
+  width: 140px;
+}
+/* zoznam (karty klientov, plány) */
+.skeletonListBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonListRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 22px; /* = .clientCard */
+}
+.skeletonAvatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.skeletonListText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeletonLine {
+  height: 12px;
+  width: 55%;
+}
+.skeletonLineShort {
+  height: 10px;
+  width: 32%;
+}
+.skeletonChip {
+  height: 24px;
+  width: 74px;
+  flex-shrink: 0;
+}
+/* karta (.card) a ďalšie tvary — kontajnery okolo nich sú skutočné triedy sekcie
+   (.cardStack, .settingsGrid, .portfolioHealth, .clientDetail) */
+.skeletonCardBlock {
+  padding: 22px 24px; /* = .card */
+  border-radius: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (max-width: 760px) {
+  .skeletonCardBlock {
+    padding: 18px;
   }
-  50% {
-    opacity: 0.9;
+}
+.skeletonCardTitle {
+  height: 15px;
+  width: 42%;
+  margin-bottom: 2px;
+}
+.skeletonBackLink {
+  height: 13px;
+  width: 88px;
+  margin-bottom: 18px; /* = .backLink */
+}
+.skeletonDetailHead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 28px; /* = .detailHead */
+}
+.skeletonDetailTitle {
+  height: 30px;
+  width: 38%;
+  border-radius: 12px;
+}
+.skeletonPillRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.skeletonPill {
+  height: 26px;
+  width: 72px;
+  flex-shrink: 0;
+}
+/* záložky detailu klienta (tvar .clientTabs) */
+.skeletonTabs {
+  height: 46px;
+  max-width: 560px;
+  border-radius: 20px;
+}
+.skeletonStat {
+  flex: 1 1 110px;
+  min-width: 0;
+  height: 58px; /* = .portfolioStat */
+  border-radius: 18px;
+}
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skeletonBlock {
+  .skeletonBlock::after {
     animation: none;
-    opacity: 0.7;
+    opacity: 0;
   }
 }
 
@@ -2625,10 +2791,6 @@ select.addClientInputSm {
   box-shadow: var(--card-shadow);
 }
 
-/* načítavanie */
-.skeletonBlock {
-  border-radius: 26px;
-}
 /* mobil: karta, ktorej obsah sú ďalšie karty (Šablóny, Správy) — bez rámu, tieňa aj
    paddingu, aby vnútorné karty mali plnú šírku ako na Klientoch. Musí ísť až za
    mobilný padding .card vyššie (rovnaká špecificita, inak by ho prebil). */

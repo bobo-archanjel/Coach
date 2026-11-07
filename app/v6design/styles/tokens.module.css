@@ -198,18 +198,24 @@
 
 /* Pozadie: teplé svetlo, ktoré "presvitá" sklom lišty a hlavičky. Fixná vrstva
    (nie background-attachment: fixed — iOS ju ignoruje). */
+.root {
+  /* celé pozadie ako jedna hodnota — číta ho aj overlay skeletonu pri navigácii
+     (NavigationProgress.module.css), nech pri načítaní nepreblikne plochá farba.
+     Deklarované na .root, takže glow premenné sa dosadia podľa témy. */
+  --v6-backdrop:
+    radial-gradient(75% 42% at 104% -6%, var(--v6-glow-a), transparent 70%),
+    radial-gradient(62% 40% at -14% 30%, var(--v6-glow-b), transparent 72%),
+    radial-gradient(55% 34% at 110% 62%, var(--v6-glow-d), transparent 70%),
+    radial-gradient(85% 46% at 40% 112%, var(--v6-glow-c), transparent 70%),
+    var(--v6-bg);
+}
 .root::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(75% 42% at 104% -6%, var(--v6-glow-a), transparent 70%),
-    radial-gradient(62% 40% at -14% 30%, var(--v6-glow-b), transparent 72%),
-    radial-gradient(55% 34% at 110% 62%, var(--v6-glow-d), transparent 70%),
-    radial-gradient(85% 46% at 40% 112%, var(--v6-glow-c), transparent 70%),
-    var(--v6-bg);
+  background: var(--v6-backdrop);
 }
 
 /* html/body (dorovnanie pri "pretiahnutí" stránky na iPhone) — farba témy, nie čierna z globals.css */

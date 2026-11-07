@@ -1,8 +1,9 @@
-import Link from "next/link";
+import { AppLink as Link } from "../components/AppLink";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { AddClientForm } from "./AddClientForm";
-import { ClientRoster, type RosterItem } from "./ClientRoster";
+import type { RosterItem } from "./ClientRoster";
+import { ClientsBoard } from "./ClientsBoard";
 import { getLateStatusByClient } from "@/lib/dashboard/lateStatus";
 import { getHealthDigest, BUCKET_LABEL } from "@/lib/dashboard/healthDigest";
 import { getActiveDismissals } from "@/lib/dashboard/dismissals";
@@ -353,9 +354,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
 
       <LateAlertPanel clients={lateClients} />
 
-      <AddClientForm />
-
-      <ClientRoster items={rosterItems} />
+      <ClientsBoard initialItems={rosterItems} />
     </>
   );
 }

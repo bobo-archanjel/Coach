@@ -14,7 +14,7 @@
 // a okamžite pri novej správe (Supabase Realtime, RLS-scoped, migrácia 0033).
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "../components/AppLink";
 import { usePathname } from "next/navigation";
 import { applyDismissals, attentionTotal, buildAttentionItems, type AttentionData } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction, markAllMessagesReadAction } from "./attention/actions";

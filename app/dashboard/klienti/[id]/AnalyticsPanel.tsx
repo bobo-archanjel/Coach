@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "../../../components/AppLink";
 import type { NutritionAdherence, TrainingAdherence } from "@/lib/dashboard/adherence";
 import type { BodyMetricEntry, StrengthPoint, StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { BodyMetricsCard } from "./BodyMetricsCard";

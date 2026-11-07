@@ -6,7 +6,7 @@
 // Skrytie je OPTIMISTICKÉ: blok zmizne hneď, ak server zlyhá, vráti sa späť.
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "../components/AppLink";
 import { DISMISS_LATE_DAYS } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction } from "./attention/actions";
 import styles from "./dashboard.module.css";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
 import { sendTrainerMessageAction, markTrainerChatSeenAction } from "../klienti/actions";

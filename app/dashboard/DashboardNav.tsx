@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
+import { NavLinkPendingSignal } from "../components/NavigationProgress";
 import { NotificationBell } from "./NotificationBell";
 import { revealInboxList } from "./spravy/ThreadSwipeBack";
 import styles from "./dashboard.module.css";
@@ -96,13 +97,13 @@ function SettingsIcon() {
 }
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
-  { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, match: (p: string) => p.startsWith("/dashboard/treningy") },
-  { href: "/dashboard/jedalnicky", label: "Jedálničky", Icon: NutritionIcon, match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
-  { href: "/dashboard/kalendar", label: "Kalendár", Icon: CalendarIcon, match: (p: string) => p.startsWith("/dashboard/kalendar") },
-  { href: "/dashboard/sablony", label: "Šablóny", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/dashboard/sablony") },
-  { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, match: (p: string) => p.startsWith("/dashboard/spravy") },
-  { href: "/dashboard/nastavenia", label: "Nastavenia", Icon: SettingsIcon, match: (p: string) => p.startsWith("/dashboard/nastavenia") },
+  { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
+  { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
+  { href: "/dashboard/jedalnicky", label: "Jedálničky", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
+  { href: "/dashboard/kalendar", label: "Kalendár", Icon: CalendarIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/kalendar") },
+  { href: "/dashboard/sablony", label: "Šablóny", Icon: TemplatesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/sablony") },
+  { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
+  { href: "/dashboard/nastavenia", label: "Nastavenia", Icon: SettingsIcon, tour: "nav-nastavenia", match: (p: string) => p.startsWith("/dashboard/nastavenia") },
 ];
 
 export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
@@ -120,13 +121,14 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
       </div>
 
       <nav className={styles.navList} aria-label="Trénerský dashboard">
-        {NAV_ITEMS.map(({ href, label, Icon, match }) => {
+        {NAV_ITEMS.map(({ href, label, Icon, tour, match }) => {
           const active = match(pathname);
           const showBadge = href === "/dashboard/spravy" && unreadCount > 0;
           return (
             <Link
               key={href}
               href={href}
+              data-tour={tour ?? undefined}
               className={`${styles.navLink} ${active ? styles.navLinkActive : ""}`}
               aria-current={active ? "page" : undefined}
               // Správy s otvoreným vláknom → zoznam ukázať hneď, nie až po odpovedi servera
@@ -140,6 +142,7 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
                   {unreadCount}
                 </span>
               )}
+              <NavLinkPendingSignal id={href} />
             </Link>
           );
         })}

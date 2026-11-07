@@ -16,6 +16,16 @@ async function loginAsTrainer(page: import("@playwright/test").Page) {
   await page.locator("#login-password").fill(TRAINER.password);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/dashboard/, { timeout: 20000 });
+
+  // feature/navod: tento seedovaný účet má profiles.tour_completed_at ešte
+  // NULL (migrácia 0041 je novšia než seed dáta), takže reálne prihlásenie
+  // (na rozdiel od ?preview=, kde tourSeen je vždy true bez session) spustí
+  // onboarding tour overlay — ten by inak blokoval kliky na nasledujúce testy.
+  const skipTour = page.getByRole("button", { name: "Preskočiť" });
+  if (await skipTour.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await skipTour.click();
+    await expect(page.getByRole("dialog")).toBeHidden({ timeout: 3000 });
+  }
 }
 
 test.describe("Centrálna schránka správ /dashboard/spravy", () => {

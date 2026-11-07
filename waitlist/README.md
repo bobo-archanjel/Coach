@@ -61,11 +61,13 @@ python -m http.server 8000
 V Supabase Dashboarde → SQL Editor → New query → postupne vlož a spusti (v
 tomto poradí, každú ako samostatný Run):
 `supabase/migrations/0038_waitlist.sql` → `0039_waitlist_role_client.sql` →
-`0040_waitlist_antispam.sql`.
+`0040_waitlist_antispam.sql` → `0055_waitlist_unsubscribe.sql`.
 
 Vytvorí tabuľku `waitlist_signups` s RLS (anon nemá k tabuľke ŽIADNY priamy
 prístup — zápis ide výhradne cez edge function `submit-waitlist`, pozri
-bod 3.5 nižšie; nikto okrem service_role zoznam nikdy nevidí).
+bod 3.5 nižšie; nikto okrem service_role zoznam nikdy nevidí). `0052` pridáva
+`unsubscribe_token` — bez neho jednoklikové odhlásenie (bod 5.5 nižšie)
+nefunguje.
 
 Supabase URL a anon kľúč sú už v `js/main.js` — rovnaký projekt ako hlavná
 appka (anon kľúč je verejný by design; hranicu tu drží kombinácia edge
@@ -144,6 +146,29 @@ Potvrdzovací e-mail posiela Supabase Edge Function cez [Resend](https://resend.
 prísť e-mail. Ak nie, skontroluj Supabase Dashboard → Edge Functions →
 `send-waitlist-confirmation` → Logs (zobrazí presnú chybu — najčastejšie
 nedokončená DNS verifikácia domény v Resende).
+
+## 5.5. Jednoklikové odhlásenie — POVINNÉ (zákon aj GDPR)
+
+Potvrdzovací e-mail aj checkbox vo formulári sľubujú "kedykoľvek sa môžeš
+odhlásiť" — podľa § 116 zákona č. 452/2021 Z. z. (marketingové e-maily) a GDPR
+čl. 7 ods. 3 (odvolanie súhlasu musí byť rovnako jednoduché ako jeho udelenie)
+to musí byť jeden klik, nie napísanie e-mailu na podporu. Bez tohto kroku
+odkaz "Odhlásiť sa z čakacej listiny" v e-maile nefunguje (vráti chybu).
+
+```bash
+supabase functions deploy waitlist-unsubscribe --no-verify-jwt
+```
+
+**Prečo `--no-verify-jwt`:** túto funkciu otvára človek priamo kliknutím na
+odkaz v e-mailovom klientovi — nemá ako priložiť `Authorization` hlavičku
+(na rozdiel od `submit-waitlist`, ktorú volá JS s anon kľúčom, alebo
+`send-waitlist-confirmation`, ktorú volá dôveryhodný Database Webhook). Bez
+tohto prepínača by Supabase gateway každý pokus zamietol skôr, než by sa
+dostal do samotnej funkcie.
+
+Žiadny ďalší secret netreba — funkcia používa `SUPABASE_URL` a
+`SUPABASE_SERVICE_ROLE_KEY`, ktoré má každá edge function injektované
+automaticky.
 
 **Ak potvrdzovací e-mail zatiaľ nechceš riešiť:** formulár funguje aj bez neho —
 e-mail sa uloží do databázy, len sa neodošle potvrdenie. Kroky a)-c) vyššie

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "../../components/AppLink";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";

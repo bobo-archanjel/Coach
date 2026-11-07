@@ -1,3 +1,4 @@
+import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getTrainerAiUsageSummary } from "@/lib/ai/usageSummary";
 import { pluralSk } from "@/lib/portal/streak";
@@ -93,6 +94,16 @@ export default async function NastaveniaPage() {
           <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>
             Správa predplatného a platobných údajov tu bude dostupná čoskoro.
           </p>
+        </div>
+
+        <div className={styles.card}>
+          <h3>Návod</h3>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10, marginBottom: 14 }}>
+            Krátky sprievodca appkou, ktorý si videl pri prvom prihlásení.
+          </p>
+          <Link href="/dashboard?tour=1" className="btn btn-ghost btn-sm">
+            Spustiť návod znova
+          </Link>
         </div>
       </div>
     </>
