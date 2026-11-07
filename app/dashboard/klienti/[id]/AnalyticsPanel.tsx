@@ -5,12 +5,13 @@ import { BodyMetricsCard } from "./BodyMetricsCard";
 import { StrengthCard } from "./StrengthCard";
 import { ProgressSummaryCard } from "./ProgressSummaryCard";
 import { pluralSk } from "@/lib/portal/streak";
-import styles from "../../dashboard.module.css";
+import { InfoTip } from "@/app/components/InfoTip";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 /** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
-function adherenceToneClass(pct: number | null): string {
-  if (pct == null) return styles.adherenceNone;
-  return pct >= 85 && pct <= 115 ? styles.adherenceGood : styles.adherenceOff;
+function adherenceToneKey(pct: number | null): "adherenceNone" | "adherenceGood" | "adherenceOff" {
+  if (pct == null) return "adherenceNone";
+  return pct >= 85 && pct <= 115 ? "adherenceGood" : "adherenceOff";
 }
 
 /** Zmena váhy za posledných ~90 dní z histórie meraní (posledné − prvé v okne), null bez ≥2 meraní. */
@@ -35,7 +36,7 @@ interface NutritionGoal {
  * je toto už vlastná sekcia v ClientDetailTabs (predtým schované za tlačidlom pod
  * menom klienta v jednom dlhom scrolle), netreba teda vlastný open/close toggle.
  */
-export function AnalyticsPanel({
+export async function AnalyticsPanel({
   clientId,
   nutrition,
   adherence,
@@ -54,6 +55,7 @@ export function AnalyticsPanel({
   strengthByExercise: Record<string, StrengthPoint[]>;
   strengthPRs?: StrengthPR[];
 }) {
+  const styles = await dashStyles();
   const planPct30 = trainingAdherence?.planCompletion.window30 ?? null;
   const nutritionPct30 = adherence?.hasGoal ? adherence.window30.pct : null;
   const wDelta = weightDelta90(bodyMetrics);
@@ -92,7 +94,10 @@ export function AnalyticsPanel({
 
       <div className={styles.card}>
         <h3>Analytika</h3>
-        <h4 className={styles.cardSubhead}>Adherencia tréningu</h4>
+        <h4 className={styles.cardSubhead}>
+          Adherencia tréningu{" "}
+          <InfoTip title="Adherencia tréningu">% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</InfoTip>
+        </h4>
         {trainingAdherence ? (
           <>
             <div className={styles.adherenceWindowRow}>
@@ -105,9 +110,12 @@ export function AnalyticsPanel({
                 {trainingAdherence.window90.totalDays} dní)
               </span>
             </div>
-            <p className={styles.adherenceHint}>% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</p>
-
-            <h4 className={styles.cardSubhead}>Splnenie plánu</h4>
+            <h4 className={styles.cardSubhead}>
+              Splnenie plánu{" "}
+              <InfoTip title="Splnenie plánu">
+                Nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom z plánu (prekročenie sa počíta ako 100 %).
+              </InfoTip>
+            </h4>
             {planPct30?.pct != null || trainingAdherence.planCompletion.window90.pct != null ? (
               <>
                 <div className={styles.adherenceWindowRow}>
@@ -127,9 +135,6 @@ export function AnalyticsPanel({
                     {pluralSk(trainingAdherence.planCompletion.window90.sessionsScored, "tréning", "tréningy", "tréningov")})
                   </span>
                 </div>
-                <p className={styles.adherenceHint}>
-                  Nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom z plánu (prekročenie sa počíta ako 100 %).
-                </p>
               </>
             ) : (
               <p className={styles.adherenceHint}>
@@ -165,7 +170,7 @@ export function AnalyticsPanel({
                 {nutrition.protein_g} g B · {nutrition.carbs_g} g S · {nutrition.fat_g} g T
               </span>
             </div>
-            <Link href={`/dashboard/vyziva/${clientId}`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
+            <Link href={`/dashboard/klienti/${clientId}?sekcia=jedalnicky`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
               Upraviť →
             </Link>
 
@@ -181,7 +186,7 @@ export function AnalyticsPanel({
                 <div className={styles.adherenceStrip} aria-hidden="true">
                   {adherence.days.map((day, i) => (
                     <div key={i} className={styles.adherenceDay}>
-                      <span className={`${styles.adherenceDot} ${adherenceToneClass(day.pct)}`} />
+                      <span className={`${styles.adherenceDot} ${styles[adherenceToneKey(day.pct)]}`} />
                       <span className={styles.adherenceDayLabel}>{day.label}</span>
                     </div>
                   ))}
@@ -200,7 +205,7 @@ export function AnalyticsPanel({
           </>
         ) : (
           <p className={styles.noWorkouts}>
-            Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/vyziva/${clientId}`}>vypočítať teraz</Link>. Bez cieľa sa
+            Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/klienti/${clientId}?sekcia=jedalnicky`}>vypočítať teraz</Link>. Bez cieľa sa
             nedá počítať ani adherencia stravy.
           </p>
         )}

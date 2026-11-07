@@ -1,0 +1,108 @@
+/* Výber klientov (ClientMultiSelect) — pôvodný dizajn: len funkčná kostra.
+   Vzhľad sa robí v novom dizajne: app/v6design/dashboard/styles/clientPicker.module.css
+   (rovnaké triedy, menný priestor skinu „clientPicker“). */
+
+.picker {
+  margin-bottom: 10px;
+}
+.field,
+.chip,
+.trigger,
+.selectRow,
+.option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.field {
+  padding: 6px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+}
+.fieldInvalid {
+  border-color: var(--error);
+}
+.chip {
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  font-size: 13px;
+}
+.chipRemove,
+.selectAll {
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.trigger {
+  flex: 1;
+  justify-content: space-between;
+  min-height: 34px;
+  border: 0;
+  background: none;
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+.placeholder,
+.selectCount,
+.empty {
+  color: var(--paper-faint);
+}
+.panel,
+.list {
+  display: grid;
+  gap: 6px;
+}
+.panel {
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+}
+.list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.search {
+  padding: 8px 10px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: var(--ink-2);
+  color: var(--paper);
+  font-size: 16px;
+}
+.selectRow {
+  justify-content: space-between;
+}
+.option {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--paper);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.optionOn {
+  border-color: var(--iron-red);
+}
+.name {
+  flex: 1;
+}
+.check {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--steel-line);
+}
+.checkOn {
+  background: var(--iron-red);
+}
+.panelFoot {
+  display: flex;
+  justify-content: flex-end;
+}

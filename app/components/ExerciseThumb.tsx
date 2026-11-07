@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import styles from "./exerciseThumb.module.css";
+import exerciseThumbStyles from "./exerciseThumb.module.css";
+import { useSkinStyles } from "./uiSkin";
 
 const DumbbellIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -17,8 +18,15 @@ const DumbbellIcon = () => (
   </svg>
 );
 
-/** Malý štvorcový náhľad cviku (Free Exercise DB) — fallback ikona, ak obrázok chýba. */
+/**
+ * Malý štvorcový náhľad cviku (Free Exercise DB) — fallback ikona, ak obrázok chýba.
+ * Rozmer je priamo na <img> (width/height), nie `fill`: `fill` je absolútne
+ * pozicovaný na 100 % rodiča a malý ho drží len `position: relative` z CSS modulu.
+ * Keď sa ten štýl v prehliadači neaplikoval (iPhone, výber cviku v portáli),
+ * náhľad sa roztiahol na celú obrazovku. Takto má obrázok veľkosť vždy.
+ */
 export function ExerciseThumb({ src, alt, size = 32 }: { src: string | null; alt: string; size?: number }) {
+  const styles = useSkinStyles("exerciseThumb", exerciseThumbStyles);
   if (!src) {
     return (
       <span className={styles.thumbFallback} style={{ width: size, height: size }} aria-hidden="true">
@@ -28,7 +36,7 @@ export function ExerciseThumb({ src, alt, size = 32 }: { src: string | null; alt
   }
   return (
     <span className={styles.thumb} style={{ width: size, height: size }}>
-      <Image src={src} alt={alt} fill sizes={`${size}px`} className={styles.thumbImg} />
+      <Image src={src} alt={alt} width={size} height={size} className={styles.thumbImg} />
     </span>
   );
 }

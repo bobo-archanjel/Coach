@@ -2,7 +2,8 @@
 
 import { useId, useMemo, useState } from "react";
 import { pluralSk } from "@/lib/portal/streak";
-import styles from "./dashboard.module.css";
+import dashboardModule from "./dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 export interface LineChartPoint {
   /** YYYY-MM-DD */
@@ -38,6 +39,7 @@ export function LineChart({
   color?: string;
   height?: number;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const gradientId = useId();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 

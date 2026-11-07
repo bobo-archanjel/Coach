@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { deleteAppointmentAction, type AppointmentFormValues } from "./actions";
 import { AppointmentForm } from "./AddAppointmentForm";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 export function AppointmentRow({
   id,
@@ -25,6 +26,7 @@ export function AppointmentRow({
   /** hodnoty pre formulár úpravy (dátum/čas v Europe/Bratislava) */
   editValues: AppointmentFormValues;
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -54,7 +56,7 @@ export function AppointmentRow({
         <div style={{ display: "flex", gap: 6 }}>
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm btn-danger"
             disabled={pending}
             onClick={() => startTransition(() => deleteAppointmentAction(id))}
           >
@@ -69,7 +71,7 @@ export function AppointmentRow({
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
             Upraviť
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
+          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
             Zmazať
           </button>
         </div>

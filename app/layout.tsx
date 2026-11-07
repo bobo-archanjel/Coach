@@ -54,6 +54,15 @@ export default function RootLayout({
     // suppressHydrationWarning: niektoré browser extensions (napr. prekladače) vkladajú
     // vlastné atribúty do <html> pred hydratáciou (napr. webcrx-bridged) — nie je to náš bug.
     <html lang="sk" suppressHydrationWarning>
+      <head>
+        {/* --app-h = skutočná výška obrazovky (innerHeight) ešte pred prvým vykreslením —
+            výška chatu na mobile (viď KeyboardState), bez poskočenia po načítaní. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.documentElement.style.setProperty("--app-h",window.innerHeight+"px")`,
+          }}
+        />
+      </head>
       <body className={inter.variable}>
         {children}
         <KeyboardState />

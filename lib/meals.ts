@@ -52,3 +52,43 @@ export function sumMacros(items: ScaledMacros[]): ScaledMacros {
     { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   );
 }
+
+/**
+ * Priemerné kcal na deň jedálnička (zoznam jedálničkov v detaile klienta). Počíta len dni,
+ * ktoré majú aspoň jednu položku; `meals` je JSONB z meal_days (neplatné položky sa preskočia).
+ * Jedálniček bez jedál → null.
+ */
+export function mealPlanAvgDayKcal(days: { meals: unknown }[]): number | null {
+  const dayKcal: number[] = [];
+  for (const day of days) {
+    const entries = (Array.isArray(day.meals) ? day.meals : []).filter(
+      (e): e is FoodMacros100g & { grams: number } =>
+        !!e && typeof e === "object" && Number.isFinite((e as { grams?: unknown }).grams) && Number.isFinite((e as { kcal_100g?: unknown }).kcal_100g),
+    );
+    if (entries.length === 0) continue;
+    dayKcal.push(entries.reduce((sum, e) => sum + (e.kcal_100g * e.grams) / 100, 0));
+  }
+  if (dayKcal.length === 0) return null;
+  return Math.round(dayKcal.reduce((a, b) => a + b, 0) / dayKcal.length);
+}
+
+/**
+ * Kontrola zadaných hodnôt na 100 g: kcal by mali zhruba sedieť s 4·B + 4·S + 9·T.
+ * Vráti odhad z makier, ak sa líši o viac ako `tolerance` (15 %), inak null — len
+ * upozornenie, nie chyba (alkohol, vláknina či polyoly odhad prirodzene posunú).
+ * Pri veľmi nízkych hodnotách (voda, light nápoje) sa nekontroluje — tam je aj
+ * pár kcal rozdielu veľké percento.
+ */
+export function kcalMismatch(
+  kcal: number,
+  protein: number,
+  carbs: number,
+  fat: number,
+  tolerance = 0.15,
+): { estimatedKcal: number } | null {
+  if (![kcal, protein, carbs, fat].every((n) => Number.isFinite(n) && n >= 0)) return null;
+  const estimated = 4 * protein + 4 * carbs + 9 * fat;
+  const larger = Math.max(kcal, estimated);
+  if (larger < 20) return null;
+  return Math.abs(kcal - estimated) / larger > tolerance ? { estimatedKcal: Math.round(estimated) } : null;
+}

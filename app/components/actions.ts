@@ -13,12 +13,16 @@ import { clearTourSeenCookie } from "@/lib/onboarding/actions";
  * Server Action robí presne to isté (`supabase.auth.signOut()` cez existujúci
  * server klient) bez toho, aby čokoľvek z toho muselo bežať v prehliadači.
  */
-export async function signOutAction() {
+/** Kam po odhlásení — len známe prihlasovacie stránky (hodnota prichádza z formulára). */
+const SIGN_OUT_TARGETS = ["/prihlasenie", "/v6design/prihlasenie"];
+
+export async function signOutAction(formData: FormData) {
   const supabase = await createClient();
   await supabase.auth.signOut();
   // Cookie "tour videný" je viazaná len na prehliadač, nie na účet — bez tohto
   // by ďalší účet prihlásený v tom istom prehliadači zdedil cudzí stav a jeho
   // automatický onboarding tour by sa nikdy nespustil (viď lib/onboarding/actions.ts).
   await clearTourSeenCookie();
-  redirect("/prihlasenie");
+  const to = formData.get("to");
+  redirect(typeof to === "string" && SIGN_OUT_TARGETS.includes(to) ? to : "/prihlasenie");
 }

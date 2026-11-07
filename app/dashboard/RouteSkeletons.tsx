@@ -1,6 +1,5 @@
 import styles from "./dashboard.module.css";
 import builderStyles from "./treningy/[planId]/builder.module.css";
-import { DashboardSkeleton } from "./DashboardSkeleton";
 
 /**
  * Skeleton TVAROM podľa cieľovej stránky (pokračovanie feature/navod) — predtým
@@ -47,9 +46,26 @@ function ListRows({ count = 4 }: { count?: number }) {
   );
 }
 
-/** /dashboard — Klienti (nezmenené, existujúci presný tvar). */
+/**
+ * /dashboard — Klienti (nezmenené, existujúci presný tvar). Volá sa ako OBYČAJNÁ
+ * funkcia z klientského NavSkeletonOverlay (viď DashboardSkeletonOverlay.tsx) —
+ * nemôže teda delegovať na `DashboardSkeleton` (async Server Component, číta
+ * cookie pre v6 skin cez `next/headers`). Rovnaký tvar je tu zámerne duplikovaný
+ * nad statickým `dashboard.module.css`, nie v6-skinovaný (klient v momente
+ * instant-nav overlaya žiadny server round-trip ešte nemal).
+ */
 function KlientiSkeleton() {
-  return <DashboardSkeleton />;
+  return (
+    <div className={styles.skeletonWrap} aria-hidden="true">
+      <Head />
+      <div className={styles.skeletonFormBlock}>
+        <B className={styles.skeletonFormLabel} />
+        <B className={styles.skeletonFormInput} />
+        <B className={styles.skeletonFormButton} />
+      </div>
+      <ListRows />
+    </div>
+  );
 }
 
 /** /dashboard/treningy — 2 formuláre (nový plán, AI generátor) + zoznam plánov + knižnica. */

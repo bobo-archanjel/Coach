@@ -109,7 +109,7 @@ test.describe("Prihlásenie /prihlasenie", () => {
 test.describe("Auth guardy", () => {
   // Layout má DEV_OPEN (ako portál) — v `next dev` neredirectuje; tieto stránky
   // však robia vlastný `if (!user) redirect("/prihlasenie")`, takže chránené sú aj tak.
-  for (const path of ["/dashboard", "/dashboard/treningy", "/dashboard/vyziva"]) {
+  for (const path of ["/dashboard", "/dashboard/treningy", "/dashboard/jedalnicky"]) {
     test(`${path} bez session → /prihlasenie`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/prihlasenie/);
@@ -277,20 +277,23 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByText("Bielkoviny")).toBeVisible();
     await expect(page.getByText(/\/ 2350 kcal/)).toBeVisible();
 
-    // zapísané jedlá dňa
-    await expect(page.getByText("RAŇAJKY")).toBeVisible();
+    // jedlá dňa: všetkých 6 riadkov, zbalené — zoznam sa ukáže po rozbalení
+    const breakfast = page.getByRole("button", { name: /^Raňajky/ });
+    await expect(breakfast).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("button", { name: /^Večera/ })).toBeVisible();
+    await expect(page.getByText("Ovsené vločky")).toBeHidden();
+    await breakfast.click();
+    await expect(breakfast).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByText("Ovsené vločky")).toBeVisible();
 
-    // pridávanie jedla — rozbalí sa panel, dá sa vybrať jedlo dňa aj potravina
-    await page.getByRole("button", { name: /Pridať jedlo/i }).click();
-    await expect(page.getByRole("button", { name: "Obed", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("tab", { name: "Knižnica" }).click();
-    await page.getByLabel("Hľadať potravinu").fill("vaj");
-    // DB name (USDA import) je "Vajcia (celé, surové)" — regex bez uzatvárajúcej zátvorky.
-    await expect(page.getByRole("button", { name: /Vajcia \(celé/ })).toBeVisible();
-    await page.getByRole("button", { name: /Vajcia \(celé/ }).click();
-    // po výbere je gramáž a "Pridať"
-    await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeVisible();
+    // „+“ pri jedle otvorí panel s vyhľadávaním značiek a skenerom pre to jedlo
+    await page.getByRole("button", { name: "Pridať jedlo: Obed" }).click();
+    const sheet = page.getByRole("dialog", { name: /Pridať jedlo · Obed/ });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByLabel("Hľadať značkový produkt online")).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Skenovať" })).toBeVisible();
+    await sheet.getByRole("button", { name: "Zavrieť" }).click();
+    await expect(sheet).toBeHidden();
 
     expect(errs, errs.join("\n")).toEqual([]);
   });

@@ -1,4 +1,4 @@
-import styles from "./dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 /**
  * Loading-stav pre /dashboard/* routy — tvarom podľa skutočnej najčastejšej
@@ -6,12 +6,14 @@ import styles from "./dashboard.module.css";
  * identické kartičky pod sebou. Generický naprieč routami (nie 1:1 podľa
  * konkrétnej stránky), ale aspoň vyzerá ako appka, nie ako univerzálny placeholder.
  * Zdieľané aj s `NavSkeletonOverlay` (feature/navod) — menu ostáva reálne a
- * viditeľné, tento skeleton prekrýva len obsah, nie sidebar.
+ * viditeľné, tento skeleton prekrýva len obsah, nie sidebar. Viď aj
+ * app/portal/PortalSkeleton.tsx (rovnaký dôvod, zdieľané tokeny).
  *
  * Každý tvarový prvok nesie `styles.skeletonBlock` (shimmer pozadie) SPOLU so
  * svojou veľkostnou triedou — bez `skeletonBlock` by prvok nemal pozadie vôbec.
  */
-export function DashboardSkeleton() {
+export async function DashboardSkeleton() {
+  const styles = await dashStyles();
   return (
     <div className={styles.skeletonWrap} aria-hidden="true">
       <div className={`${styles.skeletonBlock} ${styles.skeletonHead}`} />

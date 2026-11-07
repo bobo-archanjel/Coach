@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { getExerciseLibraryListAction, type ExerciseListItem } from "./actions";
-import styles from "../dashboard.module.css";
+import dashboardModule from "../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 /**
  * Zoznam celej knižnice cvikov — predtým sa ťahal (a vypísal, ~900 <span> tagov)
@@ -10,6 +11,7 @@ import styles from "../dashboard.module.css";
  * alebo pridať vlastný cvik vyššie. Teraz zbalené, načíta sa až na kliknutie.
  */
 export function ExerciseLibraryList({ count }: { count: number }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<ExerciseListItem[] | null>(null);
   const [pending, startTransition] = useTransition();

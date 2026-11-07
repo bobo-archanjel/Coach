@@ -3,18 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { getPortalWeekAction } from "./actions";
 import type { WeekDay, WeekView } from "@/lib/portal/types";
-import styles from "./portal.module.css";
+import portalStyles from "./portal.module.css";
+import { useSkinStyles } from "../components/uiSkin";
 
 /* Pás „Tento týždeň" na karte Dnes — okrem aktuálneho týždňa sa dá listovať
    dozadu (šípky), a ťuk na deň s odcvičeným tréningom otvorí náhľad toho, čo
    klient v ten deň spravil (workout_logs.entries). Dáta: lib/portal/data.ts →
    buildWeekView; iné týždne cez server action getPortalWeekAction. */
 
+// Kľúče tried, nie triedy — štýly sa berú až v komponente (useSkinStyles).
 const MARK_CLASS: Record<WeekDay["state"], string> = {
-  done: styles.markDone,
-  today: styles.markToday,
-  future: styles.markFuture,
-  none: styles.markRest,
+  done: "markDone",
+  today: "markToday",
+  future: "markFuture",
+  none: "markRest",
 };
 
 const ChevronIcon = ({ dir }: { dir: "left" | "right" }) => (
@@ -62,6 +64,7 @@ function setLabel(reps: number | null, weight: number | null): string {
 }
 
 export function WeekHistory({ initial }: { initial: WeekView }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [week, setWeek] = useState<WeekView>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +119,7 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
             <>
               <span className={styles.weekDay}>{day.label}</span>
               <span className={styles.weekMark}>
-                <span className={`${styles.weekDot} ${MARK_CLASS[day.state]}`} />
+                <span className={`${styles.weekDot} ${styles[MARK_CLASS[day.state]]}`} />
               </span>
               <span className={styles.weekNum}>{day.dayNum}</span>
             </>
@@ -158,6 +161,7 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
 }
 
 function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) {
+  const styles = useSkinStyles("portal", portalStyles);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);

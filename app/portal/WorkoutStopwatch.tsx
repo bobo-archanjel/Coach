@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StopwatchIcon } from "./icons";
-import styles from "./portal.module.css";
+import portalStyles from "./portal.module.css";
 import {
   WORKOUT_STARTED_EVENT,
   clearWorkoutDraft,
@@ -11,6 +11,7 @@ import {
   hideStopwatchFor,
   isStopwatchHidden,
 } from "./workoutSession";
+import { useSkinStyles } from "../components/uiSkin";
 
 /**
  * Plávajúce stopky pre klienta počas tréningu. Po "Začať tréning" sa dole (nad
@@ -53,6 +54,7 @@ function fmtClock(ms: number): string {
 }
 
 export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished: boolean }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState(false);
   const [entrance, setEntrance] = useState(false); // pop-in len pri "Začať tréning", nie pri obnove z LS
@@ -159,13 +161,17 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
   }, [dayId, timerDurationMs]);
 
   // ---- tik displeja (len keď niečo beží) ----
+  // 50 ms len keď sú vidieť stotiny (otvorené stopky). Zatvorený panel a časovač
+  // ukazujú celé sekundy — tam stačí 250 ms (5× menej re-renderov počas celého
+  // tréningu, šetrí batériu), odchýlka zobrazenia ostáva pod štvrť sekundy.
   const ticking = swRunning || timerStatus === "running";
+  const tickMs = open && mode === "stopwatch" ? 50 : 250;
   useEffect(() => {
     if (!ticking) return;
     setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 50);
+    const id = window.setInterval(() => setNow(Date.now()), tickMs);
     return () => window.clearInterval(id);
-  }, [ticking]);
+  }, [ticking, tickMs]);
 
   // ---- presné dobehnutie časovača (nezávislé od 50 ms tiku) ----
   const finishTimer = useCallback(() => {

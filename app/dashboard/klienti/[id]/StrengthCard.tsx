@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { DualLineChart, type DualLineChartPoint } from "../../DualLineChart";
 import type { StrengthPoint } from "@/lib/dashboard/bodyMetrics";
-import styles from "../../dashboard.module.css";
+import { InfoTip } from "@/app/components/InfoTip";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const UpIcon = () => (
   <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -34,6 +36,7 @@ export function StrengthCard({
   /** cviky, na ktorých je posledný záznam nové osobné maximum (feature/analytika-v2, bod 3) */
   prExerciseNames?: string[];
 }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [selected, setSelected] = useState(exerciseNames[0] ?? "");
   const isPR = prExerciseNames.includes(selected);
 
@@ -56,7 +59,15 @@ export function StrengthCard({
 
   return (
     <div>
-      <h4 className={styles.cardSubhead}>Sila</h4>
+      <h4 className={styles.cardSubhead}>
+        Sila
+        {exerciseNames.length > 0 && (
+          <>
+            {" "}
+            <InfoTip title="Graf sily">Najťažšia séria pri každom zázname tréningu s týmto cvikom.</InfoTip>
+          </>
+        )}
+      </h4>
       {exerciseNames.length > 0 ? (
         <>
           <select
@@ -93,7 +104,6 @@ export function StrengthCard({
             seriesA={{ label: "Váha", unit: "kg", color: "var(--plate-yellow)" }}
             seriesB={{ label: "Opakovania", unit: "op.", color: "var(--moss)" }}
           />
-          <p className={styles.chartHint}>Najťažšia séria pri každom zázname tréningu s týmto cvikom.</p>
         </>
       ) : (
         <p className={styles.noWorkouts}>

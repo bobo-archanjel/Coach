@@ -25,7 +25,9 @@ const nextConfig: NextConfig = {
   ...(process.env.QA_DIST_DIR ? { distDir: process.env.QA_DIST_DIR } : {}),
   // Testovanie na mobile cez LAN IP (`npm run dev:mobile`) — bez toho Next blokuje
   // dev požiadavky (HMR, /_next) z iného originu než localhost. Len dev, produkcia ignoruje.
-  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
+  // *.trycloudflare.com — HTTPS tunel (`cloudflared tunnel --url http://localhost:3000`),
+  // kamera skenera čiarových kódov na telefóne funguje len cez HTTPS.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.trycloudflare.com"],
   // Default ("loose") CSS chunking duplikoval celý portal.module.css (64 kB)
   // do KAŽDÉHO page-level CSS chunku popri layout.css, ktorý ho už obsahuje —
   // /portal/trening tak sťahoval 128 kB CSS namiesto 64 kB (viď commit). "strict"
@@ -33,10 +35,28 @@ const nextConfig: NextConfig = {
   // skupín, čím sa táto duplicita neobjavuje.
   experimental: {
     cssChunking: "strict",
+    // Klientska router cache pre dynamické stránky (feature/faster-app): návrat na tab,
+    // kde používateľ bol pred chvíľou (Dnes ↔ Tréning ↔ Strava, Klienti ↔ detail), sa
+    // vykreslí okamžite z pamäte namiesto nového server renderu. Default v Next 15 je 0.
+    // Bezpečné, lebo každá zapisujúca server action volá revalidatePath (alebo nastaví
+    // cookies pri prihlásení), čo celú túto cache v prehliadači zahodí — vlastné zmeny
+    // sú vždy hneď vidieť. Zmeny od druhej strany (tréner ↔ klient) sa na už navštívenej
+    // stránke ukážu najneskôr po 30 s; chat má vlastný poll + Realtime.
+    staleTimes: {
+      dynamic: 30,
+    },
   },
   // Hlavička X-Powered-By: Next.js zbytočne prezrádza technológiu (usmerňuje útočníka
   // na známe zraniteľnosti konkrétneho frameworku) — nič nerobí, tak preč.
   poweredByHeader: false,
+  // Sekcia „Výživa“ sa premenovala na „Jedálničky“ — staré odkazy (záložky, notifikácie,
+  // e-maily) nech trvalo vedú na novú adresu vrátane podstránok (klient, jedálniček).
+  async redirects() {
+    return [
+      { source: "/dashboard/vyziva", destination: "/dashboard/jedalnicky", permanent: true },
+      { source: "/dashboard/vyziva/:path*", destination: "/dashboard/jedalnicky/:path*", permanent: true },
+    ];
+  },
   images: {
     // Obrázky cvikov z Free Exercise DB (scripts/import-exercises.mjs) — len
     // externé URL, žiadne kopírovanie do Supabase Storage (šetrí 2 GB free
@@ -65,6 +85,8 @@ const nextConfig: NextConfig = {
     // Plausible (feature/security#2) — script aj beacon idú na ich vlastnú
     // doménu, treba explicitne povoliť v CSP, inak by script-src/connect-src
     // tichým zamietnutím zablokoval analytics bez akejkoľvek chyby v konzole.
+    // 'wasm-unsafe-eval' (feature/barcode-scanner) — povolí LEN kompiláciu WebAssembly
+    // (ZXing čítačka čiarových kódov z /wasm/, skener v denníku na iPhone), nie eval() JS.
     const isDev = process.env.NODE_ENV === "development";
     // Cloudflare Turnstile (feature/security, bot ochrana na /prihlasenie) —
     // script aj CAPTCHA výzva bežia z challenges.cloudflare.com, treba ich
@@ -73,8 +95,8 @@ const nextConfig: NextConfig = {
     // prísnejší default-src 'self' a nikdy by sa nezobrazil) a connect-src
     // (interná komunikácia widgetu so serverom Cloudflare).
     const scriptSrc = isDev
-      ? "'self' 'unsafe-inline' 'unsafe-eval' https://plausible.io https://challenges.cloudflare.com"
-      : "'self' 'unsafe-inline' https://plausible.io https://challenges.cloudflare.com";
+      ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://plausible.io https://challenges.cloudflare.com"
+      : "'self' 'unsafe-inline' 'wasm-unsafe-eval' https://plausible.io https://challenges.cloudflare.com";
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
@@ -106,7 +128,8 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          // camera=(self) — skener čiarových kódov v denníku (len vlastná doména, nie vložené rámce)
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
           // Izoluje okno od cudzích okien (ochrana pred tabnabbingom a únikmi cez
           // window.opener). Appka nepoužíva popup OAuth, takže nič nerozbije.

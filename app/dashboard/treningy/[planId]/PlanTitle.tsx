@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { renamePlanAction } from "../actions";
-import styles from "../../dashboard.module.css";
+import { renamePlanAction, type ActionState } from "../actions";
+import dashboardModule from "../../dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const PencilIcon = () => (
   <svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -14,9 +15,19 @@ const PencilIcon = () => (
  * Názov plánu s ceruzkou — klik prepne nadpis na pole priamo na mieste,
  * pod ním Uložiť | Zrušiť v rovnakej mriežke ako ostatné akcie plánu.
  * Enter uloží, Esc zruší. Nahradil samostatné „Iný názov" pri šablóne:
- * šablóna sa ukladá pod názvom plánu.
+ * šablóna sa ukladá pod názvom plánu. Jedálniček ho zdieľa — `rename` je potom
+ * renameMealPlanAction (server action, rovnaký podpis).
  */
-export function PlanTitle({ planId, name }: { planId: string; name: string }) {
+export function PlanTitle({
+  planId,
+  name,
+  rename = renamePlanAction,
+}: {
+  planId: string;
+  name: string;
+  rename?: (planId: string, name: string) => Promise<ActionState>;
+}) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name);
   const [shown, setShown] = useState(name);
@@ -47,7 +58,7 @@ export function PlanTitle({ planId, name }: { planId: string; name: string }) {
     if (next === shown) return cancel();
     setError(null);
     startTransition(async () => {
-      const res = await renamePlanAction(planId, next);
+      const res = await rename(planId, next);
       if (res.error) {
         setError(res.error);
         return;

@@ -14,9 +14,9 @@ import {
   type PlanSnapshot,
   type SnapshotExercise,
 } from "@/lib/workouts/completed";
-import dashboardStyles from "../../../../dashboard.module.css";
-import styles from "./completed.module.css";
 import { DuplicateWorkoutButton } from "./DuplicateWorkoutButton";
+import { InfoTip } from "@/app/components/InfoTip";
+import { completedStyles, dashStyles } from "@/app/dashboard/dashSkin";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -106,7 +106,8 @@ function actualCell(row: CompareRow): string {
   return parts.join(" × ") || "—";
 }
 
-const TONE_CLASS = { below: styles.toneBelow, above: styles.toneAbove, met: styles.toneMet } as const;
+// kľúče tried, nie triedy — štýly sa berú až v stránke (completedStyles, v6 skin)
+const TONE_CLASS = { below: "toneBelow", above: "toneAbove", met: "toneMet" } as const;
 const TONE_LABEL = { below: "pod plánom", above: "nad plán", met: "podľa plánu" } as const;
 
 export default async function CompletedWorkoutPage({
@@ -116,6 +117,8 @@ export default async function CompletedWorkoutPage({
   params: Promise<{ id: string; logId: string }>;
   searchParams: Promise<{ preview?: string }>;
 }) {
+  const dashboardStyles = await dashStyles();
+  const styles = await completedStyles();
   const { id: clientId, logId } = await params;
   const { preview } = await searchParams;
 
@@ -171,13 +174,21 @@ export default async function CompletedWorkoutPage({
             {view.snapshot?.planName && <> · {view.snapshot.planName}</>}
           </p>
         </div>
-        <span className={completed ? styles.doneBadge : styles.progressBadge} data-testid="workout-status">
-          {completed ? (
-            <>
-              <LockIcon /> Dokončený – {dateLabel}
-            </>
-          ) : (
-            "Prebieha"
+        <span className={styles.headStatus}>
+          <span className={completed ? styles.doneBadge : styles.progressBadge} data-testid="workout-status">
+            {completed ? (
+              <>
+                <LockIcon /> Dokončený – {dateLabel}
+              </>
+            ) : (
+              "Prebieha"
+            )}
+          </span>
+          {completed && (
+            <InfoTip title="Záznam tréningu">
+              Toto je záznam toho, čo klient odcvičil — ty ho upraviť ani zmazať nemôžeš (klient môže opraviť zabudnuté
+              hodnoty 24 hodín po ukončení). Ak chceš tréning zopakovať alebo zmeniť, vytvor si z neho novú kópiu.
+            </InfoTip>
           )}
         </span>
       </div>
@@ -189,13 +200,6 @@ export default async function CompletedWorkoutPage({
             new Date(view.editedAt),
           )}
           .
-        </p>
-      )}
-
-      {completed && (
-        <p className={styles.readonlyNote}>
-          Toto je záznam toho, čo klient odcvičil — ty ho upraviť ani zmazať nemôžeš (klient môže opraviť
-          zabudnuté hodnoty 24 hodín po ukončení). Ak chceš tréning zopakovať alebo zmeniť, vytvor si z neho novú kópiu.
         </p>
       )}
 
@@ -255,7 +259,7 @@ export default async function CompletedWorkoutPage({
                         <span role="cell" className={styles.planned}>
                           {plannedCell(row)}
                         </span>
-                        <span role="cell" className={`${styles.actual} ${tone ? TONE_CLASS[tone] : ""}`}>
+                        <span role="cell" className={`${styles.actual} ${tone ? styles[TONE_CLASS[tone]] : ""}`}>
                           {actualCell(row)}
                           {row.actual?.rpe != null && <span className={styles.rpe}> · RPE {row.actual.rpe}</span>}
                           {tone && tone !== "met" && <span className={styles.srOnly}> ({TONE_LABEL[tone]})</span>}

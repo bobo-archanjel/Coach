@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
 import { formatEditDeadline } from "@/lib/workouts/completed";
 import { updateWorkoutLogAction } from "./actions";
 import { WorkoutSetsFields, buildEntriesPayload, formValuesFromLog, type WorkoutFormValues } from "./WorkoutSetsFields";
-import styles from "./portal.module.css";
+import portalStyles from "./portal.module.css";
+import { useSkinStyles } from "../components/uiSkin";
 
 /**
  * "Upraviť hodnoty" dokončeného tréningu — ten istý formulár ako pri ukončení,
@@ -31,7 +31,7 @@ export function LoggedWorkoutEditor({
   editableUntil: string;
   onClose: () => void;
 }) {
-  const router = useRouter();
+  const styles = useSkinStyles("portal", portalStyles);
   const [values, setValues] = useState<WorkoutFormValues>(() => formValuesFromLog(exercises, logged, rpe, note));
   const [showInvalid, setShowInvalid] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,8 @@ export function LoggedWorkoutEditor({
         setError(res.error);
         return;
       }
-      router.refresh();
+      // updateWorkoutLogAction revaliduje /portal — nové hodnoty prídu v jej odpovedi;
+      // router.refresh() navyše by stránku zo servera vykreslil ešte raz.
       onClose();
     });
   };

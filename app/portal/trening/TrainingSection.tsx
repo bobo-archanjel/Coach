@@ -1,22 +1,33 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import type { ExerciseOption, PortalPlan, PortalTrainingData } from "@/lib/portal/types";
-import { deleteClientPlanAction, getExerciseLibraryAction, setActivePlanAction } from "./actions";
+import type { ExerciseOption, PortalPlan, PortalTemplate, PortalTrainingData } from "@/lib/portal/types";
+import {
+  deleteClientPlanAction,
+  deleteOwnTemplateAction,
+  getExerciseLibraryAction,
+  saveOwnTemplateAction,
+  setActivePlanAction,
+} from "./actions";
 import { ExercisePreviewList } from "../ExercisePreviewList";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import styles from "../portal.module.css";
+import portalStyles from "../portal.module.css";
+import { usePortalBase, useSkinStyles } from "../../components/uiSkin";
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
 // naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
 // existujúce plány. Vlastný chunk, stiahne sa až pri "Vlastný tréning"/"Upraviť".
 const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) => m.ClientPlanBuilder), {
-  loading: () => <p className={styles.trEmptyDay}>Načítavam…</p>,
+  loading: () => <BuilderLoading />,
 });
+
+function BuilderLoading() {
+  const styles = useSkinStyles("portal", portalStyles);
+  return <p className={styles.trEmptyDay}>Načítavam…</p>;
+}
 
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
    Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a akčné
@@ -63,11 +74,18 @@ function exWord(n: number): string {
 }
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
-  const router = useRouter();
-  const { plans } = data;
+  const styles = useSkinStyles("portal", portalStyles);
+  const portalBase = usePortalBase();
+  const { plans, templates } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState<PortalPlan | null>(null);
+  // "Použiť" pri šablóne — builder nového tréningu predvyplnený jej obsahom.
+  const [fromTemplate, setFromTemplate] = useState<PortalTemplate | null>(null);
+  // Výsledok "Uložiť ako šablónu" pri konkrétnom tréningu (potvrdenie alebo chyba).
+  const [templateNote, setTemplateNote] = useState<{ planId: string; text: string; error: boolean } | null>(null);
+  const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(data.activePlanId);
   // Vybraný deň v rámci rozbaleného tréningu — samostatný krok pred zobrazením
   // cvikov a tlačidla "Začať tréning" (predtým sa všetky dni so všetkými cvikmi
@@ -85,8 +103,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [library, setLibrary] = useState<ExerciseOption[]>([]);
   const [, startLibraryTransition] = useTransition();
 
-  const openBuilder = (plan: PortalPlan | null) => {
+  const openBuilder = (plan: PortalPlan | null, template: PortalTemplate | null = null) => {
     setEditing(plan);
+    setFromTemplate(template);
     setError(null);
     setMode("build");
     // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
@@ -100,10 +119,12 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const closeBuilder = () => {
     setMode("list");
     setEditing(null);
+    setFromTemplate(null);
   };
+  // Uloženie aj zmazanie revalidujú /portal — čerstvý zoznam prichádza v odpovedi
+  // akcie; router.refresh() navyše by celú stránku vykreslil zo servera druhýkrát.
   const onSaved = () => {
     closeBuilder();
-    router.refresh();
   };
 
   // Ťuk na tréning len rozbalí/zbalí zoznam jeho dní — nemení, čo beží na karte
@@ -134,8 +155,31 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       if (res.error) setError(res.error);
       else {
         setConfirmDelete(null);
-        router.refresh();
       }
+    });
+  };
+
+  const saveTemplate = (planId: string) => {
+    setError(null);
+    setTemplateNote(null);
+    startTransition(async () => {
+      const res = await saveOwnTemplateAction(planId);
+      setTemplateNote({
+        planId,
+        text: res.error ?? "Uložené — nájdeš ju hore v Moje šablóny.",
+        error: Boolean(res.error),
+      });
+      // Novú šablónu hneď ukáž — inak by klient musel zbalený zoznam hore hľadať.
+      if (!res.error) setTemplatesOpen(true);
+    });
+  };
+
+  const removeTemplate = (templateId: string) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteOwnTemplateAction(templateId);
+      if (res.error) setError(res.error);
+      else setConfirmTplDelete(null);
     });
   };
 
@@ -153,7 +197,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setError(null);
     markWorkoutStarted(dayId);
     startTransition(async () => {
-      const res = await setActivePlanAction(plan.id, dayId);
+      const res = await setActivePlanAction(plan.id, dayId, portalBase);
       // Úspech → redirect vnútri akcie, sem sa vrátime len pri chybe.
       if (res?.error) {
         clearWorkoutStarted();
@@ -164,7 +208,13 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
   if (mode === "build") {
     return (
-      <ClientPlanBuilder library={library} initial={editing} onCancel={closeBuilder} onSaved={onSaved} />
+      <ClientPlanBuilder
+        library={library}
+        initial={editing}
+        template={fromTemplate}
+        onCancel={closeBuilder}
+        onSaved={onSaved}
+      />
     );
   }
 
@@ -185,6 +235,74 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         <p className={styles.trError} role="alert">
           {error}
         </p>
+      )}
+
+      {/* Moje šablóny navrchu, ale zbalené — aj pri viacerých šablónach neodtlačia
+          tréningy (od trénera) nižšie, kým ich klient sám nerozbalí. */}
+      {templates.length > 0 && (
+        <div className={styles.trTplBox}>
+          <button
+            type="button"
+            className={styles.trTplToggle}
+            onClick={() => setTemplatesOpen((o) => !o)}
+            aria-expanded={templatesOpen}
+            aria-controls="moje-sablony"
+          >
+            <span className={styles.trTplToggleLabel}>Moje šablóny</span>
+            <span className={styles.trTplCount}>{templates.length}</span>
+            <ChevronIcon className={`${styles.trChev} ${templatesOpen ? styles.trChevOpen : ""}`} />
+          </button>
+          {templatesOpen && (
+            <ul id="moje-sablony" className={styles.trTplList}>
+              {templates.map((t) => {
+                const exCount = t.days.reduce((n, d) => n + d.exercises.length, 0);
+                return (
+                  <li key={t.id} className={styles.trTpl}>
+                    <span className={styles.trTplText}>
+                      <span className={styles.trTplName}>{t.name}</span>
+                      <span className={styles.trTplMeta}>
+                        {t.days.length} {dayWord(t.days.length)} · {exCount} {exWord(exCount)}
+                      </span>
+                    </span>
+                    <span className={styles.trTplActions}>
+                      {confirmTplDelete === t.id ? (
+                        <>
+                          <span className={styles.trConfirmText}>Zmazať šablónu?</span>
+                          <button
+                            type="button"
+                            className={styles.trDangerBtn}
+                            onClick={() => removeTemplate(t.id)}
+                            disabled={pending}
+                          >
+                            Zmazať
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.trGhostBtn}
+                            onClick={() => setConfirmTplDelete(null)}
+                            disabled={pending}
+                          >
+                            Nie
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Nový tréning predvyplnený šablónou — uloží sa ako nový, šablóna ostane. */}
+                          <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(null, t)}>
+                            Použiť
+                          </button>
+                          <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(t.id)}>
+                            Zmazať
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       )}
 
       {plans.length === 0 ? (
@@ -345,11 +463,27 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                 <button
                                   type="button"
                                   className={styles.trGhostBtn}
+                                  onClick={() => saveTemplate(plan.id)}
+                                  disabled={pending}
+                                >
+                                  Uložiť ako šablónu
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.trGhostBtn} btn-danger`}
                                   onClick={() => setConfirmDelete(plan.id)}
                                 >
                                   Zmazať
                                 </button>
                               </>
+                            )}
+                            {templateNote?.planId === plan.id && (
+                              <p
+                                className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
+                                role="status"
+                              >
+                                {templateNote.text}
+                              </p>
                             )}
                           </div>
                         )}

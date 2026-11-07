@@ -10,7 +10,8 @@ export const config = {
   // — teda Supabase Auth API round-trip (updateSession volá auth.getUser())
   // pri KAŽDEJ návšteve verejnej marketingovej stránky, aj bez akejkoľvek
   // session. Refresh cookies má zmysel len tam, kde appka reálne beží dlhšie
-  // v prihlásenom stave (/dashboard, /portal) — auth guard pre samotný
-  // prístup rieši aj tak vlastný getUser() v ich layout.tsx, nie middleware.
-  matcher: ["/dashboard/:path*", "/portal/:path*"],
+  // v prihlásenom stave (/dashboard, /portal, dizajnový experiment
+  // /v6design/portal) — auth guard pre samotný prístup rieši aj tak vlastný
+  // getUser() v ich layout.tsx, nie middleware.
+  matcher: ["/dashboard/:path*", "/portal/:path*", "/v6design/:path*"],
 };

@@ -1,4 +1,5 @@
 import { AppLink as Link } from "../../components/AppLink";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview, type ClientAnalyticsRow } from "@/lib/dashboard/analytics";
@@ -7,7 +8,8 @@ import { pluralSk } from "@/lib/portal/streak";
 import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { RosterSummaryCard } from "./RosterSummaryCard";
-import styles from "../dashboard.module.css";
+import { InfoTip } from "@/app/components/InfoTip";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 /** Prehľad naprieč klientmi — Progres a analýza (feature/progress-analyst), rozšírené feature/analytika-v2. */
 
@@ -79,25 +81,32 @@ function daysAgoIso(n: number): string {
 }
 
 export default async function AnalytikaPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+  const styles = await dashStyles();
   const { preview } = await searchParams;
   const isPreview = preview === "ok" && process.env.NODE_ENV === "development";
 
   let activeClients: { id: string; full_name: string }[];
   let overview: Map<string, ClientAnalyticsRow> | null;
-  let recentPRs: Map<string, StrengthPR[]> | null;
-  let aiInsights: AiTopicInsight[] | null;
+  // PR (celá história sily) a AI signály sú najpomalšie a ležia pod hlavnými číslami —
+  // stránka na ne nečaká, panely sa dostreamujú cez <Suspense> nižšie.
+  let recentPRs: Promise<Map<string, StrengthPR[]> | null>;
+  let aiInsights: Promise<AiTopicInsight[] | null>;
 
   if (isPreview) {
     activeClients = PREVIEW_CLIENTS;
     overview = PREVIEW_OVERVIEW;
-    recentPRs = PREVIEW_PRS;
-    aiInsights = PREVIEW_AI_INSIGHTS;
+    recentPRs = Promise.resolve(PREVIEW_PRS);
+    aiInsights = Promise.resolve(PREVIEW_AI_INSIGHTS);
   } else {
     const supabase = await createClient();
     const {
       data: { user },
     } = await getUser();
     if (!user) redirect("/prihlasenie");
+
+    // AI signály nezávisia od zoznamu klientov — štartujú hneď (predtým až po ňom).
+    aiInsights = getAiTopicInsights(supabase);
+    aiInsights.catch(() => {});
 
     const { data: clients } = await supabase
       .from("clients")
@@ -109,11 +118,9 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
     // rovnaké vylúčenie ako pri upozornení na meškanie na /dashboard.
     activeClients = (clients ?? []).filter((c) => !c.ended_at && !c.deletion_requested_at);
     const ids = activeClients.map((c) => c.id);
-    [overview, recentPRs, aiInsights] = await Promise.all([
-      getClientAnalyticsOverview(ids),
-      getRecentPRs(ids, 14),
-      getAiTopicInsights(supabase),
-    ]);
+    recentPRs = getRecentPRs(ids, 14);
+    recentPRs.catch(() => {});
+    overview = await getClientAnalyticsOverview(ids);
   }
 
   if (!overview) {
@@ -135,15 +142,19 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
 
   const health = portfolioHealth(rows.map((r) => r.data));
 
-  const prList = activeClients
-    .flatMap((c) => (recentPRs?.get(c.id) ?? []).map((pr) => ({ client: c, pr })))
-    .sort((a, b) => b.pr.achievedOn.localeCompare(a.pr.achievedOn))
-    .slice(0, 6);
-
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Analytika</h1>
+        <h1>
+          Analytika{" "}
+          {rows.length > 0 && (
+            <InfoTip title="Ako čítať percentá">
+              % = podiel dní za posledných 30 dní, kedy bol klient „v poriadku“ (strava 85–115&nbsp;% cieľa, tréning =
+              odcvičil aspoň jeden deň). „Plán“ = nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom
+              z tréningového plánu. Klient bez makro cieľa nemá stravu s čím porovnať.
+            </InfoTip>
+          )}
+        </h1>
         <p>
           {activeClients.length === 0
             ? "Zatiaľ nemáš klientov na analýzu."
@@ -174,44 +185,13 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
             )}
           </div>
 
-          {prList.length > 0 && (
-            <div className={styles.prPanel}>
-              <p className={styles.prPanelTitle}>Posledné osobné maximá · 14 dní</p>
-              <ul className={styles.prPanelList}>
-                {prList.map(({ client, pr }, i) => (
-                  <li key={`${client.id}-${pr.exercise}-${i}`}>
-                    <Link href={`/dashboard/klienti/${client.id}`}>
-                      {client.full_name} · {pr.exercise}
-                    </Link>
-                    <span>
-                      {pr.bestWeightKg} kg × {pr.reps} · {agoLabel(pr.achievedOn)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <Suspense fallback={null}>
+            <RecentPRPanel clients={activeClients} data={recentPRs} />
+          </Suspense>
 
-          {aiInsights != null && aiInsights.length > 0 && (
-            <div className={styles.aiInsightsPanel}>
-              <p className={styles.aiInsightsPanelTitle}>AI Kouč · skoré signály · {"posledných 7 dní"}</p>
-              <ul className={styles.aiInsightsList}>
-                {aiInsights.map((i) => (
-                  <li key={i.topic}>
-                    <span>
-                      {i.clientCount}{" "}
-                      {pluralSk(i.clientCount, "klient sa pýtal", "klienti sa pýtali", "klientov sa pýtalo")}
-                      AI Kouča na
-                    </span>
-                    <span>{i.label}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className={styles.aiInsightsHint}>
-                Agregované naprieč aspoň 3 klientmi, bez prístupu appky k obsahu konverzácie — AI Kouč zostáva súkromný chat.
-              </p>
-            </div>
-          )}
+          <Suspense fallback={null}>
+            <AiInsightsPanel data={aiInsights} />
+          </Suspense>
 
           <RosterSummaryCard previewSummary={isPreview ? PREVIEW_ROSTER_SUMMARY : null} />
         </>
@@ -253,12 +233,66 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
           <p>Pridaj klientov a nechaj ich zbierať dáta (tréningy, strava, merania).</p>
         </div>
       )}
-
-      <p className={styles.chartHint} style={{ marginTop: 20 }}>
-        % = podiel dní za posledných 30 dní, kedy bol klient „v poriadku“ (strava 85–115&nbsp;% cieľa, tréning = odcvičil
-        aspoň jeden deň). „Plán“ = nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom z tréningového plánu.
-        Klient bez makro cieľa nemá stravu s čím porovnať.
-      </p>
     </>
+  );
+}
+
+async function RecentPRPanel({
+  clients,
+  data,
+}: {
+  clients: { id: string; full_name: string }[];
+  data: Promise<Map<string, StrengthPR[]> | null>;
+}) {
+  const styles = await dashStyles();
+  const recentPRs = await data;
+  const prList = clients
+    .flatMap((c) => (recentPRs?.get(c.id) ?? []).map((pr) => ({ client: c, pr })))
+    .sort((a, b) => b.pr.achievedOn.localeCompare(a.pr.achievedOn))
+    .slice(0, 6);
+  if (prList.length === 0) return null;
+  return (
+    <div className={styles.prPanel}>
+      <p className={styles.prPanelTitle}>Posledné osobné maximá · 14 dní</p>
+      <ul className={styles.prPanelList}>
+        {prList.map(({ client, pr }, i) => (
+          <li key={`${client.id}-${pr.exercise}-${i}`}>
+            <Link href={`/dashboard/klienti/${client.id}`}>
+              {client.full_name} · {pr.exercise}
+            </Link>
+            <span>
+              {pr.bestWeightKg} kg × {pr.reps} · {agoLabel(pr.achievedOn)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+async function AiInsightsPanel({ data }: { data: Promise<AiTopicInsight[] | null> }) {
+  const styles = await dashStyles();
+  const aiInsights = await data;
+  if (!aiInsights || aiInsights.length === 0) return null;
+  return (
+    <div className={styles.aiInsightsPanel}>
+      <p className={styles.aiInsightsPanelTitle}>
+        AI Kouč · skoré signály · {"posledných 7 dní"}{" "}
+        <InfoTip title="AI Kouč · skoré signály">
+          Agregované naprieč aspoň 3 klientmi, bez prístupu appky k obsahu konverzácie — AI Kouč zostáva súkromný chat.
+        </InfoTip>
+      </p>
+      <ul className={styles.aiInsightsList}>
+        {aiInsights.map((i) => (
+          <li key={i.topic}>
+            <span>
+              {i.clientCount} {pluralSk(i.clientCount, "klient sa pýtal", "klienti sa pýtali", "klientov sa pýtalo")}
+              AI Kouča na
+            </span>
+            <span>{i.label}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

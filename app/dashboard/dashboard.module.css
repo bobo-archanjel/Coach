@@ -9,6 +9,10 @@
 @media (max-width: 880px) {
   .shell {
     grid-template-columns: 1fr;
+    /* Top bar + obsah pod sebou. Bez explicitných riadkov grid pri krátkej stránke
+       rozdelil voľné miesto z min-height:100vh aj do riadku top baru — pod ním
+       vznikla ~100px prázdna medzera (detail klienta, hotový plán, otvorený chat). */
+    grid-template-rows: auto 1fr;
   }
 }
 
@@ -33,7 +37,7 @@
     position: sticky;
     top: 0;
     z-index: 25;
-    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Výživa
+    /* height: auto by pri stránkach bez vertikálneho scrollbaru (Nastavenia, Jedálničky
        bez profilov) dal iný výsledok než pri stránkach so scrollbarom — scrollbar
        (Windows) uberá ~15-17px šírky, čo mierne mení, ako sa vojde "Odhlásiť sa"
        vedľa loga, a bar tak vychádzal inak vysoký podľa stránky. Pevná výška to rieši. */
@@ -156,8 +160,12 @@
 .bellItem:first-of-type {
   border-top: 0;
 }
+/* Bodka visí vľavo (padding 15px = bodka 7px + medzera 8px, rovnako ako odsadenie
+   .bellLinks) — zalomený nadpis pokračuje pod textom, nie pod bodkou. */
 .bellItemMain {
+  position: relative;
   display: block;
+  padding-left: 15px;
   font-size: 13.5px;
   font-weight: 600;
   line-height: 1.4;
@@ -166,12 +174,13 @@
 }
 .bellItemMain::before {
   content: "";
-  display: inline-block;
+  position: absolute;
+  left: 0;
+  /* stred prvého riadku: polovica line-height (1.4em) mínus polovica bodky */
+  top: calc(0.7em - 3.5px);
   width: 7px;
   height: 7px;
-  margin-right: 8px;
   border-radius: 50%;
-  vertical-align: 1px;
 }
 .bellToneAlert::before {
   background: var(--iron-red);
@@ -252,7 +261,10 @@ a.bellItemMain:hover {
   color: var(--paper);
   text-decoration: underline;
 }
+/* Počet dní zarovnaný vpravo k × (nie v strede medzi menom a ×) — riadky sú pod
+   sebou bez ohľadu na dĺžku mena. Rovnako ako .alertPanelList. */
 .bellLinks span {
+  margin-left: auto;
   color: var(--paper-faint);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -413,8 +425,14 @@ a.bellItemMain:hover {
 }
 /* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
 @media (max-width: 880px) {
+  /* Otvorená klávesnica: dokument končí tesne pod obsahom (bez min-height celej
+     obrazovky). Safari na iOS 26 posúva stránku na koniec dokumentu — pole tak skončí
+     tesne nad adresnou lištou, nie s čiernym pásom pod sebou (overené na iPhone). */
   :global(html[data-keyboard-open]) .content {
     padding-bottom: 12px;
+  }
+  :global(html[data-keyboard-open]) .shell {
+    min-height: 0;
   }
 }
 
@@ -465,6 +483,13 @@ a.bellItemMain:hover {
   border-radius: var(--radius-m);
   padding: 16px 18px;
 }
+/* Prepínač režimu + otáznik s vysvetlením (InfoTip) v jednom riadku. */
+.addClientModesRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
 .addClientModes {
   display: inline-flex;
   gap: 4px;
@@ -472,7 +497,6 @@ a.bellItemMain:hover {
   background: var(--ink);
   border: 1px solid var(--steel-line);
   border-radius: 999px;
-  margin-bottom: 14px;
 }
 .addClientModeBtn {
   padding: 6px 14px;
@@ -493,12 +517,6 @@ a.bellItemMain:hover {
 .addClientModeActive:hover {
   background: var(--ink-3);
   color: var(--paper);
-}
-.addClientHint {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--paper-faint);
-  margin-bottom: 12px;
 }
 .addClientOk {
   display: flex;
@@ -656,6 +674,50 @@ select.addClientInputSm {
 .addClientInputSm[type="number"] {
   -moz-appearance: textfield;
 }
+/* Formulár s popiskami v mriežke (makro cieľ v Jedálničkoch). Predtým tam bolo
+   .addClientFields prepnuté inline na column — zdedený flex-basis 200px z
+   .addClientInput sa v stĺpci uplatnil ako VÝŠKA a každé pole malo na desktope
+   ~200px. Tu sú polia v <label> (flex column), preto flex:none. */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+}
+.fieldGrid > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.fieldGrid .addClientInput {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+.fieldGridFull {
+  grid-column: 1 / -1;
+}
+/* Nový plán / AI pre viacerých klientov — pôvodný dizajn len kostra, vzhľad v v6. */
+.formHint,
+.aiBatchError {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.aiBatch,
+.aiBatchList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.aiBatchBar {
+  height: 6px;
+  background: var(--steel-line);
+}
+.aiBatchBar > span {
+  display: block;
+  height: 100%;
+  background: var(--iron-red);
+}
 .addClientError {
   margin-top: 8px;
   font-size: 13px;
@@ -663,11 +725,6 @@ select.addClientInputSm {
 }
 
 /* ---------- AI generátor plánu (Track "Tréner" #4/5, ROADMAP.md) ---------- */
-.aiPlanHint {
-  margin-top: 8px;
-  font-size: 12.5px;
-  color: var(--paper-dim);
-}
 /* Výsledok generovania s varovaním (feature/ai-plan-zameranie) — plán je vytvorený,
    ale zameranie sa nedotiahlo, tak nepresmerúvame rovno doň. */
 .aiPlanResult {
@@ -884,6 +941,12 @@ select.addClientInputSm {
   font-size: 13.5px;
   color: var(--paper);
 }
+/* 16px = iOS Safari pri focuse nezoomuje (pod 16px zväčší stránku a nechá ju tak). */
+@media (max-width: 760px) {
+  .rosterSearchInput {
+    font-size: 16px;
+  }
+}
 .rosterSearchInput::placeholder {
   color: var(--paper-faint);
 }
@@ -936,6 +999,16 @@ select.addClientInputSm {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+/* Na úzkej karte sa stav + dátum zalamovali podľa dĺžky mena/cieľa (raz vedľa seba,
+   raz pod sebou) a štítok "N dní bez tréningu" tak skákal raz doľava, raz doprava.
+   Na mobile preto vždy pod sebou, zarovnané vpravo. */
+@media (max-width: 760px) {
+  .clientMeta {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
 }
 .clientSince {
   color: var(--paper-faint);
@@ -1166,6 +1239,9 @@ select.addClientInputSm {
   gap: 8px;
   margin: -12px 0 20px;
 }
+.planActions:empty {
+  display: none;
+}
 /* Deštruktívne tlačidlo v štýle btn-ghost — červený text, pri hoveri aj rám. */
 .dangerGhost {
   color: var(--error);
@@ -1183,13 +1259,6 @@ select.addClientInputSm {
   .templateGrid {
     max-width: none;
   }
-}
-.planLockedHint {
-  margin: -8px 0 16px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--paper-faint);
-  max-width: var(--measure);
 }
 .logLinkRow:hover {
   border-color: var(--paper-faint);
@@ -1256,6 +1325,12 @@ select.addClientInputSm {
   font-size: 14.5px;
   margin-top: 6px;
 }
+/* Odznak stavu + otáznik s vysvetlením (InfoTip) vedľa seba. */
+.detailHeadStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .publishBox {
   display: flex;
   align-items: center;
@@ -1300,15 +1375,18 @@ select.addClientInputSm {
   font-size: 12.5px;
   color: var(--paper-dim);
 }
+/* minmax(0, …) namiesto holého 1fr — 1fr má minimum `auto` = min-content obsahu,
+   takže dlhý <select> (napr. „Stredná aktivita (3–5× týždenne)") roztiahol stĺpec
+   za okraj telefónu a karta vpravo pretiekla (odrezaná). */
 .detailGrid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   gap: 20px;
   align-items: start;
 }
 @media (max-width: 860px) {
   .detailGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1360,16 +1438,63 @@ select.addClientInputSm {
 @media (max-width: 860px) {
   .inboxGrid {
     grid-template-columns: 1fr;
+    /* vlákno počas potiahnutia späť (ThreadSwipeBack) ide doprava za okraj —
+       bez orezania by stránka na okamih dostala vodorovný scroll */
+    overflow-x: clip;
   }
   /* Vybraná konverzácia → na mobile ukáž len vlákno (nie zoznam pod ním);
      na desktope ostávajú oba stĺpce vždy viditeľné, toto pravidlo tam nedopadá. */
   .inboxGrid[data-has-selection="true"] .inboxList {
     display: none;
   }
+  /* Zoznam bez vybranej konverzácie — karta "Vyber konverzáciu" pod zoznamom na mobile
+     nemá zmysel (klient sa vyberá práve zo zoznamu nad ňou). Zároveň skryje odchádzajúce
+     vlákno hneď po revealInboxList, nie až po odpovedi servera. */
+  .inboxGrid[data-has-selection="false"] .inboxThread {
+    display: none;
+  }
+  /* Otvorený chat vyplní obrazovku medzi top barom a spodnou lištou — pole na písanie
+     je hneď nad lištou (správy sa scrollujú vo vnútri vlákna), nie v strede s prázdnom
+     pod ním. 56 top bar + 28 horný padding .content + 76 rezerva pre lištu (= presne
+     výška obrazovky, stránka sa nescrolluje). */
+  .inboxGrid[data-has-selection="true"] .inboxThread {
+    /* svh, nie dvh: Safari pri otvorenej klávesnici dvh zmenší a po jej zatvorení ho
+       prepočíta až po scrolle — chat ostal skrátený o výšku klávesnice s čiernou
+       medzerou pod ním. svh je stabilná výška obrazovky, na klávesnicu nereaguje. */
+    height: calc(100vh - 160px - env(safe-area-inset-bottom, 0px));
+    height: calc(100svh - 160px - env(safe-area-inset-bottom, 0px));
+    /* --app-h = skutočná výška obrazovky (KeyboardState) — 100svh je na iOS 26 menšie
+       a pole na písanie končilo ~70 px nad spodnou lištou */
+    height: calc(var(--app-h, 100svh) - 160px - env(safe-area-inset-bottom, 0px));
+    min-height: 320px;
+    transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s;
+  }
+  /* Otvorená klávesnica: iOS posunie stránku tak, že nad klávesnicou skončí SPODOK
+     obrazovky (nie pole na písanie). Pole bolo ~100px nad ním (miesto pre spodnú lištu
+     + safe area) → nad klávesnicou ostal čierny pás. Vlákno sa preto natiahne až k
+     spodku obrazovky (56 top bar + 28 + 12 odstup) — pole skončí tesne nad klávesnicou.
+     Zmena výšky ide plynulo spolu s vysúvaním klávesnice (transition vyššie), nie skokom. */
+  :global(html[data-keyboard-open]) .inboxGrid[data-has-selection="true"] .inboxThread {
+    height: calc(100vh - 96px);
+    height: calc(100svh - 96px);
+  }
+  /* Hlavička stránky a "Hromadná správa" pri otvorenom vlákne — na mobile len chat.
+     Riadené tým istým atribútom ako zoznam (nie triedou zo servera), takže pri návrate
+     (revealInboxList) sa zoznam, hlavička aj tlačidlo ukážu v JEDNOM snímku — predtým
+     hlavička doskočila až s odpoveďou servera a zoznam pod ňou poskočil (bliknutie).
+     Zdvojená trieda — .pageHead/.spravyModeToggle (display:flex) sú v súbore neskôr. */
+  .spravyPage:has(.inboxGrid[data-has-selection="true"]) .hideOnThreadMobile.hideOnThreadMobile {
+    display: none;
+  }
 }
-.inboxList .roster {
-  max-height: calc(100vh - 260px);
-  overflow-y: auto;
+/* Vlastný scroll zoznamu len na desktope (stĺpec vedľa vlákna). Na mobile je zoznam
+   sám na obrazovke — scrolluje celá stránka; vnorený box tam pôsobil neprirodzene
+   a jeho spodok bol schovaný pod spodnou lištou navigácie. */
+@media (min-width: 861px) {
+  .inboxList .roster {
+    max-height: calc(100vh - 260px);
+    overflow-y: auto;
+  }
 }
 .inboxRow {
   align-items: start;
@@ -1382,14 +1507,6 @@ select.addClientInputSm {
   display: flex;
   flex-direction: column;
   min-height: 480px;
-}
-.inboxBackLink {
-  display: none;
-}
-@media (max-width: 860px) {
-  .inboxBackLink {
-    display: inline-flex;
-  }
 }
 
 .infoRow {
@@ -1692,7 +1809,7 @@ select.addClientInputSm {
   background: var(--moss);
 }
 
-/* ---------- tréningy / výživa list pages ---------- */
+/* ---------- tréningy / jedálničky list pages ---------- */
 .clientSectionGrid {
   display: grid;
   gap: 16px;
@@ -1943,113 +2060,41 @@ select.addClientInputSm {
   }
 }
 
-/* ---------- /dashboard/klienti/[id] — sekcie namiesto jedného dlhého scrollu (feature/planing-groupMessage) ---------- */
-.clientDetailLayout {
+/* ---------- /dashboard/klienti/[id] — záložky sekcií hore, obsah pod nimi ----------
+   Pôvodný dizajn len kostra, vzhľad v app/v6design/dashboard/styles/dashboard.module.css. */
+.clientDetail {
   display: grid;
-  grid-template-columns: 190px 1fr;
-  gap: 24px;
-  align-items: start;
+  gap: 16px;
 }
-.clientSubNav {
+.clientTabs {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  position: sticky;
-  top: 20px;
+  gap: 4px;
+  overflow-x: auto;
 }
-.clientSubNavItem {
-  display: block;
-  width: 100%;
-  text-align: left;
+.clientTab {
+  flex: 1 0 auto;
   padding: 9px 12px;
+  border: 1px solid var(--steel-line);
   border-radius: var(--radius-s);
-  border: 1px solid transparent;
   background: transparent;
   color: var(--paper-faint);
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
 }
-.clientSubNavItem:hover {
+.clientTabActive {
+  border-color: var(--iron-red);
   color: var(--paper);
-  background: var(--ink-3);
 }
-.clientSubNavItemActive {
-  color: var(--paper);
-  background: var(--ink-2);
-  border-color: var(--steel-line);
-}
-.clientSubNavMobile {
-  display: none;
-}
-/* Grid child s tabuľkami/dlhými kartami nesmie roztiahnuť stĺpec nad jeho šírku. */
 .clientDetailContent {
   min-width: 0;
-}
-@media (max-width: 880px) {
-  .clientDetailLayout {
-    display: block;
-  }
-  .clientSubNav {
-    display: none;
-  }
-  .clientSubNavMobile {
-    display: block;
-    position: relative;
-    margin-bottom: 16px;
-  }
-  .clientSubNavMobileTrigger {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: var(--radius-m);
-    border: 1px solid var(--steel-line);
-    background: var(--ink-2);
-    color: var(--paper);
-    font-size: 14px;
-    font-weight: 700;
-  }
-  .clientSubNavMobileMenu {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(100% + 6px);
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 6px;
-    border-radius: var(--radius-m);
-    border: 1px solid var(--steel-line);
-    background: var(--ink-2);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
-  }
-  .clientSubNavMobileItem {
-    text-align: left;
-    padding: 10px 12px;
-    border-radius: var(--radius-s);
-    border: none;
-    background: transparent;
-    color: var(--paper-faint);
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .clientSubNavMobileItemActive {
-    color: var(--paper);
-    background: var(--ink-3);
-  }
 }
 
 /* ---------- /dashboard/spravy — hromadná správa (feature/planing-groupMessage) ---------- */
 .spravyModeToggle {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-bottom: 14px;
 }
 .bulkClientRow {
@@ -2142,79 +2187,8 @@ select.addClientInputSm {
   }
 }
 
-/* ---------- /dashboard/sablony — šablóny plánov a jedálničkov (feature/progress-AI-sablona) ---------- */
-.templateFilterRow {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-.templateFilterPill {
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--steel-line);
-  background: var(--ink-3);
-  color: var(--paper-faint);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-decoration: none;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-.templateFilterPill:hover {
-  color: var(--paper);
-  border-color: var(--paper-faint);
-}
-.templateFilterPillActive {
-  color: var(--paper);
-  border-color: var(--iron-red);
-  background: color-mix(in srgb, var(--iron-red) 16%, var(--ink-3));
-}
-.templateRoster {
-  display: grid;
-  gap: 10px;
-}
-/* Vlastná karta namiesto .clientCard — tá je grid s pevným "1fr auto" (link + chip
-   vpravo), zatiaľ čo šablóna potrebuje stĺpec: hlavička + form na "Použiť" pod sebou. */
-.templateCard {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 18px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-}
-.templateHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.templateHeadActions {
-  display: flex;
-  gap: 6px;
-  flex: none;
-}
-.templateApplyForm {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.templateApplyForm select {
-  flex: 1;
-  min-width: 160px;
-}
-@media (max-width: 480px) {
-  .templateApplyForm {
-    flex-direction: column;
-  }
-  .templateApplyForm select,
-  .templateApplyForm button {
-    width: 100%;
-  }
-}
+/* /dashboard/sablony má vlastný modul (menný priestor skinu „templates“):
+   app/dashboard/sablony/templates.module.css, v6: app/v6design/dashboard/styles/templates.module.css */
 
 /* ---------- /dashboard/analytika — zdravie portfólia + PR widget (feature/analytika-v2) ---------- */
 
@@ -2349,11 +2323,6 @@ select.addClientInputSm {
   text-align: right;
   white-space: nowrap;
 }
-.aiInsightsHint {
-  margin-top: 10px;
-  font-size: 11.5px;
-  color: var(--paper-faint);
-}
 
 /* ---------- kombinovaný súhrn na vrchu Analytiky klienta (feature/analytika-v2, bod 4) ---------- */
 .combinedSummary {
@@ -2440,4 +2409,21 @@ select.addClientInputSm {
   font-size: 12px;
   line-height: 1.4;
   color: var(--iron-red);
+}
+
+/* Detail klienta — hlavičky kariet a prázdny stav sekcie. Pôvodný dizajn len kostra,
+   vzhľad v app/v6design/dashboard/styles/dashboard.module.css. */
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.sectionMeta {
+  color: var(--paper-faint);
+}
+.sectionEmpty {
+  display: grid;
+  gap: 10px;
 }

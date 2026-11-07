@@ -28,26 +28,27 @@ export async function getLateStatusByClient(
   const statusByClient = new Map<string, LateStatus>();
   if (clientIds.length === 0) return statusByClient;
 
-  const [{ data: plans }, { data: logs }] = await Promise.all([
-    supabase
-      .from("workout_plans")
-      .select("client_id, created_at")
-      .in("client_id", clientIds)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("workout_logs")
-      .select("client_id, performed_on")
-      .in("client_id", clientIds)
-      .order("performed_on", { ascending: false }),
-  ]);
+  // Len NAJNOVŠÍ plán a NAJNOVŠÍ tréning na klienta (embed s limitom na rodiča) —
+  // predtým sa ťahala celá história plánov aj logov všetkých klientov, len aby sa
+  // z nej vzal prvý riadok. Rástlo to s každým tréningom (a PostgREST strop 1000
+  // riadkov by časom odrezal starších klientov → zlý počet dní meškania).
+  // Explicitná FK pri workout_plans: clients má aj active_plan_id → workout_plans.
+  const { data: rows } = await supabase
+    .from("clients")
+    .select("id, workout_logs(performed_on), workout_plans!workout_plans_client_id_fkey(created_at)")
+    .in("id", clientIds)
+    .order("performed_on", { referencedTable: "workout_logs", ascending: false })
+    .limit(1, { referencedTable: "workout_logs" })
+    .order("created_at", { referencedTable: "workout_plans", ascending: false })
+    .limit(1, { referencedTable: "workout_plans" });
 
   const latestPlanByClient = new Map<string, string>();
-  for (const p of plans ?? []) {
-    if (!latestPlanByClient.has(p.client_id)) latestPlanByClient.set(p.client_id, p.created_at);
-  }
   const latestLogByClient = new Map<string, string>();
-  for (const l of logs ?? []) {
-    if (!latestLogByClient.has(l.client_id)) latestLogByClient.set(l.client_id, l.performed_on);
+  for (const r of rows ?? []) {
+    const plan = (r.workout_plans as { created_at: string }[] | null)?.[0];
+    const log = (r.workout_logs as { performed_on: string }[] | null)?.[0];
+    if (plan) latestPlanByClient.set(r.id as string, plan.created_at);
+    if (log) latestLogByClient.set(r.id as string, log.performed_on);
   }
 
   const todayMs = Date.now();

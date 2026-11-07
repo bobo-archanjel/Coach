@@ -1,9 +1,10 @@
 import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
-import { sendTrainerMessageAction, markTrainerChatSeenAction, getTrainerChatMarkerAction } from "../klienti/actions";
+import { sendTrainerMessageAction, markTrainerChatSeenAction } from "../klienti/actions";
 import { SpravyView } from "./SpravyView";
-import styles from "../dashboard.module.css";
+import { ThreadSwipeBack } from "./ThreadSwipeBack";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 /* /dashboard/spravy — centrálna schránka správ (Track "Klient" bod 2, follow-up
    z ROADMAP.md). Predtým sa dalo písať len z detailu konkrétneho klienta
@@ -41,6 +42,7 @@ export default async function SpravyPage({
 }: {
   searchParams: Promise<{ client?: string }>;
 }) {
+  const styles = await dashStyles();
   const { client: selectedClientId } = await searchParams;
   const {
     data: { user },
@@ -55,42 +57,41 @@ export default async function SpravyPage({
   }
   const supabase = await createClient();
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, full_name")
-    .eq("trainer_id", user.id)
-    .order("full_name", { ascending: true });
+  // Všetko jedným kolom (predtým dve dávky za sebou). Vlákno vybraného klienta závisí
+  // len od `?client=`; neprečítané RLS (messages_select) scopuje na klientov tohto
+  // trénera, netreba čakať na ich ID. Náhľad = posledná správa každého klienta
+  // embedom s limitom na rodiča — predtým 1000 celých správ a výber v JS, klient
+  // mimo 1000 najnovších správ portfólia ukázal "Zatiaľ žiadna správa".
+  const [{ data: clients }, { data: msgRows }, { data: unreadRows }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, full_name, messages(id, client_id, sender, body, created_at)")
+      .eq("trainer_id", user.id)
+      .order("full_name", { ascending: true })
+      .order("created_at", { referencedTable: "messages", ascending: false })
+      .limit(1, { referencedTable: "messages" }),
+    selectedClientId
+      ? supabase
+          .from("messages")
+          .select("id, sender, body, created_at")
+          .eq("client_id", selectedClientId)
+          // POSLEDNÝCH 300 (zostupne + otočiť nižšie) — vzostupne s limitom by vrátilo
+          // prvých 300 a pri dlhšej spolupráci by sa nové správy prestali zobrazovať.
+          .order("created_at", { ascending: false })
+          .limit(300)
+      : Promise.resolve({ data: null }),
+    supabase.from("messages").select("client_id").eq("sender", "client").is("read_at", null),
+  ]);
 
-  const clientIds = (clients ?? []).map((c) => c.id);
   const nameById = new Map((clients ?? []).map((c) => [c.id, c.full_name]));
 
   const lastByClient = new Map<string, MessageRow>();
   const unreadByClient = new Map<string, number>();
-
-  if (clientIds.length > 0) {
-    // Obe závisia len na `clientIds`, nie jedna na druhej — predtým bežali
-    // sekvenčne (2 zbytočné round-tripy navyše k dopytu na clients vyššie).
-    const [{ data: recentMessages }, { data: unreadRows }] = await Promise.all([
-      supabase
-        .from("messages")
-        .select("id, client_id, sender, body, created_at")
-        .in("client_id", clientIds)
-        .order("created_at", { ascending: false })
-        .limit(1000),
-      supabase
-        .from("messages")
-        .select("client_id")
-        .in("client_id", clientIds)
-        .eq("sender", "client")
-        .is("read_at", null),
-    ]);
-
-    // Zoradené zostupne podľa created_at — prvý výskyt na klienta je jeho posledná správa.
-    for (const m of (recentMessages ?? []) as MessageRow[]) {
-      if (!lastByClient.has(m.client_id)) lastByClient.set(m.client_id, m);
-    }
-    for (const r of unreadRows ?? []) unreadByClient.set(r.client_id, (unreadByClient.get(r.client_id) ?? 0) + 1);
+  for (const c of clients ?? []) {
+    const last = (c.messages as MessageRow[] | null)?.[0];
+    if (last) lastByClient.set(c.id, last);
   }
+  for (const r of unreadRows ?? []) unreadByClient.set(r.client_id, (unreadByClient.get(r.client_id) ?? 0) + 1);
 
   const threads = (clients ?? [])
     .map((c) => ({
@@ -107,13 +108,7 @@ export default async function SpravyPage({
 
   let selectedMessages: { id: string; sender: "trainer" | "client" | "system"; body: string; createdAt: string }[] = [];
   if (selectedClientId) {
-    const { data: msgRows } = await supabase
-      .from("messages")
-      .select("id, sender, body, created_at")
-      .eq("client_id", selectedClientId)
-      .order("created_at", { ascending: true })
-      .limit(300);
-    selectedMessages = (msgRows ?? []).map((m) => ({
+    selectedMessages = [...(msgRows ?? [])].reverse().map((m) => ({
       id: m.id as string,
       sender: m.sender as "trainer" | "client" | "system",
       body: m.body as string,
@@ -123,8 +118,10 @@ export default async function SpravyPage({
   const selectedName = selectedClientId ? nameById.get(selectedClientId) : undefined;
 
   return (
-    <>
-      <div className={styles.pageHead}>
+    <div className={styles.spravyPage}>
+      {/* Otvorený chat na mobile = len chat: hlavička aj "Hromadná správa" sa skryjú
+          (zoznam konverzácií už skrýva .inboxGrid[data-has-selection]). */}
+      <div className={`${styles.pageHead} ${styles.hideOnThreadMobile}`}>
         <h1>Správy</h1>
         <p>Všetky konverzácie s klientmi na jednom mieste.</p>
       </div>
@@ -167,21 +164,26 @@ export default async function SpravyPage({
                 </div>
               </div>
 
-              <div className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxThread}`}>
+              {/* Späť na zoznam (mobil): potiahnutím zľava doprava alebo ťuknutím na
+                  Správy v spodnej lište — bez tlačidla, otvorený chat je len chat. */}
+              <ThreadSwipeBack className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxThread}`}>
                 {selectedClientId && selectedName ? (
                   <>
-                    <Link href="/dashboard/spravy" className={`${styles.backLink} ${styles.inboxBackLink}`}>
-                      ← Späť na zoznam
-                    </Link>
                     <h3>{selectedName}</h3>
                     <ChatThread
+                      // key: nové vlákno = nový mount → posun na pole na písanie (revealComposer)
+                      // aj prázdny rozpísaný text, nie ten z predchádzajúceho klienta
+                      key={selectedClientId}
+                      revealComposer
+                      fill
                       messages={selectedMessages}
                       mySide="trainer"
                       sendAction={sendTrainerMessageAction}
                       extraFields={{ client_id: selectedClientId }}
                       onSeen={markTrainerChatSeenAction.bind(null, selectedClientId)}
-                      checkNewAction={getTrainerChatMarkerAction.bind(null, selectedClientId)}
+                      markerUrl={`/api/chat/marker?client=${encodeURIComponent(selectedClientId)}`}
                       realtimeTable="messages"
+                      realtimeFilter={`client_id=eq.${selectedClientId}`}
                       emptyTitle="Zatiaľ žiadne správy"
                       // Bez skloňovania mena — prípona tvorila "Evaa", "Martinaovi".
                       emptyText={`Napíš prvú správu — ${selectedName} ju uvidí v portáli.`}
@@ -195,11 +197,11 @@ export default async function SpravyPage({
                     <p>Klikni na klienta v zozname a otvor jeho vlákno.</p>
                   </div>
                 )}
-              </div>
+              </ThreadSwipeBack>
             </div>
           }
         />
       )}
-    </>
+    </div>
   );
 }

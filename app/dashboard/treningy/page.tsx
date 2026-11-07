@@ -6,9 +6,10 @@ import { CreatePlanForm } from "./CreatePlanForm";
 import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
 import { ExerciseLibraryList } from "./ExerciseLibraryList";
-import styles from "../dashboard.module.css";
+import { dashStyles } from "@/app/dashboard/dashSkin";
 
 export default async function TreningyPage() {
+  const styles = await dashStyles();
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,7 +21,7 @@ export default async function TreningyPage() {
     redirect("/prihlasenie");
   }
 
-  const [{ data: clients }, { count: exerciseCount }, { data: plans }] = await Promise.all([
+  const [{ data: clients }, { count: exerciseCount }, { plans, planCompletion }] = await Promise.all([
     // `nutrition_profiles(sex)` — jediná FK z profilu späť na clients je client_id,
     // takže embed je jednoznačný (na rozdiel od clients↔workout_plans). Sex sa
     // vypĺňa len pri výpočte makier, takže pri mnohých klientoch bude null.
@@ -41,19 +42,21 @@ export default async function TreningyPage() {
       // dopytu na `workout_days`.
       .select("id, name, created_at, published, clients!workout_plans_client_id_fkey(full_name), workout_days(id)")
       .eq("trainer_id", user.id)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      // Odcvičenosť plánov — jeden zdroj pravdy zdieľaný s detailom klienta
+      // (lib/dashboard/planCompletion.ts). Potrebuje len ID dní plánov, preto je
+      // zreťazená priamo na tento dopyt (nečaká na klientov ani počet cvikov).
+      .then(async ({ data: plans }) => ({
+        plans,
+        planCompletion: await getPlanCompletion(
+          supabase,
+          (plans ?? []).map((p) => ({
+            id: p.id,
+            dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
+          })),
+        ),
+      })),
   ]);
-
-  // Odcvičenosť plánov — jeden zdroj pravdy zdieľaný s detailom klienta
-  // (lib/dashboard/planCompletion.ts). Jediný dopyt navyše, po `plans`, lebo
-  // potrebuje ich ID dní.
-  const planCompletion = await getPlanCompletion(
-    supabase,
-    (plans ?? []).map((p) => ({
-      id: p.id,
-      dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
-    })),
-  );
 
   const clientList = (clients ?? []).map((c) => {
     const profile = c.nutrition_profiles as unknown as { sex: "muz" | "zena" } | { sex: "muz" | "zena" }[] | null;

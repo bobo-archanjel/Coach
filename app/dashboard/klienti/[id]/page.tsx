@@ -1,14 +1,19 @@
 import { AppLink as Link } from "../../../components/AppLink";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
-import styles from "../../dashboard.module.css";
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
+import { CreateMealPlanButton } from "./CreateMealPlanButton";
+import { NutritionForm } from "./NutritionForm";
+import { dashStyles } from "@/app/dashboard/dashSkin";
+import { mealPlanAvgDayKcal } from "@/lib/meals";
+import { pluralSk } from "@/lib/portal/streak";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -53,10 +58,11 @@ export default async function ClientDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ preview?: string }>;
+  searchParams: Promise<{ preview?: string; sekcia?: string }>;
 }) {
+  const styles = await dashStyles();
   const { id } = await params;
-  const { preview } = await searchParams;
+  const { preview, sekcia } = await searchParams;
 
   if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV === "development") {
     const empty = preview === "progress_empty";
@@ -120,12 +126,53 @@ export default async function ClientDetailPage({
 
   const supabase = await createClient();
 
+  // Analytika (adherencia, merania, celá história sily) je najpomalšia časť stránky —
+  // štartuje hneď, súbežne so zvyškom, ale stránka na ňu nečaká: hlavička, Tréningy
+  // aj Info sa vykreslia hneď a karta Analytika sa dostreamuje cez <Suspense>
+  // (predtým celá stránka čakala na najpomalší dopyt). Na notFound() ceste sa výsledok
+  // len zahodí — catch nech nezostane neobslúžené odmietnutie.
+  const analyticsData = Promise.all([
+    getNutritionAdherence(id),
+    getTrainingAdherence(id),
+    getBodyMetrics(id),
+    getAllStrengthProgress(id),
+  ]);
+  analyticsData.catch(() => {});
+
   // `client` samotný nie je vstupom pre žiadny z ostatných dopytov (všetky berú
   // `id` z route parametra priamo) — predtým čakal na svoj round-trip, kým sa
   // spustilo zvyšných 8. Beží teraz v tej istej dávke; ak klient neexistuje,
   // ostatné vrátia prázdno/null a zahodia sa spolu s `notFound()` nižšie.
-  const [{ data: client }, { data: plans }, { data: nutrition }, { data: logs }, adherence, trainingAdherence, bodyMetrics, strengthProgress, { data: privateNote }] =
-    await Promise.all([
+  // Plány + ich odcvičenosť ako jeden reťazec v tej istej dávke: getPlanCompletion
+  // potrebuje len ID dní plánov — predtým čakal na dobehnutie CELEJ dávky (vrátane
+  // najpomalšieho dopytu) a pridal tak ďalší round-trip za ňou.
+  const plansWithCompletion = supabase
+    // `workout_days(id)` (nie `(count)`) — z tých istých ID sa počíta počet dní
+    // aj odcvičenosť (getPlanCompletion, zdieľané so zoznamom /dashboard/treningy).
+    .from("workout_plans")
+    .select("id, name, created_at, workout_days(id)")
+    .eq("client_id", id)
+    .order("created_at", { ascending: false })
+    .then(async ({ data: plans }) => ({
+      plans,
+      planCompletion: await getPlanCompletion(
+        supabase,
+        (plans ?? []).map((p) => ({
+          id: p.id,
+          dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
+        })),
+      ),
+    }));
+
+  const [
+    { data: client },
+    { plans, planCompletion },
+    { data: nutrition },
+    { data: logs },
+    { data: privateNote },
+    { data: mealPlans },
+    { data: nutritionNote },
+  ] = await Promise.all([
       supabase
         .from("clients")
         .select(
@@ -133,16 +180,11 @@ export default async function ClientDetailPage({
         )
         .eq("id", id)
         .maybeSingle(),
-      supabase
-        // `workout_days(id)` (nie `(count)`) — z tých istých ID sa počíta počet dní
-        // aj odcvičenosť (getPlanCompletion, zdieľané so zoznamom /dashboard/treningy).
-        .from("workout_plans")
-        .select("id, name, created_at, workout_days(id)")
-        .eq("client_id", id)
-        .order("created_at", { ascending: false }),
+      plansWithCompletion,
+      // Vstupné údaje a výsledok makier (sekcia Jedálničky, NutritionForm) aj makro cieľ pre Analytiku.
       supabase
         .from("nutrition_profiles")
-        .select("calories_target, protein_g, carbs_g, fat_g")
+        .select("sex, age, weight_kg, height_cm, activity_level, goal, bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
         .eq("client_id", id)
         .maybeSingle(),
       supabase
@@ -151,13 +193,18 @@ export default async function ClientDetailPage({
         .eq("client_id", id)
         .order("performed_on", { ascending: false })
         .limit(8),
-      getNutritionAdherence(id),
-      getTrainingAdherence(id),
-      getBodyMetrics(id),
-      getAllStrengthProgress(id),
       // Súkromná poznámka trénera (trainer_private_notes, 0036) — klient ju nevidí.
       // Tabuľka ešte nemusí existovať (pred migráciou) → data je vtedy null, stránka funguje.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "client").maybeSingle(),
+      // Jedálničky klienta od najnovšieho — RLS meal_plans_select_own_trainer: len tréner klienta.
+      // meal_days(meals) kvôli priemerným kcal na deň (lib/meals.ts).
+      supabase
+        .from("meal_plans")
+        .select("id, name, created_at, published, meal_days(meals)")
+        .eq("client_id", id)
+        .order("created_at", { ascending: false }),
+      // Poznámka trénera k strave (alergie, intolerancie, preferencie) — klient ju nevidí; v NutritionForm.
+      supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "nutrition").maybeSingle(),
     ]);
 
   if (!client) {
@@ -173,61 +220,155 @@ export default async function ClientDetailPage({
     year: "numeric",
   });
 
-  // Odcvičenosť plánov — rovnaký zdroj pravdy ako zoznam /dashboard/treningy.
-  const planCompletion = await getPlanCompletion(
-    supabase,
-    (plans ?? []).map((p) => ({
-      id: p.id,
-      dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
-    })),
+  // Hlavička karty sekcie — rovnaká vo všetkých sekciách (nadpis + počet/akcia vpravo).
+  const cardHead = (title: string, side?: React.ReactNode) => (
+    <div className={styles.sectionHead}>
+      <h3>{title}</h3>
+      {side}
+    </div>
+  );
+  const count = (n: number, one: string, few: string, many: string) => (
+    <span className={styles.sectionMeta}>
+      {n} {pluralSk(n, one, few, many)}
+    </span>
   );
 
+  // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
+  const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
+  const shortDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Bratislava" });
+
   const sections: ClientDetailSection[] = [
+    // Poradie = poradie kariet; prvá sa otvorí po kliknutí na klienta. Tréner sa
+    // najčastejšie pozerá na tréningy, potom jedálničky a analytiku; Info (kód, poznámky,
+    // ukončenie) je posledné. Analytika sa dostreamuje na pozadí aj keď nie je otvorená.
+    // Každá sekcia = stĺpec kariet .card s rovnakou hlavičkou (cardHead) — aj na mobile.
     {
-      id: "info",
-      label: "Info",
+      id: "treningy",
+      label: "Tréningy",
+      // Pridelené plány aj to, čo z nich klient odcvičil, na jednom mieste — predtým
+      // samostatná karta "Aktivita" pôsobila ako duplicita tejto.
       content: (
-        <div className={styles.card}>
-          <h3>Informácie</h3>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Klient od</span>
-            <span className={styles.infoValue}>{memberSince}</span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Pozývací kód</span>
-            <span className={styles.infoValue}>{client.invite_code}</span>
-          </div>
-          {(client.age || client.weight_kg || client.height_cm) && (
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Vek / váha / výška</span>
-              <span className={styles.infoValue}>
-                {[
-                  client.age ? `${client.age} rokov` : null,
-                  client.weight_kg ? `${client.weight_kg} kg` : null,
-                  client.height_cm ? `${client.height_cm} cm` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-            </div>
-          )}
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Poznámky</span>
-            {privateNote?.notes ? (
-              <span className={styles.infoValue}>{privateNote.notes}</span>
+        <div className={styles.cardStack}>
+          <div className={styles.card}>
+            {cardHead("Tréningové plány", plans && plans.length > 0 ? count(plans.length, "plán", "plány", "plánov") : undefined)}
+            {plans && plans.length > 0 ? (
+              <div className={styles.roster}>
+                {plans.map((plan) => {
+                  const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
+                  const done = planCompletion.get(plan.id);
+                  return (
+                    <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
+                      <div className={styles.clientName}>{plan.name}</div>
+                      {done?.allDone ? (
+                        <span className={styles.planDoneBadge}>Hotovo</span>
+                      ) : (
+                        <span className={styles.clientSince}>
+                          {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             ) : (
-              <span className={styles.notesEmpty}>Žiadne poznámky</span>
+              <p className={styles.noWorkouts}>
+                Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <Link href="/dashboard/treningy">Tréningy</Link>.
+              </p>
             )}
           </div>
-
-          <div style={{ marginTop: 6 }}>
-            <DangerZone
-              clientId={id}
-              firstName={firstName}
-              endedAt={client.ended_at}
-              deletionRequestedAt={client.deletion_requested_at}
-              deletionRequestedBy={client.deletion_requested_by}
-            />
+          <div className={styles.card}>
+            {cardHead("Posledná aktivita")}
+            {logs && logs.length > 0 ? (
+              <div className={styles.roster}>
+                {logs.map((log) => {
+                  // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
+                  const dayName =
+                    parsePlanSnapshot(log.plan_snapshot)?.dayName ??
+                    (log.workout_days as unknown as { name: string } | null)?.name ??
+                    "Tréning";
+                  const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "numeric",
+                    timeZone: "UTC",
+                  });
+                  const loggedCount = parseLoggedEntries(log.entries).filter((e) => e.sets.length > 0).length;
+                  return (
+                    <Link key={log.id} href={`/dashboard/klienti/${id}/treningy/${log.id}`} className={styles.logLinkRow}>
+                      <span>
+                        <span className={styles.clientName}>{dayName}</span>
+                        <span className={styles.logLinkMeta}>
+                          {loggedCount > 0
+                            ? `${loggedCount} ${loggedCount === 1 ? "cvik zapísaný" : loggedCount < 5 ? "cviky zapísané" : "cvikov zapísaných"}`
+                            : "bez zapísaných hodnôt"}
+                        </span>
+                      </span>
+                      <span className={styles.logLinkSide}>
+                        {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>Dokončený</span>}
+                        <span className={styles.clientSince}>{performedOn}</span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "jedalnicky",
+      label: "Jedálničky",
+      content: (
+        <div className={styles.cardStack}>
+          {/* Vstupné údaje + Výsledok (BMR, TDEE, kalorický cieľ, makrá) — predtým na
+              /dashboard/jedalnicky/[clientId], teraz rovno pri klientovi. */}
+          <NutritionForm
+            clientId={id}
+            profile={nutrition ? { ...nutrition, notes: nutritionNote?.notes ?? null } : null}
+            defaults={{ age: client.age, weight_kg: client.weight_kg, height_cm: client.height_cm }}
+          />
+          <div className={styles.card}>
+            {cardHead(
+              "Jedálničky",
+              mealPlans && mealPlans.length > 0 ? count(mealPlans.length, "jedálniček", "jedálničky", "jedálničkov") : undefined,
+            )}
+            {mealPlans && mealPlans.length > 0 ? (
+              <div className={styles.roster}>
+                {mealPlans.map((plan) => {
+                  const days = (plan.meal_days as unknown as { meals: unknown }[] | null) ?? [];
+                  const kcal = mealPlanAvgDayKcal(days);
+                  return (
+                    <Link key={plan.id} href={`/dashboard/jedalnicky/jedalnicek/${plan.id}`} className={styles.logLinkRow}>
+                      <span>
+                        <span className={styles.clientName}>{plan.name}</span>
+                        <span className={styles.logLinkMeta}>
+                          Vytvorený {shortDate(plan.created_at)} · {days.length} {pluralSk(days.length, "deň", "dni", "dní")}
+                        </span>
+                      </span>
+                      <span className={styles.logLinkSide}>
+                        <span className={styles.clientSince}>{kcal != null ? `≈ ${kcal} kcal/deň` : "bez jedál"}</span>
+                        {!plan.published ? (
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>Koncept</span>
+                        ) : plan.id === activeMealPlanId ? (
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>Aktívny</span>
+                        ) : (
+                          <span className={`${styles.statusChip} ${styles.ended}`}>Archivovaný</span>
+                        )}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.sectionEmpty}>
+                <p className={styles.noWorkouts}>Klient zatiaľ nemá žiadny jedálniček.</p>
+                <CreateMealPlanButton clientId={id} defaultName={`Jedálniček ${shortDate(new Date().toISOString())}`} />
+              </div>
+            )}
           </div>
         </div>
       ),
@@ -236,93 +377,58 @@ export default async function ClientDetailPage({
       id: "analytika",
       label: "Analytika",
       content: (
-        <AnalyticsPanel
-          clientId={id}
-          nutrition={nutrition}
-          adherence={adherence}
-          trainingAdherence={trainingAdherence}
-          bodyMetrics={bodyMetrics ?? []}
-          strengthNames={strengthProgress?.names ?? []}
-          strengthByExercise={strengthProgress?.byExercise ?? {}}
-          strengthPRs={strengthProgress?.prs ?? []}
-        />
+        <Suspense fallback={<AnalyticsSkeleton />}>
+          <ClientAnalytics clientId={id} nutrition={nutrition} data={analyticsData} />
+        </Suspense>
       ),
     },
     {
-      id: "treningy",
-      label: "Tréningy",
+      id: "info",
+      label: "Info",
       content: (
-        <div className={styles.card}>
-          <h3>Tréningové plány</h3>
-          {plans && plans.length > 0 ? (
-            <div className={styles.roster}>
-              {plans.map((plan) => {
-                const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
-                const done = planCompletion.get(plan.id);
-                return (
-                  <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
-                    <div className={styles.clientName}>{plan.name}</div>
-                    {done?.allDone ? (
-                      <span className={styles.planDoneBadge}>Hotovo</span>
-                    ) : (
-                      <span className={styles.clientSince}>
-                        {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+        <div className={styles.cardStack}>
+          <div className={styles.card}>
+            {cardHead("Informácie")}
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Klient od</span>
+              <span className={styles.infoValue}>{memberSince}</span>
             </div>
-          ) : (
-            <p className={styles.noWorkouts}>
-              Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <Link href="/dashboard/treningy">Tréningy</Link>.
-            </p>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "aktivita",
-      label: "Aktivita",
-      content: (
-        <div className={styles.card}>
-          <h3>Posledná aktivita</h3>
-          {logs && logs.length > 0 ? (
-            <div className={styles.roster}>
-              {logs.map((log) => {
-                // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
-                const dayName =
-                  parsePlanSnapshot(log.plan_snapshot)?.dayName ??
-                  (log.workout_days as unknown as { name: string } | null)?.name ??
-                  "Tréning";
-                const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "numeric",
-                  timeZone: "UTC",
-                });
-                const loggedCount = parseLoggedEntries(log.entries).filter((e) => e.sets.length > 0).length;
-                return (
-                  <Link key={log.id} href={`/dashboard/klienti/${id}/treningy/${log.id}`} className={styles.logLinkRow}>
-                    <span>
-                      <span className={styles.clientName}>{dayName}</span>
-                      <span className={styles.logLinkMeta}>
-                        {loggedCount > 0
-                          ? `${loggedCount} ${loggedCount === 1 ? "cvik zapísaný" : loggedCount < 5 ? "cviky zapísané" : "cvikov zapísaných"}`
-                          : "bez zapísaných hodnôt"}
-                      </span>
-                    </span>
-                    <span className={styles.logLinkSide}>
-                      {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>Dokončený</span>}
-                      <span className={styles.clientSince}>{performedOn}</span>
-                    </span>
-                  </Link>
-                );
-              })}
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Pozývací kód</span>
+              <span className={styles.infoValue}>{client.invite_code}</span>
             </div>
-          ) : (
-            <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
-          )}
+            {(client.age || client.weight_kg || client.height_cm) && (
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Vek / váha / výška</span>
+                <span className={styles.infoValue}>
+                  {[
+                    client.age ? `${client.age} rokov` : null,
+                    client.weight_kg ? `${client.weight_kg} kg` : null,
+                    client.height_cm ? `${client.height_cm} cm` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              </div>
+            )}
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Poznámky</span>
+              {privateNote?.notes ? (
+                <span className={styles.infoValue}>{privateNote.notes}</span>
+              ) : (
+                <span className={styles.notesEmpty}>Žiadne poznámky</span>
+              )}
+            </div>
+          </div>
+          <div className={styles.card}>
+            <DangerZone
+              clientId={id}
+              firstName={firstName}
+              endedAt={client.ended_at}
+              deletionRequestedAt={client.deletion_requested_at}
+              deletionRequestedBy={client.deletion_requested_by}
+            />
+          </div>
         </div>
       ),
     },
@@ -342,7 +448,50 @@ export default async function ClientDetailPage({
         </div>
       </div>
 
-      <ClientDetailTabs sections={sections} />
+      {/* key: odkaz na inú ?sekcia= (napr. z Analytiky) prepne záložku aj bez reloadu */}
+      <ClientDetailTabs key={sekcia ?? ""} sections={sections} initialId={sekcia} />
     </>
+  );
+}
+
+type AnalyticsData = [
+  Awaited<ReturnType<typeof getNutritionAdherence>>,
+  Awaited<ReturnType<typeof getTrainingAdherence>>,
+  Awaited<ReturnType<typeof getBodyMetrics>>,
+  Awaited<ReturnType<typeof getAllStrengthProgress>>,
+];
+
+/** Karta Analytika — čaká na dopyty spustené už na začiatku stránky (viď vyššie). */
+async function ClientAnalytics({
+  clientId,
+  nutrition,
+  data,
+}: {
+  clientId: string;
+  nutrition: React.ComponentProps<typeof AnalyticsPanel>["nutrition"];
+  data: Promise<AnalyticsData>;
+}) {
+  const [adherence, trainingAdherence, bodyMetrics, strengthProgress] = await data;
+  return (
+    <AnalyticsPanel
+      clientId={clientId}
+      nutrition={nutrition}
+      adherence={adherence}
+      trainingAdherence={trainingAdherence}
+      bodyMetrics={bodyMetrics ?? []}
+      strengthNames={strengthProgress?.names ?? []}
+      strengthByExercise={strengthProgress?.byExercise ?? {}}
+      strengthPRs={strengthProgress?.prs ?? []}
+    />
+  );
+}
+
+async function AnalyticsSkeleton() {
+  const styles = await dashStyles();
+  return (
+    <div className={styles.skeletonWrap} aria-hidden="true">
+      <div className={`${styles.skeletonBlock} ${styles.skeletonCard}`} />
+      <div className={`${styles.skeletonBlock} ${styles.skeletonCard}`} />
+    </div>
   );
 }

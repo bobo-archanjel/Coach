@@ -3,7 +3,9 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { addClientAction, addClientByCodeAction, type AddClientState, type AddByCodeState } from "./actions";
 import type { RosterItem } from "./ClientRoster";
-import styles from "./dashboard.module.css";
+import { InfoTip } from "@/app/components/InfoTip";
+import dashboardModule from "./dashboard.module.css";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialState: AddClientState = { error: null };
 const initialCodeState: AddByCodeState = { error: null, addedName: null };
@@ -32,6 +34,7 @@ function normalizeCode(raw: string): string {
 }
 
 export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: RosterItem) => void }) {
+  const styles = useSkinStyles("dashboard", dashboardModule);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"code" | "manual">("code");
   const [codeValue, setCodeValue] = useState("");
@@ -74,33 +77,42 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
 
   return (
     <div id="add-client" className={`${styles.addClientForm} ${styles.addClientPanel}`}>
-      <div className={styles.addClientModes} role="tablist" aria-label="Ako pridať klienta">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "code"}
-          className={`${styles.addClientModeBtn} ${mode === "code" ? styles.addClientModeActive : ""}`}
-          onClick={() => setMode("code")}
-        >
-          Má FitPilot účet
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "manual"}
-          className={`${styles.addClientModeBtn} ${mode === "manual" ? styles.addClientModeActive : ""}`}
-          onClick={() => setMode("manual")}
-        >
-          Ešte nemá účet
-        </button>
+      {/* Prepínač + otáznik s vysvetlením zvolenej cesty (InfoTip) v jednom riadku. */}
+      <div className={styles.addClientModesRow}>
+        <div className={styles.addClientModes} role="tablist" aria-label="Ako pridať klienta">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "code"}
+            className={`${styles.addClientModeBtn} ${mode === "code" ? styles.addClientModeActive : ""}`}
+            onClick={() => setMode("code")}
+          >
+            Má FitPilot účet
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "manual"}
+            className={`${styles.addClientModeBtn} ${mode === "manual" ? styles.addClientModeActive : ""}`}
+            onClick={() => setMode("manual")}
+          >
+            Ešte nemá účet
+          </button>
+        </div>
+        {mode === "code" ? (
+          <InfoTip title="Klient s FitPilot účtom">
+            Klient si nájde svoj kód v appke v <strong>Profile</strong> a pošle ti ho. Zadaj ho sem — hneď sa napojí a
+            dostane potvrdenie.
+          </InfoTip>
+        ) : (
+          <InfoTip title="Klient bez účtu">
+            Vytvoríme mu záznam a vygenerujeme kód, ktorý si klient nárokuje pri registrácii.
+          </InfoTip>
+        )}
       </div>
 
       {mode === "code" ? (
         <form action={codeAction}>
-          <p className={styles.addClientHint}>
-            Klient si nájde svoj kód v appke v <strong>Profile</strong> a pošle ti ho. Zadaj ho sem — hneď sa napojí a
-            dostane potvrdenie.
-          </p>
           <div className={styles.addClientFields}>
             <input
               name="code"
@@ -163,9 +175,6 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
             });
           }}
         >
-          <p className={styles.addClientHint}>
-            Vytvoríme mu záznam a vygenerujeme kód, ktorý si klient nárokuje pri registrácii.
-          </p>
           <div className={styles.addClientFields}>
             <input name="full_name" type="text" placeholder="Meno a priezvisko" required disabled={manualPending} className={styles.addClientInput} />
             <input name="goal" type="text" placeholder="Cieľ (napr. chudnutie)" disabled={manualPending} className={styles.addClientInput} />

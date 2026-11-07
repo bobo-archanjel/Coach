@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   saveWorkoutPlanAsTemplate,
@@ -11,6 +10,7 @@ import {
   applyMealTemplateToClient,
   deleteMealTemplate,
 } from "@/lib/templates";
+import { addPlanRecipients, areTrainerClients, MAX_PLAN_CLIENTS, uniqueClientIds } from "@/lib/planRecipients";
 
 export interface ActionState {
   error: string | null;
@@ -37,7 +37,7 @@ export async function saveWorkoutTemplateAction(_prevState: ActionState, formDat
   return ok;
 }
 
-/** "Uložiť ako šablónu" na detaile jedálničku (`/dashboard/vyziva/jedalnicek/[planId]`). */
+/** "Uložiť ako šablónu" na detaile jedálničku (`/dashboard/jedalnicky/jedalnicek/[planId]`). */
 export async function saveMealTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
   const {
@@ -56,44 +56,55 @@ export async function saveMealTemplateAction(_prevState: ActionState, formData: 
   return ok;
 }
 
-/** "Použiť pre klienta" — vytvorí bežný koncept plánu zo šablóny a rovno presmeruje do buildera. */
-export async function applyWorkoutTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
-
-  const templateId = (formData.get("template_id") as string | null) ?? "";
-  const clientId = (formData.get("client_id") as string | null) ?? "";
-  if (!templateId) return { error: "Chýba šablóna." };
-  if (!clientId) return { error: "Vyber klienta." };
-
-  const result = await applyWorkoutTemplateToClient(supabase, user.id, templateId, clientId);
-  if (result.error || !result.planId) return { error: result.error ?? "Plán sa nepodarilo vytvoriť." };
-
-  revalidatePath("/dashboard/treningy");
-  redirect(`/dashboard/treningy/${result.planId}`);
+export interface ApplyToClientsResult {
+  error: string | null;
+  /** builder vytvoreného konceptu (tréningový plán / jedálniček) */
+  href: string | null;
 }
 
-/** "Použiť pre klienta" — jedálničkový variant, vytvorí koncept (0044), klient ho uvidí až po zverejnení. */
-export async function applyMealTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+/**
+ * „Použiť“ šablónu pre jedného alebo viacerých klientov — vznikne JEDEN koncept (pre prvého
+ * vybraného klienta) a ostatní sa uložia ako jeho ďalší príjemcovia (0052). Tréner koncept
+ * upraví v builderi; pri odoslaní dostane každý príjemca vlastnú kópiu (lib/planRecipients).
+ * Vlastníctvo šablóny aj klientov overuje applyWorkout/MealTemplateToClient a RLS.
+ */
+export async function applyTemplateToClientsAction(
+  kind: "workout" | "meal",
+  templateId: string,
+  clientIds: string[],
+): Promise<ApplyToClientsResult> {
+  const fail = (error: string): ApplyToClientsResult => ({ error, href: null });
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return fail("Nie si prihlásený.");
+  if (!templateId) return fail("Chýba šablóna.");
+  const ids = uniqueClientIds(clientIds);
+  if (ids.length === 0) return fail("Vyber aspoň jedného klienta.");
+  if (ids.length > MAX_PLAN_CLIENTS) return fail(`Naraz najviac ${MAX_PLAN_CLIENTS} klientov.`);
 
-  const templateId = (formData.get("template_id") as string | null) ?? "";
-  const clientId = (formData.get("client_id") as string | null) ?? "";
-  if (!templateId) return { error: "Chýba šablóna." };
-  if (!clientId) return { error: "Vyber klienta." };
+  const [mainClientId, ...others] = ids;
+  if (!(await areTrainerClients(supabase, user.id, others))) return fail("Niektorý z vybraných klientov nepatrí tebe.");
 
-  const result = await applyMealTemplateToClient(supabase, user.id, templateId, clientId);
-  if (result.error || !result.planId) return { error: result.error ?? "Jedálniček sa nepodarilo vytvoriť." };
+  const applied =
+    kind === "workout"
+      ? await applyWorkoutTemplateToClient(supabase, user.id, templateId, mainClientId)
+      : await applyMealTemplateToClient(supabase, user.id, templateId, mainClientId);
+  if (applied.error || !applied.planId) return fail(applied.error ?? "Koncept sa nepodarilo vytvoriť.");
 
-  revalidatePath("/dashboard/vyziva");
-  redirect(`/dashboard/vyziva/jedalnicek/${result.planId}`);
+  const recipientsError = await addPlanRecipients(supabase, user.id, kind, applied.planId, others);
+  if (recipientsError) {
+    // bez príjemcov by koncept dostal len prvý klient — radšej nič a jasná chyba
+    await supabase.from(kind === "workout" ? "workout_plans" : "meal_plans").delete().eq("id", applied.planId);
+    return fail(`Ďalších klientov sa nepodarilo pridať: ${recipientsError}`);
+  }
+
+  revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/jedalnicky");
+  return {
+    error: null,
+    href: kind === "workout" ? `/dashboard/treningy/${applied.planId}` : `/dashboard/jedalnicky/jedalnicek/${applied.planId}`,
+  };
 }
 
 export async function deleteWorkoutTemplateAction(templateId: string): Promise<void> {

@@ -9,6 +9,7 @@
 // ani k surovým textom — len hotové čísla. Bez perzistencie (počíta sa nanovo pri
 // každom kliku), vlastný denný rate-limit per tréner (lib/ai/rateLimit.ts).
 
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
@@ -126,15 +127,19 @@ export async function generateRosterSummary(
     const summary =
       textBlock && textBlock.type === "text" ? stripMarkdown(textBlock.text) : "Nepodarilo sa vygenerovať zhrnutie.";
 
-    await logAiUsage({
-      trainerId: params.trainerId,
-      clientId: null,
-      kind: "roster_summary",
-      model: AI_MODEL.PROGRESS_SUMMARY,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      reservationId: slot.reservationId,
-    });
+    // zápis spotreby až po odoslaní odpovede (after) — zhrnutie na neho nečaká
+    const usage = response.usage;
+    after(() =>
+      logAiUsage({
+        trainerId: params.trainerId,
+        clientId: null,
+        kind: "roster_summary",
+        model: AI_MODEL.PROGRESS_SUMMARY,
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+        reservationId: slot.reservationId,
+      }),
+    );
 
     return { status: "ok", summary };
   } catch (err) {

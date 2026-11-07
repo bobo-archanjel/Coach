@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { cancelOwnDeletionAction, requestOwnDeletionAction } from "../actions";
-import styles from "../portal.module.css";
+import portalStyles from "../portal.module.css";
+import { useSkinStyles } from "../../components/uiSkin";
 
 const GRACE_DAYS = 30;
 
@@ -24,6 +25,7 @@ export function DeleteAccountSection({
   requestedAt: string | null;
   requestedBy: "trainer" | "client" | null;
 }) {
+  const styles = useSkinStyles("portal", portalStyles);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -63,7 +65,7 @@ export function DeleteAccountSection({
             30 dní (dá sa zrušiť), potom sa natrvalo odstránia.
           </p>
           <div className={styles.dzActions}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={request} disabled={pending}>
+            <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={request} disabled={pending}>
               Áno, zmazať
             </button>
             <button
@@ -77,7 +79,7 @@ export function DeleteAccountSection({
           </div>
         </>
       ) : (
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
+        <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
           Požiadať o zmazanie mojich dát
         </button>
       )}
