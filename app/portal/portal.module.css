@@ -2260,14 +2260,6 @@
   font-size: 13px;
   margin-top: 10px;
 }
-.oldDesignLink {
-  display: inline-flex;
-  margin-top: 12px;
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--accent-text);
-  text-decoration: none;
-}
 .signOut {
   display: flex;
   justify-content: center;

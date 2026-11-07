@@ -254,8 +254,8 @@
   background: var(--surface-solid);
   border-color: var(--fill-strong);
 }
-/* mazanie a nevratné akcie: značka .btn-danger (štýl má len v6 — pôvodný dizajn ju
-   ignoruje). Potvrdenie plnou červenou, prvý krok červeným textom. */
+/* mazanie a nevratné akcie: značka .btn-danger (štýl len pod koreňom v6 — prihlásenie
+   v pôvodnom vzhľade ju nepoužíva). Potvrdenie plnou červenou, prvý krok červeným textom. */
 .root :global(.btn-primary.btn-danger),
 .root :global(.btn-primary.btn-danger:hover) {
   background: var(--danger-grad);

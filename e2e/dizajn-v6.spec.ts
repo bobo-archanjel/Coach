@@ -37,9 +37,11 @@ test.describe("jeden dizajn po prihlásení", () => {
       await page.goto(path);
       await expect(page.locator("[data-v6-root]"), path).toHaveCount(1);
     }
-    // Nastavenia už neponúkajú návrat na pôvodný dizajn
-    await page.goto("/dashboard/klienti/x?preview=progress");
-    await expect(page.getByText("Prepnúť na pôvodný dizajn")).toHaveCount(0);
+    // nikde už nie je návrat na pôvodný dizajn (Nastavenia trénera, Profil klienta)
+    for (const path of ["/dashboard/nastavenia", "/portal/profil?preview=ok"]) {
+      await page.goto(path);
+      await expect(page.getByText(/pôvodný dizajn/i), path).toHaveCount(0);
+    }
   });
 
   test("prihlasovacie stránky ostávajú: /prihlasenie pôvodný vzhľad, /v6design/prihlasenie nový", async ({ page }) => {

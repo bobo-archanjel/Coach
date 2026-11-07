@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { SignOutButton } from "@/app/components/SignOutButton";
 import { DeleteAccountSection } from "@/app/portal/profil/DeleteAccountSection";
@@ -29,9 +28,6 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
           <p className={s.panelLabel}>Vzhľad</p>
           <ThemeSwitch initial={theme} />
           <p className={s.hint}>Auto prepína svetlú a tmavú tému podľa nastavenia telefónu.</p>
-          <Link href="/portal" className={s.oldDesignLink}>
-            Prepnúť na pôvodný dizajn →
-          </Link>
         </div>
 
         <div className={s.panel}>
