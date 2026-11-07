@@ -1,9 +1,10 @@
-// FitPilot — export jedálničku do PDF (feature/funkcionalita). Rovnaký vzor ako
+// FitPilot — export jedálničku do PDF (feature/funkcionalita, vzhľad v6). Rovnaký vzor ako
 // planReport.ts (tréningový plán): čistá funkcia nad už načítanými dátami, žiadne
 // volanie Supabase — route handler ich načíta a prepošle.
 
-import { createPdfContext, PdfWriter, truncate, type TableColumn } from "./document";
+import { createPdfContext, MACRO_COLORS, PdfWriter, signed, type TableColumn, type TableRow } from "./document";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import { pluralSk } from "@/lib/portal/streak";
 
 /** Tvar položky v meal_days.meals (JSONB), viď MealEntry v app/dashboard/jedalnicky/jedalnicek/actions.ts. */
 export interface MealPlanReportEntry {
@@ -31,21 +32,17 @@ export interface MealPlanReportInput {
 
 const COLUMNS: TableColumn[] = [
   { text: "Potravina", width: 200 },
-  { text: "Gramáž", width: 65, align: "right" },
-  { text: "kcal", width: 55, align: "right" },
-  { text: "B", width: 50, align: "right" },
-  { text: "S", width: 50, align: "right" },
-  { text: "T", width: 50, align: "right" },
+  { text: "Gramáž", width: 60, align: "right" },
+  { text: "kcal", width: 50, align: "right" },
+  { text: "B", width: 45, align: "right" },
+  { text: "S", width: 45, align: "right" },
+  { text: "T", width: 45, align: "right" },
 ];
 
-// Súčet šírok = COLUMNS (470), nech nákupný zoznam lícuje s tabuľkami dní.
 const SHOPPING_COLUMNS: TableColumn[] = [
   { text: "Potravina", width: 370 },
   { text: "Spolu", width: 100, align: "right" },
 ];
-
-/** Miesto, ktoré musí zostať na strane, aby sa nadpis nezačal osamote (nadpis + hlavička + ~3 riadky). */
-const KEEP_TOGETHER = 130;
 
 const num = (v: number | undefined) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
@@ -79,69 +76,66 @@ export function buildShoppingList(days: MealPlanReportDay[]): { name: string; gr
 
 export async function generateMealPlanPdf(input: MealPlanReportInput): Promise<Uint8Array> {
   const ctx = await createPdfContext();
-  const w = new PdfWriter(ctx);
+  const w = new PdfWriter(ctx, "Jedálniček");
 
-  w.heading(truncate(input.planName, 60));
-  w.meta(`Klient: ${input.clientName}  ·  Vygenerované: ${new Date().toLocaleDateString("sk-SK")}`);
+  w.title({ title: input.planName, meta: [`Klient: ${input.clientName}`] });
+
   if (input.goal) {
-    w.meta(
-      `Denný cieľ: ${input.goal.caloriesTarget} kcal · ${input.goal.proteinG} g bielkoviny · ${input.goal.carbsG} g sacharidy · ${input.goal.fatG} g tuky`,
-    );
+    w.tiles([
+      { label: "Denný cieľ", value: `${input.goal.caloriesTarget} kcal` },
+      { label: "Bielkoviny", value: `${input.goal.proteinG} g`, dot: MACRO_COLORS.protein },
+      { label: "Sacharidy", value: `${input.goal.carbsG} g`, dot: MACRO_COLORS.carbs },
+      { label: "Tuky", value: `${input.goal.fatG} g`, dot: MACRO_COLORS.fat },
+    ]);
   }
 
   if (input.days.length === 0) {
-    w.text("Jedálniček zatiaľ nemá žiadne dni.", { dim: true });
+    w.tableCard({ title: "Jedálniček zatiaľ nemá žiadne dni", columns: COLUMNS, rows: [], empty: "Pridaj dni a jedlá v builderi jedálnička." });
   }
 
   for (const day of input.days) {
-    w.reserve(KEEP_TOGETHER);
-    w.section(truncate(day.name, 70));
-
-    const rows: string[][] = [];
+    const rows: TableRow[] = [];
     for (const slot of MEAL_SLOT_ORDER) {
       const items = day.meals.filter((e) => e.meal_slot === slot);
       if (items.length === 0) continue;
-      rows.push([MEAL_SLOT_LABELS[slot].toUpperCase(), "", "", "", "", ""]);
+      rows.push({ group: MEAL_SLOT_LABELS[slot] });
       for (const e of items) {
         const m = macrosOf(e);
-        rows.push([
-          truncate(e.food_name ?? "Potravina", 34),
-          `${num(e.grams)} g`,
-          String(m.kcal),
-          `${m.proteinG}`,
-          `${m.carbsG}`,
-          `${m.fatG}`,
-        ]);
+        rows.push({
+          cells: [e.food_name ?? "Potravina", `${num(e.grams)} g`, String(m.kcal), `${m.proteinG}`, `${m.carbsG}`, `${m.fatG}`],
+        });
       }
     }
 
-    if (rows.length === 0) {
-      w.text("Tento deň zatiaľ nemá žiadne jedlá.", { dim: true });
-      continue;
-    }
-
-    w.table(COLUMNS, rows);
-
     const total = sumMacros(day.meals.map(macrosOf));
-    w.text(`Súčet dňa: ${total.kcal} kcal · B ${total.proteinG} g · S ${total.carbsG} g · T ${total.fatG} g`);
-    if (input.goal) {
-      const diff = total.kcal - input.goal.caloriesTarget;
-      w.text(`Oproti cieľu: ${diff > 0 ? "+" : ""}${diff} kcal`, { dim: true });
-    }
+    const count = day.meals.length;
+    w.tableCard({
+      title: day.name,
+      aside: count > 0 ? `${count} ${pluralSk(count, "položka", "položky", "položiek")}` : undefined,
+      columns: COLUMNS,
+      rows,
+      empty: "Tento deň zatiaľ nemá žiadne jedlá.",
+      footer: {
+        chips: [
+          { text: `${total.kcal} kcal`, accent: true },
+          { text: `B ${total.proteinG} g`, dot: MACRO_COLORS.protein },
+          { text: `S ${total.carbsG} g`, dot: MACRO_COLORS.carbs },
+          { text: `T ${total.fatG} g`, dot: MACRO_COLORS.fat },
+        ],
+        note: input.goal ? `Oproti cieľu ${signed(total.kcal - input.goal.caloriesTarget)} kcal` : undefined,
+      },
+    });
   }
 
   const shopping = buildShoppingList(input.days);
   if (shopping.length > 0) {
-    w.reserve(KEEP_TOGETHER);
-    w.section("Nákupný zoznam");
-    w.text("Súčet všetkých dní jedálnička, každý deň raz. Ak sa dni striedajú, nakupuj podľa toho, ktoré ti vychádzajú.", {
-      dim: true,
-      size: 9.5,
+    w.tableCard({
+      title: "Nákupný zoznam",
+      aside: `${shopping.length} ${pluralSk(shopping.length, "položka", "položky", "položiek")}`,
+      subtitle: "Súčet všetkých dní jedálnička, každý deň raz. Ak sa dni striedajú, nakupuj podľa toho, ktoré ti vychádzajú.",
+      columns: SHOPPING_COLUMNS,
+      rows: shopping.map((s) => ({ cells: [s.name, `${Math.round(s.grams)} g`] })),
     });
-    w.table(
-      SHOPPING_COLUMNS,
-      shopping.map((s) => [truncate(s.name, 48), `${Math.round(s.grams)} g`]),
-    );
   }
 
   return w.bytes();

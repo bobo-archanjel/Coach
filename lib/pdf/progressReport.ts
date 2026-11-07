@@ -1,10 +1,10 @@
-// FitPilot — export progresu klienta do PDF (feature/export-dat). Rovnaké zdroje
+// FitPilot — export progresu klienta do PDF (feature/export-dat, vzhľad v6). Rovnaké zdroje
 // dát ako AI zhrnutie (lib/ai/progressSummary.ts) — len iný výstup (report na
 // stiahnutie/vytlačenie/poslanie klientovi mimo appky), nič nové sa nepočíta.
 
 import type { NutritionAdherence, TrainingAdherence } from "@/lib/dashboard/adherence";
 import type { BodyMetricEntry, StrengthPoint } from "@/lib/dashboard/bodyMetrics";
-import { createPdfContext, PdfWriter, truncate, type TableColumn } from "./document";
+import { createPdfContext, PdfWriter, skDate, type TableColumn, type Tile } from "./document";
 
 export interface ProgressReportInput {
   clientName: string;
@@ -16,71 +16,72 @@ export interface ProgressReportInput {
 }
 
 const WEIGHT_COLUMNS: TableColumn[] = [
-  { text: "Dátum", width: 150 },
-  { text: "Váha", width: 100, align: "right" },
+  { text: "Dátum", width: 300, strong: false },
+  { text: "Váha", width: 170, align: "right" },
 ];
 
 const STRENGTH_COLUMNS: TableColumn[] = [
-  { text: "Dátum", width: 130 },
-  { text: "Záťaž", width: 100 },
+  { text: "Dátum", width: 230, strong: false },
+  { text: "Záťaž", width: 120, align: "right" },
   { text: "Opakovania", width: 120, align: "right" },
 ];
 
 export async function generateProgressPdf(input: ProgressReportInput): Promise<Uint8Array> {
   const ctx = await createPdfContext();
-  const w = new PdfWriter(ctx);
+  const w = new PdfWriter(ctx, "Progres klienta");
 
-  w.heading(`Progres — ${truncate(input.clientName, 50)}`);
-  w.meta(`Vygenerované: ${new Date().toLocaleDateString("sk-SK")}`);
+  w.title({ title: input.clientName, meta: ["Adherencia tréningu a stravy, váha a silový progres"] });
 
-  w.section("Adherencia tréningu");
-  if (input.trainingAdherence) {
-    w.text(
-      `30 dní: ${input.trainingAdherence.window30.pct} % (${input.trainingAdherence.window30.trainedDays}/${input.trainingAdherence.window30.totalDays} dní)`,
+  const tiles: Tile[] = [];
+  const t = input.trainingAdherence;
+  if (t) {
+    tiles.push(
+      { label: "Tréning · 30 dní", value: `${t.window30.pct} %`, sub: `${t.window30.trainedDays}/${t.window30.totalDays} dní` },
+      { label: "Tréning · 90 dní", value: `${t.window90.pct} %`, sub: `${t.window90.trainedDays}/${t.window90.totalDays} dní` },
     );
-    w.text(
-      `90 dní: ${input.trainingAdherence.window90.pct} % (${input.trainingAdherence.window90.trainedDays}/${input.trainingAdherence.window90.totalDays} dní)`,
+  }
+  const n = input.nutritionAdherence;
+  if (n?.hasGoal) {
+    tiles.push(
+      { label: "Strava · 30 dní", value: `${n.window30.pct} %`, sub: `cieľ ${n.kcalGoal} kcal/deň` },
+      { label: "Strava · 90 dní", value: `${n.window90.pct} %`, sub: `cieľ ${n.kcalGoal} kcal/deň` },
     );
-  } else {
-    w.text("Nedostupné.", { dim: true });
+  }
+  w.tiles(tiles);
+  if (!t || !n?.hasGoal) {
+    const missing = [!t && "Adherencia tréningu je nedostupná.", !n?.hasGoal && "Klient nemá nastavený makro cieľ — adherencia stravy sa nepočíta."]
+      .filter(Boolean)
+      .join(" ");
+    w.tableCard({ title: "Adherencia", columns: WEIGHT_COLUMNS, rows: [], empty: missing });
   }
 
-  w.section("Adherencia stravy");
-  if (input.nutritionAdherence?.hasGoal) {
-    w.text(`Kalorický cieľ: ${input.nutritionAdherence.kcalGoal} kcal/deň`);
-    w.text(`30 dní: ${input.nutritionAdherence.window30.pct} %`);
-    w.text(`90 dní: ${input.nutritionAdherence.window90.pct} %`);
-  } else {
-    w.text("Klient nemá nastavený makro cieľ.", { dim: true });
-  }
-
-  w.section("História váhy");
   const withWeight = input.bodyMetrics.filter((m) => m.weightKg != null);
-  if (withWeight.length > 0) {
-    // Najnovšie navrchu — čitateľnejšie pri dlhšej histórii ako scroll od najstaršieho.
-    const rows = [...withWeight].reverse().slice(0, 40);
-    w.table(
-      WEIGHT_COLUMNS,
-      rows.map((m) => [m.measuredOn, `${m.weightKg} kg`]),
-    );
-  } else {
-    w.text("Zatiaľ žiadne merania.", { dim: true });
-  }
+  // Najnovšie navrchu — čitateľnejšie pri dlhšej histórii ako scroll od najstaršieho.
+  const weightRows = [...withWeight].reverse().slice(0, 40);
+  const first = withWeight[0]?.weightKg;
+  const latest = withWeight[withWeight.length - 1]?.weightKg;
+  const delta = first != null && latest != null ? Math.round((latest - first) * 10) / 10 : null;
+  w.tableCard({
+    title: "História váhy",
+    aside: delta != null && withWeight.length > 1 ? `zmena ${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)} kg` : undefined,
+    columns: WEIGHT_COLUMNS,
+    rows: weightRows.map((m) => ({ cells: [skDate(m.measuredOn), `${m.weightKg} kg`] })),
+    empty: "Zatiaľ žiadne merania.",
+  });
 
   const strengthEntries = input.strengthNames
     .map((name) => ({ name, points: input.strengthByExercise[name] ?? [] }))
     .filter((e) => e.points.length > 0);
 
-  if (strengthEntries.length > 0) {
-    w.section("Silový progres");
-    for (const { name, points } of strengthEntries) {
-      w.subtext(truncate(name, 60));
-      const rows = [...points].reverse().slice(0, 15);
-      w.table(
-        STRENGTH_COLUMNS,
-        rows.map((p) => [p.date, `${p.bestWeightKg} kg`, String(p.reps)]),
-      );
-    }
+  if (strengthEntries.length > 0) w.section("Silový progres");
+  for (const { name, points } of strengthEntries) {
+    const best = Math.max(...points.map((p) => p.bestWeightKg));
+    w.tableCard({
+      title: name,
+      aside: `max ${best} kg`,
+      columns: STRENGTH_COLUMNS,
+      rows: [...points].reverse().slice(0, 15).map((p) => ({ cells: [skDate(p.date), `${p.bestWeightKg} kg`, String(p.reps)] })),
+    });
   }
 
   return w.bytes();
