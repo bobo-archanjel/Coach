@@ -9,6 +9,8 @@ import { searchOpenFoodFacts } from "@/lib/openFoodFacts";
 import { allowWithinWindow } from "@/lib/rateLimitMemory";
 import type { PortalFoodOption, PortalWeekResult } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
+import { isValidReps, isValidWeight } from "@/lib/workouts/setInput";
+import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
 
 export interface ActionState {
   error: string | null;
@@ -192,43 +194,69 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
   return ok;
 }
 
-/** Tvar jedného riadku, ako ho posiela LogWorkoutButton (JSON v skrytom poli "entries"). */
-type IncomingSet = { reps: number | null; weight: number | null };
-type IncomingExercise = { entryId: string | null; name: string; sets: IncomingSet[] };
+/** Tvar jedného riadku, ako ho posiela LogWorkoutButton (JSON v skrytom poli "entries").
+ *  Čas/vzdialenosť/RPE série sú voliteľné — formulár ich zatiaľ neposiela, ale ak prídu,
+ *  uložia sa a tréner ich uvidí v detaile dokončeného tréningu (lib/workouts/completed.ts). */
+type IncomingSet = {
+  reps: number | null;
+  weight: number | null;
+  durationS?: number;
+  distanceM?: number;
+  rpe?: number;
+};
+type IncomingExercise = { entryId: string | null; name: string; note?: string; sets: IncomingSet[] };
+
+/** Voliteľné číslo: chýba/null → null, platné → číslo, čokoľvek iné → INVALID. */
+const INVALID = Symbol("invalid");
+function optionalSetNum(v: unknown, valid: (n: number) => boolean): number | null | typeof INVALID {
+  if (v === undefined || v === null) return null;
+  return typeof v === "number" && Number.isFinite(v) && valid(v) ? v : INVALID;
+}
 
 /**
- * Vyčistí klientom poslané entries pred zápisom — orežie na rozumné rozsahy a
- * zahodí cviky bez ijednej vyplnenej série (klient ich nezadal, netreba ukladať
- * prázdne polia).
+ * Overí a vyčistí klientom poslané entries pred zápisom. Neplatná hodnota (záporná
+ * váha, 9999 opakovaní, desatinné opakovania…) celý zápis ODMIETNE — dokončený
+ * tréning je zamknutý (0048), ticho orezaná hodnota by sa už nedala opraviť.
+ * Pravidlá pre opakovania/váhu zdieľa formulár (lib/workouts/setInput.ts).
+ * Cviky bez jedinej série aj bez poznámky sa neukladajú. `null` = neplatný vstup.
  */
-function sanitizeEntries(raw: unknown): IncomingExercise[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((entry): IncomingExercise | null => {
-      if (!entry || typeof entry !== "object") return null;
-      const e = entry as Record<string, unknown>;
-      const name = typeof e.name === "string" ? e.name.trim() : "";
-      const sets = Array.isArray(e.sets)
-        ? e.sets
-            .map((s): IncomingSet | null => {
-              if (!s || typeof s !== "object") return null;
-              const row = s as Record<string, unknown>;
-              const reps = typeof row.reps === "number" && Number.isFinite(row.reps) ? Math.max(0, Math.min(999, row.reps)) : null;
-              const weight =
-                typeof row.weight === "number" && Number.isFinite(row.weight) ? Math.max(0, Math.min(1000, row.weight)) : null;
-              if (reps === null && weight === null) return null;
-              return { reps, weight };
-            })
-            .filter((s): s is IncomingSet => s !== null)
-        : [];
-      if (sets.length === 0) return null;
-      return {
-        entryId: typeof e.entryId === "string" ? e.entryId : null,
-        name: name || "Cvik",
-        sets,
-      };
-    })
-    .filter((e): e is IncomingExercise => e !== null);
+function sanitizeEntries(raw: unknown): IncomingExercise[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: IncomingExercise[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") return null;
+    const e = entry as Record<string, unknown>;
+    const name = typeof e.name === "string" ? e.name.trim() : "";
+    const note = typeof e.note === "string" ? e.note.trim().slice(0, 500) : "";
+    const sets: IncomingSet[] = [];
+    for (const s of Array.isArray(e.sets) ? e.sets : []) {
+      if (!s || typeof s !== "object") return null;
+      const row = s as Record<string, unknown>;
+      const reps = row.reps ?? null;
+      const weight = row.weight ?? null;
+      if (!isValidReps(reps) || !isValidWeight(weight)) return null;
+      const durationS = optionalSetNum(row.durationS, (n) => n >= 0 && n <= 24 * 3600);
+      const distanceM = optionalSetNum(row.distanceM, (n) => n >= 0 && n <= 1_000_000);
+      const rpe = optionalSetNum(row.rpe, (n) => n >= 1 && n <= 10);
+      if (durationS === INVALID || distanceM === INVALID || rpe === INVALID) return null;
+      if ([reps, weight, durationS, distanceM, rpe].every((v) => v === null)) continue;
+      sets.push({
+        reps: reps as number | null,
+        weight: weight as number | null,
+        ...(durationS !== null && { durationS }),
+        ...(distanceM !== null && { distanceM }),
+        ...(rpe !== null && { rpe }),
+      });
+    }
+    if (sets.length === 0 && !note) continue;
+    out.push({
+      entryId: typeof e.entryId === "string" ? e.entryId : null,
+      name: name || "Cvik",
+      ...(note && { note }),
+      sets,
+    });
+  }
+  return out;
 }
 
 /**
@@ -238,6 +266,10 @@ function sanitizeEntries(raw: unknown): IncomingExercise[] {
  * stĺpec existoval už predtým, len sa doteraz zapisoval prázdny). RLS už
  * dovoľuje klientovi vkladať vlastné logy (workout_logs_insert_own_client);
  * tréner ich vidí cez workout_logs_select_own_trainer bez ďalšej zmeny.
+ *
+ * Od 0048 je vložený riadok hneď `status = 'completed'`: DB trigger doplní
+ * `completed_at` a `plan_snapshot` (kópiu plánu dňa pre porovnanie plán/realita)
+ * a odvtedy záznam nejde zmeniť ani zmazať — klientom, trénerom ani priamo cez API.
  */
 export async function finishWorkoutAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
@@ -249,15 +281,21 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   const dayId = formData.get("day_id") as string | null;
   if (!dayId) return { error: "Chýba deň tréningu." };
 
-  let entries: IncomingExercise[] = [];
+  let entries: IncomingExercise[] | null = [];
   const rawEntries = formData.get("entries") as string | null;
   if (rawEntries) {
     try {
       entries = sanitizeEntries(JSON.parse(rawEntries));
     } catch {
-      entries = [];
+      entries = null;
     }
   }
+  // Predtým sa neplatný vstup ticho zahodil/orezal a uložil — dnes by ostal zamknutý.
+  if (entries === null) return { error: "Niektorá zapísaná hodnota nie je platná — skontroluj série a skús to znova." };
+
+  const rpeRaw = Number(formData.get("rpe"));
+  const rpe = Number.isInteger(rpeRaw) && rpeRaw >= 1 && rpeRaw <= 10 ? rpeRaw : null;
+  const note = ((formData.get("note") as string | null) ?? "").trim().slice(0, 1000) || null;
 
   const { data: client } = await supabase
     .from("clients")
@@ -276,6 +314,9 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
       client_id: client.id,
       workout_day_id: dayId,
       entries,
+      rpe,
+      note,
+      status: "completed",
     }),
     // Deň je zalogovaný (nanovo alebo už bol dnes skôr) — explicitný výber dňa
     // zo sekcie Tréning (clients.active_day_id, 0022) sa tým spotreboval, ďalší
@@ -285,9 +326,15 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   ]);
 
   if (error) {
-    // unique index (client_id, workout_day_id, performed_on) — dnes už zapísané,
-    // netreba to hlásiť ako chybu (napr. druhý klik po pomalej sieti).
-    if (error.code !== "23505") return { error: dbErr(error, "actions") };
+    // unique index (client_id, workout_day_id, performed_on) — tento deň je dnes už
+    // zapísaný (napr. ukončený v inom tabe). Predtým sa to ticho ignorovalo a hodnoty
+    // z tohto pokusu sa stratili pri hlásení úspechu; zapísaný záznam je zamknutý,
+    // takže ich treba klientovi výslovne nechať (koncept v prehliadači ostáva).
+    if (error.code === "23505") {
+      revalidatePath("/portal", "layout");
+      return { error: "Tento tréning už máš dnes zapísaný — tieto hodnoty sa neuložili. Obnov stránku a pozri si uložený záznam." };
+    }
+    return { error: dbErr(error, "actions") };
   }
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
@@ -298,48 +345,53 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
 }
 
 /**
- * "Upraviť hodnoty" — klient po dokončení dňa zistí, že sa preklikol alebo si
- * zle zapamätal váhu, a opraví si zapísané série (bez znovuotvorenia celého
- * "Začať/Ukončiť" flow — deň už je splnený, mení sa len obsah `entries`).
- * RLS `workout_logs_update_own_client` (0003) toto klientovi už dovoľuje.
- * Cieľový riadok = najnovší log pre (klient, deň) — táto akcia sa volá len
- * z pohľadu na DNEŠNÝ dokončený deň, takže je to vždy dnešný záznam bez
- * nutnosti duplikovať výpočet "dnešného dátumu" v TZ Europe/Bratislava.
+ * "Upraviť hodnoty" — klient opraví zapísané série/RPE/poznámky dokončeného
+ * tréningu, najviac 24 h po ukončení (0049). Okno aj to, že sa mení LEN
+ * entries/rpe/note, vynucuje DB (trigger + RLS); tu len validácia vstupu
+ * rovnaká ako pri ukončení a zrozumiteľná hláška, keď okno uplynulo.
  */
-export async function updateWorkoutLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateWorkoutLogAction(input: {
+  logId: string;
+  entries: string;
+  rpe: string;
+  note: string;
+}): Promise<ActionState> {
+  if (!input.logId) return { error: "Chýba záznam tréningu." };
+
+  let entries: IncomingExercise[] | null;
+  try {
+    entries = sanitizeEntries(JSON.parse(input.entries));
+  } catch {
+    entries = null;
+  }
+  if (entries === null) return { error: "Niektorá zapísaná hodnota nie je platná — skontroluj série a skús to znova." };
+
+  const rpeRaw = Number(input.rpe);
+  const rpe = input.rpe && Number.isInteger(rpeRaw) && rpeRaw >= 1 && rpeRaw <= 10 ? rpeRaw : null;
+  const note = input.note.trim().slice(0, 1000) || null;
+
   const supabase = await createClient();
-  const clientId = await currentClientId(supabase);
-  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
-
-  const dayId = formData.get("day_id") as string | null;
-  if (!dayId) return { error: "Chýba deň tréningu." };
-
-  let entries: IncomingExercise[] = [];
-  const rawEntries = formData.get("entries") as string | null;
-  if (rawEntries) {
-    try {
-      entries = sanitizeEntries(JSON.parse(rawEntries));
-    } catch {
-      entries = [];
-    }
+  // RLS workout_logs_update_own_client: len vlastný záznam a len v 24 h okne —
+  // mimo neho vráti 0 riadkov (nie chybu), preto .select() a kontrola počtu.
+  const { data, error } = await supabase
+    .from("workout_logs")
+    .update({ entries, rpe, note })
+    .eq("id", input.logId)
+    .select("id");
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data || data.length === 0) {
+    return { error: "Hodnoty sa dajú upraviť len 24 hodín po ukončení tréningu." };
   }
 
-  const { data: existing, error: findErr } = await supabase
-    .from("workout_logs")
-    .select("id")
-    .eq("client_id", clientId)
-    .eq("workout_day_id", dayId)
-    .order("performed_on", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (findErr) return { error: dbErr(findErr, "actions") };
-  if (!existing) return { error: "Nenašiel sa žiadny záznam na úpravu — skús obnoviť stránku." };
-
-  const { error } = await supabase.from("workout_logs").update({ entries }).eq("id", existing.id);
-  if (error) return { error: dbErr(error, "actions") };
-
   revalidatePath("/portal", "layout");
+  // tréner vidí opravené hodnoty (a štítok "Upravené") v detaile tréningu
+  revalidatePath("/dashboard", "layout");
   return ok;
+}
+
+/** Dnešný dátum (YYYY-MM-DD) v Europe/Bratislava — rovnako ako todayInTz v lib/portal/data.ts. */
+function todayBratislava(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bratislava" }).format(new Date());
 }
 
 /**
@@ -360,6 +412,24 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 
   if (!MEAL_SLOT_ORDER.includes(slot as (typeof MEAL_SLOT_ORDER)[number])) return { error: "Vyber jedlo dňa." };
   if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: "Zadaj gramáž (1–5000 g)." };
+
+  // Zápis aj za iný deň (QA 2026-09-23) — rovnaký povolený rozsah ako zobrazenie.
+  const today = todayBratislava();
+  const eatenOnRaw = (formData.get("eaten_on") as string | null) || today;
+  const eatenOn = validDiaryDate(eatenOnRaw, today);
+  if (!eatenOn) return { error: `Zapisovať sa dá len za posledných ${DIARY_MAX_DAYS_BACK} dní, nie do budúcnosti.` };
+
+  // Vlastná potravina (custom=1): názov a makrá zadáva klient, žiadny food_id —
+  // preto ich tu overíme, nie len `|| 0` ako pri snapshote z plánu/online.
+  if (formData.get("custom") === "1") {
+    if (!name || name.length > 120) return { error: "Zadaj názov potraviny (max 120 znakov)." };
+    if (((formData.get("kcal_100g") as string | null) ?? "").trim() === "") return { error: "Zadaj kalórie na 100 g." };
+    const vals = ["kcal_100g", "protein_100g", "carbs_100g", "fat_100g"].map((k) => Number(formData.get(k)));
+    if (vals.some((v) => !Number.isFinite(v) || v < 0)) return { error: "Makrá musia byť čísla 0 alebo viac." };
+    const [kcal, protein, carbs, fat] = vals;
+    if (kcal > 900) return { error: "Kalórie na 100 g môžu byť najviac 900." };
+    if (protein + carbs + fat > 100) return { error: "Bielkoviny, sacharidy a tuky spolu nemôžu mať viac ako 100 g na 100 g." };
+  }
 
   // Autoritatívne makrá z DB; fallback na snapshot z formulára.
   let macros = {
@@ -391,6 +461,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 
   const { error } = await supabase.from("food_logs").insert({
     client_id: clientId,
+    eaten_on: eatenOn,
     meal_slot: slot,
     food_id: foodId,
     food_name: foodName,
@@ -399,6 +470,31 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
   });
 
   if (error) return { error: dbErr(error, "actions") };
+
+  revalidatePath("/portal/dennik");
+  return ok;
+}
+
+/** Denník — zmena gramáže / jedla dňa zapísanej položky (RLS: food_logs_update_own_client, 0045). */
+export async function updateFoodLogAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+
+  const id = formData.get("entry_id") as string | null;
+  const grams = Number(formData.get("grams"));
+  if (!id) return { error: "Chýba identifikátor záznamu." };
+  if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: "Zadaj gramáž (1–5000 g)." };
+
+  const { data, error } = await supabase
+    .from("food_logs")
+    .update({ grams })
+    .eq("id", id)
+    .eq("client_id", clientId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data) return { error: "Záznam sa nenašiel." };
 
   revalidatePath("/portal/dennik");
   return ok;

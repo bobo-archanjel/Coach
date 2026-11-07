@@ -1,5 +1,6 @@
 import { AppLink as Link } from "../components/AppLink";
 import { getPortalData } from "@/lib/portal/data";
+import { pluralSk } from "@/lib/portal/streak";
 import type { PortalData, PortalResult } from "@/lib/portal/types";
 import { DoneWorkoutView } from "./DoneWorkoutView";
 import { ProfileIcon, TrainingIcon } from "./icons";
@@ -177,13 +178,29 @@ function previewResult(kind: string): PortalResult | null {
     case "unlinked":
       return { state: "unlinked", firstName: "Ján" };
     case "no_plan":
-      return { state: "no_plan", firstName: "Ján", hasTrainer: true };
+      return { state: "no_plan", firstName: "Ján", hasTrainer: true, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
     case "no_plan_solo":
-      return { state: "no_plan", firstName: "Ján", hasTrainer: false };
+      return { state: "no_plan", firstName: "Ján", hasTrainer: false, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
     case "error":
       return { state: "error" };
     case "ok":
       return { state: "ok", data: PREVIEW_DATA };
+    case "complete":
+      return {
+        state: "ok",
+        data: {
+          ...PREVIEW_DATA,
+          session: {
+            ...PREVIEW_DATA.session,
+            kind: "complete",
+            title: "Silový 3× týždenne",
+            exercises: [],
+            loggedExercises: null,
+            completedCount: 3,
+            dayId: null,
+          },
+        },
+      };
     case "done":
       return {
         state: "ok",
@@ -195,8 +212,13 @@ function previewResult(kind: string): PortalResult | null {
             completedCount: PREVIEW_DATA.session.exercises.length,
             loggedExercises: [
               { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
-              { entryId: "p2", name: "Rumunský mŕtvy ťah", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
+              { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
             ],
+            completedAt: new Date().toISOString(),
+            logId: "preview-log",
+            editableUntil: new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString(),
+            sessionRpe: 8,
+            sessionNote: "Dobrý tréning, koleno OK.",
           },
         },
       };
@@ -260,30 +282,39 @@ export default async function PortalHome({
   }
 
   if (result.state === "no_plan") {
+    // Zápis telesnej miery nezávisí od tréningového plánu (QA nález #3) — Notice
+    // o chýbajúcom pláne sa zobrazí ako predtým, ale BodyMetricForm pod ňou
+    // funguje bez ohľadu na to, či/kedy tréner (alebo klient sám) plán vytvorí.
     if (!result.hasTrainer) {
       return (
-        <Notice
-          icon={<TrainingIcon />}
-          title={result.firstName ? `${result.firstName}, poďme na to` : "Poďme na to"}
-          action={
-            <Link href="/portal/trening" className="btn btn-primary btn-sm">
-              Vytvoriť plán
-            </Link>
-          }
-        >
-          Zatiaľ nemáš tréningový plán. Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi
-          a plán ti pripraví on.
-        </Notice>
+        <>
+          <Notice
+            icon={<TrainingIcon />}
+            title={result.firstName ? `${result.firstName}, poďme na to` : "Poďme na to"}
+            action={
+              <Link href="/portal/trening" className="btn btn-primary btn-sm">
+                Vytvoriť plán
+              </Link>
+            }
+          >
+            Zatiaľ nemáš tréningový plán. Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi
+            a plán ti pripraví on.
+          </Notice>
+          <BodyMetricForm today={result.today} history={result.bodyMetrics} />
+        </>
       );
     }
     return (
-      <Notice
-        icon={<TrainingIcon />}
-        title={result.firstName ? `${result.firstName}, plán je na ceste` : "Plán je na ceste"}
-      >
-        Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví,
-        nájdeš tu dnešný tréning aj prehľad týždňa.
-      </Notice>
+      <>
+        <Notice
+          icon={<TrainingIcon />}
+          title={result.firstName ? `${result.firstName}, plán je na ceste` : "Plán je na ceste"}
+        >
+          Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví,
+          nájdeš tu dnešný tréning aj prehľad týždňa.
+        </Notice>
+        <BodyMetricForm today={result.today} history={result.bodyMetrics} />
+      </>
     );
   }
 
@@ -353,7 +384,7 @@ function PortalToday({ data }: { data: PortalData }) {
               {coachNote.initials}
             </span>
             <div>
-              <p className={styles.noteFrom}>Tréner {coachNote.trainer}</p>
+              <p className={styles.noteFrom}>{coachNote.trainer ? `Tréner ${coachNote.trainer}` : "Tréner"}</p>
               <p className={styles.noteText}>{coachNote.text}</p>
             </div>
           </div>
@@ -370,6 +401,22 @@ function PortalToday({ data }: { data: PortalData }) {
       </section>
 
       {/* 2 · práca — ďalší tréning v poradí (rotácia, nie pevný rozvrh podľa dňa v týždni) */}
+      {session.kind === "complete" ? (
+        // Plán je jednorazový — všetky dni odcvičené, žiadny ďalší "Začať tréning".
+        <section className={styles.session} aria-label="Tréningový plán hotový">
+          <div className={styles.sessionTop}>
+            <ProgressRing done={session.completedCount} total={session.completedCount} />
+            <div>
+              <h2 className={styles.sessionTitle}>Plán máš hotový</h2>
+              <p className={styles.sessionFocus}>{session.title}</p>
+            </div>
+          </div>
+          <p className={styles.doneMark}>
+            <CheckIcon /> Odcvičil si všetky dni plánu. Ďalší ti pripraví tréner — alebo si vytvor vlastný v sekcii
+            Tréning.
+          </p>
+        </section>
+      ) : (
       <section className={styles.session} aria-label="Ďalší tréning">
         <div className={styles.sessionTop}>
           <ProgressRing done={session.completedCount} total={total} />
@@ -377,7 +424,9 @@ function PortalToday({ data }: { data: PortalData }) {
             <h2 className={styles.sessionTitle}>{session.title}</h2>
             {session.focus && <p className={styles.sessionFocus}>{session.focus}</p>}
             <div className={styles.sessionChips}>
-              <span className={styles.chip}>{total} cvikov</span>
+              <span className={styles.chip}>
+                {total} {pluralSk(total, "cvik", "cviky", "cvikov")}
+              </span>
               {session.durationLabel && <span className={styles.chip}>{session.durationLabel}</span>}
             </div>
           </div>
@@ -390,10 +439,17 @@ function PortalToday({ data }: { data: PortalData }) {
         )}
 
         {session.kind === "done" && session.dayId && (
-          // Vrátiť sa do tréningu = vidieť (a prípadne opraviť) to, čo si naozaj
-          // zapísal (Fáza B), nie znovu ponúkaný plán — inak by "hotovo" a zoznam
-          // pod tým vyzerali, akoby ešte len čakal na odcvičenie.
-          <DoneWorkoutView dayId={session.dayId} exercises={session.exercises} loggedExercises={session.loggedExercises} />
+          // Vrátiť sa do tréningu = vidieť to, čo si naozaj zapísal (Fáza B), nie
+          // znovu ponúkaný plán. Od 0048 len na čítanie — záznam je zamknutý v DB.
+          <DoneWorkoutView
+            loggedExercises={session.loggedExercises}
+            completedAt={session.completedAt}
+            sessionRpe={session.sessionRpe}
+            sessionNote={session.sessionNote}
+            logId={session.logId}
+            editableUntil={session.editableUntil}
+            exercises={session.exercises}
+          />
         )}
 
         {/* Rozpis cvikov pred začatím sa tu už nezobrazuje (revízia 2026-09) —
@@ -401,9 +457,11 @@ function PortalToday({ data }: { data: PortalData }) {
             má zostať prehľad (ring, názov, počet cvikov), nie duplicitný rozpis. */}
 
         {session.kind === "training" && session.dayId && (
-          <LogWorkoutButton dayId={session.dayId} exercises={session.exercises} />
+          // key: iný deň = nový stav formulára (koncept aj riadky sú viazané na deň)
+          <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} />
         )}
       </section>
+      )}
 
       {/* Plávajúce stopky / časovač pauzy — ikona dole sa objaví po "Začať tréning",
           zmizne po ukončení. Fixne pozicované, miesto v strome je len logické. */}
@@ -413,6 +471,11 @@ function PortalToday({ data }: { data: PortalData }) {
 
       {/* 3 · dozvuk */}
       <section className={styles.after} aria-label="Prehľad">
+        <div className={styles.panel}>
+          <p className={styles.panelLabel}>Meranie</p>
+          <BodyMetricForm today={today} history={bodyMetrics} />
+        </div>
+
         <div className={styles.panel}>
           <p className={styles.panelLabel}>Odcvičené spolu</p>
           <div className={styles.streakHead}>
@@ -425,11 +488,6 @@ function PortalToday({ data }: { data: PortalData }) {
             ))}
           </div>
           <StreakRow streaks={streaks} />
-        </div>
-
-        <div className={styles.panel}>
-          <p className={styles.panelLabel}>Meranie</p>
-          <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
 
         <WeekHistory initial={week} />

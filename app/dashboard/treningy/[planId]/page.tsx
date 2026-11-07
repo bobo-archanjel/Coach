@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { PlanBuilder } from "./PlanBuilder";
-import { PublishControl } from "./PublishControl";
-import { SaveTemplateForm } from "../../sablony/SaveTemplateForm";
+import { PublishActions, PublishBadge } from "./PublishControl";
+import { WorkoutTemplateTop } from "../../sablony/WorkoutTemplateControls";
+import { PlanTitle } from "./PlanTitle";
+import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
+import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import styles from "../../dashboard.module.css";
 
 const BackIcon = () => (
@@ -27,6 +30,11 @@ const PREVIEW_DAYS = [
   { id: "d4", day_number: 4, name: "Deň 4 — Horná časť tela (silový mix) a core", exercises: ["Plank", "Mŕtvy ťah"].map((n, i) => previewEntry(i + 30, n)) },
 ];
 
+const PREVIEW_LIBRARY = [
+  { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [] },
+  { id: "lib2", name: "Farmer's Walk", name_sk: "Farmárska chôdza", muscle_group: "predlaktia", image_url: [] },
+];
+
 export default async function PlanDetailPage({
   params,
   searchParams,
@@ -37,7 +45,14 @@ export default async function PlanDetailPage({
   const { planId } = await params;
   const { preview } = await searchParams;
 
-  if (preview === "builder" && process.env.NODE_ENV === "development") {
+  // ?preview=builder_empty — nový plán bez dní (hláška pri kliku na cvik bez dňa).
+  // ?preview=builder_live — publikovaný plán (dole "Zmazať" vedľa PDF).
+  if (
+    (preview === "builder" || preview === "builder_empty" || preview === "builder_live") &&
+    process.env.NODE_ENV === "development"
+  ) {
+    const livePreview = preview === "builder_live";
+
     // Knižnica cvikov v náhľade bola predtým prázdna (`library: []`) — appka
     // nemá anonymný prístup k `exercises` (migrácia 0036 zrušila anon grant),
     // takže bez session by dopyt cez bežný klient vrátil nič. Globálne cviky
@@ -45,7 +60,7 @@ export default async function PlanDetailPage({
     // dev-only náhľad (marketingové screenshoty/nahrávky s reálnymi obrázkami
     // cvikov) čítame service-role klientom — nikdy v mene konkrétneho
     // používateľa, len globálnu knižnicu, a len za NODE_ENV=development.
-    let previewLibrary: ExerciseLibraryRow[] = [];
+    let previewLibrary: ExerciseLibraryRow[] = PREVIEW_LIBRARY;
     const admin = tryCreateAdminClient();
     if (admin) {
       const { data } = await admin
@@ -55,7 +70,7 @@ export default async function PlanDetailPage({
         .not("image_url", "eq", "{}")
         .order("name")
         .limit(40);
-      previewLibrary = (data ?? []) as ExerciseLibraryRow[];
+      if (data && data.length > 0) previewLibrary = data as ExerciseLibraryRow[];
     }
     return (
       <>
@@ -64,13 +79,24 @@ export default async function PlanDetailPage({
           Späť na tréningy
         </Link>
         <div className={styles.detailHead}>
-          <div>
-            <h1>AI plán — hypertrofia</h1>
+          <div className={styles.detailTitle}>
+            <PlanTitle planId={planId} name="AI plán — hypertrofia" />
             <div className={styles.clientGoal}>Ján Novák</div>
           </div>
-          <PublishControl planId={planId} published={false} />
+          <PublishBadge published={livePreview} />
         </div>
-        <PlanBuilder planId={planId} days={PREVIEW_DAYS} library={previewLibrary} />
+        <div className={styles.planActions}>
+          <PublishActions planId={planId} published={livePreview} />
+        </div>
+        <PlanBuilder
+          planId={planId}
+          days={preview === "builder_empty" ? [] : PREVIEW_DAYS}
+          library={previewLibrary}
+          completedDayIds={["d2"]}
+        />
+        <div className={styles.planFooterActions}>
+          <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted />
+        </div>
       </>
     );
   }
@@ -79,7 +105,7 @@ export default async function PlanDetailPage({
 
   // `plan`, `days` aj `exercises` berú `planId`/nič z route parametra — nezávislé,
   // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
-  const [{ data: plan }, { data: days }, { data: exercises }] = await Promise.all([
+  const [{ data: plan }, { data: days }, { data: exercises }, { data: completedLogs }] = await Promise.all([
     supabase
       .from("workout_plans")
       // Explicitná FK: odkedy má `clients` aj `active_plan_id → workout_plans`
@@ -91,6 +117,15 @@ export default async function PlanDetailPage({
       .maybeSingle(),
     supabase.from("workout_days").select("id, day_number, name, exercises").eq("plan_id", planId).order("day_number"),
     supabase.from("exercises").select("id, name, name_sk, muscle_group, image_url").order("name"),
+    // Odcvičené tréningy z tohto plánu — podľa snapshotu (0048), nie workout_day_id,
+    // aby sa ukázali aj po zmazaní dňa. Zamknuté, každý má vlastný detail plán/realita.
+    supabase
+      .from("workout_logs")
+      .select("id, completed_at, performed_on, plan_snapshot")
+      .eq("plan_snapshot->>plan_id", planId)
+      .eq("status", "completed")
+      .order("completed_at", { ascending: false })
+      .limit(20),
   ]);
 
   if (!plan) {
@@ -107,23 +142,66 @@ export default async function PlanDetailPage({
       </Link>
 
       <div className={styles.detailHead}>
-        <div>
-          <h1>{plan.name}</h1>
+        <div className={styles.detailTitle}>
+          <PlanTitle planId={planId} name={plan.name} />
           <div className={styles.clientGoal}>
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
         </div>
-        <PublishControl planId={planId} published={plan.published} />
+        <PublishBadge published={plan.published} />
       </div>
 
-      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <SaveTemplateForm kind="workout" planId={planId} defaultName={plan.name} />
-        <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-          Stiahnuť PDF
-        </a>
+      {/* Publikovanie aj šablóna v rovnakej 2-stĺpcovej mriežke pod sebou — súmerné tlačidlá. */}
+      <div className={styles.planActions}>
+        <PublishActions planId={planId} published={plan.published} />
+        <WorkoutTemplateTop planId={planId} defaultName={plan.name} />
       </div>
 
-      <PlanBuilder planId={planId} days={days ?? []} library={exercises ?? []} />
+      {completedLogs && completedLogs.length > 0 && (
+        <p className={styles.planLockedHint}>
+          Klient už z tohto plánu cvičil. Úpravy sa prejavia len v ďalších tréningoch — odcvičené tréningy ostávajú
+          uložené presne tak, ako ich klient zapísal.
+        </p>
+      )}
+
+      <PlanBuilder
+        planId={planId}
+        days={days ?? []}
+        library={exercises ?? []}
+        completedDayIds={(completedLogs ?? [])
+          .map((l) => parsePlanSnapshot(l.plan_snapshot)?.dayId)
+          .filter((id): id is string => Boolean(id))}
+      />
+
+      {completedLogs && completedLogs.length > 0 && (
+        <section className={styles.card} style={{ marginTop: 20 }}>
+          <h3>Odcvičené tréningy</h3>
+          <div className={styles.roster}>
+            {completedLogs.map((log) => (
+              <Link
+                key={log.id}
+                href={`/dashboard/klienti/${plan.client_id}/treningy/${log.id}`}
+                className={styles.logLinkRow}
+              >
+                <span className={styles.clientName}>{parsePlanSnapshot(log.plan_snapshot)?.dayName ?? "Tréning"}</span>
+                <span className={`${styles.statusChip} ${styles.active}`}>
+                  Dokončený – {formatCompletedDate(log.completed_at ?? `${log.performed_on}T12:00:00Z`)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
+      <div className={styles.planFooterActions}>
+        <PlanFooterActions
+          planId={planId}
+          planName={plan.name}
+          published={plan.published}
+          hasCompleted={(completedLogs?.length ?? 0) > 0}
+        />
+      </div>
     </>
   );
 }

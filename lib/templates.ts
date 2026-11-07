@@ -169,7 +169,8 @@ export async function applyMealTemplateToClient(
 
   const { data: newPlan, error: planErr } = await supabase
     .from("meal_plans")
-    .insert({ client_id: clientId, trainer_id: trainerId, name: template.name })
+    // Koncept (0044) — klient ho uvidí až po zverejnení v builderi.
+    .insert({ client_id: clientId, trainer_id: trainerId, name: template.name, published: false })
     .select("id")
     .single();
   if (planErr || !newPlan) return { error: planErr?.message ?? "Jedálniček sa nepodarilo vytvoriť.", planId: null };

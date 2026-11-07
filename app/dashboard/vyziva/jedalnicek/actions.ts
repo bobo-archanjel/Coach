@@ -40,7 +40,8 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
 
   const { data, error } = await supabase
     .from("meal_plans")
-    .insert({ client_id: clientId, trainer_id: user.id, name })
+    // Koncept — klient ho uvidí až po "Potvrdiť a zverejniť" (0044).
+    .insert({ client_id: clientId, trainer_id: user.id, name, published: false })
     .select("id")
     .single();
 
@@ -48,6 +49,118 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
 
   revalidatePath(`/dashboard/vyziva/${clientId}`);
   redirect(`/dashboard/vyziva/jedalnicek/${data.id}`);
+}
+
+/** Zverejnenie jedálnička — kým je koncept, klient ho v portáli nevidí (0044). */
+export async function publishMealPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const planId = formData.get("plan_id") as string | null;
+  if (!planId) return { error: "Chýba ID jedálnička." };
+
+  const { data, error } = await supabase
+    .from("meal_plans")
+    .update({ published: true })
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .select("client_id")
+    .maybeSingle();
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data) return { error: "Jedálniček sa nenašiel." };
+
+  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
+  revalidatePath(`/dashboard/vyziva/${data.client_id}`);
+  return ok;
+}
+
+/**
+ * Zmazanie jedálnička (aj zverejneného — na rozdiel od tréningového plánu tu
+ * nevisí história odcvičených tréningov; denník jedla je v food_logs, ten ostáva).
+ * UI pýta dvojkrokové potvrdenie. meal_days zmaže kaskáda.
+ */
+export async function deleteMealPlanAction(planId: string): Promise<ActionState> {
+  if (!planId) return { error: "Chýba ID jedálnička." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const { data: plan } = await supabase
+    .from("meal_plans")
+    .select("client_id")
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .maybeSingle();
+  if (!plan) return { error: "Jedálniček sa nenašiel." };
+
+  const { error } = await supabase.from("meal_plans").delete().eq("id", planId).eq("trainer_id", user.id);
+  if (error) return { error: dbErr(error, "actions") };
+
+  revalidatePath(`/dashboard/vyziva/${plan.client_id}`);
+  redirect(`/dashboard/vyziva/${plan.client_id}`);
+}
+
+export async function renameMealPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Nie si prihlásený." };
+
+  const planId = formData.get("plan_id") as string | null;
+  const name = (formData.get("name") as string | null)?.trim() ?? "";
+  if (!planId) return { error: "Chýba ID jedálnička." };
+  if (!name) return { error: "Zadaj názov jedálnička." };
+
+  const { data, error } = await supabase
+    .from("meal_plans")
+    .update({ name })
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .select("client_id")
+    .maybeSingle();
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data) return { error: "Jedálniček sa nenašiel." };
+
+  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
+  revalidatePath(`/dashboard/vyziva/${data.client_id}`);
+  return ok;
+}
+
+export async function renameMealDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const supabase = await createClient();
+  const dayId = formData.get("day_id") as string | null;
+  const planId = formData.get("plan_id") as string | null;
+  const name = (formData.get("name") as string | null)?.trim() ?? "";
+
+  if (!dayId || !planId) return { error: "Chýba identifikátor dňa." };
+  if (!name) return { error: "Zadaj názov dňa." };
+
+  // RLS (meal_days_update_own_trainer) pustí len deň vlastného jedálnička.
+  const { data, error } = await supabase.from("meal_days").update({ name }).eq("id", dayId).select("id").maybeSingle();
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data) return { error: "Deň sa nenašiel." };
+
+  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
+  return ok;
+}
+
+export async function deleteMealDayAction(dayId: string, planId: string): Promise<ActionState> {
+  if (!dayId || !planId) return { error: "Chýba identifikátor dňa." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("meal_days").delete().eq("id", dayId).select("id").maybeSingle();
+  if (error) return { error: dbErr(error, "actions") };
+  if (!data) return { error: "Deň sa nenašiel." };
+
+  revalidatePath(`/dashboard/vyziva/jedalnicek/${planId}`);
+  return ok;
 }
 
 export async function addMealDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {

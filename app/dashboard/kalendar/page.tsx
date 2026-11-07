@@ -6,6 +6,7 @@ import styles from "../dashboard.module.css";
 
 interface AppointmentRow_ {
   id: string;
+  client_id: string;
   title: string;
   starts_at: string;
   ends_at: string | null;
@@ -23,6 +24,11 @@ function dateKeyBratislava(d: Date): string {
   }).formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+/** HH:MM v Europe/Bratislava — rovnaký formát ako <input type="time">. */
+function timeBratislava(iso: string): string {
+  return new Date(iso).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Bratislava" });
 }
 
 function dayGroupLabel(dateKey: string, todayKey: string, tomorrowKey: string): string {
@@ -46,7 +52,7 @@ export default async function KalendarPage() {
     supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
     supabase
       .from("appointments")
-      .select("id, title, starts_at, ends_at, note, clients(full_name)")
+      .select("id, client_id, title, starts_at, ends_at, note, clients(full_name)")
       .eq("trainer_id", user.id)
       .gte("starts_at", nowIso)
       .order("starts_at", { ascending: true })
@@ -77,7 +83,7 @@ export default async function KalendarPage() {
         <p>Voľné termíny s klientmi — konzultácie, tréningy alebo čokoľvek mimo bežného tréningového plánu.</p>
       </div>
 
-      <div className={styles.card} style={{ marginBottom: 20 }}>
+      <div className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginBottom: 20 }}>
         <h3>Nový termín</h3>
         <AddAppointmentForm clients={clients ?? []} />
       </div>
@@ -85,22 +91,27 @@ export default async function KalendarPage() {
       {groups.length > 0 ? (
         <div className={styles.cardStack}>
           {groups.map((group) => (
-            <div key={group.key} className={styles.card}>
+            <div key={group.key} className={`${styles.card} ${styles.cardFlatMobile}`}>
               <h3>{group.label}</h3>
               <div className={styles.appointmentList}>
                 {group.items.map((a) => (
                   <AppointmentRow
                     key={a.id}
                     id={a.id}
-                    time={new Date(a.starts_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" })}
-                    endTime={
-                      a.ends_at
-                        ? new Date(a.ends_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" })
-                        : null
-                    }
+                    time={timeBratislava(a.starts_at)}
+                    endTime={a.ends_at ? timeBratislava(a.ends_at) : null}
                     title={a.title}
                     clientName={a.clients?.full_name ?? "?"}
                     note={a.note}
+                    clients={clients ?? []}
+                    editValues={{
+                      client_id: a.client_id,
+                      title: a.title,
+                      date: dateKeyBratislava(new Date(a.starts_at)),
+                      time: timeBratislava(a.starts_at),
+                      end_time: a.ends_at ? timeBratislava(a.ends_at) : "",
+                      note: a.note ?? "",
+                    }}
                   />
                 ))}
               </div>
@@ -110,7 +121,7 @@ export default async function KalendarPage() {
       ) : (
         <div className={styles.emptyState}>
           <h2>Žiadne nadchádzajúce termíny</h2>
-          <p>Pridaj prvý termín vyššie.</p>
+          <p>{(clients ?? []).length > 0 ? "Pridaj prvý termín cez formulár „Nový termín“." : "Najprv pridaj klienta na stránke Klienti."}</p>
         </div>
       )}
     </>

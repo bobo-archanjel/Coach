@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { pluralSk } from "@/lib/portal/streak";
 import styles from "./dashboard.module.css";
 
 export interface LineChartPoint {
@@ -15,6 +16,16 @@ export interface LineChartPoint {
  * názov karty ju nesie), preto len tenká čiara + priamy label na poslednom bode
  * + hover crosshair s tooltipom. Recesívna mriežka (len baseline), žiadne osi.
  */
+/** Skutočný rozsah hodnôt (nie umelo rozšírený rozsah osi) — na 1 desatinné miesto,
+ * inak 78.1 a 78.4 dali "78–78". Rovnaké hodnoty = jedno číslo. */
+function rangeLabel(values: number[]): string {
+  if (values.length === 0) return "";
+  const fmt = (v: number) => String(Math.round(v * 10) / 10);
+  const lo = fmt(Math.min(...values));
+  const hi = fmt(Math.max(...values));
+  return lo === hi ? lo : `${lo}–${hi}`;
+}
+
 export function LineChart({
   points,
   unit,
@@ -36,8 +47,8 @@ export function LineChart({
   const padTop = 20;
   const padBottom = 8;
 
-  const { path, areaPath, coords, min, max } = useMemo(() => {
-    if (points.length === 0) return { path: "", areaPath: "", coords: [] as { x: number; y: number }[], min: 0, max: 0 };
+  const { path, areaPath, coords } = useMemo(() => {
+    if (points.length === 0) return { path: "", areaPath: "", coords: [] as { x: number; y: number }[] };
     const values = points.map((p) => p.value);
     let lo = Math.min(...values);
     let hi = Math.max(...values);
@@ -55,7 +66,7 @@ export function LineChart({
     }));
     const path = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" ");
     const areaPath = `${path} L${coords[coords.length - 1].x.toFixed(1)},${H - padBottom} L${coords[0].x.toFixed(1)},${H - padBottom} Z`;
-    return { path, areaPath, coords, min: lo, max: hi };
+    return { path, areaPath, coords };
   }, [points, H, padTop, padBottom]);
 
   if (points.length === 0) {
@@ -142,7 +153,8 @@ export function LineChart({
       )}
 
       <p className={styles.chartRange}>
-        {Math.round(min)}–{Math.round(max)} {unit} · {points.length} záznamov
+        {rangeLabel(points.map((p) => p.value))} {unit} · {points.length}{" "}
+        {pluralSk(points.length, "záznam", "záznamy", "záznamov")}
       </p>
     </div>
   );

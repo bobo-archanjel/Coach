@@ -22,8 +22,12 @@ export function SaveTemplateForm({ kind, planId, defaultName }: { kind: "workout
   return (
     <form action={formAction} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       <input type="hidden" name="plan_id" value={planId} />
+      {/* Rôzne `key`: bez nich React pri "Iný názov" znovupoužije ten istý <input>
+          a prepne ho z controlled (hidden, value) na uncontrolled (defaultValue) —
+          console error "changing a controlled input to be uncontrolled". */}
       {renaming ? (
         <input
+          key="name-edit"
           type="text"
           name="name"
           defaultValue={defaultName}
@@ -33,11 +37,11 @@ export function SaveTemplateForm({ kind, planId, defaultName }: { kind: "workout
           style={{ maxWidth: 220 }}
         />
       ) : (
-        <input type="hidden" name="name" value={defaultName} />
+        <input key="name-hidden" type="hidden" name="name" value={defaultName} />
       )}
       {kind === "workout" && (
         <select name="goal" disabled={pending} className={styles.addClientInput} defaultValue="" style={{ maxWidth: 170 }}>
-          <option value="">Bez cieľa (filter)</option>
+          <option value="">Bez cieľa</option>
           {PLAN_GOALS.map((g) => (
             <option key={g} value={g}>
               {PLAN_GOAL_LABEL_SK[g]}

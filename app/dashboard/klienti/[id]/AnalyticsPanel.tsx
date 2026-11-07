@@ -4,6 +4,7 @@ import type { BodyMetricEntry, StrengthPoint, StrengthPR } from "@/lib/dashboard
 import { BodyMetricsCard } from "./BodyMetricsCard";
 import { StrengthCard } from "./StrengthCard";
 import { ProgressSummaryCard } from "./ProgressSummaryCard";
+import { pluralSk } from "@/lib/portal/streak";
 import styles from "../../dashboard.module.css";
 
 /** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
@@ -112,7 +113,8 @@ export function AnalyticsPanel({
                 <div className={styles.adherenceWindowRow}>
                   <span>
                     30 dní: <strong>{planPct30?.pct != null ? `${planPct30.pct} %` : "—"}</strong> (
-                    {planPct30?.sessionsScored ?? 0} tréningov)
+                    {planPct30?.sessionsScored ?? 0}{" "}
+                    {pluralSk(planPct30?.sessionsScored ?? 0, "tréning", "tréningy", "tréningov")})
                   </span>
                   <span>
                     90 dní:{" "}
@@ -121,7 +123,8 @@ export function AnalyticsPanel({
                         ? `${trainingAdherence.planCompletion.window90.pct} %`
                         : "—"}
                     </strong>{" "}
-                    ({trainingAdherence.planCompletion.window90.sessionsScored} tréningov)
+                    ({trainingAdherence.planCompletion.window90.sessionsScored}{" "}
+                    {pluralSk(trainingAdherence.planCompletion.window90.sessionsScored, "tréning", "tréningy", "tréningov")})
                   </span>
                 </div>
                 <p className={styles.adherenceHint}>
@@ -148,7 +151,7 @@ export function AnalyticsPanel({
       </div>
 
       <div className={styles.card}>
-        <h3>Trekovanie jedálnička</h3>
+        <h3>Sledovanie jedálnička</h3>
         {nutrition ? (
           <>
             <h4 className={styles.cardSubhead}>Makro cieľ</h4>

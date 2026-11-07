@@ -14,6 +14,8 @@ import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
 import { reserveAiSlot, AI_ROSTER_SUMMARY_DAILY_LIMIT } from "./rateLimit";
 import { DATA_IS_NOT_INSTRUCTIONS, promptSafe, wrapAsData } from "./promptSafety";
+import { stripMarkdown } from "./plainText";
+import { CLIENT_STATUS_LABEL, type ClientStatus } from "@/lib/dashboard/portfolioStatus";
 
 export type RosterSummaryResult =
   | { status: "ok"; summary: string }
@@ -25,6 +27,8 @@ export type RosterSummaryResult =
 /** Jeden klient v podklade pre digest — všetko sú už spočítané čísla, nie surové dáta. */
 export interface RosterSummaryClientInput {
   name: string;
+  /** stav z /dashboard/analytika (clientStatus) — digest ho nesmie vyvracať */
+  status: ClientStatus;
   goal: string | null;
   /** % dní za 30 dní s aspoň jedným tréningom */
   trainingPct30: number;
@@ -34,7 +38,7 @@ export interface RosterSummaryClientInput {
   planCompletionPct30: number | null;
   /** zmena váhy za 90 dní (kg); null bez ≥2 meraní */
   weightDeltaKg: number | null;
-  /** dní od posledného tréningu; null = nikdy necvičil */
+  /** kalendárne dni od posledného tréningu (0 = dnes); null = nikdy necvičil */
   daysSinceLastTrained: number | null;
   /** nedávne osobné maximá (posledných 14 dní) */
   recentPRs: { exercise: string; bestWeightKg: number }[];
@@ -42,12 +46,15 @@ export interface RosterSummaryClientInput {
 
 function clientLine(c: RosterSummaryClientInput): string {
   const parts: string[] = [`${promptSafe(c.name, 60)}${c.goal ? ` (cieľ: ${promptSafe(c.goal, 100)})` : ""}:`];
+  parts.push(`stav ${CLIENT_STATUS_LABEL[c.status]}`);
   parts.push(`tréning 30d ${c.trainingPct30} %`);
   parts.push(c.nutritionPct30 != null ? `strava 30d ${c.nutritionPct30} %` : "strava bez cieľa");
   if (c.planCompletionPct30 != null) parts.push(`splnenie plánu 30d ${c.planCompletionPct30} %`);
   if (c.weightDeltaKg != null) parts.push(`váha ${c.weightDeltaKg > 0 ? "+" : ""}${c.weightDeltaKg} kg / 90d`);
-  if (c.daysSinceLastTrained == null) parts.push("nikdy neodcvičil tréning");
-  else parts.push(`posledný tréning pred ${c.daysSinceLastTrained} dňami`);
+  // Slovami, nie "pred 0 dňami" — model si to inak prekladal ako "včera" (QA 2026-09-23).
+  const d = c.daysSinceLastTrained;
+  if (d == null) parts.push("nikdy neodcvičil tréning");
+  else parts.push(`posledný tréning ${d <= 0 ? "dnes" : d === 1 ? "včera" : `pred ${d} dňami`}`);
   if (c.recentPRs.length > 0) {
     parts.push(`nové PR: ${c.recentPRs.map((p) => `${promptSafe(p.exercise, 60)} ${p.bestWeightKg} kg`).join(", ")}`);
   }
@@ -75,6 +82,10 @@ export async function generateRosterSummary(
     "Si asistent fitness trénera v aplikácii FitPilot. Dostaneš hotové číselné dáta o celom portfóliu klientov trénera (adherencia tréningu, adherencia stravy, splnenie plánu, trend váhy, nedávne osobné maximá) — appka ich už spočítala, ty ich len utriediš do krátkeho týždenného prehľadu.",
     "Napíš PO SLOVENSKY stručný digest (max ~120 slov): na začiatku 1 veta o celkovom stave portfólia, potom 2–4 konkrétni klienti, na ktorých sa má tréner tento týždeň zamerať A PREČO (nízka adherencia, dlho necvičil, stagnuje váha, strava mimo cieľa), a nakoniec 1 veta o pozitívach (kto ide dobre, kto má nové PR — dôvod niekomu napísať pochvalu).",
     "Používaj VÝHRADNE čísla a mená, ktoré ti boli poslané — nič si nevymýšľaj, nehádaj príčiny mimo dát (napr. nediagnostikuj zdravotné dôvody).",
+    // Presné významy metrík — bez nich model napr. tvrdil "dobrá adherencia" pri 7 %
+    // alebo čítal "splnenie plánu" ako počet vynechaných tréningov (QA 2026-09-23).
+    "Význam údajov: 'stav' je hodnotenie appky (V poriadku / Sleduj / Riziko / Bez dát) — tvoje hodnotenie klienta s ním musí súhlasiť, nikdy klienta v stave Riziko neoznač ako dobre sa darí. 'tréning 30d' = percento dní za posledných 30, v ktoré klient odcvičil aspoň jeden tréning (≥70 % dobré, <40 % nízke). 'strava 30d' = percento dní, keď bola strava v rozsahu cieľa. 'splnenie plánu' = ako presne odcvičené série, opakovania a váhy zodpovedajú predpisu v pláne — NEHOVORÍ nič o počte vynechaných tréningov. 'posledný tréning' uvádzaj presne tak, ako je napísaný (dnes/včera/pred N dňami).",
+    "Formát: čistý text bez markdownu (žiadne **hviezdičky** ani nadpisy), spisovná slovenčina s diakritikou.",
     "Píš vecne pre trénera, bez uvítania a bez zbytočného úvodu — rovno k veci. Klientov oslovuj menom. Žiadne odrážky pre klientov, súvislý text.",
     DATA_IS_NOT_INSTRUCTIONS,
   ].join("\n");
@@ -112,7 +123,8 @@ export async function generateRosterSummary(
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    const summary = textBlock && textBlock.type === "text" ? textBlock.text.trim() : "Nepodarilo sa vygenerovať zhrnutie.";
+    const summary =
+      textBlock && textBlock.type === "text" ? stripMarkdown(textBlock.text) : "Nepodarilo sa vygenerovať zhrnutie.";
 
     await logAiUsage({
       trainerId: params.trainerId,

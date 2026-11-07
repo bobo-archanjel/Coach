@@ -76,7 +76,7 @@ export async function applyWorkoutTemplateAction(_prevState: ActionState, formDa
   redirect(`/dashboard/treningy/${result.planId}`);
 }
 
-/** "Použiť pre klienta" — jedálničkový variant, meal_plans nemá koncept/publikovanie (viditeľné hneď). */
+/** "Použiť pre klienta" — jedálničkový variant, vytvorí koncept (0044), klient ho uvidí až po zverejnení. */
 export async function applyMealTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
   const {

@@ -1,11 +1,23 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
-import { updateWorkoutLogAction, type ActionState } from "./actions";
+import { useState } from "react";
+import type { LoggedExercise, LoggedSet, PortalExercise } from "@/lib/portal/types";
+import {
+  formatCompletedDate,
+  formatDistance,
+  formatDuration,
+  formatEditDeadline,
+  isStillEditable,
+} from "@/lib/workouts/completed";
+import { LoggedWorkoutEditor } from "./LoggedWorkoutEditor";
 import styles from "./portal.module.css";
 
-const initialState: ActionState = { error: null };
+const LockIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
 
 const PencilIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -19,190 +31,98 @@ const PencilIcon = () => (
   </svg>
 );
 
-const PlusIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-  </svg>
-);
-
-const RemoveIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-  </svg>
-);
-
-type SetRow = { reps: string; weight: string };
-
-/** Predvyplní riadky sérií skutočne zadanými hodnotami — párovanie podľa entryId,
- * s fallbackom na poradie (index), keby entryId chýbal (starší/voľne pridaný cvik). */
-function seedRows(exercises: PortalExercise[], logged: LoggedExercise[] | null): Record<number, SetRow[]> {
-  return Object.fromEntries(
-    exercises.map((ex, i) => {
-      const match = (ex.entryId && logged?.find((l) => l.entryId === ex.entryId)) || logged?.[i] || null;
-      const rows: SetRow[] =
-        match && match.sets.length > 0
-          ? match.sets.map((s) => ({
-              reps: s.reps != null ? String(s.reps) : "",
-              weight: s.weight != null ? String(s.weight) : "",
-            }))
-          : Array.from({ length: ex.plannedSets }, () => ({ reps: "", weight: "" }));
-      return [i, rows];
-    }),
-  );
+function setLabel(s: LoggedSet): string {
+  const parts: string[] = [];
+  if (s.reps != null) parts.push(`${s.reps} op.`);
+  if (s.weight != null) parts.push(`${s.weight.toLocaleString("sk-SK")} kg`);
+  if (s.durationS != null) parts.push(formatDuration(s.durationS));
+  if (s.distanceM != null) parts.push(formatDistance(s.distanceM));
+  const base = parts.join(" × ") || "—";
+  return s.rpe != null ? `${base} · RPE ${s.rpe}` : base;
 }
 
 /**
- * Zobrazenie dokončeného dňa na karte Dnes — skutočne zadané hodnoty (pilulky),
- * plus "Upraviť hodnoty" pre prípad preklepu/zabudnutej váhy. Bez zadaných hodnôt
- * (klient len odklikol) len krátka poznámka — celý plán cvikov už nezobrazujeme
- * znova (duplicita so sekciou Tréning, revízia 2026-09), forma na doplnenie
- * hodnôt sa aj tak otvára z `exercises`. Editácia nemení "hotový" stav dňa
- * (žiadne znovuotvorenie Začať/Ukončiť) — len prepíše obsah workout_logs.entries
- * cez updateWorkoutLogAction. Bez potvrdzovacieho okna (na rozdiel od Ukončiť
- * tréning) — tu ide o opravu, nie o nezvratný krok.
+ * Dokončený tréning na karte Dnes — zapísané hodnoty. 24 h po ukončení ponúka
+ * nefarebné "Upraviť hodnoty" (0049: klient zabudol sériu / preklep), potom je
+ * záznam zamknutý v DB a ostane len na čítanie.
  */
 export function DoneWorkoutView({
-  dayId,
-  exercises,
   loggedExercises,
+  completedAt,
+  sessionRpe,
+  sessionNote,
+  logId,
+  editableUntil,
+  exercises,
 }: {
-  dayId: string;
-  exercises: PortalExercise[];
   loggedExercises: LoggedExercise[] | null;
+  completedAt?: string | null;
+  sessionRpe?: number | null;
+  sessionNote?: string | null;
+  logId?: string | null;
+  editableUntil?: string | null;
+  exercises: PortalExercise[];
 }) {
   const [editing, setEditing] = useState(false);
-  const [rows, setRows] = useState<Record<number, SetRow[]>>({});
-  const [state, formAction, pending] = useActionState(updateWorkoutLogAction, initialState);
-  const wasPending = useRef(false);
+  const canEdit = !!logId && isStillEditable(editableUntil);
 
-  // Po úspešnom uložení (bez chyby) sa vráť na read-only pohľad — nové hodnoty
-  // prídu cez revalidatePath("/portal") v props zhora.
-  useEffect(() => {
-    if (wasPending.current && !pending && !state.error) setEditing(false);
-    wasPending.current = pending;
-  }, [pending, state]);
-
-  const startEdit = () => {
-    setRows(seedRows(exercises, loggedExercises));
-    setEditing(true);
-  };
-
-  if (!editing) {
+  if (editing && canEdit && logId && editableUntil) {
     return (
-      <>
-        {loggedExercises ? (
-          <div className={styles.doneExercises}>
-            {loggedExercises.map((ex, i) => (
-              <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.doneExerciseRow}>
-                <p className={styles.doneExerciseTitle}>{ex.name}</p>
-                <ol className={styles.doneSetList}>
-                  {ex.sets.map((s, j) => (
-                    <li key={j}>
-                      {s.reps != null ? `${s.reps} op.` : "—"}
-                      {s.weight != null ? ` × ${s.weight} kg` : ""}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className={styles.doneNoValues}>Zakliknuté bez zadaných hodnôt — doplň ich nižšie.</p>
-        )}
-
-        <button type="button" className={styles.editValuesBtn} onClick={startEdit}>
-          <PencilIcon /> Upraviť hodnoty
-        </button>
-      </>
+      <LoggedWorkoutEditor
+        logId={logId}
+        exercises={exercises}
+        logged={loggedExercises ?? []}
+        rpe={sessionRpe ?? null}
+        note={sessionNote ?? null}
+        editableUntil={editableUntil}
+        onClose={() => setEditing(false)}
+      />
     );
   }
 
-  const updateRow = (exIdx: number, rowIdx: number, field: keyof SetRow, value: string) => {
-    setRows((prev) => {
-      const next = [...(prev[exIdx] ?? [])];
-      next[rowIdx] = { ...next[rowIdx], [field]: value };
-      return { ...prev, [exIdx]: next };
-    });
-  };
-  const addRow = (exIdx: number) => {
-    setRows((prev) => ({ ...prev, [exIdx]: [...(prev[exIdx] ?? []), { reps: "", weight: "" }] }));
-  };
-  const removeRow = (exIdx: number, rowIdx: number) => {
-    setRows((prev) => ({ ...prev, [exIdx]: (prev[exIdx] ?? []).filter((_, i) => i !== rowIdx) }));
-  };
-
-  const entriesPayload = exercises.map((ex, i) => ({
-    entryId: ex.entryId,
-    name: ex.name,
-    sets: (rows[i] ?? [])
-      .filter((r) => r.reps.trim() !== "" || r.weight.trim() !== "")
-      .map((r) => ({
-        reps: r.reps.trim() === "" ? null : Number(r.reps),
-        weight: r.weight.trim() === "" ? null : Number(r.weight),
-      })),
-  }));
-
   return (
-    <form action={formAction} className={styles.logForm}>
-      <input type="hidden" name="day_id" value={dayId} readOnly />
-      <input type="hidden" name="entries" value={JSON.stringify(entriesPayload)} readOnly />
-
-      {exercises.map((ex, exIdx) => (
-        <div key={`${ex.idx}-${exIdx}`} className={styles.logExercise}>
-          <p className={styles.logExerciseName}>{ex.name}</p>
-          <div className={styles.logRows}>
-            {(rows[exIdx] ?? []).map((row, rowIdx) => (
-              <div key={rowIdx} className={styles.setRow}>
-                <span className={styles.setNum}>{rowIdx + 1}</span>
-                <label className={styles.setField}>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    placeholder={ex.plannedReps ?? "op."}
-                    value={row.reps}
-                    onChange={(e) => updateRow(exIdx, rowIdx, "reps", e.target.value)}
-                  />
-                  <span>op.</span>
-                </label>
-                <label className={styles.setField}>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.5"
-                    placeholder="kg"
-                    value={row.weight}
-                    onChange={(e) => updateRow(exIdx, rowIdx, "weight", e.target.value)}
-                  />
-                  <span>kg</span>
-                </label>
-                <button
-                  type="button"
-                  className={styles.setRemove}
-                  onClick={() => removeRow(exIdx, rowIdx)}
-                  aria-label="Odobrať sériu"
-                >
-                  <RemoveIcon />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button type="button" className={styles.addSetBtn} onClick={() => addRow(exIdx)}>
-            <PlusIcon /> Pridať sériu
-          </button>
+    <>
+      {loggedExercises ? (
+        <div className={styles.doneExercises}>
+          {loggedExercises.map((ex, i) => (
+            <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.doneExerciseRow}>
+              <p className={styles.doneExerciseTitle}>{ex.name}</p>
+              {ex.sets.length > 0 && (
+                <ol className={styles.doneSetList}>
+                  {ex.sets.map((s, j) => (
+                    <li key={j}>{setLabel(s)}</li>
+                  ))}
+                </ol>
+              )}
+              {ex.note && <p className={styles.doneNote}>„{ex.note}“</p>}
+            </div>
+          ))}
         </div>
-      ))}
-
-      <div className={styles.editActions}>
-        <button type="button" className={styles.swBtnGhost} onClick={() => setEditing(false)} disabled={pending}>
-          Zrušiť
-        </button>
-        <button type="submit" className={styles.swBtnPrimary} disabled={pending}>
-          {pending ? "Ukladám…" : "Uložiť zmeny"}
-        </button>
-      </div>
-      {state.error && (
-        <p style={{ color: "var(--error)", fontSize: 12, marginTop: 8, textAlign: "center" }}>{state.error}</p>
+      ) : (
+        <p className={styles.doneNoValues}>Tréning si ukončil bez zapísaných hodnôt.</p>
       )}
-    </form>
+
+      {(sessionRpe != null || sessionNote) && (
+        <p className={styles.doneNote}>
+          {sessionRpe != null && <>Náročnosť: RPE {sessionRpe}</>}
+          {sessionRpe != null && sessionNote && " · "}
+          {sessionNote && <>„{sessionNote}“</>}
+        </p>
+      )}
+
+      {canEdit && editableUntil ? (
+        <>
+          <button type="button" className={styles.editValuesBtn} onClick={() => setEditing(true)}>
+            <PencilIcon /> Upraviť hodnoty
+          </button>
+          <p className={styles.lockNote}>Zabudnuté hodnoty môžeš opraviť do {formatEditDeadline(editableUntil)}.</p>
+        </>
+      ) : (
+        <p className={styles.lockNote}>
+          <LockIcon /> Dokončený{completedAt ? ` – ${formatCompletedDate(completedAt)}` : ""}. Zapísané hodnoty sa už
+          nedajú meniť.
+        </p>
+      )}
+    </>
   );
 }

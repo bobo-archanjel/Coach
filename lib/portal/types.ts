@@ -84,21 +84,29 @@ export interface PortalExercise {
   restSeconds: number | null;
 }
 
-/** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B). */
+/** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B).
+ *  Čas/vzdialenosť/RPE sú voliteľné (lib/workouts/completed.ts). */
 export interface LoggedSet {
   reps: number | null;
   weight: number | null;
+  durationS?: number | null;
+  distanceM?: number | null;
+  rpe?: number | null;
 }
 
 /** Skutočné hodnoty jedného cviku v rámci workout_logs.entries (Fáza B). */
 export interface LoggedExercise {
   entryId: string | null;
   name: string;
+  /** poznámka klienta k cviku (0048) */
+  note?: string | null;
   sets: LoggedSet[];
 }
 
 export interface CoachNote {
-  trainer: string;
+  /** null keď sa meno trénera nepodarilo zistiť (napr. chýbajúce full_name) — UI
+   * má vtedy zobraziť len "Tréner" bez mena, nikdy nie zreťazené "Tréner tréner". */
+  trainer: string | null;
   initials: string;
   text: string;
 }
@@ -110,8 +118,9 @@ export interface PortalNextAppointment {
 }
 
 export interface TodaySession {
-  /** training = pripravený ďalší tréning v poradí, done = dnes už odcvičené */
-  kind: "training" | "done";
+  /** training = pripravený ďalší tréning v poradí, done = dnes už odcvičené,
+   *  complete = všetky dni plánu odcvičené (plán je jednorazový, dni sa neopakujú) */
+  kind: "training" | "done" | "complete";
   title: string;
   focus: string;
   durationLabel: string;
@@ -123,6 +132,14 @@ export interface TodaySession {
    * žiadne hodnoty (len odklikol) — vtedy sa použije `exercises` ako fallback.
    */
   loggedExercises: LoggedExercise[] | null;
+  /** `kind: "done"` — čas ukončenia (workout_logs.completed_at, 0048) */
+  completedAt?: string | null;
+  /** `kind: "done"` — id záznamu a do kedy ho klient smie opraviť (24 h, 0049) */
+  logId?: string | null;
+  editableUntil?: string | null;
+  /** celkové RPE a poznámka klienta k tréningu (workout_logs.rpe / note) */
+  sessionRpe?: number | null;
+  sessionNote?: string | null;
   /** koľko cvikov je odškrtnutých (0 kým Fáza B nepostaví per-cvik odškrtávanie) */
   completedCount: number;
   /** id workout_day na zápis workout_logs pri "Ukončiť tréning" */
@@ -168,8 +185,10 @@ export interface PortalData {
 export type PortalResult =
   | { state: "ok"; data: PortalData }
   | { state: "unlinked"; firstName: string | null }
-  /** `hasTrainer: false` = klient trénuje sám — má si vytvoriť vlastný plán, nie čakať na trénera */
-  | { state: "no_plan"; firstName: string; hasTrainer: boolean }
+  /** `hasTrainer: false` = klient trénuje sám — má si vytvoriť vlastný plán, nie čakať na trénera.
+   * `today`/`bodyMetrics` sú tu napriek chýbajúcemu plánu — zápis telesnej miery (BodyMetricForm)
+   * je nezávislá funkcia a nesmie byť podmienená existenciou tréningového plánu (QA nález #3). */
+  | { state: "no_plan"; firstName: string; hasTrainer: boolean; today: string; bodyMetrics: BodyMetricEntry[] }
   | { state: "error"; message?: string };
 
 // ---------- Tréning (zoznam plánov klienta — od trénera aj vlastné) ----------
@@ -180,8 +199,21 @@ export interface PortalTrainingDay {
   exercises: PortalExercise[];
   /** klient tento deň už niekedy odcvičil (aspoň 1 záznam vo workout_logs) — badge „Hotovo" v zozname dní */
   done: boolean;
-  /** klient tento deň odcvičil DNES — rozhoduje, či akčné tlačidlo ponúka "Začať" alebo "Upraviť" */
+  /** klient tento deň odcvičil DNES */
   doneToday: boolean;
+  /** posledný odcvičený záznam dňa — pre "Upraviť hodnoty" (24 h okno, 0049) */
+  lastLog: PortalDayLog | null;
+}
+
+/** Odcvičený záznam dňa (workout_logs) v sekcii Tréning. */
+export interface PortalDayLog {
+  id: string;
+  completedAt: string | null;
+  /** do kedy ho klient smie opraviť; null = už nie */
+  editableUntil: string | null;
+  entries: LoggedExercise[];
+  rpe: number | null;
+  note: string | null;
 }
 
 /** Zdroj plánu: od trénera, alebo si ho klient vytvoril sám. */
@@ -296,6 +328,8 @@ export interface PortalDiaryGroup {
 
 export interface PortalDiaryData {
   today: string; // ISO (YYYY-MM-DD), Europe/Bratislava
+  /** zobrazený deň denníka (YYYY-MM-DD) — dnešok alebo deň zvolený cez ?date= */
+  date: string;
   /** hodina dňa 0-23 — na predvolený výber jedla dňa pri pridávaní */
   hour: number;
   goal: PortalMacroGoal | null;
@@ -322,7 +356,8 @@ export interface PortalChatMessage {
 
 export interface PortalChatData {
   messages: PortalChatMessage[];
-  trainerName: string;
+  /** null keď sa meno trénera nepodarilo zistiť — šablóny majú fallback text bez mena. */
+  trainerName: string | null;
 }
 
 export type PortalChatResult =

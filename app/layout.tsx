@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { KeyboardState } from "./components/KeyboardState";
 import "./globals.css";
 
 const inter = Inter({
@@ -55,6 +56,7 @@ export default function RootLayout({
     <html lang="sk" suppressHydrationWarning>
       <body className={inter.variable}>
         {children}
+        <KeyboardState />
         {/* Plausible (feature/security#2) — cookieless, žiadne osobné údaje, preto
             bez cookie banneru. Načíta sa len keď je nastavená doména (env), nech appka
             pred založením účtu na plausible.io neposiela requesty nikam navyše. */}

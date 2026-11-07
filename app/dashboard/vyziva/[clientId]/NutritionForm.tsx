@@ -64,7 +64,20 @@ export function NutritionForm({ clientId, profile }: { clientId: string; profile
         }
       : null);
 
-  const isUnsavedPreview = preview !== null;
+  // isUnsavedPreview predtým znamenalo len "dá sa spočítať náhľad" (preview !== null),
+  // čo bolo pravda takmer vždy hneď ako profil existoval (polia sú pred-vyplnené jeho
+  // hodnotami) — label tak hlásil "(neuložený náhľad)" aj tesne po uložení a reloade,
+  // hoci zobrazené číslo BOLO presne uložený cieľ (QA nález #4). Teraz sa porovnáva
+  // proti skutočne uloženému profilu — "neuložený" znamená, že sa naozaj niečo zmenilo.
+  const isDirty =
+    !profile ||
+    sex !== profile.sex ||
+    Number(age) !== profile.age ||
+    Number(weightKg) !== profile.weight_kg ||
+    Number(heightCm) !== profile.height_cm ||
+    activityLevel !== profile.activity_level ||
+    goal !== profile.goal;
+  const isUnsavedPreview = preview !== null && isDirty;
   const totalMacroKcal = result ? result.proteinG * 4 + result.carbsG * 4 + result.fatG * 9 : 0;
 
   return (
@@ -219,7 +232,7 @@ export function NutritionForm({ clientId, profile }: { clientId: string; profile
             </div>
           </>
         ) : (
-          <p className={styles.noWorkouts}>Vyplň vek, váhu a výšku vľavo — výsledok sa dopočíta automaticky.</p>
+          <p className={styles.noWorkouts}>Vyplň vek, váhu a výšku — výsledok sa dopočíta automaticky.</p>
         )}
       </div>
     </div>

@@ -60,3 +60,9 @@ graphify-out/
 
 # Osobné scratch poznámky/prompty mimo repo workflow
 Claude outputs/
+
+# QA profily / výsledky (lokálne beh testov)
+.qa-profiles/
+qa-results/
+.next-qa-trainer/
+.next-qa-client/

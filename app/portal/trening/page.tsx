@@ -23,6 +23,7 @@ const PREVIEW: PortalTrainingData = {
           name: "Deň A — Tlak",
           done: true,
           doneToday: true,
+          lastLog: null, // doplní previewResult (čas relatívne k "teraz")
           exercises: [
             { idx: "1", name: "Bench press", scheme: "4 × 6", load: "80 kg", rest: "150 s", tempo: "2-0-1", entryId: "e1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 80, restSeconds: 150 },
             { idx: "2", name: "Tlaky nad hlavu", scheme: "3 × 8", load: "45 kg", rest: "120 s", entryId: "e2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 45, restSeconds: 120 },
@@ -33,6 +34,15 @@ const PREVIEW: PortalTrainingData = {
           name: "Deň B — Ťah",
           done: true,
           doneToday: false,
+          // odcvičený pred týždňom — 24 h okno na opravu dávno uplynulo
+          lastLog: {
+            id: "log-d2",
+            completedAt: "2026-09-17T17:00:00Z",
+            editableUntil: null,
+            entries: [{ entryId: "e3", name: "Mŕtvy ťah", sets: [{ reps: 5, weight: 120 }] }],
+            rpe: 8,
+            note: null,
+          },
           exercises: [
             { idx: "1", name: "Mŕtvy ťah", scheme: "3 × 5", load: "120 kg", rest: "180 s", entryId: "e3", plannedSets: 3, plannedReps: "5", exerciseId: null, loadKg: 120, restSeconds: 180 },
             { idx: "2", name: "Zhyby", scheme: "4 × 8", load: "vlastná váha", rest: "90 s", entryId: "e4", plannedSets: 4, plannedReps: "8", exerciseId: null, loadKg: null, restSeconds: 90 },
@@ -51,6 +61,7 @@ const PREVIEW: PortalTrainingData = {
           name: "Rozcvička",
           done: false,
           doneToday: false,
+          lastLog: null,
           exercises: [
             { idx: "1", name: "Plank", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s", entryId: "e5", plannedSets: 3, plannedReps: "45 s", exerciseId: null, loadKg: null, restSeconds: 45 },
           ],
@@ -60,9 +71,35 @@ const PREVIEW: PortalTrainingData = {
   ],
 };
 
+/** Deň A odcvičený pred hodinou → ešte v 24 h okne na opravu (0049). */
+function withFreshLog(data: PortalTrainingData): PortalTrainingData {
+  const completedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  return {
+    ...data,
+    plans: data.plans.map((p) => ({
+      ...p,
+      days: p.days.map((d) =>
+        d.id === "d1"
+          ? {
+              ...d,
+              lastLog: {
+                id: "log-d1",
+                completedAt,
+                editableUntil: new Date(Date.parse(completedAt) + 24 * 60 * 60 * 1000).toISOString(),
+                entries: [{ entryId: "e1", name: "Bench press", sets: [{ reps: 6, weight: 80 }, { reps: 6, weight: 80 }] }],
+                rpe: 7,
+                note: "Dobré",
+              },
+            }
+          : d,
+      ),
+    })),
+  };
+}
+
 function previewResult(kind: string): PortalTrainingResult | null {
   if (process.env.NODE_ENV !== "development") return null;
-  if (kind === "ok") return { state: "ok", data: PREVIEW };
+  if (kind === "ok") return { state: "ok", data: withFreshLog(PREVIEW) };
   if (kind === "empty") return { state: "ok", data: { ...PREVIEW, plans: [], activePlanId: null } };
   if (kind === "own")
     return {

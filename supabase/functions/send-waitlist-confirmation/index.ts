@@ -158,7 +158,7 @@ Deno.serve(async (req: Request) => {
   // celé meno pôsobí v tomto kontexte formálne/čudne, priezvisko sa vynecháva.
   const firstName = safeName.split(/\s+/)[0] || safeName;
 
-  // Jednoklikové odhlásenie (0043_waitlist_unsubscribe.sql, waitlist-unsubscribe
+  // Jednoklikové odhlásenie (0052_waitlist_unsubscribe.sql, waitlist-unsubscribe
   // edge funkcia) — § 116 zákona č. 452/2021 Z. z. a GDPR čl. 7 ods. 3 vyžadujú,
   // aby odvolanie súhlasu bolo rovnako jednoduché ako jeho udelenie.
   //

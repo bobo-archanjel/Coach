@@ -6,6 +6,9 @@ import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalPlan, PortalTrainingData } from "@/lib/portal/types";
 import { deleteClientPlanAction, getExerciseLibraryAction, setActivePlanAction } from "./actions";
 import { ExercisePreviewList } from "../ExercisePreviewList";
+import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
+import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
+import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
 import styles from "../portal.module.css";
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
@@ -19,10 +22,9 @@ const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) =
    Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a akčné
    tlačidlo — nastaví plán (a tento deň) ako aktívny, ktorý potom karta Dnes
    berie ako "dnešný tréning" presne ako plán od trénera. Ak je deň už DNES
-   odcvičený ("doneToday", odlišné od "niekedy odcvičený" badge "Hotovo"),
-   tlačidlo namiesto "Začať tréning" ponúka "Upraviť tréning" — klik aj tak
-   vedie na kartu Dnes, len tam už čaká hotový deň s "Upraviť hodnoty", nie
-   prázdny formulár sérií. */
+   odcvičený (badge "Hotovo"), plán je jednorazový — namiesto "Začať tréning"
+   je nefarebné "Upraviť hodnoty" (24 h po ukončení, 0049) priamo tu v paneli,
+   po uplynutí okna už len informácia, že záznam je uzavretý. */
 
 const PlusIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -72,6 +74,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   // vypísali naraz, pôsobilo to chaoticky).
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // Odcvičený deň otvorený v editore "Upraviť hodnoty" (id záznamu workout_logs).
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -106,17 +110,20 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   // Dnes. Aktívny plán sa nastaví až pri "Začať tréning" pre konkrétny deň.
   const tapPlan = (plan: PortalPlan) => {
     setError(null);
+    setEditingLogId(null);
     setSelectedDayId(null);
     setExpandedId((id) => (id === plan.id ? null : plan.id));
   };
 
   const selectDay = (dayId: string) => {
     setError(null);
+    setEditingLogId(null);
     setSelectedDayId(dayId);
   };
 
   const backToDays = () => {
     setError(null);
+    setEditingLogId(null);
     setSelectedDayId(null);
   };
 
@@ -137,12 +144,21 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   // nemusí zhodovať s dňom, ktorý si tu klient vybral a odcvičil) a prejde na
   // kartu Dnes, kde beží ten istý flow ako pri pláne od trénera (formulár sérií
   // + plávajúce stopky, logovanie cez finishWorkoutAction).
+  // Tréning sa tu aj rovno ZAČNE (príznak "tréning začatý", workoutSession.ts) —
+  // predtým karta Dnes ukázala znova "Začať tréning" a klient musel ťukať 2×.
+  // Príznak sa nastaví PRED requestom, nech ho karta Dnes pozná hneď pri prvom
+  // vykreslení (žiadny záblesk "Začať tréning"); akcia potom sama presmeruje
+  // (redirect → jeden round-trip). Pri chybe sa príznak vráti späť.
   const startPlan = (plan: PortalPlan, dayId: string) => {
     setError(null);
+    markWorkoutStarted(dayId);
     startTransition(async () => {
       const res = await setActivePlanAction(plan.id, dayId);
-      if (res.error) setError(res.error);
-      else router.push("/portal");
+      // Úspech → redirect vnútri akcie, sem sa vrátime len pri chybe.
+      if (res?.error) {
+        clearWorkoutStarted();
+        setError(res.error);
+      }
     });
   };
 
@@ -202,8 +218,11 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                     <span className={styles.trSrcChip} data-src={plan.source}>
                       {plan.source === "trainer" ? "Od trénera" : "Vlastný"}
                     </span>
+                    {/* „Plán na 3 dni" — samotné „3 dni" klienti nechápali (koľko dní v týždni? trvanie?). */}
                     <span className={styles.chip}>
-                      {plan.days.length} {dayWord(plan.days.length)}
+                      {plan.days.length > 0
+                        ? `Plán na ${plan.days.length} ${dayWord(plan.days.length)}`
+                        : "Zatiaľ bez dní"}
                     </span>
                   </span>
                 </button>
@@ -222,29 +241,58 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             {selectedDay.name}
                             {selectedDay.done && <span className={styles.trDoneBadge}>Hotovo</span>}
                           </p>
-                          {selectedDay.exercises.length > 0 ? (
+                          {selectedDay.lastLog &&
+                          editingLogId === selectedDay.lastLog.id &&
+                          isStillEditable(selectedDay.lastLog.editableUntil) ? (
+                            <LoggedWorkoutEditor
+                              logId={selectedDay.lastLog.id}
+                              exercises={selectedDay.exercises}
+                              logged={selectedDay.lastLog.entries}
+                              rpe={selectedDay.lastLog.rpe}
+                              note={selectedDay.lastLog.note}
+                              editableUntil={selectedDay.lastLog.editableUntil!}
+                              onClose={() => setEditingLogId(null)}
+                            />
+                          ) : selectedDay.exercises.length > 0 ? (
                             <ExercisePreviewList exercises={selectedDay.exercises} />
                           ) : (
                             <p className={styles.trEmptyDay}>Žiadne cviky.</p>
                           )}
                         </div>
 
-                        <div className={styles.trPlanActions}>
-                          <button
-                            type="button"
-                            className={styles.trStartBtn}
-                            onClick={() => startPlan(plan, selectedDay.id)}
-                            disabled={pending}
-                          >
-                            {selectedDay.doneToday ? (
-                              <>
-                                <PencilIcon /> Upraviť tréning
-                              </>
-                            ) : (
-                              "Začať tréning"
-                            )}
-                          </button>
-                        </div>
+                        {!selectedDay.done ? (
+                          <div className={styles.trPlanActions}>
+                            <button
+                              type="button"
+                              className={styles.trStartBtn}
+                              onClick={() => startPlan(plan, selectedDay.id)}
+                              disabled={pending}
+                            >
+                              Začať tréning
+                            </button>
+                          </div>
+                        ) : editingLogId === null &&
+                          selectedDay.lastLog &&
+                          isStillEditable(selectedDay.lastLog.editableUntil) ? (
+                          <div className={styles.trPlanActions}>
+                            <button
+                              type="button"
+                              className={styles.editValuesBtn}
+                              onClick={() => setEditingLogId(selectedDay.lastLog!.id)}
+                            >
+                              <PencilIcon /> Upraviť hodnoty
+                            </button>
+                            <p className={styles.lockNote}>
+                              Zabudnuté hodnoty môžeš opraviť do {formatEditDeadline(selectedDay.lastLog.editableUntil!)}.
+                            </p>
+                          </div>
+                        ) : editingLogId === null ? (
+                          <p className={styles.lockNote}>
+                            Odcvičené
+                            {selectedDay.lastLog?.completedAt ? ` ${formatCompletedDate(selectedDay.lastLog.completedAt)}` : ""}.
+                            Hodnoty sa dali upraviť 24 hodín po ukončení, teraz sú uzavreté.
+                          </p>
+                        ) : null}
                       </>
                     ) : (
                       <>

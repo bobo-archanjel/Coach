@@ -147,6 +147,10 @@ async function fetchCandidateExercises(
         .select("id, name, name_sk, muscle_group, equipment")
         // Načítaj o niečo viac, nech po equipment filtri zostane rozumný počet.
         .eq("muscle_group", mg)
+        // Cviky so slovenským názvom najprv — bez zoradenia DB vrátila ľubovoľných
+        // N riadkov a generátor vyberal anglické duplikáty ("Bent Over Barbell Row"),
+        // hoci v knižnici je "Veslovanie v predklone" (QA 2026-09-23).
+        .order("name_sk", { ascending: true, nullsFirst: false })
         .limit(MUSCLE_GROUP_CANDIDATES_LIMIT * 3),
     ),
   );
@@ -168,8 +172,10 @@ async function fetchCandidateExercises(
   const filtered = equipmentDataAvailable ? raw.filter((c) => exerciseFitsEquipment(c.equipment, equipment)) : raw;
 
   // Zosekni späť na limit per partia (po filtri, nech partie neprevažuje jedna).
+  // Stabilné zoradenie: preložené cviky pred nepreloženými aj po equipment filtri.
+  const ordered = [...filtered].sort((a, b) => Number(!a.nameSk?.trim()) - Number(!b.nameSk?.trim()));
   const byGroup = new Map<string, CandidateExercise[]>();
-  for (const c of filtered) {
+  for (const c of ordered) {
     const list = byGroup.get(c.muscleGroup) ?? [];
     if (list.length < MUSCLE_GROUP_CANDIDATES_LIMIT) {
       list.push(c);
@@ -369,6 +375,7 @@ export async function generateWorkoutPlan(
   const system = singleDay
     ? [
         "Si asistent trénera vo fitness aplikácii FitPilot. Zostavíš JEDEN tréningový deň VÝHRADNE z cvikov v priloženom zozname — nikdy nenavrhuj cvik mimo neho.",
+        "Ak zoznam obsahuje viac variantov toho istého cviku (napr. slovenský a anglický názov), vyber variant so slovenským názvom.",
         equipmentLine,
         `Vytvor PRESNE 1 tréningový deň zameraný na: ${DAY_CATEGORY_LABEL_SK[category!]}. Deň má 4-8 cvikov.`,
         'sets: celé číslo 1-8. rest_seconds: celé číslo 15-300 (sekundy). reps: text (napr. "8-10"). Nastav ich podľa cieľa a skúsenosti (napr. sila = nižšie reps, dlhšie pauzy; hypertrofia = stredné reps 8-12; začiatočník = nižší objem).',
@@ -376,6 +383,7 @@ export async function generateWorkoutPlan(
       ].join("\n")
     : [
         "Si asistent trénera vo fitness aplikácii FitPilot. Zostavíš tréningový plán VÝHRADNE z cvikov v priloženom zozname — nikdy nenavrhuj cvik mimo neho.",
+        "Ak zoznam obsahuje viac variantov toho istého cviku (napr. slovenský a anglický názov), vyber variant so slovenským názvom.",
         "Rozdeľ cviky rozumne medzi dni podľa cieľa a skúsenosti klienta (napr. split podľa svalových partií pri viacerých dňoch, full-body pri 1-3 dňoch).",
         equipmentLine,
         "Vytvor PRESNE toľko dní, koľko klient požaduje (pozri nižšie). Každý deň má 4-8 cvikov.",

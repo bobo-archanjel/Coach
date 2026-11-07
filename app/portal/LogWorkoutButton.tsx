@@ -1,10 +1,18 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PortalExercise } from "@/lib/portal/types";
 import { finishWorkoutAction, type ActionState } from "./actions";
 import styles from "./portal.module.css";
-import { isWorkoutStarted, markWorkoutStarted } from "./workoutSession";
+import {
+  WORKOUT_STARTED_EVENT,
+  clearWorkoutDraft,
+  isWorkoutStarted,
+  loadWorkoutDraft,
+  markWorkoutStarted,
+  saveWorkoutDraft,
+} from "./workoutSession";
+import { WorkoutSetsFields, buildEntriesPayload, emptyFormValues, type WorkoutFormValues } from "./WorkoutSetsFields";
 
 const initialState: ActionState = { error: null };
 
@@ -14,41 +22,55 @@ const ArrowIcon = () => (
   </svg>
 );
 
-const PlusIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-  </svg>
-);
-
-const RemoveIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-  </svg>
-);
-
-type SetRow = { reps: string; weight: string };
-
-/** Predvyplní riadky sérií podľa plánu buildera — klient ich vie doplniť/odobrať. */
-function initialRows(ex: PortalExercise): SetRow[] {
-  return Array.from({ length: ex.plannedSets }, () => ({ reps: "", weight: "" }));
+/** Zmena príznaku "tréning začatý" — markWorkoutStarted (event) alebo iný tab (storage). */
+function subscribeStarted(onChange: () => void): () => void {
+  window.addEventListener(WORKOUT_STARTED_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(WORKOUT_STARTED_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
 }
 
 /**
  * "Začať tréning" je lokálny prepínač, ktorý rozbalí formulár skutočných hodnôt
  * (Fáza B) — pre každý cvik toľko riadkov sérií, koľko plánuje builder, s možnosťou
- * pridať/odobrať. Pri "Ukončiť tréning" sa vyplnené riadky serializujú do skrytého
- * poľa a odošlú spolu s day_id; prázdne riadky (klient nič nezadal) sa v actions.ts
- * odfiltrujú. Po úspechu server zrevaliduje /portal a session.kind sa zmení na
- * "done" (viď lib/portal/data.ts), takže sa toto tlačidlo prestane zobrazovať samo.
+ * pridať/odobrať (WorkoutSetsFields). Pri "Ukončiť tréning" sa vyplnené riadky
+ * serializujú do skrytého poľa a odošlú spolu s day_id. Po úspechu server
+ * zrevaliduje /portal a session.kind sa zmení na "done" (viď lib/portal/data.ts).
+ *
+ * Rozpísané hodnoty sa priebežne ukladajú do localStorage (prežijú prepnutie tabu
+ * aj refresh), polia prijímajú desatinnú čiarku a neplatné hodnoty zablokujú
+ * ukončenie (lib/workouts/setInput.ts). Po ukončení sa hodnoty dajú ešte 24 h
+ * opraviť cez "Upraviť hodnoty" (0049), potom je záznam zamknutý.
  */
 export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercises: PortalExercise[] }) {
-  const [started, setStarted] = useState(false);
+  // "Tréning začatý" čítame z localStorage UŽ pri prvom vykreslení (useSyncExternalStore),
+  // nie až v useEffect — inak karta Dnes po "Začať tréning" v sekcii Tréning na okamih
+  // ukázala tlačidlo "Začať tréning" a až potom formulár (záblesk). Na serveri a počas
+  // hydratácie je stav "unknown" → neviditeľné tlačidlo rovnakej výšky, nič neposkočí.
+  const storedStarted = useSyncExternalStore(
+    subscribeStarted,
+    () => (isWorkoutStarted(dayId) ? "yes" : "no"),
+    () => "unknown",
+  );
+  // Záloha, keď localStorage nejde (súkromný režim) — klik aj tak formulár otvorí.
+  const [localStarted, setLocalStarted] = useState(false);
+  const started = localStarted || storedStarted === "yes";
+
+  const signature = exercises.map((ex) => ex.entryId ?? ex.name).join("|");
+  // Rozpísané hodnoty z localStorage hneď pri vytvorení stavu (na serveri vráti null).
+  // Formulár sa počas hydratácie nevykresľuje ("unknown"), takže to nespôsobí nesúlad.
+  const [values, setValues] = useState<WorkoutFormValues>(() => {
+    const draft = loadWorkoutDraft(dayId, signature);
+    return draft
+      ? { rows: draft.rows, notes: draft.notes, rpe: draft.rpe, sessionNote: draft.sessionNote }
+      : emptyFormValues(exercises);
+  });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const [rows, setRows] = useState<Record<number, SetRow[]>>(() =>
-    Object.fromEntries(exercises.map((ex, i) => [i, initialRows(ex)])),
-  );
   const [state, formAction, pending] = useActionState(finishWorkoutAction, initialState);
+  const [showInvalid, setShowInvalid] = useState(false);
 
   // Esc zavrie potvrdenie (= "Pokračovať", nie "Ukončiť") — bezpečný default pre
   // klávesnicu, rovnaké správanie ako panel stopiek.
@@ -61,16 +83,31 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
     return () => window.removeEventListener("keydown", onKey);
   }, [confirmOpen]);
 
-  // Prepnutie tabu v portáli remountuje túto kartu — obnov "tréning začatý" z
-  // localStorage, nech sa formulár nezbalí len preto, že sa klient pozrel na Chat.
+  // Rozpísané hodnoty priebežne do localStorage (prežijú prepnutie tabu aj refresh).
   useEffect(() => {
-    if (isWorkoutStarted(dayId)) setStarted(true);
-  }, [dayId]);
+    if (!started) return;
+    saveWorkoutDraft(dayId, { signature, ...values });
+  }, [started, dayId, signature, values]);
+
+  // Úspešné ukončenie → koncept už netreba (pri chybe ostáva, klient to skúsi znova).
+  useEffect(() => {
+    if (state !== initialState && !state.error) clearWorkoutDraft();
+  }, [state]);
 
   const beginWorkout = () => {
-    setStarted(true);
+    setLocalStarted(true);
     markWorkoutStarted(dayId); // zapíše príznak + emituje event pre WorkoutStopwatch
   };
+
+  if (storedStarted === "unknown" && !localStarted) {
+    // Server / hydratácia: stav ešte nepoznáme — rezervuj miesto, nič nesprávne neukazuj.
+    return (
+      <button type="button" className={`btn btn-primary ${styles.startBtn}`} style={{ visibility: "hidden" }} tabIndex={-1} aria-hidden="true">
+        Začať tréning
+        <ArrowIcon />
+      </button>
+    );
+  }
 
   if (!started) {
     return (
@@ -81,90 +118,39 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
     );
   }
 
-  const updateRow = (exIdx: number, rowIdx: number, field: keyof SetRow, value: string) => {
-    setRows((prev) => {
-      const next = [...(prev[exIdx] ?? [])];
-      next[rowIdx] = { ...next[rowIdx], [field]: value };
-      return { ...prev, [exIdx]: next };
-    });
-  };
-  const addRow = (exIdx: number) => {
-    setRows((prev) => ({ ...prev, [exIdx]: [...(prev[exIdx] ?? []), { reps: "", weight: "" }] }));
-  };
-  const removeRow = (exIdx: number, rowIdx: number) => {
-    setRows((prev) => ({ ...prev, [exIdx]: (prev[exIdx] ?? []).filter((_, i) => i !== rowIdx) }));
-  };
+  const { summary, entries } = buildEntriesPayload(exercises, values);
+  const emptyNames = summary.emptyExercises.map((i) => exercises[i]?.name).filter(Boolean);
 
-  // Prázdne riadky (klient nechal reps aj váhu prázdne) sa vôbec neposielajú.
-  const entriesPayload = exercises.map((ex, i) => ({
-    entryId: ex.entryId,
-    name: ex.name,
-    sets: (rows[i] ?? [])
-      .filter((r) => r.reps.trim() !== "" || r.weight.trim() !== "")
-      .map((r) => ({
-        reps: r.reps.trim() === "" ? null : Number(r.reps),
-        weight: r.weight.trim() === "" ? null : Number(r.weight),
-      })),
-  }));
+  const askFinish = () => {
+    if (summary.invalidCount > 0) {
+      setShowInvalid(true);
+      return;
+    }
+    setConfirmOpen(true);
+  };
 
   return (
     <form ref={formRef} action={formAction} className={styles.logForm}>
       <input type="hidden" name="day_id" value={dayId} readOnly />
-      <input type="hidden" name="entries" value={JSON.stringify(entriesPayload)} readOnly />
+      <input type="hidden" name="entries" value={JSON.stringify(entries)} readOnly />
+      <input type="hidden" name="rpe" value={values.rpe} readOnly />
+      <input type="hidden" name="note" value={values.sessionNote} readOnly />
 
-      {exercises.map((ex, exIdx) => (
-        <div key={`${ex.idx}-${exIdx}`} className={styles.logExercise}>
-          <p className={styles.logExerciseName}>{ex.name}</p>
-          <div className={styles.logRows}>
-            {(rows[exIdx] ?? []).map((row, rowIdx) => (
-              <div key={rowIdx} className={styles.setRow}>
-                <span className={styles.setNum}>{rowIdx + 1}</span>
-                <label className={styles.setField}>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    placeholder={ex.plannedReps ?? "op."}
-                    value={row.reps}
-                    onChange={(e) => updateRow(exIdx, rowIdx, "reps", e.target.value)}
-                  />
-                  <span>op.</span>
-                </label>
-                <label className={styles.setField}>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.5"
-                    placeholder="kg"
-                    value={row.weight}
-                    onChange={(e) => updateRow(exIdx, rowIdx, "weight", e.target.value)}
-                  />
-                  <span>kg</span>
-                </label>
-                <button
-                  type="button"
-                  className={styles.setRemove}
-                  onClick={() => removeRow(exIdx, rowIdx)}
-                  aria-label="Odobrať sériu"
-                >
-                  <RemoveIcon />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button type="button" className={styles.addSetBtn} onClick={() => addRow(exIdx)}>
-            <PlusIcon /> Pridať sériu
-          </button>
-        </div>
-      ))}
+      <WorkoutSetsFields exercises={exercises} values={values} onChange={setValues} showInvalid={showInvalid} />
 
       <button
         type="button"
         className={`btn btn-primary ${styles.startBtn}`}
         disabled={pending}
-        onClick={() => setConfirmOpen(true)}
+        onClick={askFinish}
       >
         {pending ? "Ukladám…" : "Ukončiť tréning"}
       </button>
+      {showInvalid && summary.invalidCount > 0 && (
+        <p role="alert" style={{ color: "var(--error)", fontSize: 12, marginTop: 8, textAlign: "center" }}>
+          Oprav označené hodnoty.
+        </p>
+      )}
       {state.error && (
         <p style={{ color: "var(--error)", fontSize: 12, marginTop: 8, textAlign: "center" }}>{state.error}</p>
       )}
@@ -181,10 +167,23 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
             <p id="finish-confirm-title" className={styles.confirmTitle}>
               Ukončiť tréning?
             </p>
-            <p className={styles.confirmBody}>
-              Zapíšeme dnešné série presne tak, ako si ich zadal. Ak si to ešte nedokončil, radšej pokračuj —
-              po ukončení sa už nedá tréning znova začať, len sa naň pozrieť.
-            </p>
+            {summary.nothingLogged ? (
+              <p className={`${styles.confirmBody} ${styles.confirmWarn}`}>
+                Nezapísal si žiadnu sériu. Hodnoty môžeš doplniť ešte 24 hodín cez „Upraviť hodnoty“.
+              </p>
+            ) : (
+              <>
+                <p className={styles.confirmBody}>
+                  Zapíšeme dnešné série presne tak, ako si ich zadal. Ak si to ešte nedokončil, radšej pokračuj —
+                  zabudnuté hodnoty môžeš opraviť ešte 24 hodín po ukončení.
+                </p>
+                {emptyNames.length > 0 && (
+                  <p className={`${styles.confirmBody} ${styles.confirmWarn}`}>
+                    Bez zápisu: {emptyNames.join(", ")}.
+                  </p>
+                )}
+              </>
+            )}
             <div className={styles.confirmActions}>
               <button type="button" className={styles.swBtnGhost} onClick={() => setConfirmOpen(false)}>
                 Pokračovať v tréningu

@@ -13,6 +13,7 @@ import { DiaryView } from "./DiaryView";
 // ---------- DEV náhľad bez DB ----------
 const PREVIEW: PortalDiaryData = {
   today: "2026-08-28",
+  date: "2026-08-28",
   hour: 14,
   goal: { bmr: 1780, tdee: 2560, caloriesTarget: 2350, proteinG: 175, carbsG: 240, fatG: 70 },
   totals: { kcal: 1420, proteinG: 118, carbsG: 132, fatG: 44 },
@@ -59,10 +60,10 @@ function previewResult(kind: string): PortalDiaryResult | null {
 export default async function DennikPage({
   searchParams,
 }: {
-  searchParams: Promise<{ preview?: string }>;
+  searchParams: Promise<{ preview?: string; date?: string }>;
 }) {
-  const { preview } = await searchParams;
-  const result = (preview && previewResult(preview)) || (await getPortalFoodDiary());
+  const { preview, date } = await searchParams;
+  const result = (preview && previewResult(preview)) || (await getPortalFoodDiary(date));
 
   if (result.state === "error") {
     return (
@@ -80,5 +81,6 @@ export default async function DennikPage({
     );
   }
 
-  return <DiaryView data={result.data} />;
+  // key: pri prepnutí dňa sa optimistický zoznam aj rozpracovaný formulár začnú odznova.
+  return <DiaryView key={result.data.date} data={result.data} />;
 }

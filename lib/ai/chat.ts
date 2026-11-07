@@ -15,6 +15,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
 import { logAiUsage } from "./logUsage";
 import { getMacroContext } from "./macroContext";
+import { getTrainingContextBlock } from "./trainingContext";
+import { stripMarkdown } from "./plainText";
 import {
   needsHealthEscalation,
   isCrisisText,
@@ -44,11 +46,15 @@ export type SendChatResult =
 function buildSystemPrompt(exerciseSwapGuard: boolean): string {
   const lines = [
     "Si AI Kouč vo fitness aplikácii FitPilot. Rozprávaš sa priamo s klientom trénera, po slovensky, stručne a vecne.",
-    "Tvoja úloha: pomôcť s výživou (čo a koľko zjesť podľa cieľa) a s tréningom (napr. alternatívy cvikov) — VÝHRADNE na základe dát, ktoré ti pošle appka v tejto správe. Nikdy si nevymýšľaj čísla makier, potraviny ani cviky, ktoré ti neboli poskytnuté.",
+    "Tvoja úloha: pomôcť s výživou (čo a koľko zjesť podľa cieľa) a s tréningom (čo má dnes cvičiť podľa plánu, ako mu idú tréningy, alternatívy cvikov) — VÝHRADNE na základe dát, ktoré ti pošle appka v tejto správe. Tréningový plán aj históriu tréningov klienta máš nižšie, nikdy netvrď, že ich nevidíš. Nikdy si nevymýšľaj čísla makier, potraviny, cviky ani tréningy, ktoré ti neboli poskytnuté.",
     "Keď navrhuješ konkrétne jedlo (aj celý jedálniček na deň), VYBERAJ VÝHRADNE z 'Knižnica potravín' nižšie (ak je priložená) — to JE kompletný zoznam všetkého, čo appka má, nič viac neexistuje. NIKDY sa klienta nepýtaj, aké potraviny má rád/dostupné, ani ho neposielaj za trénerom po túto informáciu — knižnicu už máš, rozdeľ ju sám rozumne medzi jedlá dňa podľa zostávajúcich makier. Ak klientovi niečo z návrhu nechutí, povie ti to sám v ďalšej správe a ty navrhneš inú položku z tej istej knižnice — nepýtaj sa na to vopred.",
     "Nikdy nenavrhuj potravinu ani cvik mimo poskytnutých zoznamov a nikdy nehovor klientovi, že mu nevieš pomôcť s jedlom/cvikom, keď je príslušný zoznam priložený.",
     "Zdravotné témy (bolesť, zranenie, diagnóza, čo s tým robiť) NIKDY neriešiš — appka väčšinu zachytáva skôr, než sa k tebe dostanú, ale ak by sa aj tak objavila zmienka o bolesti/zranení bez žiadosti o náhradu cviku, okamžite odporuč konzultáciu s trénerom a nič k tomu neradíš.",
     "Neradíš nič mimo fitness/výživy tejto appky. Bežnú otázku odbi stručne (2-5 viet). Pri žiadosti o kompletný jedálniček na celý deň odpovedz štruktúrovane po jedlách dňa (raňajky/obed/olovrant/večera) s gramážou a súčtom makier — stále bez zbytočných úvodov.",
+    // Chat bublina zobrazuje čistý text (zachová len riadkovanie) — markdown by
+    // klient videl ako surové hviezdičky a pomlčky (QA 2026-09-23).
+    "Formát: píš čistý text bez markdownu — žiadne **hviezdičky**, # nadpisy ani --- oddeľovače. Štruktúru vytvor novými riadkami; položky zoznamu začni znakom • a názov jedla dňa napíš na samostatný riadok s dvojbodkou (napr. „Raňajky:“).",
+    "Jazyk: výhradne spisovná slovenčina — žiadne české slová ani tvary.",
   ];
   if (exerciseSwapGuard) {
     lines.push(
@@ -128,6 +134,10 @@ export async function sendAiChatMessage(
     ? `Aktuálny čas zodpovedá jedlu dňa: ${context.currentMealSlotLabel} (hodina ${context.currentHour}).`
     : `Aktuálna hodina: ${context.currentHour} — mimo bežných časov jedla.`;
 
+  // Tréningový plán + história (deterministicky, viď trainingContext.ts) — posiela
+  // sa vždy, rovnako ako makrá: klient sa môže na tréning spýtať v ktorejkoľvek správe.
+  const trainingBlock = await getTrainingContextBlock(supabase, clientId);
+
   // ---------- 3a. reálne potraviny z knižnice, ak má klient makro cieľ (Krok 6) ----------
   // Knižnica má len ~80-100 položiek — pošle sa celá vždy, keď má zmysel (klient
   // môže potrebovať jedlo v ktorejkoľvek správe), nie len pri detegovanej "food" téme.
@@ -193,12 +203,15 @@ export async function sendAiChatMessage(
     const response = await anthropic.messages.create({
       model: AI_MODEL.CHAT,
       max_tokens: MAX_REPLY_TOKENS,
-      system: [buildSystemPrompt(softEscalation), contextBlock, timeBlock, foodBlock, exerciseBlock].filter(Boolean).join("\n\n"),
+      system: [buildSystemPrompt(softEscalation), contextBlock, timeBlock, trainingBlock, foodBlock, exerciseBlock]
+        .filter(Boolean)
+        .join("\n\n"),
       messages: [...recent.map((m) => ({ role: m.role, content: m.content })), { role: "user" as const, content: userText }],
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    const reply = textBlock && textBlock.type === "text" ? textBlock.text.trim() : "Prepáč, nepodarilo sa mi odpovedať.";
+    const reply =
+      textBlock && textBlock.type === "text" ? stripMarkdown(textBlock.text) : "Prepáč, nepodarilo sa mi odpovedať.";
 
     await logAiUsage({
       trainerId,

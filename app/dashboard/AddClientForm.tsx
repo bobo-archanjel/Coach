@@ -151,7 +151,7 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
                 id: `optimistic-${Date.now()}`,
                 fullName,
                 goal: goal || null,
-                createdAt: new Date().toISOString(),
+                since: new Date().toISOString(),
                 unread: 0,
                 pendingDeletion: false,
                 deletionLabel: null,
@@ -170,10 +170,22 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
             <input name="full_name" type="text" placeholder="Meno a priezvisko" required disabled={manualPending} className={styles.addClientInput} />
             <input name="goal" type="text" placeholder="Cieľ (napr. chudnutie)" disabled={manualPending} className={styles.addClientInput} />
           </div>
+          {/* Viditeľné popisky nad poľami, nie placeholder: tri polia v riadku majú na
+              mobile ~57–67px na text a „Výška (cm)" (85px pri 16px písme) sa orezávala.
+              Rovnaký vzor ako Od/Do v AddAppointmentForm (.timeField). */}
           <div className={styles.addClientFieldsRow}>
-            <input name="age" type="number" inputMode="numeric" placeholder="Vek" min={1} max={119} disabled={manualPending} className={styles.addClientInputSm} />
-            <input name="weight_kg" type="number" inputMode="decimal" placeholder="Váha (kg)" min={1} step="0.1" disabled={manualPending} className={styles.addClientInputSm} />
-            <input name="height_cm" type="number" inputMode="decimal" placeholder="Výška (cm)" min={1} step="0.1" disabled={manualPending} className={styles.addClientInputSm} />
+            <label className={styles.timeField}>
+              <span className={styles.timeFieldLabel}>Vek</span>
+              <input name="age" type="number" inputMode="numeric" min={1} max={119} disabled={manualPending} className={styles.addClientInputSm} />
+            </label>
+            <label className={styles.timeField}>
+              <span className={styles.timeFieldLabel}>Váha (kg)</span>
+              <input name="weight_kg" type="number" inputMode="decimal" min={1} step="0.1" disabled={manualPending} className={styles.addClientInputSm} />
+            </label>
+            <label className={styles.timeField}>
+              <span className={styles.timeFieldLabel}>Výška (cm)</span>
+              <input name="height_cm" type="number" inputMode="decimal" min={1} step="0.1" disabled={manualPending} className={styles.addClientInputSm} />
+            </label>
           </div>
           <div className={styles.addClientFields}>
             <button type="submit" className="btn btn-primary btn-sm" disabled={manualPending}>

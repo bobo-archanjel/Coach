@@ -60,6 +60,12 @@
     padding: 40px 32px 48px;
   }
 }
+/* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
+@media (max-width: 879px) {
+  :global(html[data-keyboard-open]) .main {
+    padding-bottom: 12px;
+  }
+}
 
 /* ---------- chat s trénerom ---------- */
 .chatPage {
@@ -75,6 +81,12 @@
   width: 100%;
   height: calc(100dvh - 118px - env(safe-area-inset-bottom));
   min-height: 0;
+}
+/* Bez lišty (otvorená klávesnica) — 118px rátalo s jej 84px odstupom v .main. */
+@media (max-width: 879px) {
+  :global(html[data-keyboard-open]) .chatPage {
+    height: calc(100dvh - 46px);
+  }
 }
 @media (min-width: 880px) {
   .chatPage {
@@ -451,7 +463,7 @@
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
-  font-size: 15px;
+  font-size: 16px; /* ≥16px: iOS Safari pri focuse nezoomuje */
   font-variant-numeric: tabular-nums;
   padding: 9px 34px 9px 10px;
   border-radius: var(--radius-s);
@@ -466,6 +478,16 @@
   outline: none;
   border-color: var(--iron-red);
   background: var(--ink-3);
+}
+.setFieldInvalid input,
+.setFieldInvalid input:focus {
+  border-color: var(--error);
+}
+/* Chyba v riadku série — zarovnaná pod polia (za stĺpcom s číslom série). */
+.setError {
+  margin: 4px 0 0 26px;
+  font-size: 12px;
+  color: var(--error);
 }
 .setField span {
   position: absolute;
@@ -582,36 +604,111 @@
   border-radius: 999px;
   padding: 3px 9px;
 }
+.logExerciseActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.logNoteInput {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 11px;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+  font: inherit;
+  font-size: 16px; /* ≥16px: iOS nezoomuje */
+  resize: vertical;
+}
+.logNoteInput:focus {
+  outline: none;
+  border-color: var(--paper-faint);
+}
+.logSessionMeta {
+  display: grid;
+  gap: 4px;
+  padding: 12px 4px 8px;
+  border-top: 1px solid var(--steel-line);
+}
+.logRpeField {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.logRpeField select {
+  min-width: 150px;
+  padding: 8px 10px;
+  background: var(--ink-3);
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  color: var(--paper);
+  font: inherit;
+  font-size: 16px; /* ≥16px: iOS nezoomuje */
+}
+
+.doneNote {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+}
+/* "Upraviť hodnoty" — nefarebné (ghost) tlačidlo, 24 h po ukončení (0049). */
 .editValuesBtn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
-  margin-top: 16px;
-  padding: 9px 14px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 10px 16px;
   background: transparent;
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-s);
-  color: var(--paper-dim);
-  font-size: 13px;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .editValuesBtn:hover {
-  border-color: var(--paper-faint);
-  color: var(--paper);
+  border-color: var(--paper-dim);
+  background: var(--ink-3);
+}
+.editDeadline {
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  margin-bottom: 4px;
 }
 .editActions {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
 }
 .editActions .swBtnGhost,
 .editActions .swBtnPrimary {
-  flex: 1;
   padding: 12px 14px;
+}
+.editError {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--error);
+  text-align: center;
+}
+/* Dokončený tréning je od 0048 len na čítanie — nenápadný, ale jasný štítok. */
+.lockNote {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
 }
 
 /* ---------- 3 · dozvuk: séria + týždeň ---------- */
@@ -1079,6 +1176,10 @@
   border-top: 1px solid var(--steel-line);
   padding-bottom: env(safe-area-inset-bottom);
 }
+/* Otvorená klávesnica (KeyboardState) — lišta by visela nad ňou a ubrala miesto na písanie. */
+:global(html[data-keyboard-open]) .nav {
+  display: none;
+}
 @media (min-width: 880px) {
   .nav {
     position: static;
@@ -1517,6 +1618,59 @@
   line-height: 1.2;
   margin-bottom: 10px;
 }
+/* Navigácia medzi dňami denníka (‹ deň ›) — zápis aj spätne (QA 2026-09-23). */
+.diaryDateNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.diaryDateNav .diaryHeading {
+  margin-bottom: 0;
+  text-align: center;
+  flex: 1;
+}
+.diaryDateArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+  font-size: 1.3rem;
+  line-height: 1;
+  text-decoration: none;
+}
+.diaryDateArrow:hover {
+  border-color: var(--paper-faint);
+}
+.diaryDateArrowOff {
+  opacity: 0.3;
+}
+/* Vlastná potravina v denníku — názov + makrá na 100 g + gramáž. */
+.customFood {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.customFoodGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.customFoodField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+.customFoodField .gramInput {
+  width: 100%;
+}
 .kcalLine {
   display: flex;
   align-items: baseline;
@@ -1844,59 +1998,99 @@
 }
 
 /* ---------- meranie klienta na karte Dnes (BodyMetricForm, feature/progress-analyst) ---------- */
-.metricRow {
+/* Všetky riadky formulára (dátum|váha, obvody, Uložiť|Zrušiť) zdieľajú tú istú
+   2-stĺpcovú mriežku s minmax(0, 1fr) — pri 1fr (= minmax(auto, 1fr)) si pole
+   dátumu vynútilo svoju prirodzenú šírku (v iOS Safari väčšiu než polovica) a
+   prekrylo váhu; stĺpce obvodov pod ním navyše nesedeli so stĺpcami nad ním. */
+.metricRow,
+.metricRowWrap {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-.metricRowWrap {
+/* Nepárny posledný obvod (Stehno) na celú šírku, nech neostane osamotená polovica. */
+.metricRowWrap > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+/* Uložiť | Zrušiť — kompaktné tlačidlá s prirodzenou šírkou (nie polovica riadku;
+   globálne .btn-sm má na mobile 13px padding, tu stačí nižšie). */
+.metricActions {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
+}
+.metricActions > button {
+  min-height: 40px;
+  padding: 8px 18px;
+  font-size: 14px;
 }
 .metricField {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  min-height: 46px;
+  box-sizing: border-box;
   background: var(--ink-2);
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-s);
-  padding: 0 10px;
+  padding: 0 12px;
 }
 .metricField .metricInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
   border: none;
   background: none;
   padding: 10px 0;
-  width: 100%;
 }
-.metricInput {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 16px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  color: var(--paper);
-  font-variant-numeric: tabular-nums;
-}
-.metricInput:focus-visible {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
-}
+.metricInput,
 .metricInputSm {
-  flex: 1 1 calc(50% - 4px);
-  min-width: 90px;
-  padding: 9px 10px;
-  font-size: 14px;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  /* 16px = iOS Safari pri focuse nezoomuje (predtým obvody 14px). */
+  font-size: 16px;
+  font-family: inherit;
   background: var(--ink-2);
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-s);
   color: var(--paper);
   font-variant-numeric: tabular-nums;
 }
+/* iOS Safari kreslí date input natívne s vlastnou šírkou — bez appearance:none
+   ignoruje width:100% a rozťahuje stĺpec. */
+.metricInput[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+  /* užší stĺpec (polovica riadku) — menší padding, nech sa dátum nebije s ikonou kalendára */
+  padding-inline: 10px 8px;
+  /* tmavá téma appky → natívna ikona kalendára aj výberový popup svetlé, nie čierne */
+  color-scheme: dark;
+}
+.metricInput[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: 2px;
+  padding: 0;
+}
+.metricInput[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+.metricInput:focus-visible,
 .metricInputSm:focus-visible {
   outline: 2px solid var(--plate-yellow);
   outline-offset: 2px;
+}
+/* Rám nesie obal (input vo vnútri je bez borderu) — rovnaký jemne červený focus
+   ako globálne textové polia (globals.css). */
+.metricField:focus-within {
+  border-color: color-mix(in srgb, var(--iron-red) 60%, transparent);
+}
+.metricField .metricInput:focus-visible {
+  outline: none;
 }
 .metricToggle {
   display: block;
@@ -1913,10 +2107,6 @@
 }
 .metricToggle:hover {
   color: var(--paper);
-}
-.metricActions {
-  display: flex;
-  gap: 8px;
 }
 
 .metricHistory {
@@ -2087,6 +2277,9 @@
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--paper-dim);
+}
+.confirmWarn {
+  color: var(--plate-yellow);
 }
 .confirmActions {
   display: flex;
@@ -2282,6 +2475,7 @@
 .swPresets {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
   margin-bottom: 10px;
 }
@@ -2878,7 +3072,7 @@
   flex: 1;
   min-width: 0;
   padding: 9px 11px;
-  font-size: 15px;
+  font-size: 16px; /* ≥16px: iOS nezoomuje */
   font-weight: 700;
   background: var(--ink);
   border: 1px solid var(--steel-line);

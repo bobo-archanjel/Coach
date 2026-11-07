@@ -44,7 +44,7 @@ export function FoodLibrary({
         <span className={styles.libraryHead}>Knižnica potravín ({foods.length})</span>
         <ChevronIcon className={`${styles.libraryChevron} ${open ? styles.libraryChevronOpen : ""}`} />
       </button>
-      {!activeDayId && <p className={styles.libraryHint}>Vytvor deň vpravo, potom sem klikni na potravinu.</p>}
+      {!activeDayId && <p className={styles.libraryHint}>Najprv vytvor deň jedálnička, potom sem klikni na potravinu.</p>}
 
       <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
         <input

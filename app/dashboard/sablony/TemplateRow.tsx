@@ -9,6 +9,7 @@ import {
   type ActionState,
 } from "./actions";
 import { PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
+import { pluralSk } from "@/lib/portal/streak";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
@@ -51,7 +52,7 @@ export function TemplateRow({
         <div>
           <div className={styles.clientName}>{name}</div>
           <span className={styles.clientSince}>
-            {dayCount} dní
+            {dayCount} {pluralSk(dayCount, "deň", "dni", "dní")}
             {isPlanGoal(goal) && <> · {PLAN_GOAL_LABEL_SK[goal]}</>}
           </span>
         </div>

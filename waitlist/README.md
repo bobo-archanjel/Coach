@@ -61,11 +61,11 @@ python -m http.server 8000
 V Supabase Dashboarde → SQL Editor → New query → postupne vlož a spusti (v
 tomto poradí, každú ako samostatný Run):
 `supabase/migrations/0038_waitlist.sql` → `0039_waitlist_role_client.sql` →
-`0040_waitlist_antispam.sql` → `0043_waitlist_unsubscribe.sql`.
+`0040_waitlist_antispam.sql` → `0052_waitlist_unsubscribe.sql`.
 
 Vytvorí tabuľku `waitlist_signups` s RLS (anon nemá k tabuľke ŽIADNY priamy
 prístup — zápis ide výhradne cez edge function `submit-waitlist`, pozri
-bod 3.5 nižšie; nikto okrem service_role zoznam nikdy nevidí). `0043` pridáva
+bod 3.5 nižšie; nikto okrem service_role zoznam nikdy nevidí). `0052` pridáva
 `unsubscribe_token` — bez neho jednoklikové odhlásenie (bod 5.5 nižšie)
 nefunguje.
 
