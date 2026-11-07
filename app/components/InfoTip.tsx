@@ -2,8 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import infoTipModule from "./infoTip.module.css";
-import { useSkinStyles } from "./uiSkin";
+import styles from "./infoTip.module.css";
 
 const QuestionIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -32,7 +31,6 @@ const CloseIcon = () => (
  * kdekoľvek, aj vnútri nadpisu.
  */
 export function InfoTip({ title, children }: { title: string; children: ReactNode }) {
-  const styles = useSkinStyles("infoTip", infoTipModule);
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);

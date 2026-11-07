@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PortalExercise } from "@/lib/portal/types";
 import { finishWorkoutAction, type ActionState } from "./actions";
-import portalStyles from "./portal.module.css";
+import styles from "./portal.module.css";
 import {
   WORKOUT_STARTED_EVENT,
   clearWorkoutDraft,
@@ -13,12 +13,10 @@ import {
   saveWorkoutDraft,
 } from "./workoutSession";
 import { WorkoutSetsFields, buildEntriesPayload, emptyFormValues, type WorkoutFormValues } from "./WorkoutSetsFields";
-import { useSkinStyles } from "../components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
 const ArrowIcon = () => {
-  const styles = useSkinStyles("portal", portalStyles);
   return (
     <svg className={styles.startArrow} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -49,7 +47,6 @@ function subscribeStarted(onChange: () => void): () => void {
  * opraviť cez "Upraviť hodnoty" (0049), potom je záznam zamknutý.
  */
 export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercises: PortalExercise[] }) {
-  const styles = useSkinStyles("portal", portalStyles);
   // "Tréning začatý" čítame z localStorage UŽ pri prvom vykreslení (useSyncExternalStore),
   // nie až v useEffect — inak karta Dnes po "Začať tréning" v sekcii Tréning na okamih
   // ukázala tlačidlo "Začať tréning" a až potom formulár (záblesk). Na serveri a počas

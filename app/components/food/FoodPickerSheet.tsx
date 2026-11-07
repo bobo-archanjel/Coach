@@ -4,8 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { scaleFoodMacros } from "@/lib/meals";
 import type { BarcodeLookupResult, BarcodePrefill, PortalFoodOption } from "@/lib/portal/types";
-import foodModule from "./food.module.css";
-import { useSkinStyles } from "../uiSkin";
+import styles from "./food.module.css";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { FoodCreateForm } from "./FoodCreateForm";
 
@@ -81,7 +80,6 @@ export function FoodPickerSheet({
   onFoodCreated?: (food: PortalFoodOption) => void;
   onClose: () => void;
 }) {
-  const styles = useSkinStyles("food", foodModule);
   const withLibrary = library !== undefined;
   const [source, setSource] = useState<Source>(withLibrary ? "library" : "online");
   const [query, setQuery] = useState("");

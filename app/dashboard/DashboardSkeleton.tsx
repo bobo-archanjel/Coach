@@ -1,4 +1,4 @@
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 /**
  * Loading-stav pre /dashboard/* routy — tvarom podľa skutočnej najčastejšej
@@ -13,7 +13,6 @@ import { dashStyles } from "@/app/dashboard/dashSkin";
  * svojou veľkostnou triedou — bez `skeletonBlock` by prvok nemal pozadie vôbec.
  */
 export async function DashboardSkeleton() {
-  const styles = await dashStyles();
   return (
     <div className={styles.skeletonWrap} aria-hidden="true">
       <div className={`${styles.skeletonBlock} ${styles.skeletonHead}`} />

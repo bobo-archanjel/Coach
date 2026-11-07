@@ -10,8 +10,7 @@
 import { useMemo, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { EmptyState } from "../components/EmptyState";
-import dashboardModule from "./dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./dashboard.module.css";
 
 const ClientsIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -48,7 +47,6 @@ function normalize(s: string): string {
 const SEARCH_THRESHOLD = 5; // pod týmto počtom klientov je hľadanie zbytočný šum navyše
 
 export function ClientRoster({ items }: { items: RosterItem[] }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {

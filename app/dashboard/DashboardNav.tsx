@@ -2,16 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark, LogoWordmark } from "../components/LogoMark";
+import { LogoMark } from "../components/LogoMark";
 import { SignOutButton } from "../components/SignOutButton";
 import { NavLinkPendingSignal } from "../components/NavigationProgress";
 import { NotificationBell } from "./NotificationBell";
 import { revealInboxList } from "./spravy/ThreadSwipeBack";
-import dashboardModule from "./dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./dashboard.module.css";
 
 function ClientsIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.7" />
@@ -23,7 +21,6 @@ function ClientsIcon() {
 }
 
 function TrainingIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M3 12h2M19 12h2M6.5 12h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -36,7 +33,6 @@ function TrainingIcon() {
 }
 
 function NutritionIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -51,7 +47,6 @@ function NutritionIcon() {
 }
 
 function MessagesIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -66,7 +61,6 @@ function MessagesIcon() {
 }
 
 function CalendarIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" strokeWidth="1.7" />
@@ -79,7 +73,6 @@ function CalendarIcon() {
 }
 
 function TemplatesIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="5" y="3.5" width="11" height="14" rx="1.6" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
@@ -90,7 +83,6 @@ function TemplatesIcon() {
 }
 
 function SettingsIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
@@ -115,23 +107,15 @@ const NAV_ITEMS = [
 ];
 
 export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
-  const skinned = styles !== dashboardModule;
   const pathname = usePathname();
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarTop}>
         <Link href="/dashboard" className={styles.sidebarBrand}>
-          {skinned ? (
-            // v6: wordmark je raster so svetlým textom — na svetlom skle by zmizol
-            <>
-              <LogoMark className={styles.brandMark} />
-              <span className={styles.brandText}>FitPilot</span>
-            </>
-          ) : (
-            <LogoWordmark className={styles.brandLogo} />
-          )}
+          {/* značka + text (wordmark je raster so svetlým textom — na svetlom skle by zmizol) */}
+          <LogoMark className={styles.brandMark} />
+          <span className={styles.brandText}>FitPilot</span>
         </Link>
         <NotificationBell initialUnread={unreadCount} />
       </div>
@@ -165,7 +149,7 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
       </nav>
 
       <div className={styles.sidebarFoot}>
-        <SignOutButton to={skinned ? "/v6design/prihlasenie" : undefined} />
+        <SignOutButton to="/v6design/prihlasenie" />
       </div>
     </aside>
   );

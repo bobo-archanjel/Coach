@@ -2,8 +2,7 @@
 
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
 import { parseReps, parseWeight, summarizeWorkoutForm, type SetDraftRow } from "@/lib/workouts/setInput";
-import portalStyles from "./portal.module.css";
-import { useSkinStyles } from "../components/uiSkin";
+import styles from "./portal.module.css";
 
 /**
  * Polia zápisu tréningu (série, poznámka ku cviku, RPE, poznámka k tréningu) —
@@ -103,7 +102,6 @@ export function WorkoutSetsFields({
   onChange: (next: WorkoutFormValues) => void;
   showInvalid: boolean;
 }) {
-  const styles = useSkinStyles("portal", portalStyles);
   const { rows, notes, rpe, sessionNote } = values;
   const setRows = (next: Record<number, SetRow[]>) => onChange({ ...values, rows: next });
 

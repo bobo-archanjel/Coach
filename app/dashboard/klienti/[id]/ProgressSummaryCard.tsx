@@ -3,8 +3,7 @@
 import { useActionState } from "react";
 import { generateProgressSummaryAction, type ProgressSummaryState } from "../actions";
 import { InfoTip } from "@/app/components/InfoTip";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 const initialState: ProgressSummaryState = { summary: null, error: null };
 
@@ -15,7 +14,6 @@ const initialState: ProgressSummaryState = { summary: null, error: null };
  * navyše vlastný denný rate-limit (lib/ai/rateLimit.ts) pre prípad viacerých kariet/tabov.
  */
 export function ProgressSummaryCard({ clientId }: { clientId: string }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(generateProgressSummaryAction, initialState);
 
   return (

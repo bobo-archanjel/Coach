@@ -3,8 +3,7 @@
 import { useState, useTransition } from "react";
 import { generateRosterSummaryAction } from "./actions";
 import { InfoTip } from "@/app/components/InfoTip";
-import dashboardModule from "../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../dashboard.module.css";
 
 /**
  * AI týždenný digest portfólia (feature/analytika-v2, bod 5) — on-demand tlačidlo,
@@ -18,7 +17,6 @@ import { useSkinStyles } from "@/app/components/uiSkin";
  * server action sa v preview nedá spustiť (žiadna session).
  */
 export function RosterSummaryCard({ previewSummary }: { previewSummary?: string | null }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [pending, startTransition] = useTransition();
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

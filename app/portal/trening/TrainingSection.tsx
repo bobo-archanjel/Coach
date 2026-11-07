@@ -14,8 +14,7 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import portalStyles from "../portal.module.css";
-import { usePortalBase, useSkinStyles } from "../../components/uiSkin";
+import styles from "../portal.module.css";
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
 // naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
@@ -25,7 +24,6 @@ const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) =
 });
 
 function BuilderLoading() {
-  const styles = useSkinStyles("portal", portalStyles);
   return <p className={styles.trEmptyDay}>Načítavam…</p>;
 }
 
@@ -74,8 +72,6 @@ function exWord(n: number): string {
 }
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
-  const styles = useSkinStyles("portal", portalStyles);
-  const portalBase = usePortalBase();
   const { plans, templates } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
@@ -197,7 +193,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setError(null);
     markWorkoutStarted(dayId);
     startTransition(async () => {
-      const res = await setActivePlanAction(plan.id, dayId, portalBase);
+      const res = await setActivePlanAction(plan.id, dayId);
       // Úspech → redirect vnútri akcie, sem sa vrátime len pri chybe.
       if (res?.error) {
         clearWorkoutStarted();
@@ -304,6 +300,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
           )}
         </div>
       )}
+      {/* čiara oddelí šablóny od tréningov pod nimi — karty vyzerajú rovnako a splývali */}
+      {templates.length > 0 && <hr className={styles.trDivider} />}
 
       {plans.length === 0 ? (
         <div className={styles.panel}>

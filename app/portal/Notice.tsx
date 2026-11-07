@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import styles from "./portal.module.css";
+import s from "./portal.module.css";
 
-/* Zdieľaná prázdna/chybová obrazovka pre karty portálu (Dnes, Tréning, Strava). */
+/* Prázdna/chybová obrazovka portálu (ikona, nadpis, text, voliteľná akcia). */
 
 export const AlertIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -25,8 +25,8 @@ export function Notice({
   tone?: "status" | "alert";
 }) {
   return (
-    <div className={styles.notice} role={tone}>
-      <span className={styles.noticeTile} aria-hidden="true">
+    <div className={s.notice} role={tone}>
+      <span className={s.noticeTile} aria-hidden="true">
         {icon}
       </span>
       <h1>{title}</h1>

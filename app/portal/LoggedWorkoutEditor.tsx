@@ -5,8 +5,7 @@ import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
 import { formatEditDeadline } from "@/lib/workouts/completed";
 import { updateWorkoutLogAction } from "./actions";
 import { WorkoutSetsFields, buildEntriesPayload, formValuesFromLog, type WorkoutFormValues } from "./WorkoutSetsFields";
-import portalStyles from "./portal.module.css";
-import { useSkinStyles } from "../components/uiSkin";
+import styles from "./portal.module.css";
 
 /**
  * "Upraviť hodnoty" dokončeného tréningu — ten istý formulár ako pri ukončení,
@@ -31,7 +30,6 @@ export function LoggedWorkoutEditor({
   editableUntil: string;
   onClose: () => void;
 }) {
-  const styles = useSkinStyles("portal", portalStyles);
   const [values, setValues] = useState<WorkoutFormValues>(() => formValuesFromLog(exercises, logged, rpe, note));
   const [showInvalid, setShowInvalid] = useState(false);
   const [error, setError] = useState<string | null>(null);

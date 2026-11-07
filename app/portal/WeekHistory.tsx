@@ -3,15 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { getPortalWeekAction } from "./actions";
 import type { WeekDay, WeekView } from "@/lib/portal/types";
-import portalStyles from "./portal.module.css";
-import { useSkinStyles } from "../components/uiSkin";
+import styles from "./portal.module.css";
 
 /* Pás „Tento týždeň" na karte Dnes — okrem aktuálneho týždňa sa dá listovať
    dozadu (šípky), a ťuk na deň s odcvičeným tréningom otvorí náhľad toho, čo
    klient v ten deň spravil (workout_logs.entries). Dáta: lib/portal/data.ts →
    buildWeekView; iné týždne cez server action getPortalWeekAction. */
 
-// Kľúče tried, nie triedy — štýly sa berú až v komponente (useSkinStyles).
+// Kľúče tried v portal.module.css (styles[...]).
 const MARK_CLASS: Record<WeekDay["state"], string> = {
   done: "markDone",
   today: "markToday",
@@ -64,7 +63,6 @@ function setLabel(reps: number | null, weight: number | null): string {
 }
 
 export function WeekHistory({ initial }: { initial: WeekView }) {
-  const styles = useSkinStyles("portal", portalStyles);
   const [week, setWeek] = useState<WeekView>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,7 +159,6 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
 }
 
 function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) {
-  const styles = useSkinStyles("portal", portalStyles);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);

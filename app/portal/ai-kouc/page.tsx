@@ -1,27 +1,17 @@
-import { ChatThread } from "../../components/ChatThread";
+import { ChatThread } from "@/app/components/ChatThread";
 import { getPortalAiChat } from "@/lib/portal/data";
-import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "./actions";
+import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "@/app/portal/ai-kouc/actions";
+import { PREVIEW } from "@/app/portal/ai-kouc/preview";
+import { AiIcon, ProfileIcon } from "@/app/portal/icons";
+import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
-import { ProfileIcon } from "../icons";
-import { RetryButton } from "../RetryButton";
-import { PREVIEW } from "./preview";
-import styles from "../portal.module.css";
+import s from "../portal.module.css";
 
-/* /portal/ai-kouc — AI Kouč (AI blok, Krok 4b). Samostatný tab vedľa Chat
-   (človek ↔ tréner), aby bolo jasné, čo je AI a čo živý tréner. GDPR oprava:
-   toto je SÚKROMNÁ konverzácia klient↔AI — tréner k nej nemá prístup ani na
-   úrovni RLS (0017_ai_chat_private.sql). Pri zdravotnej téme/žiadosti o
-   náhradu cviku dostane tréner len krátku správu v skutočnom chate (Krok 4/5),
-   nikdy celý AI transkript — to musí byť viditeľne oznámené tu. */
+/* /portal/ai-kouc — súkromná konverzácia s AI (0017); GDPR oznam ostáva trvalo viditeľný nad chatom. */
 
-export default async function AiKoucPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ preview?: string }>;
-}) {
+export default async function AiKoucPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
-  const result =
-    preview === "ok" && process.env.NODE_ENV === "development" ? PREVIEW : await getPortalAiChat();
+  const result = preview === "ok" && process.env.NODE_ENV === "development" ? PREVIEW : await getPortalAiChat();
 
   if (result.state === "error") {
     return (
@@ -54,25 +44,32 @@ export default async function AiKoucPage({
     body: m.body,
     createdAt: m.createdAt,
   }));
-
   const hasMessages = result.data.messages.length > 0;
 
   return (
-    <div className={styles.chatPage}>
-      <div className={styles.aiKoucHead}>
-        <h1 className={styles.chatTitle}>AI Kouč</h1>
+    <div className={s.chatPage}>
+      <div className={s.chatHead}>
+        <div className={s.chatWho}>
+          <span className={s.chatAvatar} aria-hidden="true">
+            <AiIcon />
+          </span>
+          <div>
+            <h1 className={s.chatTitle}>AI Kouč</h1>
+            <p className={s.chatSub}>Súkromný asistent</p>
+          </div>
+        </div>
         {hasMessages && (
           <form action={resetAiKoucConversationAction}>
-            <button type="submit" className={styles.aiKoucResetBtn}>
+            <button type="submit" className={s.aiKoucResetBtn}>
               Začať odznova
             </button>
           </form>
         )}
       </div>
-      <p className={styles.aiKoucNotice}>
-        Rozprávaš sa s AI asistentom, nie s trénerom priamo — táto konverzácia je súkromná, tréner ju nevidí. Pri
-        zmienke o bolesti/zranení alebo žiadosti o náhradu cviku dostane tréner len krátku správu v Správach, nikdy
-        celý tento chat.
+      <p className={s.aiKoucNotice}>
+        Rozprávaš sa s AI asistentom, nie s trénerom priamo — táto konverzácia je súkromná, tréner ju nevidí. Pri zmienke
+        o bolesti/zranení alebo žiadosti o náhradu cviku dostane tréner len krátku správu v Správach, nikdy celý tento
+        chat.
       </p>
       <ChatThread
         messages={messages}
@@ -82,12 +79,7 @@ export default async function AiKoucPage({
         emptyText="Napríklad: čo mám zjesť, aby som splnil dnešný cieľ? Alebo: aký cvik mi navrhneš namiesto tohto?"
         placeholder="Napíš AI Koučovi…"
         fill
-        // Súkromná konverzácia klient↔AI (0017) — bežná odpoveď príde synchrónne v
-        // tej istej server action. Jediná výnimka je proaktívny AI check-in (0033,
-        // pg_cron pri strate adherencie) — ten vloží správu mimo tejto stránky, ale
-        // ide o max. raz za pár dní, klient ju uvidí pri ďalšom otvorení/refreshi;
-        // pravidelný poll ani Realtime by tu boli zbytočný dopyt navyše pre tak
-        // zriedkavú udalosť.
+        // proaktívny check-in príde max. raz za pár dní — bez pollu (ako /portal/ai-kouc)
         pollMs={0}
       />
     </div>

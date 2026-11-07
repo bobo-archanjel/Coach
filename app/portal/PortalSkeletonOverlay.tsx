@@ -11,5 +11,5 @@ export function PortalSkeletonOverlay() {
   // Volané ako obyčajná funkcia, nie JSX — viď komentár v
   // app/dashboard/DashboardSkeletonOverlay.tsx (JSX element je vždy pravdivý
   // objekt, aj keď komponent vnútri vráti `null`).
-  return <NavSkeletonOverlay resolveSkeleton={(href) => PortalRouteSkeleton({ href })} insetClassName={styles.main} />;
+  return <NavSkeletonOverlay resolveSkeleton={(href) => PortalRouteSkeleton({ href })} insetClassName={styles.v6Main} />;
 }

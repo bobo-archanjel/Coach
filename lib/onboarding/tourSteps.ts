@@ -24,7 +24,7 @@ export const TRAINER_TOUR_STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="nav-vyziva"]',
-    title: "Výživa",
+    title: "Jedálničky",
     body: "Makrá a jedálničky sú tu plnohodnotná súčasť, nie platený doplnok.",
   },
   {

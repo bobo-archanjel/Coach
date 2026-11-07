@@ -11,7 +11,7 @@ import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { CreateMealPlanButton } from "./CreateMealPlanButton";
 import { NutritionForm } from "./NutritionForm";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
 import { pluralSk } from "@/lib/portal/streak";
 
@@ -60,7 +60,6 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ preview?: string; sekcia?: string }>;
 }) {
-  const styles = await dashStyles();
   const { id } = await params;
   const { preview, sekcia } = await searchParams;
 
@@ -487,7 +486,6 @@ async function ClientAnalytics({
 }
 
 async function AnalyticsSkeleton() {
-  const styles = await dashStyles();
   return (
     <div className={styles.skeletonWrap} aria-hidden="true">
       <div className={`${styles.skeletonBlock} ${styles.skeletonCard}`} />

@@ -4,8 +4,7 @@ import { useState, useTransition } from "react";
 import { kcalMismatch } from "@/lib/meals";
 import type { BarcodePrefill, PortalFoodOption } from "@/lib/portal/types";
 import { createUserFoodAction } from "./actions";
-import foodModule from "./food.module.css";
-import { useSkinStyles } from "../uiSkin";
+import styles from "./food.module.css";
 
 const asField = (n: number | null | undefined) => (n === null || n === undefined ? "" : String(n));
 const asNumber = (s: string) => Number(s.trim().replace(",", "."));
@@ -26,7 +25,6 @@ export function FoodCreateForm({
   onCreated: (food: PortalFoodOption) => void;
   onCancel?: () => void;
 }) {
-  const styles = useSkinStyles("food", foodModule);
   const fromScan = Boolean(prefill?.barcode);
   const [form, setForm] = useState({
     barcode: prefill?.barcode ?? "",

@@ -9,8 +9,7 @@ import { useState, type ReactNode } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { DISMISS_LATE_DAYS } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction } from "./attention/actions";
-import dashboardModule from "./dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./dashboard.module.css";
 
 const SAVE_FAILED = "Skrytie sa nepodarilo uložiť. Skús to znova o chvíľu.";
 
@@ -29,7 +28,6 @@ export function DismissibleNotice({
   label: string;
   children: ReactNode;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [hidden, setHidden] = useState(false);
   const [failed, setFailed] = useState(false);
   if (hidden) return null;
@@ -78,7 +76,6 @@ export interface LateNoticeClient {
 
 /** Alert panel "meškajúci klienti" so skrytím jedného aj všetkých naraz (na 7 dní). */
 export function LateAlertPanel({ clients }: { clients: LateNoticeClient[] }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [hiddenKeys, setHiddenKeys] = useState<ReadonlySet<string>>(new Set());
   const [failed, setFailed] = useState(false);
   const visible = clients.filter((c) => !hiddenKeys.has(c.key));

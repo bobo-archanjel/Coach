@@ -1,12 +1,17 @@
 import { getPortalNutrition } from "@/lib/portal/data";
-import { ProfileIcon } from "../icons";
+import { FoodIcon, ProfileIcon } from "@/app/portal/icons";
+import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
-import { RetryButton } from "../RetryButton";
-import styles from "../portal.module.css";
+import s from "../portal.module.css";
 
-/* /portal/strava — makro cieľ (BMR/TDEE/makrá) + najnovší jedálniček klienta.
-   Obe časti sú nezávislé, preto majú vlastné empty-state riadky namiesto
-   jedného veľkého "nič tu nie je" — klient môže mať jedno bez druhého. */
+/* /portal/strava — makro cieľ + najnovší zverejnený jedálniček (getPortalNutrition):
+   dlaždice makier, jedlá ako riadky v karte dňa. */
+
+const MACRO_TILES = [
+  { key: "proteinG", label: "Bielkoviny", color: "var(--accent)" },
+  { key: "carbsG", label: "Sacharidy", color: "var(--plate-yellow)" },
+  { key: "fatG", label: "Tuky", color: "var(--moss)" },
+] as const;
 
 export default async function StravaPage() {
   const result = await getPortalNutrition();
@@ -30,34 +35,51 @@ export default async function StravaPage() {
   const { macroGoal, mealPlanId, mealPlanName, mealDays } = result.data;
 
   return (
-    <section aria-label="Výživa" style={{ display: "grid", gap: 20 }}>
-      <div className={styles.panel}>
-        <p className={styles.panelLabel}>Makro cieľ</p>
+    <>
+      <header>
+        <h1 className={s.pageTitle}>Strava</h1>
+        <p className={s.pageSub}>Denný cieľ a jedálniček od trénera.</p>
+      </header>
+
+      <div className={s.panel}>
+        <div className={s.panelHead}>
+          <p className={s.panelLabel}>Makro cieľ</p>
+          <span className={s.panelIcon}>
+            <FoodIcon />
+          </span>
+        </div>
         {macroGoal ? (
           <>
-            <div className={styles.streakHead}>
-              <span className={styles.streakNum}>{macroGoal.caloriesTarget}</span>
-              <span className={styles.streakUnit}>kcal / deň</span>
+            <div className={s.kcalBig}>
+              {macroGoal.caloriesTarget}
+              <span className={s.kcalUnit}>kcal / deň</span>
             </div>
-            <div className={styles.sessionChips} style={{ marginTop: 10 }}>
-              <span className={styles.chip}>{macroGoal.proteinG} g bielkoviny</span>
-              <span className={styles.chip}>{macroGoal.carbsG} g sacharidy</span>
-              <span className={styles.chip}>{macroGoal.fatG} g tuky</span>
-            </div>
-            <p className={styles.sessionFocus} style={{ marginTop: 10 }}>
+            <p className={s.kcalSub}>
               BMR {macroGoal.bmr} kcal · TDEE {macroGoal.tdee} kcal
             </p>
+            <div className={s.macroGrid}>
+              {MACRO_TILES.map(({ key, label, color }) => (
+                <div key={key} className={s.macroTile}>
+                  <div className={s.macroTileVal}>
+                    {macroGoal[key]}
+                    <small>g</small>
+                  </div>
+                  <div className={s.macroTileLabel}>{label}</div>
+                  <span className={s.macroTileBar} style={{ background: color }} aria-hidden="true" />
+                </div>
+              ))}
+            </div>
           </>
         ) : (
-          <div className={styles.sessionQuiet}>
+          <div className={s.sessionQuiet}>
             <p>Tréner ti zatiaľ nenastavil makro cieľ.</p>
           </div>
         )}
       </div>
 
-      <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <p className={styles.panelLabel}>{mealPlanName ?? "Jedálniček"}</p>
+      <section aria-label="Jedálniček">
+        <div className={s.sectionHead}>
+          <h2 className={s.sectionTitle}>{mealPlanName ?? "Jedálniček"}</h2>
           {mealPlanId && mealDays.length > 0 && (
             <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
               Stiahnuť PDF
@@ -65,40 +87,37 @@ export default async function StravaPage() {
           )}
         </div>
         {mealDays.length === 0 ? (
-          <div className={styles.sessionQuiet}>
-            <p>Tréner ti zatiaľ nezostavil jedálniček.</p>
+          <div className={s.panel}>
+            <div className={s.sessionQuiet}>
+              <p>Tréner ti zatiaľ nezostavil jedálniček.</p>
+            </div>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 16, marginTop: 8 }}>
+          <div className={s.stack}>
             {mealDays.map((day) => (
-              <div key={day.id} className={styles.panel}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
-                  <span className={styles.sessionTitle} style={{ fontSize: "1.05rem" }}>
-                    {day.name}
-                  </span>
-                  <span className={styles.chip}>{day.totalKcal} kcal</span>
+              <div key={day.id} className={s.panel}>
+                <div className={s.mealDayHead}>
+                  <span className={s.mealDayName}>{day.name}</span>
+                  <span className={s.chip}>{day.totalKcal} kcal</span>
                 </div>
                 {day.groups.length === 0 ? (
-                  <div className={styles.sessionQuiet}>
+                  <div className={s.sessionQuiet}>
                     <p>Tento deň zatiaľ nemá žiadne jedlá.</p>
                   </div>
                 ) : (
                   day.groups.map((group) => (
-                    <div key={group.slotLabel} style={{ marginTop: 10 }}>
-                      <p className={styles.exMeta} style={{ marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                        {group.slotLabel}
-                      </p>
-                      <ol className={styles.exList}>
+                    <div key={group.slotLabel}>
+                      <p className={s.mealSlot}>{group.slotLabel}</p>
+                      <ol className={s.mealList}>
                         {group.entries.map((entry, i) => (
-                          <li key={i} className={styles.exRow}>
-                            <span className={styles.exIdx}>{i + 1}</span>
-                            <span className={styles.exBody}>
-                              <span className={styles.exName}>{entry.name}</span>
-                              <span className={styles.exMeta}>
+                          <li key={i} className={s.mealRow}>
+                            <span>
+                              <span className={s.mealName}>{entry.name}</span>
+                              <span className={s.mealMeta}>
                                 {entry.grams} g · {entry.proteinG}g B · {entry.carbsG}g S · {entry.fatG}g T
                               </span>
                             </span>
-                            <span className={styles.exLoad}>{entry.kcal} kcal</span>
+                            <span className={s.mealKcal}>{entry.kcal} kcal</span>
                           </li>
                         ))}
                       </ol>
@@ -109,7 +128,7 @@ export default async function StravaPage() {
             ))}
           </div>
         )}
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

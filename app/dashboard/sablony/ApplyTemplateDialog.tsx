@@ -5,8 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { applyTemplateToClientsAction } from "./actions";
 import { pluralSk } from "@/lib/portal/streak";
-import templatesModule from "./templates.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./templates.module.css";
 
 const normalize = (s: string) =>
   s
@@ -45,7 +44,6 @@ export function ApplyTemplateDialog({
   clients: { id: string; full_name: string }[];
   onClose: () => void;
 }) {
-  const styles = useSkinStyles("templates", templatesModule);
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ReadonlySet<string>>(

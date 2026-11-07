@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { BARCODE_FORMATS, parseBarcode, type BarcodeFormat } from "@/lib/barcode";
-import foodModule from "./food.module.css";
-import { useSkinStyles } from "../uiSkin";
+import styles from "./food.module.css";
 
 /** Ako dlho čakať medzi dvoma pokusmi o prečítanie snímky (ms). */
 const DETECT_INTERVAL_MS = 120;
@@ -82,7 +81,6 @@ const FlashIcon = () => (
  * `onDetected` dostane kód v jednotnom tvare (lib/barcode.ts).
  */
 export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
-  const styles = useSkinStyles("food", foodModule);
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);

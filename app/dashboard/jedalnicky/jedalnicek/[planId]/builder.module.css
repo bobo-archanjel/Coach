@@ -20,7 +20,7 @@
 .dayTab {
   padding: 8px 14px;
   border-radius: var(--radius-m);
-  background: var(--ink-3);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   color: var(--paper-dim);
   font-family: inherit;
@@ -39,7 +39,7 @@
    rola coralu ako pri aktívnom pláne v portáli, povolené v Operate. */
 .dayTabActive,
 .dayTabActive:hover {
-  background: rgba(224, 64, 42, 0.09);
+  background: rgba(217, 105, 74, 0.09);
   border-color: var(--iron-red);
   color: var(--paper);
 }
@@ -124,7 +124,7 @@
   flex-basis: 100%;
 }
 .addDayInput {
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
@@ -146,14 +146,15 @@
 }
 
 .dayPanel {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius-m);
   padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-height: 160px;
+  box-shadow: var(--card-shadow);
 }
 /* Na mobile je rám panelu zbytočná druhá vrstva okolo kariet potravín (tie majú
    vlastný border) — zbytočne zužuje už aj tak úzky obsah. */
@@ -198,7 +199,7 @@
   gap: 6px;
   padding: 3px 9px 3px 8px;
   border-radius: 999px;
-  background: var(--ink-3);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -243,7 +244,7 @@
   align-items: center;
   gap: 12px;
   padding: 11px 14px;
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-s);
   font-size: 13.5px;
@@ -313,7 +314,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--iron-red-dim);
   border-radius: var(--radius-s);
 }
@@ -339,7 +340,7 @@
 }
 .editField input,
 .editField select {
-  background: var(--ink-2);
+  background: var(--surface-solid);
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
@@ -411,7 +412,7 @@
   flex-wrap: wrap;
   gap: 10px 16px;
   padding: 12px 14px 12px 18px;
-  background: var(--ink-3);
+  background: var(--fill);
   border: 1px solid var(--plate-yellow);
   border-radius: var(--radius-m);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -444,6 +445,107 @@
     flex: 1;
     min-height: 44px;
   }
+}
+
+/* ======================================================================
+   v6 — "liquid glass" vrstva nad kópiou pôvodného modulu (neskorší zápis vyhráva).
+   ====================================================================== */
+.dayPanel {
+  border-radius: 26px;
+}
+.dayTab {
+  border-radius: 999px;
+  background: var(--surface-solid);
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-1);
+}
+.dayTabActive,
+.dayTabActive:hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.addDayTab,
+.deleteDayTab {
+  border-radius: 999px;
+}
+.deleteDayConfirm {
+  border-radius: 22px;
+}
+.exerciseRow {
+  border-radius: 20px;
+  border-color: var(--hairline);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+}
+.iconBtn {
+  border-radius: 50%;
+  border-color: var(--hairline);
+  background: var(--surface-solid);
+}
+.addDayInput {
+  border-radius: 999px;
+  border-color: var(--hairline);
+}
+.exerciseSummary {
+  color: var(--accent-text);
+}
+.editForm {
+  border-radius: 22px;
+  border: 1.5px solid var(--accent);
+  background: var(--surface-solid);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.editField input {
+  border-radius: 14px;
+  border-color: var(--hairline);
+}
+.renameDayTab {
+  border-radius: 999px;
+}
+.macroChip {
+  border-radius: 999px;
+}
+.saveBar {
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 58%), var(--glass-bg);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+/* nad plávajúcou sklenenou lištou v6 (54 + 2×6 + 10 odstup + medzera) */
+@media (max-width: 880px) {
+  .saveBar {
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    border-radius: 26px;
+  }
+  :global(html[data-keyboard-open]) .saveBar {
+    bottom: 8px;
+  }
+}
+
+/* mazanie — červená (tokeny --danger v tokens.module.css), odlíšená od terakoty */
+.deleteDayTab,
+.deleteDayTab:hover {
+  color: var(--danger);
+}
+.deleteDayTab:hover {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.deleteDayConfirm {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.iconBtn:global(.btn-danger) {
+  color: var(--danger);
+}
+.iconBtn:global(.btn-danger):hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
 }
 
 /* Duplikovať (rovnaký štýl ako Premenovať) — zablokované, keď má jedálniček maximum dní */

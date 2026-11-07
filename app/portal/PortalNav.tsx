@@ -3,53 +3,49 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoWordmark } from "../components/LogoMark";
-import { SignOutButton } from "../components/SignOutButton";
-import { NavLinkPendingSignal } from "../components/NavigationProgress";
-import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "./icons";
-import styles from "./portal.module.css";
+import { LogoMark } from "@/app/components/LogoMark";
+import { NavLinkPendingSignal } from "@/app/components/NavigationProgress";
+import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "@/app/portal/icons";
+import s from "./portal.module.css";
 
+const BASE = "/portal";
+
+/** `tour` = kotva kroku onboarding návodu (lib/onboarding/tourSteps.ts, data-tour). */
 const NAV_ITEMS = [
-  { href: "/portal", label: "Dnes", Icon: TodayIcon, tour: "nav-today", match: (p: string) => p === "/portal" },
-  { href: "/portal/trening", label: "Tréning", Icon: TrainingIcon, tour: "nav-trening", match: (p: string) => p.startsWith("/portal/trening") },
-  { href: "/portal/strava", label: "Strava", Icon: FoodIcon, tour: "nav-strava", match: (p: string) => p.startsWith("/portal/strava") },
-  { href: "/portal/dennik", label: "Denník", Icon: DiaryIcon, tour: "nav-dennik", match: (p: string) => p.startsWith("/portal/dennik") },
-  { href: "/portal/chat", label: "Chat", Icon: ChatIcon, tour: "nav-chat", match: (p: string) => p.startsWith("/portal/chat") },
-  // AI Kouč sa pridáva podmienene (len klienti s prideleným trénerom) — viď aiKoucVisible nižšie.
-  { href: "/portal/ai-kouc", label: "AI Kouč", Icon: AiIcon, tour: null, match: (p: string) => p.startsWith("/portal/ai-kouc") },
-  { href: "/portal/profil", label: "Profil", Icon: ProfileIcon, tour: "nav-profil", match: (p: string) => p.startsWith("/portal/profil") },
+  { href: BASE, label: "Dnes", Icon: TodayIcon, tour: "nav-today", match: (p: string) => p === BASE },
+  { href: `${BASE}/trening`, label: "Tréning", Icon: TrainingIcon, tour: "nav-trening", match: (p: string) => p.startsWith(`${BASE}/trening`) },
+  { href: `${BASE}/strava`, label: "Strava", Icon: FoodIcon, tour: "nav-strava", match: (p: string) => p.startsWith(`${BASE}/strava`) },
+  { href: `${BASE}/dennik`, label: "Denník", Icon: DiaryIcon, tour: "nav-dennik", match: (p: string) => p.startsWith(`${BASE}/dennik`) },
+  { href: `${BASE}/chat`, label: "Chat", Icon: ChatIcon, tour: "nav-chat", match: (p: string) => p.startsWith(`${BASE}/chat`) },
+  // AI Kouč len pre klientov s prideleným trénerom — viď aiKoucVisible nižšie.
+  { href: `${BASE}/ai-kouc`, label: "AI Kouč", Icon: AiIcon, tour: null, match: (p: string) => p.startsWith(`${BASE}/ai-kouc`) },
+  { href: `${BASE}/profil`, label: "Profil", Icon: ProfileIcon, tour: "nav-profil", match: (p: string) => p.startsWith(`${BASE}/profil`) },
 ];
 
 /**
- * Pod 880px: fixná bottom tab bar (pôvodné mobilné správanie, nezmenené).
- * Nad 880px: ľavý sidebar (rovnaký vzor ako app/dashboard/DashboardNav) — .navShell
- * je vtedy sidebar kontajner, .navBrand a .navFoot (odhlásenie) sa zobrazia len tu,
- * kým na mobile ostávajú skryté (bottom bar má na ne príliš málo miesta).
+ * Navigácia portálu — položky, podmienky (AI Kouč, bodka neprečítanej správy)
+ * a skrývanie pri otvorenej klávesnici. Mobil: plávajúca sklenená lišta dole. Počítač (od 880px): bočný panel ako trénerov dashboard v6 — logo,
+ * položky pod sebou a klient dole (odkaz na Profil); hlavička sa skryje.
  */
 export function PortalNav({
   chatUnread = false,
   aiKoucVisible = true,
+  displayName = null,
 }: {
   chatUnread?: boolean;
-  /** false pre self-klientov bez trénera — AI Kouč zatiaľ vyžaduje prideleného trénera. */
   aiKoucVisible?: boolean;
+  displayName?: string | null;
 }) {
   const pathname = usePathname();
-  const items = aiKoucVisible ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== "/portal/ai-kouc");
+  const items = aiKoucVisible ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== `${BASE}/ai-kouc`);
 
-  // Mobilná klávesnica: `.nav` je `position: fixed; bottom: 0` voči layoutovému
-  // viewportu, ktorý sa pri otvorení klávesnice nezmenší rovnako spoľahlivo vo
-  // všetkých mobilných prehliadačoch ako vizuálny viewport — bar potom vie
-  // prekrývať composer (napr. v Chate) alebo sa vznášať nad klávesnicou.
-  // `visualViewport` je presnejší signál "klávesnica je otvorená" než čokoľvek
-  // odvodené z CSS jednotiek (dvh/svh) naprieč prehliadačmi.
+  // Otvorená mobilná klávesnica — visualViewport je spoľahlivejší signál než CSS
+  // jednotky (rovnaká logika ako PortalNav); lišta by inak visela nad klávesnicou.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
     const onResize = () => {
-      // 150px hranica nad bežným výkyvom pri schovaní/zobrazení adresového
-      // riadku v mobilných prehliadačoch — klávesnica uberie oveľa viac.
       setKeyboardOpen(window.innerHeight - vv.height > 150);
     };
     vv.addEventListener("resize", onResize);
@@ -58,42 +54,47 @@ export function PortalNav({
   }, []);
 
   return (
-    <aside className={styles.navShell}>
-      <Link href="/portal" className={styles.navBrand}>
-        <LogoWordmark className={styles.brandLogo} />
+    <aside className={s.v6Side}>
+      <Link href={BASE} className={s.v6SideBrand}>
+        <LogoMark className={s.v6BrandMark} />
+        <span className={s.v6BrandText}>FitPilot</span>
       </Link>
-
       <nav
-        className={`${styles.nav} ${keyboardOpen ? styles.navKeyboardHidden : ""}`}
+        className={`${s.v6Nav} ${keyboardOpen ? s.v6NavHidden : ""}`}
         aria-label="Klientsky portál"
         aria-hidden={keyboardOpen || undefined}
       >
         {items.map(({ href, label, Icon, tour, match }) => {
           const active = match(pathname);
-          const showDot = href === "/portal/chat" && chatUnread && !active;
+          const showDot = href === `${BASE}/chat` && chatUnread && !active;
           return (
             <Link
               key={href}
               href={href}
               data-tour={tour ?? undefined}
-              className={`${styles.navItem} ${active ? styles.navItemActive : ""}`}
+              className={`${s.v6NavItem} ${active ? s.v6NavItemOn : ""}`}
               aria-current={active ? "page" : undefined}
             >
-              <span className={styles.navIconWrap}>
-                <Icon className={styles.navIcon} />
-                {showDot && <span className={styles.navDot} aria-hidden="true" />}
+              <span className={s.v6NavIconWrap}>
+                <Icon className={s.v6NavIcon} />
+                {showDot && <span className={s.v6NavDot} aria-hidden="true" />}
               </span>
               {label}
-              {showDot && <span className={styles.srOnly}> (nová správa)</span>}
+              {showDot && <span className={s.srOnly}> (nová správa)</span>}
               <NavLinkPendingSignal id={href} />
             </Link>
           );
         })}
       </nav>
-
-      <div className={styles.navFoot}>
-        <SignOutButton />
-      </div>
+      <Link
+        href={`${BASE}/profil`}
+        className={`${s.v6SideUser} ${pathname.startsWith(`${BASE}/profil`) ? s.v6SideUserOn : ""}`}
+      >
+        <span className={s.v6SideAvatar} aria-hidden="true">
+          {displayName?.trim().charAt(0).toUpperCase() || "?"}
+        </span>
+        <span className={s.v6SideName}>{displayName?.trim() || "Profil"}</span>
+      </Link>
     </aside>
   );
 }

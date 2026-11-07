@@ -1,5 +1,5 @@
 import { DashboardRouteSkeleton } from "../../../RouteSkeletons";
 
 export default function Loading() {
-  return <DashboardRouteSkeleton href="/dashboard/vyziva/jedalnicek/loading" />;
+  return <DashboardRouteSkeleton href="/dashboard/jedalnicky/jedalnicek/loading" />;
 }

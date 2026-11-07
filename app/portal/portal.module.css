@@ -1,290 +1,563 @@
-/* Klientsky portál /portal — Operate, mobile-first. Kompozícia "Oblúk tréningového dňa" (seed 7c5000e8).
-   FitPilot svet nezmenený (tokeny z globals.css / DESIGN.md); vlastný je oblúkový layout
-   príprava → práca → dozvuk a coral prstenec postupu obopínajúci dnešný blok. */
+/* FitPilot — klientsky portál (/portal), dizajn v6.
+   Tokeny, pozadie a koreň (.root) sú zdieľané v app/v6design/styles/tokens.module.css.
+   "Liquid glass" nad teplým terakotovým svetlom, svetlá aj tmavá téma.
+   Sklo (backdrop-filter) je LEN na plávajúcich vrstvách — hlavička, lišta, stopky,
+   okná. Karty sú mäkké polopriehľadné plochy bez blur: fixné okná vykresľované
+   vnútri kariet (potvrdenie ukončenia, detail cviku, náhľad dňa) by inak dostali
+   kartu ako containing block namiesto obrazovky. Z rovnakého dôvodu žiadny
+   transform/filter na kartách. */
 
-/* ---------- shell ---------- */
-/* Pod 880px: mobilný "Oblúk" shell nezmenený (centrovaný úzky stĺpec, fixná bottom
-   tab bar cez .nav). Nad 880px (rovnaký zlom ako app/dashboard/dashboard.module.css):
-   ľavý sidebar + širší obsah — appka nemá vyzerať ako telefón vnútri veľkého okna. */
-.viewport {
-  min-height: 100dvh;
-  background: var(--ink);
-  overflow-x: hidden;
+/* ---------- hlavička (sticky sklo) ---------- */
+.v6Top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
+  background: color-mix(in srgb, var(--v6-bg) 58%, transparent);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border-bottom: 1px solid var(--hairline);
 }
-@media (min-width: 600px) {
-  .viewport {
-    display: flex;
-    justify-content: center;
-    background:
-      radial-gradient(120% 60% at 50% 0%, rgba(224, 64, 42, 0.06), transparent 70%),
-      var(--ink);
-  }
+.v6TopInner {
+  max-width: 720px;
+  margin: 0 auto;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-@media (min-width: 880px) {
-  .viewport {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    justify-content: initial;
-    background: var(--ink);
-  }
+.v6Brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--paper);
+  text-decoration: none;
+}
+.v6BrandMark {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+.v6BrandText {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+.v6BrandTag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+.v6Avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--on-accent);
+  background: var(--accent-grad);
+  box-shadow: 0 0 0 3px var(--surface-solid), var(--accent-glow);
+  text-decoration: none;
+}
+.v6AvatarOn {
+  box-shadow: 0 0 0 3px var(--surface-solid), 0 0 0 5px var(--accent);
 }
 
-.column {
+/* ---------- obsah ---------- */
+/* kotva pre NavSkeletonOverlay — skeleton pri navigácii prekryje len stĺpec obsahu */
+.v6Stage {
   position: relative;
-  width: 100%;
-  max-width: 460px;
-  margin-inline: auto;
-  min-height: 100dvh;
 }
-@media (min-width: 600px) {
-  .column {
-    border-inline: 1px solid var(--steel-line);
-  }
-}
-@media (min-width: 880px) {
-  .column {
-    max-width: 760px;
-    margin-inline: 0;
-    border-inline: none;
-  }
-}
-
-.main {
-  padding: 22px 18px calc(84px + env(safe-area-inset-bottom));
+.v6Main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 14px 16px calc(108px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 22px;
 }
 @media (min-width: 880px) {
-  .main {
-    padding: 40px 32px 48px;
+  .v6Main {
+    padding: 28px 32px 128px;
+    gap: 26px;
   }
 }
 /* Lišta je pri otvorenej klávesnici skrytá (KeyboardState) — bez nej netreba ani jej miesto. */
 @media (max-width: 879px) {
-  /* Bez min-height a s malým odstupom — viď .content v dashboard.module.css (iOS 26
-     posúva na koniec dokumentu, pole tak skončí tesne nad adresnou lištou). */
-  :global(html[data-keyboard-open]) .main {
+  :global(html[data-keyboard-open]) .v6Main {
     padding-bottom: 12px;
-  }
-  :global(html[data-keyboard-open]) .viewport,
-  :global(html[data-keyboard-open]) .column {
-    min-height: 0;
   }
 }
 
-/* ---------- chat s trénerom ---------- */
-.chatPage {
+/* ---------- spodná lišta: plávajúca sklenená pilulka ---------- */
+.v6Nav {
+  position: fixed;
+  left: 50%;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 40;
+  width: calc(100% - 20px);
+  max-width: 540px;
+  display: grid;
+  /* auto — počet položiek sa mení podľa viditeľnosti AI Kouča (6 alebo 7) */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 58%), var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+:global(html[data-keyboard-open]) .v6Nav,
+.v6NavHidden {
+  display: none;
+}
+.v6NavItem {
+  position: relative;
   display: flex;
   flex-direction: column;
-  /* flex:none (nie flex:1): .main (rodič) nemá pevnú výšku, takže by sa
-     flex-basis:0% z "flex:1" prepočítalo na "content" a explicitná height
-     nižšie by sa pri layoute ignorovala — box by narástol podľa obsahu.
-     height (nie min-height) + min-height:0 zaklapne vlákno na dostupnú výšku
-     bez ohľadu na počet správ, inak composer pri dlhšej histórii odíde pod
-     fold a k poľu na písanie sa nedá dostať bez scrollovania celej appky. */
-  flex: none;
-  width: 100%;
-  /* svh, nie dvh — viď .inboxThread v dashboard.module.css (dvh sa po zatvorení
-     klávesnice v Safari neprepočíta a pod chatom ostane čierna medzera). */
-  height: calc(100vh - 118px - env(safe-area-inset-bottom));
-  height: calc(100svh - 118px - env(safe-area-inset-bottom));
-  /* skutočná výška obrazovky — viď .inboxThread v dashboard.module.css; 93 px = horný
-     odstup .main 22 + spodná lišta s odstupom, pole končí ~10 px nad lištou */
-  height: calc(var(--app-h, 100svh) - 93px - env(safe-area-inset-bottom));
-  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 54px;
+  min-width: 0;
+  border-radius: 999px;
+  color: var(--paper-dim);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.18s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease;
 }
-/* Stránka chatu má presne výšku obrazovky (nescrolluje sa): odstup pod chatom len
-   toľko, koľko zaberá spodná lišta (22 + chat + 71 = --app-h). Pri otvorenej klávesnici
-   platí pravidlo pre otvorenú klávesnicu vyššie (vyššia špecificita). */
-@media (max-width: 879px) {
-  .main:has(> .chatPage) {
-    padding-bottom: calc(71px + env(safe-area-inset-bottom));
-  }
+.v6NavItem:active {
+  background: var(--fill);
 }
-/* Otvorená klávesnica: iOS posunie stránku tak, že nad klávesnicou skončí SPODOK
-   obrazovky — pole na písanie preto musí byť pri ňom, inak nad klávesnicou ostane
-   čierny pás (miesto po skrytej lište + safe area). Chat sa natiahne k spodku
-   obrazovky (34px = horný 22 + spodný 12 odstup .main), plynulo spolu
-   s vysúvaním klávesnice — nie skokom, pole by inak pri ťuknutí poskočilo. */
-@media (max-width: 879px) {
-  .chatPage {
-    transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s;
+/* aktívna záložka — svetlá "šošovka" v skle */
+.v6NavItemOn,
+.v6NavItemOn:active {
+  color: var(--accent-text);
+  background: var(--glass-active);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hl),
+    0 6px 14px -8px rgba(70, 40, 22, 0.35);
+}
+.v6NavIconWrap {
+  position: relative;
+  display: inline-flex;
+  line-height: 0;
+}
+.v6NavIcon {
+  width: 22px;
+  height: 22px;
+}
+.v6NavDot {
+  position: absolute;
+  top: -3px;
+  right: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface-solid);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (hover: hover) {
+  .v6NavItem:hover {
+    color: var(--paper);
   }
-  :global(html[data-keyboard-open]) .chatPage {
-    height: calc(100vh - 34px);
-    height: calc(100svh - 34px);
+  .v6NavItemOn:hover {
+    color: var(--accent-text);
   }
 }
 @media (min-width: 880px) {
-  .chatPage {
-    height: calc(100dvh - 150px);
-    max-width: 640px;
+  .v6NavItem {
+    font-size: 11px;
   }
 }
-.chatTitle {
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
-  flex: none;
+
+/* ---------- počítač: bočný panel ako trénerov dashboard v6 ----------
+   Na mobile .v6Side nemá vlastný box (display: contents) — .v6Nav ostáva plávajúca
+   lišta dole, logo a avatar sú v hlavičke. Od 880px fixný sklenený panel vľavo:
+   logo, položky pod sebou (aktívna terakotová pilulka), klient dole; hlavička zmizne. */
+.v6Side {
+  display: contents;
+}
+.v6SideBrand,
+.v6SideUser {
+  display: none;
+}
+@media (min-width: 880px) {
+  .v6Top {
+    display: none;
+  }
+  .v6Side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: 248px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding: 22px 16px 18px;
+    border-right: 1px solid var(--hairline);
+    background:
+      linear-gradient(180deg, var(--glass-sheen), transparent 40%),
+      color-mix(in srgb, var(--v6-bg) 55%, transparent);
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+  }
+  .v6SideBrand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 4px 8px;
+    color: var(--paper);
+    text-decoration: none;
+  }
+  .v6SideBrand .v6BrandMark {
+    width: 30px;
+    height: 30px;
+  }
+  .v6SideBrand .v6BrandText {
+    font-size: 18px;
+  }
+  .v6Nav,
+  .v6NavHidden,
+  :global(html[data-keyboard-open]) .v6Nav {
+    position: static;
+    transform: none;
+    width: auto;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .v6NavItem {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    height: auto;
+    padding: 11px 14px;
+    font-size: 14.5px;
+    font-weight: 650;
+  }
+  .v6NavItem:hover {
+    color: var(--paper);
+    background: var(--fill);
+  }
+  .v6NavIcon {
+    width: 20px;
+    height: 20px;
+  }
+  .v6NavItemOn,
+  .v6NavItemOn:active,
+  .v6NavItemOn:hover {
+    background: var(--accent-grad);
+    color: var(--on-accent);
+    box-shadow: var(--accent-glow);
+  }
+  .v6SideUser {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px 7px 7px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: var(--surface-solid);
+    box-shadow: var(--shadow-1);
+    color: var(--paper);
+    font-size: 14px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .v6SideUser:hover {
+    border-color: var(--fill-strong);
+  }
+  .v6SideUserOn {
+    border-color: var(--accent);
+  }
+  .v6SideAvatar {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    border-radius: 50%;
+    background: var(--accent-grad);
+    color: var(--on-accent);
+    font-size: 14px;
+    font-weight: 750;
+  }
+  .v6SideName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* obsah vedľa panelu */
+  .v6Frame {
+    padding-left: 248px;
+  }
+  .v6Main {
+    max-width: 960px;
+    padding: 40px clamp(24px, 4vw, 48px) 64px;
+  }
 }
 
-.aiKoucHead {
+/* ---------- hlavička stránky (Tréning, Strava, Denník, Profil…) ---------- */
+.pageHead {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 10px;
-  flex: none;
-  margin-bottom: 8px;
+  gap: 12px;
 }
-.aiKoucHead .chatTitle {
-  margin-bottom: 0;
+.pageTitle {
+  font-size: clamp(28px, 8vw, 34px);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
 }
-.aiKoucResetBtn {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--paper-faint);
-  background: transparent;
-  border: 1px solid var(--steel-line);
-  border-radius: 999px;
-  padding: 5px 12px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.aiKoucResetBtn:hover {
-  color: var(--paper);
-  border-color: var(--paper-faint);
-}
-
-/* GDPR transparentnosť — trvalý nápis nad AI chatom, nie skryté v podmienkach. */
-.aiKoucNotice {
-  flex: none;
-  font-size: 12px;
+.pageSub {
+  margin-top: 6px;
+  font-size: 14px;
   line-height: 1.45;
-  color: var(--paper-faint);
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-bottom: 10px;
-}
-
-/* ---------- 1 · príprava: pozdrav + odkaz trénera ---------- */
-.prep {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.greeting {
-  font-size: clamp(1.5rem, 6vw, 1.85rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-
-.date {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--paper-faint);
-  margin-top: 5px;
-}
-
-/* Najbližší termín (appointments, 0026) — jednoriadkové upozornenie, nie plná karta. */
-.appointmentNotice {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 14px;
-  border-radius: var(--radius-m);
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  font-size: 13.5px;
   color: var(--paper-dim);
 }
-.appointmentNotice p {
-  margin: 0;
-}
-.appointmentDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--iron-red);
-  flex: none;
+.sectionTitle {
+  font-size: 19px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  margin: 4px 2px -6px;
 }
 
+/* ======================================================================
+   Dnes
+   ====================================================================== */
+.hello {
+  padding: 4px 2px 0;
+}
+.helloDate {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+.helloTitle {
+  margin-top: 8px;
+  font-size: clamp(31px, 9vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+  color: var(--paper-dim);
+}
+.helloName {
+  display: block;
+  font-weight: 760;
+  color: var(--paper);
+}
+
+/* odkaz trénera — "správa" s avatarom trénera */
 .coachNote {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 12px;
-  padding: 14px 15px;
-  border-radius: var(--radius-m);
-  background: rgba(230, 178, 58, 0.08);
-  border: 1px solid rgba(230, 178, 58, 0.24);
+  padding: 15px 16px;
+  border-radius: 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
 }
-
 .noteTile {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-s);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--plate-yellow);
+  background: var(--amber-soft);
 }
-
 .noteFrom {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--plate-yellow);
-  letter-spacing: 0.01em;
 }
-
 .noteText {
-  font-size: 13.5px;
+  margin-top: 3px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--paper-dim);
-  margin-top: 3px;
 }
 
-/* ---------- 2 · práca: dnešný tréning + prstenec postupu ---------- */
-.session {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  padding: 18px;
-  box-shadow: var(--shadow-2);
-}
-
-.sessionTop {
-  display: grid;
-  grid-template-columns: 92px 1fr;
-  gap: 16px;
+/* najbližší termín — kapsula */
+.appointment {
+  display: flex;
   align-items: center;
+  gap: 11px;
+  padding: 9px 16px 9px 9px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--paper-dim);
+}
+.appointment strong {
+  color: var(--paper);
+  font-weight: 700;
+}
+.appointmentIcon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+.appointmentIcon svg {
+  width: 17px;
+  height: 17px;
 }
 
+/* hlavná karta dňa: terakotový pás (názov + prstenec) nad bielym telom s akciou */
+.hero {
+  border-radius: 30px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+  /* zaoblený pás; fixné okná (potvrdenie ukončenia) orezanie neovplyvní —
+     karta nemá transform ani filter, takže nie je ich containing block */
+  overflow: hidden;
+}
+.heroBand {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 18px 22px 20px;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+}
+.heroBand::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 90% at 92% -10%, rgba(255, 255, 255, 0.32), transparent 60%),
+    radial-gradient(60% 70% at -5% 120%, rgba(120, 30, 10, 0.22), transparent 70%);
+}
+.heroText {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+.heroKicker {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.86;
+}
+.heroTitle {
+  margin-top: 6px;
+  font-size: clamp(22px, 6.4vw, 27px);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+.heroFocus {
+  margin-top: 5px;
+  font-size: 13px;
+  opacity: 0.88;
+}
+.heroChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 13px;
+}
+.heroChip {
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+.heroRing {
+  position: relative;
+  z-index: 1;
+  justify-self: end;
+}
+.heroBody {
+  padding: 4px 18px 18px;
+}
+.heroBody > :first-child {
+  margin-top: 14px;
+}
+
+/* prstenec postupu — biely na terakote */
 .ring {
-  width: 92px;
-  height: 92px;
-  flex: none;
+  display: block;
+  width: 96px;
+  height: 96px;
 }
 .ringTrack {
   fill: none;
-  stroke: rgba(224, 64, 42, 0.16);
+  stroke: rgba(255, 255, 255, 0.26);
   stroke-width: 8;
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
 }
 .ringStart {
-  fill: var(--iron-red);
+  fill: #ffffff;
 }
 .ringValue {
   fill: none;
-  stroke: var(--iron-red);
+  stroke: #ffffff;
   stroke-width: 8;
   stroke-linecap: round;
   transform: rotate(-90deg);
@@ -292,8 +565,6 @@
   transition: stroke-dashoffset 0.2s ease;
 }
 @media (prefers-reduced-motion: no-preference) {
-  /* Autorský moment: pri načítaní sa obkreslí ghost dráha a dosadne štartový bod;
-     ak už je nejaký postup, dokreslí sa aj coral hodnota. Funguje aj pri stave 0/6. */
   .ringTrack {
     animation: ringDraw 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
@@ -330,63 +601,52 @@
   }
 }
 .ringCenter {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
-  fill: var(--paper);
+  fill: #ffffff;
   font-variant-numeric: tabular-nums;
 }
 .ringCenterSub {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  fill: var(--paper-faint);
+  letter-spacing: 0.1em;
+  fill: rgba(255, 255, 255, 0.82);
 }
 
-.sessionTitle {
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-.sessionFocus {
-  font-size: 12.5px;
-  color: var(--paper-faint);
-  margin-top: 4px;
-}
-.sessionChips {
+/* stav "hotovo" / "plán hotový" */
+.doneMark {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 9px;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--moss-soft);
+  color: var(--moss);
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.4;
 }
-.chip {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  color: var(--paper-dim);
-  font-variant-numeric: tabular-nums;
+.doneMark svg {
+  flex: none;
 }
 
+/* ---------- zoznam cvikov (ExercisePreviewList — Tréning) ---------- */
 .exList {
   list-style: none;
-  margin: 16px -4px 0;
+  margin: 12px 0 0;
   padding: 0;
+  display: grid;
+  gap: 6px;
 }
 .exRow {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 10px 4px;
-  border-top: 1px solid var(--steel-line);
-}
-.exRow:first-child {
-  border-top: none;
-  padding-top: 4px;
+  gap: 11px;
+  min-height: 56px;
+  padding: 9px 12px 9px 10px;
+  border-radius: 18px;
+  background: var(--fill);
 }
 .exBody {
   min-width: 0;
@@ -406,30 +666,31 @@
 }
 .exBodyBtn:hover .exName {
   text-decoration: underline;
-  text-decoration-color: var(--steel-line);
+  text-decoration-color: var(--fill-strong);
+  text-underline-offset: 3px;
 }
 .exIdx {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--ink-3);
-  color: var(--paper-faint);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  background: var(--surface-solid);
+  color: var(--accent-text);
+  font-size: 11.5px;
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow-1);
 }
 .exName {
   display: block;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.25;
 }
 .exMeta {
   display: block;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--paper-faint);
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
@@ -439,45 +700,48 @@
   text-align: right;
   white-space: nowrap;
   font-size: 13px;
-  font-weight: 700;
-  color: var(--plate-yellow);
+  font-weight: 750;
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Fáza B: skutočné hodnoty (formulár "Ukončiť tréning") ---------- */
+/* ---------- zápis sérií (LogWorkoutButton / WorkoutSetsFields) ---------- */
 .logForm {
-  margin-top: 16px;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 .logExercise {
-  padding: 12px 4px;
-  border-top: 1px solid var(--steel-line);
-}
-.logExercise:first-child {
-  border-top: none;
-  padding-top: 0;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--fill);
 }
 .logExerciseName {
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 720;
+  margin-bottom: 10px;
 }
 .logRows {
   display: grid;
-  gap: 6px;
+  gap: 7px;
 }
 .setRow {
   display: grid;
-  grid-template-columns: 18px 1fr 1fr 28px;
+  grid-template-columns: 22px 1fr 1fr 32px;
   align-items: center;
   gap: 8px;
 }
 .setNum {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
   font-size: 10.5px;
-  font-weight: 700;
-  color: var(--paper-faint);
+  font-weight: 750;
+  color: var(--paper-dim);
+  background: var(--surface-solid);
   font-variant-numeric: tabular-nums;
 }
 .setField {
@@ -487,14 +751,15 @@
 }
 .setField input {
   width: 100%;
-  background: var(--ink);
-  border: 1px solid var(--steel-line);
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
   color: var(--paper);
   font-family: inherit;
   font-size: 16px; /* ≥16px: iOS Safari pri focuse nezoomuje */
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  padding: 9px 34px 9px 10px;
-  border-radius: var(--radius-s);
+  padding: 10px 36px 10px 12px;
+  border-radius: 14px;
   -moz-appearance: textfield;
 }
 .setField input::-webkit-outer-spin-button,
@@ -504,146 +769,69 @@
 }
 .setField input:focus {
   outline: none;
-  border-color: var(--iron-red);
-  background: var(--ink-3);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .setFieldInvalid input,
 .setFieldInvalid input:focus {
   border-color: var(--error);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--error) 18%, transparent);
 }
-/* Chyba v riadku série — zarovnaná pod polia (za stĺpcom s číslom série). */
 .setError {
-  margin: 4px 0 0 26px;
+  margin: 4px 0 0 30px;
   font-size: 12px;
   color: var(--error);
 }
 .setField span {
   position: absolute;
-  right: 10px;
+  right: 12px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--paper-faint);
   pointer-events: none;
 }
 .setRemove {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-s);
-  border: 1px solid var(--steel-line);
+  border-radius: 50%;
+  border: 0;
   background: transparent;
   color: var(--paper-faint);
   cursor: pointer;
 }
 .setRemove:hover {
   color: var(--error);
-  border-color: var(--error);
+  background: var(--surface-solid);
 }
 .addSetBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  background: transparent;
-  border: none;
-  color: var(--paper-dim);
-  font-size: 12px;
+  margin-top: 10px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--accent-text);
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  padding: 4px 2px;
-}
-.addSetBtn:hover {
-  color: var(--paper);
-}
-
-.startBtn {
-  width: 100%;
-  justify-content: center;
-  margin-top: 18px;
-  padding-block: 16px;
-  /* hlavná akcia mobilnej obrazovky — zámerne väčší, palcovo dosiahnuteľný cieľ.
-     Kontrast rieši --iron-red-deep pozadie zdedené z .btn-primary (AA 4.78:1). */
-  font-size: 19px;
-  font-weight: 800;
-}
-.startArrow {
-  width: 18px;
-  height: 18px;
-}
-
-/* rest-day / done varianty panelu */
-.sessionQuiet {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 6px 2px 2px;
-}
-.sessionQuiet p {
-  font-size: 13.5px;
-  color: var(--paper-dim);
-  line-height: 1.5;
-}
-.doneMark {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--moss);
-}
-
-/* "Vrátiť sa do tréningu" — skutočne zadané hodnoty namiesto plánu, keď je deň hotový. */
-.doneExercises {
-  margin-top: 16px;
-  display: grid;
-  gap: 10px;
-}
-.doneExerciseRow {
-  padding-top: 10px;
-  border-top: 1px solid var(--steel-line);
-}
-.doneExerciseRow:first-child {
-  padding-top: 0;
-  border-top: none;
-}
-.doneExerciseTitle {
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-.doneSetList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 8px;
-  list-style: none;
-  padding: 0;
-  font-size: 12.5px;
-  color: var(--paper-dim);
-  font-variant-numeric: tabular-nums;
-}
-.doneNoValues {
-  margin-top: 16px;
-  font-size: 12.5px;
-  color: var(--paper-faint);
-}
-.doneSetList li {
-  background: var(--ink-3);
-  border-radius: 999px;
-  padding: 3px 9px;
+  box-shadow: var(--shadow-1);
 }
 .logExerciseActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
 }
 .logNoteInput {
   width: 100%;
-  margin-top: 8px;
-  padding: 9px 11px;
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
   color: var(--paper);
   font: inherit;
   font-size: 16px; /* ≥16px: iOS nezoomuje */
@@ -651,65 +839,131 @@
 }
 .logNoteInput:focus {
   outline: none;
-  border-color: var(--paper-faint);
+  border-color: var(--accent);
 }
 .logSessionMeta {
   display: grid;
-  gap: 4px;
-  padding: 12px 4px 8px;
-  border-top: 1px solid var(--steel-line);
+  gap: 6px;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--fill);
 }
 .logRpeField {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 13px;
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--paper-dim);
 }
 .logRpeField select {
   min-width: 150px;
-  padding: 8px 10px;
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
+  padding: 9px 12px;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
   color: var(--paper);
   font: inherit;
   font-size: 16px; /* ≥16px: iOS nezoomuje */
 }
 
-.doneNote {
-  margin-top: 6px;
+.startBtn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 16px;
+  min-height: 58px;
+  padding-block: 16px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.startArrow {
+  width: 20px;
+  height: 20px;
+}
+
+/* tichý stav (prázdny deň, chýbajúci cieľ…) */
+.sessionQuiet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px;
+}
+.sessionQuiet p {
+  font-size: 14px;
+  color: var(--paper-dim);
+  line-height: 1.5;
+}
+
+/* ---------- dokončený tréning (DoneWorkoutView) ---------- */
+.doneExercises {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.doneExerciseRow {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--fill);
+}
+.doneExerciseTitle {
+  font-size: 13.5px;
+  font-weight: 720;
+  margin-bottom: 8px;
+}
+.doneSetList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
   font-size: 12.5px;
+  font-weight: 600;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+}
+.doneSetList li {
+  background: var(--surface-solid);
+  border-radius: 999px;
+  padding: 4px 10px;
+  box-shadow: var(--shadow-1);
+}
+.doneNoValues {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.doneNote {
+  margin-top: 8px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--paper-dim);
 }
-/* "Upraviť hodnoty" — nefarebné (ghost) tlačidlo, 24 h po ukončení (0049). */
 .editValuesBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
   margin-top: 14px;
   padding: 10px 16px;
-  background: transparent;
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
   color: var(--paper);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  box-shadow: var(--shadow-1);
 }
 .editValuesBtn:hover {
-  border-color: var(--paper-dim);
-  background: var(--ink-3);
+  border-color: var(--fill-strong);
 }
 .editDeadline {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--paper-faint);
   margin-bottom: 4px;
 }
@@ -721,44 +975,67 @@
 }
 .editActions .swBtnGhost,
 .editActions .swBtnPrimary {
-  padding: 12px 14px;
+  padding: 13px 14px;
 }
 .editError {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--error);
   text-align: center;
 }
-/* Dokončený tréning je od 0048 len na čítanie — nenápadný, ale jasný štítok. */
 .lockNote {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-top: 16px;
+  margin-top: 14px;
   font-size: 12.5px;
+  line-height: 1.45;
   color: var(--paper-faint);
 }
 
-/* ---------- 3 · dozvuk: séria + týždeň ---------- */
+/* ---------- prehľad: karty ---------- */
 .after {
   display: grid;
   grid-template-columns: 1fr;
   gap: 14px;
 }
-
 .panel {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  padding: 16px 17px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 26px;
+  padding: 18px;
+  box-shadow: var(--card-shadow);
 }
 .panelLabel {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
   color: var(--paper-faint);
   margin-bottom: 12px;
+}
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.panelHead .panelLabel {
+  margin-bottom: 0;
+}
+.panelIcon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+.panelIcon svg {
+  width: 17px;
+  height: 17px;
 }
 
 .streakHead {
@@ -767,85 +1044,120 @@
   gap: 8px;
 }
 .streakNum {
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--iron-red);
-  letter-spacing: -0.03em;
+  font-size: 2.6rem;
+  font-weight: 780;
+  color: var(--paper);
+  letter-spacing: -0.05em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 .streakUnit {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--paper-dim);
   font-weight: 600;
 }
-.streakPlates {
+/* posledných 12 týždňov ako stĺpcový graf (hotovo / voľno / nič) */
+.bars {
   display: flex;
-  gap: 5px;
-  margin-top: 12px;
+  align-items: flex-end;
+  gap: 6px;
+  height: 70px;
+  margin-top: 18px;
 }
-.plate {
+.bar {
   flex: 1;
-  height: 6px;
+  height: 16%;
   border-radius: 999px;
-  background: var(--steel-line);
+  background: var(--bar-off);
 }
-.plateOn {
-  background: var(--iron-red);
+.barOn {
+  height: 100%;
+  background: var(--accent-grad);
 }
-.plateRest {
-  background: var(--steel);
-  opacity: 0.4;
+.barRest {
+  height: 42%;
+}
+.barsLegend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--paper-faint);
 }
 
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+}
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.hint {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--paper-faint);
+}
+
+/* ---------- týždeň (WeekHistory) ---------- */
 .week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 5px;
 }
 .weekCell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   width: 100%;
-  padding: 8px 2px;
-  border-radius: var(--radius-s);
+  padding: 10px 2px 9px;
+  border-radius: 999px;
   border: 1px solid transparent;
-  background: none;
+  background: var(--fill);
   font: inherit;
   color: inherit;
   -webkit-tap-highlight-color: transparent;
 }
 .weekCellToday {
-  border-color: rgba(230, 178, 58, 0.4);
-  background: rgba(230, 178, 58, 0.07);
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
 }
 .weekCellClickable {
   cursor: pointer;
-  transition: background 0.14s ease, border-color 0.14s ease;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease;
 }
 .weekCellClickable:hover {
-  border-color: var(--steel-line);
-  background: var(--ink-3);
-}
-.weekCellToday.weekCellClickable:hover {
-  border-color: rgba(230, 178, 58, 0.55);
-  background: rgba(230, 178, 58, 0.11);
+  border-color: var(--fill-strong);
 }
 .weekCellClickable:focus-visible {
-  outline: 2px solid var(--iron-red);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .weekDay {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--paper-dim);
+  color: var(--paper-faint);
 }
-.weekCellToday .weekDay {
-  color: var(--plate-yellow);
+.weekCellToday .weekDay,
+.weekCellToday .weekNum {
+  color: var(--on-accent);
 }
 .weekMark {
   width: 16px;
@@ -859,40 +1171,44 @@
   border-radius: 50%;
 }
 .markDone {
-  background: var(--iron-red);
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.weekCellToday .markDone {
+  background: var(--on-accent);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
 }
 .markToday {
-  width: 11px;
-  height: 11px;
-  background: var(--plate-yellow);
+  width: 8px;
+  height: 8px;
+  background: var(--on-accent);
 }
 .markRest {
-  width: 8px;
+  width: 10px;
   height: 2px;
   border-radius: 999px;
-  background: var(--steel-line);
+  background: var(--fill-strong);
 }
 .markFuture {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: var(--steel-line);
-  opacity: 0.5;
+  background: var(--fill-strong);
 }
 .weekNum {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--paper-dim);
+  font-size: 13px;
+  font-weight: 720;
+  color: var(--paper);
   font-variant-numeric: tabular-nums;
 }
-
-/* ---------- pás Tento týždeň: hlavička + listovanie týždňami (WeekHistory) ---------- */
 .weekHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .weekHead .panelLabel {
   margin-bottom: 0;
@@ -901,15 +1217,17 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--fill);
 }
 .weekRange {
-  min-width: 96px;
+  min-width: 92px;
   text-align: center;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--paper-dim);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
 }
 .weekNav {
   display: inline-flex;
@@ -918,24 +1236,24 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--paper-faint);
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-solid);
+  color: var(--paper-dim);
   cursor: pointer;
-  transition: color 0.14s ease, border-color 0.14s ease;
+  box-shadow: var(--shadow-1);
 }
 .weekNav:hover:not(:disabled) {
   color: var(--paper);
-  border-color: var(--paper-faint);
 }
 .weekNav:focus-visible {
-  outline: 2px solid var(--iron-red);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .weekNav:disabled {
-  opacity: 0.32;
+  opacity: 0.35;
   cursor: default;
+  box-shadow: none;
 }
 .weekLoading {
   opacity: 0.45;
@@ -943,8 +1261,8 @@
   transition: opacity 0.14s ease;
 }
 .weekNote {
-  margin-top: 11px;
-  font-size: 12px;
+  margin-top: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
   color: var(--paper-faint);
 }
@@ -953,18 +1271,14 @@
   background: none;
   padding: 0;
   font: inherit;
-  color: var(--iron-red);
-  font-weight: 600;
+  color: var(--accent-text);
+  font-weight: 650;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.weekRetry:focus-visible {
-  outline: 2px solid var(--iron-red);
-  outline-offset: 2px;
-}
 
-/* ---------- náhľad odcvičeného tréningu (WeekHistory → SessionDialog) ---------- */
+/* ---------- náhľad odcvičeného dňa (WeekHistory → SessionDialog) — sklenené okno ---------- */
 .whScrim {
   position: fixed;
   inset: 0;
@@ -973,10 +1287,11 @@
   height: 100%;
   border: 0;
   padding: 0;
-  background: rgba(9, 8, 8, 0.6);
-  backdrop-filter: blur(2px);
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   cursor: pointer;
-  animation: whFade 0.15s ease both;
+  animation: v6Fade 0.18s ease both;
 }
 .whPanel {
   position: fixed;
@@ -987,25 +1302,26 @@
   width: min(440px, calc(100vw - 32px));
   max-height: min(84vh, 640px);
   overflow-y: auto;
-  padding: 18px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-2);
-  animation: whPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  padding: 20px;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%), var(--sheet-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  animation: v6CenterIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @media (max-width: 520px) {
   .whPanel {
-    left: 0;
+    left: 8px;
+    right: 8px;
     top: auto;
-    bottom: 0;
+    bottom: calc(8px + env(safe-area-inset-bottom));
     transform: none;
-    width: 100%;
-    max-width: 100%;
+    width: auto;
     max-height: 82vh;
-    border-radius: var(--radius-m) var(--radius-m) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
-    animation-name: whSheetIn;
+    padding-bottom: 24px;
+    animation-name: v6SheetIn;
   }
 }
 .whHead {
@@ -1013,39 +1329,41 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .whTitle {
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 18px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
   color: var(--paper);
 }
 .whSub {
   margin-top: 3px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--paper-dim);
 }
-.whClose {
+.whClose,
+.swClose {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   margin: -4px -4px 0 0;
   border: 0;
-  border-radius: var(--radius-s);
-  background: var(--ink-3);
+  border-radius: 50%;
+  background: var(--fill-strong);
   color: var(--paper-dim);
   cursor: pointer;
-  transition: color 0.14s ease;
 }
-.whClose:hover {
+.whClose:hover,
+.swClose:hover {
   color: var(--paper);
 }
-.whClose:focus-visible {
-  outline: 2px solid var(--iron-red);
+.whClose:focus-visible,
+.swClose:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .whBody {
@@ -1053,7 +1371,7 @@
   gap: 16px;
 }
 .whSession + .whSession {
-  border-top: 1px solid var(--steel-line);
+  border-top: 1px solid var(--hairline);
   padding-top: 16px;
 }
 .whSessionHead {
@@ -1067,52 +1385,53 @@
   display: none;
 }
 .whSessionName {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 720;
   color: var(--paper);
 }
 .whPlan {
   display: inline-block;
-  padding: 3px 9px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--paper-dim);
+  background: var(--accent-soft);
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--accent-text);
 }
 .whExList {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   list-style: none;
   padding: 0;
   margin: 0;
 }
-.whExRow + .whExRow {
-  border-top: 1px solid var(--steel-line);
-  padding-top: 12px;
+.whExRow {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--fill);
 }
 .whExName {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 720;
   color: var(--paper);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .whSetList {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 8px;
+  gap: 6px;
   list-style: none;
   padding: 0;
   margin: 0;
   font-size: 12.5px;
+  font-weight: 600;
   color: var(--paper-dim);
   font-variant-numeric: tabular-nums;
 }
 .whSetList li {
-  background: var(--ink-3);
+  background: var(--surface-solid);
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 4px 10px;
 }
 .whSetList .whSetEmpty {
   background: none;
@@ -1123,24 +1442,28 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--moss);
 }
-@keyframes whFade {
+@keyframes v6Fade {
   from {
     opacity: 0;
   }
 }
-@keyframes whPanelIn {
+/* len opacity + samostatná vlastnosť scale — centrovací transform okna ostáva
+   nedotknutý (WebKit pri interpolácii translate(-50%, calc(-50% + …)) zahodil
+   percentá a okno v prvom snímku "skočilo" zboku) */
+@keyframes v6CenterIn {
   from {
     opacity: 0;
-    transform: translate(-50%, calc(-50% + 8px));
+    scale: 0.97;
   }
 }
-@keyframes whSheetIn {
+@keyframes v6SheetIn {
   from {
-    transform: translateY(100%);
+    opacity: 0;
+    transform: translateY(24px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1149,904 +1472,28 @@
     animation: none;
   }
 }
-/* ---------- nav: bottom tab bar (mobile) / sidebar (desktop) ---------- */
-/* .navShell je len wrapper — na mobile neviditeľný ako layout prvok (position:fixed
-   .nav v ňom sa vizuálne odpojí od rodiča), na desktope sa stáva samotným sidebarom. */
-.navShell {
-  display: contents;
-}
-@media (min-width: 880px) {
-  .navShell {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    background: var(--ink-2);
-    border-right: 1px solid var(--steel-line);
-    padding: 20px 16px;
-  }
-}
 
-.navBrand {
-  display: none;
-}
-@media (min-width: 880px) {
-  .navBrand {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-  }
-}
-/* Mark + "FitPilot" ako jeden obrázok (LogoWordmark) — pomer strán zdroja ~3:1. */
-.brandLogo {
-  width: auto;
-  height: 20px;
-  flex: none;
-}
-
-.nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 460px;
-  z-index: 20;
-  display: grid;
-  /* auto namiesto pevného repeat(N, 1fr) — počet položiek sa mení podľa
-     aiKoucVisible (6 bez AI Kouča, 7 s ním), grid sa má prispôsobiť sám. */
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  background: color-mix(in srgb, var(--ink-2) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--steel-line);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-/* Otvorená klávesnica (KeyboardState) — lišta by visela nad ňou a ubrala miesto na písanie. */
-:global(html[data-keyboard-open]) .nav {
-  display: none;
-}
-@media (min-width: 880px) {
-  .nav {
-    position: static;
-    transform: none;
-    width: auto;
-    max-width: none;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    background: transparent;
-    backdrop-filter: none;
-    border-top: none;
-    padding-bottom: 0;
-  }
-}
-@media (max-width: 879px) {
-  /* Skryté, kým je otvorená mobilná klávesnica (PortalNav.tsx, visualViewport) —
-     fixný bar inak vie prekrývať composer (napr. Chat) alebo sa vznášať nad
-     klávesnicou, keďže sleduje layoutový, nie vizuálny viewport. */
-  .navKeyboardHidden {
-    display: none;
-  }
-}
-.navItem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 2px 9px;
-  color: var(--paper-faint);
-  text-decoration: none;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0;
-  white-space: nowrap;
-  transition: color 0.15s ease;
-}
-.navItem:active {
-  transform: translateY(1px);
-}
-.navItemActive {
-  color: var(--iron-red);
-}
-.navIconWrap {
-  position: relative;
-  display: inline-flex;
-  line-height: 0;
-}
-.navIcon {
-  width: 22px;
-  height: 22px;
-}
-.navDot {
-  position: absolute;
-  top: -3px;
-  right: -4px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--iron-red);
-  box-shadow: 0 0 0 2px var(--ink-2);
-}
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-@media (min-width: 880px) {
-  .navItem {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 10px;
-    padding: 9px 12px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--paper-dim);
-    border-radius: var(--radius-s);
-    transition:
-      background 0.15s ease,
-      color 0.15s ease;
-  }
-  .navItem:hover {
-    color: var(--paper);
-    background: var(--ink-3);
-  }
-  .navItemActive {
-    color: var(--paper);
-    background: var(--ink-3);
-  }
-  .navIcon {
-    width: 17px;
-    height: 17px;
-    flex: none;
-  }
-}
-
-.navFoot {
-  display: none;
-}
-@media (min-width: 880px) {
-  .navFoot {
-    display: block;
-    margin-top: auto;
-  }
-}
-
-.profileSignOut {
-  display: flex;
-  justify-content: center;
-  margin-top: 24px;
-}
-@media (min-width: 880px) {
-  .profileSignOut {
-    display: none;
-  }
-}
-
-/* ---------- Profil: kód pre trénera + stav prepojenia (feature/registracia-update) ---------- */
-.profilePage {
-  display: block;
-}
-.profileHead {
-  margin-bottom: 18px;
-}
-.profileHead h1 {
-  font-size: clamp(1.5rem, 6vw, 1.85rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
-.profileHead p {
-  margin-top: 6px;
-  font-size: 13.5px;
-  color: var(--paper-dim);
-}
-.profileStack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.codeRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.codeValue {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
-  color: var(--paper);
-  background: var(--ink);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  padding: 11px 13px;
-  word-break: break-all;
-  user-select: all;
-}
-.codeActions {
-  display: flex;
-  gap: 6px;
-  flex: none;
-}
-.codeBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 12px;
-  min-height: 40px;
-  border-radius: var(--radius-s);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  color: var(--paper-dim);
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-}
-.codeBtn:hover {
-  color: var(--paper);
-  border-color: var(--paper-faint);
-}
-.codeBtn:active {
-  background: var(--ink-2);
-}
-.codeHint {
-  margin-top: 10px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--paper-faint);
-}
-.trainerStatus {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--steel-line);
-}
-.trainerName {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--paper);
-  margin-bottom: 12px;
-}
-.trainerName strong {
-  font-weight: 700;
-}
-.trainerDot {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--moss);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--moss) 22%, transparent);
-}
-.trainerLeaveConfirm {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.trainerLeaveActions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-@media (max-width: 400px) {
-  .codeActions {
-    width: 100%;
-  }
-  .codeBtn {
-    flex: 1;
-    justify-content: center;
-  }
-}
-
-/* ---------- GDPR — notifikácia o zmazaní na karte Dnes (0013_client_deletion.sql) ---------- */
-.deletionNotice {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  padding: 14px 16px;
-  margin-bottom: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.deletionNoticeTitle {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--paper);
-}
-.deletionNoticeText {
-  font-size: 13px;
-  color: var(--paper-dim);
-}
-.deletionNoticeLink {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--paper);
-  text-decoration: underline;
-  align-self: flex-start;
-  margin-top: 2px;
-}
-
-/* ---------- ukončenie spolupráce — banner na karte Dnes (0015_client_cooperation_pause.sql) ---------- */
-.cooperationNotice {
-  position: relative;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  padding: 14px 34px 14px 16px;
-  margin-bottom: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.cooperationNoticeTitle {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--paper);
-}
-.cooperationNoticeText {
-  font-size: 13px;
-  color: var(--paper-dim);
-}
-.cooperationNoticeClose {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--paper-faint);
-  cursor: pointer;
-}
-.cooperationNoticeClose:hover {
-  background: var(--ink-3);
-  color: var(--paper);
-}
-
-/* ---------- GDPR — zmazanie vlastných dát (0013_client_deletion.sql) ---------- */
-.dzText {
-  color: var(--paper-dim);
-  font-size: 13.5px;
-  margin-bottom: 12px;
-}
-.dzActions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.dzError {
-  color: var(--iron-red);
-  font-size: 12.5px;
-  margin-top: 10px;
-}
-
-/* ---------- prázdne stavy "Dnes" (neprepojený klient / bez plánu / chyba) ---------- */
-/* Zdieľa geometriu s .soon (coming-soon obrazovky) — rovnaké optické centrovanie v shelli. */
-.notice {
-  min-height: calc(100dvh - 84px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 14px;
-  padding: 40px 24px;
-}
-.noticeTile {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-m);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  display: grid;
-  place-items: center;
-  color: var(--paper-dim);
-}
-.noticeTile svg {
-  width: 26px;
-  height: 26px;
-}
-.notice h1 {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.notice p {
-  font-size: 13.5px;
-  color: var(--paper-dim);
-  line-height: 1.55;
-  max-width: 32ch;
-}
-.notice :global(.btn) {
-  margin-top: 4px;
-}
-
-/* ---------- coming-soon (Tréning / Strava / Chat / Profil) ---------- */
-.soon {
-  min-height: calc(100dvh - 84px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 14px;
-  padding: 40px 24px;
-}
-.soonTile {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-m);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  display: grid;
-  place-items: center;
-  color: var(--paper-dim);
-}
-.soonTile svg {
-  width: 26px;
-  height: 26px;
-}
-.soon h1 {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.soon p {
-  font-size: 13.5px;
-  color: var(--paper-dim);
-  line-height: 1.55;
-  max-width: 32ch;
-}
-.soonChip {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--plate-yellow);
-  border: 1px solid rgba(230, 178, 58, 0.3);
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-/* ---------- Denník (food diary) ---------- */
-.diary {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* dnešný príjem oproti makro cieľu */
-.diaryHeading {
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin-bottom: 10px;
-}
-/* Navigácia medzi dňami denníka (‹ deň ›) — zápis aj spätne (QA 2026-09-23). */
-.diaryDateNav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.diaryDateNav .diaryHeading {
-  margin-bottom: 0;
-  text-align: center;
-  flex: 1;
-}
-.diaryDateArrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  border: 1px solid var(--steel-line);
-  color: var(--paper);
-  font-size: 1.3rem;
-  line-height: 1;
-  text-decoration: none;
-}
-.diaryDateArrow:hover {
-  border-color: var(--paper-faint);
-}
-.diaryDateArrowOff {
-  opacity: 0.3;
-}
-/* Vlastná potravina v denníku — názov + makrá na 100 g + gramáž. */
-.kcalLine {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.diaryKcal {
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--iron-red);
-  letter-spacing: -0.03em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.diaryKcal.macroOver {
-  color: var(--plate-yellow);
-}
-.macroNoGoal {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding: 5px 0;
-}
-.diaryKcalGoal {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--paper-dim);
-  font-variant-numeric: tabular-nums;
-}
-.macro {
-  display: grid;
-  grid-template-columns: 74px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-}
-.macroLabel {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--paper-dim);
-}
-.macroTrack {
-  display: block;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--steel-line);
-  overflow: hidden;
-}
-.macroFill {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--iron-red);
-  transform-origin: left center;
-  transform: scaleX(0);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.macroFill.macroOver {
-  background: var(--plate-yellow);
-}
-.macroVal {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--paper-dim);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.macroVal.macroOver {
-  color: var(--plate-yellow);
-}
-
-/* zoznam zjedeného — jedno jedlo dňa = jeden .panel */
-.diaryList {
-  list-style: none;
-  margin: 8px -4px 0;
-  padding: 0;
-}
-.diaryRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 32px;
-  align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 8px 4px;
-  border-top: 1px solid var(--steel-line);
-}
-.diaryRow:first-child {
-  border-top: none;
-}
-.diaryName {
-  display: block;
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-.diaryMeta {
-  display: block;
-  font-size: 11.5px;
-  color: var(--paper-faint);
-  margin-top: 2px;
-  font-variant-numeric: tabular-nums;
-}
-.diaryKcalCell {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--paper);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.diaryRowError {
-  grid-column: 1 / -1;
-  font-size: 11.5px;
-  color: var(--error);
-  margin-top: 2px;
-}
-.removeBtn {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: transparent;
-  color: var(--paper-faint);
-  border-radius: var(--radius-s);
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.removeBtn:hover {
-  color: var(--error);
-  background: var(--ink-3);
-}
-@media (max-width: 640px) {
-  .removeBtn {
-    width: 44px;
-    height: 44px;
-  }
-  .diaryRow {
-    grid-template-columns: minmax(0, 1fr) auto 44px;
-  }
-}
-
-.addPanel {
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.addPanelLabel {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--paper-faint);
-}
-.gramField {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.gramUnit {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--paper-faint);
-}
-.gramInput {
-  width: 58px;
-  padding: 9px 8px;
-  font-size: 16px;
-  text-align: right;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  color: var(--paper);
-  font-variant-numeric: tabular-nums;
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-.gramInput::-webkit-outer-spin-button,
-.gramInput::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.gramInput:focus-visible {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
-}
-.addError {
-  font-size: 12px;
-  color: var(--error);
-}
-
-/* ---------- meranie klienta na karte Dnes (BodyMetricForm, feature/progress-analyst) ---------- */
-/* Všetky riadky formulára (dátum|váha, obvody, Uložiť|Zrušiť) zdieľajú tú istú
-   2-stĺpcovú mriežku s minmax(0, 1fr) — pri 1fr (= minmax(auto, 1fr)) si pole
-   dátumu vynútilo svoju prirodzenú šírku (v iOS Safari väčšiu než polovica) a
-   prekrylo váhu; stĺpce obvodov pod ním navyše nesedeli so stĺpcami nad ním. */
-.metricRow,
-.metricRowWrap {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-/* Nepárny posledný obvod (Stehno) na celú šírku, nech neostane osamotená polovica. */
-.metricRowWrap > :last-child:nth-child(odd) {
-  grid-column: 1 / -1;
-}
-/* Uložiť | Zrušiť — kompaktné tlačidlá s prirodzenou šírkou (nie polovica riadku;
-   globálne .btn-sm má na mobile 13px padding, tu stačí nižšie). */
-.metricActions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-.metricActions > button {
-  min-height: 40px;
-  padding: 8px 18px;
-  font-size: 14px;
-}
-.metricField {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  min-height: 46px;
-  box-sizing: border-box;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  padding: 0 12px;
-}
-.metricField .metricInput {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  border: none;
-  background: none;
-  padding: 10px 0;
-}
-.metricInput,
-.metricInputSm {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  min-height: 46px;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  /* 16px = iOS Safari pri focuse nezoomuje (predtým obvody 14px). */
-  font-size: 16px;
-  font-family: inherit;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  color: var(--paper);
-  font-variant-numeric: tabular-nums;
-}
-/* iOS Safari kreslí date input natívne s vlastnou šírkou — bez appearance:none
-   ignoruje width:100% a rozťahuje stĺpec. */
-.metricInput[type="date"] {
-  -webkit-appearance: none;
-  appearance: none;
-  text-align: left;
-  /* užší stĺpec (polovica riadku) — menší padding, nech sa dátum nebije s ikonou kalendára */
-  padding-inline: 10px 8px;
-  /* tmavá téma appky → natívna ikona kalendára aj výberový popup svetlé, nie čierne */
-  color-scheme: dark;
-}
-.metricInput[type="date"]::-webkit-calendar-picker-indicator {
-  margin-left: 2px;
-  padding: 0;
-}
-.metricInput[type="date"]::-webkit-date-and-time-value {
-  text-align: left;
-}
-.metricInput:focus-visible,
-.metricInputSm:focus-visible {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
-}
-/* Rám nesie obal (input vo vnútri je bez borderu) — rovnaký jemne červený focus
-   ako globálne textové polia (globals.css). */
-.metricField:focus-within {
-  border-color: color-mix(in srgb, var(--iron-red) 60%, transparent);
-}
-.metricField .metricInput:focus-visible {
-  outline: none;
-}
-.metricToggle {
-  display: block;
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--paper-faint);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-  text-align: left;
-}
-.metricToggle:hover {
-  color: var(--paper);
-}
-
-.metricHistory {
-  margin-top: 14px;
-}
-/* Nad 3 záznamy karta neroztiahnie výšku donekonečna — zoznam sa capne na
-   ~3 riadky a skroluje interne (scrollbar tému preberá z globals.css). */
-.metricHistoryList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 190px;
-  overflow-y: auto;
-}
-.metricHistoryRow {
-  padding: 9px 2px;
-  border-top: 1px solid var(--steel-line);
-  font-size: 12.5px;
-}
-.metricHistoryRow:first-child {
-  border-top: none;
-}
-.metricHistoryMain {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-.metricHistoryDate {
-  color: var(--paper-faint);
-}
-.metricHistoryWeight {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.metricHistoryExtra {
-  margin-top: 3px;
-  color: var(--paper-faint);
-  font-size: 11px;
-  line-height: 1.4;
-}
-/* ---------- plávajúce stopky / časovač pauzy (WorkoutStopwatch) ---------- */
-/* Objaví sa po "Začať tréning", zmizne po ukončení. Fixne pozicované nad spodnou
-   navigáciou; svet portálu nezmenený — coral nesie bežiaci stav a primárnu akciu,
-   amber upozorňuje na dobiehajúci / dobehnutý časovač (rovnaká rola ako v denníku). */
-
+/* ======================================================================
+   Stopky / časovač pauzy (WorkoutStopwatch) + potvrdenie ukončenia
+   ====================================================================== */
 .swFab {
   position: fixed;
-  right: 16px;
-  bottom: calc(74px + env(safe-area-inset-bottom));
+  right: 14px;
+  /* nad plávajúcou lištou (54 + 2×6 výplň + 10 odstup) */
+  bottom: calc(90px + env(safe-area-inset-bottom));
   z-index: 62;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 56px;
-  padding: 0 16px;
+  min-height: 54px;
+  padding: 0 18px 0 14px;
   border-radius: 999px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  color: var(--iron-red);
-  box-shadow: var(--shadow-2);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 58%), var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: var(--accent-text);
   cursor: pointer;
   transition:
     border-color 0.18s ease,
@@ -2068,11 +1515,12 @@
   font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
   color: var(--paper);
 }
 .swFabRun {
-  border-color: var(--iron-red);
-  color: var(--iron-red);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: var(--glass-shadow), 0 0 0 4px var(--accent-soft), inset 0 1px 0 var(--glass-hl);
 }
 .swFabAlarm {
   border-color: var(--plate-yellow);
@@ -2083,12 +1531,13 @@
   color: var(--plate-yellow);
 }
 .swFabOpen {
-  border-color: var(--paper-dim);
+  border-color: var(--fill-strong);
 }
 @media (min-width: 880px) {
+  /* bez spodnej lišty (navigácia je v bočnom paneli) */
   .swFab {
-    right: 24px;
-    bottom: calc(24px + env(safe-area-inset-bottom));
+    right: 28px;
+    bottom: 28px;
   }
 }
 
@@ -2100,70 +1549,72 @@
   padding: 0;
   width: 100%;
   height: 100%;
-  background: rgba(9, 8, 8, 0.5);
-  backdrop-filter: blur(2px);
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   cursor: pointer;
-  animation: swFade 0.15s ease both;
+  animation: v6Fade 0.15s ease both;
 }
-
 .swPanel {
   position: fixed;
-  right: 16px;
-  bottom: calc(74px + env(safe-area-inset-bottom));
+  right: 12px;
+  bottom: calc(90px + env(safe-area-inset-bottom));
   z-index: 64;
-  width: min(360px, calc(100vw - 24px));
-  max-height: min(72vh, 580px);
+  width: min(370px, calc(100vw - 24px));
+  max-height: min(72vh, 600px);
   overflow-y: auto;
-  padding: 16px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-2);
-  animation: swPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  padding: 18px;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%), var(--sheet-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  animation: swPanelIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @media (min-width: 880px) {
   .swPanel {
-    right: 24px;
-    bottom: calc(92px + env(safe-area-inset-bottom));
+    right: 28px;
+    bottom: 96px;
   }
 }
-
-/* Potvrdenie "Ukončiť tréning" — zdieľa .swScrim (dim pozadie) a swPanelIn animáciu
-   s panelom stopiek, ale je centrované (blokujúci dialóg), nie ukotvené v rohu ako FAB. */
 .confirmPanel {
   position: fixed;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 64;
-  width: min(360px, calc(100vw - 32px));
-  padding: 20px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-2);
-  animation: confirmPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  width: min(370px, calc(100vw - 32px));
+  padding: 22px;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%), var(--sheet-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  animation: v6CenterIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .confirmTitle {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 19px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
   color: var(--paper);
 }
 .confirmBody {
   margin-top: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--paper-dim);
 }
 .confirmWarn {
   color: var(--plate-yellow);
+  font-weight: 600;
 }
 .confirmActions {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 .confirmActions .swBtnGhost {
   order: 2;
@@ -2173,51 +1624,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .swTitle {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 17px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
   color: var(--paper);
 }
-.swClose {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  margin: -5px -5px -5px 0;
-  border: 0;
-  border-radius: var(--radius-s);
-  background: var(--ink-3);
-  color: var(--paper-dim);
-  cursor: pointer;
-  transition:
-    color 0.15s ease,
-    background 0.15s ease;
-}
-.swClose:hover {
-  color: var(--paper);
-  background: var(--ink-4);
-}
-
+/* segmentový prepínač — terakotová aktívna pilulka ako "Weekly" na referencii */
 .swSeg {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3px;
-  padding: 3px;
-  background: var(--ink);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
+  gap: 4px;
+  padding: 4px;
+  background: var(--fill);
+  border-radius: 999px;
 }
 .swSegBtn {
-  padding: 9px 8px;
+  padding: 10px 8px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 999px;
   background: transparent;
-  color: var(--paper-faint);
-  font-size: 13px;
+  color: var(--paper-dim);
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -2225,31 +1655,32 @@
     background 0.15s ease;
 }
 .swSegBtn:hover {
-  color: var(--paper-dim);
-}
-.swSegBtnOn {
-  background: var(--ink-3);
   color: var(--paper);
 }
-
-.swBody {
-  padding-top: 14px;
+.swSegBtnOn,
+.swSegBtnOn:hover {
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
 }
-
+.swBody {
+  padding-top: 16px;
+}
 .swReadout {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 1px;
-  font-size: 3.3rem;
-  font-weight: 800;
+  font-size: 3.6rem;
+  font-weight: 760;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
   color: var(--paper);
 }
 .swReadoutFrac {
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 650;
   color: var(--paper-faint);
   letter-spacing: -0.02em;
 }
@@ -2260,17 +1691,15 @@
   color: var(--plate-yellow);
   animation: swPulse 0.6s ease-in-out 3;
 }
-
 .swStatus {
-  margin: 8px 0 16px;
+  margin: 10px 0 18px;
   text-align: center;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--paper-faint);
 }
-
 .swControls {
   display: grid;
   grid-auto-flow: column;
@@ -2279,10 +1708,12 @@
 }
 .swBtnPrimary,
 .swBtnGhost {
+  min-height: 50px;
   padding: 13px 16px;
-  border-radius: var(--radius-s);
+  border-radius: 999px;
+  font-family: inherit;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 750;
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -2291,21 +1722,18 @@
 }
 .swBtnPrimary {
   border: 1px solid transparent;
-  background: var(--iron-red-deep);
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.swBtnGhost {
+  border: 1px solid var(--hairline);
+  background: var(--surface-solid);
   color: var(--paper);
   box-shadow: var(--shadow-1);
 }
-.swBtnPrimary:hover {
-  background: #b82f1b;
-}
-.swBtnGhost {
-  border: 1px solid var(--steel-line);
-  background: transparent;
-  color: var(--paper);
-}
 .swBtnGhost:hover {
-  border-color: var(--paper-dim);
-  background: var(--ink);
+  border-color: var(--fill-strong);
 }
 .swBtnPrimary:disabled,
 .swBtnGhost:disabled {
@@ -2316,23 +1744,21 @@
 .swBtnGhost:active {
   transform: translateY(1px);
 }
-
 .swLaps {
   list-style: none;
-  margin: 14px 0 0;
-  padding: 4px 0 0;
-  border-top: 1px solid var(--steel-line);
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
 }
 .swLapRow {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: baseline;
   gap: 10px;
-  padding: 8px 2px;
-  border-top: 1px solid var(--steel-line);
-}
-.swLapRow:first-child {
-  border-top: 0;
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: var(--fill);
 }
 .swLapNo {
   font-size: 12px;
@@ -2343,68 +1769,61 @@
   font-size: 13px;
   color: var(--paper-dim);
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .swLapTotal {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 750;
   color: var(--paper);
+  font-variant-numeric: tabular-nums;
 }
-
 .swPresets {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .swPreset {
-  padding: 9px 14px;
+  padding: 9px 15px;
   border-radius: 999px;
-  border: 1px solid var(--steel-line);
-  background: var(--ink-3);
+  border: 1px solid transparent;
+  background: var(--fill);
   color: var(--paper-dim);
   font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background 0.15s ease;
 }
 .swPreset:hover {
   color: var(--paper);
 }
 .swPresetOn {
-  border-color: var(--iron-red);
-  color: var(--paper);
-  background: color-mix(in srgb, var(--iron-red) 16%, var(--ink-3));
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
-
 .swStepper {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 .swStep {
-  padding: 9px 12px;
-  border-radius: var(--radius-s);
-  border: 1px solid var(--steel-line);
-  background: var(--ink-3);
+  padding: 9px 13px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--surface-solid);
   color: var(--paper-dim);
   font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
+  box-shadow: var(--shadow-1);
 }
 .swStep:hover:not(:disabled) {
   color: var(--paper);
-  border-color: var(--paper-dim);
 }
 .swStep:disabled {
   opacity: 0.4;
@@ -2413,27 +1832,25 @@
 .swStepValue {
   min-width: 3.5ch;
   text-align: center;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--paper);
+  font-variant-numeric: tabular-nums;
 }
-
 .swHide {
   width: 100%;
   margin-top: 14px;
-  padding: 6px;
+  padding: 8px;
   border: 0;
   background: transparent;
   color: var(--paper-faint);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 650;
   cursor: pointer;
-  transition: color 0.15s ease;
 }
 .swHide:hover {
   color: var(--paper-dim);
 }
-
 @keyframes swFabIn {
   from {
     opacity: 0;
@@ -2454,29 +1871,6 @@
     transform: translateY(0);
   }
 }
-/* .confirmPanel je centrované cez transform: translate(-50%, -50%) (na rozdiel od
-   .swPanel, ktoré je ukotvené v rohu) — swPanelIn by tento statický transform počas
-   celej animácie prepísal na translateY(...), takže dialóg strácal centrovanie a
-   vyčnieval mimo viewport. Vlastná keyframe animácia preto centrovací transform
-   zachováva (rovnaký vzor ako .whPanel/whPanelIn). */
-@keyframes confirmPanelIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, calc(-50% + 10px));
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
-}
-@keyframes swFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 @keyframes swPulse {
   0%,
   100% {
@@ -2486,17 +1880,618 @@
     opacity: 0.4;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .swScrim,
+  .swPanel,
+  .confirmPanel,
+  .swFabIn {
+    animation: none;
+  }
+}
 
-/* ---------- vlastný tréning klienta (/portal/trening) ---------- */
-/* Zoznam plánov (od trénera aj vlastné) + builder. Svet portálu nezmenený —
-   coral = aktívna voľba a primárna akcia, amber = kontext trénera, steel = neutrál.
-   Reuse .panel / .exList / .exRow / .chip / .startBtn z karty Dnes. */
+/* ======================================================================
+   Meranie (BodyMetricForm)
+   ====================================================================== */
+.addPanel {
+  background: var(--fill);
+  border-radius: 22px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.addPanelLabel {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.metricRow,
+.metricRowWrap {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.metricRowWrap > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.metricActions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.metricActions > button {
+  min-height: 44px;
+  padding: 8px 20px;
+  font-size: 14px;
+}
+.metricField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 48px;
+  box-sizing: border-box;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 0 14px;
+}
+.metricField .metricInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  border: none;
+  background: none;
+  padding: 10px 0;
+  box-shadow: none;
+}
+.metricInput,
+.metricInputSm {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  font-size: 16px; /* ≥16px: iOS nezoomuje */
+  font-family: inherit;
+  font-weight: 600;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.metricInput[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+  padding-inline: 12px 8px;
+}
+.metricInput[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: 2px;
+  padding: 0;
+}
+.metricInput[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+.metricInput:focus-visible,
+.metricInputSm:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.metricField:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.metricField .metricInput:focus-visible {
+  outline: none;
+}
+.metricToggle {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+}
+.metricHistory {
+  margin-top: 14px;
+}
+.metricHistoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+.metricHistoryRow {
+  padding: 11px 14px;
+  border-radius: 16px;
+  background: var(--fill);
+  font-size: 13px;
+}
+.metricHistoryMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.metricHistoryDate {
+  color: var(--paper-faint);
+  font-weight: 600;
+}
+.metricHistoryWeight {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.metricHistoryExtra {
+  margin-top: 3px;
+  color: var(--paper-faint);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.gramUnit {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper-faint);
+}
+.addError {
+  font-size: 12.5px;
+  color: var(--error);
+}
 
+/* ======================================================================
+   Upozornenia (GDPR zmazanie, ukončená spolupráca) + prázdne stavy
+   ====================================================================== */
+.deletionNotice,
+.cooperationNotice {
+  position: relative;
+  border-radius: 24px;
+  padding: 15px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+}
+.deletionNotice {
+  border-left: 4px solid var(--accent);
+}
+.cooperationNotice {
+  padding-right: 44px;
+  border-left: 4px solid var(--plate-yellow);
+}
+.deletionNoticeTitle,
+.cooperationNoticeTitle {
+  font-size: 14px;
+  font-weight: 720;
+  color: var(--paper);
+}
+.deletionNoticeText,
+.cooperationNoticeText {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+.deletionNoticeLink {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-text);
+  text-decoration: none;
+}
+.cooperationNoticeClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.cooperationNoticeClose:hover {
+  color: var(--paper);
+}
+
+.notice {
+  min-height: calc(100dvh - 220px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 40px 24px;
+}
+.noticeTile {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.noticeTile svg {
+  width: 28px;
+  height: 28px;
+}
+.notice h1 {
+  font-size: 1.6rem;
+  font-weight: 760;
+  letter-spacing: -0.035em;
+}
+.notice p {
+  font-size: 14px;
+  color: var(--paper-dim);
+  line-height: 1.55;
+  max-width: 34ch;
+}
+.notice :global(.btn) {
+  margin-top: 6px;
+}
+
+/* ======================================================================
+   Profil
+   ====================================================================== */
+.profileStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.codeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.codeValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--paper);
+  background: var(--fill);
+  border-radius: 16px;
+  padding: 13px 15px;
+  word-break: break-all;
+  user-select: all;
+}
+.codeActions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.codeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+}
+.codeBtn:hover {
+  border-color: var(--fill-strong);
+}
+.codeHint {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--paper-faint);
+}
+.trainerStatus {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.trainerName {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14.5px;
+  color: var(--paper);
+  margin-bottom: 12px;
+}
+.trainerName strong {
+  font-weight: 720;
+}
+.trainerDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--moss);
+  box-shadow: 0 0 0 4px var(--moss-soft);
+}
+.trainerLeaveConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.trainerLeaveActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+@media (max-width: 400px) {
+  .codeActions {
+    width: 100%;
+  }
+  .codeBtn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+.dzText {
+  color: var(--paper-dim);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.dzActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dzError {
+  color: var(--error);
+  font-size: 13px;
+  margin-top: 10px;
+}
+.signOut {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+/* ======================================================================
+   Denník (DiaryView / DiaryRow / AddFoodDiaryEntry)
+   ====================================================================== */
+.diary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.diaryHero {
+  padding: 18px 18px 20px;
+}
+.diaryHeading {
+  font-size: 17px;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.diaryDateNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.diaryDateNav .diaryHeading {
+  text-align: center;
+  flex: 1;
+}
+.diaryDateArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper);
+  font-size: 1.35rem;
+  line-height: 1;
+  text-decoration: none;
+}
+.diaryDateArrow:hover {
+  background: var(--fill-strong);
+}
+.diaryDateArrowOff {
+  opacity: 0.3;
+}
+.kcalLine {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.diaryKcal {
+  font-size: 2.8rem;
+  font-weight: 780;
+  color: var(--paper);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.diaryKcal.macroOver {
+  color: var(--plate-yellow);
+}
+.diaryKcalGoal {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+}
+.macro {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.macroNoGoal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+}
+.macroLabel {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-dim);
+}
+.macroTrack {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bar-off);
+  overflow: hidden;
+}
+.macroFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-grad);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.macroFill.macroOver {
+  background: var(--plate-yellow);
+}
+.macroVal {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.macroVal.macroOver {
+  color: var(--plate-yellow);
+}
+.diaryList {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.diaryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 36px;
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 8px 6px 8px 14px;
+  border-radius: 18px;
+  background: var(--fill);
+}
+.diaryName {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.diaryMeta {
+  display: block;
+  font-size: 12px;
+  color: var(--paper-faint);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.diaryKcalCell {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.diaryRowError {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--error);
+  margin-top: 2px;
+}
+.removeBtn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--paper-faint);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.removeBtn:hover {
+  color: var(--error);
+  background: var(--surface-solid);
+}
+@media (max-width: 640px) {
+  .removeBtn {
+    width: 44px;
+    height: 44px;
+  }
+  .diaryRow {
+    grid-template-columns: minmax(0, 1fr) auto 44px;
+  }
+}
+.gramField {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.gramInput {
+  width: 64px;
+  padding: 10px 10px;
+  font-size: 16px;
+  font-weight: 650;
+  text-align: right;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.gramInput::-webkit-outer-spin-button,
+.gramInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.gramInput:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ======================================================================
+   Tréning — zoznam plánov, šablóny, builder (TrainingSection / ClientPlanBuilder)
+   ====================================================================== */
 .trWrap {
   display: grid;
   gap: 16px;
 }
-
 .trHead {
   display: flex;
   align-items: center;
@@ -2505,87 +2500,87 @@
 }
 .trHead .panelLabel {
   margin-bottom: 0;
+  font-size: 19px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  color: var(--paper);
 }
-
 .trBuildBtn,
 .trBuildBtnGhost {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   flex: none;
-  padding: 10px 15px;
-  border-radius: var(--radius-s);
-  font-size: 13.5px;
-  font-weight: 700;
+  min-height: 44px;
+  padding: 10px 17px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 750;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
 }
 .trBuildBtn {
-  background: var(--iron-red-deep);
-  color: var(--paper);
+  background: var(--accent-grad);
+  color: var(--on-accent);
   border: 1px solid transparent;
-  box-shadow: var(--shadow-1);
-}
-.trBuildBtn:hover {
-  background: #b82f1b;
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 .trBuildBtnGhost {
-  background: transparent;
+  background: var(--surface-solid);
   color: var(--paper);
-  border: 1px solid var(--steel-line);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
 .trBuildBtnGhost:hover {
-  border-color: var(--paper-dim);
-  background: var(--ink-2);
+  border-color: var(--fill-strong);
 }
 .trBuildBtn:active,
 .trBuildBtnGhost:active {
   transform: translateY(1px);
 }
-
 .trError {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--error);
   padding: 2px;
 }
-
 .trEmptyLead {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 17px;
+  font-weight: 740;
+  letter-spacing: -0.025em;
   margin-bottom: 6px;
 }
 .trEmptyBody {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--paper-dim);
 }
-
 .trPlanList {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 .trPlan {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 26px;
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
+/* aktívny plán — terakotový pásik vľavo + jemná žiara */
 .trPlanActive {
-  border-color: color-mix(in srgb, var(--iron-red) 55%, var(--steel-line));
+  box-shadow: var(--card-shadow), inset 4px 0 0 var(--accent);
 }
 .trPlanHead {
   width: 100%;
   display: grid;
-  gap: 8px;
-  padding: 14px 15px;
+  gap: 10px;
+  padding: 17px 18px;
   background: transparent;
   border: 0;
+  color: inherit;
+  font-family: inherit;
   text-align: left;
   cursor: pointer;
 }
@@ -2600,16 +2595,21 @@
   gap: 10px;
 }
 .trPlanName {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 17px;
+  font-weight: 740;
+  letter-spacing: -0.03em;
   line-height: 1.2;
   min-width: 0;
 }
 .trChev {
   flex: none;
-  color: var(--paper-faint);
-  transition: transform 0.18s ease;
+  width: 30px;
+  height: 30px;
+  padding: 7px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper-dim);
+  transition: transform 0.2s ease;
 }
 .trChevOpen {
   transform: rotate(180deg);
@@ -2622,60 +2622,54 @@
 }
 .trDoneBadge {
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 3px 9px;
+  padding: 4px 9px;
   border-radius: 999px;
-  background: rgba(76, 122, 94, 0.18);
-  color: #8fc6a7;
+  background: var(--moss-soft);
+  color: var(--moss);
 }
 .panelLabel .trDoneBadge {
   margin-left: 8px;
   vertical-align: middle;
 }
-/* Odznak sa v zozname dní vykresľuje vždy (aj nehotový deň), len skrytý —
-   nech "X cvikov" a šípka stoja v rovnakom stĺpci pre všetky riadky. */
 .trDoneBadgeHidden {
   visibility: hidden;
 }
 .trActivePill {
   font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 750;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--iron-red) 20%, var(--ink-3));
-  color: var(--paper);
-  border: 1px solid color-mix(in srgb, var(--iron-red) 45%, transparent);
+  background: var(--accent-grad);
+  color: var(--on-accent);
 }
 .trSrcChip {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid var(--steel-line);
 }
 .trSrcChip[data-src="trainer"] {
-  background: color-mix(in srgb, var(--plate-yellow) 12%, var(--ink-3));
-  border-color: color-mix(in srgb, var(--plate-yellow) 34%, transparent);
+  background: var(--amber-soft);
   color: var(--plate-yellow);
 }
 .trSrcChip[data-src="client"] {
-  background: var(--ink-3);
-  color: var(--paper-faint);
+  background: var(--fill);
+  color: var(--paper-dim);
 }
-
 .trPlanBody {
-  padding: 4px 15px 14px;
-  border-top: 1px solid var(--steel-line);
+  padding: 2px 16px 16px;
+  border-top: 1px solid var(--hairline);
 }
 .trDayList {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 10px;
+  padding-top: 12px;
 }
 .trDayBtn {
   display: flex;
@@ -2683,22 +2677,22 @@
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  padding: 11px 12px;
-  border-radius: var(--radius-s);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
+  min-height: 56px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 18px;
+  background: var(--fill);
+  border: 1px solid transparent;
   color: var(--paper);
   font-family: inherit;
   cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
 }
 .trDayBtn:hover {
-  border-color: var(--paper-dim);
-  background: var(--ink-2);
+  border-color: var(--fill-strong);
 }
 .trDayBtnName {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 720;
+  text-align: left;
 }
 .trDayBtnMeta {
   display: flex;
@@ -2706,28 +2700,28 @@
   gap: 8px;
   flex: none;
 }
-/* Pevná šírka — počet cvikov má rôzne dlhý text ("4 cviky" vs. "10 cvikov"), bez
-   toho by sa odznak Hotovo v každom riadku posúval o pár px inde. */
 .trDayBtnMeta .chip {
-  min-width: 68px;
-  text-align: center;
+  min-width: 70px;
+  justify-content: center;
+  background: var(--surface-solid);
 }
 .trDayBtnChevron {
   color: var(--paper-faint);
   transform: rotate(-90deg);
 }
 .trDayBack {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin: 10px 0 4px;
-  padding: 0;
-  background: none;
+  margin: 12px 0 4px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: var(--fill);
   border: none;
   color: var(--paper-dim);
   font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 650;
   cursor: pointer;
 }
 .trDayBack:hover {
@@ -2740,57 +2734,59 @@
   margin-top: 14px;
 }
 .trDay .panelLabel {
-  margin: 12px 0 2px;
+  margin: 14px 0 2px;
+  font-size: 16px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  color: var(--paper);
 }
 .trDay .exList {
-  margin-top: 6px;
+  margin-top: 10px;
 }
 .trEmptyDay {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--paper-faint);
   padding: 8px 2px;
 }
-
 .trPlanActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--steel-line);
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
 }
 .trConfirmText {
-  font-size: 12.5px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--paper-dim);
   margin-right: auto;
 }
 .trGhostBtn,
 .trDangerBtn,
 .trStartBtn {
-  padding: 8px 13px;
-  border-radius: var(--radius-s);
-  font-size: 13px;
-  font-weight: 700;
+  min-height: 40px;
+  padding: 9px 15px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 720;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    opacity 0.15s ease;
 }
 .trStartBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-right: auto;
+  min-height: 48px;
+  padding-inline: 20px;
   border: 1px solid transparent;
-  background: var(--iron-red-deep);
-  color: var(--paper);
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  font-size: 15px;
   font-weight: 800;
-  box-shadow: var(--shadow-1);
-}
-.trStartBtn:hover {
-  background: #b82f1b;
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 .trStartBtn:active {
   transform: translateY(1px);
@@ -2800,103 +2796,101 @@
   cursor: progress;
 }
 .trGhostBtn {
-  background: transparent;
-  border: 1px solid var(--steel-line);
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
   color: var(--paper);
+  box-shadow: var(--shadow-1);
 }
 .trGhostBtn:hover {
-  border-color: var(--paper-dim);
-  background: var(--ink-3);
+  border-color: var(--fill-strong);
 }
 .trDangerBtn {
-  background: var(--iron-red-deep);
+  background: var(--error);
   border: 1px solid transparent;
-  color: var(--paper);
-}
-.trDangerBtn:hover {
-  background: #b82f1b;
+  color: #ffffff;
 }
 .trGhostBtn:disabled,
 .trDangerBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .trHint {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--paper-faint);
   line-height: 1.45;
-  padding: 0 2px;
+  padding: 0 4px;
 }
-
-/* "Uložiť ako šablónu" — potvrdenie/chyba na vlastnom riadku pod tlačidlami tréningu. */
 .trTplNote {
   flex-basis: 100%;
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.45;
-  color: var(--paper-dim);
+  color: var(--moss);
+  font-weight: 600;
 }
 .trTplNoteError {
   color: var(--error);
 }
-
-/* Moje šablóny (z vlastných tréningov) — zbaliteľná karta nad tréningami. Zbalená
-   je len jeden riadok (štítok + počet + šípka), rozbalená pod ním riadky šablón:
-   názov + počty vľavo, Použiť / Zmazať vpravo (na úzkom pod tým). */
+/* Moje šablóny — zbaliteľná karta */
+/* deliaca čiara medzi Moje šablóny a zoznamom tréningov */
+.trDivider {
+  height: 1px;
+  margin: 2px 4px;
+  border: 0;
+  background: var(--fill-strong);
+}
 .trTplBox {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 26px;
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 .trTplToggle {
   width: 100%;
-  min-height: 48px;
+  min-height: 56px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 15px;
+  gap: 10px;
+  padding: 12px 16px 12px 18px;
   background: transparent;
   border: 0;
   color: var(--paper);
+  font-family: inherit;
   text-align: left;
   cursor: pointer;
 }
 .trTplToggleLabel {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--paper-faint);
+  font-size: 15px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
 }
 .trTplCount {
   margin-right: auto;
-  min-width: 20px;
-  padding: 1px 7px;
+  min-width: 24px;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  font-size: 11px;
-  font-weight: 700;
+  background: var(--accent-soft);
+  font-size: 12px;
+  font-weight: 750;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  color: var(--paper-dim);
+  color: var(--accent-text);
 }
 .trTplList {
   list-style: none;
   margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--steel-line);
+  padding: 4px 12px 12px;
+  display: grid;
+  gap: 6px;
 }
 .trTpl {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 12px;
-  padding: 12px 15px;
-}
-.trTpl + .trTpl {
-  border-top: 1px solid var(--steel-line);
+  padding: 12px 12px 12px 14px;
+  border-radius: 18px;
+  background: var(--fill);
 }
 .trTplText {
   flex: 1 1 150px;
@@ -2905,13 +2899,13 @@
   gap: 3px;
 }
 .trTplName {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 14.5px;
+  font-weight: 720;
+  letter-spacing: -0.015em;
   overflow-wrap: anywhere;
 }
 .trTplMeta {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--paper-faint);
 }
 .trTplActions {
@@ -2920,8 +2914,7 @@
   align-items: center;
   gap: 8px;
 }
-
-/* ---------- builder ---------- */
+/* builder — horná lišta, názov tréningu */
 .trBuilderTop {
   display: flex;
   align-items: center;
@@ -2932,36 +2925,35 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 8px 12px 8px 8px;
+  min-height: 44px;
+  padding: 8px 16px 8px 10px;
   border: 0;
-  background: transparent;
-  color: var(--paper-dim);
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.trBackBtn:hover {
+  border-radius: 999px;
+  background: var(--surface-solid);
   color: var(--paper);
-}
-.trSaveBtn {
-  padding: 10px 20px;
-  border-radius: var(--radius-s);
-  border: 1px solid transparent;
-  background: var(--iron-red-deep);
-  color: var(--paper);
+  font-family: inherit;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   box-shadow: var(--shadow-1);
 }
-.trSaveBtn:hover {
-  background: #b82f1b;
+.trSaveBtn {
+  min-height: 44px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 .trSaveBtn:disabled {
   opacity: 0.6;
   cursor: progress;
 }
-
 /* Formulár nového dňa vo vlastnom tréningu: popis "Názov tréningu" na vlastnom riadku
    nad poľom (pole + Pridať/Zrušiť pod ním). */
 .trAddDayForm {
@@ -2974,94 +2966,317 @@
 }
 .trNameField {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+}
+.trNameField .panelLabel {
+  margin-bottom: 0;
 }
 .trNameInput {
   width: 100%;
-  padding: 12px 14px;
-  font-size: 16px;
-  font-weight: 700;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
+  padding: 14px 18px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
   color: var(--paper);
+  box-shadow: var(--shadow-1);
 }
 .trNameInput:focus-visible {
-  outline: 2px solid var(--plate-yellow);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-/* Dni, cviky a knižnica používajú trénerov builder.module.css (rovnaký vzhľad).
-   Ten prepína na 2 stĺpce (knižnica | plátno) od 761px, ale portálový stĺpec má
-   do 879px len 460px — v tom pásme (iPad na výšku) ostane jeden stĺpec ako na
-   mobile: plátno prvé, knižnica pod ním, bez sticky. Zdvojená trieda kvôli
-   poradiu CSS chunkov (rovnaká špecificita ako .builderGrid by mohla prehrať). */
-@media (min-width: 761px) and (max-width: 879px) {
-  .trBuilderGrid.trBuilderGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .trBuilderCanvas.trBuilderCanvas {
-    order: 1;
-  }
-  .trBuilderLib.trBuilderLib {
-    order: 2;
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
+/* knižnica | plátno — v6 je vždy jeden stĺpec (portál je úzky): plátno prvé */
+.trBuilderGrid.trBuilderGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.trBuilderCanvas.trBuilderCanvas {
+  order: 1;
+}
+.trBuilderLib.trBuilderLib {
+  order: 2;
+  position: static;
+  max-height: none;
+  overflow: visible;
 }
 
-/* ---------- loading skeleton (Next.js loading.tsx pre /portal/* + NavSkeletonOverlay) ----------
-   Tvar podľa skutočnej karty Dnes (prstenec postupu + text, CTA tlačidlo, týždenný
-   pás riadkov), nie generické rovnaké panely pod sebou. */
-/* Bez `gap` na wrapperi — každý blok nesie VLASTNÝ margin-bottom = .main gap
-   (26px, skutočný odstup medzi sekciami karty Dnes), nech po načítaní
-   skutočného obsahu nie je žiadny skok v layoute. */
+/* ======================================================================
+   Strava
+   ====================================================================== */
+.kcalHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+.kcalBig {
+  font-size: 3rem;
+  font-weight: 780;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kcalUnit {
+  margin-left: 6px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--paper-dim);
+}
+.kcalSub {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.macroGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.macroTile {
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--fill);
+}
+.macroTileVal {
+  font-size: 19px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.macroTileVal small {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--paper-faint);
+  margin-left: 2px;
+}
+.macroTileLabel {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+.macroTileBar {
+  display: block;
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 999px;
+}
+.mealDay {
+  display: grid;
+  gap: 4px;
+}
+.mealDayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.mealDayName {
+  font-size: 17px;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+}
+.mealSlot {
+  margin-top: 12px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.mealList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.mealRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 9px 14px;
+  border-radius: 18px;
+  background: var(--fill);
+}
+.mealName {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.mealMeta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.mealKcal {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ======================================================================
+   Chat s trénerom + AI Kouč (ChatThread má vlastný modul styles/chat.module.css)
+   ====================================================================== */
+.chatPage {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 100%;
+  /* výška obrazovky bez hlavičky (60 + safe-area hore), horného odstupu .v6Main (14)
+     a miesta pre plávajúcu lištu (≈ 92 + 10 odstup + safe-area dole) — vlákno sa nescrolluje
+     s celou stránkou, pole na písanie ostáva nad lištou */
+  height: calc(100vh - 176px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height: calc(100svh - 176px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height: calc(var(--app-h, 100svh) - 176px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height: 0;
+}
+@media (max-width: 879px) {
+  .v6Main:has(> .chatPage) {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+  .chatPage {
+    transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s;
+  }
+  /* otvorená klávesnica: lišta je skrytá, pole má byť pri spodku obrazovky */
+  :global(html[data-keyboard-open]) .chatPage {
+    height: calc(100vh - 88px - env(safe-area-inset-top));
+    height: calc(100svh - 88px - env(safe-area-inset-top));
+  }
+}
+@media (min-width: 880px) {
+  /* bez hlavičky a lišty: celá výška okna mínus odstupy .v6Main (40 hore, 28 dole) */
+  .v6Main:has(> .chatPage) {
+    padding-bottom: 28px;
+  }
+  .chatPage {
+    height: calc(100dvh - 68px);
+  }
+}
+.chatHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: none;
+  margin-bottom: 10px;
+}
+.chatWho {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.chatAvatar {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 760;
+  color: var(--on-accent);
+  background: var(--accent-grad);
+  box-shadow: var(--accent-glow);
+}
+.chatAvatar svg {
+  width: 20px;
+  height: 20px;
+}
+.chatTitle {
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.chatSub {
+  margin-top: 1px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+}
+.aiKoucResetBtn {
+  flex: none;
+  min-height: 36px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow-1);
+}
+.aiKoucNotice {
+  flex: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+  background: var(--accent-soft);
+  border-radius: 18px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+/* ======================================================================
+   Načítavanie (loading.tsx a NavSkeletonOverlay pri navigácii)
+   Tvar podľa cieľovej záložky (RouteSkeletons.tsx). Kontajnery sú karty v6 (ako .panel,
+   .hero), tvarové prvky v nich (.skeletonBlock + veľkostná trieda) jemné plochy
+   s neutrálnym leskom. Wrapper bez gap — bloky nesú odstup .v6Main (22px).
+   ====================================================================== */
 .skeletonWrap {
   display: flex;
   flex-direction: column;
 }
-/* Zdieľaný shimmer základ — KAŽDÝ tvarový prvok nižšie musí niesť
-   `styles.skeletonBlock` spolu so svojou veľkostnou triedou, inak nemá pozadie
-   vôbec (bolo to tak predtým). Shimmer zámerne NEUTRÁLNY (ink-2/paper 7%), nie
-   coral — coral nesie podľa DESIGN.md výhradne postup/primárnu akciu. */
 .skeletonBlock {
   position: relative;
   overflow: hidden;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
+  background: var(--fill-strong);
+  border-radius: 999px;
 }
 .skeletonBlock::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 25%,
-    color-mix(in srgb, var(--paper) 7%, transparent) 50%,
-    transparent 75%
-  );
+  background: linear-gradient(100deg, transparent 25%, var(--glass-sheen) 50%, transparent 75%);
   background-size: 200% 100%;
   animation: skeletonShimmer 1.7s ease-in-out infinite;
 }
 .skeletonHead {
   height: 64px;
   width: 70%;
-  margin-bottom: 26px; /* = .main gap */
+  border-radius: 20px;
+  margin-bottom: 22px;
 }
-
-/* "dnešná karta" — prstenec vľavo + text vpravo + CTA pruh dole, tvarom ako
-   panel dňa. padding = .panel, vnútorný gap = .prep, CTA odstup = .startBtn. */
+.skeletonTodayBlock,
+.skeletonListRow,
+.skeletonPanelBlock {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+}
+/* ďalší tréning (tvar .hero: text vľavo, prstenec vpravo, akcia dole) */
 .skeletonTodayBlock {
-  padding: 16px 17px;
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  background: var(--ink-2);
+  padding: 20px 18px;
+  border-radius: 30px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 26px;
+  gap: 18px;
+  margin-bottom: 22px;
 }
 .skeletonTodayTop {
   display: flex;
@@ -3069,25 +3284,20 @@
   gap: 18px;
 }
 .skeletonRing {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+  width: 96px;
+  height: 96px;
   flex-shrink: 0;
 }
 .skeletonTodayText {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .skeletonCta {
-  height: 55px; /* = .startBtn: padding-block 16px×2 + 19px/800 text */
-  margin-top: 18px; /* = .startBtn margin-top */
-  border-radius: 999px;
+  height: 54px;
 }
-
-/* "zoznam/pás" — riadky ako týždenná história alebo zoznam cvikov.
-   padding = .panel (rovnaká rodina panelov naprieč portálom). */
+/* zoznam (týždeň, plány, položky denníka) */
 .skeletonListBlock {
   display: flex;
   flex-direction: column;
@@ -3097,10 +3307,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 17px;
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  background: var(--ink-2);
+  padding: 16px 18px;
+  border-radius: 22px;
 }
 .skeletonListText {
   flex: 1;
@@ -3117,26 +3325,20 @@
   width: 32%;
 }
 .skeletonChip {
-  height: 22px;
+  height: 24px;
   width: 64px;
-  border-radius: 999px;
   flex-shrink: 0;
 }
-
-/* Ďalšie tvary (feature/navod pokračovanie) — každá záložka portálu má vlastný
- * skeleton TVAROM podľa toho, čo sa tam naozaj načíta (viď RouteSkeletons.tsx),
- * nie jeden univerzálny naprieč celým portálom. */
+/* panel (tvar .panel) */
 .skeletonPanelBlock {
-  padding: 16px 17px; /* = .panel */
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  background: var(--ink-2);
+  padding: 18px;
+  border-radius: 26px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .skeletonPanelLabel {
-  height: 10px;
+  height: 11px;
   width: 90px;
   margin-bottom: 2px;
 }
@@ -3145,8 +3347,7 @@
   width: 88px;
   margin-bottom: 16px;
 }
-/* Bublinová história ako ChatThread (chat.module.css) — max-width 82% zhodné
- * so `.row`, striedavo vľavo/vpravo ako reálna konverzácia. */
+/* chat: striedavé bubliny + pole na písanie */
 .skeletonBubbleRow {
   display: flex;
   flex-direction: column;
@@ -3162,20 +3363,21 @@
   align-items: flex-start;
 }
 .skeletonBubble {
-  height: 34px;
-  border-radius: 14px;
+  height: 38px;
+  width: 220px;
+  max-width: 100%;
+  border-radius: 20px;
 }
 .skeletonComposer {
-  height: 44px;
-  border-radius: 999px;
+  height: 48px;
   margin-top: 8px;
 }
-/* Veľké číslo (kcal súčet v Denníku) — tvarom ako .diaryKcal, nie prstenec. */
+/* veľké číslo (kcal v Denníku) */
 .skeletonBigNumber {
   height: 38px;
   width: 130px;
+  border-radius: 12px;
 }
-
 @keyframes skeletonShimmer {
   0% {
     background-position: 150% 0;
@@ -3191,6 +3393,62 @@
   }
 }
 
+/* hlavička sekcie s akciou vpravo (Strava → Stiahnuť PDF) */
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 2px 12px;
+}
+.sectionHead .sectionTitle {
+  margin: 0;
+}
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
+/* mazanie — červená (tokeny --danger v tokens.module.css), odlíšená od terakoty */
+.trDangerBtn {
+  background: var(--danger-grad);
+  box-shadow: var(--danger-glow);
+}
+.trGhostBtn:global(.btn-danger) {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger-line);
+}
+.trGhostBtn:global(.btn-danger):hover:not(:disabled) {
+  border-color: var(--danger);
+}
+.removeBtn:global(.btn-danger) {
+  color: var(--danger);
+}
+.removeBtn:global(.btn-danger):hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+/* ---------- počítač: širší obsah vedľa bočného panelu — grafy na Dnes ----------
+   Stĺpce aktivity by sa na šírke ~900 px roztiahli (aktívny na guľu) a dni týždňa
+   na široké ovály: úzke stĺpce rozložené po šírke, dni ako zaoblené dlaždice. */
+@media (min-width: 880px) {
+  .bars {
+    justify-content: space-between;
+    gap: 0;
+    height: 84px;
+  }
+  .bar {
+    flex: 0 1 28px;
+  }
+  .weekCell {
+    border-radius: 24px;
+    padding: 14px 4px 12px;
+  }
+}
+
 /* Denník: riadky jedál, panel „Pridať jedlo“ a skener sú zdieľané komponenty
    app/components/food/ so štýlmi vo food.module.css. */
 
@@ -3202,10 +3460,19 @@
 .removeBtn {
   width: 40px;
   height: 40px;
-  border: 1px solid var(--steel-line);
-  border-radius: 50%;
-  background: var(--ink-3);
+  border: 1px solid var(--hairline);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
   color: var(--paper-dim);
+}
+.removeBtn:hover {
+  color: var(--paper);
+  background: var(--surface-solid);
+}
+.removeBtn:global(.btn-danger) {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 /* úprava gramáže / potvrdenie odobratia v riadku denníka: menšie tlačidlá (mobilné .btn-sm

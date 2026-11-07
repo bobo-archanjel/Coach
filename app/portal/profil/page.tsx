@@ -1,35 +1,47 @@
-import { AppLink as Link } from "../../components/AppLink";
-import { SignOutButton } from "../../components/SignOutButton";
-import { DeleteAccountSection } from "./DeleteAccountSection";
-import { TrainerConnection } from "./TrainerConnection";
-import { loadProfilView } from "./profilView";
-import styles from "../portal.module.css";
+import { cookies } from "next/headers";
+import { AppLink as Link } from "@/app/components/AppLink";
+import { SignOutButton } from "@/app/components/SignOutButton";
+import { DeleteAccountSection } from "@/app/portal/profil/DeleteAccountSection";
+import { TrainerConnection } from "@/app/portal/profil/TrainerConnection";
+import { loadProfilView } from "@/app/portal/profil/profilView";
+import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
+import { V6_THEME_COOKIE, parseV6Theme } from "@/app/v6design/theme";
+import s from "../portal.module.css";
+
+/* /portal/profil — údaje a akcie profilu (loadProfilView) + vzhľad (téma Auto/Svetlá/Tmavá)
+   + opätovné spustenie onboarding návodu (?tour=1 na Dnes). */
 
 export default async function ProfilPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
-
-  const view = await loadProfilView(preview);
+  const [view, cookieStore] = await Promise.all([loadProfilView(preview), cookies()]);
+  const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
 
   return (
-    <div className={styles.profilePage}>
-      <div className={styles.profileHead}>
-        <h1>Profil</h1>
-        <p>Kód pre trénera, stav prepojenia a nastavenia účtu.</p>
-      </div>
+    <>
+      <header>
+        <h1 className={s.pageTitle}>Profil</h1>
+        <p className={s.pageSub}>Kód pre trénera, stav prepojenia a nastavenia účtu.</p>
+      </header>
 
-      <div className={styles.profileStack}>
+      <div className={s.profileStack}>
         <TrainerConnection code={view.code} hasTrainer={view.hasTrainer} trainerName={view.trainerName} />
 
-        <div className={styles.panel}>
-          <p className={styles.panelLabel}>Osobné údaje</p>
-          <p className={styles.codeHint} style={{ marginTop: 0 }}>
+        <div className={s.panel}>
+          <p className={s.panelLabel}>Vzhľad</p>
+          <ThemeSwitch initial={theme} />
+          <p className={s.hint}>Auto prepína svetlú a tmavú tému podľa nastavenia telefónu.</p>
+        </div>
+
+        <div className={s.panel}>
+          <p className={s.panelLabel}>Osobné údaje</p>
+          <p className={s.codeHint} style={{ marginTop: 0 }}>
             Vek, výška, váha, ciele a alergie z onboardingu si tu doplníš onedlho — potom uvidíš aj svoj progres v čase.
           </p>
         </div>
 
-        <div className={styles.panel}>
-          <p className={styles.panelLabel}>Návod</p>
-          <p className={styles.codeHint} style={{ marginTop: 0, marginBottom: 14 }}>
+        <div className={s.panel}>
+          <p className={s.panelLabel}>Návod</p>
+          <p className={s.codeHint} style={{ marginTop: 0, marginBottom: 14 }}>
             Krátky sprievodca appkou, ktorý si videl pri prvom prihlásení.
           </p>
           <Link href="/portal?tour=1" className="btn btn-ghost btn-sm">
@@ -39,11 +51,10 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
 
         <DeleteAccountSection requestedAt={view.deletionRequestedAt} requestedBy={view.deletionRequestedBy} />
 
-        {/* Nad 880px je odhlásenie už v sidebari (PortalNav .navFoot) — tu netreba duplicitu. */}
-        <div className={styles.profileSignOut}>
-          <SignOutButton />
+        <div className={s.signOut}>
+          <SignOutButton to="/v6design/prihlasenie" />
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState, useActionState } from "react";
 import { addCustomExerciseAction, addCustomExerciseToDayAction, type ActionState } from "../actions";
 import { LibraryItem } from "./LibraryItem";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
-import builderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 const initialState: ActionState = { error: null };
 const PAGE_SIZE = 7;
@@ -31,7 +30,6 @@ export function ExerciseLibrary({
   activeDayId: string | null;
   planId: string;
 }) {
-  const styles = useSkinStyles("builder", builderModule);
   const [query, setQuery] = useState("");
   // Na mobile defaultne zbalené (viď builderGrid poradie) — tréner vidí plátno prvé.
   // Nad 760px CSS `.collapsed` pravidlo neplatí, takže tento stav tam vizuálne nič nemení.

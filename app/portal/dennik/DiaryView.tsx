@@ -6,12 +6,11 @@ import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type Mea
 import type { PortalDiaryData, PortalDiaryEntry, PortalDiaryGroup, PortalFoodOption } from "@/lib/portal/types";
 import { addFoodLogAction, removeFoodLogAction, updateFoodLogAction, type ActionState } from "../actions";
 import { diaryMinDate, shiftDiaryDate } from "@/lib/portal/diaryDate";
-import portalStyles from "../portal.module.css";
+import styles from "../portal.module.css";
 import { FoodPickerSheet } from "../../components/food/FoodPickerSheet";
 import { MealSlotSection } from "../../components/food/MealSlotSection";
-import foodModule from "../../components/food/food.module.css";
+import food from "../../components/food/food.module.css";
 import { DiaryRow } from "./DiaryRow";
-import { usePortalBase, useSkinStyles } from "../../components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -22,7 +21,6 @@ function fillScale(value: number, goal: number): number {
 }
 
 function MacroBar({ label, value, goal }: { label: string; value: number; goal: number | null }) {
-  const styles = useSkinStyles("portal", portalStyles);
   // Bez cieľa: len label + hodnota, žiadny pruh (inak by 100% coral pôsobilo ako "splnené").
   if (goal == null) {
     return (
@@ -88,8 +86,8 @@ function dayLabel(date: string, today: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function diaryHref(base: string, date: string, today: string): string {
-  return date === today ? `${base}/dennik` : `${base}/dennik?date=${date}`;
+function diaryHref(date: string, today: string): string {
+  return date === today ? "/portal/dennik" : `/portal/dennik?date=${date}`;
 }
 
 function buildFormData(option: PortalFoodOption, slot: MealSlot, grams: number): FormData {
@@ -144,9 +142,6 @@ function buildGroups(entries: PortalDiaryEntry[]): PortalDiaryGroup[] {
  * jedla sa v zozname aj v makro pruhoch prejaví okamžite.
  */
 export function DiaryView({ data }: { data: PortalDiaryData }) {
-  const styles = useSkinStyles("portal", portalStyles);
-  const food = useSkinStyles("food", foodModule);
-  const portalBase = usePortalBase();
   const { goal, date, today } = data;
   const isToday = date === today;
   const prevDate = shiftDiaryDate(date, -1);
@@ -212,7 +207,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
       <div className={`${styles.panel} ${styles.diaryHero}`}>
         <nav className={styles.diaryDateNav} aria-label="Deň denníka">
           {canGoBack ? (
-            <Link href={diaryHref(portalBase, prevDate, today)} className={styles.diaryDateArrow} aria-label="Predošlý deň">
+            <Link href={diaryHref(prevDate, today)} className={styles.diaryDateArrow} aria-label="Predošlý deň">
               ‹
             </Link>
           ) : (
@@ -226,7 +221,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
               ›
             </span>
           ) : (
-            <Link href={diaryHref(portalBase, shiftDiaryDate(date, 1), today)} className={styles.diaryDateArrow} aria-label="Nasledujúci deň">
+            <Link href={diaryHref(shiftDiaryDate(date, 1), today)} className={styles.diaryDateArrow} aria-label="Nasledujúci deň">
               ›
             </Link>
           )}

@@ -6,7 +6,7 @@ import { StrengthCard } from "./StrengthCard";
 import { ProgressSummaryCard } from "./ProgressSummaryCard";
 import { pluralSk } from "@/lib/portal/streak";
 import { InfoTip } from "@/app/components/InfoTip";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 /** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
 function adherenceToneKey(pct: number | null): "adherenceNone" | "adherenceGood" | "adherenceOff" {
@@ -55,7 +55,6 @@ export async function AnalyticsPanel({
   strengthByExercise: Record<string, StrengthPoint[]>;
   strengthPRs?: StrengthPR[];
 }) {
-  const styles = await dashStyles();
   const planPct30 = trainingAdherence?.planCompletion.window30 ?? null;
   const nutritionPct30 = adherence?.hasGoal ? adherence.window30.pct : null;
   const wDelta = weightDelta90(bodyMetrics);

@@ -169,7 +169,9 @@ test.describe("PlanBuilder bez dní (?preview=builder_empty)", () => {
     if ((await libToggle.getAttribute("aria-expanded")) === "false") await libToggle.click();
 
     await expect(page.getByRole("button", { name: "Zmazať deň", exact: true })).toHaveCount(0);
-    const item = page.getByRole("button", { name: /^Hip thrust s činkou/ });
+    // prvý cvik knižnice — náhľad číta skutočnú globálnu knižnicu (ak je service-role kľúč),
+    // inak ukážkovú, takže nie podľa konkrétneho názvu
+    const item = page.locator('button[title="Najprv pridaj tréningový deň"]').first();
     await expect(item).toBeEnabled();
     await item.click();
     await expect(page.getByText("Najprv pridaj tréningový deň.")).toBeVisible();

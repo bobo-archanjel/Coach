@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { renamePlanAction, type ActionState } from "../actions";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 const PencilIcon = () => (
   <svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -27,7 +26,6 @@ export function PlanTitle({
   name: string;
   rename?: (planId: string, name: string) => Promise<ActionState>;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name);
   const [shown, setShown] = useState(name);

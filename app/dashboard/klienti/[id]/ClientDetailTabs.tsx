@@ -1,8 +1,7 @@
 "use client";
 
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 export interface ClientDetailSection {
   id: string;
@@ -21,7 +20,6 @@ export interface ClientDetailSection {
  * takže obnovenie stránky ostane na tej istej záložke.
  */
 export function ClientDetailTabs({ sections, initialId }: { sections: ClientDetailSection[]; initialId?: string }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const baseId = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [activeId, setActiveIdState] = useState(

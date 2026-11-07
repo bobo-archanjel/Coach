@@ -1,8 +1,8 @@
-/* v6 — builder vlastného tréningu (ClientPlanBuilder / ClientExerciseLibrary).
-   Rovnaké názvy tried ako trénerov app/dashboard/treningy/[planId]/builder.module.css
-   (useSkinStyles "builder"). Portál je úzky stĺpec, preto vždy jeden stĺpec:
-   plátno (dni + cviky) hore, knižnica pod ním a dá sa zbaliť na každej šírke.
-   Tokeny (--surface, --accent…) prichádzajú z koreňa .v6 (styles/portal.module.css). */
+/* Builder vlastného tréningu klienta (ClientPlanBuilder / ClientExerciseLibrary), dizajn v6.
+   Rovnaké názvy tried ako trénerov app/dashboard/treningy/[planId]/builder.module.css,
+   ale portál je úzky stĺpec, preto vždy jeden stĺpec: plátno (dni + cviky) hore,
+   knižnica pod ním a dá sa zbaliť na každej šírke.
+   Tokeny (--surface, --accent…) z koreňa .root (app/v6design/styles/tokens.module.css). */
 
 .builderGrid {
   display: grid;

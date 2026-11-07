@@ -4,7 +4,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
 import { pluralSk } from "@/lib/portal/streak";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 /**
  * Jedálničky trénera — rovnaké rozloženie ako Tréningy: hore „Nový jedálniček“ (aj pre
@@ -12,7 +12,6 @@ import { dashStyles } from "@/app/dashboard/dashSkin";
  * údaje + výsledok) je v detaile klienta, záložka Jedálničky.
  */
 export default async function JedalnickyPage() {
-  const styles = await dashStyles();
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,7 +20,7 @@ export default async function JedalnickyPage() {
   // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
   // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
   if (!user) {
-    redirect("/prihlasenie");
+    redirect("/v6design/prihlasenie");
   }
 
   const [{ data: clients }, { data: plans }] = await Promise.all([

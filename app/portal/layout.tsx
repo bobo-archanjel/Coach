@@ -1,72 +1,73 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
 import { CLIENT_TOUR_STEPS } from "@/lib/onboarding/tourSteps";
-import { OnboardingTour } from "../components/OnboardingTour";
-import { NavigationProgressProvider } from "../components/NavigationProgress";
+import { LogoMark } from "@/app/components/LogoMark";
+import { OnboardingTour } from "@/app/components/OnboardingTour";
+import { NavigationProgressProvider } from "@/app/components/NavigationProgress";
+import { loadPortalShell } from "@/app/portal/portalShell";
 import { PortalNav } from "./PortalNav";
 import { PortalSkeletonOverlay } from "./PortalSkeletonOverlay";
-import { loadPortalShell } from "./portalShell";
-import styles from "./portal.module.css";
+import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "@/app/v6design/theme";
+import t from "@/app/v6design/styles/tokens.module.css";
+import s from "./portal.module.css";
+
+/* /portal — klientsky portál ("liquid glass", terakota, svetlá/tmavá téma; dizajn v6,
+   tokeny v app/v6design/styles/tokens.module.css). Auth guard a údaje navigácie
+   v loadPortalShell (portalShell.ts). Bývalé /v6design/portal/* presmerúva next.config.ts. */
 
 export const metadata: Metadata = {
   title: "FitPilot — Portál",
   description: "Tvoj dnešný tréning a plán týždňa na jednom mieste.",
 };
 
-/* Direction contract — kompozícia "Oblúk tréningového dňa", seed 7c5000e8.
-   Emitované ako HTML komentár do buildu (greppateľné, prežije produkčný build). */
-const DIRECTION_CONTRACT = `impeccable direction contract · seed 7c5000e8 · surface /portal
-THESIS: Home je oblúk tréningového dňa — príprava, práca, dozvuk — čítaný zhora nadol
-  ako priebeh jednej tréningovej jednotky; odmieta mriežku status-dlaždíc trénerskeho dashboardu.
-OWN-WORLD: FitPilot grafit (--ink) s vrstvenými ember panelmi (--ink-2/-3), Signal Coral (--iron-red)
-  nesie postup a primárnu akciu, Amber (--plate-yellow) kontext trénera a "dnes", Inter, zaoblenie 9/12px,
-  pilulkové chipy. Podpisový prvok: coral prstenec postupu obopínajúci dnešný blok cvikov.
-STORY: Klient otvorí portál v šatni, prečíta odkaz trénera, vidí presne čo cvičiť dnes a koľko
-  z toho ostáva, spustí tréning. Séria a týždeň dávajú kontinuitu bez rozptýlenia.
-FIRST VIEWPORT: hore dátum + pozdrav menom + odkaz trénera v amber páse; pod tým panel dňa —
-  prstenec postupu (0/6, 0 %) vľavo, názov a fokus dňa vpravo, zoznam cvikov, coral CTA
-  "Začať tréning →" na spodku panela v dosahu palca; séria a týždenný pás až pod foldom.
-FORM: "Oblúk tréningového dňa" — kandidát 6 z môjho zoznamu (vedúci roll), seed 7c5000e8.
-SIGNATURE: prstenec postupu sa pri načítaní poskladá — obkreslí sa ghost dráha, dosadne štartový bod
-  a dokreslí coral hodnota (exponential ease-out); jediný autorský moment, funguje aj pri stave 0/6;
-  žiadne opakované entrance animácie po sekciách.
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict,
-  DESIGN.md, and every shipping raster carrying its provenance`;
+export async function generateViewport(): Promise<Viewport> {
+  return { themeColor: v6ThemeColor(parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value)) };
+}
 
-/** Mobilný shell pre celý /portal — auth guard a údaje navigácie v loadPortalShell (portalShell.ts). */
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  // loadPortalShell robí auth guard (redirect bez session/tréner) aj dopyty na
-  // chatUnread/aiKoucVisible — zdieľané s /v6design/portal. Tour je zámerne mimo
-  // neho (zatiaľ len tento pôvodný dizajn): ďalší nezávislý dopyt na `user.id`,
-  // vyhodnotený až PO guarde vyššie, s rovnakým cookie fast-pathom ako dashboard.
-  const [{ chatUnread, aiKoucVisible }, {
+  // loadPortalShell robí auth guard (redirect bez session/tréner) aj dopyty navigácie.
+  // Tour: nezávislý dopyt na user.id s rovnakým cookie fast-pathom ako dashboard
+  // (DB len keď cookie „tour videný“ chýba).
+  const [{ chatUnread, aiKoucVisible, displayName }, cookieStore, {
     data: { user },
-  }] = await Promise.all([loadPortalShell(), getUser()]);
+  }] = await Promise.all([loadPortalShell(), cookies(), getUser()]);
+  const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
+  const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
   let tourSeen = true;
-  if (user) {
-    const tourSeenCookie = await hasTourSeenCookie();
-    tourSeen = tourSeenCookie ? true : await getTourSeen(user.id);
-  }
+  if (user && !(await hasTourSeenCookie())) tourSeen = await getTourSeen(user.id);
 
   return (
-    <NavigationProgressProvider>
-      <div className={styles.viewport}>
-        {/* Sibling ku .column (nie vnorená) — nad 880px sa stáva ľavým sidebarom
-            v CSS grid .viewport, presne ako app/dashboard/layout.tsx. Pod 880px
-            ostáva position:fixed bottom nav, DOM poradie tam nehrá rolu. */}
-        <PortalNav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} />
-        <div className={styles.column}>
-          <div hidden aria-hidden="true" dangerouslySetInnerHTML={{ __html: `<!--\n${DIRECTION_CONTRACT}\n-->` }} />
-          <main className={styles.main}>{children}</main>
-          <PortalSkeletonOverlay />
+    <div className={t.root} data-theme={theme} data-v6-root="">
+      <NavigationProgressProvider>
+        <header className={s.v6Top}>
+          <div className={s.v6TopInner}>
+            <Link href="/portal" className={s.v6Brand}>
+              <LogoMark className={s.v6BrandMark} />
+              <span className={s.v6BrandText}>FitPilot</span>
+            </Link>
+            <Link href="/portal/profil" className={s.v6Avatar} aria-label="Profil">
+              {initial}
+            </Link>
+          </div>
+        </header>
+        <PortalNav chatUnread={chatUnread} aiKoucVisible={aiKoucVisible} displayName={displayName} />
+        <div className={s.v6Frame}>
+          {/* pozicionovaný obal len okolo obsahu — overlay skeleton pri navigácii
+              (PortalSkeletonOverlay) prekryje presne stĺpec obsahu, nie panel/lištu */}
+          <div className={s.v6Stage}>
+            <main className={s.v6Main}>{children}</main>
+            <PortalSkeletonOverlay />
+          </div>
         </div>
         <Suspense fallback={null}>
           <OnboardingTour steps={CLIENT_TOUR_STEPS} tourSeen={tourSeen} />
         </Suspense>
-      </div>
-    </NavigationProgressProvider>
+      </NavigationProgressProvider>
+    </div>
   );
 }
