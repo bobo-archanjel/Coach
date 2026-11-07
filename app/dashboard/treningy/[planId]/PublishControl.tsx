@@ -2,8 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { setPlanPublishedAction, deletePlanAction, type ActionState } from "../actions";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -15,7 +14,6 @@ const CheckIcon = () => (
 
 /** Stav plánu pri názve — kým je koncept, klient ho v portáli nevidí (viď actions.ts). */
 export function PublishBadge({ published }: { published: boolean }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
       {published ? "Publikovaný — klient ho vidí" : "Koncept — klient ho ešte nevidí"}
@@ -38,7 +36,6 @@ export function PublishActions({
   /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
   recipientCount?: number;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(setPlanPublishedAction, initialState);
   // Stav pri názve sa mení trvalo (podľa `published` z DB), ale samotná zmena je
   // ľahko prehliadnuteľná — táto správa na pár sekúnd jasne potvrdí, že klik

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import mealBuilderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 function foodsLabel(n: number): string {
   if (n === 0) return "";
@@ -32,7 +31,6 @@ export function MealDayActions({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
-  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const [mode, setMode] = useState<"idle" | "renaming" | "confirmingDelete">("idle");
   const [value, setValue] = useState(name);
   const [error, setError] = useState<string | null>(null);

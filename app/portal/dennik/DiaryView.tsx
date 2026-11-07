@@ -6,12 +6,11 @@ import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type Mea
 import type { PortalDiaryData, PortalDiaryEntry, PortalDiaryGroup, PortalFoodOption } from "@/lib/portal/types";
 import { addFoodLogAction, removeFoodLogAction, updateFoodLogAction, type ActionState } from "../actions";
 import { diaryMinDate, shiftDiaryDate } from "@/lib/portal/diaryDate";
-import portalStyles from "../portal.module.css";
+import styles from "../portal.module.css";
 import { FoodPickerSheet } from "../../components/food/FoodPickerSheet";
 import { MealSlotSection } from "../../components/food/MealSlotSection";
-import foodModule from "../../components/food/food.module.css";
+import food from "../../components/food/food.module.css";
 import { DiaryRow } from "./DiaryRow";
-import { useSkinStyles } from "../../components/uiSkin";
 
 const initialState: ActionState = { error: null };
 
@@ -22,7 +21,6 @@ function fillScale(value: number, goal: number): number {
 }
 
 function MacroBar({ label, value, goal }: { label: string; value: number; goal: number | null }) {
-  const styles = useSkinStyles("portal", portalStyles);
   // Bez cieľa: len label + hodnota, žiadny pruh (inak by 100% coral pôsobilo ako "splnené").
   if (goal == null) {
     return (
@@ -144,8 +142,6 @@ function buildGroups(entries: PortalDiaryEntry[]): PortalDiaryGroup[] {
  * jedla sa v zozname aj v makro pruhoch prejaví okamžite.
  */
 export function DiaryView({ data }: { data: PortalDiaryData }) {
-  const styles = useSkinStyles("portal", portalStyles);
-  const food = useSkinStyles("food", foodModule);
   const { goal, date, today } = data;
   const isToday = date === today;
   const prevDate = shiftDiaryDate(date, -1);

@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { duplicateDayAction } from "../actions";
-import builderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 /**
  * "Duplikovať" medzi "+ deň" a "Zmazať deň" (rovnako ako v jedálničku) — kópia práve
@@ -19,7 +18,6 @@ export function DuplicateDayButton({
   dayId: string;
   onDuplicated: (newDayId: string) => void;
 }) {
-  const styles = useSkinStyles("builder", builderModule);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

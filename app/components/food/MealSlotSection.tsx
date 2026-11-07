@@ -2,8 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { MealSlot } from "@/lib/meals";
-import foodModule from "./food.module.css";
-import { useSkinStyles } from "../uiSkin";
+import styles from "./food.module.css";
 
 const iconProps = {
   width: 20,
@@ -101,7 +100,6 @@ export function MealSlotSection({
   onAdd: () => void;
   children: ReactNode;
 }) {
-  const styles = useSkinStyles("food", foodModule);
   return (
     <div className={styles.slot}>
       <div className={styles.slotHead}>

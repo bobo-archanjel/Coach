@@ -20,8 +20,7 @@ import { defaultFocusForSex } from "@/lib/ai/planClientContext";
 import { pluralSk } from "@/lib/portal/streak";
 import { InfoTip } from "@/app/components/InfoTip";
 import { ClientMultiSelect } from "../ClientMultiSelect";
-import dashboardModule from "../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -46,7 +45,6 @@ interface Batch {
 }
 
 export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, singlePending] = useActionState(generatePlanWithAiAction, initialState);
   const [batchPending, startBatch] = useTransition();
   const [selected, setSelected] = useState<string[]>(() => (clients.length === 1 ? [clients[0].id] : []));

@@ -7,9 +7,8 @@ import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from ".
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
-import builderStyles from "./builder.module.css";
-import portalStyles from "../portal.module.css";
-import { useSkinStyles } from "../../components/uiSkin";
+import b from "./builder.module.css";
+import styles from "../portal.module.css";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -111,8 +110,6 @@ export function ClientPlanBuilder({
   onCancel: () => void;
   onSaved: () => void;
 }) {
-  const b = useSkinStyles("builder", builderStyles);
-  const styles = useSkinStyles("portal", portalStyles);
   const prefilled = initial !== null || template !== null;
   const [name, setName] = useState(initial?.name ?? template?.name ?? "");
   // Nový prázdny tréning začína bez dní (ako u trénera) s otvoreným "+ deň" — prvý
@@ -576,7 +573,6 @@ function ExerciseEditForm({
   onApply: (patch: Pick<BEx, "sets" | "reps" | "loadKg" | "restSeconds">) => void;
   onCancel: () => void;
 }) {
-  const b = useSkinStyles("builder", builderStyles);
   return (
     <form
       className={b.editForm}

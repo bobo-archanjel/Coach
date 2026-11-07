@@ -11,10 +11,9 @@ import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type Mea
 import type { PortalFoodOption } from "@/lib/portal/types";
 import { FoodPickerSheet } from "@/app/components/food/FoodPickerSheet";
 import { MealSlotSection } from "@/app/components/food/MealSlotSection";
-import foodModule from "@/app/components/food/food.module.css";
-import mealBuilderModule from "./builder.module.css";
-import dashboardModule from "../../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import food from "@/app/components/food/food.module.css";
+import styles from "./builder.module.css";
+import dashStyles from "../../../dashboard.module.css";
 
 /** Riadok knižnice potravín (page.tsx: globálna knižnica + vlastné potraviny trénera). */
 export interface LibraryFood {
@@ -79,15 +78,12 @@ export function MealPlanBuilder({
   /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
   recipientCount?: number;
 }) {
-  const dashStyles = useSkinStyles("dashboard", dashboardModule);
-  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const [saved, setSaved] = useState(days);
   const [draft, setDraft] = useState(days);
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [savePending, startSave] = useTransition();
-  const food = useSkinStyles("food", foodModule);
   // Knižnica pre panel — plus potraviny, ktoré tréner založí počas práce (do DB idú hneď,
   // stránka ich pri ďalšom načítaní dodá sama).
   const [libraryOptions, setLibraryOptions] = useState(() => library.map(toOption));

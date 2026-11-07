@@ -11,8 +11,7 @@ import {
 } from "../actions";
 import type { ExerciseDetail, ExerciseLibraryRow } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import builderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -57,7 +56,6 @@ export function ExerciseRow({
   reorderPending?: boolean;
   onMove?: (direction: "up" | "down") => void;
 }) {
-  const styles = useSkinStyles("builder", builderModule);
   const [editing, setEditing] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState(updateExerciseEntryAction, initialState);
   const [removeState, removeAction, removePending] = useActionState(removeExerciseEntryAction, initialState);

@@ -7,8 +7,7 @@ import {
   requestClientDeletionAction,
   resumeClientCooperationAction,
 } from "../actions";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 const GRACE_DAYS = 30;
 
@@ -36,7 +35,6 @@ export function DangerZone({
   deletionRequestedAt: string | null;
   deletionRequestedBy: "trainer" | "client" | null;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

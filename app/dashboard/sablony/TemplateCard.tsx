@@ -6,8 +6,7 @@ import { ApplyTemplateDialog } from "./ApplyTemplateDialog";
 import type { TemplateItem } from "./TemplatesList";
 import { PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
 import { pluralSk } from "@/lib/portal/streak";
-import templatesModule from "./templates.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./templates.module.css";
 
 const ChevronIcon = ({ className }: { className?: string }) => (
   <svg className={className} width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -29,7 +28,6 @@ export function TemplateCard({
   item: TemplateItem;
   clients: { id: string; full_name: string }[];
 }) {
-  const styles = useSkinStyles("templates", templatesModule);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);

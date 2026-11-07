@@ -4,8 +4,7 @@ import { useActionState, useState, type FormEvent } from "react";
 import { createMealPlanAction, type ActionState } from "./jedalnicek/actions";
 import { ClientMultiSelect } from "../ClientMultiSelect";
 import { pluralSk } from "@/lib/portal/streak";
-import dashboardModule from "../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -16,7 +15,6 @@ const initialState: ActionState = { error: null };
  * odoslaní dostane každý vlastnú kópiu, ktorú potom tréner upravuje nezávisle.
  */
 export function CreateMealPlanForm({ clients }: { clients: { id: string; full_name: string }[] }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(createMealPlanAction, initialState);
   const [selected, setSelected] = useState<string[]>(() => (clients.length === 1 ? [clients[0].id] : []));
   const [missingClient, setMissingClient] = useState(false);

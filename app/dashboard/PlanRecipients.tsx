@@ -3,8 +3,7 @@
 import { useState, useTransition } from "react";
 import { removePlanRecipientAction, sendToRemainingRecipientsAction } from "./planRecipientActions";
 import type { PlanKind, PlanRecipient } from "@/lib/planRecipients";
-import dashboardModule from "./dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./dashboard.module.css";
 
 const CloseIcon = () => (
   <svg width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -28,7 +27,6 @@ export function PlanRecipients({
   published: boolean;
   recipients: PlanRecipient[];
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   if (recipients.length === 0) return null;

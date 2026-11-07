@@ -9,8 +9,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import dashboardModule from "./dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./dashboard.module.css";
 
 export interface RosterItem {
   id: string;
@@ -37,7 +36,6 @@ function normalize(s: string): string {
 const SEARCH_THRESHOLD = 5; // pod týmto počtom klientov je hľadanie zbytočný šum navyše
 
 export function ClientRoster({ items }: { items: RosterItem[] }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {

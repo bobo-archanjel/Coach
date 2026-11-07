@@ -4,8 +4,7 @@ import { useState } from "react";
 import type { MealEntry } from "../actions";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
 import { MacroChips } from "./MacroChips";
-import mealBuilderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 const EditIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -29,7 +28,6 @@ export function MealEntryRow({
   onUpdate: (patch: { meal_slot: MealSlot; grams: number }) => void;
   onRemove: () => void;
 }) {
-  const styles = useSkinStyles("mealBuilder", mealBuilderModule);
   const [editing, setEditing] = useState(false);
   const [slot, setSlot] = useState<MealSlot>(entry.meal_slot);
   const [grams, setGrams] = useState(String(entry.grams));

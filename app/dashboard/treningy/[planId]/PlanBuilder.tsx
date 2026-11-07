@@ -9,8 +9,7 @@ import { DuplicateDayButton } from "./DuplicateDayButton";
 import { RenameDayForm } from "./RenameDayForm";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
-import builderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 interface Day {
   id: string;
@@ -31,7 +30,6 @@ export function PlanBuilder({
   /** dni, z ktorých klient už odcvičil tréning (plan_snapshot.day_id, 0048) */
   completedDayIds?: string[];
 }) {
-  const styles = useSkinStyles("builder", builderModule);
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
   // „Premenovať“ otvorený pre aktívny deň — prepnutie dňa ho zavrie
   const [renaming, setRenaming] = useState(false);

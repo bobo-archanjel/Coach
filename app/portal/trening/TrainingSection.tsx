@@ -14,8 +14,7 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import portalStyles from "../portal.module.css";
-import { useSkinStyles } from "../../components/uiSkin";
+import styles from "../portal.module.css";
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
 // naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
@@ -25,7 +24,6 @@ const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) =
 });
 
 function BuilderLoading() {
-  const styles = useSkinStyles("portal", portalStyles);
   return <p className={styles.trEmptyDay}>Načítavam…</p>;
 }
 
@@ -74,7 +72,6 @@ function exWord(n: number): string {
 }
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
-  const styles = useSkinStyles("portal", portalStyles);
   const { plans, templates } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");

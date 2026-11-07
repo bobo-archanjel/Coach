@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { renameDayAction } from "../actions";
-import builderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 /**
  * "Premenovať" deň — formulár na celý riadok pod pilulkami (rovnako ako v jedálničku,
@@ -21,7 +20,6 @@ export function RenameDayForm({
   name: string;
   onClose: () => void;
 }) {
-  const styles = useSkinStyles("builder", builderModule);
   const [value, setValue] = useState(name);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

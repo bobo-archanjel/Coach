@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import clientPickerModule from "./clientPicker.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./clientPicker.module.css";
 
 export interface PickerClient {
   id: string;
@@ -55,7 +54,6 @@ export function ClientMultiSelect({
   /** zvýrazniť pole (pokus o odoslanie bez klienta) */
   invalid?: boolean;
 }) {
-  const styles = useSkinStyles("clientPicker", clientPickerModule);
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);

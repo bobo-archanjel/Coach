@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { checkPassword } from "@/lib/passwordStrength";
 import { loginAction, type LoginState } from "./actions";
 import authModule from "./auth.module.css";
-import { useDashboardEntry, usePortalBase, useSkinStyles } from "@/app/components/uiSkin";
+import { useSkinStyles } from "@/app/components/uiSkin";
 
 const initialLoginState: LoginState = { error: null, redirectTo: null };
 
@@ -53,16 +53,12 @@ function validate(form: HTMLFormElement, fieldNames: string[]) {
 
 /**
  * Prihlásenie / registrácia / zabudnuté heslo — zdieľané /prihlasenie a
- * /v6design/prihlasenie (dizajnový experiment). Štýly aj cieľ presmerovania po
- * prihlásení dodá skin (uiSkin.tsx); mimo providera pôvodný modul a /portal, /dashboard.
+ * /v6design/prihlasenie (dva vzhľady, rovnaké správanie). Štýly dodá skin (uiSkin.tsx),
+ * mimo providera pôvodný modul; po prihlásení vždy /portal alebo /dashboard.
  * `footer` = doplnok pod formulárom (v6: prepínač témy).
  */
 export function AuthView({ footer }: { footer?: ReactNode }) {
   const styles = useSkinStyles("auth", authModule);
-  const portalBase = usePortalBase();
-  const dashboardEntry = useDashboardEntry();
-  /** "/portal" | "/dashboard" zo servera → vstup do appky v aktuálnom dizajne */
-  const appPath = (path: string) => (path === "/portal" ? portalBase : path === "/dashboard" ? dashboardEntry : path);
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -91,7 +87,7 @@ export function AuthView({ footer }: { footer?: ReactNode }) {
   // Bez router.refresh(): loginAction nastavil session cookies, čím Next sám zahodil
   // router cache — push už načíta cieľ s novou session. Refresh navyše vykreslil
   // celý dashboard/portál zo servera ešte druhýkrát hneď po prihlásení.
-  const loginTarget = loginState.redirectTo ? appPath(loginState.redirectTo) : null;
+  const loginTarget = loginState.redirectTo ?? null;
   useEffect(() => {
     if (!loginTarget) return;
     router.push(loginTarget);
@@ -219,7 +215,7 @@ export function AuthView({ footer }: { footer?: ReactNode }) {
     // Klientovi DB trigger (handle_new_user, 0032) už vytvoril vlastný `clients`
     // riadok + kód — netreba nič nárokovať, ide rovno do portálu.
     setRegisterStatus("success");
-    router.push(appPath(isClientSignup ? "/portal" : "/dashboard"));
+    router.push(isClientSignup ? "/portal" : "/dashboard");
     router.refresh();
   }
 

@@ -13,8 +13,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useRouter } from "next/navigation";
-import chatStyles from "./chat.module.css";
-import { useSkinStyles } from "./uiSkin";
+import styles from "./chat.module.css";
 
 export type ChatMessage = {
   id: string;
@@ -226,7 +225,6 @@ const MessageList = memo(function MessageList({
   emptyTitle: string;
   emptyText: string;
 }) {
-  const styles = useSkinStyles("chat", chatStyles);
   const view = useMemo(() => {
     const today = zoned(new Date());
     // včerajší kalendárny deň (nie "teraz − 24 h", to by pri zmene času raz za rok minulo)
@@ -364,7 +362,6 @@ export function ChatThread({
    */
   revealComposer?: boolean;
 }) {
-  const styles = useSkinStyles("chat", chatStyles);
   const router = useRouter();
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);

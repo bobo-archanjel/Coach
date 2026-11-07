@@ -2,8 +2,7 @@
 
 import { useActionState } from "react";
 import { createMealPlanAction, type ActionState } from "@/app/dashboard/jedalnicky/jedalnicek/actions";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -12,7 +11,6 @@ const initialState: ActionState = { error: null };
  * názvom a rovno builder (názov sa dá zmeniť ceruzkou v builderi).
  */
 export function CreateMealPlanButton({ clientId, defaultName }: { clientId: string; defaultName: string }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(createMealPlanAction, initialState);
 
   return (

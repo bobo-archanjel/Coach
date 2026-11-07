@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import exerciseThumbStyles from "./exerciseThumb.module.css";
-import { useSkinStyles } from "./uiSkin";
+import styles from "./exerciseThumb.module.css";
 
 const DumbbellIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -26,7 +25,6 @@ const DumbbellIcon = () => (
  * náhľad sa roztiahol na celú obrazovku. Takto má obrázok veľkosť vždy.
  */
 export function ExerciseThumb({ src, alt, size = 32 }: { src: string | null; alt: string; size?: number }) {
-  const styles = useSkinStyles("exerciseThumb", exerciseThumbStyles);
   if (!src) {
     return (
       <span className={styles.thumbFallback} style={{ width: size, height: size }} aria-hidden="true">
