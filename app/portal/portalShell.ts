@@ -3,7 +3,7 @@ import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/s
 
 /**
  * Auth guard + údaje navigácie portálu (layout /portal).
- * Portál je klientsky povrch: bez session → prihlásenie v novom dizajne (/v6design/prihlasenie),
+ * Portál je klientsky povrch: bez session → prihlásenie (/prihlasenie),
  * tréner → /dashboard.
  * Prázdne stavy (neprepojený klient, chýbajúci plán) rieši samotná obrazovka
  * cez lib/portal/data.ts.
@@ -28,7 +28,7 @@ export async function loadPortalShell(): Promise<PortalShell> {
   } = await getUser();
 
   if (!user) {
-    if (!DEV_OPEN) redirect("/v6design/prihlasenie");
+    if (!DEV_OPEN) redirect("/prihlasenie");
     return { chatUnread: false, aiKoucVisible: false, displayName: null };
   }
 

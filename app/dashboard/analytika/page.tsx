@@ -101,7 +101,7 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
     const {
       data: { user },
     } = await getUser();
-    if (!user) redirect("/v6design/prihlasenie");
+    if (!user) redirect("/prihlasenie");
 
     // AI signály nezávisia od zoznamu klientov — štartujú hneď (predtým až po ňom).
     aiInsights = getAiTopicInsights(supabase);

@@ -23,7 +23,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   } = await getUser();
 
   if (!user) {
-    redirect("/v6design/prihlasenie");
+    redirect("/prihlasenie");
   }
 
   // `plan`, `days` aj `foods` berú `planId`/nič z route parametra — nezávislé,

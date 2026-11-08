@@ -43,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let unreadCount = 0;
   let tourSeen = true;
   if (!user) {
-    if (!DEV_OPEN) redirect("/v6design/prihlasenie");
+    if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
     // Všetky tri dopyty závisia len na `user.id`, nie jeden na druhom výsledku —
     // predtým getProfile() bežalo sekvenčne PRED messages/tour dvojicou (3

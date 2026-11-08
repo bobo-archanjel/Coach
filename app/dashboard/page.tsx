@@ -201,7 +201,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
   // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
   if (!user) {
-    redirect("/v6design/prihlasenie");
+    redirect("/prihlasenie");
   }
 
   // Nezávislé dopyty — zoznam klientov nepotrebuje neprečítané správy (a naopak,

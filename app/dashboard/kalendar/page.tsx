@@ -44,7 +44,7 @@ export default async function KalendarPage() {
   const {
     data: { user },
   } = await getUser();
-  if (!user) redirect("/v6design/prihlasenie");
+  if (!user) redirect("/prihlasenie");
   const supabase = await createClient();
 
   const nowIso = new Date().toISOString();
