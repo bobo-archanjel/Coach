@@ -14,7 +14,7 @@ declare global {
     turnstile?: {
       render: (
         el: HTMLElement,
-        opts: { sitekey: string; theme?: "dark" | "light"; callback?: (token: string) => void },
+        opts: { sitekey: string; theme?: "dark" | "light" | "auto"; callback?: (token: string) => void },
       ) => string;
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
@@ -35,6 +35,13 @@ export function TurnstileScript() {
   return <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />;
 }
 
+/** Téma widgetu podľa koreňa dizajnu v6 (data-theme z cookie: light/dark/auto) — v svetlej
+ * téme tmavý widget pôsobil ako cudzí prvok. Zmenu témy prepínačom zachytí až ďalší mount. */
+function pageTheme(el: HTMLElement): "dark" | "light" | "auto" {
+  const t = el.closest("[data-v6-root]")?.getAttribute("data-theme");
+  return t === "dark" || t === "light" ? t : "auto";
+}
+
 export function useTurnstile() {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
@@ -48,7 +55,7 @@ export function useTurnstile() {
       if (cancelled || !containerRef.current || widgetIdRef.current || !window.turnstile) return;
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: SITE_KEY,
-        theme: "dark",
+        theme: pageTheme(containerRef.current),
         callback: (token) => {
           tokenRef.current = token;
         },
