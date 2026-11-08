@@ -12,6 +12,7 @@ import {
   mealDismissKey,
   planDismissKey,
   APPOINTMENT_REMINDER_HOURS,
+  NEW_PLAN_WINDOW_DAYS,
   type PortalAttentionData,
 } from "@/lib/portal/attention";
 
@@ -49,6 +50,7 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
 
   const nowIso = new Date().toISOString();
   const reminderUntilIso = new Date(Date.now() + APPOINTMENT_REMINDER_HOURS * 3_600_000).toISOString();
+  const newPlanSinceIso = new Date(Date.now() - NEW_PLAN_WINDOW_DAYS * 86_400_000).toISOString();
 
   const [{ count: unread, error: unreadErr }, plans, meals, appts, dismissed] = await Promise.all([
     supabase
@@ -62,6 +64,7 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
       .select("id, name")
       .eq("client_id", client.id)
       .eq("published", true)
+      .gte("created_at", newPlanSinceIso)
       .order("created_at", { ascending: false })
       .limit(10),
     supabase
@@ -69,6 +72,7 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
       .select("id, name")
       .eq("client_id", client.id)
       .eq("published", true)
+      .gte("created_at", newPlanSinceIso)
       .order("created_at", { ascending: false })
       .limit(10),
     supabase
