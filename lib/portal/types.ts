@@ -405,6 +405,8 @@ export interface PortalAiChatMessage {
   body: string;
   createdAt: string; // ISO
   escalated?: boolean;
+  /** Cviky, ktoré AI spomenula pri náhrade (migrácia 0057) — klik otvorí detail s fotkami. */
+  exerciseRefs?: { id: string; name: string }[];
 }
 
 export interface PortalAiChatData {

@@ -122,6 +122,27 @@
 .row.pending .bubble {
   opacity: 0.55;
 }
+/* Cviky spomenuté AI Koučom pri náhrade (feature/AIupgrade) — klik otvorí
+   detail s fotkami (ExerciseDetailModal, rovnaký ako v builderi). */
+.exerciseRefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.exerciseRefChip {
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--iron-red) 35%, var(--steel-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--iron-red) 12%, transparent);
+  color: var(--paper);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.exerciseRefChip:hover {
+  background: color-mix(in srgb, var(--iron-red) 22%, transparent);
+}
 /* správa len z 1–3 emoji — veľká, bez bubliny (isJumboEmoji v ChatThread.tsx).
    .row .bubble.jumbo prebíja .mine/.theirs .bubble špecifickosťou. */
 .row .bubble.jumbo {

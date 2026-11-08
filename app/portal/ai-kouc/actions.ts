@@ -105,6 +105,9 @@ export async function sendAiKoucMessageAction(
     role: "assistant",
     content: result.reply,
     escalated: result.status === "escalated" || (result.status === "ok" && result.escalated === true),
+    // Cviky, ktoré AI naozaj spomenula pri náhrade (lib/ai/chat.ts) — appka k nim
+    // vie priložiť klikateľný detail s fotkami. null, keď žiadne (väčšina správ).
+    exercise_refs: result.status === "ok" && result.exercises && result.exercises.length > 0 ? result.exercises : null,
   });
   if (insertAssistantErr) {
     console.error("sendAiKoucMessageAction (assistant insert):", insertAssistantErr.message);

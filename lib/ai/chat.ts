@@ -36,9 +36,16 @@ import { reserveAiSlot, AI_CHAT_DAILY_LIMIT } from "./rateLimit";
 const HISTORY_WINDOW = 12; // posledných N správ poslaných modelu — nie celá história (minimalizácia dát + náklady)
 const MAX_REPLY_TOKENS = 700; // dosť aj na štruktúrovaný jedálniček na celý deň (4 jedlá + súčty)
 
+/** Cvik, ktorý AI naozaj spomenula v odpovedi (zhoda mena s kandidátmi, viď findReferencedExercises). */
+export interface ChatExerciseRef {
+  id: string;
+  name: string;
+}
+
 export type SendChatResult =
-  /** `escalated` na "ok" = mäkké FYI trénerovi (bežná výmena cviku kvôli nepohodliu), nie hard block. */
-  | { status: "ok"; reply: string; escalated?: boolean }
+  /** `escalated` na "ok" = mäkké FYI trénerovi (bežná výmena cviku kvôli nepohodliu), nie hard block.
+   *  `exercises` = cviky z odpovede, ktoré appka vie prepojiť na detail s fotkami (len pri náhrade cviku). */
+  | { status: "ok"; reply: string; escalated?: boolean; exercises?: ChatExerciseRef[] }
   /** hard block — akútna zdravotná téma bez žiadosti o náhradu cviku, žiadne volanie modelu. */
   | { status: "escalated"; reply: string }
   | { status: "rate_limited"; reply: string }
@@ -70,6 +77,29 @@ function buildSystemPrompt(exerciseSwapGuard: boolean): string {
 interface ChatMessageRow {
   role: "user" | "assistant";
   content: string;
+}
+
+/**
+ * Ktoré z reálnych kandidátov (poslaných modelu v exerciseBlock) sa naozaj
+ * objavili v jeho odpovedi — podľa zhody mena (SK aj EN variant), nie podľa
+ * toho, čo appka POSLALA ako kandidátov (model si spomedzi nich vyberá, nie
+ * všetky sa dostanú do finálnej vety). Appka tak vie priložiť klikateľný
+ * detail len k cvikom, ktoré klient reálne dostal navrhnuté.
+ */
+function findReferencedExercises(reply: string, candidates: ExerciseCandidate[]): ChatExerciseRef[] {
+  const lower = reply.toLowerCase();
+  const found: ChatExerciseRef[] = [];
+  const seen = new Set<string>();
+  for (const c of candidates) {
+    if (seen.has(c.id)) continue;
+    const displayName = c.nameSk?.trim() || c.name;
+    const mentioned = [c.nameSk, c.name].some((n) => n && lower.includes(n.trim().toLowerCase()));
+    if (mentioned) {
+      found.push({ id: c.id, name: displayName });
+      seen.add(c.id);
+    }
+  }
+  return found;
 }
 
 /**
@@ -261,7 +291,13 @@ export async function sendAiChatMessage(
       }
     });
 
-    return { status: "ok", reply, escalated: softEscalation };
+    // Len pri náhrade cviku máme reálne exercise_id kandidátov (candidates.alternatives
+    // + matched) — inde model dostáva plán len ako text bez štruktúrovaných ID.
+    const referencedExercises = candidates
+      ? findReferencedExercises(reply, [...(candidates.matched ? [candidates.matched] : []), ...candidates.alternatives])
+      : undefined;
+
+    return { status: "ok", reply, escalated: softEscalation, exercises: referencedExercises };
   } catch (err) {
     console.error("sendAiChatMessage (Claude call):", err instanceof Error ? err.message : err);
     return { status: "error", reply: "Nastala chyba pri odpovedi AI. Skús to prosím znova." };

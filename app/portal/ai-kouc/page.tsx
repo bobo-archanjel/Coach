@@ -1,6 +1,7 @@
 import { ChatThread } from "../../components/ChatThread";
 import { getPortalAiChat } from "@/lib/portal/data";
 import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "./actions";
+import { getExerciseDetailAction } from "../trening/actions";
 import { AlertIcon, Notice } from "../Notice";
 import { ProfileIcon } from "../icons";
 import { RetryButton } from "../RetryButton";
@@ -53,6 +54,7 @@ export default async function AiKoucPage({
     sender: (m.role === "user" ? "client" : "trainer") as "trainer" | "client",
     body: m.body,
     createdAt: m.createdAt,
+    exerciseRefs: m.exerciseRefs,
   }));
 
   const hasMessages = result.data.messages.length > 0;
@@ -89,6 +91,7 @@ export default async function AiKoucPage({
         // pravidelný poll ani Realtime by tu boli zbytočný dopyt navyše pre tak
         // zriedkavú udalosť.
         pollMs={0}
+        getExerciseDetail={getExerciseDetailAction}
       />
     </div>
   );

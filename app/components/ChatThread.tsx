@@ -13,8 +13,19 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import chatStyles from "./chat.module.css";
 import { useSkinStyles } from "./uiSkin";
+import type { ExerciseDetail } from "@/lib/exercises";
+
+// Modal (obrázky + kroky cvičenia) len na klik — vlastný chunk, nenafukuje
+// bundle chatu pre konverzácie bez jedinej zmienky o cviku.
+const ExerciseDetailModal = dynamic(() =>
+  import("./ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
+);
+
+/** Cvik, ktorý AI Kouč spomenul v odpovedi (lib/ai/chat.ts, len pri náhrade cviku). */
+export type ChatExerciseRef = { id: string; name: string };
 
 export type ChatMessage = {
   id: string;
@@ -22,6 +33,8 @@ export type ChatMessage = {
   sender: "trainer" | "client" | "system";
   body: string;
   createdAt: string; // ISO
+  /** AI Kouč: cviky z odpovede s reálnym exercise_id — klik otvorí detail s fotkami. */
+  exerciseRefs?: ChatExerciseRef[];
 };
 
 export type ChatSendState = { error: string | null };
@@ -220,11 +233,13 @@ const MessageList = memo(function MessageList({
   mySide,
   emptyTitle,
   emptyText,
+  onOpenExercise,
 }: {
   rows: Row[];
   mySide: "trainer" | "client";
   emptyTitle: string;
   emptyText: string;
+  onOpenExercise?: (ref: ChatExerciseRef) => void;
 }) {
   const styles = useSkinStyles("chat", chatStyles);
   const view = useMemo(() => {
@@ -281,7 +296,23 @@ const MessageList = memo(function MessageList({
         <div
           className={`${styles.row} ${mine ? styles.mine : styles.theirs} ${turn && !newDay ? styles.turn : ""} ${pendingRow ? styles.pending : ""}`}
         >
-          <div className={`${styles.bubble} ${jumbo ? styles.jumbo : ""}`}>{m.body}</div>
+          <div className={`${styles.bubble} ${jumbo ? styles.jumbo : ""}`}>
+            {m.body}
+            {m.exerciseRefs && m.exerciseRefs.length > 0 && (
+              <div className={styles.exerciseRefs}>
+                {m.exerciseRefs.map((ref) => (
+                  <button
+                    key={ref.id}
+                    type="button"
+                    className={styles.exerciseRefChip}
+                    onClick={() => onOpenExercise?.(ref)}
+                  >
+                    {ref.name} <span aria-hidden="true">ⓘ</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {(endOfTurn || pendingRow) && (
             <span className={styles.meta}>{pendingRow ? "odosielam…" : timeOf(m.createdAt)}</span>
           )}
@@ -319,6 +350,7 @@ export function ChatThread({
   realtimeTable,
   realtimeFilter,
   revealComposer = false,
+  getExerciseDetail,
 }: {
   messages: ChatMessage[];
   mySide: "trainer" | "client";
@@ -363,10 +395,15 @@ export function ChatThread({
    * Bez focusu: na telefóne by sa inak hneď otvorila klávesnica.
    */
   revealComposer?: boolean;
+  /** AI Kouč: načíta detail cviku (obrázky/kroky) pre `ChatExerciseRef.id`. Bez tejto
+      props sa chipy pod správou vôbec nevykreslia (napr. v trénerovom chate). */
+  getExerciseDetail?: (exerciseId: string) => Promise<ExerciseDetail | null>;
 }) {
   const styles = useSkinStyles("chat", chatStyles);
   const router = useRouter();
   const [text, setText] = useState("");
+  const [exerciseModal, setExerciseModal] = useState<ChatExerciseRef | null>(null);
+  const [exerciseDetail, setExerciseDetail] = useState<ExerciseDetail | null | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLFormElement>(null);
@@ -619,7 +656,21 @@ export function ChatThread({
           nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
         }}
       >
-        <MessageList rows={optimistic} mySide={mySide} emptyTitle={emptyTitle} emptyText={emptyText} />
+        <MessageList
+          rows={optimistic}
+          mySide={mySide}
+          emptyTitle={emptyTitle}
+          emptyText={emptyText}
+          onOpenExercise={
+            getExerciseDetail
+              ? (ref) => {
+                  setExerciseModal(ref);
+                  setExerciseDetail(undefined);
+                  getExerciseDetail(ref.id).then(setExerciseDetail);
+                }
+              : undefined
+          }
+        />
       </div>
 
       {!readOnly && (
@@ -758,6 +809,13 @@ export function ChatThread({
         </form>
       )}
       {!readOnly && state.error && <p className={styles.error}>{state.error}</p>}
+      {exerciseModal && (
+        <ExerciseDetailModal
+          detail={exerciseDetail}
+          fallbackName={exerciseModal.name}
+          onClose={() => setExerciseModal(null)}
+        />
+      )}
     </div>
   );
 }

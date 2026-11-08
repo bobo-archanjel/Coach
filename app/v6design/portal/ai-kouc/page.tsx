@@ -1,6 +1,7 @@
 import { ChatThread } from "@/app/components/ChatThread";
 import { getPortalAiChat } from "@/lib/portal/data";
 import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "@/app/portal/ai-kouc/actions";
+import { getExerciseDetailAction } from "@/app/portal/trening/actions";
 import { PREVIEW } from "@/app/portal/ai-kouc/preview";
 import { AiIcon, ProfileIcon } from "@/app/portal/icons";
 import { RetryButton } from "@/app/portal/RetryButton";
@@ -44,6 +45,7 @@ export default async function V6AiKoucPage({ searchParams }: { searchParams: Pro
     sender: (m.role === "user" ? "client" : "trainer") as "trainer" | "client",
     body: m.body,
     createdAt: m.createdAt,
+    exerciseRefs: m.exerciseRefs,
   }));
   const hasMessages = result.data.messages.length > 0;
 
@@ -82,6 +84,7 @@ export default async function V6AiKoucPage({ searchParams }: { searchParams: Pro
         fill
         // proaktívny check-in príde max. raz za pár dní — bez pollu (ako /portal/ai-kouc)
         pollMs={0}
+        getExerciseDetail={getExerciseDetailAction}
       />
     </div>
   );

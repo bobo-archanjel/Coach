@@ -1099,7 +1099,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     // za sebou). Konverzácia sa zakladá až pri prvej správe — bez nej je výsledok [].
     const { data: rows, error: msgErr } = await supabase
       .from("ai_messages")
-      .select("id, role, content, escalated, created_at, ai_conversations!inner(client_id)")
+      .select("id, role, content, escalated, exercise_refs, created_at, ai_conversations!inner(client_id)")
       .eq("ai_conversations.client_id", client.id)
       // posledných 300, nie prvých — viď getPortalChat
       .order("created_at", { ascending: false })
@@ -1113,6 +1113,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
       body: m.role === "assistant" ? stripMarkdown(m.content) : m.content,
       createdAt: m.created_at,
       escalated: m.escalated ?? false,
+      exerciseRefs: (m.exercise_refs as { id: string; name: string }[] | null) ?? undefined,
     }));
 
     const data: PortalAiChatData = { messages };

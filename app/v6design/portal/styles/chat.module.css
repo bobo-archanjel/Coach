@@ -113,6 +113,26 @@
 .row.pending .bubble {
   opacity: 0.55;
 }
+/* Cviky spomenuté AI Koučom pri náhrade (feature/AIupgrade) — viď pôvodný chat.module.css. */
+.exerciseRefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.exerciseRefChip {
+  padding: 5px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--paper);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.exerciseRefChip:hover {
+  background: var(--fill-strong);
+}
 .row .bubble.jumbo {
   background: none;
   border: none;
