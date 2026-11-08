@@ -474,7 +474,7 @@ export function AuthView() {
                   </button>
                 </div>
 
-                <div ref={loginTurnstile.containerRef} style={{ marginBottom: 14 }} />
+                <div ref={loginTurnstile.containerRef} className={styles.turnstile} />
 
                 <button
                   type="submit"
@@ -723,7 +723,7 @@ export function AuthView() {
                   )}
                 </div>
 
-                <div ref={registerTurnstile.containerRef} style={{ marginBottom: 14 }} />
+                <div ref={registerTurnstile.containerRef} className={styles.turnstile} />
 
                 <button
                   type="submit"

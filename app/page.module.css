@@ -94,12 +94,57 @@
   color: var(--on-accent);
   background: var(--accent-grad);
 }
+.navLinks .ctaBtn {
+  white-space: nowrap;
+}
 .navMobileHide {
   display: inline;
 }
 @media (max-width: 760px) {
   .navMobileHide {
     display: none;
+  }
+}
+/* úzky telefón: tlačidlo „Vyskúšať zadarmo“ na jeden riadok — menšie, bez šípky */
+@media (max-width: 430px) {
+  .nav {
+    gap: 10px;
+  }
+  .brand {
+    gap: 8px;
+    font-size: 17px;
+  }
+  .logoMark {
+    width: 24px;
+    height: 24px;
+  }
+  .navLinks {
+    gap: 8px;
+  }
+  .navLinks .ctaBtn {
+    margin: 0;
+    padding: 9px 15px;
+    font-size: 13.5px;
+  }
+  .navLinks .ctaBtn svg {
+    display: none;
+  }
+}
+/* najužšie telefóny (iPhone SE 1. gen.) — menší okraj, tlačidlo aj ikona témy */
+@media (max-width: 360px) {
+  .header .wrap {
+    padding-inline: 14px;
+  }
+  .brand {
+    font-size: 16px;
+  }
+  .navLinks .ctaBtn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .navLinks button {
+    width: 38px;
+    height: 38px;
   }
 }
 

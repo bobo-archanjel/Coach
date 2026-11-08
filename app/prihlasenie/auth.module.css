@@ -391,10 +391,20 @@
 }
 
 /* ---------- mobil ---------- */
+/* miesto pre Cloudflare Turnstile — widget (65 px) sa dotiahne až po skripte; bez
+   rezervy by posunul tlačidlo a odkazy pod ním */
+.turnstile {
+  min-height: 65px;
+  margin-bottom: 14px;
+}
+
 @media (max-width: 880px) {
   .shell {
     display: flex;
     flex-direction: column;
+    /* plná šírka hneď od prvého vykreslenia — s `center` z mriežky počítača mala karta
+       šírku podľa obsahu a po dotiahnutí Turnstile widgetu sa rozšírila (preblikutie) */
+    align-items: stretch;
     gap: 20px;
     max-width: 520px;
     padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
@@ -405,6 +415,7 @@
   /* blok s logom a sloganom (2. dieťa panelu, za skrytým .plateField) */
   .brandPanel > div:nth-child(2) {
     order: 0;
+    align-self: center;
     padding: 6px 4px 0;
   }
   .formPanel {
