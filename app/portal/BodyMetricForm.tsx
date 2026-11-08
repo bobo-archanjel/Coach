@@ -1,0 +1,181 @@
+"use client";
+
+import { startTransition, useActionState, useEffect, useMemo, useOptimistic, useState, type FormEvent } from "react";
+import { addOwnBodyMetricAction } from "./actions";
+import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
+import styles from "./portal.module.css";
+
+interface ActionState {
+  error: string | null;
+}
+const initialState: ActionState = { error: null };
+
+function dateLabel(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+const EXTRA_FIELDS: { key: keyof BodyMetricEntry; label: string }[] = [
+  { key: "waistCm", label: "Pás" },
+  { key: "chestCm", label: "Hrudník" },
+  { key: "hipsCm", label: "Boky" },
+  { key: "armCm", label: "Paža" },
+  { key: "thighCm", label: "Stehno" },
+];
+
+/** "Pás 82 cm · Boky 95 cm" — len zadané obvody, v poradí ako vo formulári. */
+function extrasSummary(e: BodyMetricEntry): string {
+  return EXTRA_FIELDS.filter(({ key }) => e[key] != null)
+    .map(({ key, label }) => `${label} ${e[key]} cm`)
+    .join(" · ");
+}
+
+/**
+ * Progres — klient si sám zapíše meranie (váha + voliteľne obvody) priamo na
+ * karte Dnes, a hneď pod tým vidí históriu vlastných meraní (aby sa mal k čomu
+ * vrátiť — trend dovtedy videl len tréner v Analytike). Predtým zápis robil
+ * tréner v dashboarde (feature/progress-analyst) — presunuté po revízii 2026-09.
+ * RLS/akcia: `addOwnBodyMetricAction` (0024_body_metrics_client_write.sql).
+ * `history` prichádza už zo servera (getPortalData, súčasť Promise.all) —
+ * po uložení ju obnoví revalidatePath("/portal","layout") v akcii, žiadny
+ * ďalší fetch tu netreba. Zoznam sa vždy renderuje celý (žiadne "Zobraziť
+ * všetky" prepínanie dĺžky) — nad 3 záznamy `.metricHistoryList` interne
+ * skroluje (max-height), aby karta Dnes nerástla donekonečna.
+ */
+export function BodyMetricForm({ today, history }: { today: string; history: BodyMetricEntry[] }) {
+  const [state, formAction, pending] = useActionState(addOwnBodyMetricAction, initialState);
+  const [open, setOpen] = useState(false);
+  const [showMeasurements, setShowMeasurements] = useState(false);
+
+  // Okamžite zobrazí zapísané meranie v histórii, bez čakania na round-trip +
+  // revalidatePath. Server má na `measured_on` upsert (rovnaký deň = úprava,
+  // nie duplicita) — optimistic reducer robí to isté: nahradí záznam s rovnakým
+  // dátumom, inak pridá nový. Pri chybe/revalidácii React sám zahodí optimistic
+  // vrstvu a vráti sa na skutočné `history` z props.
+  const [optimisticHistory, addOptimisticEntry] = useOptimistic<BodyMetricEntry[], BodyMetricEntry>(
+    history,
+    (curr, entry) => {
+      const rest = curr.filter((e) => e.measuredOn !== entry.measuredOn);
+      return [...rest, entry].sort((a, b) => a.measuredOn.localeCompare(b.measuredOn));
+    },
+  );
+
+  // Zavrieť len po úspešnom uložení — pri okamžitom zatvorení pri submite by
+  // prípadná chybová hláška zmizla skôr, než ju klient stihne prečítať.
+  useEffect(() => {
+    if (state === initialState || state.error) return;
+    setOpen(false);
+    setShowMeasurements(false);
+  }, [state]);
+
+  function num(fd: FormData, key: string): number | null {
+    const raw = fd.get(key);
+    if (typeof raw !== "string" || raw.trim() === "") return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const entry: BodyMetricEntry = {
+      measuredOn: (fd.get("measured_on") as string) || today,
+      weightKg: num(fd, "weight_kg"),
+      waistCm: num(fd, "waist_cm"),
+      chestCm: num(fd, "chest_cm"),
+      hipsCm: num(fd, "hips_cm"),
+      armCm: num(fd, "arm_cm"),
+      thighCm: num(fd, "thigh_cm"),
+      note: null,
+    };
+    if (
+      entry.weightKg == null &&
+      entry.waistCm == null &&
+      entry.chestCm == null &&
+      entry.hipsCm == null &&
+      entry.armCm == null &&
+      entry.thighCm == null
+    ) {
+      return; // rovnaká validácia ako server — nech optimistic vrstva nepridá prázdny riadok
+    }
+    startTransition(() => {
+      addOptimisticEntry(entry);
+      formAction(fd);
+    });
+  }
+
+  // Najnovšie prvé — `history` zo servera je najstaršie prvé (rovnaký tvar ako graf).
+  const recent = useMemo(() => [...optimisticHistory].reverse(), [optimisticHistory]);
+
+  return (
+    <>
+      {open ? (
+        <form onSubmit={handleSubmit} className={styles.addPanel}>
+          <span className={styles.addPanelLabel}>Nové meranie</span>
+
+          <div className={styles.metricRow}>
+            <input type="date" name="measured_on" defaultValue={today} max={today} disabled={pending} className={styles.metricInput} />
+            <div className={styles.metricField}>
+              <input
+                name="weight_kg"
+                type="number"
+                inputMode="decimal"
+                step="0.1"
+                placeholder="Váha"
+                disabled={pending}
+                className={styles.metricInput}
+              />
+              <span className={styles.gramUnit}>kg</span>
+            </div>
+          </div>
+
+          {!showMeasurements ? (
+            <button type="button" className={styles.metricToggle} onClick={() => setShowMeasurements(true)}>
+              + Aj obvody (pás, hrudník, boky, paža, stehno)
+            </button>
+          ) : (
+            <div className={styles.metricRowWrap}>
+              <input name="waist_cm" type="number" inputMode="decimal" step="0.1" placeholder="Pás (cm)" disabled={pending} className={styles.metricInputSm} />
+              <input name="chest_cm" type="number" inputMode="decimal" step="0.1" placeholder="Hrudník (cm)" disabled={pending} className={styles.metricInputSm} />
+              <input name="hips_cm" type="number" inputMode="decimal" step="0.1" placeholder="Boky (cm)" disabled={pending} className={styles.metricInputSm} />
+              <input name="arm_cm" type="number" inputMode="decimal" step="0.1" placeholder="Paža (cm)" disabled={pending} className={styles.metricInputSm} />
+              <input name="thigh_cm" type="number" inputMode="decimal" step="0.1" placeholder="Stehno (cm)" disabled={pending} className={styles.metricInputSm} />
+            </div>
+          )}
+
+          <div className={styles.metricActions}>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
+              {pending ? "Ukladám…" : "Uložiť meranie"}
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={pending}>
+              Zrušiť
+            </button>
+          </div>
+          {state.error && <p className={styles.addError}>{state.error}</p>}
+        </form>
+      ) : (
+        <button type="button" className="btn btn-ghost btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => setOpen(true)}>
+          + Zapísať meranie
+        </button>
+      )}
+
+      {recent.length > 0 && (
+        <div className={styles.metricHistory}>
+          <div className={styles.metricHistoryList}>
+            {recent.map((e) => {
+              const extras = extrasSummary(e);
+              return (
+                <div key={e.measuredOn} className={styles.metricHistoryRow}>
+                  <div className={styles.metricHistoryMain}>
+                    <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn)}</span>
+                    <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${e.weightKg} kg` : "—"}</span>
+                  </div>
+                  {extras && <p className={styles.metricHistoryExtra}>{extras}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

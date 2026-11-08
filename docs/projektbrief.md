@@ -2,10 +2,20 @@
 
 ## O čo ide
 
-Webová SaaS aplikácia pre fitness trénerov na slovenskom a českom trhu. Tréner
-si v nej vedie svojich klientov – pre každého osobitne vytvára a zaraďuje
-tréningy, kontroluje makrá, prípadne zostavuje jedálniček. Aplikácia má dve
-role: **tréner** (admin panel) a **klient** (vlastný portál/účet).
+Webová SaaS aplikácia postavená **primárne pre fitness trénerov** na slovenskom
+a českom trhu. Tréner si v nej vedie svojich klientov – pre každého osobitne
+vytvára a zaraďuje tréningy, kontroluje makrá, prípadne zostavuje jedálniček.
+Aplikácia má dve role: **tréner** (admin panel) a **klient** (vlastný
+portál/účet).
+
+**Appku ale vie plnohodnotne používať aj klient úplne sám, bez trénera.**
+Registrácia je pre obe role rovnaká — klient sa neprihlasuje cez kód od
+trénera, ale registruje sa štandardne a až následne dostane vlastný pozývací
+kód, ktorý môže (nemusí) poslať trénerovi. Prepojenie klient↔tréner sa dá
+kedykoľvek nadviazať aj zrušiť bez straty dát (história tréningov aj stravy
+ostáva klientovi). Bez trénera si klient sám počíta makrá cez appku, generuje
+si tréningový plán cez rovnaký AI generátor ako tréner a používa AI kouča —
+chýba mu len ľudské schválenie plánu a spätná väzba od trénera navyše.
 
 Diferenciácia oproti existujúcej konkurencii (Trainerize, Everfit, TrueCoach,
 GYMIFY): natívna slovenčina/čeština, AI chat s kontextovou pamäťou (nie len

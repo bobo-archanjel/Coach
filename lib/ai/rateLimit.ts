@@ -1,0 +1,258 @@
+// FitPilot — AI blok, Krok 4: denný limit AI chat správ na klienta. Kontroluje
+// sa PRED volaním Claude (nulové náklady pri zamietnutí) — počíta z ai_usage
+// (0013), ktoré sa zapisuje po každom skutočnom volaní modelu (viď lib/ai/chat.ts).
+// Limit je env premenná, aby sa dal meniť bez zásahu do kódu; eskalované
+// odpovede (zdravotný pre-filter) sa do limitu nepočítajú — nevolajú model.
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+const DEFAULT_DAILY_LIMIT = 20;
+
+function dailyLimit(): number {
+  const raw = process.env.AI_CHAT_DAILY_LIMIT_PER_CLIENT;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_DAILY_LIMIT;
+}
+
+function startOfTodayInTz(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Bratislava",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  // Bratislava je UTC+1/+2 — polnoc miestneho času je vždy ešte "včera" v UTC
+  // v najhoršom prípade, takže mierny sklz na strane limitu (nikdy nie exploit,
+  // len prípadne o pár hodín skôr resetovaný limit) je prijateľný pre MVP.
+  return `${get("year")}-${get("month")}-${get("day")}T00:00:00+01:00`;
+}
+
+/** True = klient dnes už vyčerpal denný limit AI chat správ, appka nemá volať Claude. */
+export async function isChatRateLimited(supabase: SupabaseClient, clientId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .eq("kind", "chat")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    // Pri chybe počítania radšej nezablokovať appku bezdôvodne — ale zaloguj,
+    // nech sa to dá dohľadať, keby to malo maskovať skutočný rate-limit bug.
+    console.error("isChatRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= dailyLimit();
+}
+
+export const AI_CHAT_DAILY_LIMIT = dailyLimit;
+
+const DEFAULT_PROGRESS_SUMMARY_DAILY_LIMIT = 5;
+
+function progressSummaryDailyLimit(): number {
+  const raw = process.env.AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_CLIENT;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PROGRESS_SUMMARY_DAILY_LIMIT;
+}
+
+/**
+ * True = pre tohto klienta bol dnes už vyčerpaný limit AI zhrnutí progresu.
+ * Tréner klika na tlačidlo sám (nie automatizované), ale bez limitu by opakované
+ * klikanie vedelo natočiť zbytočné náklady — nízky limit stačí, zhrnutie sa
+ * počíta z rovnakých dát znova a znova v priebehu jedného dňa.
+ */
+export async function isProgressSummaryRateLimited(supabase: SupabaseClient, clientId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .eq("kind", "progress_summary")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    console.error("isProgressSummaryRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= progressSummaryDailyLimit();
+}
+
+export const AI_PROGRESS_SUMMARY_DAILY_LIMIT = progressSummaryDailyLimit;
+
+const DEFAULT_ROSTER_SUMMARY_DAILY_LIMIT = 3;
+
+function rosterSummaryDailyLimit(): number {
+  const raw = process.env.AI_ROSTER_SUMMARY_DAILY_LIMIT_PER_TRAINER;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_ROSTER_SUMMARY_DAILY_LIMIT;
+}
+
+/**
+ * True = tréner dnes už vyčerpal limit AI zhrnutí celého portfólia
+ * (feature/analytika-v2, bod 5). Počíta sa per TRÉNER (nie per klient — zhrnutie
+ * nemá konkrétneho klienta, `ai_usage.client_id` je null), a limit je nižší než
+ * pri progress_summary: jedno volanie spracuje dáta všetkých klientov naraz,
+ * takže je drahšie a nemá zmysel ho spúšťať viackrát za deň nad tými istými dátami.
+ */
+export async function isRosterSummaryRateLimited(supabase: SupabaseClient, trainerId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("trainer_id", trainerId)
+    .eq("kind", "roster_summary")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    console.error("isRosterSummaryRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= rosterSummaryDailyLimit();
+}
+
+export const AI_ROSTER_SUMMARY_DAILY_LIMIT = rosterSummaryDailyLimit;
+
+const DEFAULT_PLAN_GEN_DAILY_LIMIT = 10;
+
+function planGenDailyLimit(): number {
+  const raw = process.env.AI_PLAN_GEN_DAILY_LIMIT_PER_TRAINER;
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PLAN_GEN_DAILY_LIMIT;
+}
+
+/**
+ * True = tréner dnes už vyčerpal limit AI generovania tréningových plánov
+ * (feature/optimalizacia — security audit: chat aj progress summary mali
+ * limit, tento nie, hoci ide o drahšie/väčšie volanie modelu). Počíta sa
+ * per TRÉNER, nie per klient — inak by limit obišiel jednoducho tak, že by
+ * generoval postupne rôznym klientom.
+ */
+export async function isPlanGenRateLimited(supabase: SupabaseClient, trainerId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("trainer_id", trainerId)
+    .eq("kind", "plan_gen")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    console.error("isPlanGenRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= planGenDailyLimit();
+}
+
+export const AI_PLAN_GEN_DAILY_LIMIT = planGenDailyLimit;
+
+// ============================================================================
+// feature/security — ATOMICKÁ rezervácia AI volania (migrácia 0036, reserve_ai_slot)
+// ============================================================================
+// Doterajšie funkcie vyššie limit najprv PREČÍTAJÚ a zápis do ai_usage príde až po
+// volaní modelu — paralelné požiadavky (napr. 100 naraz) všetky videli počet 0 a
+// prešli. Rezervácia beží v DB pod advisory lockom (počet + vloženie riadku v jednej
+// kritickej sekcii), má aj denný limit na trénera pre daný druh (farma fiktívnych
+// klientov ho neobíde) a globálny denný strop (ochrana pred zneužitím cez množstvo
+// účtov). Volá sa so service role — limity zadáva server z env, používateľ nie.
+//
+// Prechodné správanie: ak chýba service role kľúč alebo migrácia 0036 ešte nebola
+// spustená (funkcia neexistuje), padá sa späť na doterajšiu kontrolu vyššie, nie na
+// "AI nefunguje".
+
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import type { AiUsageKind } from "./logUsage";
+
+function envInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/** Celkový počet AI volaní za deň naprieč všetkými účtami — poistka proti zneužitiu/nákladom. */
+export const AI_GLOBAL_DAILY_CAP = () => envInt("AI_GLOBAL_DAILY_CALL_CAP", 3000);
+export const AI_CHAT_DAILY_LIMIT_PER_TRAINER = () => envInt("AI_CHAT_DAILY_LIMIT_PER_TRAINER", 500);
+export const AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_TRAINER = () => envInt("AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_TRAINER", 40);
+export const AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER = () => envInt("AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER", 20);
+
+export interface AiReservation {
+  allowed: boolean;
+  /** ID rezervovaného riadku v ai_usage (null pri prechodnom fallbacku) — dokončí ho logAiUsage. */
+  reservationId: string | null;
+  /** true = zamietnuté kvôli GLOBÁLNEMU stropu (iná správa než osobný limit) */
+  globallyLimited?: boolean;
+}
+
+/** Strop pre trénera a druh volania (pri tréner-scoped druhoch je rovnaký ako osobný limit). */
+function trainerCap(kind: AiUsageKind, subjectLimit: number): number {
+  switch (kind) {
+    case "chat":
+      return AI_CHAT_DAILY_LIMIT_PER_TRAINER();
+    case "progress_summary":
+      return AI_PROGRESS_SUMMARY_DAILY_LIMIT_PER_TRAINER();
+    case "meal_gen":
+      return AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER();
+    default:
+      return subjectLimit; // roster_summary, plan_gen: limit je už na trénera
+  }
+}
+
+async function legacyLimited(
+  supabase: SupabaseClient,
+  p: { kind: AiUsageKind; trainerId: string; clientId?: string | null },
+): Promise<boolean> {
+  switch (p.kind) {
+    case "chat":
+      return p.clientId ? isChatRateLimited(supabase, p.clientId) : false;
+    case "progress_summary":
+      return p.clientId ? isProgressSummaryRateLimited(supabase, p.clientId) : false;
+    case "roster_summary":
+      return isRosterSummaryRateLimited(supabase, p.trainerId);
+    case "plan_gen":
+      return isPlanGenRateLimited(supabase, p.trainerId);
+    default:
+      return false;
+  }
+}
+
+/**
+ * Rezervuje jedno AI volanie PRED zavolaním modelu. `supabase` (session klient) sa
+ * používa len na prechodný fallback na staršiu kontrolu.
+ */
+export async function reserveAiSlot(p: {
+  supabase: SupabaseClient;
+  kind: AiUsageKind;
+  trainerId: string;
+  clientId?: string | null;
+  model: string;
+  /** komu sa počíta osobný denný limit: konkrétnemu klientovi, alebo trénerovi */
+  subject: "client" | "trainer";
+  subjectLimit: number;
+}): Promise<AiReservation> {
+  const admin = tryCreateAdminClient();
+  if (!admin) {
+    const limited = await legacyLimited(p.supabase, p);
+    return { allowed: !limited, reservationId: null };
+  }
+
+  const { data, error } = await admin.rpc("reserve_ai_slot", {
+    p_kind: p.kind,
+    p_trainer_id: p.trainerId,
+    p_client_id: p.clientId ?? null,
+    p_model: p.model,
+    p_subject: p.subject,
+    p_subject_limit: p.subjectLimit,
+    p_trainer_limit: trainerCap(p.kind, p.subjectLimit),
+    p_global_limit: AI_GLOBAL_DAILY_CAP(),
+  });
+
+  if (error) {
+    // PGRST202 / 42883 = funkcia v DB ešte neexistuje (migrácia 0036 nebola spustená).
+    if (error.code === "PGRST202" || error.code === "42883") {
+      const limited = await legacyLimited(p.supabase, p);
+      return { allowed: !limited, reservationId: null };
+    }
+    // Iná chyba: radšej zamietnuť než pustiť bez limitu (ide o náklady) — ale nahlásiť.
+    console.error("reserve_ai_slot:", error.message);
+    return { allowed: false, reservationId: null };
+  }
+
+  return typeof data === "string" ? { allowed: true, reservationId: data } : { allowed: false, reservationId: null };
+}

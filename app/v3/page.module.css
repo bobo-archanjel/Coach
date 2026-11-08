@@ -1,0 +1,776 @@
+/* /v3 — Apple-principles landing variant (feature/front-end).
+   Audit summary (v1 = produkčný landing, v2 = HUD/command-console variant)
+   proti Apple HIG / apple.com marketing pages:
+   - Clarity: v1 aj v2 majú veľa simultánnych prvkov na obrazovku (ikony+
+     tagy+vizualizácie v jednom riadku; v2 navyše HUD rámčeky, ticker, custom
+     kurzor). Apple drží 1 jasný fokus na viewport.
+   - Deference: v2 necháva efekty (shader mriežka, EKG, custom kurzor)
+     súťažiť s obsahom. Apple necháva UI/efekty ustúpiť produktu — veľký
+     screenshot, minimum dekorácie okolo.
+   - Depth: Apple používa depth cez sticky/pinned scroll reveal (obraz drží
+     miesto, text sa mení okolo neho), nie cez 3D vrstvy alebo HUD paralax.
+   - Typografia: v1/v2 majú strednú veľkosť nadpisov (~2-3.4rem). Apple ide
+     výrazne väčšie (4-7rem), s veľmi tesným tracking a vysokým kontrastom.
+   - Farba: v1/v2 používajú farbu pomerne voľne (coral/amber/moss naraz).
+     Apple drží takmer monochromatickú stránku, farba len na 1 akčnom mieste.
+   - Motion: v1 má jednoduchý reveal-on-scroll, v2 má husté simultánne
+     techniky (pin/scrub/parallax/cursor/marquee). Apple motion je jemný,
+     "servírovaný" jeden efekt na sekciu, nikdy viac naraz.
+   Táto varianta preto: veľká typografia, veľkorysý priestor, takmer žiadna
+   dekorácia, jeden sticky "scrollytelling" reveal (CSS position:sticky,
+   žiadny GSAP pin), `motion` (Framer Motion nástupca) pre jemné whileInView
+   fade/slide, farba len na CTA a jednom accent slove na sekciu. */
+
+.page {
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: var(--ink);
+}
+
+/* ---------- nav — trvalé sklenené pozadie (Apple signature) ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(20px, 5vw, 64px);
+  background: rgba(18, 17, 16, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(56, 53, 47, 0.6);
+}
+.navBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--paper);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.navLogo {
+  width: 22px;
+  height: 22px;
+}
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.navPreview {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+
+/* ---------- spoločné ---------- */
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+/* Single vertical-rhythm value for every section boundary on the page —
+   `.finalCta` used to carry its own larger (hero-style) padding, which is
+   what made the FAQ→CTA gap read as bigger than every other transition.
+   Every section combines this class with `.wrap` on the same element
+   (`${styles.wrap} ${styles.section}`) — `padding-top`/`padding-bottom`
+   longhand ONLY, never the `padding` shorthand: a shorthand here silently
+   sets left/right to 0 and wins over `.wrap`'s horizontal padding (same
+   specificity, shorthand replaces the whole property), which is exactly
+   what was erasing every section's side margins on mobile, where `.wrap`'s
+   own `max-width: 1120px; margin: auto` contributes no gutter of its own. */
+.section {
+  padding-top: clamp(64px, 11vh, 128px);
+  padding-bottom: clamp(64px, 11vh, 128px);
+}
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--paper-faint);
+  margin-bottom: 14px;
+}
+.accent {
+  color: var(--iron-red);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 30px;
+  border-radius: 980px; /* Apple pill */
+  background: var(--iron-red-deep);
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 17px;
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s ease;
+}
+.btn:hover {
+  background: var(--iron-red);
+  transform: scale(1.03);
+}
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  color: var(--paper);
+}
+.btnGhost:hover {
+  background: var(--ink-2);
+  border-color: var(--paper-faint);
+}
+
+/* ---------- HERO ---------- */
+.hero {
+  position: relative;
+  text-align: center;
+  /* longhand only — see `.section` above for why the shorthand form here
+     used to erase `.wrap`'s horizontal padding on this same element. */
+  padding-top: clamp(90px, 16vh, 170px);
+  padding-bottom: clamp(40px, 8vh, 80px);
+  overflow: clip;
+}
+/* Klasický Apple parallax vzor — pozadie sa pri scrolle hýbe pomalšie/inak
+   než popredný obsah (motion `useScroll`/`useTransform` v komponente),
+   táto trieda len drží vrstvu za textom. Jemný, jeden akcent, nie dekorácia
+   naviac. */
+.heroGlow {
+  position: absolute;
+  z-index: 0;
+  top: -10%;
+  /* centered via left/right/margin, NOT transform: Motion's `style={{ y }}`
+     on this element sets its own inline `transform` for the scroll
+     parallax, which silently overwrites (not merges with) any transform
+     coming from CSS — translateX(-50%) here was being dropped entirely,
+     leaving the glow parked off to the right instead of centered. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: min(1100px, 140vw);
+  height: 700px;
+  background: radial-gradient(closest-side, rgba(224, 64, 42, 0.16), transparent 70%);
+  pointer-events: none;
+}
+.hero > *:not(.heroGlow) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Two-column on wide screens (text left, phone mockup right) — three depth
+   layers, each at its own speed: `.heroGlow` above is the slowest (moves
+   least), the phone is the middle layer (scroll-driven turn + cursor-tilt),
+   `.statChip*` below is the fastest (drifts furthest, as if flying off the
+   screen). Below 1000px it stacks and centers, with the phone falling back
+   to a static screenshot (no 3D, no scroll math). */
+.heroInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: clamp(40px, 8vh, 72px);
+}
+@media (min-width: 1000px) {
+  .heroInner {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: clamp(24px, 4vw, 64px);
+  }
+}
+.heroText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+@media (min-width: 1000px) {
+  .heroText {
+    align-items: flex-start;
+    flex: 0.95;
+  }
+}
+.heroKicker {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  letter-spacing: 0.02em;
+  margin-bottom: 22px;
+}
+.heroHeadline {
+  font-size: clamp(2.6rem, 6vw, 5.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  max-width: 14ch;
+  margin: 0 auto 28px;
+}
+@media (min-width: 1000px) {
+  .heroHeadline {
+    margin: 0 0 28px;
+  }
+}
+.heroSub {
+  font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+  color: var(--paper-dim);
+  max-width: 46ch;
+  margin: 0 auto 40px;
+  line-height: 1.5;
+}
+@media (min-width: 1000px) {
+  .heroSub {
+    margin: 0 0 40px;
+  }
+}
+.heroActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+@media (min-width: 1000px) {
+  .heroActions {
+    justify-content: flex-start;
+  }
+}
+.heroVisual {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+@media (min-width: 1000px) {
+  .heroVisual {
+    flex: 1.15;
+  }
+}
+.heroPhoneCanvas {
+  width: min(100%, 560px);
+  aspect-ratio: 3 / 4;
+}
+
+/* fastest hero parallax layer — small UI-derived chips "flying off" the
+   phone. Anchored to `.heroVisual` so they sit near the phone at rest;
+   `style.y` (inline, from StatChips) carries the actual scroll-driven
+   speed difference. Static position on mobile (no parallax, still legible
+   as a couple of small badges near the screenshot). */
+.statChip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ink-2);
+  border: 1px solid var(--steel-line);
+  box-shadow: var(--shadow-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper-dim);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.statChipA {
+  top: 8%;
+  left: -2%;
+}
+.statChipB {
+  bottom: 14%;
+  right: 0;
+}
+@media (max-width: 999px) {
+  .statChipA {
+    top: 4%;
+    left: 4%;
+  }
+  .statChipB {
+    bottom: 8%;
+    right: 4%;
+  }
+}
+.statChipNum {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.statChipRing {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid var(--steel-line);
+  border-top-color: var(--iron-red);
+  flex: none;
+}
+.heroPhoneFallback {
+  width: 100%;
+  max-width: 380px;
+  padding: 0 clamp(20px, 6vw, 60px);
+}
+.heroPhoneFallback img {
+  width: 100%;
+  display: block;
+  border-radius: 24px;
+  border: 1px solid var(--steel-line);
+  box-shadow: var(--shadow-2);
+}
+
+/* ---------- trust bar (honest social proof — no fabricated logos) ---------- */
+.trustBar {
+  padding: 28px 0;
+  border-top: 1px solid var(--steel-line);
+  border-bottom: 1px solid var(--steel-line);
+}
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 28px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--paper-dim);
+  text-align: center;
+}
+.trustDot {
+  color: var(--steel);
+  font-size: 12px;
+}
+
+/* ---------- PROBLEM ---------- */
+.problem {
+  text-align: center;
+}
+.problemStatement {
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  max-width: 20ch;
+  margin: 0 auto 28px;
+  color: var(--paper-dim);
+}
+.problemStatement strong {
+  color: var(--paper);
+  font-weight: 700;
+}
+/* Slovo-po-slove scroll reveal (ScrollTextReveal) — každé slovo je vlastný
+   motion.span, opacity je priamo funkciou scroll pozície v rámci odseku
+   (apple.com/privacy vzor), nie jeden spoločný fade-in. */
+.revealWord {
+  color: var(--paper);
+  display: inline-block;
+}
+.problemList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.problemChip {
+  font-size: 13.5px;
+  color: var(--paper-faint);
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  padding: 7px 16px;
+  text-decoration: line-through;
+  text-decoration-color: var(--iron-red-dim);
+}
+
+/* ---------- FEATURES — classic zig-zag, no pin/scrub ---------- */
+.solutionHead {
+  text-align: center;
+  margin-bottom: clamp(40px, 8vh, 80px);
+}
+.solutionHeadline {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  max-width: 18ch;
+  margin: 0 auto;
+}
+.featureRows {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(72px, 14vh, 160px);
+}
+.featureRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .featureRow {
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(48px, 6vw, 96px);
+  }
+  .featureRowReverse .featureText {
+    order: 2;
+  }
+  .featureRowReverse .featureShotWrap {
+    order: 1;
+  }
+}
+.featureText {
+  max-width: 44ch;
+}
+.featureTag {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--iron-red);
+  margin-bottom: 14px;
+}
+.featureTitle {
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.featureCopy {
+  color: var(--paper-dim);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.featureShotWrap {
+  display: flex;
+  justify-content: center;
+}
+.featureShot {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 18px;
+  border: 1px solid var(--steel-line);
+  box-shadow: var(--shadow-2);
+  display: block;
+  background: var(--ink-2);
+}
+
+/* ---------- AI — memory web (central node + scroll-built connections) ---------- */
+.aiSection {
+  text-align: center;
+}
+.aiHead {
+  max-width: 52ch;
+  margin: 0 auto clamp(32px, 6vh, 56px);
+}
+.aiWebWrap {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+.aiSvg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.aiLine {
+  fill: none;
+  stroke: var(--iron-red-dim);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.aiDot {
+  fill: var(--iron-red);
+}
+.aiLabel {
+  fill: var(--paper-faint);
+  font-size: 12px;
+  font-weight: 600;
+}
+.aiCore {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 84px;
+  height: 84px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(224, 64, 42, 0.55), rgba(224, 64, 42, 0.08) 70%);
+  box-shadow: 0 0 60px rgba(224, 64, 42, 0.35);
+  animation: aiPulse 3.2s ease-in-out infinite;
+}
+.aiCoreLabel {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+}
+@keyframes aiPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aiCore {
+    animation: none;
+  }
+}
+
+/* ---------- HOW IT WORKS ---------- */
+.howGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 36px;
+  margin-top: 12px;
+}
+@media (min-width: 720px) {
+  .howGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.howStep {
+  text-align: left;
+}
+.howNum {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--iron-red);
+  margin-bottom: 14px;
+}
+.howTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.howCopy {
+  color: var(--paper-dim);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.sectionHeadCenter {
+  text-align: center;
+  margin-bottom: clamp(36px, 6vh, 64px);
+}
+.sectionHeadline {
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  max-width: 18ch;
+  margin: 0 auto;
+}
+
+/* ---------- FAQ ---------- */
+.faqList {
+  max-width: 760px;
+  margin: 0 auto;
+  border-top: 1px solid var(--steel-line);
+}
+.faqItem {
+  border-bottom: 1px solid var(--steel-line);
+}
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 24px 4px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--paper);
+  text-align: left;
+  font-family: inherit;
+}
+.faqIcon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper-faint);
+}
+.faqAnswerWrap {
+  overflow: hidden;
+}
+.faqAnswer {
+  padding: 0 4px 24px;
+  color: var(--paper-dim);
+  font-size: 15.5px;
+  line-height: 1.65;
+  max-width: 62ch;
+}
+
+/* ---------- PRICING (calm, no HUD) ---------- */
+.tierGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 760px) {
+  .tierGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.tierCard {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--steel-line);
+  border-radius: 20px;
+  padding: 32px 28px;
+  background: var(--ink-2);
+}
+.tierFeatured {
+  border-color: var(--iron-red);
+  background: var(--ink-3);
+}
+.tierName {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  display: block;
+}
+.tierMeta {
+  color: var(--paper-faint);
+  font-size: 13px;
+  display: block;
+  margin-bottom: 20px;
+}
+.tierPrice {
+  font-size: 2.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: block;
+}
+.tierPer {
+  color: var(--paper-dim);
+  font-size: 13px;
+  margin-bottom: 24px;
+  display: block;
+}
+.tierPerks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.tierPerks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14.5px;
+  color: var(--paper-dim);
+  line-height: 1.4;
+}
+.tierCheck {
+  flex: none;
+  color: var(--iron-red);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.tierCta {
+  display: block;
+  text-align: center;
+  padding: 13px 20px;
+  border-radius: 980px;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--steel-line);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.tierCta:hover {
+  background: var(--ink-3);
+  border-color: var(--paper-faint);
+}
+.tierFeatured .tierCta {
+  background: var(--iron-red-deep);
+  border-color: var(--iron-red-deep);
+}
+.tierFeatured .tierCta:hover {
+  background: var(--iron-red);
+}
+.pricingNote {
+  text-align: center;
+  font-size: 13px;
+  color: var(--paper-faint);
+  margin-top: -8px;
+  margin-bottom: 36px;
+}
+
+/* ---------- FINAL CTA ---------- */
+.finalCta {
+  position: relative;
+  text-align: center;
+  overflow: clip;
+  /* same rhythm as every other section — this used to carry its own larger
+     padding, which is what made the FAQ→CTA gap read as bigger than the
+     rest of the page. */
+}
+/* one slow parallax layer behind the headline, same principle as the hero
+   glow — makes this read as the page's actual close, not just a final
+   line of text. */
+.finalGlow {
+  position: absolute;
+  z-index: 0;
+  /* fixed height lets vertical centering use a plain negative margin;
+     horizontal uses left/right/margin — same reasoning as .heroGlow above,
+     transform is reserved entirely for Motion's scroll-driven `y`. */
+  top: 50%;
+  margin-top: -250px;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: min(900px, 130vw);
+  height: 500px;
+  background: radial-gradient(closest-side, rgba(224, 64, 42, 0.14), transparent 70%);
+  pointer-events: none;
+}
+.finalCta > *:not(.finalGlow) {
+  position: relative;
+  z-index: 1;
+}
+.finalHeadline {
+  font-size: clamp(2.2rem, 5.2vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  max-width: 16ch;
+  margin: 0 auto 32px;
+}
+
+/* ---------- footer ---------- */
+.footer {
+  border-top: 1px solid var(--steel-line);
+  padding: 32px clamp(20px, 5vw, 64px) calc(32px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.footer p {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.footer a {
+  color: var(--iron-red);
+}

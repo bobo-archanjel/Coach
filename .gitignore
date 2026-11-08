@@ -28,6 +28,44 @@ Thumbs.db
 # Supabase local
 .supabase/
 
-# Claude Code / impeccable — machine-local (absolute paths, personal permissions)
+# Claude Code / impeccable — machine-local (absolute paths, personal permissions, global skill installs)
 .claude/settings.local.json
+.claude/skills/
+.claude/agents/impeccable-*
 .impeccable/config.local.json
+.impeccable/questions/
+.impeccable/review/
+.impeccable/mocks/
+
+# TS build info
+tsconfig.tsbuildinfo
+
+/test-results/
+/playwright-report/
+
+# záloha ID z backfillu exercises.equipment (scripts/backfill-exercise-equipment.mjs --apply), slúži na prípadný návrat
+scripts/.equipment-backfill-*.json
+# Supabase CLI: dočasné súbory (môžu obsahovať referencie na projekt) — nikdy do repa
+supabase/.temp/
+
+# /brag video výstupy — stovky vyrenderovaných PNG snímkov na beh (~100-500 MB
+# každý), čisto lokálne pracovné artefakty, nepatria do histórie repozitára.
+brag-output/
+brag-output-*/
+
+# graphify — lokálna cache znalostného grafu kódu (graph.json, graph.html,
+# manifest), regenerovateľná príkazom /graphify --update, nepatrí do repa.
+# (.graphifyignore ostáva sledovaný — je to konfigurácia, nie generovaný výstup.)
+graphify-out/
+
+# Osobné scratch poznámky/prompty mimo repo workflow
+Claude outputs/
+
+# QA profily / výsledky (lokálne beh testov)
+.qa-profiles/
+qa-results/
+.next-qa-trainer/
+.next-qa-client/
+
+# ZXing WASM pre skener čiarových kódov — kopíruje scripts/copy-zxing-wasm.mjs (postinstall/prebuild)
+/public/wasm/

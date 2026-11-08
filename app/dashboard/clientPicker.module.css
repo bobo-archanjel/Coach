@@ -1,0 +1,230 @@
+/* Výber klientov (ClientMultiSelect) — nový dizajn. Tréningy → Nový plán a AI generátor.
+   Pole vyzerá ako ostatné polia formulára (.addClientInput), vybraní sú čipy; panel
+   s hľadaním a checkboxmi sa rozbalí v toku stránky (na mobile odsunie obsah). */
+
+.picker {
+  margin-bottom: 10px;
+}
+
+/* ---------- pole s čipmi ---------- */
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 5px 6px 5px 6px;
+  border: 1px solid var(--steel-line);
+  border-radius: var(--radius-s);
+  background: var(--surface-solid);
+  transition: border-color 0.12s ease;
+}
+.fieldOpen {
+  border-color: var(--iron-red);
+}
+.fieldInvalid {
+  border-color: var(--error);
+  background-color: color-mix(in srgb, var(--error) 8%, var(--ink-2));
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 5px 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.chipRemove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-solid);
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.chipRemove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.trigger {
+  flex: 1 1 140px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+.trigger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.placeholder {
+  color: var(--paper-faint);
+  font-weight: 500;
+}
+.chevron {
+  display: grid;
+  place-items: center;
+  color: var(--paper-faint);
+  transition: transform 0.15s ease;
+}
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* ---------- rozbalený panel ---------- */
+.panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-m);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+.search {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 16px; /* iOS nezoomuje */
+}
+.search::placeholder {
+  color: var(--paper-faint);
+}
+.search:focus {
+  outline: none;
+  border-color: var(--iron-red);
+}
+.selectRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.selectCount {
+  color: var(--paper-faint);
+  font-size: 13px;
+  font-weight: 650;
+}
+.selectAll {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.selectAll:hover {
+  background: var(--accent-soft);
+}
+.list {
+  display: grid;
+  gap: 6px;
+  max-height: min(320px, 50svh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background: var(--surface-solid);
+  color: var(--paper);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+.option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.optionOn {
+  border-color: var(--accent);
+  background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--surface-solid);
+}
+.avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 750;
+}
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.check {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--fill-strong);
+  border-radius: 8px;
+  color: var(--on-accent);
+}
+.checkOn {
+  border-color: transparent;
+  background: var(--accent-grad);
+  box-shadow: var(--accent-glow);
+}
+.empty {
+  padding: 10px 4px;
+  color: var(--paper-faint);
+  font-size: 14px;
+}
+.panelFoot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .field {
+    min-height: 48px;
+  }
+  .trigger {
+    font-size: 15px;
+  }
+}

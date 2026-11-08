@@ -13,19 +13,21 @@ React (Next.js), Tailwind CSS, mobile-first. Backend/DB: Supabase (Postgres, Aut
 ## Users
 
 - **Tréner** — prevádzkuje fitness koučing ako biznis, spravuje viacero klientov naraz (databáza klientov, tréningy, jedálničky), potrebuje rýchly prehľad kto meškal s logovaním a AI asistenta na generovanie plánov/jedálničkov a sumarizáciu progresu.
-- **Klient** — trénuje pod vedením trénera, používa appku hlavne na telefóne v posilňovni: odklikáva tréningy, zapisuje váhy/opakovania, loguje stravu, sleduje progres, pýta sa AI chatu v kontexte svojho profilu.
+- **Klient** — používa appku hlavne na telefóne v posilňovni: odklikáva tréningy, zapisuje váhy/opakovania, loguje stravu, sleduje progres, pýta sa AI chatu v kontexte svojho profilu. Môže trénovať **pod vedením trénera aj sám** — registruje sa vždy rovnako a po registrácii dostane vlastný kód, ktorý pošle trénerovi (tréner ho zadá u seba a tým sa napoja); prepojenie sa dá kedykoľvek zrušiť bez straty dát.
 
 ## Product Purpose
 
-SaaS aplikácia pre fitness trénerov na slovenskom a českom trhu — jedno miesto na správu klientov, tréningových plánov, výživy/makier a komunikácie, s AI ako asistentom (nie náhradou) trénera. Úspech = tréner šetrí čas na administratíve a klient má jasný, motivujúci prehľad svojho plánu a progresu.
+SaaS aplikácia postavená **primárne pre fitness trénerov** na slovenskom a českom trhu — jedno miesto na správu klientov, tréningových plánov, výživy/makier a komunikácie, s AI ako asistentom (nie náhradou) trénera. **Appku ale vie plnohodnotne používať aj klient úplne sám, bez trénera** — registrácia je pre obe role rovnaká, klient nepotrebuje pozvánku ani kód od trénera na to, aby sa appka dala použiť. Trénera pridáva dobrovoľne, keď chce ľudský dohľad a schvaľovanie plánov; prepojenie je kedykoľvek zrušiteľné bez straty dát. Úspech = tréner šetrí čas na administratíve a portfóliu klientov, a hociktorý používateľ (s trénerom aj bez neho) má jasný, motivujúci prehľad svojho plánu a progresu.
 
 ## Positioning
 
 Prvý skutočne AI-native, natívne slovenský/český nástroj pre fitness trénerov, kde je nutrícia plnohodnotnou core funkciou od začiatku (nie platený add-on) a AI chat má kontextovú pamäť (profil, plán, história) namiesto generického promptu. Konkurencia (Trainerize, Everfit, TrueCoach, GYMIFY) toto nemá kombinované.
 
+Primárny nákup appky robí tréner (SaaS predplatné) a appka je navrhnutá okolo jeho workflow (portfólio klientov, builder, AI generátor, business vrstva). Klient bez trénera je plnohodnotný sekundárny use-case — dostane rovnaký tréningový builder, AI generátor plánov a AI kouča, len bez ľudského schválenia a spätnej väzby od trénera navyše. Táto "reverzná" flexibilita onboardingu (kdokoľvek sa zaregistruje rovnako, prepojenie je voliteľné a obojsmerne zrušiteľné) je súčasť diferenciácie, nie vedľajší detail.
+
 ## Operating Context
 
-- Tréner pracuje na desktope (admin panel) — vytvára a upravuje plány, kontroluje viacero klientov naraz.
+- **Aktualizované 2026-08-28** (upresnenie od používateľa): appka smeruje primárne na telefón pre obe role, nielen klienta. Tréner síce môže plánovať aj pri počítači, ale bežne kontroluje klientov, upravuje plán alebo makrá priebežne z telefónu — desktop nie je predpokladaný primárny kontext, len jeden z podporovaných.
 - Klient používa appku prevažne na mobile, často priamo v posilňovni pri cvičení — nízke trenie, rýchle odklikávanie je kritické.
 - AI volania idú výhradne cez server-side endpoint, nikdy priamo z frontendu.
 - Tréner má vždy finálne slovo nad AI návrhom — appka nikdy neposiela AI výstup klientovi bez schválenia trénerom.
@@ -33,8 +35,8 @@ Prvý skutočne AI-native, natívne slovenský/český nástroj pre fitness tré
 ## Capabilities and Constraints
 
 - Dve role s RLS: `trainer`, `client`.
-- Core moduly: správa klientov, tréningový builder (série/opakovania/záťaž/tempo/pauzy), výživa/makrá (BMR/TDEE výpočet, food diary), komunikácia (chat, notifikácie), progres tracking (grafy, foto porovnania), business vrstva (kalendár, fakturácia cez Stripe, multi-klient dashboard).
-- AI moduly: kontextový chat pre klienta (s eskaláciou na trénera pri zdravotných témach, nediagnostikuje), AI asistent pre trénera (generovanie plánov/jedálničkov, sumarizácia progresu, upozornenia na nízku adherenciu).
+- Core moduly: správa klientov, tréningový builder (série/opakovania/záťaž/tempo/pauzy), výživa/makrá (BMR/TDEE výpočet, food diary), komunikácia (chat, notifikácie), progres tracking (grafy, adherencia, splnenie plánu vs. skutočnosť, osobné maximá, foto porovnania), business vrstva (kalendár, fakturácia cez Stripe, multi-klient dashboard s agregovaným pohľadom na zdravie portfólia).
+- AI moduly: kontextový chat pre klienta (s eskaláciou na trénera pri zdravotných témach, nediagnostikuje), AI asistent pre trénera (generovanie plánov — s ohľadom na cieľ, skúsenosť, dostupné vybavenie a zvolené zameranie podľa pohlavia — / jedálničkov, sumarizácia progresu jedného klienta aj týždenný digest celého portfólia „na koho sa zamerať", upozornenia na nízku adherenciu). Appka spočíta čísla, model ich len formuluje.
 - MVP rozsah: klienti + tréningový builder + zaraďovanie plánov + food/makro tracking + základný dashboard + AI chat (klient) + AI generátor plánov (tréner). Chat tréner↔klient, notifikácie, pokročilé reporty a platby prichádzajú v neskorších fázach.
 - Monetizácia: SaaS predplatné trénera (nie priama platba od klientov), AI funkcie ako prémiová úroveň s limitom requestov, voliteľne tiered/per-klient pricing, white-label ako neskorší upsell.
 
@@ -58,7 +60,7 @@ Používateľ dodal obrázky brand kitu (logo varianty, app icon, web bannery, f
 ## Product Principles
 
 1. Tréner je vždy v kontrole — AI navrhuje, tréner schvaľuje; appka nikdy neobchádza jeho rozhodnutie.
-2. Klientský zážitok musí byť mobile-first a nízkotrenový — odcvičenie tréningu a logovanie stravy sa deje v reálnom čase v posilňovni.
+2. Celá appka je mobile-first, nielen klientská časť — trénerský dashboard sa navrhuje primárne pre telefón (desktop je bonus, nie predpoklad). Klientský zážitok navyše musí byť nízkotrenový — odcvičenie tréningu a logovanie stravy sa deje v reálnom čase v posilňovni.
 3. Nutrícia je rovnocenná tréningu, nie príveska funkcia.
 4. Natívna slovenčina/čeština a jasná, transparentná cena sú súčasť diferenciácie, nie len technický detail.
 5. Zdravotné hranice AI sú tvrdé pravidlo — eskalácia na trénera pri bolesti/zranení, nikdy diagnostika.

@@ -1,0 +1,65 @@
+# FitPilot
+
+> AI-natívna platforma pre fitness trénerov a ich klientov na Slovensku a v Česku:
+> správa klientov, tréningové plány, jedálničky a AI kouč s pamäťou klientovho profilu.
+
+FitPilot je primárne nástroj pre fitness trénerov, ale appku vie plnohodnotne
+používať aj klient sám bez trénera. Registrácia je pre obe role rovnaká a
+nezávislá — klient sa NEPRIPÁJA cez kód od trénera. Po registrácii dostane
+klient vlastný pozývací kód, ktorý môže (nemusí) poslať svojmu trénerovi; tréner
+si ho zadá vo svojom paneli a tým sa účty prepoja. Prepojenie sa dá kedykoľvek
+zrušiť bez straty dát (klient si ponechá celú históriu tréningov aj stravy) a
+klient môže odvtedy pokračovať sólo, alebo sa neskôr prepojiť s iným trénerom.
+
+## Pre trénera
+
+Tréner spravuje portfólio klientov z jedného dashboardu: databáza klientov
+(kontakt, ciele, zdravotné obmedzenia, tagy/skupiny), história meraní (váha,
+obvody, % tuku, fotky progresu). Zostavuje tréningové plány cez builder
+(knižnica cvikov s videom/obrázkom a alternatívami podľa dostupného vybavenia,
+série/opakovania/záťaž/tempo/pauzy, mezocykly) a zaraďuje ich klientom podľa
+dní/týždňov — buď ručne, alebo cez AI generátor, ktorý navrhne plán podľa cieľa,
+skúsenosti, vybavenia a zamerania klienta (tréner návrh vždy schvaľuje pred
+odoslaním). Rovnako zostavuje jedálničky alebo len makro/kalorický cieľ.
+Komunikuje s klientmi cez vstavaný chat, dostáva notifikácie (meškanie s
+logovaním, feedback po tréningu) a má agregovaný pohľad na zdravie celého
+portfólia klientov vrátane AI týždenného digestu "na koho sa treba zamerať".
+Business vrstva: kalendár konzultácií, fakturácia cez Stripe.
+
+## Pre klienta (s trénerom aj sólo)
+
+Klient má vlastný portál, optimalizovaný na telefón priamo v posilňovni:
+dnešný tréning na odklikanie (zápis skutočne odcvičených váh/opakovaní,
+feedback/RPE po tréningu), jedálniček alebo len makro cieľ s denníkom stravy,
+progres (grafy váhy, odhad 1RM, obvody, porovnanie fotiek pred/po) a AI kouč,
+ktorý odpovedá s pamäťou jeho profilu — ciele, aktuálny plán, makrá, posledné
+logy. Bez trénera appka sama počíta BMR/TDEE a odporúčané makrá, sleduje
+progresívne preťaženie a generuje vlastný tréningový plán cez rovnaký AI
+generátor, aký používa tréner. Klient teda nie je odkázaný na trénera pre
+základnú funkčnosť appky — trénera pridáva len ak chce ľudský dohľad, spätnú
+väzbu a schvaľovanie plánov reálnou osobou.
+
+## AI kouč — bezpečnostné hranice
+
+AI kouč nikdy nediagnostikuje a nenahrádza trénera ani lekára. Pri zmienke o
+bolesti, zranení alebo zdravotnej kríze eskaluje: odporučí kontaktovať trénera
+(ak je pripojený) alebo lekára, namiesto vlastnej rady. Číselné výpočty (makrá,
+1RM, adherencia) robí appka deterministicky — AI model len formuluje text okolo
+už spočítaných čísel, nikdy si čísla nevymýšľa.
+
+Kľúčové vlastnosti (zhrnutie):
+- Tréningové plány s knižnicou cvikov (video/obrázok, alternatívy podľa vybavenia)
+- Jedálničky s makro cieľmi a nákupným zoznamom, denník stravy
+- AI kouč pre klienta — pamäť profilu, eskalácia na trénera pri zdravotných témach
+- AI generátor plánov — dostupný trénerovi aj klientovi bez trénera
+- Progres a analytika (tréning aj výživa) pre trénera aj klienta
+- Chat tréner ↔ klient, notifikácie
+- Export do PDF (tréningový plán, jedálniček, progres)
+- Voliteľné, kedykoľvek zrušiteľné prepojenie tréner↔klient bez straty dát
+
+Cieľová skupina: primárne fitness a osobní tréneri na Slovensku a v Česku;
+sekundárne jednotlivci trénujúci sami, ktorí chcú štruktúrovaný plán a AI kouča.
+Skúšobné obdobie: 14 dní zadarmo, bez viazanosti.
+Jazyk rozhrania: slovenčina/čeština.
+
+Webová stránka: https://myfitpilot.sk

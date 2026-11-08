@@ -7,7 +7,18 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: ["design/**"],
+    // .next/** (skompilované build artefakty) a public/** (statické/externé
+    // súbory, napr. skopírovaný scroll-world engine v public/v5/) nie sú náš
+    // zdrojový kód — bez tohto ignoru lint hlásil tisíce falošných problémov
+    // z nich a reálne chyby v app/+lib/+e2e/+scripts/ zanikli v šume.
+    // next-env.d.ts je auto-generovaný Next.js pri každom builde/dev štarte
+    // (triple-slash referencie sú jeho vlastný formát) — netreba ho editovať
+    // ani lintovať, Next si ho sám prepíše nabudúce.
+    // supabase/functions/** beží na Deno (edge functions), nie na Next/Node —
+    // iný runtime, iné globály (Deno.*), netreba ho lintovať rovnakou konfiguráciou.
+    // .next-*/** — build výstupy paralelných dev serverov (QA_DIST_DIR v next.config.ts,
+    // napr. .next-qa-client, .next-v6) — rovnaké artefakty ako .next/.
+    ignores: ["design/**", ".next/**", ".next-*/**", "public/**", "next-env.d.ts", "supabase/functions/**"],
   },
 ];
 

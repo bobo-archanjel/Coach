@@ -11,6 +11,9 @@
   --paper-faint: #8f897d;
   --iron-red: #e0402a;
   --iron-red-dim: #a83322;
+  /* Coral pre plochy nesúce text (plné tlačidlá) — Warm Paper naň prejde AA (4.78:1).
+     Brandový --iron-red zostáva pre accenty, postup, ikonografiu. Viď DESIGN.md → Color. */
+  --iron-red-deep: #c3341f;
   --plate-yellow: #e6b23a;
   --steel: #7f8a95;
   --steel-line: #38352f;
@@ -29,6 +32,14 @@
 
 html {
   scroll-behavior: smooth;
+  /* Bez tohto sa pri raste obsahu (napr. rozbalenie tréningu) objaví vertikálny
+     scrollbar a celá stránka sa o jeho šírku "zúži" — a späť "rozšíri" pri
+     zbalení. `scrollbar-gutter` samo nestačí (slabá/neskorá podpora v Safari) —
+     `overflow-y: scroll` je staršia, ale univerzálne podporovaná poistka: núti
+     prehliadač držať miesto na scrollbar rezervované vždy, nech je obsah
+     akokoľvek vysoký. */
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -76,6 +87,18 @@ a {
   outline: 2px solid var(--plate-yellow);
   outline-offset: 3px;
   border-radius: var(--radius-s);
+}
+
+/* Textové polia prehliadač považuje za :focus-visible aj po kliknutí myšou/prstom,
+   takže žltý tab-outline sa zobrazoval pri každom písaní. Pre polia na písanie ho
+   nahrádza jemne červený border (platí pre klik aj tab — kurzor v poli je
+   dostatočný indikátor). !important, aby to prebilo per-module :focus-visible
+   pravidlá s vyššou špecificitou; ostatné prvky (tlačidlá, odkazy) majú outline ďalej. */
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"]):focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: color-mix(in srgb, var(--iron-red) 60%, transparent) !important;
 }
 
 img,
@@ -148,6 +171,7 @@ p {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 13px 24px;
   border-radius: var(--radius-s);
@@ -166,12 +190,12 @@ p {
   transform: translateY(1px);
 }
 .btn-primary {
-  background: var(--iron-red);
+  background: var(--iron-red-deep);
   color: var(--paper);
   box-shadow: var(--shadow-1);
 }
 .btn-primary:hover {
-  background: #ef4c34;
+  background: #b82f1b;
   box-shadow: var(--shadow-2);
 }
 .btn-ghost {
@@ -186,4 +210,12 @@ p {
 .btn-sm {
   padding: 10px 18px;
   font-size: 14px;
+}
+@media (max-width: 640px) {
+  /* .btn-sm sa v dashboarde/builderi používa v drvivej väčšine akčných tlačidiel —
+     na mobile nesmie klesnúť pod ~44px dotykovú výšku. */
+  .btn-sm {
+    padding: 13px 18px;
+    font-size: 14.5px;
+  }
 }

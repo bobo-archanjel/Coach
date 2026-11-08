@@ -1,0 +1,339 @@
+import { test, expect, type Page } from "@playwright/test";
+
+/** Zbiera console.error a pageerror — manuálny tester si všimne "červené" v konzole. */
+function collectErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(`console: ${m.text()}`);
+  });
+  page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  return errors;
+}
+
+// Známy šum, ktorý nie je bug v našom kóde.
+const IGNORED = [
+  /favicon/i,
+  /Failed to load resource.*404/i,
+  /supabase/i, // placeholder kľúč → očakávané sieťové chyby
+  /Failed to fetch/i,
+  /net::ERR/i,
+];
+const realErrors = (errs: string[]) => errs.filter((e) => !IGNORED.some((re) => re.test(e)));
+
+test.describe("Landing page /", () => {
+  test("načíta sa, hlavička viditeľná, žiadne console chyby", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/");
+    await expect(page).toHaveTitle(/FitPilot/i);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
+  });
+
+  test("nejaká cesta k prihláseniu je vždy dostupná (nav alebo hero CTA)", async ({ page, isMobile }) => {
+    await page.goto("/");
+    // na mobile je nav zbalená — ostáva len tlačidlo "Vyskúšať zadarmo"
+    const entry = isMobile
+      ? page.getByRole("link", { name: /Vyskúšať zadarmo/i })
+      : page.getByRole("link", { name: /Prihlásiť sa/i }).first();
+    await entry.click();
+    await expect(page).toHaveURL(/\/prihlasenie/);
+  });
+
+  // Predtým bug: href="#cennik" (scroll na cenník) namiesto /prihlasenie, na
+  // rozdiel od všetkých ostatných "Začať..." CTA — opravené 2026-09-15.
+  test("hero primárne CTA vedie na registráciu", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: /Začať 14-dňové skúšobné obdobie/i }).click();
+    await expect(page).toHaveURL(/\/prihlasenie/);
+  });
+});
+
+test.describe("Prihlásenie /prihlasenie", () => {
+  test("taby, validácia, password toggle", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/prihlasenie");
+
+    await expect(page.getByRole("tab", { name: "Prihlásenie" })).toHaveAttribute("aria-selected", "true");
+
+    // feature/navod: tlačidlo je disabled, kým formulár nie je platný ("don't
+    // let users submit until everything is filled out correctly") — chyba sa
+    // teraz ukáže pri opustení neplatného poľa (blur), nie klikom na disabled submit.
+    const submitBtn = page.getByRole("button", { name: "Prihlásiť sa" });
+    await expect(submitBtn).toBeDisabled();
+    await page.locator("#login-email").fill("nieplatny-email");
+    await page.locator("#login-password").focus(); // blur z e-mailu spustí validáciu
+    await expect(page.getByText(/Zadaj platnú e-mailovú adresu/i)).toBeVisible();
+    await expect(submitBtn).toBeDisabled();
+
+    // password toggle
+    const pw = page.locator("#login-password");
+    await pw.fill("tajneheslo1");
+    await expect(pw).toHaveAttribute("type", "password");
+    await page.getByRole("button", { name: /Zobraziť heslo/i }).click();
+    await expect(pw).toHaveAttribute("type", "text");
+
+    expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
+  });
+
+  test("registrácia: prepínač tréner / klient, klient bez kódu (feature/registracia-update)", async ({ page }) => {
+    await page.goto("/prihlasenie");
+    await page.getByRole("tab", { name: "Registrácia" }).click();
+
+    // default = tréner
+    await expect(page.getByRole("heading", { name: /Začni skúšobné/i })).toBeVisible();
+
+    // prepni na klienta → žiadne pole na pozývací kód, registrácia je rovnaká ako trénerská
+    await page.getByRole("button", { name: /^Som klient$/i }).click();
+    await expect(page.getByRole("heading", { name: /Vytvor si/i })).toBeVisible();
+    await expect(page.getByLabel(/Pozývací kód/i)).toHaveCount(0);
+    const submitBtn = page.getByRole("button", { name: /Vytvoriť účet/i });
+    await expect(submitBtn).toBeVisible();
+
+    // feature/navod: prázdny formulár → tlačidlo zostáva disabled, kým meno aj
+    // ostatné polia nie sú platné (rovnaký princíp ako prihlásenie vyššie).
+    await expect(submitBtn).toBeDisabled();
+  });
+
+  test("neúspešné prihlásenie ukáže chybu, nie crash", async ({ page }) => {
+    await page.goto("/prihlasenie");
+    await page.locator("#login-email").fill("neexistuje@test.sk");
+    await page.locator("#login-password").fill("nespravneheslo");
+    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
+    // buď chybová hláška, alebo sa nič nestane — v žiadnom prípade nesmie spadnúť stránka
+    await page.waitForTimeout(2500);
+    await expect(page.getByRole("tab", { name: "Prihlásenie" })).toBeVisible();
+    await expect(page).toHaveURL(/\/prihlasenie/);
+  });
+});
+
+test.describe("Auth guardy", () => {
+  // Layout má DEV_OPEN (ako portál) — v `next dev` neredirectuje; tieto stránky
+  // však robia vlastný `if (!user) redirect("/prihlasenie")`, takže chránené sú aj tak.
+  for (const path of ["/dashboard", "/dashboard/treningy", "/dashboard/jedalnicky"]) {
+    test(`${path} bez session → /prihlasenie`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/prihlasenie/);
+    });
+  }
+
+  test("/dashboard/klienti/x bez session neukáže detail klienta", async ({ page }) => {
+    const res = await page.goto("/dashboard/klienti/x");
+    // v deve DEV_OPEN → klient "x" neexistuje = notFound() (404); v produkcii redirect na login
+    const okStates =
+      res?.status() === 404 || /\/prihlasenie/.test(page.url());
+    expect(okStates, `status=${res?.status()} url=${page.url()}`).toBeTruthy();
+    await expect(page.getByRole("link", { name: /Späť na klientov/i })).toHaveCount(0);
+  });
+});
+
+test.describe("Klientsky portál /portal (?preview=)", () => {
+  test("preview=ok — dnešný tréning kompletný", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/portal?preview=ok");
+
+    await expect(page.getByRole("heading", { name: /Dobré ráno, Ján|Dobrý deň, Ján|Dobrý večer, Ján/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Deň C — Nohy/ })).toBeVisible();
+
+    // karta Dnes je len súhrn (revízia 2026-09) — rozpis cvikov je v tabe Tréning,
+    // tu sa overuje len počet cez chip badge.
+    await expect(page.getByText("6 cvikov", { exact: true })).toBeVisible();
+
+    // odklikávanie tréningu (Fáza A) — lokálny prepínač, potom "Ukončiť tréning"
+    const start = page.getByRole("button", { name: /Začať tréning/i });
+    await expect(start).toBeVisible();
+    await start.click();
+    await expect(page.getByRole("button", { name: /Ukončiť tréning/i })).toBeVisible();
+
+    // dozvuk + týždeň
+    await expect(page.getByText("Odcvičené spolu")).toBeVisible();
+    await expect(page.getByText("Tento týždeň")).toBeVisible();
+
+    // spodná navigácia — 6 položiek
+    await expect(page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link")).toHaveCount(6);
+
+    // ring SVG
+    await expect(page.locator("svg text", { hasText: "0/6" })).toBeVisible();
+
+    expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
+  });
+
+  test("Tento týždeň: listovanie týždňami + náhľad odcvičeného dňa", async ({ page }) => {
+    const errs: string[] = [];
+    page.on("pageerror", (e) => errs.push(e.message));
+    await page.goto("/portal?preview=ok");
+
+    // pager: dopredu je na aktuálnom týždni zakázané, dozadu povolené
+    await expect(page.getByRole("button", { name: /Nasledujúci týždeň/i })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /Predchádzajúci týždeň/i })).toBeEnabled();
+
+    // ťuk na deň so záznamom (Po 24 v preview) → náhľad s cvikmi
+    await page.getByRole("button", { name: /pondelok 24\..*zobraziť odcvičený tréning/i }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Tlak na lavičke")).toBeVisible();
+    await expect(dialog.getByText("8 op. × 70 kg").first()).toBeVisible();
+
+    // Escape zavrie
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    // deň označený ako hotový bez zapísaných sérií (St 26 v preview)
+    await page.getByRole("button", { name: /streda 26\..*zobraziť odcvičený tréning/i }).click();
+    await expect(page.getByRole("dialog").getByText(/bez zápisu skutočných sérií/i)).toBeVisible();
+    await page.getByRole("button", { name: "Zavrieť", exact: true }).click();
+
+    // deň bez tréningu nie je klikateľný (Ut 25)
+    await expect(page.getByRole("button", { name: /utorok 25\./i })).toHaveCount(0);
+
+    // listovanie dozadu: bez session (preview) → chybová poznámka + retry, nie pád
+    await page.getByRole("button", { name: /Predchádzajúci týždeň/i }).click();
+    await expect(page.getByRole("button", { name: "Skúsiť znova", exact: true })).toBeVisible();
+
+    expect(errs, errs.join("\n")).toEqual([]);
+  });
+
+  test("preview=unlinked — neprepojený klient, bez CTA", async ({ page }) => {
+    await page.goto("/portal?preview=unlinked");
+    await expect(page.getByText(/nie je prepojený s trénerom/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Začať tréning/i })).toHaveCount(0);
+  });
+
+  test("preview=no_plan — plán je na ceste", async ({ page }) => {
+    await page.goto("/portal?preview=no_plan");
+    await expect(page.getByText(/nepriradil aktívny tréningový plán/i)).toBeVisible();
+  });
+
+  test("preview=error — chyba + retry", async ({ page }) => {
+    await page.goto("/portal?preview=error");
+    await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať/i })).toBeVisible();
+    const retry = page.getByRole("button", { name: /Skúsiť znova/i });
+    await expect(retry).toBeVisible();
+    await retry.click(); // reload — nesmie spadnúť
+    await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať/i })).toBeVisible();
+  });
+
+  test("spodná navigácia vedie na všetky taby bez pádu", async ({ page }) => {
+    // Tréning + Strava sú dostavané (getPortalTraining/getPortalNutrition) — lokálne
+    // bez DB ukážu Notice (error/no_plan), ale nesmú spadnúť. Chat + Profil sú ComingSoon.
+    for (const [label, url] of [
+      ["Tréning", /\/portal\/trening/],
+      ["Strava", /\/portal\/strava/],
+      ["Denník", /\/portal\/dennik/],
+      ["Chat", /\/portal\/chat/],
+      ["Profil", /\/portal\/profil/],
+    ] as const) {
+      await page.goto("/portal?preview=ok");
+      await page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link", { name: label }).click();
+      await expect(page).toHaveURL(url);
+      await expect(page.getByRole("heading").first()).toBeVisible(); // niečo sa vykreslilo
+    }
+  });
+
+  test("Profil: kód pre trénera + stav prepojenia", async ({ page }) => {
+    await page.goto("/portal/profil?preview=no_trainer");
+    await expect(page.getByRole("heading", { name: "Profil" })).toBeVisible();
+    await expect(page.getByText("Tvoj kód pre trénera", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^FP-/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Kopírovať/i })).toBeVisible();
+    await expect(page.getByText(/Zatiaľ nemáš trénera/i)).toBeVisible();
+  });
+
+  test("Chat: vlákno s trénerom, denné oddeľovače, odoslanie", async ({ page }) => {
+    const errs: string[] = [];
+    page.on("pageerror", (e) => errs.push(e.message));
+    await page.goto("/portal/chat?preview=ok");
+
+    const main = page.getByRole("main");
+    await expect(page.getByRole("heading", { name: /Tréner Marek/i })).toBeVisible();
+    await expect(main.getByText(/drep ide pekne/i)).toBeVisible();
+    await expect(main.getByText(/Jasné, dík!/)).toBeVisible();
+    await expect(main.getByText("Včera", { exact: true })).toBeVisible();
+    await expect(main.getByText("Dnes", { exact: true })).toBeVisible();
+
+    // composer + odoslanie (v preview zlyhá bez session → chyba, ale nesmie spadnúť)
+    const input = page.getByLabel("Napísať správu");
+    await input.fill("Skúsim dnes ľahšiu váhu.");
+    await page.getByRole("button", { name: "Odoslať" }).click();
+    await page.waitForTimeout(1200);
+    await expect(page.getByLabel("Napísať správu")).toHaveValue("");
+
+    expect(errs, errs.join("\n")).toEqual([]);
+  });
+
+  test("Chat: prázdny a chybový stav", async ({ page }) => {
+    await page.goto("/portal/chat?preview=empty");
+    await expect(page.getByText(/Napíš Marekovi/i)).toBeVisible();
+    await page.goto("/portal/chat?preview=error");
+    await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať chat/i })).toBeVisible();
+  });
+
+  test("Denník: príjem vs cieľ, jedlá dňa, pridávanie jedla", async ({ page }) => {
+    const errs: string[] = [];
+    page.on("pageerror", (e) => errs.push(e.message));
+    await page.goto("/portal/dennik?preview=ok");
+
+    // hero: dnešný príjem + makro bary
+    await expect(page.getByText("DNEŠNÝ PRÍJEM")).toBeVisible();
+    await expect(page.getByText("Bielkoviny")).toBeVisible();
+    await expect(page.getByText(/\/ 2350 kcal/)).toBeVisible();
+
+    // jedlá dňa: všetkých 6 riadkov, zbalené — zoznam sa ukáže po rozbalení
+    const breakfast = page.getByRole("button", { name: /^Raňajky/ });
+    await expect(breakfast).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("button", { name: /^Večera/ })).toBeVisible();
+    await expect(page.getByText("Ovsené vločky")).toBeHidden();
+    await breakfast.click();
+    await expect(breakfast).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByText("Ovsené vločky")).toBeVisible();
+
+    // „+“ pri jedle otvorí panel s vyhľadávaním značiek a skenerom pre to jedlo
+    await page.getByRole("button", { name: "Pridať jedlo: Obed" }).click();
+    const sheet = page.getByRole("dialog", { name: /Pridať jedlo · Obed/ });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByLabel("Hľadať značkový produkt online")).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Skenovať" })).toBeVisible();
+    await sheet.getByRole("button", { name: "Zavrieť" }).click();
+    await expect(sheet).toBeHidden();
+
+    expect(errs, errs.join("\n")).toEqual([]);
+  });
+
+  test("Denník: chyba a neprepojený stav", async ({ page }) => {
+    await page.goto("/portal/dennik?preview=error");
+    await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať denník/i })).toBeVisible();
+    await page.goto("/portal/dennik?preview=unlinked");
+    await expect(page.getByText(/nie je prepojený s trénerom/i)).toBeVisible();
+  });
+});
+
+test.describe("Portál — shell", () => {
+  test("bez horizontálneho scrollu; nav fixná na mobile / sidebar na desktope", async ({ page, viewport }) => {
+    await page.goto("/portal?preview=ok");
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+
+    const navPosition = await page
+      .getByRole("navigation", { name: /Klientsky portál/i })
+      .evaluate((el) => getComputedStyle(el).position);
+    // f29fa92: pod 880px fixná bottom bar, nad ňou statický sidebar
+    expect(navPosition).toBe((viewport?.width ?? 0) >= 880 ? "static" : "fixed");
+  });
+});
+
+test.describe("Landing page /v4 (interný náhľad)", () => {
+  test("načíta sa, hlavička viditeľná, žiadne console chyby", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/v4");
+    await expect(page).toHaveTitle(/FitPilot/i);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
+  });
+
+  test("CTA vedie na registráciu", async ({ page }) => {
+    await page.goto("/v4");
+    await page.getByRole("link", { name: /Začať 14-dňovú skúšku/i }).first().click();
+    await expect(page).toHaveURL(/\/prihlasenie/);
+  });
+});

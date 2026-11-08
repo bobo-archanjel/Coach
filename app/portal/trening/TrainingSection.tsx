@@ -1,0 +1,531 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
+import type { ExerciseOption, PortalPlan, PortalTemplate, PortalTrainingData } from "@/lib/portal/types";
+import {
+  chooseActivePlanAction,
+  deleteClientPlanAction,
+  deleteOwnTemplateAction,
+  getExerciseLibraryAction,
+  saveOwnTemplateAction,
+  setActivePlanAction,
+} from "./actions";
+import { ExercisePreviewList } from "../ExercisePreviewList";
+import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
+import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
+import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
+import styles from "../portal.module.css";
+
+// Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
+// naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
+// existujúce plány. Vlastný chunk, stiahne sa až pri "Vlastný tréning"/"Upraviť".
+const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) => m.ClientPlanBuilder), {
+  loading: () => <BuilderLoading />,
+});
+
+function BuilderLoading() {
+  return <p className={styles.trEmptyDay}>Načítavam…</p>;
+}
+
+/* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
+   Ťuk na plán rozbalí zoznam jeho dní; ťuk na deň ukáže jeho cviky a akčné
+   tlačidlo — nastaví plán (a tento deň) ako aktívny, ktorý potom karta Dnes
+   berie ako "dnešný tréning" presne ako plán od trénera. Ak je deň už DNES
+   odcvičený (badge "Hotovo"), plán je jednorazový — namiesto "Začať tréning"
+   je nefarebné "Upraviť hodnoty" (24 h po ukončení, 0049) priamo tu v paneli,
+   po uplynutí okna už len informácia, že záznam je uzavretý. */
+
+const PlusIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+  </svg>
+);
+
+const ChevronIcon = ({ className }: { className?: string }) => (
+  <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const PencilIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M4 20l1-4.2L15.6 5.2a1.5 1.5 0 0 1 2.1 0l1.1 1.1a1.5 1.5 0 0 1 0 2.1L8.2 19l-4.2 1Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+function dayWord(n: number): string {
+  if (n === 1) return "deň";
+  if (n >= 2 && n <= 4) return "dni";
+  return "dní";
+}
+
+function exWord(n: number): string {
+  if (n === 1) return "cvik";
+  if (n >= 2 && n <= 4) return "cviky";
+  return "cvikov";
+}
+
+export function TrainingSection({ data }: { data: PortalTrainingData }) {
+  const { plans, templates } = data;
+
+  const [mode, setMode] = useState<"list" | "build">("list");
+  const [editing, setEditing] = useState<PortalPlan | null>(null);
+  // "Použiť" pri šablóne — builder nového tréningu predvyplnený jej obsahom.
+  const [fromTemplate, setFromTemplate] = useState<PortalTemplate | null>(null);
+  // Výsledok "Uložiť ako šablónu" pri konkrétnom tréningu (potvrdenie alebo chyba).
+  const [templateNote, setTemplateNote] = useState<{ planId: string; text: string; error: boolean } | null>(null);
+  const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(data.activePlanId);
+  // Vybraný deň v rámci rozbaleného tréningu — samostatný krok pred zobrazením
+  // cvikov a tlačidla "Začať tréning" (predtým sa všetky dni so všetkými cvikmi
+  // vypísali naraz, pôsobilo to chaoticky).
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // Odcvičený deň otvorený v editore "Upraviť hodnoty" (id záznamu workout_logs).
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // Potvrdenie po „Nastaviť ako aktívny“ (pri pláne, ktorý sa práve stal aktívnym).
+  const [activeNote, setActiveNote] = useState<{ planId: string; text: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  // Knižnica cvikov (~900 riadkov, cca 300 kB) sa predtým ťahala pri KAŽDOM
+  // načítaní /portal/trening, aj keď väčšina návštev builder vôbec neotvorí —
+  // teraz až tu, na požiadanie, keď klient reálne klikne "Vlastný tréning"/"Upraviť".
+  const [library, setLibrary] = useState<ExerciseOption[]>([]);
+  const [, startLibraryTransition] = useTransition();
+
+  const openBuilder = (plan: PortalPlan | null, template: PortalTemplate | null = null) => {
+    setEditing(plan);
+    setFromTemplate(template);
+    setError(null);
+    setMode("build");
+    // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
+    // otvorenie buildera v rámci tej istej návštevy /portal/trening).
+    if (library.length === 0) {
+      startLibraryTransition(async () => {
+        setLibrary(await getExerciseLibraryAction());
+      });
+    }
+  };
+  const closeBuilder = () => {
+    setMode("list");
+    setEditing(null);
+    setFromTemplate(null);
+  };
+  // Uloženie aj zmazanie revalidujú /portal — čerstvý zoznam prichádza v odpovedi
+  // akcie; router.refresh() navyše by celú stránku vykreslil zo servera druhýkrát.
+  const onSaved = () => {
+    closeBuilder();
+  };
+
+  // Ťuk na tréning len rozbalí/zbalí zoznam jeho dní — nemení, čo beží na karte
+  // Dnes. Aktívny plán sa mení „Nastaviť ako aktívny“ alebo „Začať tréning“ pri dni.
+  const tapPlan = (plan: PortalPlan) => {
+    setError(null);
+    setActiveNote(null);
+    setEditingLogId(null);
+    setSelectedDayId(null);
+    setExpandedId((id) => (id === plan.id ? null : plan.id));
+  };
+
+  const selectDay = (dayId: string) => {
+    setError(null);
+    setEditingLogId(null);
+    setSelectedDayId(dayId);
+  };
+
+  const backToDays = () => {
+    setError(null);
+    setEditingLogId(null);
+    setSelectedDayId(null);
+  };
+
+  // „Nastaviť ako aktívny“ — len prepne plán na karte Dnes, tréning nespustí (0056).
+  const makeActive = (plan: PortalPlan) => {
+    setError(null);
+    setActiveNote(null);
+    startTransition(async () => {
+      const res = await chooseActivePlanAction(plan.id);
+      if (res.error) setError(res.error);
+      else setActiveNote({ planId: plan.id, text: `Na karte Dnes je teraz „${plan.name}“.` });
+    });
+  };
+
+  const removePlan = (planId: string) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteClientPlanAction(planId);
+      if (res.error) setError(res.error);
+      else {
+        setConfirmDelete(null);
+      }
+    });
+  };
+
+  const saveTemplate = (planId: string) => {
+    setError(null);
+    setTemplateNote(null);
+    startTransition(async () => {
+      const res = await saveOwnTemplateAction(planId);
+      setTemplateNote({
+        planId,
+        text: res.error ?? "Uložené — nájdeš ju hore v Moje šablóny.",
+        error: Boolean(res.error),
+      });
+      // Novú šablónu hneď ukáž — inak by klient musel zbalený zoznam hore hľadať.
+      if (!res.error) setTemplatesOpen(true);
+    });
+  };
+
+  const removeTemplate = (templateId: string) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteOwnTemplateAction(templateId);
+      if (res.error) setError(res.error);
+      else setConfirmTplDelete(null);
+    });
+  };
+
+  // "Začať tréning" — nastaví plán aj presne tento deň ako aktívny (0022: bez
+  // dayId by karta Dnes aj tak dopočítala "ďalší deň v rotácii" sama, čo sa
+  // nemusí zhodovať s dňom, ktorý si tu klient vybral a odcvičil) a prejde na
+  // kartu Dnes, kde beží ten istý flow ako pri pláne od trénera (formulár sérií
+  // + plávajúce stopky, logovanie cez finishWorkoutAction).
+  // Tréning sa tu aj rovno ZAČNE (príznak "tréning začatý", workoutSession.ts) —
+  // predtým karta Dnes ukázala znova "Začať tréning" a klient musel ťukať 2×.
+  // Príznak sa nastaví PRED requestom, nech ho karta Dnes pozná hneď pri prvom
+  // vykreslení (žiadny záblesk "Začať tréning"); akcia potom sama presmeruje
+  // (redirect → jeden round-trip). Pri chybe sa príznak vráti späť.
+  const startPlan = (plan: PortalPlan, dayId: string) => {
+    setError(null);
+    markWorkoutStarted(dayId);
+    startTransition(async () => {
+      const res = await setActivePlanAction(plan.id, dayId);
+      // Úspech → redirect vnútri akcie, sem sa vrátime len pri chybe.
+      if (res?.error) {
+        clearWorkoutStarted();
+        setError(res.error);
+      }
+    });
+  };
+
+  if (mode === "build") {
+    return (
+      <ClientPlanBuilder
+        library={library}
+        initial={editing}
+        template={fromTemplate}
+        onCancel={closeBuilder}
+        onSaved={onSaved}
+      />
+    );
+  }
+
+  return (
+    <section aria-label="Tréningové plány" className={styles.trWrap}>
+      <div className={styles.trHead}>
+        <p className={styles.panelLabel}>Tréningové plány</p>
+        <button
+          type="button"
+          className={plans.length > 0 ? styles.trBuildBtnGhost : styles.trBuildBtn}
+          onClick={() => openBuilder(null)}
+        >
+          <PlusIcon /> Vlastný tréning
+        </button>
+      </div>
+
+      {error && (
+        <p className={styles.trError} role="alert">
+          {error}
+        </p>
+      )}
+
+      {/* Moje šablóny navrchu, ale zbalené — aj pri viacerých šablónach neodtlačia
+          tréningy (od trénera) nižšie, kým ich klient sám nerozbalí. */}
+      {templates.length > 0 && (
+        <div className={styles.trTplBox}>
+          <button
+            type="button"
+            className={styles.trTplToggle}
+            onClick={() => setTemplatesOpen((o) => !o)}
+            aria-expanded={templatesOpen}
+            aria-controls="moje-sablony"
+          >
+            <span className={styles.trTplToggleLabel}>Moje šablóny</span>
+            <span className={styles.trTplCount}>{templates.length}</span>
+            <ChevronIcon className={`${styles.trChev} ${templatesOpen ? styles.trChevOpen : ""}`} />
+          </button>
+          {templatesOpen && (
+            <ul id="moje-sablony" className={styles.trTplList}>
+              {templates.map((t) => {
+                const exCount = t.days.reduce((n, d) => n + d.exercises.length, 0);
+                return (
+                  <li key={t.id} className={styles.trTpl}>
+                    <span className={styles.trTplText}>
+                      <span className={styles.trTplName}>{t.name}</span>
+                      <span className={styles.trTplMeta}>
+                        {t.days.length} {dayWord(t.days.length)} · {exCount} {exWord(exCount)}
+                      </span>
+                    </span>
+                    <span className={styles.trTplActions}>
+                      {confirmTplDelete === t.id ? (
+                        <>
+                          <span className={styles.trConfirmText}>Zmazať šablónu?</span>
+                          <button
+                            type="button"
+                            className={styles.trDangerBtn}
+                            onClick={() => removeTemplate(t.id)}
+                            disabled={pending}
+                          >
+                            Zmazať
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.trGhostBtn}
+                            onClick={() => setConfirmTplDelete(null)}
+                            disabled={pending}
+                          >
+                            Nie
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Nový tréning predvyplnený šablónou — uloží sa ako nový, šablóna ostane. */}
+                          <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(null, t)}>
+                            Použiť
+                          </button>
+                          <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(t.id)}>
+                            Zmazať
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+      {/* čiara oddelí šablóny od tréningov pod nimi — karty vyzerajú rovnako a splývali */}
+      {templates.length > 0 && <hr className={styles.trDivider} />}
+
+      {plans.length === 0 ? (
+        <div className={styles.panel}>
+          <p className={styles.trEmptyLead}>Zatiaľ tu nič nie je</p>
+          <p className={styles.trEmptyBody}>
+            Vytvor si vlastný tréning — naklikáš cviky, uložíš a bude ti fungovať rovnako ako plán od trénera.
+            Ak máš trénera, tvoj plán sa tu objaví hneď, ako ti ho pridá.
+          </p>
+        </div>
+      ) : (
+        <ul className={styles.trPlanList}>
+          {plans.map((plan) => {
+            const expanded = expandedId === plan.id;
+            const selectedDay = expanded && selectedDayId ? (plan.days.find((d) => d.id === selectedDayId) ?? null) : null;
+            return (
+              <li key={plan.id} className={`${styles.trPlan} ${plan.isActive ? styles.trPlanActive : ""}`}>
+                <button
+                  type="button"
+                  className={styles.trPlanHead}
+                  onClick={() => tapPlan(plan)}
+                  aria-expanded={expanded}
+                  disabled={pending}
+                >
+                  <span className={styles.trPlanTop}>
+                    <span className={styles.trPlanName}>{plan.name}</span>
+                    <ChevronIcon className={`${styles.trChev} ${expanded ? styles.trChevOpen : ""}`} />
+                  </span>
+                  <span className={styles.trPlanChips}>
+                    {plan.isActive && <span className={styles.trActivePill}>Aktívny</span>}
+                    <span className={styles.trSrcChip} data-src={plan.source}>
+                      {plan.source === "trainer" ? "Od trénera" : "Vlastný"}
+                    </span>
+                    {/* „Plán na 3 dni" — samotné „3 dni" klienti nechápali (koľko dní v týždni? trvanie?). */}
+                    <span className={styles.chip}>
+                      {plan.days.length > 0
+                        ? `Plán na ${plan.days.length} ${dayWord(plan.days.length)}`
+                        : "Zatiaľ bez dní"}
+                    </span>
+                  </span>
+                </button>
+
+                {expanded && (
+                  <div className={styles.trPlanBody}>
+                    {!selectedDay && !plan.isActive && plan.days.length > 0 && (
+                      <div className={styles.trActiveRow}>
+                        <button type="button" className={styles.trGhostBtn} onClick={() => makeActive(plan)} disabled={pending}>
+                          Nastaviť ako aktívny
+                        </button>
+                        <span className={styles.trHint}>Zobrazí sa na karte Dnes.</span>
+                      </div>
+                    )}
+                    {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (
+                      <p className={styles.trActiveNote} role="status">
+                        {activeNote.text}
+                      </p>
+                    )}
+                    {plan.days.length === 0 ? (
+                      <p className={styles.trEmptyDay}>Tento tréning nemá žiadne dni.</p>
+                    ) : selectedDay ? (
+                      <>
+                        <button type="button" className={styles.trDayBack} onClick={backToDays}>
+                          <ChevronIcon className={styles.trDayBackIcon} /> Všetky dni
+                        </button>
+                        <div className={styles.trDay}>
+                          <p className={styles.panelLabel}>
+                            {selectedDay.name}
+                            {selectedDay.done && <span className={styles.trDoneBadge}>Hotovo</span>}
+                          </p>
+                          {selectedDay.lastLog &&
+                          editingLogId === selectedDay.lastLog.id &&
+                          isStillEditable(selectedDay.lastLog.editableUntil) ? (
+                            <LoggedWorkoutEditor
+                              logId={selectedDay.lastLog.id}
+                              exercises={selectedDay.exercises}
+                              logged={selectedDay.lastLog.entries}
+                              rpe={selectedDay.lastLog.rpe}
+                              note={selectedDay.lastLog.note}
+                              editableUntil={selectedDay.lastLog.editableUntil!}
+                              onClose={() => setEditingLogId(null)}
+                            />
+                          ) : selectedDay.exercises.length > 0 ? (
+                            <ExercisePreviewList exercises={selectedDay.exercises} />
+                          ) : (
+                            <p className={styles.trEmptyDay}>Žiadne cviky.</p>
+                          )}
+                        </div>
+
+                        {!selectedDay.done ? (
+                          <div className={styles.trPlanActions}>
+                            <button
+                              type="button"
+                              className={styles.trStartBtn}
+                              onClick={() => startPlan(plan, selectedDay.id)}
+                              disabled={pending}
+                            >
+                              Začať tréning
+                            </button>
+                          </div>
+                        ) : editingLogId === null &&
+                          selectedDay.lastLog &&
+                          isStillEditable(selectedDay.lastLog.editableUntil) ? (
+                          <div className={styles.trPlanActions}>
+                            <button
+                              type="button"
+                              className={styles.editValuesBtn}
+                              onClick={() => setEditingLogId(selectedDay.lastLog!.id)}
+                            >
+                              <PencilIcon /> Upraviť hodnoty
+                            </button>
+                            <p className={styles.lockNote}>
+                              Zabudnuté hodnoty môžeš opraviť do {formatEditDeadline(selectedDay.lastLog.editableUntil!)}.
+                            </p>
+                          </div>
+                        ) : editingLogId === null ? (
+                          <p className={styles.lockNote}>
+                            Odcvičené
+                            {selectedDay.lastLog?.completedAt ? ` ${formatCompletedDate(selectedDay.lastLog.completedAt)}` : ""}.
+                            Hodnoty sa dali upraviť 24 hodín po ukončení, teraz sú uzavreté.
+                          </p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <ul className={styles.trDayList}>
+                          {plan.days.map((day) => (
+                            <li key={day.id}>
+                              <button type="button" className={styles.trDayBtn} onClick={() => selectDay(day.id)}>
+                                <span className={styles.trDayBtnName}>{day.name}</span>
+                                <span className={styles.trDayBtnMeta}>
+                                  <span className={`${styles.trDoneBadge} ${!day.done ? styles.trDoneBadgeHidden : ""}`}>
+                                    Hotovo
+                                  </span>
+                                  <span className={styles.chip}>
+                                    {day.exercises.length} {exWord(day.exercises.length)}
+                                  </span>
+                                  <ChevronIcon className={styles.trDayBtnChevron} />
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {plan.source === "client" && (
+                          <div className={styles.trPlanActions}>
+                            {confirmDelete === plan.id ? (
+                              <>
+                                <span className={styles.trConfirmText}>Naozaj zmazať tento tréning?</span>
+                                <button
+                                  type="button"
+                                  className={styles.trDangerBtn}
+                                  onClick={() => removePlan(plan.id)}
+                                  disabled={pending}
+                                >
+                                  Zmazať
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.trGhostBtn}
+                                  onClick={() => setConfirmDelete(null)}
+                                  disabled={pending}
+                                >
+                                  Nie
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(plan)}>
+                                  Upraviť
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.trGhostBtn}
+                                  onClick={() => saveTemplate(plan.id)}
+                                  disabled={pending}
+                                >
+                                  Uložiť ako šablónu
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.trGhostBtn} btn-danger`}
+                                  onClick={() => setConfirmDelete(plan.id)}
+                                >
+                                  Zmazať
+                                </button>
+                              </>
+                            )}
+                            {templateNote?.planId === plan.id && (
+                              <p
+                                className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
+                                role="status"
+                              >
+                                {templateNote.text}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {plans.length > 1 && (
+        <p className={styles.trHint}>Ťukni na tréning a vyber si deň — „Začať tréning“ ho nastaví ako aktívny na karte Dnes.</p>
+      )}
+    </section>
+  );
+}

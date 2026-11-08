@@ -1,0 +1,565 @@
+// FitPilot — AI blok: generátor tréningového plánu pre trénera (Track "Tréner"
+// bod 4/5 v ROADMAP.md). Rovnaký princíp ako lib/ai/exerciseAlternatives.ts —
+// appka najprv nájde skutočné cviky z knižnice, model si SMIE vybrať LEN z nich
+// (po odpovedi appka vyfiltruje neplatné exercise_id).
+//
+// feature/ai-plan-partie (2026-09-18): JEDEN select "Zameranie" (13 hodnôt,
+// pozri lib/ai/planCategories.ts) teraz spúšťa dve odlišné správania:
+//  1. Celoplánové (vyvazene/horna/dolna) — presne ako doteraz: `daysPerWeek`
+//     dní, jednoduchý číselný pomer horná/dolná v prompte + deterministická
+//     kontrola po vygenerovaní (`enforceFocus`, lib/ai/planTaxonomy.ts).
+//     Appka NEROZHODUJE, ktorý deň bude čo — žiadny split builder.
+//  2. Partiové (push/pull/legs/...) — RÝCHLE vygenerovanie PRESNE JEDNÉHO
+//     tréningového dňa, `daysPerWeek` sa ignoruje, kandidáti sú vopred
+//     zúžení na muscle_group podmnožinu danej kategórie
+//     (lib/ai/planCategories.ts, znovupoužité mapovanie z predošlého pokusu).
+//
+// Vybavenie ostáva štrukturálny filter kandidátov (exercises.equipment,
+// migrácia 0031, lib/ai/planTaxonomy.ts) — aplikuje sa PRED oboma vetvami
+// vyššie, nezávisle od nich.
+//
+// Draft-then-approve (Product Principle #1 — tréner vždy v kontrole): tento
+// modul NEZAPISUJE nič do DB sám. Vráti len navrhnutú štruktúru; server action
+// (app/dashboard/treningy/actions.ts) z nej vytvorí bežný `workout_plans`
+// (published: false — koncept, presne ako ručne vytvorený plán, 0021) +
+// `workout_days`, ktoré sa otvoria v existujúcom PlanBuilderi na plnú editáciu.
+
+import { getAnthropicClient, AI_MODEL } from "./client";
+import { logAiUsage } from "./logUsage";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  exerciseFitsEquipment,
+  regionForMuscleGroup,
+  GLUTES_MUSCLE_GROUP,
+  analyzeFocus,
+  focusTargetMet,
+  FOCUS_MIN_GLUTES,
+} from "./planTaxonomy";
+import {
+  type PlanFocus,
+  type DayCategory,
+  type WholePlanFocus,
+  DAY_CATEGORY_LABEL_SK,
+  WHOLE_PLAN_FOCUS_LABEL_SK,
+  MIN_EXERCISES_PER_CATEGORY_DAY,
+  isSingleDayFocus,
+  candidatesForCategory,
+} from "./planCategories";
+
+export type PlanGoal = "chudnutie" | "hypertrofia" | "sila" | "kondicia";
+export type PlanExperience = "zaciatocnik" | "stredne_pokrocily" | "pokrocily";
+export type PlanEquipment = "plna_posilnovna" | "domace_vybavenie" | "len_telo";
+
+export interface PlanGeneratorInput {
+  trainerId: string;
+  clientId: string;
+  goal: PlanGoal;
+  daysPerWeek: number; // 1-7, ignorované pri partiovom (jednodňovom) zameraní
+  experience: PlanExperience;
+  equipment: PlanEquipment;
+  /** ID z reserveAiSlot() — dokončí sa po volaní modelu (viď lib/ai/rateLimit.ts) */
+  reservationId?: string | null;
+  focus: PlanFocus;
+  /** „Údaje o klientovi“ (lib/ai/planClientContext.ts) — plán sa prispôsobí konkrétnemu klientovi */
+  clientContext?: string[];
+}
+
+export interface GeneratedExercise {
+  exerciseId: string;
+  exerciseName: string;
+  sets: number;
+  reps: string;
+  restSeconds: number;
+}
+
+export interface GeneratedDay {
+  name: string;
+  exercises: GeneratedExercise[];
+}
+
+export interface GeneratedPlan {
+  days: GeneratedDay[];
+  /** Deterministická kontrola po vygenerovaní niečo nedotiahla — tréner nech si to overí v koncepte. */
+  warnings?: string[];
+  /** Len pri partiovom (jednodňovom) zameraní — kategória + dátum. Chýbajúce = server action použije default názov podľa cieľa. */
+  planName?: string;
+}
+
+const GOAL_LABEL: Record<PlanGoal, string> = {
+  chudnutie: "chudnutie (vyšší objem, kratšie pauzy)",
+  hypertrofia: "hypertrofia (nárast svalovej hmoty, stredné opakovania 8-12)",
+  sila: "sila (nízke opakovania 3-6, dlhšie pauzy, ťažké základné cviky)",
+  kondicia: "všeobecná kondícia (vyvážený plán, mierna intenzita)",
+};
+const EXPERIENCE_LABEL: Record<PlanExperience, string> = {
+  zaciatocnik: "začiatočník (jednoduché cviky, nižší objem, technika na prvom mieste)",
+  stredne_pokrocily: "stredne pokročilý",
+  pokrocily: "pokročilý (vyšší objem/intenzita, môžu byť náročnejšie varianty)",
+};
+const EQUIPMENT_LABEL: Record<PlanEquipment, string> = {
+  plna_posilnovna: "plná posilňovňa (činky, stroje, kladky)",
+  domace_vybavenie: "domáce vybavenie (činky/guma, bez strojov)",
+  len_telo: "len vlastná váha, bez vybavenia",
+};
+
+/** Číselný cieľ celoplánového zamerania do promptu — v duchu "sets: 1-8", nie vágne formulácie. */
+const FOCUS_PROMPT: Record<WholePlanFocus, string | null> = {
+  vyvazene: null,
+  horna:
+    "ZAMERANIE: viac horná časť tela. Približne 55-60 % všetkých cvikov v pláne (naprieč dňami spolu) má cieliť hornú časť tela (hrudník, chrbát, ramená, biceps, triceps). Dolná časť a core nech tvoria zvyšok.",
+  dolna:
+    "ZAMERANIE: viac dolná časť tela. Približne 55-60 % všetkých cvikov v pláne (naprieč dňami spolu) má cieliť dolnú časť tela (kvadricepsy, zadné stehná, zadok, lýtka), z toho ASPOŇ 2 cviky za týždeň priamo na zadok (glutes). Horná časť a core nech tvoria zvyšok.",
+};
+
+const MUSCLE_GROUP_CANDIDATES_LIMIT = 15; // per svalová partia — drží prompt v rozumnej veľkosti
+const MAX_EXERCISES_PER_DAY = 8;
+
+interface CandidateExercise {
+  id: string;
+  name: string;
+  nameSk: string | null;
+  muscleGroup: string;
+  equipment: string | null;
+}
+
+/**
+ * Kandidáti naprieč VŠETKÝMI svalovými partiami (nie len jednou ako pri náhrade
+ * cviku) — plán musí vedieť pokryť celé telo. Ak je v knižnici vyplnený
+ * `equipment` (migrácia 0031 + re-import), kandidáti sa filtrujú podľa úrovne
+ * vybavenia klienta PRED promptom. Kým `equipment` nie je doplnený (samé NULL),
+ * filter sa vypne a padáme späť na doterajšie správanie (prompt spomenie
+ * vybavenie textom). Zúženie tohto spoločného poolu na jednu kategóriu (pri
+ * partiovom zameraní) rieši `candidatesForCategory` až v `generateWorkoutPlan`
+ * — equipment filter a kategória filter idú za sebou, nie namiesto seba.
+ */
+async function fetchCandidateExercises(
+  supabase: SupabaseClient,
+  equipment: PlanEquipment,
+): Promise<{ candidates: CandidateExercise[]; equipmentFiltered: boolean }> {
+  const { data: groups } = await supabase
+    .from("exercises")
+    .select("muscle_group")
+    .not("muscle_group", "is", null);
+  const distinctGroups = Array.from(new Set((groups ?? []).map((g) => g.muscle_group as string)));
+
+  const results = await Promise.all(
+    distinctGroups.map((mg) =>
+      supabase
+        .from("exercises")
+        .select("id, name, name_sk, muscle_group, equipment")
+        // Načítaj o niečo viac, nech po equipment filtri zostane rozumný počet.
+        .eq("muscle_group", mg)
+        // Cviky so slovenským názvom najprv — bez zoradenia DB vrátila ľubovoľných
+        // N riadkov a generátor vyberal anglické duplikáty ("Bent Over Barbell Row"),
+        // hoci v knižnici je "Veslovanie v predklone" (QA 2026-09-23).
+        .order("name_sk", { ascending: true, nullsFirst: false })
+        .limit(MUSCLE_GROUP_CANDIDATES_LIMIT * 3),
+    ),
+  );
+
+  const raw: CandidateExercise[] = [];
+  for (const r of results) {
+    for (const row of r.data ?? []) {
+      raw.push({
+        id: row.id,
+        name: row.name,
+        nameSk: row.name_sk,
+        muscleGroup: row.muscle_group,
+        equipment: row.equipment ?? null,
+      });
+    }
+  }
+
+  const equipmentDataAvailable = raw.some((c) => c.equipment != null);
+  const filtered = equipmentDataAvailable ? raw.filter((c) => exerciseFitsEquipment(c.equipment, equipment)) : raw;
+
+  // Zosekni späť na limit per partia (po filtri, nech partie neprevažuje jedna).
+  // Stabilné zoradenie: preložené cviky pred nepreloženými aj po equipment filtri.
+  const ordered = [...filtered].sort((a, b) => Number(!a.nameSk?.trim()) - Number(!b.nameSk?.trim()));
+  const byGroup = new Map<string, CandidateExercise[]>();
+  for (const c of ordered) {
+    const list = byGroup.get(c.muscleGroup) ?? [];
+    if (list.length < MUSCLE_GROUP_CANDIDATES_LIMIT) {
+      list.push(c);
+      byGroup.set(c.muscleGroup, list);
+    }
+  }
+  return { candidates: [...byGroup.values()].flat(), equipmentFiltered: equipmentDataAvailable };
+}
+
+function formatCandidates(candidates: CandidateExercise[]): string {
+  const byGroup = new Map<string, CandidateExercise[]>();
+  for (const c of candidates) {
+    if (!byGroup.has(c.muscleGroup)) byGroup.set(c.muscleGroup, []);
+    byGroup.get(c.muscleGroup)!.push(c);
+  }
+  const lines: string[] = [];
+  for (const [group, list] of byGroup) {
+    lines.push(`${group}:`);
+    for (const c of list) lines.push(`  - ${c.id} :: ${c.nameSk?.trim() || c.name}`);
+  }
+  return lines.join("\n");
+}
+
+/** Rozumné default série/opakovania/pauza pre cvik doplnený appkou (tréner ich v builderi upraví). */
+function defaultsForGoal(goal: PlanGoal): { sets: number; reps: string; restSeconds: number } {
+  switch (goal) {
+    case "sila":
+      return { sets: 4, reps: "4-6", restSeconds: 180 };
+    case "hypertrofia":
+      return { sets: 3, reps: "8-12", restSeconds: 90 };
+    case "chudnutie":
+      return { sets: 3, reps: "12-15", restSeconds: 60 };
+    case "kondicia":
+      return { sets: 3, reps: "10-12", restSeconds: 75 };
+  }
+}
+
+function flatExerciseIds(days: GeneratedDay[]): string[] {
+  return days.flatMap((d) => d.exercises.map((e) => e.exerciseId));
+}
+
+/**
+ * Deterministická kontrola PO vygenerovaní pre CELOPLÁNOVÉ zameranie —
+ * nespoliehame sa len na to, že model inštrukciu o pomere dodržal. Ak pomer
+ * horná/dolná alebo počet cvikov na zadok nesedí na zvolený cieľ, appka doplní
+ * vhodné cviky z reálnych kandidátov (do dní s najmenším počtom cvikov, max
+ * MAX_EXERCISES_PER_DAY na deň). Ak to nejde bez prekročenia rozumného počtu,
+ * vráti varovanie pre trénera. (feature/ai-plan-zameranie, obnovené
+ * 2026-09-18 po zrušení split builder pokusu.)
+ */
+function enforceFocus(
+  days: GeneratedDay[],
+  focus: WholePlanFocus,
+  candidates: CandidateExercise[],
+  goal: PlanGoal,
+): { days: GeneratedDay[]; warnings: string[] } {
+  if (focus === "vyvazene") return { days, warnings: [] };
+
+  const nameById = new Map(candidates.map((c) => [c.id, c.nameSk?.trim() || c.name]));
+  const muscleGroupById = new Map(candidates.map((c) => [c.id, c.muscleGroup as string | null]));
+  const used = new Set(flatExerciseIds(days));
+
+  const region = focus === "dolna" ? "dolna" : "horna";
+  const regionPool = candidates.filter((c) => regionForMuscleGroup(c.muscleGroup) === region && !used.has(c.id));
+  const glutePool = candidates.filter((c) => c.muscleGroup.trim() === GLUTES_MUSCLE_GROUP && !used.has(c.id));
+  const def = defaultsForGoal(goal);
+
+  const addFrom = (pool: CandidateExercise[]): boolean => {
+    const target = days
+      .filter((d) => d.exercises.length < MAX_EXERCISES_PER_DAY)
+      .sort((a, b) => a.exercises.length - b.exercises.length)[0];
+    if (!target) return false;
+    while (pool.length > 0) {
+      const c = pool.shift()!;
+      if (used.has(c.id)) continue;
+      target.exercises.push({
+        exerciseId: c.id,
+        exerciseName: nameById.get(c.id) ?? c.name,
+        sets: def.sets,
+        reps: def.reps,
+        restSeconds: def.restSeconds,
+      });
+      used.add(c.id);
+      // odstráň ho aj z druhého poolu, ak tam je
+      const gi = glutePool.findIndex((g) => g.id === c.id);
+      if (gi >= 0) glutePool.splice(gi, 1);
+      const ri = regionPool.findIndex((r) => r.id === c.id);
+      if (ri >= 0) regionPool.splice(ri, 1);
+      return true;
+    }
+    return false;
+  };
+
+  // 1. „viac dolná časť" — najprv dorovnaj počet cvikov na zadok
+  if (focus === "dolna") {
+    let guard = 0;
+    while (
+      analyzeFocus(flatExerciseIds(days), muscleGroupById).zadok < FOCUS_MIN_GLUTES &&
+      glutePool.length > 0 &&
+      guard++ < 10
+    ) {
+      if (!addFrom(glutePool)) break;
+    }
+  }
+
+  // 2. dorovnaj podiel dominantnej časti tela
+  let guard = 0;
+  while (!focusTargetMet(analyzeFocus(flatExerciseIds(days), muscleGroupById), focus) && regionPool.length > 0 && guard++ < 20) {
+    if (!addFrom(regionPool)) break;
+  }
+
+  const finalAnalysis = analyzeFocus(flatExerciseIds(days), muscleGroupById);
+  const warnings: string[] = [];
+  if (!focusTargetMet(finalAnalysis, focus)) {
+    const share = focus === "dolna" ? finalAnalysis.dolnaShare : finalAnalysis.hornaShare;
+    const parts = [
+      `Cieľové zameranie „${WHOLE_PLAN_FOCUS_LABEL_SK[focus]}" sa nepodarilo úplne naplniť`,
+      `(${Math.round(share * 100)} % cvikov z cielenej časti tela`,
+      focus === "dolna" ? `, ${finalAnalysis.zadok} cvikov na zadok)` : ")",
+    ].join("");
+    warnings.push(`${parts} — over si rozloženie cvikov v koncepte a prípadne dopĺň ručne.`);
+  }
+  return { days, warnings };
+}
+
+/**
+ * Deterministické doplnenie PRE PARTIOVÝ (jednodňový) plán — ak po filtri
+ * neplatných exercise_id ostane dňu menej než MIN_EXERCISES_PER_CATEGORY_DAY
+ * cvikov, appka doplní z tých istých (kategórii vyfiltrovaných) kandidátov.
+ */
+function ensureMinExercises(
+  day: GeneratedDay,
+  pool: CandidateExercise[],
+  goal: PlanGoal,
+): { day: GeneratedDay; warning?: string } {
+  const used = new Set(day.exercises.map((e) => e.exerciseId));
+  const nameById = new Map(pool.map((c) => [c.id, c.nameSk?.trim() || c.name]));
+  const def = defaultsForGoal(goal);
+
+  for (const c of pool) {
+    if (day.exercises.length >= MIN_EXERCISES_PER_CATEGORY_DAY) break;
+    if (used.has(c.id)) continue;
+    day.exercises.push({
+      exerciseId: c.id,
+      exerciseName: nameById.get(c.id) ?? c.name,
+      sets: def.sets,
+      reps: def.reps,
+      restSeconds: def.restSeconds,
+    });
+    used.add(c.id);
+  }
+
+  const warning =
+    day.exercises.length < MIN_EXERCISES_PER_CATEGORY_DAY
+      ? `Deň má po filtri len ${day.exercises.length} cvik(y/ov) z ${MIN_EXERCISES_PER_CATEGORY_DAY} — kandidátov pre túto kategóriu/vybavenie nezostalo dosť, over si ho v koncepte.`
+      : undefined;
+  return { day, warning };
+}
+
+/** Automatický názov plánu pre partiové (jednodňové) generovanie — kategória + dnešný dátum, napr. "Chrbát — 18. 9. 2026". Tréner ho premenuje v PlanBuilderi ako hocijaký iný. */
+function singleDayPlanName(category: DayCategory): string {
+  const d = new Date();
+  return `${DAY_CATEGORY_LABEL_SK[category]} — ${d.getDate()}. ${d.getMonth() + 1}. ${d.getFullYear()}`;
+}
+
+export type GeneratePlanResult = { plan: GeneratedPlan } | { error: string };
+
+export async function generateWorkoutPlan(
+  supabase: SupabaseClient,
+  input: PlanGeneratorInput,
+): Promise<GeneratePlanResult> {
+  const { candidates, equipmentFiltered } = await fetchCandidateExercises(supabase, input.equipment);
+  if (candidates.length === 0) {
+    return { error: "Knižnica cvikov je prázdna alebo pre zvolené vybavenie nezostal žiadny cvik — skús inú úroveň vybavenia." };
+  }
+
+  const singleDay = isSingleDayFocus(input.focus);
+  const category: DayCategory | null = singleDay ? (input.focus as DayCategory) : null;
+
+  // Partiové zameranie zúži kandidátov na jednu kategóriu PRED promptom —
+  // model tak nedostane celú knižnicu, len relevantnú časť pre danú partiu.
+  // "fullbody" sa ako filter zámerne nepoužíva (normálny plný výber).
+  const promptCandidates = category && category !== "fullbody" ? candidatesForCategory(candidates, category) : candidates;
+  if (promptCandidates.length === 0) {
+    return {
+      error: `Pre kategóriu „${DAY_CATEGORY_LABEL_SK[category!]}" a zvolené vybavenie nezostal žiadny cvik — skús inú úroveň vybavenia.`,
+    };
+  }
+
+  const candidateIds = new Set(promptCandidates.map((c) => c.id));
+  const nameById = new Map(promptCandidates.map((c) => [c.id, c.nameSk?.trim() || c.name]));
+
+  const equipmentLine = equipmentFiltered
+    ? "Vybavenie: zoznam cvikov nižšie je UŽ vyfiltrovaný podľa dostupného vybavenia klienta — všetky cviky v ňom sú vykonateľné, neriešiš to."
+    : `Vybavenie klienta: ${EQUIPMENT_LABEL[input.equipment]}. Vyber cviky, ktoré sa dajú s ním spraviť (odhadni podľa názvu cviku).`;
+
+  const system = singleDay
+    ? [
+        "Si asistent trénera vo fitness aplikácii FitPilot. Zostavíš JEDEN tréningový deň VÝHRADNE z cvikov v priloženom zozname — nikdy nenavrhuj cvik mimo neho.",
+        "Ak zoznam obsahuje viac variantov toho istého cviku (napr. slovenský a anglický názov), vyber variant so slovenským názvom.",
+        equipmentLine,
+        `Vytvor PRESNE 1 tréningový deň zameraný na: ${DAY_CATEGORY_LABEL_SK[category!]}. Deň má 4-8 cvikov.`,
+        'sets: celé číslo 1-8. rest_seconds: celé číslo 15-300 (sekundy). reps: text (napr. "8-10"). Nastav ich podľa cieľa a skúsenosti (napr. sila = nižšie reps, dlhšie pauzy; hypertrofia = stredné reps 8-12; začiatočník = nižší objem).',
+        "Pole name vyplň krátkym popisom dňa — appka ho aj tak nahradí vlastným slovenským názvom.",
+      ].join("\n")
+    : [
+        "Si asistent trénera vo fitness aplikácii FitPilot. Zostavíš tréningový plán VÝHRADNE z cvikov v priloženom zozname — nikdy nenavrhuj cvik mimo neho.",
+        "Ak zoznam obsahuje viac variantov toho istého cviku (napr. slovenský a anglický názov), vyber variant so slovenským názvom.",
+        "Rozdeľ cviky rozumne medzi dni podľa cieľa a skúsenosti klienta (napr. split podľa svalových partií pri viacerých dňoch, full-body pri 1-3 dňoch).",
+        equipmentLine,
+        "Vytvor PRESNE toľko dní, koľko klient požaduje (pozri nižšie). Každý deň má 4-8 cvikov.",
+        'sets: celé číslo 1-8. rest_seconds: celé číslo 15-300 (sekundy). reps: text (napr. "8-10"). Nastav ich podľa cieľa a skúsenosti (napr. sila = nižšie reps, dlhšie pauzy; hypertrofia = stredné reps 8-12; začiatočník = nižší objem).',
+        "Ak je nižšie uvedené ZAMERANIE, dodrž zadaný pomer cvikov medzi časťami tela naprieč celým týždňom.",
+        "Názvy dní stručné a výstižné (napr. 'Deň 1 — Horná časť tela').",
+      ].join("\n");
+
+  const userMessageParts: string[] = [`Cieľ klienta: ${GOAL_LABEL[input.goal]}.`];
+  if (!singleDay) userMessageParts.push(`Počet tréningových dní v týždni: ${input.daysPerWeek}.`);
+  userMessageParts.push(`Skúsenosť: ${EXPERIENCE_LABEL[input.experience]}.`);
+  if (!equipmentFiltered) userMessageParts.push(`Dostupné vybavenie: ${EQUIPMENT_LABEL[input.equipment]}.`);
+  if (!singleDay) {
+    const focusLine = FOCUS_PROMPT[input.focus as WholePlanFocus];
+    if (focusLine) userMessageParts.push("", focusLine);
+  }
+  if (input.clientContext && input.clientContext.length > 0) {
+    // Cieľ a skúsenosť vyššie zadal tréner (aj pre viacerých klientov naraz) — údaje
+    // konkrétneho klienta ich spresňujú; obmedzenia z poznámky trénera majú prednosť.
+    userMessageParts.push(
+      "",
+      "Údaje o klientovi — prispôsob im výber cvikov a objem. Zdravotné obmedzenia a zranenia z poznámky trénera VŽDY rešpektuj (vynechaj cviky, ktoré by ich zaťažovali):",
+      ...input.clientContext,
+    );
+  }
+  userMessageParts.push(
+    "",
+    "Zoznam dostupných cvikov (exercise_id :: názov), zoskupené podľa svalovej partie:",
+    formatCandidates(promptCandidates),
+  );
+  const userMessage = userMessageParts.join("\n");
+
+  const anthropic = getAnthropicClient();
+
+  try {
+    const response = await anthropic.messages.create({
+      model: AI_MODEL.PLAN_GENERATOR,
+      max_tokens: 4096,
+      system,
+      messages: [{ role: "user", content: userMessage }],
+      tools: [
+        {
+          name: "propose_workout_plan",
+          description: "Navrhne tréningový plán rozdelený na dni, zložený výhradne z poskytnutých cvikov.",
+          input_schema: {
+            type: "object",
+            properties: {
+              days: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    exercises: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          exercise_id: { type: "string", description: "MUSÍ byť presne jedno z ID zo zoznamu vyššie." },
+                          sets: { type: "integer" },
+                          reps: { type: "string" },
+                          rest_seconds: { type: "integer" },
+                        },
+                        required: ["exercise_id", "sets", "reps", "rest_seconds"],
+                      },
+                    },
+                  },
+                  required: ["name", "exercises"],
+                },
+              },
+            },
+            required: ["days"],
+          },
+        },
+      ],
+      tool_choice: { type: "tool", name: "propose_workout_plan" },
+    });
+
+    const toolUse = response.content.find((b) => b.type === "tool_use");
+    if (!toolUse || toolUse.type !== "tool_use") {
+      return { error: "AI nevrátila návrh plánu. Skús to prosím znova." };
+    }
+
+    type RawPlan = { days?: unknown };
+    let raw = toolUse.input as RawPlan;
+    // Pozorované pri dlhších promptoch (viac dní/kandidátov): model občas
+    // "days" omylom zabalí ešte raz ako stringifikovaný JSON namiesto
+    // priameho poľa. Appka sa nespolieha na to, že tvar sedí napoprvé —
+    // skúsi ho rozbaliť, než návrh zahodí ako neočakávaný tvar.
+    if (typeof raw.days === "string") {
+      try {
+        const parsed: unknown = JSON.parse(raw.days);
+        raw = Array.isArray(parsed) ? { days: parsed } : (parsed as RawPlan);
+      } catch {
+        // necháme raw ako je — kontrola nižšie to odchytí ako chybný tvar.
+      }
+    }
+    if (!Array.isArray(raw.days) || raw.days.length === 0) {
+      return { error: "AI vrátila návrh v neočakávanom tvare. Skús to prosím znova." };
+    }
+    const parsedDays = raw.days as { name?: string; exercises?: { exercise_id: string; sets: number; reps: string; rest_seconds: number }[] }[];
+
+    const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
+
+    const toGeneratedDay = (rawDay: (typeof parsedDays)[number] | undefined, name: string): GeneratedDay => {
+      const exercises = Array.isArray(rawDay?.exercises) ? rawDay.exercises : [];
+      return {
+        name,
+        // Filter, nie len fallback — cvik s vymysleným ID by v builderi nemal
+        // obrázok/inštrukcie a klient by ho nevedel dohľadať.
+        exercises: exercises
+          .filter((e) => candidateIds.has(e.exercise_id))
+          .map((e) => ({
+            exerciseId: e.exercise_id,
+            exerciseName: nameById.get(e.exercise_id) ?? "Cvik",
+            sets: clamp(e.sets, 1, 10),
+            reps: e.reps,
+            restSeconds: clamp(e.rest_seconds, 15, 300),
+          })),
+      };
+    };
+
+    if (singleDay) {
+      const day = toGeneratedDay(parsedDays[0], DAY_CATEGORY_LABEL_SK[category!]);
+      const { day: filled, warning } = ensureMinExercises(day, promptCandidates, input.goal);
+
+      await logAiUsage({
+        trainerId: input.trainerId,
+        clientId: input.clientId,
+        kind: "plan_gen",
+        model: AI_MODEL.PLAN_GENERATOR,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        reservationId: input.reservationId,
+      });
+
+      return {
+        plan: {
+          days: [filled],
+          warnings: warning ? [warning] : undefined,
+          planName: singleDayPlanName(category!),
+        },
+      };
+    }
+
+    let days: GeneratedDay[] = parsedDays
+      .map((d) => toGeneratedDay(d, d.name ?? "Tréningový deň"))
+      .filter((d) => d.exercises.length > 0);
+
+    if (days.length === 0) {
+      return { error: "AI nevrátila použiteľný plán (žiadny navrhnutý cvik nebol z knižnice). Skús to prosím znova." };
+    }
+
+    // Deterministická kontrola/doplnenie zamerania.
+    const { days: enforced, warnings } = enforceFocus(days, input.focus as WholePlanFocus, promptCandidates, input.goal);
+    days = enforced;
+
+    await logAiUsage({
+      trainerId: input.trainerId,
+      clientId: input.clientId,
+      kind: "plan_gen",
+      model: AI_MODEL.PLAN_GENERATOR,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      reservationId: input.reservationId,
+    });
+
+    return { plan: { days, warnings: warnings.length > 0 ? warnings : undefined } };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("generateWorkoutPlan (Claude call):", detail, err);
+    // V deve ukáž skutočnú príčinu priamo v UI — generické „skús znova" pri
+    // internom nástroji trénera nič nerieši.
+    const suffix = process.env.NODE_ENV === "development" ? ` (detail: ${detail})` : "";
+    return { error: `Nastala chyba pri generovaní plánu. Skús to prosím znova.${suffix}` };
+  }
+}

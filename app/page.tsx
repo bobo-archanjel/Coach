@@ -1,7 +1,27 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
+import { StickyMobileCta } from "./components/StickyMobileCta";
 import styles from "./page.module.css";
+
+// feature/security#2 — vlastný title/description namiesto globálneho defaultu
+// z layout.tsx (ten ostáva fallback pre stránky bez vlastného exportu).
+// Kľúčové slová podľa PRODUCT.md Positioning — SK trh, natívny nástroj pre
+// fitness trénerov, nutrícia ako core funkcia, AI s kontextovou pamäťou.
+export const metadata: Metadata = {
+  // Plain string title PREPÍŠE title.template z layout.tsx (Next metadata
+  // dedičnosť) — brand meno musí byť tu explicitne, nie spoliehať sa na
+  // template. Zistené e2e sadou (test na /FitPilot/i v <title> zlyhal).
+  title: "FitPilot — softvér pre fitness trénerov, tréning a výživa",
+  description:
+    "FitPilot je slovenská appka pre fitness trénerov: správa klientov, tréningové plány, jedálničky a AI kouč s pamäťou klientovho profilu. 14 dní zadarmo.",
+  // feature/optimalizacia (SEO) — canonical na "/" zabraňuje tomu, aby Google
+  // indexoval túto stránku duplicitne pod query parametrami (napr. ?utm_...
+  // z reklamných kampaní) ako samostatnú URL. Bez toho hrozí "duplicate
+  // content" penalizácia a rozriedenie rankingu medzi variantmi tej istej URL.
+  alternates: { canonical: "/" },
+};
 
 const ArrowIcon = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
@@ -21,9 +41,52 @@ const CheckIcon = ({ color, size = 16 }: { color: string; size?: number }) => (
   </svg>
 );
 
+// feature/optimalizacia (SEO/GEO) — JSON-LD štruktúrované dáta. Klasické SEO
+// ich používa na rich snippets vo výsledkoch vyhľadávania; pre GEO (AI
+// vyhľadávače/asistenti ako Perplexity, ChatGPT search) sú dôležitejšie než
+// pre Google — LLM pri odpovedi uprednostní strojovo čitateľný fakt (názov,
+// kategória, cena, cieľová skupina) pred parafrázovaním voľného textu.
+// `offers.price: "0"` odkazuje na skúšobné obdobie (14 dní zadarmo), nie na
+// trvalo bezplatný produkt — placená fáza (PRODUCT.md fáza 3) zatiaľ nemá
+// zverejnený cenník, preto sa sem nevymýšľa konkrétna suma.
+function StructuredData() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "FitPilot",
+    url: siteUrl,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description:
+      "AI-native platforma pre fitness trénerov a ich klientov: správa klientov, tréningové plány, jedálničky a AI kouč s pamäťou klientovho profilu.",
+    inLanguage: "sk-SK",
+    audience: {
+      "@type": "Audience",
+      audienceType: "Fitness treneri",
+    },
+    areaServed: ["SK", "CZ"],
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+      description: "14-dňové skúšobné obdobie bez viazanosti",
+    },
+  };
+  return (
+    <script
+      type="application/ld+json"
+      // JSON.stringify je tu bezpečný — objekt je statický literál definovaný
+      // vyššie, žiadny užívateľský vstup doň nevstupuje.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
 export default function LandingPage() {
   return (
     <>
+      <StructuredData />
       <RevealOnScroll />
       <header className={styles.header}>
         <div className={`${styles.wrap} ${styles.nav}`}>
@@ -68,7 +131,7 @@ export default function LandingPage() {
                 tréner.
               </p>
               <div className={styles.heroCtas}>
-                <a href="#cennik" className="btn btn-primary">
+                <a href="/prihlasenie" className="btn btn-primary">
                   Začať 14-dňové skúšobné obdobie
                   <ArrowIcon />
                 </a>
@@ -85,7 +148,10 @@ export default function LandingPage() {
                   <span className={styles.dot} />
                   Dashboard — Martina K.
                 </span>
-                <span className="num" style={{ fontSize: 11, color: "var(--paper-faint)" }}>
+                {/* feature/optimalizacia (Lighthouse a11y) — --paper-faint na tomto tmavom
+                    pozadí (.demoTop) dávala len 4.45:1, tesne pod požadovaných 4.5:1.
+                    --paper-dim je na rovnakom pozadí ~9.4:1, bezpečná rezerva. */}
+                <span className="num" style={{ fontSize: 11, color: "var(--paper-dim)" }}>
                   UT 27. AUG
                 </span>
               </div>
@@ -678,7 +744,7 @@ export default function LandingPage() {
               <div className={`${styles.phaseRow} ${styles.first} ${styles.current}`}>
                 <div className={`${styles.phaseNum} stencil`}>01</div>
                 <div>
-                  <h4>MVP</h4>
+                  <h3>MVP</h3>
                   <p>
                     Klienti · tréningový builder · zaraďovanie plánov · food/makro tracking ·
                     základný dashboard · AI chat pre klienta · AI generátor plánov pre trénera
@@ -688,7 +754,7 @@ export default function LandingPage() {
               <div className={styles.phaseRow}>
                 <div className={`${styles.phaseNum} stencil`}>02</div>
                 <div>
-                  <h4>Fáza 2</h4>
+                  <h3>Fáza 2</h3>
                   <p>
                     Chat tréner ↔ klient, notifikácie, progres grafy, knižnica cvikov s videami,
                     AI upozornenia na adherenciu
@@ -698,7 +764,7 @@ export default function LandingPage() {
               <div className={styles.phaseRow}>
                 <div className={`${styles.phaseNum} stencil`}>03</div>
                 <div>
-                  <h4>Fáza 3</h4>
+                  <h3>Fáza 3</h3>
                   <p>
                     Platby a predplatné, kalendár rezervácií, pokročilé reporty, mobilná
                     optimalizácia / PWA, white-label branding
@@ -742,7 +808,10 @@ export default function LandingPage() {
               <a href="#funkcie">Funkcie</a>
               <a href="#ai">AI</a>
               <a href="#cennik">Cenník</a>
-              <a href="#">Kontakt</a>
+              <a href="mailto:podpora@myfitpilot.sk">Kontakt</a>
+              <Link href="/ochrana-sukromia">Ochrana súkromia</Link>
+              <Link href="/obchodne-podmienky">Obchodné podmienky</Link>
+              <Link href="/cookies">Cookies</Link>
             </div>
           </div>
           <p className={styles.fine}>
@@ -751,6 +820,7 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+      <StickyMobileCta />
     </>
   );
 }
