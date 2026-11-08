@@ -42,19 +42,23 @@ function syncThemeColor(theme: V6Theme) {
 }
 
 /**
- * Svetlá / Tmavá / Automaticky (podľa telefónu). Prepne hneď v prehliadači
- * (data-theme na koreni v6) a uloží do cookie, aby server pri ďalšom načítaní
- * vykreslil rovnakú tému bez zábleska.
+ * Prepne tému hneď v prehliadači (data-theme na koreni v6, farba stavového riadku)
+ * a uloží ju do cookie, aby server pri ďalšom načítaní vykreslil rovnakú tému bez
+ * zábleska. path=/ — tá istá téma pre landing, prihlásenie, portál aj dashboard.
  */
+export function applyV6Theme(next: V6Theme) {
+  document.cookie = `${V6_THEME_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
+  document.querySelector("[data-v6-root]")?.setAttribute("data-theme", next);
+  syncThemeColor(next);
+}
+
+/** Svetlá / Tmavá / Automaticky (podľa telefónu) — Nastavenia dashboardu, Profil portálu. */
 export function ThemeSwitch({ initial }: { initial: V6Theme }) {
   const [theme, setTheme] = useState<V6Theme>(initial);
 
   const choose = (next: V6Theme) => {
     setTheme(next);
-    // path=/ — tá istá téma pre portál (/portal), dashboard (/dashboard) aj prihlásenie v6
-    document.cookie = `${V6_THEME_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
-    document.querySelector("[data-v6-root]")?.setAttribute("data-theme", next);
-    syncThemeColor(next);
+    applyV6Theme(next);
   };
 
   return (

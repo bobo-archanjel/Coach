@@ -149,7 +149,7 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
       </nav>
 
       <div className={styles.sidebarFoot}>
-        <SignOutButton to="/v6design/prihlasenie" />
+        <SignOutButton />
       </div>
     </aside>
   );

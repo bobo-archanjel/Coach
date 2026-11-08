@@ -20,7 +20,7 @@ export default async function JedalnickyPage() {
   // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
   // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
   if (!user) {
-    redirect("/v6design/prihlasenie");
+    redirect("/prihlasenie");
   }
 
   const [{ data: clients }, { data: plans }] = await Promise.all([

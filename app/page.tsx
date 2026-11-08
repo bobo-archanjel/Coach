@@ -1,8 +1,12 @@
 import Link from "next/link";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
 import { StickyMobileCta } from "./components/StickyMobileCta";
+import { ThemeToggle } from "./v6design/ThemeToggle";
+import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "./v6design/theme";
+import tokens from "./v6design/styles/tokens.module.css";
 import styles from "./page.module.css";
 
 // feature/security#2 — vlastný title/description namiesto globálneho defaultu
@@ -22,6 +26,11 @@ export const metadata: Metadata = {
   // content" penalizácia a rozriedenie rankingu medzi variantmi tej istej URL.
   alternates: { canonical: "/" },
 };
+
+/** Farba stavového riadku podľa témy (svetlá/tmavá/auto) — rovnako ako prihlásenie a appka. */
+export async function generateViewport(): Promise<Viewport> {
+  return { themeColor: v6ThemeColor(parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value)) };
+}
 
 const ArrowIcon = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
@@ -83,9 +92,13 @@ function StructuredData() {
   );
 }
 
-export default function LandingPage() {
+/* Landing v dizajne v6 (tokeny app/v6design/styles/tokens.module.css): teplé svetlo v pozadí,
+   sklenené karty, terakotové akcie, svetlá/tmavá/auto téma z cookie spoločnej s appkou
+   (ikona slnko/mesiac v hlavičke ju prepína). */
+export default async function LandingPage() {
+  const theme = parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value);
   return (
-    <>
+    <div className={tokens.root} data-theme={theme} data-v6-root="">
       <StructuredData />
       <RevealOnScroll />
       <header className={styles.header}>
@@ -111,6 +124,7 @@ export default function LandingPage() {
               Vyskúšať zadarmo
               <ArrowIcon />
             </Link>
+            <ThemeToggle />
           </nav>
         </div>
       </header>
@@ -448,10 +462,7 @@ export default function LandingPage() {
                     <span className={styles.tag}>Peter · klient</span>
                     Bolí ma rameno pri bench presse, čo mám robiť?
                   </div>
-                  <div
-                    className={styles.bubble}
-                    style={{ maxWidth: "80%", background: "var(--ink)", border: "1px solid var(--steel-line)" }}
-                  >
+                  <div className={`${styles.bubble} ${styles.trainer}`} style={{ maxWidth: "80%" }}>
                     <span className={styles.tag}>Tréner · Martina</span>
                     Dnes vynechaj tlaky nad hlavu, napíšem ti náhradné cviky do 18:00.
                   </div>
@@ -776,23 +787,21 @@ export default function LandingPage() {
         </section>
 
         <section className={styles.finalCta}>
-          <div className={`${styles.wrap} ${styles.finalCtaInner}`}>
-            <div data-reveal className={styles.reveal}>
-              <div className="bar-rule red" style={{ marginBottom: 18 }}>
-                <span className="plate" />
-                <span className="bar" />
+          <div className={styles.wrap}>
+            <div data-reveal className={`${styles.finalCtaInner} ${styles.reveal}`}>
+              <div>
+                <h2>
+                  Zdvihni administratívu
+                  <br />
+                  zo svojich pliec.
+                </h2>
+                <p>14 dní zadarmo, bez viazanosti. Nastavenie klientov trvá menej ako obed.</p>
               </div>
-              <h2>
-                Zdvihni administratívu
-                <br />
-                zo svojich pliec.
-              </h2>
-              <p>14 dní zadarmo, bez viazanosti. Nastavenie klientov trvá menej ako obed.</p>
+              <Link href="/prihlasenie#register" className={`btn ${styles.finalCtaBtn}`}>
+                Začať skúšobné obdobie
+                <ArrowIcon />
+              </Link>
             </div>
-            <Link href="/prihlasenie#register" className="btn btn-primary" style={{ alignSelf: "center" }}>
-              Začať skúšobné obdobie
-              <ArrowIcon />
-            </Link>
           </div>
         </section>
       </main>
@@ -821,6 +830,6 @@ export default function LandingPage() {
         </div>
       </footer>
       <StickyMobileCta />
-    </>
+    </div>
   );
 }

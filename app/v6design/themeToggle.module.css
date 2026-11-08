@@ -1,0 +1,44 @@
+/* Ikona svetlý ↔ tmavý režim (ThemeToggle) — okrúhle tlačidlo v jazyku v6.
+   Ikona podľa data-theme koreňa v6: svetlá = slnko, tmavá = mesiac, auto = podľa zariadenia. */
+.toggle {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.toggle:hover {
+  border-color: var(--fill-strong);
+  color: var(--accent-text);
+}
+.toggle svg {
+  width: 20px;
+  height: 20px;
+}
+.moon {
+  display: none;
+}
+:global([data-theme="dark"]) .sun {
+  display: none;
+}
+:global([data-theme="dark"]) .moon {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  :global([data-theme="auto"]) .sun {
+    display: none;
+  }
+  :global([data-theme="auto"]) .moon {
+    display: block;
+  }
+}

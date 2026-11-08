@@ -1,21 +1,22 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Po prihlásení existuje len nový dizajn (v6) na /dashboard a /portal — bývalý portál
- * /v6design/portal/* trvalo presmeruje (next.config.ts), bývalý prepínač dizajnu
- * dashboardu (/v6design/dashboard, …/off) už neexistuje a prihlasovacie stránky
- * ostávajú v oboch vzhľadoch.
+ * Celá appka po prihlásení (/dashboard, /portal) aj prihlásenie (/prihlasenie) má len nový
+ * dizajn (v6) — bývalý portál /v6design/portal/* a prihlásenie /v6design/prihlasenie trvalo
+ * presmerujú (next.config.ts), bývalý prepínač dizajnu dashboardu (/v6design/dashboard, …/off)
+ * už neexistuje.
  * Bez session: redirecty rieši next.config, dashboard a portál sa v deve vykreslia cez
  * DEV náhľady (?preview=, DEV_OPEN v layoutoch).
  */
 
 test.describe("jeden dizajn po prihlásení", () => {
-  test("bývalý portál /v6design/portal trvalo presmeruje na /portal", async ({ request, baseURL }) => {
+  test("bývalý portál a prihlásenie v6 trvalo presmerujú na /portal a /prihlasenie", async ({ request, baseURL }) => {
     const cases: [string, string][] = [
       ["/v6design", "/portal"],
       ["/v6design/portal", "/portal"],
       ["/v6design/portal/trening", "/portal/trening"],
       ["/v6design/portal/dennik", "/portal/dennik"],
+      ["/v6design/prihlasenie", "/prihlasenie"],
     ];
     for (const [from, to] of cases) {
       const res = await request.get(from, { maxRedirects: 0 });
@@ -64,13 +65,29 @@ test.describe("jeden dizajn po prihlásení", () => {
     }
   });
 
-  test("prihlasovacie stránky ostávajú: /prihlasenie pôvodný vzhľad, /v6design/prihlasenie nový", async ({ page }) => {
+  test("landing a prihlásenie v novom dizajne: ikona v hlavičke landingu prepína svetlý/tmavý režim", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    const root = page.locator("[data-v6-root]");
+    await expect(root).toHaveCount(1);
+    await expect(root).toHaveAttribute("data-theme", "auto"); // bez voľby podľa zariadenia
+    const toggle = page.getByRole("banner").getByRole("button", { name: "Prepnúť svetlý / tmavý režim" });
+    await toggle.click();
+    await expect(root).toHaveAttribute("data-theme", "dark");
+    await page.reload();
+    await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
+
+    // prihlásenie aj nové heslo preberú tému, vlastný prepínač už nemajú
     await page.goto("/prihlasenie");
     await expect(page.getByRole("button", { name: "Prihlásiť sa" })).toBeVisible();
-    await expect(page.locator("[data-v6-root]")).toHaveCount(0);
-    await page.goto("/v6design/prihlasenie");
-    await expect(page.getByRole("button", { name: "Prihlásiť sa" })).toBeVisible();
-    await expect(page.locator("[data-v6-root]")).toHaveCount(1);
+    await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
+    await expect(page.getByRole("radiogroup", { name: "Téma" })).toHaveCount(0);
+    await page.goto("/prihlasenie/nove-heslo");
+    await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
+
+    await page.goto("/");
+    await page.getByRole("banner").getByRole("button", { name: "Prepnúť svetlý / tmavý režim" }).click();
+    await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "light");
   });
 });
 
@@ -91,7 +108,7 @@ test.describe("prihlásenie a odhlásenie (QA účty)", () => {
     ["tréner", accounts.trainer, /\/dashboard$/, "/dashboard/nastavenia", "/dashboard"],
     ["klient", accounts.client, /\/portal$/, "/portal/profil", "/portal/profil"],
   ] as const) {
-    test(`${role}: pôvodné /prihlasenie → nový dizajn, prepínač témy, odhlásenie → /v6design/prihlasenie`, async ({ page }) => {
+    test(`${role}: /prihlasenie → nový dizajn, prepínač témy, odhlásenie → /prihlasenie`, async ({ page }) => {
       test.setTimeout(90_000);
       await page.goto("/prihlasenie");
       await page.locator("#login-email").fill(email!);
@@ -112,7 +129,8 @@ test.describe("prihlásenie a odhlásenie (QA účty)", () => {
 
       await page.goto(signOutFrom);
       await page.getByRole("button", { name: "Odhlásiť sa" }).first().click();
-      await page.waitForURL(/\/v6design\/prihlasenie$/, { timeout: 30_000 });
+      await page.waitForURL(/\/prihlasenie$/, { timeout: 30_000 });
+      await expect(page.getByRole("button", { name: "Prihlásiť sa" })).toBeVisible();
     });
   }
 });

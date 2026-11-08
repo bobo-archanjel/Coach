@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
@@ -10,8 +10,7 @@ import { TurnstileScript, useTurnstile } from "../components/Turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { checkPassword } from "@/lib/passwordStrength";
 import { loginAction, registerAction, type LoginState, type RegisterState } from "./actions";
-import authModule from "./auth.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./auth.module.css";
 
 const initialLoginState: LoginState = { error: null, redirectTo: null };
 const initialRegisterState: RegisterState = { error: null, redirectTo: null, needsConfirm: false };
@@ -76,13 +75,10 @@ function validate(form: HTMLFormElement, fieldNames: string[]) {
 }
 
 /**
- * Prihlásenie / registrácia / zabudnuté heslo — zdieľané /prihlasenie a
- * /v6design/prihlasenie (dva vzhľady, rovnaké správanie). Štýly dodá skin (uiSkin.tsx),
- * mimo providera pôvodný modul; po prihlásení vždy /portal alebo /dashboard.
- * `footer` = doplnok pod formulárom (v6: prepínač témy).
+ * Prihlásenie / registrácia / zabudnuté heslo na /prihlasenie (dizajn v6, koreň s témou
+ * v layout.tsx — téma sa prepína na landing page); po prihlásení vždy /portal alebo /dashboard.
  */
-export function AuthView({ footer }: { footer?: ReactNode }) {
-  const styles = useSkinStyles("auth", authModule);
+export function AuthView() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -478,7 +474,7 @@ export function AuthView({ footer }: { footer?: ReactNode }) {
                   </button>
                 </div>
 
-                <div ref={loginTurnstile.containerRef} style={{ marginBottom: 14 }} />
+                <div ref={loginTurnstile.containerRef} className={styles.turnstile} />
 
                 <button
                   type="submit"
@@ -727,7 +723,7 @@ export function AuthView({ footer }: { footer?: ReactNode }) {
                   )}
                 </div>
 
-                <div ref={registerTurnstile.containerRef} style={{ marginBottom: 14 }} />
+                <div ref={registerTurnstile.containerRef} className={styles.turnstile} />
 
                 <button
                   type="submit"
@@ -773,7 +769,6 @@ export function AuthView({ footer }: { footer?: ReactNode }) {
             </section>
           )}
         </div>
-        {footer}
       </main>
     </div>
   );

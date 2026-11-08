@@ -11,7 +11,7 @@ import { NavigationProgressProvider } from "@/app/components/NavigationProgress"
 import { loadPortalShell } from "@/app/portal/portalShell";
 import { PortalNav } from "./PortalNav";
 import { PortalSkeletonOverlay } from "./PortalSkeletonOverlay";
-import { NotificationBell } from "./NotificationBell";
+import { NotificationBellSlot } from "./NotificationBell";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "@/app/v6design/theme";
 import t from "@/app/v6design/styles/tokens.module.css";
 import s from "./portal.module.css";
@@ -52,7 +52,7 @@ export default async function PortalLayout({ children }: { children: React.React
               <span className={s.v6BrandText}>FitPilot</span>
             </Link>
             <div className={s.v6TopActions}>
-              <NotificationBell />
+              <NotificationBellSlot placement="header" />
               <Link href="/portal/profil" className={s.v6Avatar} aria-label="Profil">
                 {initial}
               </Link>

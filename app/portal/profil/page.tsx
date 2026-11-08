@@ -52,7 +52,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
         <DeleteAccountSection requestedAt={view.deletionRequestedAt} requestedBy={view.deletionRequestedBy} />
 
         <div className={s.signOut}>
-          <SignOutButton to="/v6design/prihlasenie" />
+          <SignOutButton />
         </div>
       </div>
     </>

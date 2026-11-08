@@ -35,7 +35,7 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
   const {
     data: { user },
   } = await getUser();
-  if (!user) redirect("/v6design/prihlasenie");
+  if (!user) redirect("/prihlasenie");
   const supabase = await createClient();
 
   const { typ, goal: goalParam } = await searchParams;
