@@ -3244,6 +3244,10 @@
    fixed nad obsahom, nad bezpečnou oblasťou výrezu. Desktop: bežný riadok vedľa loga. */
 .bell {
   display: flex;
+  /* Desktop containing block pre .bellPanel (position:absolute od 880px) — bez
+     tohto by sa panel odvíjal od prvého POZICOVANÉHO predka vyššie v strome
+     (napr. .navShell), nie od zvončeka samotného. */
+  position: relative;
 }
 @media (max-width: 879px) {
   .bell {
@@ -3302,10 +3306,15 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+/* `position: fixed` priamo na viewport (nie `absolute` odvodené od rodiča .bell)
+   na mobile — display:contents na .navShell/.navTopRow medzi .bell a <aside>
+   dokáže toto odvodenie pokaziť (nájdené pri reálnom teste — panel sa
+   vykresľoval mimo obrazovky). Len `right`+`width` (žiadne `left`+margin
+   kombinácie — tie sú pri position:fixed nejednoznačné). */
 .bellPanel {
-  position: absolute;
-  top: 44px;
-  right: 0;
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 54px);
+  right: 12px;
   z-index: 40;
   width: min(344px, calc(100vw - 24px));
   max-height: calc(100vh - 88px);
@@ -3315,6 +3324,17 @@
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-m);
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+@media (min-width: 880px) {
+  .bellPanel {
+    /* Desktop: zvonček sedí v hornej časti bočného panela, nie pri hornom
+       okraji viewportu — tu .bell (position:relative) je spoľahlivý
+       containing block, žiadny display:contents predok to nenarúša. */
+    position: absolute;
+    top: 44px;
+    right: 0;
+    width: min(344px, calc(100vw - 24px));
+  }
 }
 .bellPanelTitle {
   font-size: 11px;
