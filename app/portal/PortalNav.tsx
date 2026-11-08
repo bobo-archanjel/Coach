@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/app/components/LogoMark";
 import { NavLinkPendingSignal } from "@/app/components/NavigationProgress";
-import { NotificationBell } from "./NotificationBell";
+import { NotificationBellSlot } from "./NotificationBell";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "@/app/portal/icons";
 import s from "./portal.module.css";
 
@@ -61,7 +61,7 @@ export function PortalNav({
           <LogoMark className={s.v6BrandMark} />
           <span className={s.v6BrandText}>FitPilot</span>
         </Link>
-        <NotificationBell />
+        <NotificationBellSlot placement="side" />
       </div>
       <nav
         className={`${s.v6Nav} ${keyboardOpen ? s.v6NavHidden : ""}`}

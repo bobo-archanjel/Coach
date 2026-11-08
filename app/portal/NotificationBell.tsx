@@ -1,7 +1,7 @@
 "use client";
 
 // Zvonček upozornení klienta (feature/AIupgrade) — mirror app/dashboard/
-// NotificationBell.tsx (tréner). Jeden pohľad na to, čo klient potrebuje vidieť:
+// NotificationBell.tsx (tréner); do layoutu cez NotificationBellSlot (nižšie). Jeden pohľad na to, čo klient potrebuje vidieť:
 // neprečítané správy od trénera (vrátane AI proaktívneho check-inu, sender
 // 'system'), nové/zverejnené plány a jedálničky, blížiace sa termíny. Skladanie
 // a definície sú v lib/portal/attention.ts a lib/portal/attentionData.ts
@@ -11,7 +11,7 @@
 // na plné dáta), refresh pri fokuse/otvorení/zmene trasy/intervale, a okamžite
 // pri novej správe cez Supabase Realtime (RLS-scoped).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { usePathname } from "next/navigation";
 import {
@@ -25,7 +25,7 @@ import styles from "./portal.module.css";
 
 function BellIcon() {
   return (
-    <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg className={styles.bellIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2h-15L6 16.5ZM10 20.5a2 2 0 0 0 4 0"
         stroke="currentColor"
@@ -42,6 +42,28 @@ const REALTIME_DEBOUNCE_MS = 1_500;
 
 /** Poradie Realtime kanálov — unikátny topic na mount (viď ChatThread, rovnaký dôvod). */
 let channelSeq = 0;
+
+/* Zvonček má dve miesta — mobilnú hlavičku (layout.tsx) a bočný panel na počítači
+   (PortalNav, od 880px). Predtým sa vykresľoval na oboch naraz: na mobile druhý
+   zvonček presakoval do obsahu stránky a dve kópie načítavali a odoberali
+   upozornenia dvakrát. Slot vykreslí zvonček len tam, kde sa práve zobrazuje. */
+const DESKTOP_QUERY = "(min-width: 880px)";
+function subscribeDesktop(onChange: () => void) {
+  const mq = window.matchMedia(DESKTOP_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+export function NotificationBellSlot({ placement }: { placement: "header" | "side" }) {
+  // server nevie šírku → do hydratácie len prázdne miesto rovnakej veľkosti (bez posunu)
+  const desktop = useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => null,
+  );
+  const show = desktop !== null && desktop === (placement === "side");
+  return show ? <NotificationBell /> : <span className={styles.bellSlot} aria-hidden="true" />;
+}
 
 export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number }) {
   const pathname = usePathname();

@@ -213,8 +213,9 @@
 .v6Side {
   display: contents;
 }
+/* logo + zvonček bočného panela — na mobile skryté (oboje je v hlavičke .v6Top) */
 .v6SideTopRow {
-  display: contents;
+  display: none;
 }
 .v6SideBrand,
 .v6SideUser {
@@ -258,6 +259,10 @@
     font-size: 18px;
   }
   .v6SideTopRow {
+    /* nad položkami menu — otvorený panel zvončeka ich prekrýva, nie naopak. .v6Nav je tu
+       flex položka a z mobilnej lišty si nesie z-index: 40 (vo flexe platí aj bez position) */
+    position: relative;
+    z-index: 41;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -3726,68 +3731,62 @@
   font-size: 13.5px;
 }
 
-/* ---------- zvonček upozornení (feature/AIupgrade) ---------- */
-/* Logo + zvonček na jednom riadku len na desktope (navBrand je pod 880px display:none,
-   zvonček tam rieši vlastné fixed umiestnenie nižšie). */
-.navTopRow {
-  display: contents;
+/* ---------- zvonček upozornení (feature/AIupgrade) ----------
+   Ako trénerov zvonček v dashboarde: okrúhle sklenené tlačidlo, panel ako sklenená karta.
+   Mobil: zvonček v hlavičke (.v6Top), panel na celú šírku pod ňou (kotví sa na hlavičku —
+   .bell tu nie je positioned), nad spodnou lištou. Počítač: zvonček v riadku s logom
+   bočného panela, panel rastie doprava do obsahu. Vykresľuje ho NotificationBellSlot
+   len na jednom z miest (.bellSlot = miesto do hydratácie, bez posunu). */
+.bellSlot {
+  display: block;
+  flex: none;
+  width: 40px;
+  height: 40px;
 }
-@media (min-width: 880px) {
-  .navTopRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-}
-/* Mobil: zvonček je jediná vec v hornom rohu (žiadna iná hlavička na mobile existuje),
-   fixed nad obsahom, nad bezpečnou oblasťou výrezu. Desktop: bežný riadok vedľa loga. */
-/* Zvonček sedí v reálnej hlavičke na oboch šírkach (.v6TopInner na mobile,
-   .v6SideTopRow na desktope od 880px) — position:relative stačí všade,
-   .bellPanel (position:absolute) sa vždy odvíja priamo od .bell. */
 .bell {
-  position: relative;
   display: flex;
 }
 .bellBtn {
   position: relative;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  background: var(--ink-2);
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
   color: var(--paper-dim);
   cursor: pointer;
   transition:
-    background 0.15s ease,
+    border-color 0.15s ease,
     color 0.15s ease;
-}
-@media (min-width: 880px) {
-  .bellBtn {
-    background: transparent;
-  }
 }
 .bellBtn:hover,
 .bellBtnOpen {
-  background: var(--ink-3);
-  color: var(--paper);
+  border-color: var(--fill-strong);
+  color: var(--accent-text);
 }
 .bellBtn:focus-visible {
-  outline: 2px solid var(--iron-red);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+.bellIcon {
+  width: 21px;
+  height: 21px;
 }
 .bellBadge {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -5px;
+  right: -5px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--iron-red-deep);
-  color: var(--paper);
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: 0 0 0 2px var(--surface-solid);
   font-size: 10.5px;
   font-weight: 700;
   line-height: 18px;
@@ -3796,33 +3795,64 @@
 }
 .bellPanel {
   position: absolute;
-  top: 44px;
-  right: 0;
+  /* mobil: tesne pod hlavičkou, na celú šírku (8 px od okrajov), nad spodnou lištou */
+  top: calc(100% + 6px);
+  left: 8px;
+  right: 8px;
   z-index: 40;
-  width: min(344px, calc(100vw - 24px));
-  max-height: calc(100vh - 88px);
+  max-width: 560px;
+  margin-inline: auto;
+  max-height: calc(100dvh - 76px - env(safe-area-inset-top) - 100px - env(safe-area-inset-bottom));
   overflow-y: auto;
-  padding: 14px 16px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  overscroll-behavior: contain;
+  padding: 16px 18px;
+  /* nepriehľadný podklad (farba pozadia) pod sklom — panel je vnorený v sklenenej
+     hlavičke / bočnom paneli, takže vlastný backdrop-filter nevidí stránku pod sebou
+     a text obsahu by cezeň presvital */
+  background:
+    linear-gradient(180deg, var(--glass-sheen), transparent 40%),
+    linear-gradient(var(--sheet-bg-strong), var(--sheet-bg-strong)),
+    var(--v6-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  animation: v6Fade 0.15s ease both;
 }
 @media (min-width: 880px) {
+  .bellSlot {
+    width: 36px;
+    height: 36px;
+  }
+  .bell {
+    position: relative;
+  }
+  .bellBtn {
+    width: 36px;
+    height: 36px;
+  }
+  .bellIcon {
+    width: 19px;
+    height: 19px;
+  }
+  /* bočný panel má ~250 px — panel (344 px) rastie od zvončeka doprava do obsahu */
   .bellPanel {
-    /* Desktop sidebar (.v6Side) je len ~250px — s `right:0` by sa panel (344px)
-       roztiahol DOĽAVA mimo ľavého okraja obrazovky (nájdené pri reálnom
-       teste, viditeľný len odrezaný koniec textu). `left:0` rastie doprava do
-       hlavného obsahu, kde je vždy dosť miesta. */
+    top: 46px;
     left: 0;
     right: auto;
+    width: min(344px, calc(100vw - 24px));
+    max-width: none;
+    margin-inline: 0;
+    max-height: calc(100vh - 88px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bellPanel {
+    animation: none;
   }
 }
 .bellPanelTitle {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12.5px;
+  font-weight: 650;
   color: var(--paper-faint);
   margin-bottom: 4px;
 }
@@ -3833,7 +3863,7 @@
 }
 .bellItem {
   padding: 11px 0;
-  border-top: 1px solid var(--steel-line);
+  border-top: 1px solid var(--hairline);
 }
 .bellItem:first-of-type {
   border-top: 0;
@@ -3858,7 +3888,7 @@
   border-radius: 50%;
 }
 .bellToneAlert::before {
-  background: var(--iron-red);
+  background: var(--accent);
 }
 .bellToneWatch::before {
   background: var(--steel);
@@ -3893,7 +3923,7 @@ a.bellItemMain:hover {
 }
 .bellAction:focus-visible,
 .bellX:focus-visible {
-  outline: 2px solid var(--iron-red);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -3943,5 +3973,5 @@ a.bellItemMain:hover {
   margin-top: 10px;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--iron-red);
+  color: var(--error);
 }
