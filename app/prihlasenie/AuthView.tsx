@@ -10,8 +10,7 @@ import { TurnstileScript, useTurnstile } from "../components/Turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { checkPassword } from "@/lib/passwordStrength";
 import { loginAction, registerAction, type LoginState, type RegisterState } from "./actions";
-import authModule from "./auth.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./auth.module.css";
 
 const initialLoginState: LoginState = { error: null, redirectTo: null };
 const initialRegisterState: RegisterState = { error: null, redirectTo: null, needsConfirm: false };
@@ -76,13 +75,11 @@ function validate(form: HTMLFormElement, fieldNames: string[]) {
 }
 
 /**
- * Prihlásenie / registrácia / zabudnuté heslo — zdieľané /prihlasenie a
- * /v6design/prihlasenie (dva vzhľady, rovnaké správanie). Štýly dodá skin (uiSkin.tsx),
- * mimo providera pôvodný modul; po prihlásení vždy /portal alebo /dashboard.
- * `footer` = doplnok pod formulárom (v6: prepínač témy).
+ * Prihlásenie / registrácia / zabudnuté heslo na /prihlasenie (dizajn v6, koreň s témou
+ * v layout.tsx); po prihlásení vždy /portal alebo /dashboard.
+ * `footer` = doplnok pod formulárom (prepínač témy).
  */
 export function AuthView({ footer }: { footer?: ReactNode }) {
-  const styles = useSkinStyles("auth", authModule);
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
