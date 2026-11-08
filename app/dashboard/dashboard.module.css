@@ -1085,6 +1085,64 @@ select.addClientInputSm {
    jedného accentu). Zhodné s .publishBadge + .publishBadgeLive; jeden zdroj
    pravdy je lib/dashboard/planCompletion.ts, zdieľaný zoznamom Tréningy aj
    detailom klienta. */
+/* plán v detaile klienta — odkaz na builder + vpravo stav/akcia aktívneho plánu (0056).
+   Tlačidlo nesmie byť vnorené v odkaze, preto riadok = karta s dvoma časťami. */
+.planRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 22px;
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.15s ease;
+}
+.planRow:has(.planRowLink:hover) {
+  border-color: var(--paper-faint);
+}
+.planRowActive,
+.planRowActive:has(.planRowLink:hover) {
+  border-color: color-mix(in srgb, var(--moss) 45%, transparent);
+}
+.planRowLink {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  color: inherit;
+  text-decoration: none;
+}
+.planRowSide {
+  display: flex;
+  align-items: center;
+  padding-right: 16px;
+}
+.activePlanAction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.activePlanAction .publishError {
+  width: auto;
+  max-width: 220px;
+  text-align: right;
+}
+@media (max-width: 560px) {
+  .planRow {
+    grid-template-columns: 1fr;
+  }
+  .planRowSide {
+    padding: 0 18px 14px;
+  }
+  .activePlanAction {
+    align-items: flex-start;
+  }
+  .activePlanAction .publishError {
+    text-align: left;
+  }
+}
 .planDoneBadge {
   font-size: 11.5px;
   font-weight: 600;

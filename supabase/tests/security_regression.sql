@@ -354,6 +354,59 @@ select count(*) filter (where pg_temp.try(:SOCK, format($f$insert into public.me
 from generate_series(1, 40) \gset
 select pg_temp.chk('G: klient nepošle viac ako 30 správ za minútu', :'sent'::int = 30, 'sent=' || :'sent');
 
+-- ============================================================ H2) aktívny tréningový plán (0056)
+-- vlastný klient trénera T2, aby iné sekcie neovplyvnili výsledok
+\set AP '''eeeeeeee-0000-0000-0000-00000000000e'''
+insert into auth.users (id, email, raw_user_meta_data) values (:AP, 'ap@x.sk', '{"role":"client","full_name":"Aktivny Plan"}');
+select id as apc from public.clients where user_id = :AP \gset
+update public.clients set trainer_id = :T2 where id = :'apc';
+
+insert into public.workout_plans (client_id, trainer_id, name, published) values (:'apc', :T2, 'A', true);
+select id as pa from public.workout_plans where client_id = :'apc' and name = 'A' \gset
+select pg_temp.chk('H2: prvý zverejnený plán sa stane aktívnym',
+  (select active_plan_id from public.clients where id = :'apc') = :'pa'::uuid);
+
+select pg_temp.try(:T2, format('insert into public.workout_plans (client_id, trainer_id, name, published) values (%L, %L, ''B'', false)', :'apc', :T2)) as ins_b \gset
+select id as pb from public.workout_plans where client_id = :'apc' and name = 'B' \gset
+select pg_temp.try(:T2, format('update public.workout_plans set published = true where id = %L', :'pb')) as pub_b \gset
+select pg_temp.chk('H2: zverejnenie ďalšieho plánu trénerom neprebije aktívny',
+  :'ins_b' = 'OK' and :'pub_b' = 'OK' and (select active_plan_id from public.clients where id = :'apc') = :'pa'::uuid,
+  :'ins_b' || ' / ' || :'pub_b');
+
+select pg_temp.try(:AP, format('insert into public.workout_plans (client_id, name) values (%L, ''O'')', :'apc')) as ins_o \gset
+select id as po from public.workout_plans where client_id = :'apc' and name = 'O' \gset
+select pg_temp.chk('H2: vlastný plán klienta neprebije aktívny',
+  :'ins_o' = 'OK' and (select active_plan_id from public.clients where id = :'apc') = :'pa'::uuid, :'ins_o');
+
+select pg_temp.try(:T2, format('select public.set_client_active_plan(%L, %L)', :'apc', :'pb')) as set_b \gset
+select pg_temp.chk('H2: tréner nastaví klientovi aktívny plán',
+  :'set_b' = 'OK' and (select active_plan_id from public.clients where id = :'apc') = :'pb'::uuid, :'set_b');
+
+select pg_temp.chk('H2: cudzí tréner nenastaví aktívny plán',
+  pg_temp.try(:T1, format('select public.set_client_active_plan(%L, %L)', :'apc', :'pa')) like 'ERR:%'
+  and (select active_plan_id from public.clients where id = :'apc') = :'pb'::uuid);
+select pg_temp.chk('H2: klient nevolá trénerovu RPC (len set_active_plan)',
+  pg_temp.try(:AP, format('select public.set_client_active_plan(%L, %L)', :'apc', :'pa')) like 'ERR:%');
+select pg_temp.chk('H2: anon nevolá set_client_active_plan',
+  pg_temp.try(null, format('select public.set_client_active_plan(%L, %L)', :'apc', :'pa'), 'anon') like 'ERR:%');
+
+insert into public.workout_plans (client_id, trainer_id, name, published) values (:'apc', :T2, 'D', false);
+select id as pd from public.workout_plans where client_id = :'apc' and name = 'D' \gset
+select pg_temp.chk('H2: koncept sa nedá nastaviť ako aktívny',
+  pg_temp.try(:T2, format('select public.set_client_active_plan(%L, %L)', :'apc', :'pd')) like 'ERR:%');
+select pg_temp.chk('H2: plán iného klienta sa nedá nastaviť ako aktívny',
+  pg_temp.try(:T2, format('select public.set_client_active_plan(%L, (select id from public.workout_plans where client_id = %L limit 1))', :'apc', :'sock_cid')) like 'ERR:%');
+
+-- bez platného aktívneho plánu nový plán pripne doterajší najnovší (to, čo Dnes ukazovala)
+update public.clients set active_plan_id = null where id = :'apc';
+insert into public.workout_plans (client_id, trainer_id, name, published) values (:'apc', :T2, 'N', true);
+select pg_temp.chk('H2: bez aktívneho plánu sa pripne doterajší najnovší, nie nový',
+  (select active_plan_id from public.clients where id = :'apc') = :'po'::uuid);
+select pg_temp.try(:AP, format('select public.set_active_plan(%L)', :'pb')) as own_set \gset
+select pg_temp.chk('H2: klient si aktívny plán prepne sám (set_active_plan)',
+  :'own_set' = 'OK' and (select active_plan_id from public.clients where id = :'apc') = :'pb'::uuid,
+  :'own_set' || ' active=' || coalesce((select active_plan_id::text from public.clients where id = :'apc'), 'null'));
+
 -- ============================================================ výsledok
 \echo
 \echo ===== VÝSLEDKY =====

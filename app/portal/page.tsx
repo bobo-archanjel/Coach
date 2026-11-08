@@ -9,6 +9,7 @@ import { CooperationNotice } from "@/app/portal/CooperationNotice";
 import { RetryButton } from "@/app/portal/RetryButton";
 import { WorkoutStopwatch } from "@/app/portal/WorkoutStopwatch";
 import { WeekHistory } from "@/app/portal/WeekHistory";
+import { PlanSwitch } from "@/app/portal/PlanSwitchSheet";
 import { BodyMetricForm } from "@/app/portal/BodyMetricForm";
 import { ProfileIcon, TrainingIcon } from "@/app/portal/icons";
 import { AlertIcon, Notice } from "./Notice";
@@ -151,6 +152,18 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
         <BodyMetricForm today={result.today} history={result.bodyMetrics} />
       </div>
     );
+    // Aktívny plán nemá žiadny deň s cvikmi, no klient má aj iné plány — nech si zvolí.
+    if (result.planChoice) {
+      return (
+        <>
+          <PlanSwitch choice={result.planChoice} />
+          <Notice icon={<TrainingIcon />} title={`Plán „${result.planChoice.activePlanName}“ je zatiaľ prázdny`}>
+            Tento plán ešte nemá žiadne cviky. Zmeň aktívny plán vyššie, alebo počkaj, kým ho tréner doplní.
+          </Notice>
+          {measurement}
+        </>
+      );
+    }
     if (!result.hasTrainer) {
       return (
         <>
@@ -199,6 +212,7 @@ function Today({ data }: { data: PortalData }) {
     cooperationEndedNotice,
     bodyMetrics,
     nextAppointment,
+    planChoice,
   } = data;
 
   const d = new Date(`${today}T12:00:00Z`);
@@ -258,6 +272,9 @@ function Today({ data }: { data: PortalData }) {
         </div>
       )}
 
+      {/* aktívny plán (riadi túto kartu) — pri viacerých plánoch „Zmeniť“ */}
+      <PlanSwitch choice={planChoice} dayId={session.dayId} />
+
       {/* ďalší tréning v poradí — terakotový pás s prstencom, pod ním akcia */}
       <section className={s.hero} aria-label={complete ? "Tréningový plán hotový" : "Ďalší tréning"}>
         <div className={s.heroBand}>
@@ -266,11 +283,8 @@ function Today({ data }: { data: PortalData }) {
               {complete ? "Tréningový plán" : session.kind === "done" ? "Dnešný tréning" : "Ďalší tréning"}
             </p>
             <h2 className={s.heroTitle}>{complete ? "Plán máš hotový" : session.title}</h2>
-            {complete ? (
-              <p className={s.heroFocus}>{session.title}</p>
-            ) : (
-              session.focus && <p className={s.heroFocus}>{session.focus}</p>
-            )}
+            {/* názov plánu je v riadku PlanSwitch nad kartou — tu by bol druhýkrát */}
+            {!complete && session.focus && <p className={s.heroFocus}>{session.focus}</p>}
             {!complete && (
               <div className={s.heroChips}>
                 <span className={s.heroChip}>

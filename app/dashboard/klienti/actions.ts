@@ -137,6 +137,25 @@ export async function resumeClientCooperationAction(clientId: string): Promise<A
   return ok;
 }
 
+/**
+ * Tréner zvolí klientovi aktívny tréningový plán — ten riadi kartu Dnes v portáli
+ * (RPC set_client_active_plan, 0056: klient musí patriť trénerovi, plán klientovi
+ * a byť zverejnený). Klient si ho môže kedykoľvek prepnúť sám.
+ */
+export async function setClientActivePlanAction(clientId: string, planId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_client_active_plan", { p_client_id: clientId, p_plan_id: planId });
+  if (error) {
+    if (error.message.includes("not_authenticated")) return { error: "Nie si prihlásený." };
+    if (error.message.includes("client_not_found")) return { error: "Tento klient nepatrí tebe." };
+    if (error.message.includes("plan_not_found")) return { error: "Plán sa nenašiel alebo ešte nie je zverejnený." };
+    return { error: dbErr(error, "actions") };
+  }
+  revalidatePath(`/dashboard/klienti/${clientId}`);
+  revalidatePath("/portal", "layout");
+  return ok;
+}
+
 /** GDPR — tréner požiada o zmazanie klienta (30-dňová grace period, 0018_client_deletion.sql). */
 export async function requestClientDeletionAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();

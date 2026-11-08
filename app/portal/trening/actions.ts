@@ -189,21 +189,19 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
       .single();
     if (planErr || !plan) return { error: planErr?.message ?? "Tréning sa nepodarilo vytvoriť." };
 
-    // Vloženie dní a nastavenie aktívneho plánu potrebujú len plan.id — naraz.
-    const [{ error: daysErr }] = await Promise.all([
-      cleaned.days.length > 0
-        ? supabase.from("workout_days").insert(
-            cleaned.days.map((day, i) => ({
-              plan_id: plan.id,
-              day_number: i + 1,
-              name: day.name,
-              exercises: day.exercises,
-            })),
-          )
-        : Promise.resolve({ error: null }),
-      supabase.rpc("set_active_plan", { p_plan_id: plan.id }),
-    ]);
-    if (daysErr) return { error: dbErr(daysErr, "actions") };
+    // Aktívny plán sa tu už nemení — nový plán zvolený aktívny neprebije; aktívnym sa
+    // stane sám len pri prvom pláne klienta (trigger workout_plans_pin_active, 0056).
+    if (cleaned.days.length > 0) {
+      const { error: daysErr } = await supabase.from("workout_days").insert(
+        cleaned.days.map((day, i) => ({
+          plan_id: plan.id,
+          day_number: i + 1,
+          name: day.name,
+          exercises: day.exercises,
+        })),
+      );
+      if (daysErr) return { error: dbErr(daysErr, "actions") };
+    }
 
     revalidatePath("/portal", "layout");
     return { error: null, planId: plan.id };
@@ -324,16 +322,33 @@ export async function deleteOwnTemplateAction(templateId: string): Promise<Actio
  * 'not_authenticated') — ušetrí sieťový round-trip na Supabase Auth.
  */
 export async function setActivePlanAction(planId: string, dayId?: string): Promise<ActionState> {
-  const supabase = await createClient();
-
-  const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId, p_day_id: dayId ?? null });
-  if (error) {
-    if (error.message.includes("not_authenticated")) return { error: "Nie si prihlásený." };
-    if (error.message.includes("plan_not_found")) return { error: "Tréning sa nenašiel." };
-    if (error.message.includes("day_not_found")) return { error: "Deň sa nenašiel." };
-    return { error: dbErr(error, "actions") };
-  }
+  const res = await callSetActivePlan(planId, dayId ?? null);
+  if (res.error) return res;
 
   revalidatePath("/portal", "layout");
   redirect("/portal");
+}
+
+/**
+ * "Nastaviť ako aktívny" (Tréning) a prepínač „Zmeniť“ na karte Dnes — len prepne,
+ * ktorý plán riadi kartu Dnes (bez konkrétneho dňa, ďalší deň dopočíta rotácia),
+ * tréning nespustí a nepresmeruje. Revalidácia /portal prinesie čerstvé dáta.
+ */
+export async function chooseActivePlanAction(planId: string): Promise<ActionState> {
+  const res = await callSetActivePlan(planId, null);
+  if (res.error) return res;
+
+  revalidatePath("/portal", "layout");
+  return ok;
+}
+
+/** RPC set_active_plan (0022) s ľudskými chybami — overí prihlásenie aj vlastníctvo plánu. */
+async function callSetActivePlan(planId: string, dayId: string | null): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId, p_day_id: dayId });
+  if (!error) return ok;
+  if (error.message.includes("not_authenticated")) return { error: "Nie si prihlásený." };
+  if (error.message.includes("plan_not_found")) return { error: "Tréning sa nenašiel." };
+  if (error.message.includes("day_not_found")) return { error: "Deň sa nenašiel." };
+  return { error: dbErr(error, "actions") };
 }
