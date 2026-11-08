@@ -268,7 +268,8 @@ export default async function ClientDetailPage({
                           <span className={styles.planDoneBadge}>Hotovo</span>
                         ) : (
                           <span className={styles.clientSince}>
-                            {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
+                            {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount}{" "}
+                            {pluralSk(dayCount, "deň", "dni", "dní")}
                           </span>
                         )}
                       </Link>
