@@ -86,6 +86,7 @@
 /* dve triedy — vyhrá nad `.navLinks a` (farba textu na terakotovom gradiente) */
 .navLinks .ctaBtn {
   margin-left: 6px;
+  margin-right: 4px;
   padding: 10px 18px;
   color: var(--on-accent);
 }
@@ -940,22 +941,12 @@
 .footLinks a:hover {
   color: var(--paper);
 }
-.footBottom {
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px 32px;
-}
 .fine {
+  margin-top: 24px;
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--paper-faint);
   max-width: 62ch;
-}
-.footTheme {
-  width: min(100%, 320px);
 }
 
 /* ---------- reveal-on-scroll ---------- */

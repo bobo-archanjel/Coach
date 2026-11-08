@@ -390,12 +390,6 @@
   color: var(--paper-faint);
 }
 
-/* prepínač témy pod kartou (footer AuthView na /prihlasenie) */
-.themeRow {
-  width: min(100%, 340px);
-  margin: 0 auto;
-}
-
 /* ---------- mobil ---------- */
 @media (max-width: 880px) {
   .shell {

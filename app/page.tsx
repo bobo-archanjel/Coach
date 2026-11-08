@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
 import { StickyMobileCta } from "./components/StickyMobileCta";
-import { ThemeSwitch } from "./v6design/ThemeSwitch";
+import { ThemeToggle } from "./v6design/ThemeToggle";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "./v6design/theme";
 import tokens from "./v6design/styles/tokens.module.css";
 import styles from "./page.module.css";
@@ -93,7 +93,8 @@ function StructuredData() {
 }
 
 /* Landing v dizajne v6 (tokeny app/v6design/styles/tokens.module.css): teplé svetlo v pozadí,
-   sklenené karty, terakotové akcie, svetlá/tmavá/auto téma z cookie spoločnej s appkou. */
+   sklenené karty, terakotové akcie, svetlá/tmavá/auto téma z cookie spoločnej s appkou
+   (ikona slnko/mesiac v hlavičke ju prepína). */
 export default async function LandingPage() {
   const theme = parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value);
   return (
@@ -123,6 +124,7 @@ export default async function LandingPage() {
               Vyskúšať zadarmo
               <ArrowIcon />
             </Link>
+            <ThemeToggle />
           </nav>
         </div>
       </header>
@@ -821,15 +823,10 @@ export default async function LandingPage() {
               <Link href="/cookies">Cookies</Link>
             </div>
           </div>
-          <div className={styles.footBottom}>
-            <p className={styles.fine}>
-              FitPilot je koncept pre slovenský a český trh fitness trénerov. Zobrazené dáta
-              klientov, tréningov a cien sú ilustračné ukážky produktu, nie reálne referencie.
-            </p>
-            <div className={styles.footTheme}>
-              <ThemeSwitch initial={theme} />
-            </div>
-          </div>
+          <p className={styles.fine}>
+            FitPilot je koncept pre slovenský a český trh fitness trénerov. Zobrazené dáta
+            klientov, tréningov a cien sú ilustračné ukážky produktu, nie reálne referencie.
+          </p>
         </div>
       </footer>
       <StickyMobileCta />

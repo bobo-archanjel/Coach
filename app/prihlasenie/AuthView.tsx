@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
@@ -76,10 +76,9 @@ function validate(form: HTMLFormElement, fieldNames: string[]) {
 
 /**
  * Prihlásenie / registrácia / zabudnuté heslo na /prihlasenie (dizajn v6, koreň s témou
- * v layout.tsx); po prihlásení vždy /portal alebo /dashboard.
- * `footer` = doplnok pod formulárom (prepínač témy).
+ * v layout.tsx — téma sa prepína na landing page); po prihlásení vždy /portal alebo /dashboard.
  */
-export function AuthView({ footer }: { footer?: ReactNode }) {
+export function AuthView() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -770,7 +769,6 @@ export function AuthView({ footer }: { footer?: ReactNode }) {
             </section>
           )}
         </div>
-        {footer}
       </main>
     </div>
   );

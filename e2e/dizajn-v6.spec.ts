@@ -65,19 +65,28 @@ test.describe("jeden dizajn po prihlásení", () => {
     }
   });
 
-  test("prihlásenie aj nové heslo sú v novom dizajne, téma sa prepne aj pred prihlásením", async ({ page }) => {
-    await page.goto("/prihlasenie");
-    await expect(page.getByRole("button", { name: "Prihlásiť sa" })).toBeVisible();
-    await expect(page.locator("[data-v6-root]")).toHaveCount(1);
-    const themes = page.getByRole("radiogroup", { name: "Téma" });
-    await themes.getByRole("radio", { name: /Tmavá/ }).click();
-    await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
+  test("landing a prihlásenie v novom dizajne: ikona v hlavičke landingu prepína svetlý/tmavý režim", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    const root = page.locator("[data-v6-root]");
+    await expect(root).toHaveCount(1);
+    await expect(root).toHaveAttribute("data-theme", "auto"); // bez voľby podľa zariadenia
+    const toggle = page.getByRole("banner").getByRole("button", { name: "Prepnúť svetlý / tmavý režim" });
+    await toggle.click();
+    await expect(root).toHaveAttribute("data-theme", "dark");
     await page.reload();
     await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
+
+    // prihlásenie aj nové heslo preberú tému, vlastný prepínač už nemajú
+    await page.goto("/prihlasenie");
+    await expect(page.getByRole("button", { name: "Prihlásiť sa" })).toBeVisible();
+    await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
+    await expect(page.getByRole("radiogroup", { name: "Téma" })).toHaveCount(0);
     await page.goto("/prihlasenie/nove-heslo");
     await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
-    await page.goto("/prihlasenie");
-    await page.getByRole("radiogroup", { name: "Téma" }).getByRole("radio", { name: /Svetlá/ }).click();
+
+    await page.goto("/");
+    await page.getByRole("banner").getByRole("button", { name: "Prepnúť svetlý / tmavý režim" }).click();
     await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "light");
   });
 });

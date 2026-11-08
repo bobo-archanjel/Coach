@@ -17,7 +17,7 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 /* Prihlásenie, registrácia aj nové heslo v dizajne v6 — koreň s tokenmi a témou z cookie
-   (spoločnej s appkou po prihlásení, prepínač Auto/Svetlá/Tmavá pod formulárom).
+   (spoločnej s appkou po prihlásení; prepína sa ikonou na landing page a v appke).
    Bývalé /v6design/prihlasenie trvalo presmeruje next.config.ts. */
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const theme = parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value);
