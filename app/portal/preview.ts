@@ -1,5 +1,16 @@
 /* DEV náhľady karty Dnes (?preview=…). */
-import type { PortalData, PortalResult } from "@/lib/portal/types";
+import type { PortalData, PortalPlanChoice, PortalResult } from "@/lib/portal/types";
+
+/** Prepínač aktívneho plánu na Dnes (PlanSwitchSheet) — aktívny je prvý. */
+const PREVIEW_PLAN_CHOICE: PortalPlanChoice = {
+  activePlanId: "pp-strength",
+  activePlanName: "Silový 3× týždenne",
+  plans: [
+    { id: "pp-strength", name: "Silový 3× týždenne", source: "trainer", dayCount: 3 },
+    { id: "pp-own", name: "Môj ranný tréning", source: "client", dayCount: 2 },
+    { id: "pp-empty", name: "Rozpracovaný plán", source: "trainer", dayCount: 0 },
+  ],
+};
 
 const PREVIEW_DATA: PortalData = {
   clientFirstName: "Ján",
@@ -13,7 +24,7 @@ const PREVIEW_DATA: PortalData = {
   session: {
     kind: "training",
     title: "Deň C — Nohy",
-    focus: "Silový 3× týždenne",
+    focus: "",
     durationLabel: "",
     completedCount: 0,
     dayId: "preview-day-c",
@@ -72,6 +83,7 @@ const PREVIEW_DATA: PortalData = {
   deletionNotice: null,
   cooperationEndedNotice: null,
   nextAppointment: { title: "Konzultácia — kontrola techniky", startsAt: new Date(Date.now() + 2 * 86_400_000).toISOString() },
+  planChoice: PREVIEW_PLAN_CHOICE,
   bodyMetrics: [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
     measuredOn: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10),
     weightKg: 88 - i * 1.1,
@@ -84,7 +96,7 @@ const PREVIEW_DATA: PortalData = {
   })),
 };
 
-/** DEV: ?preview=unlinked|no_plan|no_plan_solo|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
+/** DEV: ?preview=unlinked|no_plan|no_plan_solo|no_plan_choice|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
 export function previewResult(kind: string): PortalResult | null {
   if (process.env.NODE_ENV !== "development") return null;
   switch (kind) {
@@ -94,6 +106,16 @@ export function previewResult(kind: string): PortalResult | null {
       return { state: "no_plan", firstName: "Ján", hasTrainer: true, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
     case "no_plan_solo":
       return { state: "no_plan", firstName: "Ján", hasTrainer: false, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
+    case "no_plan_choice":
+      // aktívny plán bez cvikov, klient má aj iné plány
+      return {
+        state: "no_plan",
+        firstName: "Ján",
+        hasTrainer: true,
+        today: PREVIEW_DATA.today,
+        bodyMetrics: PREVIEW_DATA.bodyMetrics,
+        planChoice: { ...PREVIEW_PLAN_CHOICE, activePlanId: "pp-empty", activePlanName: "Rozpracovaný plán" },
+      };
     case "error":
       return { state: "error" };
     case "ok":
