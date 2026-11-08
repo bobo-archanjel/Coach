@@ -3,8 +3,7 @@
 import { useState, useTransition } from "react";
 import { deleteAppointmentAction, type AppointmentFormValues } from "./actions";
 import { AppointmentForm } from "./AddAppointmentForm";
-import dashboardModule from "../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../dashboard.module.css";
 
 export function AppointmentRow({
   id,
@@ -26,7 +25,6 @@ export function AppointmentRow({
   /** hodnoty pre formulár úpravy (dátum/čas v Europe/Bratislava) */
   editValues: AppointmentFormValues;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [editing, setEditing] = useState(false);

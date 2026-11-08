@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { deleteDayAction } from "../actions";
-import builderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 function exercisesLabel(n: number): string {
   if (n === 0) return "";
@@ -30,7 +29,6 @@ export function DeleteDayControl({
   /** klient už tento deň odcvičil — ukážeme, že jeho záznamy ostanú */
   hasCompleted: boolean;
 }) {
-  const styles = useSkinStyles("builder", builderModule);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

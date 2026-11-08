@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalPlan, PortalTemplate, PortalTrainingData } from "@/lib/portal/types";
 import {
+  chooseActivePlanAction,
   deleteClientPlanAction,
   deleteOwnTemplateAction,
   getExerciseLibraryAction,
@@ -14,8 +15,7 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import portalStyles from "../portal.module.css";
-import { usePortalBase, useSkinStyles } from "../../components/uiSkin";
+import styles from "../portal.module.css";
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
 // naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
@@ -25,7 +25,6 @@ const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) =
 });
 
 function BuilderLoading() {
-  const styles = useSkinStyles("portal", portalStyles);
   return <p className={styles.trEmptyDay}>Načítavam…</p>;
 }
 
@@ -74,8 +73,6 @@ function exWord(n: number): string {
 }
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
-  const styles = useSkinStyles("portal", portalStyles);
-  const portalBase = usePortalBase();
   const { plans, templates } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
@@ -95,6 +92,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   // Odcvičený deň otvorený v editore "Upraviť hodnoty" (id záznamu workout_logs).
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Potvrdenie po „Nastaviť ako aktívny“ (pri pláne, ktorý sa práve stal aktívnym).
+  const [activeNote, setActiveNote] = useState<{ planId: string; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   // Knižnica cvikov (~900 riadkov, cca 300 kB) sa predtým ťahala pri KAŽDOM
@@ -128,9 +127,10 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   };
 
   // Ťuk na tréning len rozbalí/zbalí zoznam jeho dní — nemení, čo beží na karte
-  // Dnes. Aktívny plán sa nastaví až pri "Začať tréning" pre konkrétny deň.
+  // Dnes. Aktívny plán sa mení „Nastaviť ako aktívny“ alebo „Začať tréning“ pri dni.
   const tapPlan = (plan: PortalPlan) => {
     setError(null);
+    setActiveNote(null);
     setEditingLogId(null);
     setSelectedDayId(null);
     setExpandedId((id) => (id === plan.id ? null : plan.id));
@@ -146,6 +146,17 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setError(null);
     setEditingLogId(null);
     setSelectedDayId(null);
+  };
+
+  // „Nastaviť ako aktívny“ — len prepne plán na karte Dnes, tréning nespustí (0056).
+  const makeActive = (plan: PortalPlan) => {
+    setError(null);
+    setActiveNote(null);
+    startTransition(async () => {
+      const res = await chooseActivePlanAction(plan.id);
+      if (res.error) setError(res.error);
+      else setActiveNote({ planId: plan.id, text: `Na karte Dnes je teraz „${plan.name}“.` });
+    });
   };
 
   const removePlan = (planId: string) => {
@@ -197,7 +208,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setError(null);
     markWorkoutStarted(dayId);
     startTransition(async () => {
-      const res = await setActivePlanAction(plan.id, dayId, portalBase);
+      const res = await setActivePlanAction(plan.id, dayId);
       // Úspech → redirect vnútri akcie, sem sa vrátime len pri chybe.
       if (res?.error) {
         clearWorkoutStarted();
@@ -304,6 +315,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
           )}
         </div>
       )}
+      {/* čiara oddelí šablóny od tréningov pod nimi — karty vyzerajú rovnako a splývali */}
+      {templates.length > 0 && <hr className={styles.trDivider} />}
 
       {plans.length === 0 ? (
         <div className={styles.panel}>
@@ -347,6 +360,19 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
                 {expanded && (
                   <div className={styles.trPlanBody}>
+                    {!selectedDay && !plan.isActive && plan.days.length > 0 && (
+                      <div className={styles.trActiveRow}>
+                        <button type="button" className={styles.trGhostBtn} onClick={() => makeActive(plan)} disabled={pending}>
+                          Nastaviť ako aktívny
+                        </button>
+                        <span className={styles.trHint}>Zobrazí sa na karte Dnes.</span>
+                      </div>
+                    )}
+                    {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (
+                      <p className={styles.trActiveNote} role="status">
+                        {activeNote.text}
+                      </p>
+                    )}
                     {plan.days.length === 0 ? (
                       <p className={styles.trEmptyDay}>Tento tréning nemá žiadne dni.</p>
                     ) : selectedDay ? (

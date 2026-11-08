@@ -2,12 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { duplicateCompletedWorkoutAction } from "../../../../treningy/actions";
-import completedModule from "./completed.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./completed.module.css";
 
 /** "Duplikovať ako nový tréning" — nová editovateľná kópia plánu, pôvodný tréning ostane zamknutý. */
 export function DuplicateWorkoutButton({ logId, disabled }: { logId: string; disabled?: boolean }) {
-  const styles = useSkinStyles("completed", completedModule);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

@@ -3,8 +3,7 @@
 import { startTransition, useActionState, useEffect, useMemo, useOptimistic, useState, type FormEvent } from "react";
 import { addOwnBodyMetricAction } from "./actions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
-import portalStyles from "./portal.module.css";
-import { useSkinStyles } from "../components/uiSkin";
+import styles from "./portal.module.css";
 
 interface ActionState {
   error: string | null;
@@ -43,7 +42,6 @@ function extrasSummary(e: BodyMetricEntry): string {
  * skroluje (max-height), aby karta Dnes nerástla donekonečna.
  */
 export function BodyMetricForm({ today, history }: { today: string; history: BodyMetricEntry[] }) {
-  const styles = useSkinStyles("portal", portalStyles);
   const [state, formAction, pending] = useActionState(addOwnBodyMetricAction, initialState);
   const [open, setOpen] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(false);

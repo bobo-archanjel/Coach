@@ -1,7 +1,6 @@
 import { createClient, getMyClient, getUser, MY_CLIENT_COLUMNS } from "@/lib/supabase/server";
 
-/* Údaje stránky Profil — zdieľané /portal/profil a /v6design/portal/profil
-   (dizajnový experiment), nech oba vzhľady načítavajú presne rovnako. */
+/* Údaje stránky Profil (/portal/profil). */
 
 export type ProfilView = {
   code: string | null;

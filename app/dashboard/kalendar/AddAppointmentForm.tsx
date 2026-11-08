@@ -7,8 +7,7 @@ import {
   type ActionState,
   type AppointmentFormValues,
 } from "./actions";
-import dashboardModule from "../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -37,7 +36,6 @@ export function AppointmentForm({
   initial?: AppointmentFormValues;
   onDone?: () => void;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const editing = Boolean(appointmentId);
   const [state, formAction, pending] = useActionState(
     editing ? updateAppointmentAction : createAppointmentAction,
@@ -175,7 +173,6 @@ export function AppointmentForm({
 }
 
 export function AddAppointmentForm({ clients }: { clients: { id: string; full_name: string }[] }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   if (clients.length === 0) {
     return <p className={styles.noWorkouts}>Najprv pridaj klienta na stránke Klienti.</p>;
   }

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AddAppointmentForm } from "./AddAppointmentForm";
 import { AppointmentRow } from "./AppointmentRow";
 import { InfoTip } from "@/app/components/InfoTip";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 interface AppointmentRow_ {
   id: string;
@@ -41,11 +41,10 @@ function dayGroupLabel(dateKey: string, todayKey: string, tomorrowKey: string): 
 }
 
 export default async function KalendarPage() {
-  const styles = await dashStyles();
   const {
     data: { user },
   } = await getUser();
-  if (!user) redirect("/prihlasenie");
+  if (!user) redirect("/v6design/prihlasenie");
   const supabase = await createClient();
 
   const nowIso = new Date().toISOString();

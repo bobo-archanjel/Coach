@@ -14,8 +14,7 @@ import {
   type LibraryMuscleFilter,
   type LibraryEquipmentFilter,
 } from "@/lib/exerciseFilters";
-import builderModule from "./builder.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./builder.module.css";
 
 const initialState: ActionState = { error: null };
 const PAGE_SIZE = 7;
@@ -41,7 +40,6 @@ export function ExerciseLibrary({
   activeDayId: string | null;
   planId: string;
 }) {
-  const styles = useSkinStyles("builder", builderModule);
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);

@@ -2,10 +2,10 @@ import styles from "./portal.module.css";
 import { PortalSkeleton } from "./PortalSkeleton";
 
 /**
- * Skeleton TVAROM podľa cieľovej záložky (pokračovanie feature/navod) — predtým
- * `NavSkeletonOverlay` v portáli ukazoval vždy tvar karty "Dnes" bez ohľadu na
- * cieľ, takže klik na Tréning/Strava/Chat zobrazil skeleton, ktorý s reálnou
- * stránkou netvarovo nesedel. Rovnaký princíp ako app/dashboard/RouteSkeletons.tsx.
+ * Skeleton TVAROM podľa cieľovej záložky — loading.tsx aj NavSkeletonOverlay pri
+ * navigácii (PortalSkeletonOverlay). Kontajnery znovupoužívajú skutočné triedy
+ * portálu (.trHead, .trPlanList, .profileStack), len obsah je shimmer blok.
+ * Rovnaký princíp ako app/dashboard/RouteSkeletons.tsx.
  */
 
 function B({ className }: { className: string }) {
@@ -39,7 +39,7 @@ function ListRows({ count = 3 }: { count?: number }) {
   );
 }
 
-/** /portal — Dnes (nezmenené, existujúci presný tvar). */
+/** /portal — Dnes. */
 function DnesSkeleton() {
   return <PortalSkeleton />;
 }
@@ -48,7 +48,7 @@ function DnesSkeleton() {
 function TreningSkeleton() {
   return (
     <div className={styles.skeletonWrap}>
-      <div className={styles.trHead} style={{ marginBottom: 16 }}>
+      <div className={styles.trHead} style={{ marginBottom: 14 }}>
         <B className={styles.skeletonPanelLabel} />
         <B className={styles.skeletonChip} />
       </div>
@@ -69,7 +69,7 @@ function TreningSkeleton() {
 /** /portal/strava — makro cieľ (prstenec + chipy) + jedálniček (panely s riadkami jedál). */
 function StravaSkeleton() {
   return (
-    <div className={styles.skeletonWrap} style={{ gap: 20 }}>
+    <div className={styles.skeletonWrap} style={{ gap: 14 }}>
       <div className={styles.skeletonTodayBlock} style={{ marginBottom: 0 }}>
         <div className={styles.skeletonTodayTop}>
           <B className={styles.skeletonRing} />
@@ -88,7 +88,7 @@ function StravaSkeleton() {
 /** /portal/dennik — hrdina (kcal číslo) + makro pruhy + zoznam zjedených položiek. */
 function DennikSkeleton() {
   return (
-    <div className={styles.skeletonWrap} style={{ gap: 20 }}>
+    <div className={styles.skeletonWrap} style={{ gap: 14 }}>
       <div className={styles.skeletonTodayBlock} style={{ marginBottom: 0 }}>
         <B className={styles.skeletonPanelLabel} />
         <B className={styles.skeletonBigNumber} />

@@ -1,4 +1,4 @@
-/* DEV náhľady sekcie Tréning (?preview=…) — zdieľané /portal a /v6design/portal. */
+/* DEV náhľady sekcie Tréning (?preview=…). */
 import type { PortalTrainingData, PortalTrainingResult } from "@/lib/portal/types";
 
 const PREVIEW: PortalTrainingData = {

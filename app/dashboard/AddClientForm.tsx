@@ -4,8 +4,7 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { addClientAction, addClientByCodeAction, type AddClientState, type AddByCodeState } from "./actions";
 import type { RosterItem } from "./ClientRoster";
 import { InfoTip } from "@/app/components/InfoTip";
-import dashboardModule from "./dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./dashboard.module.css";
 
 const initialState: AddClientState = { error: null };
 const initialCodeState: AddByCodeState = { error: null, addedName: null };
@@ -34,7 +33,6 @@ function normalizeCode(raw: string): string {
 }
 
 export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: RosterItem) => void }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"code" | "manual">("code");
   const [codeValue, setCodeValue] = useState("");

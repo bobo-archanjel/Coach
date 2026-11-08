@@ -6,10 +6,9 @@ import { CreatePlanForm } from "./CreatePlanForm";
 import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
 import { ExerciseLibraryList } from "./ExerciseLibraryList";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 export default async function TreningyPage() {
-  const styles = await dashStyles();
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,7 +17,7 @@ export default async function TreningyPage() {
   // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
   // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
   if (!user) {
-    redirect("/prihlasenie");
+    redirect("/v6design/prihlasenie");
   }
 
   const [{ data: clients }, { count: exerciseCount }, { plans, planCompletion }] = await Promise.all([

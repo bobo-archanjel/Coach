@@ -1,7 +1,9 @@
+/* prázdny stav v dizajne v6 — sklenená karta s prerušovaným okrajom */
 .wrap {
-  background: var(--ink-2);
+  background: var(--card-bg, var(--ink-2));
   border: 1px dashed var(--steel-line);
-  border-radius: var(--radius-m);
+  border-radius: 26px;
+  box-shadow: var(--card-shadow, none);
   padding: clamp(32px, 5vw, 48px);
   text-align: center;
   display: grid;
@@ -12,12 +14,11 @@
 .icon {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-m);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
+  border-radius: 14px;
+  background: var(--accent-soft, var(--ink-3));
   display: grid;
   place-items: center;
-  color: var(--iron-red);
+  color: var(--accent-text, var(--iron-red));
   margin-bottom: 4px;
 }
 

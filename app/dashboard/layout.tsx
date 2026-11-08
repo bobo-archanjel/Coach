@@ -8,8 +8,8 @@ import { OnboardingTour } from "../components/OnboardingTour";
 import { NavigationProgressProvider } from "../components/NavigationProgress";
 import { DashboardNav } from "./DashboardNav";
 import { DashboardSkeletonOverlay } from "./DashboardSkeletonOverlay";
-import { dashStyles, isV6Dashboard, v6Theme } from "@/app/dashboard/dashSkin";
-import { V6DashSkin } from "@/app/v6design/dashboard/V6DashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
+import { v6Theme } from "@/app/dashboard/dashTheme";
 import { v6ThemeColor } from "@/app/v6design/theme";
 import tokens from "@/app/v6design/styles/tokens.module.css";
 
@@ -17,9 +17,8 @@ export const metadata: Metadata = {
   title: "FitPilot — Dashboard",
 };
 
-/** Farba stavového riadku len pri dizajnovom experimente v6 (svetlá/tmavá téma). */
+/** Farba stavového riadku podľa témy (svetlá/tmavá/auto). */
 export async function generateViewport(): Promise<Viewport> {
-  if (!(await isV6Dashboard())) return {};
   return { themeColor: v6ThemeColor(await v6Theme()) };
 }
 
@@ -33,7 +32,6 @@ export async function generateViewport(): Promise<Viewport> {
 const DEV_OPEN = process.env.NODE_ENV === "development";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const styles = await dashStyles();
   const {
     data: { user },
   } = await getUser();
@@ -45,8 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let unreadCount = 0;
   let tourSeen = true;
   if (!user) {
-    if (!DEV_OPEN) redirect("/prihlasenie");
-    tourSeen = true;
+    if (!DEV_OPEN) redirect("/v6design/prihlasenie");
   } else {
     // Všetky tri dopyty závisia len na `user.id`, nie jeden na druhom výsledku —
     // predtým getProfile() bežalo sekvenčne PRED messages/tour dvojicou (3
@@ -73,27 +70,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
     tourSeen = dbTourSeen;
   }
 
-  const shell = (
-    <NavigationProgressProvider>
-      <div className={styles.shell}>
-        <DashboardNav unreadCount={unreadCount} />
-        <main className={styles.content}>
-          <div className={styles.wrap}>{children}</div>
-          <DashboardSkeletonOverlay />
-        </main>
-        <Suspense fallback={null}>
-          <OnboardingTour steps={TRAINER_TOUR_STEPS} tourSeen={tourSeen} />
-        </Suspense>
-      </div>
-    </NavigationProgressProvider>
-  );
-  if (!(await isV6Dashboard())) return shell;
-
-  // Dizajnový experiment v6 (cookie z /v6design/dashboard) — ten istý dashboard,
-  // koreň s tokenmi/témou a štýly v6 pre klientske komponenty (SkinProvider).
+  // koreň s tokenmi a témou dizajnu v6 (data-v6-root — sem idú aj okná cez createPortal)
   return (
     <div className={tokens.root} data-theme={await v6Theme()} data-v6-root="">
-      <V6DashSkin>{shell}</V6DashSkin>
+      <NavigationProgressProvider>
+        <div className={styles.shell}>
+          <DashboardNav unreadCount={unreadCount} />
+          <main className={styles.content}>
+            <div className={styles.wrap}>{children}</div>
+            <DashboardSkeletonOverlay />
+          </main>
+          <Suspense fallback={null}>
+            <OnboardingTour steps={TRAINER_TOUR_STEPS} tourSeen={tourSeen} />
+          </Suspense>
+        </div>
+      </NavigationProgressProvider>
     </div>
   );
 }

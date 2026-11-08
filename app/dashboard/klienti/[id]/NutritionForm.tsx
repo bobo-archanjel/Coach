@@ -11,8 +11,7 @@ import {
   type NutritionResult,
   type Sex,
 } from "@/lib/nutrition";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -42,7 +41,6 @@ export function NutritionForm({
   /** bez uloženého profilu: vek/váha/výška z karty klienta (Pridať klienta, 0009) */
   defaults?: { age: number | null; weight_kg: number | null; height_cm: number | null };
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(saveNutritionProfileAction, initialState);
 
   const [sex, setSex] = useState<Sex>(profile?.sex ?? "muz");

@@ -1,5 +1,5 @@
-/* Náhľad cviku (ExerciseDetailModal) — samostatný modul, nezávislý od hostiteľskej
-   stránky (dashboard aj portal ho volajú), používa len globálne tokeny z app/globals.css. */
+/* Náhľad cviku (ExerciseDetailModal) ako sklenené okno; na telefóne spodný list (dizajn v6).
+   Tokeny z koreňa .root (app/v6design/styles/tokens.module.css). */
 
 .scrim {
   position: fixed;
@@ -9,10 +9,11 @@
   padding: 0;
   width: 100%;
   height: 100%;
-  background: rgba(9, 8, 8, 0.6);
-  backdrop-filter: blur(2px);
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   cursor: pointer;
-  animation: exFade 0.15s ease both;
+  animation: exFade 0.18s ease both;
 }
 
 .panel {
@@ -21,15 +22,29 @@
   top: 50%;
   z-index: 84;
   transform: translate(-50%, -50%);
-  width: min(440px, calc(100vw - 32px));
-  max-height: min(84vh, 640px);
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(86vh, 680px);
   overflow-y: auto;
-  padding: 18px;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-2);
-  animation: exPanelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  padding: 20px;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%), var(--sheet-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  animation: exPanelIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (max-width: 520px) {
+  .panel {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    transform: none;
+    width: auto;
+    max-height: 84vh;
+    animation-name: exSheetIn;
+  }
 }
 
 .head {
@@ -40,9 +55,9 @@
   margin-bottom: 10px;
 }
 .title {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 19px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
   color: var(--paper);
 }
 .closeBtn {
@@ -50,31 +65,27 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   margin: -4px -4px -4px 0;
   border: 0;
-  border-radius: var(--radius-s);
-  background: var(--ink-3);
+  border-radius: 50%;
+  background: var(--fill-strong);
   color: var(--paper-dim);
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
 }
 .closeBtn:hover {
   color: var(--paper);
-  background: var(--steel-line);
 }
 
 .muscle {
   display: inline-block;
-  margin-bottom: 12px;
-  padding: 3px 9px;
-  font-size: 11px;
+  margin-bottom: 14px;
+  padding: 4px 11px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--paper-dim);
-  background: var(--ink-3);
+  color: var(--accent-text);
+  background: var(--accent-soft);
   border-radius: 999px;
 }
 
@@ -86,15 +97,15 @@
 }
 
 .gallery {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .imageFrame {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  border-radius: var(--radius-s);
-  background: var(--ink-3);
+  border-radius: 22px;
+  background: var(--surface-solid);
 }
 .image {
   object-fit: contain;
@@ -104,37 +115,34 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 .navBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--steel-line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--paper-dim);
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-.navBtn:hover {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-solid);
   color: var(--paper);
-  border-color: var(--paper-dim);
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
 }
 .navDots {
   display: inline-flex;
   gap: 6px;
 }
 .navDot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
-  background: var(--steel-line);
+  background: var(--fill-strong);
 }
 .navDotOn {
-  background: var(--moss);
+  width: 18px;
+  background: var(--accent);
 }
 
 .steps {
@@ -143,15 +151,15 @@
   gap: 10px;
   padding-left: 22px;
   color: var(--paper-dim);
-  font-size: 13.5px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
 }
 .step {
   padding-left: 2px;
 }
 .step::marker {
-  color: var(--paper-dim);
-  font-weight: 700;
+  color: var(--accent-text);
+  font-weight: 750;
 }
 
 @keyframes exFade {
@@ -159,9 +167,22 @@
     opacity: 0;
   }
 }
+/* len opacity + scale — centrovací transform okna ostáva (viď v6CenterIn v portal.module.css) */
 @keyframes exPanelIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.96);
+    scale: 0.97;
+  }
+}
+@keyframes exSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .panel {
+    animation: none;
   }
 }

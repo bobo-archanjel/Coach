@@ -18,11 +18,9 @@ import { AppLink as Link } from "../components/AppLink";
 import { usePathname } from "next/navigation";
 import { applyDismissals, attentionTotal, buildAttentionItems, type AttentionData } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction, markAllMessagesReadAction } from "./attention/actions";
-import dashboardModule from "./dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./dashboard.module.css";
 
 function BellIcon() {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -43,7 +41,6 @@ const REALTIME_DEBOUNCE_MS = 1_500;
 let channelSeq = 0;
 
 export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const pathname = usePathname();
   const [data, setData] = useState<AttentionData | null>(null);
   const [failed, setFailed] = useState(false);

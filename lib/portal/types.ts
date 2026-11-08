@@ -179,6 +179,23 @@ export interface PortalData {
   bodyMetrics: BodyMetricEntry[];
   /** Najbližší budúci termín (appointments, 0026), null = žiadny naplánovaný. */
   nextAppointment: PortalNextAppointment | null;
+  /** Aktívny plán (riadi túto kartu) a všetky zverejnené plány klienta pre prepínač „Zmeniť“. */
+  planChoice: PortalPlanChoice;
+}
+
+/** Zverejnený plán klienta v prepínači aktívneho plánu na Dnes (PlanSwitchSheet). */
+export interface PortalPlanOption {
+  id: string;
+  name: string;
+  source: PlanSource;
+  dayCount: number;
+}
+
+/** Aktívny plán + zoznam na výber (najnovší prvý) — clients.active_plan_id, inak najnovší (0056). */
+export interface PortalPlanChoice {
+  activePlanId: string;
+  activePlanName: string;
+  plans: PortalPlanOption[];
 }
 
 /** Výsledok načítania portálu — buď dáta, alebo dôvod prázdneho stavu. */
@@ -188,7 +205,15 @@ export type PortalResult =
   /** `hasTrainer: false` = klient trénuje sám — má si vytvoriť vlastný plán, nie čakať na trénera.
    * `today`/`bodyMetrics` sú tu napriek chýbajúcemu plánu — zápis telesnej miery (BodyMetricForm)
    * je nezávislá funkcia a nesmie byť podmienená existenciou tréningového plánu (QA nález #3). */
-  | { state: "no_plan"; firstName: string; hasTrainer: boolean; today: string; bodyMetrics: BodyMetricEntry[] }
+  | {
+      state: "no_plan";
+      firstName: string;
+      hasTrainer: boolean;
+      today: string;
+      bodyMetrics: BodyMetricEntry[];
+      /** aktívny plán existuje, ale nemá žiadny deň s cvikmi — klient si môže zvoliť iný */
+      planChoice?: PortalPlanChoice;
+    }
   | { state: "error"; message?: string };
 
 // ---------- Tréning (zoznam plánov klienta — od trénera aj vlastné) ----------

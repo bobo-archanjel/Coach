@@ -23,13 +23,14 @@
 
 /* ---------- library sidebar ---------- */
 .library {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius-m);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: var(--card-shadow);
 }
 @media (min-width: 761px) {
   .library {
@@ -84,7 +85,7 @@
 }
 .librarySearch {
   width: 100%;
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
@@ -136,7 +137,7 @@
     border-color 0.12s ease;
 }
 .libraryItem:hover:not(:disabled) {
-  background: var(--ink-3);
+  background: var(--fill-strong);
   border-color: var(--steel-line);
 }
 .libraryItem:disabled {
@@ -236,7 +237,7 @@
 }
 .libraryPagerBtn:hover:not(:disabled) {
   border-color: var(--paper-dim);
-  background: var(--ink-3);
+  background: var(--fill-strong);
 }
 .libraryPagerBtn:disabled {
   opacity: 0.35;
@@ -262,7 +263,7 @@
   gap: 6px;
 }
 .customExerciseInput {
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
@@ -301,7 +302,7 @@
 .dayTab {
   padding: 8px 14px;
   border-radius: var(--radius-m);
-  background: var(--ink-3);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   color: var(--paper-dim);
   font-family: inherit;
@@ -320,7 +321,7 @@
    rola coralu ako pri aktívnom pláne v portáli, povolené v Operate. */
 .dayTabActive,
 .dayTabActive:hover {
-  background: rgba(224, 64, 42, 0.09);
+  background: rgba(217, 105, 74, 0.09);
   border-color: var(--iron-red);
   color: var(--paper);
 }
@@ -423,7 +424,7 @@
   align-items: center;
 }
 .addDayInput {
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
@@ -445,14 +446,15 @@
 }
 
 .dayPanel {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius-m);
   padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-height: 160px;
+  box-shadow: var(--card-shadow);
 }
 
 /* Na mobile je rám panelu zbytočná druhá vrstva okolo kariet cvikov (tie majú
@@ -472,7 +474,7 @@
   align-items: center;
   gap: 12px;
   padding: 11px 14px;
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--steel-line);
   border-radius: var(--radius-s);
   font-size: 13.5px;
@@ -562,7 +564,8 @@
 .reorderBtns .iconBtn:hover:not(:disabled) {
   color: var(--paper);
   border-color: transparent;
-  background: var(--ink-2);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
 }
 .reorderDown svg {
   transform: rotate(180deg);
@@ -611,7 +614,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
-  background: var(--ink);
+  background: var(--fill);
   border: 1px solid var(--iron-red-dim);
   border-radius: var(--radius-s);
 }
@@ -636,7 +639,7 @@
   color: var(--paper-faint);
 }
 .editField input {
-  background: var(--ink-2);
+  background: var(--surface-solid);
   border: 1px solid var(--steel-line);
   color: var(--paper);
   font-family: inherit;
@@ -703,4 +706,104 @@
   font-size: 12px;
   color: var(--error);
   margin: 0;
+}
+
+/* ======================================================================
+   v6 — "liquid glass" vrstva nad kópiou pôvodného modulu (neskorší zápis vyhráva).
+   ====================================================================== */
+.library,
+.dayPanel {
+  border-radius: 26px;
+}
+.dayTab {
+  border-radius: 999px;
+  background: var(--surface-solid);
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-1);
+}
+.dayTabActive,
+.dayTabActive:hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.addDayTab,
+.dayActionTab,
+.deleteDayTab {
+  border-radius: 999px;
+}
+.deleteDayConfirm {
+  border-radius: 22px;
+}
+.exerciseRow {
+  border-radius: 20px;
+  border-color: var(--hairline);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+}
+.iconBtn {
+  border-radius: 50%;
+  border-color: var(--hairline);
+  background: var(--surface-solid);
+}
+.librarySearch,
+.customExerciseInput,
+.addDayInput {
+  border-radius: 999px;
+  border-color: var(--hairline);
+}
+.librarySearch:focus,
+.customExerciseInput:focus {
+  border-color: var(--accent);
+}
+.libraryItem {
+  border-radius: 16px;
+}
+.libraryItem:hover:not(:disabled) {
+  background: var(--fill);
+  border-color: transparent;
+}
+.exerciseSummary {
+  color: var(--accent-text);
+}
+.editForm {
+  border-radius: 22px;
+  border: 1.5px solid var(--accent);
+  background: var(--surface-solid);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.editField input {
+  border-radius: 14px;
+  border-color: var(--hairline);
+}
+.reorderBtns .iconBtn {
+  background: transparent;
+  border-color: transparent;
+}
+.reorderBtns .iconBtn:hover:not(:disabled) {
+  background: var(--fill);
+  box-shadow: none;
+}
+
+/* mazanie — červená (tokeny --danger v tokens.module.css), odlíšená od terakoty */
+.deleteDayTab,
+.deleteDayTab:hover {
+  color: var(--danger);
+}
+.deleteDayTab:hover {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.deleteDayConfirm {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.iconBtn:global(.btn-danger) {
+  color: var(--danger);
+}
+.iconBtn:global(.btn-danger):hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
 }

@@ -1,11 +1,11 @@
-/* Zdieľané vlákno správ tréner ↔ klient. Používa sa v /portal/chat (klient)
-   aj na /dashboard/klienti/[id] (tréner). Farby z app/globals.css tokenov. */
+/* Vlákno správ (ChatThread) — chat portálu, AI Kouč aj Správy trénera (dizajn v6):
+   moje správy terakotové, druhá strana biela, pole na písanie ako sklenená kapsula.
+   Tokeny z koreňa .root (app/v6design/styles/tokens.module.css). */
 
 .thread {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  /* poistka: nič vo vnútri (pás emoji, dlhé slovo) nesmie vlákno roztiahnuť do šírky */
   min-width: 0;
   max-width: 100%;
 }
@@ -23,21 +23,20 @@
   gap: 3px;
   padding: 4px 2px 12px;
 }
-/* krátke vlákno drž pri spodku (nad composerom), nie hore s mŕtvym pásom */
 .scroll::before {
   content: "";
   margin-top: auto;
 }
 .scroll:focus-visible {
-  outline: 2px solid var(--plate-yellow);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
-  border-radius: var(--radius-s);
+  border-radius: 18px;
 }
 .scroll::-webkit-scrollbar {
   width: 10px;
 }
 .scroll::-webkit-scrollbar-thumb {
-  background: var(--ink-3);
+  background: var(--fill-strong);
   border: 3px solid transparent;
   background-clip: content-box;
   border-radius: 8px;
@@ -45,19 +44,10 @@
 .group {
   display: contents;
 }
-
-/* embedded (v karte na dashboarde) — pevná výška, krátke vlákno pri spodku.
-   flex:none prebíja základné .scroll{flex:1}: .thread tu (bez .fill) nemá
-   pevnú výšku, takže by sa flex-basis:0% prepočítalo na "content" a
-   explicitná height nižšie by sa pri layoute ignorovala — rovnaký bug ako
-   pri .chatPage v app/portal/portal.module.css (viď README 2026-08-30). */
 .embedded .scroll {
   flex: none;
   height: 360px;
 }
-/* embedded + fill (trénerove Správy): na mobile vlákno vyplní výšku karty (tá má
-   pevnú výšku podľa obrazovky) — pole na písanie je pri spodku nad lištou. Na
-   desktope ostáva pevných 360px (karta tam výšku nemá, flex by rástol so správami). */
 @media (max-width: 860px) {
   .embedded.fill .scroll {
     flex: 1;
@@ -67,15 +57,13 @@
 
 .daySep {
   align-self: center;
-  margin: 10px 0 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin: 12px 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
   color: var(--paper-faint);
-  background: var(--ink-3);
+  background: var(--fill);
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 4px 12px;
 }
 
 .row {
@@ -94,36 +82,37 @@
 .row + .row {
   margin-top: 3px;
 }
-/* medzera medzi blokmi od rôznych odosielateľov */
 .row.turn {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .bubble {
-  padding: 9px 13px;
-  border-radius: 14px;
-  font-size: 14px;
-  line-height: 1.4;
+  padding: 10px 15px;
+  border-radius: 22px;
+  font-size: 15px;
+  line-height: 1.42;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .mine .bubble {
-  background: color-mix(in srgb, var(--iron-red) 22%, var(--ink-2));
-  border: 1px solid color-mix(in srgb, var(--iron-red) 30%, var(--steel-line));
-  border-bottom-right-radius: 5px;
-  color: var(--paper);
+  background: var(--accent-grad);
+  border: 0;
+  border-bottom-right-radius: 7px;
+  color: var(--on-accent);
+  box-shadow: 0 8px 18px -12px rgba(194, 85, 58, 0.75);
 }
 .theirs .bubble {
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-bottom-left-radius: 5px;
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-bottom-left-radius: 7px;
   color: var(--paper);
+  box-shadow: var(--shadow-1);
 }
 .row.pending .bubble {
   opacity: 0.55;
 }
-/* Cviky spomenuté AI Koučom pri náhrade (feature/AIupgrade) — klik otvorí
-   detail s fotkami (ExerciseDetailModal, rovnaký ako v builderi). */
+/* Cviky spomenuté AI Koučom pri náhrade/odporúčaní (feature/AIupgrade) — klik
+   otvorí detail s fotkami (ExerciseDetailModal, rovnaký ako v builderi). */
 .exerciseRefs {
   display: flex;
   flex-wrap: wrap;
@@ -132,22 +121,23 @@
 }
 .exerciseRefChip {
   padding: 5px 10px;
-  border: 1px solid color-mix(in srgb, var(--iron-red) 35%, var(--steel-line));
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--iron-red) 12%, transparent);
+  background: var(--surface-solid);
   color: var(--paper);
   font: inherit;
   font-size: 12.5px;
   cursor: pointer;
 }
 .exerciseRefChip:hover {
-  background: color-mix(in srgb, var(--iron-red) 22%, transparent);
+  background: var(--fill-strong);
 }
 /* správa len z 1–3 emoji — veľká, bez bubliny (isJumboEmoji v ChatThread.tsx).
    .row .bubble.jumbo prebíja .mine/.theirs .bubble špecifickosťou. */
 .row .bubble.jumbo {
   background: none;
   border: none;
+  box-shadow: none;
   padding: 0 2px;
   font-size: 40px;
   line-height: 1.15;
@@ -155,31 +145,29 @@
 }
 
 .meta {
-  margin-top: 3px;
-  font-size: 10.5px;
+  margin-top: 4px;
+  padding-inline: 4px;
+  font-size: 11px;
   color: var(--paper-faint);
   font-variant-numeric: tabular-nums;
 }
 
-/* automatické správy (GDPR zmazanie/zrušenie, 0014) — centrovaná poznámka, nie bublina
-   žiadnej strany: sender "system" nepatrí ani trénerovi, ani klientovi. */
 .systemRow {
   align-self: center;
   max-width: 90%;
-  margin: 10px 0;
+  margin: 12px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
 }
 .systemNote {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--paper-dim);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-s);
-  padding: 8px 12px;
+  background: var(--fill);
+  border-radius: 18px;
+  padding: 9px 14px;
 }
 .systemRow .meta {
   margin-top: 4px;
@@ -196,46 +184,49 @@
   padding: 30px 20px;
 }
 .emptyTile {
-  width: 46px;
-  height: 46px;
+  width: 60px;
+  height: 60px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-m);
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  color: var(--paper-dim);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 6%, transparent);
 }
 .emptyTile svg {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
 .emptyTitle {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
   color: var(--paper);
 }
 .emptyHint {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--paper-faint);
   line-height: 1.5;
   max-width: 34ch;
 }
 
-/* ---------- composer ---------- */
+/* ---------- composer: kapsula s poľom a okrúhlym Odoslať ---------- */
 .composer {
   display: flex;
-  flex-wrap: wrap; /* pás emoji je celý riadok nad poľom */
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--steel-line);
+  gap: 4px;
+  margin-top: 4px;
+  padding: 5px;
+  border-radius: 28px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
 }
-/* revealComposer (scrollIntoView) — na mobile musí pole zastať NAD fixnou spodnou
-   lištou navigácie, nie pod ňou. */
 @media (max-width: 880px) {
   .composer {
-    scroll-margin-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    scroll-margin-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 }
 .input {
@@ -243,21 +234,20 @@
   min-width: 0;
   resize: none;
   max-height: 120px;
-  padding: 10px 12px;
+  padding: 10px 6px;
   font: inherit;
   font-size: 16px;
   line-height: 1.4;
-  background: var(--ink-2);
-  border: 1px solid var(--steel-line);
-  border-radius: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 18px;
   color: var(--paper);
 }
 .input::placeholder {
   color: var(--paper-faint);
 }
 .input:focus-visible {
-  outline: 2px solid var(--plate-yellow);
-  outline-offset: 2px;
+  outline: none;
 }
 .send {
   flex: none;
@@ -266,49 +256,44 @@
   display: grid;
   place-items: center;
   border: none;
-  border-radius: 12px;
-  background: var(--iron-red-deep);
-  color: var(--paper);
+  border-radius: 50%;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.12s ease;
-}
-.send:hover:not(:disabled) {
-  background: #b82f1b;
+  transition: transform 0.12s ease, opacity 0.15s ease;
 }
 .send:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.94);
 }
 .send:disabled {
-  background: var(--ink-3);
+  background: var(--fill-strong);
   color: var(--paper-faint);
+  box-shadow: none;
   cursor: not-allowed;
 }
 .send svg {
   width: 20px;
   height: 20px;
 }
+
 /* ---------- emoji ---------- */
-/* manipulation = žiadny zoom dvojitým ťuknutím. Bez toho iOS pri rýchlom ťukaní
-   (👍👍, prepínanie záložiek, ťuknutie vedľa tlačidla) priblížil celú stránku.
-   Pinch zoom ostáva povolený (prístupnosť). */
 .composer,
 .composer button {
   touch-action: manipulation;
 }
-
 .emojiToggle {
   flex: none;
   width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
-  border: 1px solid transparent;
-  border-radius: 12px;
+  border: 0;
+  border-radius: 50%;
   background: transparent;
   color: var(--paper-faint);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.15s ease, background 0.15s ease;
 }
 .emojiToggle svg {
   width: 24px;
@@ -316,28 +301,22 @@
 }
 .emojiToggle:hover,
 .emojiToggleOn {
-  color: var(--paper);
-  background: var(--ink-3);
-}
-.emojiToggleOn {
-  border-color: var(--steel-line);
+  color: var(--accent-text);
+  background: var(--accent-soft);
 }
 .emojiToggle:focus-visible {
-  outline: 2px solid var(--plate-yellow);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-/* Mobil: celý panel je JEDEN riadok (44 px) — záložky ako ikony vľavo, pás emoji
-   vpravo. Pri otvorenej klávesnici je miesta na správy málo, každý riadok sa počíta.
-   Panel je nad poľom v composeri; vlákno má pevnú výšku, takže stránka sa nepredĺži
-   (žiadny posun okolo klávesnice) — zmenší sa len plocha správ a ChatThread ju
-   drží pri spodku (ResizeObserver). */
 .emojiPanel {
   flex-basis: 100%;
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 2px 4px 4px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 2px;
   animation: emojiIn 0.16s ease-out;
 }
 .emojiTabs {
@@ -345,7 +324,7 @@
   display: flex;
   gap: 2px;
   padding-right: 6px;
-  border-right: 1px solid var(--steel-line);
+  border-right: 1px solid var(--hairline);
 }
 .emojiTab {
   flex: none;
@@ -357,7 +336,7 @@
   gap: 6px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 14px;
   background: transparent;
   color: var(--paper-faint);
   font: inherit;
@@ -365,7 +344,6 @@
   font-weight: 700;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 .emojiTab:not(.emojiTabOn) .emojiTabIcon {
   opacity: 0.5;
@@ -374,26 +352,19 @@
 .emojiTabIcon {
   font-size: 20px;
   line-height: 1;
-  transition: opacity 0.15s ease, filter 0.15s ease;
 }
 .emojiTabLabel {
   display: none;
 }
 .emojiTabOn {
   color: var(--paper);
-  background: var(--ink-3);
-  border-color: var(--steel-line);
+  background: var(--fill);
 }
 .emojiTab:focus-visible {
-  outline: 2px solid var(--plate-yellow);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
-
 .emojiStrip {
-  /* width:0 + flex-grow: pás si zoberie len zvyšné miesto a do šírky rodiča sa NEPOČÍTA.
-     Bez toho bola jeho "prirodzená" šírka celý riadok emoji (~1000 px) a v mriežke
-     trénerových Správ (stĺpec 1fr = min. šírka obsahu) roztiahla celé vlákno —
-     pole, Odoslať, vlastné správy aj tlačidlá hlavičky ušli za pravý okraj. */
   flex: 1 1 0;
   width: 0;
   min-width: 0;
@@ -402,7 +373,6 @@
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  /* jemné vyblednutie na pravom okraji napovie, že pás pokračuje */
   mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
 }
 .emojiStrip::-webkit-scrollbar {
@@ -417,7 +387,7 @@
   scroll-snap-align: start;
   padding: 0;
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   background: transparent;
   font-size: 24px;
   line-height: 1;
@@ -426,15 +396,13 @@
   transition: background 0.12s ease, transform 0.12s ease;
 }
 .emojiBtn:active {
-  background: var(--ink-3);
+  background: var(--fill);
   transform: scale(0.9);
 }
 .emojiBtn:focus-visible {
-  outline: 2px solid var(--plate-yellow);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
-
-/* Desktop (myš): záložky s textom nad mriežkou, všetko naraz bez vodorovného scrollu */
 @media (pointer: fine) {
   .emojiPanel {
     flex-direction: column;
@@ -449,7 +417,7 @@
     width: auto;
     height: 32px;
     padding: 0 12px;
-    border-color: var(--steel-line);
+    border-color: var(--hairline);
     border-radius: 999px;
   }
   .emojiTabIcon {
@@ -471,7 +439,7 @@
     font-size: 21px;
   }
   .emojiBtn:hover {
-    background: var(--ink-3);
+    background: var(--fill);
   }
 }
 @keyframes emojiIn {
@@ -487,7 +455,7 @@
 }
 
 .error {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--error);
-  padding-top: 6px;
+  padding: 6px 6px 0;
 }

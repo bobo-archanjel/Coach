@@ -1,4 +1,4 @@
-import { test, expect, type BrowserContext, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -33,8 +33,7 @@ async function apiSignIn(email: string, password: string): Promise<{ api: Supaba
   return { api, userId: data.user.id };
 }
 
-async function loginV6(page: Page, context: BrowserContext, baseURL: string, email: string, password: string, expectUrl: RegExp) {
-  await context.addCookies([{ name: "fp-dash-skin", value: "v6", url: baseURL }]);
+async function loginV6(page: Page, email: string, password: string, expectUrl: RegExp) {
   await page.goto("/v6design/prihlasenie");
   await page.locator("#login-email").fill(email);
   await page.locator("#login-password").fill(password);
@@ -62,7 +61,7 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
     }
   });
 
-  test("tréner: kópia dňa aj s cvikmi na koniec plánu, prepnutie na ňu, premenovanie", async ({ page, context, baseURL }, testInfo) => {
+  test("tréner: kópia dňa aj s cvikmi na koniec plánu, prepnutie na ňu, premenovanie", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(90_000);
     trainer = await apiSignIn(env.trainerEmail!, env.trainerPassword!);
@@ -86,7 +85,7 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
       { plan_id: plan!.id, day_number: 2, name: "E2E Pull", exercises: [] },
     ]);
 
-    await loginV6(page, context, baseURL!, env.trainerEmail!, env.trainerPassword!, /\/dashboard/);
+    await loginV6(page, env.trainerEmail!, env.trainerPassword!, /\/dashboard/);
     await page.goto(`/dashboard/treningy/${plan!.id}`);
     await page.getByRole("button", { name: "E2E Push", exact: true }).click();
     await page.getByRole("button", { name: "Duplikovať", exact: true }).click();
@@ -122,12 +121,12 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
     expect(copy.some((e) => entries.some((o) => o.entry_id === e.entry_id))).toBe(false);
   });
 
-  test("klient: vlastný tréning — kópia a premenovanie dňa v drafte, uloží sa až „Uložiť“", async ({ page, context, baseURL }, testInfo) => {
+  test("klient: vlastný tréning — kópia a premenovanie dňa v drafte, uloží sa až „Uložiť“", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(90_000);
     client = await apiSignIn(env.clientEmail!, env.clientPassword!);
-    await loginV6(page, context, baseURL!, env.clientEmail!, env.clientPassword!, /\/portal/);
-    await page.goto("/v6design/portal/trening");
+    await loginV6(page, env.clientEmail!, env.clientPassword!, /\/portal/);
+    await page.goto("/portal/trening");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
 
     const builder = page.getByRole("region", { name: "Nový vlastný tréning" });

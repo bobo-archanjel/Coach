@@ -5,8 +5,7 @@ import dynamic from "next/dynamic";
 import type { PortalExercise } from "@/lib/portal/types";
 import { getExerciseDetailAction } from "./actions";
 import type { ExerciseDetail } from "@/lib/exercises";
-import portalStyles from "./portal.module.css";
-import { useSkinStyles } from "../components/uiSkin";
+import styles from "./portal.module.css";
 
 // Modal (obrázky + kroky cvičenia) sa otvorí len na klik na konkrétny cvik —
 // vlastný chunk namiesto toho, aby bol súčasťou karty Dnes/zoznamu tréningov
@@ -21,7 +20,6 @@ const ExerciseDetailModal = dynamic(() =>
  * Použité na karte Dnes aj v zozname tréningových plánov (/portal/trening).
  */
 export function ExercisePreviewList({ exercises }: { exercises: PortalExercise[] }) {
-  const styles = useSkinStyles("portal", portalStyles);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
   const [, startTransition] = useTransition();

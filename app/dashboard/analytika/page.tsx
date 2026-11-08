@@ -9,7 +9,7 @@ import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { RosterSummaryCard } from "./RosterSummaryCard";
 import { InfoTip } from "@/app/components/InfoTip";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 /** Prehľad naprieč klientmi — Progres a analýza (feature/progress-analyst), rozšírené feature/analytika-v2. */
 
@@ -81,7 +81,6 @@ function daysAgoIso(n: number): string {
 }
 
 export default async function AnalytikaPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
-  const styles = await dashStyles();
   const { preview } = await searchParams;
   const isPreview = preview === "ok" && process.env.NODE_ENV === "development";
 
@@ -102,7 +101,7 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
     const {
       data: { user },
     } = await getUser();
-    if (!user) redirect("/prihlasenie");
+    if (!user) redirect("/v6design/prihlasenie");
 
     // AI signály nezávisia od zoznamu klientov — štartujú hneď (predtým až po ňom).
     aiInsights = getAiTopicInsights(supabase);
@@ -244,7 +243,6 @@ async function RecentPRPanel({
   clients: { id: string; full_name: string }[];
   data: Promise<Map<string, StrengthPR[]> | null>;
 }) {
-  const styles = await dashStyles();
   const recentPRs = await data;
   const prList = clients
     .flatMap((c) => (recentPRs?.get(c.id) ?? []).map((pr) => ({ client: c, pr })))
@@ -271,7 +269,6 @@ async function RecentPRPanel({
 }
 
 async function AiInsightsPanel({ data }: { data: Promise<AiTopicInsight[] | null> }) {
-  const styles = await dashStyles();
   const aiInsights = await data;
   if (!aiInsights || aiInsights.length === 0) return null;
   return (

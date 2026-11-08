@@ -15,7 +15,7 @@ import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { InfoTip } from "@/app/components/InfoTip";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -47,7 +47,6 @@ export default async function PlanDetailPage({
   params: Promise<{ planId: string }>;
   searchParams: Promise<{ preview?: string }>;
 }) {
-  const styles = await dashStyles();
   const { planId } = await params;
   const { preview } = await searchParams;
 

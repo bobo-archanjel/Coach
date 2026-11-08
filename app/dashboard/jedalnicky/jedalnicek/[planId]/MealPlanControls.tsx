@@ -4,8 +4,7 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import Link from "next/link";
 import { deleteMealPlanAction, publishMealPlanAction, type ActionState } from "../actions";
 import { saveMealTemplateAction } from "../../../sablony/actions";
-import dashboardModule from "../../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -25,7 +24,6 @@ const CheckIcon = () => (
  */
 
 export function MealPublishBadge({ published, visibleToClient }: { published: boolean; visibleToClient: boolean }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   return (
     <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
       {!published
@@ -88,7 +86,6 @@ export function MealPublishActions({
   /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
   recipientCount?: number;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [state, formAction, pending] = useActionState(publishMealPlanAction, initialState);
   const [, startPublish] = useTransition();
   // koľkým klientom sa posielalo — po odoslaní príjemcovia z DB zmiznú (prop je potom 0)
@@ -182,7 +179,6 @@ export function MealPlanFooterActions({
   published: boolean;
   visibleToClient: boolean;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [templateState, templateAction, templatePending] = useActionState(saveMealTemplateAction, initialState);
   const [, startTemplate] = useTransition();
   const del = useDeleteMealPlan(planId);

@@ -1,6 +1,6 @@
-/* FitPilot — feature/navod: interaktívny onboarding tour. Tokeny z app/globals.css
-   (--ink-2, --iron-red, --shadow-2, --radius-m, ...), rovnaký vizuálny jazyk ako
-   zvyšok appky (zaoblené karty, pilulkové bodky, coral primárna akcia). */
+/* FitPilot — interaktívny onboarding tour v dizajne v6 (vykresľuje sa vnútri koreňa
+   s tokenmi app/v6design/styles/tokens.module.css): sklenená bublina, terakotová
+   hlavná akcia, pilulkové bodky. Pôvodné tokeny ostávajú ako záloha. */
 
 .overlay {
   position: fixed;
@@ -15,7 +15,7 @@
   position: fixed;
   border-radius: var(--radius-m, 12px);
   box-shadow: 0 0 0 9999px rgba(9, 8, 8, 0.78);
-  border: 2px solid var(--iron-red, #e0402a);
+  border: 2px solid var(--accent, var(--iron-red, #e0402a));
   transition:
     top 0.25s cubic-bezier(0.16, 1, 0.3, 1),
     left 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -28,10 +28,12 @@
   position: fixed;
   width: 320px;
   max-width: calc(100vw - 32px);
-  background: var(--ink-2, #1b1a18);
-  border: 1px solid var(--steel-line, #38352f);
-  border-radius: var(--radius-m, 12px);
-  box-shadow: var(--shadow-2, 0 12px 32px -12px rgba(0, 0, 0, 0.65));
+  background: var(--sheet-bg-strong, var(--ink-2, #1b1a18));
+  border: 1px solid var(--glass-border, var(--steel-line, #38352f));
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow, var(--shadow-2, 0 12px 32px -12px rgba(0, 0, 0, 0.65)));
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
   padding: 18px;
   transition:
     top 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -50,18 +52,19 @@
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--steel-line, #38352f);
+  background: var(--fill-strong, var(--steel-line, #38352f));
 }
 
 .dotActive {
-  background: var(--iron-red, #e0402a);
+  background: var(--accent, var(--iron-red, #e0402a));
   width: 16px;
 }
 
 .title {
   margin: 0 0 6px;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 720;
+  letter-spacing: -0.02em;
   color: var(--paper, #f3efe6);
 }
 
@@ -99,10 +102,10 @@
 }
 
 .backBtn {
-  background: none;
-  border: 1px solid var(--steel-line, #38352f);
+  background: var(--surface-solid, none);
+  border: 1px solid var(--hairline, var(--steel-line, #38352f));
   color: var(--paper-dim, #cfc9bd);
-  border-radius: var(--radius-s, 9px);
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 14px;
@@ -110,10 +113,11 @@
 }
 
 .nextBtn {
-  background: var(--iron-red-deep, #c3341f);
-  color: var(--paper, #f3efe6);
+  background: var(--accent-grad, var(--iron-red-deep, #c3341f));
+  color: var(--on-accent, var(--paper, #f3efe6));
+  box-shadow: var(--accent-glow, none);
   border: none;
-  border-radius: var(--radius-s, 9px);
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
   padding: 8px 16px;
@@ -121,5 +125,5 @@
 }
 
 .nextBtn:hover {
-  background: var(--iron-red, #e0402a);
+  filter: brightness(1.05);
 }

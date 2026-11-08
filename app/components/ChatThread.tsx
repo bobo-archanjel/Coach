@@ -14,8 +14,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import chatStyles from "./chat.module.css";
-import { useSkinStyles } from "./uiSkin";
+import styles from "./chat.module.css";
 import type { ExerciseDetail } from "@/lib/exercises";
 
 // Modal (obrázky + kroky cvičenia) len na klik — vlastný chunk, nenafukuje
@@ -241,7 +240,6 @@ const MessageList = memo(function MessageList({
   emptyText: string;
   onOpenExercise?: (ref: ChatExerciseRef) => void;
 }) {
-  const styles = useSkinStyles("chat", chatStyles);
   const view = useMemo(() => {
     const today = zoned(new Date());
     // včerajší kalendárny deň (nie "teraz − 24 h", to by pri zmene času raz za rok minulo)
@@ -399,7 +397,6 @@ export function ChatThread({
       props sa chipy pod správou vôbec nevykreslia (napr. v trénerovom chate). */
   getExerciseDetail?: (exerciseId: string) => Promise<ExerciseDetail | null>;
 }) {
-  const styles = useSkinStyles("chat", chatStyles);
   const router = useRouter();
   const [text, setText] = useState("");
   const [exerciseModal, setExerciseModal] = useState<ChatExerciseRef | null>(null);

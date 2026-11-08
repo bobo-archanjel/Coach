@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { deletePlanAction } from "../actions";
-import dashboardModule from "../../dashboard.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "../../dashboard.module.css";
 
 /**
  * Spodok detailu plánu: "Stiahnuť PDF" + "Zmazať" (len publikovaný plán — koncept
@@ -22,7 +21,6 @@ export function PlanFooterActions({
   published: boolean;
   hasCompleted: boolean;
 }) {
-  const styles = useSkinStyles("dashboard", dashboardModule);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

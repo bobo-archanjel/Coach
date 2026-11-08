@@ -59,7 +59,7 @@ test.describe("šablóny trénera (reálna DB, dizajn v6)", () => {
     }
   });
 
-  test("záložky, hľadanie, náhľad, Použiť → koncept, zmazanie", async ({ page, context, baseURL }, testInfo) => {
+  test("záložky, hľadanie, náhľad, Použiť → koncept, zmazanie", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(150_000);
 
@@ -106,8 +106,6 @@ test.describe("šablóny trénera (reálna DB, dizajn v6)", () => {
       .from("meal_template_days")
       .insert({ template_id: mt!.id, day_number: 1, name: "Pondelok", meals: [{ food_name: "Ovsené vločky", grams: 80 }] });
 
-    // nový dizajn dashboardu
-    await context.addCookies([{ name: "fp-dash-skin", value: "v6", url: baseURL! }]);
     await page.goto("/prihlasenie");
     await page.locator("#login-email").fill(env.trainerEmail!);
     await page.locator("#login-password").fill(env.trainerPassword!);

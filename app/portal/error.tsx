@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "./Notice";
-import { RetryButton } from "./RetryButton";
 
-// Záchranná sieť pre neočakávanú chybu v portáli (napr. výpadok siete počas akcie)
-// — namiesto čiernej obrazovky "Application error" ostane navigácia (layout) a
-// rovnaká chybová karta ako pri zlyhanom načítaní karty portálu.
+// Záchranná sieť pre neočakávanú chybu (rovnaká ako app/portal/error.tsx) —
+// navigácia ostane, namiesto prázdnej obrazovky chybová karta s opakovaním.
 export default function PortalError({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {
     console.error(error);

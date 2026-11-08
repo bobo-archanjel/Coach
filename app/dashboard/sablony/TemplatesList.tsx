@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { TemplateCard } from "./TemplateCard";
-import templatesModule from "./templates.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./templates.module.css";
 
 export interface TemplateItem {
   id: string;
@@ -30,7 +29,6 @@ export function TemplatesList({
   items: TemplateItem[];
   clients: { id: string; full_name: string }[];
 }) {
-  const styles = useSkinStyles("templates", templatesModule);
   const [query, setQuery] = useState("");
   const shown = useMemo(() => {
     const q = normalize(query.trim());

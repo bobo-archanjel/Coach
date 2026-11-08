@@ -9,11 +9,13 @@ import { parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed"
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
+import { ActivePlanButton } from "./ActivePlanButton";
 import { CreateMealPlanButton } from "./CreateMealPlanButton";
 import { NutritionForm } from "./NutritionForm";
-import { dashStyles } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
 import { pluralSk } from "@/lib/portal/streak";
+import { resolveActivePlanId } from "@/lib/portal/activePlan";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -60,7 +62,6 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ preview?: string; sekcia?: string }>;
 }) {
-  const styles = await dashStyles();
   const { id } = await params;
   const { preview, sekcia } = await searchParams;
 
@@ -150,7 +151,7 @@ export default async function ClientDetailPage({
     // `workout_days(id)` (nie `(count)`) — z tých istých ID sa počíta počet dní
     // aj odcvičenosť (getPlanCompletion, zdieľané so zoznamom /dashboard/treningy).
     .from("workout_plans")
-    .select("id, name, created_at, workout_days(id)")
+    .select("id, name, created_at, published, workout_days(id)")
     .eq("client_id", id)
     .order("created_at", { ascending: false })
     .then(async ({ data: plans }) => ({
@@ -176,7 +177,7 @@ export default async function ClientDetailPage({
       supabase
         .from("clients")
         .select(
-          "id, full_name, goal, invite_code, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by",
+          "id, full_name, goal, invite_code, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by, active_plan_id",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -235,6 +236,8 @@ export default async function ClientDetailPage({
 
   // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
   const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
+  // Aktívny tréningový plán = ten na klientovej karte Dnes (zvolený, inak najnovší zverejnený).
+  const activePlanId = resolveActivePlanId(client.active_plan_id, (plans ?? []).filter((p) => p.published));
   const shortDate = (iso: string) =>
     new Date(iso).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Bratislava" });
 
@@ -258,16 +261,29 @@ export default async function ClientDetailPage({
                   const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
                   const done = planCompletion.get(plan.id);
                   return (
-                    <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
-                      <div className={styles.clientName}>{plan.name}</div>
-                      {done?.allDone ? (
-                        <span className={styles.planDoneBadge}>Hotovo</span>
-                      ) : (
-                        <span className={styles.clientSince}>
-                          {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
-                        </span>
-                      )}
-                    </Link>
+                    <div key={plan.id} className={`${styles.planRow} ${plan.id === activePlanId ? styles.planRowActive : ""}`}>
+                      <Link href={`/dashboard/treningy/${plan.id}`} className={styles.planRowLink}>
+                        <span className={styles.clientName}>{plan.name}</span>
+                        {done?.allDone ? (
+                          <span className={styles.planDoneBadge}>Hotovo</span>
+                        ) : (
+                          <span className={styles.clientSince}>
+                            {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount}{" "}
+                            {pluralSk(dayCount, "deň", "dni", "dní")}
+                          </span>
+                        )}
+                      </Link>
+                      {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí */}
+                      <span className={styles.planRowSide}>
+                        {!plan.published ? (
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>Koncept</span>
+                        ) : plan.id === activePlanId ? (
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>Aktívny</span>
+                        ) : (
+                          <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />
+                        )}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
@@ -487,7 +503,6 @@ async function ClientAnalytics({
 }
 
 async function AnalyticsSkeleton() {
-  const styles = await dashStyles();
   return (
     <div className={styles.skeletonWrap} aria-hidden="true">
       <div className={`${styles.skeletonBlock} ${styles.skeletonCard}`} />

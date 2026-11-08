@@ -3,6 +3,7 @@ import { getGlobalExerciseRows } from "@/lib/exerciseLibrary";
 import { stripMarkdown } from "@/lib/ai/plainText";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
+import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
   computeFoodStreak,
@@ -33,6 +34,7 @@ import type {
   PortalDiaryGroup,
   PortalDiaryResult,
   PortalExercise,
+  PortalPlanChoice,
   PortalMealDay,
   PortalMealEntry,
   PortalMealGroup,
@@ -342,7 +344,7 @@ export async function getPortalData(): Promise<PortalResult> {
     // Zápis telesnej miery (BodyMetricForm) je nezávislá funkcia od tréningového
     // plánu — "no_plan" stav ju preto musí nosiť so sebou (QA nález #3: predtým
     // sa BodyMetricForm vôbec nerenderoval, kým klient nemal aktívny plán).
-    const noPlanResult = async (): Promise<PortalResult> => {
+    const noPlanResult = async (planChoice?: PortalPlanChoice): Promise<PortalResult> => {
       const [, , bodyMetrics] = await sideData;
       return {
         state: "no_plan",
@@ -350,60 +352,64 @@ export async function getPortalData(): Promise<PortalResult> {
         hasTrainer: Boolean(client.trainer_id),
         today: isoDate,
         bodyMetrics: bodyMetrics ?? [],
+        ...(planChoice ? { planChoice } : {}),
       };
     };
 
-    // "Aktívny" plán = clients.active_plan_id (klient si ho volí v sekcii Tréning),
-    // inak najnovší plán (spätne kompatibilné). Platí pre plán od trénera aj vlastný.
+    // "Aktívny" plán = clients.active_plan_id (volí ho klient v Tréningu / na Dnes, alebo
+    // tréner v detaile klienta), inak najnovší zverejnený — resolveActivePlanId (0056).
     // published: false = tréner ešte plán len rozostavuje (0021) — dovtedy sa
     // klientovi nesmie ukázať, ani ako "aktívny", ani ako "najnovší".
-    // Dni aj ich logy idú embedom v tom istom dopyte (predtým plán → logy za sebou).
-    // Pri zvolenom aktívnom pláne sa najnovší súbežne pýta len na `id` (záloha, keď
-    // aktívny medzičasom zmizol) — nie celý druhý plán so všetkými cvikmi a logmi.
+    // Súbežne: ľahký zoznam zverejnených plánov (prepínač „Zmeniť“ + platnosť aktívneho)
+    // a plný plán s dňami a logmi — zvolený aktívny, bez voľby rovno najnovší. Druhý
+    // plný dopyt len keď zvolený aktívny medzičasom zmizol/nie je zverejnený.
     const planSelect =
       "id, name, workout_days(id, day_number, name, exercises, workout_logs(id, workout_day_id, performed_on, entries, completed_at, rpe, note))";
-    const newestPlanQuery = (select: string) =>
+    const fullPlanQuery = (planId: string | null) => {
+      const q = supabase.from("workout_plans").select(planSelect).eq("client_id", client.id).eq("published", true);
+      return (planId ? q.eq("id", planId) : q.order("created_at", { ascending: false }).limit(1))
+        .order("day_number", { referencedTable: "workout_days", ascending: true })
+        .maybeSingle();
+    };
+    const [{ data: planListRows, error: listErr }, { data: firstRow, error: firstErr }] = await Promise.all([
       supabase
         .from("workout_plans")
-        .select(select)
+        .select("id, name, trainer_id, workout_days(exercises)")
         .eq("client_id", client.id)
         .eq("published", true)
-        .order("created_at", { ascending: false })
-        .order("day_number", { referencedTable: "workout_days", ascending: true })
-        .limit(1)
-        .maybeSingle();
-    let planRow: PlanWithLogsRow | null = null;
-    let planErr: { message: string } | null = null;
-    if (client.active_plan_id) {
-      const [{ data: activePlan }, { data: newestId, error: newestErr }] = await Promise.all([
-        supabase
-          .from("workout_plans")
-          .select(planSelect)
-          .eq("id", client.active_plan_id)
-          .eq("client_id", client.id)
-          .eq("published", true)
-          .order("day_number", { referencedTable: "workout_days", ascending: true })
-          .maybeSingle(),
-        newestPlanQuery("id"),
-      ]);
-      planRow = (activePlan as unknown as PlanWithLogsRow | null) ?? null;
-      planErr = newestErr;
-      if (!planRow && newestId) {
-        const { data, error } = await newestPlanQuery(planSelect);
+        .order("created_at", { ascending: false }),
+      fullPlanQuery(client.active_plan_id ?? null),
+    ]);
+    const planList = planListRows ?? [];
+    const activeId = resolveActivePlanId(client.active_plan_id, planList);
+    let planRow = (firstRow as unknown as PlanWithLogsRow | null) ?? null;
+    let planErr: { message: string } | null = firstErr ?? listErr;
+    if (planRow?.id !== activeId) {
+      planRow = null;
+      if (activeId) {
+        const { data, error } = await fullPlanQuery(activeId);
         planRow = (data as unknown as PlanWithLogsRow | null) ?? null;
         planErr = error;
       }
-    } else {
-      const { data, error } = await newestPlanQuery(planSelect);
-      planRow = (data as unknown as PlanWithLogsRow | null) ?? null;
-      planErr = error;
     }
     if (!planRow && planErr) return { state: "error", message: dbErr(planErr, "data") };
     if (!planRow) return await noPlanResult();
     const plan = { id: planRow.id, name: planRow.name };
+    const planChoice: PortalPlanChoice = {
+      activePlanId: plan.id,
+      activePlanName: plan.name,
+      plans: planList.map((p) => ({
+        id: p.id,
+        name: p.name,
+        source: (p.trainer_id ? "trainer" : "client") as PlanSource,
+        // len dni s cvikmi — rovnako ako počet v sekcii Tréning (getPortalTraining)
+        dayCount: ((p.workout_days as unknown as { exercises: unknown }[] | null) ?? []).filter(hasExercises).length,
+      })),
+    };
 
     const days = ((planRow.workout_days ?? []) as DayRow[]).filter(hasExercises);
-    if (days.length === 0) return await noPlanResult();
+    // aktívny plán bez cvikov — klient si môže zvoliť iný (ak nejaký má)
+    if (days.length === 0) return await noPlanResult(planChoice.plans.length > 1 ? planChoice : undefined);
 
     // Logy len z dní aktuálneho plánu (RLS ich aj tak obmedzí na tohto klienta),
     // najnovšie prvé — rovnako ako predošlý samostatný dopyt.
@@ -491,8 +497,9 @@ export async function getPortalData(): Promise<PortalResult> {
       session = {
         kind: doneToday ? "done" : "training",
         title: targetDay.name,
-        // Builder nemá "focus" dňa — pod názov dňa dáme aspoň názov plánu ako kontext.
-        focus: plan.name ?? "",
+        // Builder nemá "focus" dňa. Názov plánu nesie riadok „Plán: … Zmeniť“ nad kartou
+        // (PlanSwitch, planChoice) — pod názvom dňa by bol druhýkrát.
+        focus: "",
         durationLabel: "",
         exercises: exList,
         loggedExercises,
@@ -573,6 +580,7 @@ export async function getPortalData(): Promise<PortalResult> {
           : null,
       bodyMetrics: bodyMetrics ?? [],
       nextAppointment: nextAppt ? { title: nextAppt.title, startsAt: nextAppt.starts_at } : null,
+      planChoice,
     };
 
     return { state: "ok", data };
@@ -701,11 +709,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     }));
 
     const planList = planRows ?? [];
-    const newestId = planList.length > 0 ? planList[0].id : null;
-    const activePlanId =
-      client.active_plan_id && planList.some((p) => p.id === client.active_plan_id)
-        ? client.active_plan_id
-        : newestId;
+    const activePlanId = resolveActivePlanId(client.active_plan_id, planList);
 
     let plans: PortalPlan[] = [];
     if (planList.length > 0) {

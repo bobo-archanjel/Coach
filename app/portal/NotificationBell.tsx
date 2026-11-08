@@ -21,11 +21,9 @@ import {
   type PortalAttentionData,
 } from "@/lib/portal/attention";
 import { dismissPortalNotificationsAction, markAllPortalMessagesReadAction } from "./attention/actions";
-import portalModule from "./portal.module.css";
-import { useSkinStyles } from "@/app/components/uiSkin";
+import styles from "./portal.module.css";
 
 function BellIcon() {
-  const styles = useSkinStyles("portal", portalModule);
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -46,7 +44,6 @@ const REALTIME_DEBOUNCE_MS = 1_500;
 let channelSeq = 0;
 
 export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number }) {
-  const styles = useSkinStyles("portal", portalModule);
   const pathname = usePathname();
   const [data, setData] = useState<PortalAttentionData | null>(null);
   const [failed, setFailed] = useState(false);

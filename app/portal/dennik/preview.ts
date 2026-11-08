@@ -1,4 +1,4 @@
-/* DEV náhľady denníka (?preview=…) — zdieľané /portal a /v6design/portal. */
+/* DEV náhľady denníka (?preview=…). */
 import type { PortalDiaryData, PortalDiaryResult } from "@/lib/portal/types";
 
 const PREVIEW: PortalDiaryData = {

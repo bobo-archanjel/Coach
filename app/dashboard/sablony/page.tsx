@@ -3,10 +3,9 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PLAN_GOALS, PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
 import { InfoTip } from "@/app/components/InfoTip";
-import { dashStyles, isV6Dashboard } from "@/app/dashboard/dashSkin";
+import styles from "@/app/dashboard/dashboard.module.css";
 import { TemplatesList, type TemplateItem } from "./TemplatesList";
-import templatesModule from "./templates.module.css";
-import v6Templates from "@/app/v6design/dashboard/styles/templates.module.css";
+import t from "./templates.module.css";
 
 type Kind = "workout" | "meal";
 
@@ -33,12 +32,10 @@ function toDays(rows: DayRow[] | null, kind: Kind): TemplateItem["days"] {
  * plánu tlačidlom „Uložiť ako šablónu“.
  */
 export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ typ?: string; goal?: string }> }) {
-  const styles = await dashStyles();
-  const t = (await isV6Dashboard()) ? v6Templates : templatesModule;
   const {
     data: { user },
   } = await getUser();
-  if (!user) redirect("/prihlasenie");
+  if (!user) redirect("/v6design/prihlasenie");
   const supabase = await createClient();
 
   const { typ, goal: goalParam } = await searchParams;

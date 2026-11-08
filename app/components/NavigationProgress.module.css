@@ -5,7 +5,9 @@
   position: absolute;
   inset: 0;
   z-index: 30;
-  background: var(--ink);
+  /* pozadie dizajnu v6 (teplé svetlo) zarovnané s oknom ako fixná vrstva .root::before */
+  background: var(--v6-backdrop, var(--ink));
+  background-attachment: fixed;
   overflow: auto;
   /* Bez animácie vstupu — má sa objaviť OKAMŽITE, oneskorenie by porazilo zmysel. */
 }

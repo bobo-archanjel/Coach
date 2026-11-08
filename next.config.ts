@@ -55,6 +55,11 @@ const nextConfig: NextConfig = {
     return [
       { source: "/dashboard/vyziva", destination: "/dashboard/jedalnicky", permanent: true },
       { source: "/dashboard/vyziva/:path*", destination: "/dashboard/jedalnicky/:path*", permanent: true },
+      // Nový dizajn portálu bol do 11/2026 dizajnový experiment na /v6design/portal — teraz je
+      // jediný a beží na /portal; staré odkazy (záložky, prihlásenie v6) vedú tam.
+      { source: "/v6design", destination: "/portal", permanent: true },
+      { source: "/v6design/portal", destination: "/portal", permanent: true },
+      { source: "/v6design/portal/:path*", destination: "/portal/:path*", permanent: true },
     ];
   },
   images: {

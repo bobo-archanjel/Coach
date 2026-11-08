@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import type { PortalDiaryEntry } from "@/lib/portal/types";
-import portalStyles from "../portal.module.css";
-import { useSkinStyles } from "../../components/uiSkin";
+import styles from "../portal.module.css";
 
 const TrashIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -44,7 +43,6 @@ export function DiaryRow({
   onRemove: (id: string) => void;
   onUpdateGrams: (id: string, grams: number) => void;
 }) {
-  const styles = useSkinStyles("portal", portalStyles);
   const [mode, setMode] = useState<"view" | "edit" | "confirmRemove">("view");
   const [grams, setGrams] = useState(String(entry.grams));
   // Optimistický riadok ešte nemá skutočné ID z DB — úprava/odobratie počká.

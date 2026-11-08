@@ -1,4 +1,4 @@
-/* Téma dizajnového experimentu /v6design — svetlá / tmavá / podľa telefónu.
+/* Téma dizajnu v6 (portál, dashboard, prihlásenie v6) — svetlá / tmavá / podľa telefónu.
    Uložená v cookie (nie localStorage), nech server vykreslí správnu tému hneď
    v prvom HTML, bez zábleska opačnej farby. */
 
@@ -23,8 +23,3 @@ export function v6ThemeColor(theme: V6Theme) {
   }
   return V6_THEME_COLOR[theme];
 }
-
-/* Dizajn dashboardu sa nevyberá adresou (ako portál), ale cookie — /v6design/dashboard
-   ju zapne, Nastavenia → "Pôvodný dizajn" vypne. Dashboard beží na bežných /dashboard
-   adresách, takže odkazy aj presmerovania akcií ostávajú nezmenené. */
-export const DASH_SKIN_COOKIE = "fp-dash-skin";

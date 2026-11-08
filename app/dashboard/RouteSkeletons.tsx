@@ -47,12 +47,9 @@ function ListRows({ count = 4 }: { count?: number }) {
 }
 
 /**
- * /dashboard — Klienti (nezmenené, existujúci presný tvar). Volá sa ako OBYČAJNÁ
- * funkcia z klientského NavSkeletonOverlay (viď DashboardSkeletonOverlay.tsx) —
- * nemôže teda delegovať na `DashboardSkeleton` (async Server Component, číta
- * cookie pre v6 skin cez `next/headers`). Rovnaký tvar je tu zámerne duplikovaný
- * nad statickým `dashboard.module.css`, nie v6-skinovaný (klient v momente
- * instant-nav overlaya žiadny server round-trip ešte nemal).
+ * /dashboard — Klienti. Volá sa ako OBYČAJNÁ funkcia z klientského
+ * NavSkeletonOverlay (viď DashboardSkeletonOverlay.tsx) — nemôže teda delegovať
+ * na `DashboardSkeleton` (async Server Component), tvar je tu preto zopakovaný.
  */
 function KlientiSkeleton() {
   return (
@@ -87,11 +84,14 @@ function TreningySkeleton() {
   );
 }
 
-/** /dashboard/vyziva — zoznam klientov (rovnaký tvar riadku ako Klienti, bez formulára). */
-function VyzivaListSkeleton() {
+/** /dashboard/jedalnicky — formulár nového jedálnička + zoznam jedálničkov. */
+function JedalnickyListSkeleton() {
   return (
     <div className={styles.skeletonWrap}>
       <Head />
+      <div style={{ marginBottom: 20 }}>
+        <CardSkeleton lines={3} />
+      </div>
       <ListRows count={4} />
     </div>
   );
@@ -148,7 +148,7 @@ function NastaveniaSkeleton() {
   );
 }
 
-/** /dashboard/klienti/[id] — späť + hlavička + bočné sub-menu (190px) + karty. */
+/** /dashboard/klienti/[id] — späť + hlavička + záložky sekcií hore + karty pod nimi. */
 function KlientDetailSkeleton() {
   return (
     <div className={styles.skeletonWrap}>
@@ -157,12 +157,8 @@ function KlientDetailSkeleton() {
         <B className={styles.skeletonDetailTitle} />
         <B className={styles.skeletonLineShort} />
       </div>
-      <div className={styles.clientDetailLayout}>
-        <div className={styles.skeletonSubNav}>
-          {[0, 1, 2].map((i) => (
-            <B key={i} className={styles.skeletonSubNavItem} />
-          ))}
-        </div>
+      <div className={styles.clientDetail}>
+        <B className={styles.skeletonTabs} />
         <div className={styles.cardStack}>
           <CardSkeleton lines={3} />
           <ListRows count={3} />
@@ -198,8 +194,8 @@ function PlanBuilderSkeleton() {
   );
 }
 
-/** /dashboard/vyziva/[clientId] a /dashboard/vyziva/jedalnicek/[planId] — späť + hlavička + karta so zoznamom. */
-function VyzivaDetailSkeleton() {
+/** /dashboard/jedalnicky/[clientId] a /dashboard/jedalnicky/jedalnicek/[planId] — späť + hlavička + karta so zoznamom. */
+function JedalnicekDetailSkeleton() {
   return (
     <div className={styles.skeletonWrap}>
       <B className={styles.skeletonBackLink} />
@@ -245,9 +241,8 @@ export function DashboardRouteSkeleton({ href }: { href: string | null }) {
   if (path.startsWith("/dashboard/treningy")) {
     return path === "/dashboard/treningy" ? <TreningySkeleton /> : <PlanBuilderSkeleton />;
   }
-  if (path.startsWith("/dashboard/vyziva/jedalnicek")) return <VyzivaDetailSkeleton />;
-  if (path.startsWith("/dashboard/vyziva")) {
-    return path === "/dashboard/vyziva" ? <VyzivaListSkeleton /> : <VyzivaDetailSkeleton />;
+  if (path.startsWith("/dashboard/jedalnicky")) {
+    return path === "/dashboard/jedalnicky" ? <JedalnickyListSkeleton /> : <JedalnicekDetailSkeleton />;
   }
   if (path.startsWith("/dashboard/kalendar")) return <KalendarSkeleton />;
   if (path.startsWith("/dashboard/sablony")) return <SablonySkeleton />;

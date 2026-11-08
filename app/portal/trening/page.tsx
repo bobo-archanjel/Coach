@@ -1,19 +1,13 @@
 import { getPortalTraining } from "@/lib/portal/data";
+import { previewResult } from "@/app/portal/trening/preview";
+import { TrainingSection } from "@/app/portal/trening/TrainingSection";
+import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
-import { RetryButton } from "../RetryButton";
-import { TrainingSection } from "./TrainingSection";
-import { previewResult } from "./preview";
+import s from "../portal.module.css";
 
-/* /portal/trening — zoznam tréningových plánov klienta (od trénera aj vlastné).
-   Klient si vie vytvoriť vlastný tréning (aj bez trénera) a ťukom naň ho nastaviť
-   ako aktívny — potom sa správa presne ako plán od trénera (karta Dnes, stopky,
-   logovanie). Dáta: lib/portal/data.ts, migrácia 0010_client_own_workouts.sql. */
+/* /portal/trening — plány od trénera aj vlastné, šablóny a builder (TrainingSection). */
 
-export default async function TreningPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ preview?: string }>;
-}) {
+export default async function TreningPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
   const result = (preview && previewResult(preview)) || (await getPortalTraining());
 
@@ -25,5 +19,13 @@ export default async function TreningPage({
     );
   }
 
-  return <TrainingSection data={result.data} />;
+  return (
+    <>
+      <header>
+        <h1 className={s.pageTitle}>Tréning</h1>
+        <p className={s.pageSub}>Plány od trénera aj tvoje vlastné — vyber deň a začni.</p>
+      </header>
+      <TrainingSection data={result.data} />
+    </>
+  );
 }
