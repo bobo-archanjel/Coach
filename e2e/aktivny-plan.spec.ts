@@ -73,7 +73,7 @@ async function apiSignIn(email: string, password: string): Promise<{ api: Supaba
 }
 
 async function loginV6(page: Page, email: string, password: string, expectUrl: RegExp) {
-  await page.goto("/v6design/prihlasenie");
+  await page.goto("/prihlasenie");
   await page.locator("#login-email").fill(email);
   await page.locator("#login-password").fill(password);
   await page.getByRole("button", { name: "Prihlásiť sa" }).click();
