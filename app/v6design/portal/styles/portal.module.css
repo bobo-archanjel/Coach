@@ -3454,6 +3454,15 @@
   border-radius: var(--radius-m);
   box-shadow: var(--glass-shadow);
 }
+@media (min-width: 880px) {
+  .bellPanel {
+    /* Desktop sidebar (.v6Side) je len ~248px — s `right:0` by sa panel (344px)
+       roztiahol DOĽAVA mimo ľavého okraja obrazovky (rovnaký nález ako v
+       pôvodnom portal.module.css). `left:0` rastie doprava do hlavného obsahu. */
+    right: auto;
+    left: 0;
+  }
+}
 .bellPanelTitle {
   font-size: 11px;
   font-weight: 700;

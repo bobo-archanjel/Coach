@@ -3327,12 +3327,16 @@
 }
 @media (min-width: 880px) {
   .bellPanel {
-    /* Desktop: zvonček sedí v hornej časti bočného panela, nie pri hornom
-       okraji viewportu — tu .bell (position:relative) je spoľahlivý
-       containing block, žiadny display:contents predok to nenarúša. */
+    /* Desktop: zvonček sedí v hornej časti bočného panela (~250 px šírky), nie
+       pri hornom okraji viewportu — .bell (position:relative) je spoľahlivý
+       containing block. `left:0` namiesto `right:0` — panel (344px) je širší
+       než samotný sidebar, s `right:0` by sa roztiahol DOĽAVA mimo ľavého
+       okraja obrazovky (nájdené pri reálnom teste, viditeľný len odrezaný
+       koniec textu). S `left:0` rastie doprava do hlavného obsahu, kde je
+       vždy dosť miesta. */
     position: absolute;
     top: 44px;
-    right: 0;
+    left: 0;
     width: min(344px, calc(100vw - 24px));
   }
 }
