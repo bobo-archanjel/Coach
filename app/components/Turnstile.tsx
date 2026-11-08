@@ -23,10 +23,12 @@ declare global {
   }
 }
 
-/** Verejný "site key" — nie tajomstvo (je vidno v zdrojáku každej stránky),
- * rovnaký Cloudflare Turnstile projekt ako waitlist/index.html. Tajný kľúč
- * (TURNSTILE_SECRET_KEY) sa overuje výhradne na serveri (lib/turnstile.ts). */
-const SITE_KEY = "0x4AAAAAAFA1_F-hL8XibALT";
+/** Verejný "site key" — nie tajomstvo (je vidno v zdrojáku každej stránky).
+ * Vlastný Turnstile widget pre doménu coach-pi-bice.vercel.app (založený
+ * 2026-11-08, pôvodný projekt pre myfitpilot.sk bol na neznámom účte).
+ * Tajný kľúč (TURNSTILE_SECRET_KEY) sa overuje výhradne na serveri
+ * (lib/turnstile.ts) a je nastavený vo Vercel env vars. */
+const SITE_KEY = "0x4AAAAAAF4_5LQRK4GF8cow";
 
 /** Načíta Turnstile skript raz pre celú appku — vlož na stránku, ktorá widget používa. */
 export function TurnstileScript() {
