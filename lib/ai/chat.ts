@@ -36,7 +36,7 @@ import { reserveAiSlot, AI_CHAT_DAILY_LIMIT } from "./rateLimit";
 const HISTORY_WINDOW = 12; // posledných N správ poslaných modelu — nie celá história (minimalizácia dát + náklady)
 const MAX_REPLY_TOKENS = 700; // dosť aj na štruktúrovaný jedálniček na celý deň (4 jedlá + súčty)
 
-/** Cvik, ktorý AI naozaj spomenula v odpovedi (zhoda mena s kandidátmi, viď findReferencedExercises). */
+/** Cvik, ktorý AI naozaj spomenula v odpovedi (overené oproti zoznamu appky, viď extractReferencedExercises). */
 export interface ChatExerciseRef {
   id: string;
   name: string;
@@ -65,6 +65,7 @@ function buildSystemPrompt(exerciseSwapGuard: boolean): string {
     // klient videl ako surové hviezdičky a pomlčky (QA 2026-09-23).
     "Formát: píš čistý text bez markdownu — žiadne **hviezdičky**, # nadpisy ani --- oddeľovače. Štruktúru vytvor novými riadkami; položky zoznamu začni znakom • a názov jedla dňa napíš na samostatný riadok s dvojbodkou (napr. „Raňajky:“).",
     "Jazyk: výhradne spisovná slovenčina — žiadne české slová ani tvary.",
+    "Ak v odpovedi odporúčaš/spomenieš konkrétny cvik zo zoznamu 'Cviky s ID' nižšie (ak je priložený), na úplný koniec CELEJ odpovede pridaj na vlastný riadok marker [CVIKY: id1, id2] s PRESNÝMI ID z toho zoznamu (časť pred '::'), oddelené čiarkou — nikdy nie názvami, nikdy nie ID, ktoré si vymyslíš. Ak si žiadny konkrétny cvik z toho zoznamu nespomenul, marker úplne vynechaj. Klient tento marker nikdy neuvidí (appka ho odstráni), takže nijako nemení, ako mu znie bežný text pred ním.",
   ];
   if (exerciseSwapGuard) {
     lines.push(
@@ -80,26 +81,37 @@ interface ChatMessageRow {
 }
 
 /**
- * Ktoré z reálnych kandidátov (poslaných modelu v exerciseBlock) sa naozaj
- * objavili v jeho odpovedi — podľa zhody mena (SK aj EN variant), nie podľa
- * toho, čo appka POSLALA ako kandidátov (model si spomedzi nich vyberá, nie
- * všetky sa dostanú do finálnej vety). Appka tak vie priložiť klikateľný
- * detail len k cvikom, ktoré klient reálne dostal navrhnuté.
+ * Marker, ktorým model označí, KTORÉ konkrétne cviky z priložených zoznamov
+ * (tréningový plán + prípadná náhrada) v odpovedi naozaj použil — viď
+ * buildSystemPrompt. Nahrádza predošlé zhodovanie mena v texte: slovenčina
+ * cviky v odpovedi gramaticky skloňuje ("s bench pressom", "drepy"), takže
+ * presná zhoda s nominatívom v knižnici bola nespoľahlivá (nájdené pri reálnom
+ * teste — model odpovedal správne, ale appka cvik k odpovedi nepriložila).
+ * Model namiesto toho pošle PRESNÉ ID, appka ich len overí voči zoznamu, ktorý
+ * sama poslala — nikdy neverí ID, ktoré by si model vymyslel mimo zoznamu.
  */
-function findReferencedExercises(reply: string, candidates: ExerciseCandidate[]): ChatExerciseRef[] {
-  const lower = reply.toLowerCase();
-  const found: ChatExerciseRef[] = [];
+const EXERCISE_MARKER = /\[CVIKY:\s*([a-zA-Z0-9,\s-]+)\]\s*$/;
+
+/** Vytiahne marker z konca odpovede, vráti čistý text (bez markeru) + skutočne overené ID. */
+function extractReferencedExercises(
+  rawReply: string,
+  knownExercises: Map<string, string>,
+): { text: string; exercises: ChatExerciseRef[] } {
+  const match = rawReply.match(EXERCISE_MARKER);
+  if (!match) return { text: rawReply, exercises: [] };
+
+  const text = rawReply.slice(0, match.index).trimEnd();
+  const ids = match[1].split(",").map((s) => s.trim());
+  const exercises: ChatExerciseRef[] = [];
   const seen = new Set<string>();
-  for (const c of candidates) {
-    if (seen.has(c.id)) continue;
-    const displayName = c.nameSk?.trim() || c.name;
-    const mentioned = [c.nameSk, c.name].some((n) => n && lower.includes(n.trim().toLowerCase()));
-    if (mentioned) {
-      found.push({ id: c.id, name: displayName });
-      seen.add(c.id);
+  for (const id of ids) {
+    const name = knownExercises.get(id);
+    if (name && !seen.has(id)) {
+      exercises.push({ id, name });
+      seen.add(id);
     }
   }
-  return found;
+  return { text, exercises };
 }
 
 /**
@@ -155,7 +167,7 @@ export async function sendAiChatMessage(
   // pýtajú len pri makro cieli a rezervácia limitu (atomická, nevracia sa) až keď
   // sa makro kontext podaril — reťazené na ňu, nie čakajúce na celú dávku.
   const macro = getMacroContext(supabase, clientId);
-  const [{ context, error: ctxError }, trainingBlock, progressBlock, foods, candidates, slot] = await Promise.all([
+  const [{ context, error: ctxError }, training, progressBlock, foods, candidates, slot] = await Promise.all([
     macro,
     // Tréningový plán + história (deterministicky, viď trainingContext.ts) — posiela
     // sa vždy, rovnako ako makrá: klient sa môže na tréning spýtať v ktorejkoľvek správe.
@@ -241,6 +253,20 @@ export async function sendAiChatMessage(
     }
   }
 
+  // Cviky, ktoré appka vie overiť a k odpovedi priložiť ako klikateľný detail
+  // (marker [CVIKY: ...], viď extractReferencedExercises vyššie) — plán vždy,
+  // náhrada len keď appka reálne našla kandidátov.
+  const knownExercises = new Map<string, string>(training.exercises.map((e) => [e.id, e.name]));
+  if (candidates) {
+    const nameOf = (c: ExerciseCandidate) => c.nameSk?.trim() || c.name;
+    if (candidates.matched) knownExercises.set(candidates.matched.id, nameOf(candidates.matched));
+    for (const a of candidates.alternatives) knownExercises.set(a.id, nameOf(a));
+  }
+  const exerciseIdIndexBlock =
+    knownExercises.size > 0
+      ? `Cviky s ID (len pre marker [CVIKY: ...] na konci odpovede — tento zoznam sa klientovi nikdy nezobrazuje):\n${[...knownExercises].map(([id, name]) => `${id} :: ${name}`).join("\n")}`
+      : "";
+
   const anthropic = getAnthropicClient();
   const recent = history.slice(-HISTORY_WINDOW);
   const softEscalation = healthTrigger && swapIntent;
@@ -253,10 +279,11 @@ export async function sendAiChatMessage(
         buildSystemPrompt(softEscalation),
         contextBlock,
         timeBlock,
-        trainingBlock,
+        training.block,
         progressBlock,
         foodBlock,
         exerciseBlock,
+        exerciseIdIndexBlock,
       ]
         .filter(Boolean)
         .join("\n\n"),
@@ -264,8 +291,9 @@ export async function sendAiChatMessage(
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    const reply =
-      textBlock && textBlock.type === "text" ? stripMarkdown(textBlock.text) : "Prepáč, nepodarilo sa mi odpovedať.";
+    const rawReply = textBlock && textBlock.type === "text" ? textBlock.text : "Prepáč, nepodarilo sa mi odpovedať.";
+    const { text: cleanedReply, exercises: referencedExercises } = extractReferencedExercises(rawReply, knownExercises);
+    const reply = stripMarkdown(cleanedReply);
 
     // Zápis spotreby a mäkké FYI trénerovi až po odoslaní odpovede klientovi (after) —
     // odpoveď AI na ne nemusí čakať.
@@ -291,13 +319,12 @@ export async function sendAiChatMessage(
       }
     });
 
-    // Len pri náhrade cviku máme reálne exercise_id kandidátov (candidates.alternatives
-    // + matched) — inde model dostáva plán len ako text bez štruktúrovaných ID.
-    const referencedExercises = candidates
-      ? findReferencedExercises(reply, [...(candidates.matched ? [candidates.matched] : []), ...candidates.alternatives])
-      : undefined;
-
-    return { status: "ok", reply, escalated: softEscalation, exercises: referencedExercises };
+    return {
+      status: "ok",
+      reply,
+      escalated: softEscalation,
+      exercises: referencedExercises.length > 0 ? referencedExercises : undefined,
+    };
   } catch (err) {
     console.error("sendAiChatMessage (Claude call):", err instanceof Error ? err.message : err);
     return { status: "error", reply: "Nastala chyba pri odpovedi AI. Skús to prosím znova." };

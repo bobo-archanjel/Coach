@@ -11,6 +11,7 @@ const TZ = "Europe/Bratislava";
 const RECENT_LOGS = 5;
 
 type ExerciseEntry = {
+  exercise_id?: string | null;
   exercise_name?: string | null;
   sets?: number | null;
   reps?: string | null;
@@ -38,11 +39,21 @@ function formatLogged(e: LoggedEntry): string {
   return sets ? `${name} (${sets})` : name;
 }
 
+export interface TrainingContextResult {
+  /** textový blok do system promptu */
+  block: string;
+  /** cviky z aktuálneho plánu s reálnym exercise_id (feature/AIupgrade) — appka
+   *  nimi vie overiť/vyriešiť, ktorý cvik AI v odpovedi označila markerom
+   *  [CVIKY: id,...] (viď lib/ai/chat.ts), aby k nemu priložila detail s fotkami. */
+  exercises: { id: string; name: string }[];
+}
+
 /**
- * Vráti textový blok do system promptu. Nikdy nehádže — pri chybe vráti vetu,
- * ktorá AI povie, že tréningové dáta teraz nemá (a nech si nič nevymýšľa).
+ * Vráti textový blok do system promptu + zoznam cvikov s ID. Nikdy nehádže —
+ * pri chybe vráti vetu, ktorá AI povie, že tréningové dáta teraz nemá (a nech
+ * si nič nevymýšľa).
  */
-export async function getTrainingContextBlock(supabase: SupabaseClient, clientId: string): Promise<string> {
+export async function getTrainingContextBlock(supabase: SupabaseClient, clientId: string): Promise<TrainingContextResult> {
   try {
     // Aktívny plán klienta (clients.active_plan_id), inak najnovší zverejnený — ako karta
     // Dnes. Klient, najnovší plán s dňami (embed) a logy v jednom kole; samostatný
@@ -84,6 +95,10 @@ export async function getTrainingContextBlock(supabase: SupabaseClient, clientId
 
     const lines: string[] = [];
     const days = dayRows ?? [];
+    // Cviky s exercise_id (vlastné cviky bez ID appka do zoznamu nedáva — nemajú
+    // detail/fotky, nebolo by čo priložiť). Zoskupené podľa ID, nie podľa riadku,
+    // aby sa rovnaký cvik vo viacerých dňoch neobjavil v zozname viackrát.
+    const exerciseIndex = new Map<string, string>();
 
     if (!plan || days.length === 0) {
       lines.push(
@@ -94,6 +109,9 @@ export async function getTrainingContextBlock(supabase: SupabaseClient, clientId
       for (const d of days) {
         const exercises = Array.isArray(d.exercises) ? (d.exercises as ExerciseEntry[]) : [];
         lines.push(`- ${d.name}: ${exercises.length > 0 ? exercises.map(formatPlanned).join("; ") : "bez cvikov"}`);
+        for (const e of exercises) {
+          if (e.exercise_id && e.exercise_name) exerciseIndex.set(e.exercise_id, e.exercise_name.trim());
+        }
       }
 
       // Rotácia ako na karte Dnes: dnes odcvičený deň ostáva "dnešný", inak deň
@@ -125,9 +143,15 @@ export async function getTrainingContextBlock(supabase: SupabaseClient, clientId
       lines.push("Klient zatiaľ nemá zapísaný žiadny odcvičený tréning.");
     }
 
-    return lines.join("\n");
+    return {
+      block: lines.join("\n"),
+      exercises: [...exerciseIndex].map(([id, name]) => ({ id, name })),
+    };
   } catch (err) {
     console.error("getTrainingContextBlock:", err instanceof Error ? err.message : err);
-    return "Tréningové dáta sa teraz nepodarilo načítať — ak sa klient pýta na tréning, povedz mu to a nič si nevymýšľaj.";
+    return {
+      block: "Tréningové dáta sa teraz nepodarilo načítať — ak sa klient pýta na tréning, povedz mu to a nič si nevymýšľaj.",
+      exercises: [],
+    };
   }
 }
