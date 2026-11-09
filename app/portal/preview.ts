@@ -1,5 +1,5 @@
 /* DEV náhľady karty Dnes (?preview=…). */
-import type { PortalData, PortalPlanChoice, PortalResult } from "@/lib/portal/types";
+import type { PortalData, PortalPlanChoice, PortalResult, TodaySession } from "@/lib/portal/types";
 
 /** Prepínač aktívneho plánu na Dnes (PlanSwitchSheet) — aktívny je prvý. */
 const PREVIEW_PLAN_CHOICE: PortalPlanChoice = {
@@ -12,6 +12,24 @@ const PREVIEW_PLAN_CHOICE: PortalPlanChoice = {
   ],
 };
 
+const PREVIEW_SESSION: TodaySession = {
+  kind: "training",
+  title: "Deň C — Nohy",
+  focus: "",
+  durationLabel: "",
+  completedCount: 0,
+  dayId: "preview-day-c",
+  loggedExercises: null,
+  exercises: [
+    { idx: "1", name: "Drep s veľkou činkou", scheme: "4 × 6", load: "90 kg", rest: "150 s", tempo: "3-0-1", entryId: "p1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 90, restSeconds: 150 },
+    { idx: "2", name: "Rumunský mŕtvy ťah", scheme: "3 × 8", load: "100 kg", rest: "2 min", entryId: "p2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 100, restSeconds: 120 },
+    { idx: "3", name: "Predkopávanie na stroji", scheme: "3 × 12", load: "45 kg", rest: "75 s", entryId: "p3", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: 45, restSeconds: 75 },
+    { idx: "4", name: "Zakopávanie v ľahu", scheme: "3 × 12", load: "35 kg", rest: "75 s", entryId: "p4", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: 35, restSeconds: 75 },
+    { idx: "5", name: "Výpony na lýtka v stoji", scheme: "4 × 15", load: "60 kg", rest: "60 s", entryId: "p5", plannedSets: 4, plannedReps: "15", exerciseId: null, loadKg: 60, restSeconds: 60 },
+    { idx: "6", name: "Plank s výdržou", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s", entryId: "p6", plannedSets: 3, plannedReps: "45 s", exerciseId: null, loadKg: null, restSeconds: 45 },
+  ],
+};
+
 const PREVIEW_DATA: PortalData = {
   clientFirstName: "Ján",
   today: "2026-08-28",
@@ -21,23 +39,8 @@ const PREVIEW_DATA: PortalData = {
     initials: "M",
     text: "Dnes ide o techniku, nie o váhu — pri drepe drž tempo 3 s dole a kontrolu v spodnej polohe. Ak koleno pri RDL tlačí, zníž záťaž o 10 kg a napíš mi.",
   },
-  session: {
-    kind: "training",
-    title: "Deň C — Nohy",
-    focus: "",
-    durationLabel: "",
-    completedCount: 0,
-    dayId: "preview-day-c",
-    loggedExercises: null,
-    exercises: [
-      { idx: "1", name: "Drep s veľkou činkou", scheme: "4 × 6", load: "90 kg", rest: "150 s", tempo: "3-0-1", entryId: "p1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 90, restSeconds: 150 },
-      { idx: "2", name: "Rumunský mŕtvy ťah", scheme: "3 × 8", load: "100 kg", rest: "2 min", entryId: "p2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 100, restSeconds: 120 },
-      { idx: "3", name: "Predkopávanie na stroji", scheme: "3 × 12", load: "45 kg", rest: "75 s", entryId: "p3", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: 45, restSeconds: 75 },
-      { idx: "4", name: "Zakopávanie v ľahu", scheme: "3 × 12", load: "35 kg", rest: "75 s", entryId: "p4", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: 35, restSeconds: 75 },
-      { idx: "5", name: "Výpony na lýtka v stoji", scheme: "4 × 15", load: "60 kg", rest: "60 s", entryId: "p5", plannedSets: 4, plannedReps: "15", exerciseId: null, loadKg: 60, restSeconds: 60 },
-      { idx: "6", name: "Plank s výdržou", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s", entryId: "p6", plannedSets: 3, plannedReps: "45 s", exerciseId: null, loadKg: null, restSeconds: 45 },
-    ],
-  },
+  session: PREVIEW_SESSION,
+  hasTrainer: true,
   week: {
     mondayIso: "2026-08-24",
     rangeLabel: "24. – 30. aug",
@@ -96,6 +99,23 @@ const PREVIEW_DATA: PortalData = {
   })),
 };
 
+/** Nový klient bez plánu: Dnes ukáže prázdnu kartu plánu, prehľad a týždeň s nulami. */
+const NEW_CLIENT_DATA: PortalData = {
+  ...PREVIEW_DATA,
+  coachNote: null,
+  nextAppointment: null,
+  session: null,
+  planChoice: null,
+  totalSessions: 0,
+  streakHistory: PREVIEW_DATA.streakHistory.map(() => "rest"),
+  streaks: { training: { count: 0, atRisk: false, thisWeekDays: 0, needThisWeek: 1 }, food: { count: 0, atRisk: false } },
+  week: {
+    ...PREVIEW_DATA.week,
+    days: PREVIEW_DATA.week.days.map((d) => ({ ...d, state: d.state === "done" ? "none" : d.state, sessions: [] })),
+  },
+  bodyMetrics: [],
+};
+
 /** DEV: ?preview=unlinked|no_plan|no_plan_solo|no_plan_choice|error|ok|done|deletion|deletion_self|ended vynúti prázdny/chybový/hotový stav bez DB. */
 export function previewResult(kind: string): PortalResult | null {
   if (process.env.NODE_ENV !== "development") return null;
@@ -103,18 +123,18 @@ export function previewResult(kind: string): PortalResult | null {
     case "unlinked":
       return { state: "unlinked", firstName: "Ján" };
     case "no_plan":
-      return { state: "no_plan", firstName: "Ján", hasTrainer: true, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
+      return { state: "ok", data: NEW_CLIENT_DATA };
     case "no_plan_solo":
-      return { state: "no_plan", firstName: "Ján", hasTrainer: false, today: PREVIEW_DATA.today, bodyMetrics: PREVIEW_DATA.bodyMetrics };
+      return { state: "ok", data: { ...NEW_CLIENT_DATA, hasTrainer: false } };
     case "no_plan_choice":
       // aktívny plán bez cvikov, klient má aj iné plány
       return {
-        state: "no_plan",
-        firstName: "Ján",
-        hasTrainer: true,
-        today: PREVIEW_DATA.today,
-        bodyMetrics: PREVIEW_DATA.bodyMetrics,
-        planChoice: { ...PREVIEW_PLAN_CHOICE, activePlanId: "pp-empty", activePlanName: "Rozpracovaný plán" },
+        state: "ok",
+        data: {
+          ...PREVIEW_DATA,
+          session: null,
+          planChoice: { ...PREVIEW_PLAN_CHOICE, activePlanId: "pp-empty", activePlanName: "Rozpracovaný plán" },
+        },
       };
     case "error":
       return { state: "error" };
@@ -126,7 +146,7 @@ export function previewResult(kind: string): PortalResult | null {
         data: {
           ...PREVIEW_DATA,
           session: {
-            ...PREVIEW_DATA.session,
+            ...PREVIEW_SESSION,
             kind: "complete",
             title: "Silový 3× týždenne",
             exercises: [],
@@ -142,9 +162,9 @@ export function previewResult(kind: string): PortalResult | null {
         data: {
           ...PREVIEW_DATA,
           session: {
-            ...PREVIEW_DATA.session,
+            ...PREVIEW_SESSION,
             kind: "done",
-            completedCount: PREVIEW_DATA.session.exercises.length,
+            completedCount: PREVIEW_SESSION.exercises.length,
             loggedExercises: [
               { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
               { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },

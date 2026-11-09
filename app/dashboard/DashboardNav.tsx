@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
-import { SignOutButton } from "../components/SignOutButton";
 import { NavLinkPendingSignal } from "../components/NavigationProgress";
 import { NotificationBell } from "./NotificationBell";
 import { revealInboxList } from "./spravy/ThreadSwipeBack";
@@ -106,8 +105,14 @@ const NAV_ITEMS = [
   { href: "/dashboard/nastavenia", label: "Nastavenia", Icon: SettingsIcon, tour: "nav-nastavenia", match: (p: string) => p.startsWith("/dashboard/nastavenia") },
 ];
 
-export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
+/**
+ * Navigácia trénera — rovnako ako klientsky portál: zvonček a avatar s iniciálou mena
+ * (na mobile v hornej lište, na počítači avatar s menom dole v bočnom paneli). Avatar vedie
+ * do Nastavení, kde je aj „Odhlásiť sa“.
+ */
+export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCount?: number; displayName?: string | null }) {
   const pathname = usePathname();
+  const settingsActive = pathname.startsWith("/dashboard/nastavenia");
 
   return (
     <aside className={styles.sidebar}>
@@ -148,9 +153,16 @@ export function DashboardNav({ unreadCount = 0 }: { unreadCount?: number }) {
         })}
       </nav>
 
-      <div className={styles.sidebarFoot}>
-        <SignOutButton />
-      </div>
+      <Link
+        href="/dashboard/nastavenia"
+        className={`${styles.sidebarUser} ${settingsActive ? styles.sidebarUserOn : ""}`}
+        aria-label={`${displayName ?? "Účet"} — Nastavenia`}
+      >
+        <span className={styles.userAvatar} aria-hidden="true">
+          {displayName?.charAt(0).toUpperCase() || "?"}
+        </span>
+        <span className={styles.userName}>{displayName || "Nastavenia"}</span>
+      </Link>
     </aside>
   );
 }

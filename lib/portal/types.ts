@@ -163,7 +163,11 @@ export interface PortalData {
   /** hodina dňa (0-23) pre pozdrav, v zóne Europe/Bratislava */
   hour: number;
   coachNote: CoachNote | null;
-  session: TodaySession;
+  /** ďalší / dnešný tréning aktívneho plánu; null = klient plán nemá (alebo je prázdny) —
+   *  Dnes vtedy ukáže prázdnu kartu plánu, prehľad a týždeň ostávajú */
+  session: TodaySession | null;
+  /** má priradeného trénera — prázdna karta plánu: „plán je na ceste“ vs. „vytvor si vlastný“ */
+  hasTrainer: boolean;
   week: WeekView;
   /** koľko tréningov klient v tomto pláne odcvičil spolu (rotácia dní, nie fixný rozvrh) */
   totalSessions: number;
@@ -179,8 +183,9 @@ export interface PortalData {
   bodyMetrics: BodyMetricEntry[];
   /** Najbližší budúci termín (appointments, 0026), null = žiadny naplánovaný. */
   nextAppointment: PortalNextAppointment | null;
-  /** Aktívny plán (riadi túto kartu) a všetky zverejnené plány klienta pre prepínač „Zmeniť“. */
-  planChoice: PortalPlanChoice;
+  /** Aktívny plán (riadi túto kartu) a všetky zverejnené plány klienta pre prepínač „Zmeniť“;
+   *  null = klient nemá žiadny zverejnený plán */
+  planChoice: PortalPlanChoice | null;
 }
 
 /** Zverejnený plán klienta v prepínači aktívneho plánu na Dnes (PlanSwitchSheet). */
@@ -202,18 +207,6 @@ export interface PortalPlanChoice {
 export type PortalResult =
   | { state: "ok"; data: PortalData }
   | { state: "unlinked"; firstName: string | null }
-  /** `hasTrainer: false` = klient trénuje sám — má si vytvoriť vlastný plán, nie čakať na trénera.
-   * `today`/`bodyMetrics` sú tu napriek chýbajúcemu plánu — zápis telesnej miery (BodyMetricForm)
-   * je nezávislá funkcia a nesmie byť podmienená existenciou tréningového plánu (QA nález #3). */
-  | {
-      state: "no_plan";
-      firstName: string;
-      hasTrainer: boolean;
-      today: string;
-      bodyMetrics: BodyMetricEntry[];
-      /** aktívny plán existuje, ale nemá žiadny deň s cvikmi — klient si môže zvoliť iný */
-      planChoice?: PortalPlanChoice;
-    }
   | { state: "error"; message?: string };
 
 // ---------- Tréning (zoznam plánov klienta — od trénera aj vlastné) ----------
