@@ -1,7 +1,7 @@
 import { AppLink as Link } from "../components/AppLink";
 import { getPortalData } from "@/lib/portal/data";
 import { MIN_VISIBLE_STREAK, pluralSk, type PortalStreaks } from "@/lib/portal/streak";
-import type { PortalData } from "@/lib/portal/types";
+import type { PortalData, TodaySession } from "@/lib/portal/types";
 import { previewResult } from "@/app/portal/preview";
 import { DoneWorkoutView } from "@/app/portal/DoneWorkoutView";
 import { LogWorkoutButton } from "@/app/portal/LogWorkoutButton";
@@ -139,61 +139,6 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
     );
   }
 
-  if (result.state === "no_plan") {
-    // Zápis merania nezávisí od plánu.
-    const measurement = (
-      <div className={s.panel}>
-        <div className={s.panelHead}>
-          <p className={s.panelLabel}>Meranie</p>
-          <span className={s.panelIcon}>
-            <RulerIcon />
-          </span>
-        </div>
-        <BodyMetricForm today={result.today} history={result.bodyMetrics} />
-      </div>
-    );
-    // Aktívny plán nemá žiadny deň s cvikmi, no klient má aj iné plány — nech si zvolí.
-    if (result.planChoice) {
-      return (
-        <>
-          <PlanSwitch choice={result.planChoice} />
-          <Notice icon={<TrainingIcon />} title={`Plán „${result.planChoice.activePlanName}“ je zatiaľ prázdny`}>
-            Tento plán ešte nemá žiadne cviky. Zmeň aktívny plán vyššie, alebo počkaj, kým ho tréner doplní.
-          </Notice>
-          {measurement}
-        </>
-      );
-    }
-    if (!result.hasTrainer) {
-      return (
-        <>
-          <Notice
-            icon={<TrainingIcon />}
-            title={result.firstName ? `${result.firstName}, poďme na to` : "Poďme na to"}
-            action={
-              <Link href="/portal/trening" className="btn btn-primary btn-sm">
-                Vytvoriť plán
-              </Link>
-            }
-          >
-            Zatiaľ nemáš tréningový plán. Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi a
-            plán ti pripraví on.
-          </Notice>
-          {measurement}
-        </>
-      );
-    }
-    return (
-      <>
-        <Notice icon={<TrainingIcon />} title={result.firstName ? `${result.firstName}, plán je na ceste` : "Plán je na ceste"}>
-          Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví, nájdeš tu dnešný tréning aj prehľad
-          týždňa.
-        </Notice>
-        {measurement}
-      </>
-    );
-  }
-
   return <Today data={result.data} />;
 }
 
@@ -213,12 +158,11 @@ function Today({ data }: { data: PortalData }) {
     bodyMetrics,
     nextAppointment,
     planChoice,
+    hasTrainer,
   } = data;
 
   const d = new Date(`${today}T12:00:00Z`);
   const dateLabel = cap(d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }));
-  const total = session.exercises.length;
-  const complete = session.kind === "complete";
 
   return (
     <>
@@ -273,71 +217,18 @@ function Today({ data }: { data: PortalData }) {
       )}
 
       {/* aktívny plán (riadi túto kartu) — pri viacerých plánoch „Zmeniť“ */}
-      <PlanSwitch choice={planChoice} dayId={session.dayId} />
+      {planChoice && <PlanSwitch choice={planChoice} dayId={session?.dayId ?? null} />}
 
-      {/* ďalší tréning v poradí — terakotový pás s prstencom, pod ním akcia */}
-      <section className={s.hero} aria-label={complete ? "Tréningový plán hotový" : "Ďalší tréning"}>
-        <div className={s.heroBand}>
-          <div className={s.heroText}>
-            <p className={s.heroKicker}>
-              {complete ? "Tréningový plán" : session.kind === "done" ? "Dnešný tréning" : "Ďalší tréning"}
-            </p>
-            <h2 className={s.heroTitle}>{complete ? "Plán máš hotový" : session.title}</h2>
-            {/* názov plánu je v riadku PlanSwitch nad kartou — tu by bol druhýkrát */}
-            {!complete && session.focus && <p className={s.heroFocus}>{session.focus}</p>}
-            {!complete && (
-              <div className={s.heroChips}>
-                <span className={s.heroChip}>
-                  {total} {pluralSk(total, "cvik", "cviky", "cvikov")}
-                </span>
-                {session.durationLabel && <span className={s.heroChip}>{session.durationLabel}</span>}
-              </div>
-            )}
-          </div>
-          <div className={s.heroRing}>
-            {complete ? (
-              <ProgressRing done={session.completedCount} total={session.completedCount} />
-            ) : (
-              <ProgressRing done={session.completedCount} total={total} />
-            )}
-          </div>
-        </div>
-
-        <div className={s.heroBody}>
-          {complete && (
-            <p className={s.doneMark}>
-              <CheckIcon /> Odcvičil si všetky dni plánu. Ďalší ti pripraví tréner — alebo si vytvor vlastný v sekcii
-              Tréning.
-            </p>
-          )}
-
-          {session.kind === "done" && (
-            <p className={s.doneMark}>
-              <CheckIcon /> Tento tréning máš dnes hotový — vrátiš sa sem kedykoľvek, kým je dnešný deň
-            </p>
-          )}
-
-          {session.kind === "done" && session.dayId && (
-            <DoneWorkoutView
-              loggedExercises={session.loggedExercises}
-              completedAt={session.completedAt}
-              sessionRpe={session.sessionRpe}
-              sessionNote={session.sessionNote}
-              logId={session.logId}
-              editableUntil={session.editableUntil}
-              exercises={session.exercises}
-            />
-          )}
-
-          {session.kind === "training" && session.dayId && (
-            // key: iný deň = nový stav formulára
-            <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} />
-          )}
-        </div>
-      </section>
-
-      {/* plávajúce stopky — fixne pozicované, miesto v strome je len logické */}
-      {session.dayId && <WorkoutStopwatch dayId={session.dayId} finished={session.kind === "done"} />}
+      {/* ďalší tréning — alebo prázdna karta plánu (nový klient, prázdny plán) */}
+      {session ? (
+        <NextWorkout session={session} />
+      ) : (
+        <EmptyPlan
+          planName={planChoice?.activePlanName ?? null}
+          canSwitch={(planChoice?.plans.length ?? 0) > 1}
+          hasTrainer={hasTrainer}
+        />
+      )}
 
       <section className={s.after} aria-label="Prehľad">
         <h2 className={s.sectionTitle}>Môj prehľad</h2>
@@ -378,5 +269,119 @@ function Today({ data }: { data: PortalData }) {
         </div>
       </section>
     </>
+  );
+}
+
+/** Ďalší / dnešný tréning aktívneho plánu — terakotový pás s prstencom, pod ním akcia. */
+function NextWorkout({ session }: { session: TodaySession }) {
+  const total = session.exercises.length;
+  const complete = session.kind === "complete";
+  return (
+    <>
+        {/* ďalší tréning v poradí — terakotový pás s prstencom, pod ním akcia */}
+        <section className={s.hero} aria-label={complete ? "Tréningový plán hotový" : "Ďalší tréning"}>
+          <div className={s.heroBand}>
+            <div className={s.heroText}>
+              <p className={s.heroKicker}>
+                {complete ? "Tréningový plán" : session.kind === "done" ? "Dnešný tréning" : "Ďalší tréning"}
+              </p>
+              <h2 className={s.heroTitle}>{complete ? "Plán máš hotový" : session.title}</h2>
+              {/* názov plánu je v riadku PlanSwitch nad kartou — tu by bol druhýkrát */}
+              {!complete && session.focus && <p className={s.heroFocus}>{session.focus}</p>}
+              {!complete && (
+                <div className={s.heroChips}>
+                  <span className={s.heroChip}>
+                    {total} {pluralSk(total, "cvik", "cviky", "cvikov")}
+                  </span>
+                  {session.durationLabel && <span className={s.heroChip}>{session.durationLabel}</span>}
+                </div>
+              )}
+            </div>
+            <div className={s.heroRing}>
+              {complete ? (
+                <ProgressRing done={session.completedCount} total={session.completedCount} />
+              ) : (
+                <ProgressRing done={session.completedCount} total={total} />
+              )}
+            </div>
+          </div>
+
+          <div className={s.heroBody}>
+            {complete && (
+              <p className={s.doneMark}>
+                <CheckIcon /> Odcvičil si všetky dni plánu. Ďalší ti pripraví tréner — alebo si vytvor vlastný v sekcii
+                Tréning.
+              </p>
+            )}
+
+            {session.kind === "done" && (
+              <p className={s.doneMark}>
+                <CheckIcon /> Tento tréning máš dnes hotový — vrátiš sa sem kedykoľvek, kým je dnešný deň
+              </p>
+            )}
+
+            {session.kind === "done" && session.dayId && (
+              <DoneWorkoutView
+                loggedExercises={session.loggedExercises}
+                completedAt={session.completedAt}
+                sessionRpe={session.sessionRpe}
+                sessionNote={session.sessionNote}
+                logId={session.logId}
+                editableUntil={session.editableUntil}
+                exercises={session.exercises}
+              />
+            )}
+
+            {session.kind === "training" && session.dayId && (
+              // key: iný deň = nový stav formulára
+              <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} />
+            )}
+          </div>
+        </section>
+
+        {/* plávajúce stopky — fixne pozicované, miesto v strome je len logické */}
+        {session.dayId && <WorkoutStopwatch dayId={session.dayId} finished={session.kind === "done"} />}
+    </>
+  );
+}
+
+/**
+ * Prázdna karta plánu — nový klient bez plánu (alebo prázdny aktívny plán). Rovnaký tvar
+ * ako karta ďalšieho tréningu, len tlmená; prehľad, týždeň aj meranie pod ňou ostávajú.
+ */
+function EmptyPlan({ planName, canSwitch, hasTrainer }: { planName: string | null; canSwitch: boolean; hasTrainer: boolean }) {
+  const title = planName ? `Plán „${planName}“ je zatiaľ prázdny` : hasTrainer ? "Plán je na ceste" : "Zatiaľ nemáš tréningový plán";
+  const text = planName
+    ? canSwitch
+      ? "Tento plán ešte nemá žiadne cviky. Zmeň aktívny plán vyššie, alebo počkaj, kým ho tréner doplní."
+      : hasTrainer
+        ? "Tento plán ešte nemá žiadne cviky — tréner ho čoskoro doplní."
+        : "Tento plán ešte nemá žiadne cviky. Doplň ich v sekcii Tréning."
+    : hasTrainer
+      ? "Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví, nájdeš tu dnešný tréning."
+      : "Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi a plán ti pripraví on.";
+  return (
+    <section className={s.hero} aria-label="Tréningový plán">
+      <div className={`${s.heroBand} ${s.heroBandEmpty}`}>
+        <div className={s.heroText}>
+          <p className={s.heroKicker}>Tréningový plán</p>
+          <h2 className={s.heroTitle}>{title}</h2>
+          <p className={s.heroFocus}>{text}</p>
+        </div>
+        <div className={s.heroRing}>
+          <span className={s.emptyRing} aria-hidden="true">
+            <TrainingIcon />
+          </span>
+        </div>
+      </div>
+      {/* bez trénera si plán vytvorí / doplní klient sám */}
+      {!hasTrainer && (
+        <div className={s.heroBody}>
+          <Link href="/portal/trening" className={`btn btn-primary ${s.startBtn}`}>
+            {planName ? "Doplniť plán" : "Vytvoriť plán"}
+          </Link>
+        </div>
+      )}
+    </section>
   );
 }
