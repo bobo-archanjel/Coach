@@ -25,6 +25,18 @@ test.describe("jeden dizajn po prihlásení", () => {
     }
   });
 
+  test("horná lišta trénera ako u klienta: zvonček a avatar, odhlásenie len v Nastaveniach", async ({ page }) => {
+    test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
+    await page.goto("/dashboard/nastavenia");
+    const bar = page.locator("aside");
+    await expect(bar.getByRole("button", { name: /^Upozornenia/ })).toBeVisible();
+    const avatar = bar.getByRole("link", { name: /— Nastavenia$/ });
+    await expect(avatar).toBeVisible();
+    await expect(avatar).toHaveAttribute("href", "/dashboard/nastavenia");
+    await expect(bar.getByRole("button", { name: "Odhlásiť sa" })).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("button", { name: "Odhlásiť sa" })).toBeVisible();
+  });
+
   test("bývalý prepínač dizajnu dashboardu už neexistuje", async ({ request }) => {
     for (const path of ["/v6design/dashboard", "/v6design/dashboard/off"]) {
       const res = await request.get(path, { maxRedirects: 0 });
@@ -105,7 +117,7 @@ test.describe("prihlásenie a odhlásenie (QA účty)", () => {
   test.skip(!Object.values(accounts).flat().every(Boolean), "Chýbajú E2E_* údaje QA účtov.");
 
   for (const [role, [email, password], home, themePage, signOutFrom] of [
-    ["tréner", accounts.trainer, /\/dashboard$/, "/dashboard/nastavenia", "/dashboard"],
+    ["tréner", accounts.trainer, /\/dashboard$/, "/dashboard/nastavenia", "/dashboard/nastavenia"],
     ["klient", accounts.client, /\/portal$/, "/portal/profil", "/portal/profil"],
   ] as const) {
     test(`${role}: /prihlasenie → nový dizajn, prepínač témy, odhlásenie → /prihlasenie`, async ({ page }) => {
@@ -126,6 +138,10 @@ test.describe("prihlásenie a odhlásenie (QA účty)", () => {
       await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
       await page.getByRole("radiogroup", { name: "Téma" }).getByRole("radio", { name: /Svetlá/ }).click();
       await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "light");
+
+      // avatar s iniciálou v lište / bočnom paneli vedie do Nastavení (tréner) / Profilu (klient)
+      await page.goto(home.source.includes("dashboard") ? "/dashboard" : "/portal");
+      await expect(page.locator("aside").getByRole("button", { name: "Odhlásiť sa" })).toHaveCount(0);
 
       await page.goto(signOutFrom);
       await page.getByRole("button", { name: "Odhlásiť sa" }).first().click();

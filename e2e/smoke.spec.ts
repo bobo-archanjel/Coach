@@ -198,9 +198,13 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByRole("button", { name: /Začať tréning/i })).toHaveCount(0);
   });
 
-  test("preview=no_plan — plán je na ceste", async ({ page }) => {
+  test("preview=no_plan — plán je na ceste, prehľad a týždeň ostávajú", async ({ page }) => {
     await page.goto("/portal?preview=no_plan");
     await expect(page.getByText(/nepriradil aktívny tréningový plán/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Môj prehľad" })).toBeVisible();
+    await expect(page.getByText("Odcvičené spolu")).toBeVisible();
+    await expect(page.getByText(/Tento týždeň/).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /Začať tréning/i })).toHaveCount(0);
   });
 
   test("preview=error — chyba + retry", async ({ page }) => {

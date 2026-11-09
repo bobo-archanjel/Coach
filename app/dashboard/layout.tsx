@@ -42,6 +42,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   let unreadCount = 0;
   let tourSeen = true;
+  // meno trénera pre avatar s iniciálou v hornej lište / bočnom paneli (ako klient v portáli)
+  let displayName: string | null = null;
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
@@ -68,6 +70,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
     unreadCount = count ?? 0;
     tourSeen = dbTourSeen;
+    displayName = profile?.full_name?.trim() || (user.user_metadata?.full_name as string | undefined)?.trim() || null;
   }
 
   // koreň s tokenmi a témou dizajnu v6 (data-v6-root — sem idú aj okná cez createPortal)
@@ -75,7 +78,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className={tokens.root} data-theme={await v6Theme()} data-v6-root="">
       <NavigationProgressProvider>
         <div className={styles.shell}>
-          <DashboardNav unreadCount={unreadCount} />
+          <DashboardNav unreadCount={unreadCount} displayName={displayName} />
           <main className={styles.content}>
             <div className={styles.wrap}>{children}</div>
             <DashboardSkeletonOverlay />
