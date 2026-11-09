@@ -1048,6 +1048,12 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+/* mobil: „+ Pridať sériu“ a „+ Poznámka“ na stred pod riadkami sérií */
+@media (max-width: 880px) {
+  .logExerciseActions {
+    justify-content: center;
+  }
+}
 .logNoteInput {
   width: 100%;
   margin-top: 10px;
