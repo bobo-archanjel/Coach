@@ -51,7 +51,8 @@ export async function loadPortalShell(): Promise<PortalShell> {
     redirect("/dashboard");
   }
   return {
-    chatUnread: (count ?? 0) > 0,
+    // bez trénera Chat neukazuje vlákno — bodka by svietila pre správy, ktoré sa nedajú otvoriť
+    chatUnread: Boolean(clientRow?.trainer_id) && (count ?? 0) > 0,
     aiKoucVisible: Boolean(clientRow?.trainer_id),
     displayName: profile?.full_name ?? clientRow?.full_name ?? null,
   };
