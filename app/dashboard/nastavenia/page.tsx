@@ -6,6 +6,7 @@ import styles from "@/app/dashboard/dashboard.module.css";
 import { v6Theme } from "@/app/dashboard/dashTheme";
 import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 import { SignOutButton } from "@/app/components/SignOutButton";
+import { ChangePasswordForm } from "@/app/components/ChangePasswordForm";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
 
@@ -53,6 +54,13 @@ export default async function NastaveniaPage() {
             <SignOutButton />
           </div>
         </div>
+
+        {user?.email && (
+          <div className={styles.card}>
+            <h3>Heslo</h3>
+            <ChangePasswordForm email={user.email} />
+          </div>
+        )}
 
         <div className={styles.card}>
           <div className={styles.settingsRowHead}>
