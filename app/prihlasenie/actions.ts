@@ -43,6 +43,9 @@ const GENERIC_ERROR = "Nesprávny e-mail alebo heslo.";
 const LOCKOUT_ERROR = "Príliš veľa neúspešných pokusov. Skús to znova o 15 minút, alebo si obnov heslo.";
 const CAPTCHA_ERROR = "Overenie zlyhalo. Skús to prosím znova.";
 const REGISTER_GENERIC_ERROR = "Registráciu sa nepodarilo dokončiť. Skús to prosím znova.";
+/** Registrácia už použitého e-mailu — výslovne (požiadavka produktu), zisťovanie účtov
+ *  brzdí Turnstile a rate limit Supabase. */
+const EMAIL_IN_USE_ERROR = "Tento e-mail sa už používa. Prihlás sa, alebo si obnov heslo cez „Zabudnuté heslo?“.";
 
 const MAX_PER_EMAIL = 10;
 const MAX_PER_EMAIL_AND_IP = 5;
@@ -182,13 +185,19 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
     password,
     options: { data: { full_name: name, role } },
   });
+  // E-mail už má účet: s potvrdzovaním e-mailu Supabase nevráti chybu, ale „falošného“
+  // používateľa bez identít (ochrana pred zisťovaním účtov) — appka by ukázala „skontroluj
+  // si e-mail“. Bez potvrdzovania príde chyba „User already registered“. Oboje = jasná hláška.
+  const emailTaken =
+    (error && (error.code === "user_already_exists" || error.message === "User already registered")) ||
+    (!error && data.user && (data.user.identities?.length ?? 1) === 0);
+  if (emailTaken) {
+    return { error: EMAIL_IN_USE_ERROR, redirectTo: null, needsConfirm: false };
+  }
   if (error) {
     const msg = error.message.toLowerCase();
     return {
-      error:
-        error.message === "User already registered"
-          ? "Registráciu sa nepodarilo dokončiť. Ak už účet máš, prihlás sa alebo si obnov heslo."
-          : msg.includes("rate limit")
+      error: msg.includes("rate limit")
             ? "Priveľa registrácií za krátky čas z tejto adresy. Skús to o chvíľu znova."
             : msg.includes("password")
               ? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla."
