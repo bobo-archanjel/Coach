@@ -5,6 +5,7 @@ import { pluralSk } from "@/lib/portal/streak";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { v6Theme } from "@/app/dashboard/dashTheme";
 import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
+import { SignOutButton } from "@/app/components/SignOutButton";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
 
@@ -46,6 +47,10 @@ export default async function NastaveniaPage() {
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Rola</span>
             <span className={styles.infoValue}>Tréner</span>
+          </div>
+          {/* odhlásenie len tu — v hornej lište / bočnom paneli je avatar, ktorý sem vedie */}
+          <div className={styles.settingsSignOut}>
+            <SignOutButton />
           </div>
         </div>
 

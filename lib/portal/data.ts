@@ -341,21 +341,6 @@ export async function getPortalData(): Promise<PortalResult> {
       supabase.from("food_logs").select("eaten_on").eq("client_id", client.id).gte("eaten_on", foodSince),
     ]);
 
-    // Zápis telesnej miery (BodyMetricForm) je nezávislá funkcia od tréningového
-    // plánu — "no_plan" stav ju preto musí nosiť so sebou (QA nález #3: predtým
-    // sa BodyMetricForm vôbec nerenderoval, kým klient nemal aktívny plán).
-    const noPlanResult = async (planChoice?: PortalPlanChoice): Promise<PortalResult> => {
-      const [, , bodyMetrics] = await sideData;
-      return {
-        state: "no_plan",
-        firstName: firstName ?? "",
-        hasTrainer: Boolean(client.trainer_id),
-        today: isoDate,
-        bodyMetrics: bodyMetrics ?? [],
-        ...(planChoice ? { planChoice } : {}),
-      };
-    };
-
     // "Aktívny" plán = clients.active_plan_id (volí ho klient v Tréningu / na Dnes, alebo
     // tréner v detaile klienta), inak najnovší zverejnený — resolveActivePlanId (0056).
     // published: false = tréner ešte plán len rozostavuje (0021) — dovtedy sa
@@ -393,132 +378,136 @@ export async function getPortalData(): Promise<PortalResult> {
       }
     }
     if (!planRow && planErr) return { state: "error", message: dbErr(planErr, "data") };
-    if (!planRow) return await noPlanResult();
-    const plan = { id: planRow.id, name: planRow.name };
-    const planChoice: PortalPlanChoice = {
-      activePlanId: plan.id,
-      activePlanName: plan.name,
-      plans: planList.map((p) => ({
-        id: p.id,
-        name: p.name,
-        source: (p.trainer_id ? "trainer" : "client") as PlanSource,
-        // len dni s cvikmi — rovnako ako počet v sekcii Tréning (getPortalTraining)
-        dayCount: ((p.workout_days as unknown as { exercises: unknown }[] | null) ?? []).filter(hasExercises).length,
-      })),
-    };
+    // Bez plánu (nový klient) alebo s prázdnym aktívnym plánom Dnes nekončí len oznamom:
+    // session = null → prázdna karta plánu, ale pozdrav, prehľad, týždeň, séria a meranie
+    // ostávajú (rovnaké dáta zo sideData ako pri pláne).
+    const plan = planRow ? { id: planRow.id, name: planRow.name } : null;
+    const planChoice: PortalPlanChoice | null = plan
+      ? {
+          activePlanId: plan.id,
+          activePlanName: plan.name,
+          plans: planList.map((p) => ({
+            id: p.id,
+            name: p.name,
+            source: (p.trainer_id ? "trainer" : "client") as PlanSource,
+            // len dni s cvikmi — rovnako ako počet v sekcii Tréning (getPortalTraining)
+            dayCount: ((p.workout_days as unknown as { exercises: unknown }[] | null) ?? []).filter(hasExercises).length,
+          })),
+        }
+      : null;
 
-    const days = ((planRow.workout_days ?? []) as DayRow[]).filter(hasExercises);
-    // aktívny plán bez cvikov — klient si môže zvoliť iný (ak nejaký má)
-    if (days.length === 0) return await noPlanResult(planChoice.plans.length > 1 ? planChoice : undefined);
+    const days = ((planRow?.workout_days ?? []) as DayRow[]).filter(hasExercises);
+    let session: TodaySession | null = null;
+    if (plan && planRow && days.length > 0) {
 
-    // Logy len z dní aktuálneho plánu (RLS ich aj tak obmedzí na tohto klienta),
-    // najnovšie prvé — rovnako ako predošlý samostatný dopyt.
-    const logs = (planRow.workout_days ?? [])
-      .flatMap((d) => d.workout_logs ?? [])
-      .sort(
-        (a, b) =>
-          b.performed_on.localeCompare(a.performed_on) || (b.completed_at ?? "").localeCompare(a.completed_at ?? ""),
-      );
-    // Viac dní sa dá odcvičiť aj v ten istý kalendárny deň (unique index je na
-    // (client_id, workout_day_id, performed_on), nie len performed_on) — preto
-    // mapa podľa dňa, nie jeden "dnešný log" pre celý plán.
-    const logsTodayByDay = new Map(logs.filter((l) => l.performed_on === isoDate).map((l) => [l.workout_day_id, l]));
+      // Logy len z dní aktuálneho plánu (RLS ich aj tak obmedzí na tohto klienta),
+      // najnovšie prvé — rovnako ako predošlý samostatný dopyt.
+      const logs = (planRow.workout_days ?? [])
+        .flatMap((d) => d.workout_logs ?? [])
+        .sort(
+          (a, b) =>
+            b.performed_on.localeCompare(a.performed_on) || (b.completed_at ?? "").localeCompare(a.completed_at ?? ""),
+        );
+      // Viac dní sa dá odcvičiť aj v ten istý kalendárny deň (unique index je na
+      // (client_id, workout_day_id, performed_on), nie len performed_on) — preto
+      // mapa podľa dňa, nie jeden "dnešný log" pre celý plán.
+      const logsTodayByDay = new Map(logs.filter((l) => l.performed_on === isoDate).map((l) => [l.workout_day_id, l]));
 
-    // ---------- ktorý deň zobraziť ----------
-    // Plán je jednorazový: odcvičený deň sa znova nezačína (len jeho hodnoty sa
-    // dajú 24 h opraviť, 0049) — rotácia preto preskakuje už odcvičené dni.
-    const doneDayIds = new Set(logs.map((l) => l.workout_day_id as string));
-    const overrideDay = client.active_day_id ? (days.find((d) => d.id === client.active_day_id) ?? null) : null;
-    const activeDayOverride =
-      overrideDay && (!doneDayIds.has(overrideDay.id) || logsTodayByDay.has(overrideDay.id)) ? overrideDay : null;
-    let targetDay: DayRow | null;
-    if (activeDayOverride) {
-      // Klient si v sekcii Tréning explicitne vybral konkrétny deň a stlačil
-      // "Začať tréning" (clients.active_day_id, RPC set_active_plan, 0022) — má
-      // prednosť pred čímkoľvek nižšie (aj pred "dnes už niečo hotové", inak by
-      // sa druhý tréning v ten istý deň nedal vôbec spustiť). Spotrebuje sa
-      // (vynuluje) po zalogovaní v finishWorkoutAction, odvtedy rieši rotácia.
-      targetDay = activeDayOverride;
-    } else if (logsTodayByDay.size > 0) {
-      // Dokončené dni, nie celý plán naraz: klient odklikáva jednotlivé dni
-      // tréningu (workout_logs má riadok na deň, nie na plán). Kým je dnešný
-      // deň hotový, karta zostáva na NOM — nesmie ticho preskočiť na ďalší v
-      // poradí len preto, že sa deň zmenil vo výpočte (predtým sa "ďalší"
-      // počítal z posledného logu vôbec, takže hneď po dokončení ukazoval iný
-      // deň než ten, čo sa práve odcvičil). Rotácia na ďalší nedokončený deň
-      // nastane až zajtra, keď dnešok ešte nemá záznam.
-      const todaysDayId = logs.find((l) => l.performed_on === isoDate)!.workout_day_id;
-      targetDay = days.find((d) => d.id === todaysDayId) ?? days[0];
-    } else {
-      // Klient si sám vyberá kedy cvičí — deň nie je pripnutý na konkrétny deň
-      // v týždni. "Ďalší tréning" = deň nasledujúci po naposledy odcvičenom podľa
-      // poradia v pláne (day_number), cyklicky. Bez histórie = prvý deň plánu.
-      // Z nich prvý ešte NEODCVIČENÝ; ak sú odcvičené všetky, plán je hotový.
-      const mostRecent = logs[0] ?? null;
-      const lastIdx = mostRecent ? days.findIndex((d) => d.id === mostRecent.workout_day_id) : -1;
-      const start = lastIdx === -1 ? 0 : lastIdx + 1;
-      targetDay = null;
-      for (let k = 0; k < days.length; k++) {
-        const d = days[(start + k) % days.length];
-        if (!doneDayIds.has(d.id)) {
-          targetDay = d;
-          break;
+      // ---------- ktorý deň zobraziť ----------
+      // Plán je jednorazový: odcvičený deň sa znova nezačína (len jeho hodnoty sa
+      // dajú 24 h opraviť, 0049) — rotácia preto preskakuje už odcvičené dni.
+      const doneDayIds = new Set(logs.map((l) => l.workout_day_id as string));
+      const overrideDay = client.active_day_id ? (days.find((d) => d.id === client.active_day_id) ?? null) : null;
+      const activeDayOverride =
+        overrideDay && (!doneDayIds.has(overrideDay.id) || logsTodayByDay.has(overrideDay.id)) ? overrideDay : null;
+      let targetDay: DayRow | null;
+      if (activeDayOverride) {
+        // Klient si v sekcii Tréning explicitne vybral konkrétny deň a stlačil
+        // "Začať tréning" (clients.active_day_id, RPC set_active_plan, 0022) — má
+        // prednosť pred čímkoľvek nižšie (aj pred "dnes už niečo hotové", inak by
+        // sa druhý tréning v ten istý deň nedal vôbec spustiť). Spotrebuje sa
+        // (vynuluje) po zalogovaní v finishWorkoutAction, odvtedy rieši rotácia.
+        targetDay = activeDayOverride;
+      } else if (logsTodayByDay.size > 0) {
+        // Dokončené dni, nie celý plán naraz: klient odklikáva jednotlivé dni
+        // tréningu (workout_logs má riadok na deň, nie na plán). Kým je dnešný
+        // deň hotový, karta zostáva na NOM — nesmie ticho preskočiť na ďalší v
+        // poradí len preto, že sa deň zmenil vo výpočte (predtým sa "ďalší"
+        // počítal z posledného logu vôbec, takže hneď po dokončení ukazoval iný
+        // deň než ten, čo sa práve odcvičil). Rotácia na ďalší nedokončený deň
+        // nastane až zajtra, keď dnešok ešte nemá záznam.
+        const todaysDayId = logs.find((l) => l.performed_on === isoDate)!.workout_day_id;
+        targetDay = days.find((d) => d.id === todaysDayId) ?? days[0];
+      } else {
+        // Klient si sám vyberá kedy cvičí — deň nie je pripnutý na konkrétny deň
+        // v týždni. "Ďalší tréning" = deň nasledujúci po naposledy odcvičenom podľa
+        // poradia v pláne (day_number), cyklicky. Bez histórie = prvý deň plánu.
+        // Z nich prvý ešte NEODCVIČENÝ; ak sú odcvičené všetky, plán je hotový.
+        const mostRecent = logs[0] ?? null;
+        const lastIdx = mostRecent ? days.findIndex((d) => d.id === mostRecent.workout_day_id) : -1;
+        const start = lastIdx === -1 ? 0 : lastIdx + 1;
+        targetDay = null;
+        for (let k = 0; k < days.length; k++) {
+          const d = days[(start + k) % days.length];
+          if (!doneDayIds.has(d.id)) {
+            targetDay = d;
+            break;
+          }
         }
       }
-    }
 
-    let session: TodaySession;
-    if (!targetDay) {
-      // Všetky dni plánu odcvičené — nič ďalšie neponúkať (plán je jednorazový).
-      session = {
-        kind: "complete",
-        title: plan.name ?? "Tréningový plán",
-        focus: "",
-        durationLabel: "",
-        exercises: [],
-        loggedExercises: null,
-        completedCount: days.length,
-        dayId: null,
-      };
-    } else {
-      // "Hotovo" platí pre KONKRÉTNY zobrazený deň, nie pre "niečo dnes hotové" —
-      // inak by override na ešte neodcvičený deň (vyššie) omylom zdedil "done" z
-      // iného dňa dokončeného skôr v ten istý deň.
-      const todaysLogForTarget = logsTodayByDay.get(targetDay.id) ?? null;
-      const doneToday = todaysLogForTarget !== null;
+      if (!targetDay) {
+        // Všetky dni plánu odcvičené — nič ďalšie neponúkať (plán je jednorazový).
+        session = {
+          kind: "complete",
+          title: plan.name ?? "Tréningový plán",
+          focus: "",
+          durationLabel: "",
+          exercises: [],
+          loggedExercises: null,
+          completedCount: days.length,
+          dayId: null,
+        };
+      } else {
+        // "Hotovo" platí pre KONKRÉTNY zobrazený deň, nie pre "niečo dnes hotové" —
+        // inak by override na ešte neodcvičený deň (vyššie) omylom zdedil "done" z
+        // iného dňa dokončeného skôr v ten istý deň.
+        const todaysLogForTarget = logsTodayByDay.get(targetDay.id) ?? null;
+        const doneToday = todaysLogForTarget !== null;
 
-      const exList = parseEntries(targetDay.exercises).map((e, i) => toPortalExercise(e, i));
-      // Po dokončení sa namiesto plánovaných cvikov ukazuje to, čo klient skutočne
-      // zadal (Fáza B) — "vrátiť sa do tréningu" má zmysel len ak vidí svoje dáta,
-      // nie znovu ten istý plán, ktorý mu ešte len je pripravený. Bez zadaných
-      // hodnôt (len odklikol, entries: []) ostáva fallback na plánované cviky.
-      const loggedEntries = todaysLogForTarget ? parseLoggedEntries(todaysLogForTarget.entries) : [];
-      const loggedExercises: LoggedExercise[] | null = loggedEntries.length > 0 ? loggedEntries : null;
-      session = {
-        kind: doneToday ? "done" : "training",
-        title: targetDay.name,
-        // Builder nemá "focus" dňa. Názov plánu nesie riadok „Plán: … Zmeniť“ nad kartou
-        // (PlanSwitch, planChoice) — pod názvom dňa by bol druhýkrát.
-        focus: "",
-        durationLabel: "",
-        exercises: exList,
-        loggedExercises,
-        completedAt: (todaysLogForTarget?.completed_at as string | null | undefined) ?? null,
-        logId: (todaysLogForTarget?.id as string | undefined) ?? null,
-        editableUntil: editableUntil(todaysLogForTarget?.completed_at as string | null | undefined),
-        sessionRpe: (todaysLogForTarget?.rpe as number | null | undefined) ?? null,
-        sessionNote: (todaysLogForTarget?.note as string | null | undefined) ?? null,
-        // Krúžok postupu = cviky so skutočne zapísanou sériou (sanitizeEntries
-        // vynecháva cviky bez série), nie automaticky všetky — inak po ukončení
-        // ukazoval 3/3, hoci jeden cvik klient nezapísal. Len odklikutý tréning
-        // bez zápisu (entries: []) ostáva ako celý hotový.
-        completedCount: doneToday
-          ? loggedExercises
-            ? Math.min(loggedExercises.filter((e) => e.sets.length > 0).length, exList.length)
-            : exList.length
-          : 0,
-        dayId: targetDay.id,
-      };
+        const exList = parseEntries(targetDay.exercises).map((e, i) => toPortalExercise(e, i));
+        // Po dokončení sa namiesto plánovaných cvikov ukazuje to, čo klient skutočne
+        // zadal (Fáza B) — "vrátiť sa do tréningu" má zmysel len ak vidí svoje dáta,
+        // nie znovu ten istý plán, ktorý mu ešte len je pripravený. Bez zadaných
+        // hodnôt (len odklikol, entries: []) ostáva fallback na plánované cviky.
+        const loggedEntries = todaysLogForTarget ? parseLoggedEntries(todaysLogForTarget.entries) : [];
+        const loggedExercises: LoggedExercise[] | null = loggedEntries.length > 0 ? loggedEntries : null;
+        session = {
+          kind: doneToday ? "done" : "training",
+          title: targetDay.name,
+          // Builder nemá "focus" dňa. Názov plánu nesie riadok „Plán: … Zmeniť“ nad kartou
+          // (PlanSwitch, planChoice) — pod názvom dňa by bol druhýkrát.
+          focus: "",
+          durationLabel: "",
+          exercises: exList,
+          loggedExercises,
+          completedAt: (todaysLogForTarget?.completed_at as string | null | undefined) ?? null,
+          logId: (todaysLogForTarget?.id as string | undefined) ?? null,
+          editableUntil: editableUntil(todaysLogForTarget?.completed_at as string | null | undefined),
+          sessionRpe: (todaysLogForTarget?.rpe as number | null | undefined) ?? null,
+          sessionNote: (todaysLogForTarget?.note as string | null | undefined) ?? null,
+          // Krúžok postupu = cviky so skutočne zapísanou sériou (sanitizeEntries
+          // vynecháva cviky bez série), nie automaticky všetky — inak po ukončení
+          // ukazoval 3/3, hoci jeden cvik klient nezapísal. Len odklikutý tréning
+          // bez zápisu (entries: []) ostáva ako celý hotový.
+          completedCount: doneToday
+            ? loggedExercises
+              ? Math.min(loggedExercises.filter((e) => e.sets.length > 0).length, exList.length)
+              : exList.length
+            : 0,
+          dayId: targetDay.id,
+        };
+      }
     }
 
     const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }] =
@@ -561,6 +550,7 @@ export async function getPortalData(): Promise<PortalResult> {
       hour,
       coachNote,
       session,
+      hasTrainer: Boolean(client.trainer_id),
       week,
       totalSessions,
       streakHistory,
