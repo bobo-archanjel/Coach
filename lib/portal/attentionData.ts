@@ -40,7 +40,7 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
 
   const { data: client, error: clientErr } = await supabase
     .from("clients")
-    .select("id")
+    .select("id, trainer_id")
     .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -52,13 +52,19 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
   const reminderUntilIso = new Date(Date.now() + APPOINTMENT_REMINDER_HOURS * 3_600_000).toISOString();
   const newPlanSinceIso = new Date(Date.now() - NEW_PLAN_WINDOW_DAYS * 86_400_000).toISOString();
 
+  // Klient bez trénera chat nemá (Chat ukáže „Zatiaľ bez trénera“) — systémové správy
+  // (napr. GDPR zmazanie/zrušenie) by sa ukazovali ako „neprečítané správy od trénera“,
+  // ktoré nemá kde prečítať. Počítajú sa len pri prepojenom trénerovi.
+  const noMessages = Promise.resolve({ count: 0, error: null });
   const [{ count: unread, error: unreadErr }, plans, meals, appts, dismissed] = await Promise.all([
-    supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("client_id", client.id)
-      .in("sender", ["trainer", "system"])
-      .is("read_at", null),
+    client.trainer_id
+      ? supabase
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("client_id", client.id)
+          .in("sender", ["trainer", "system"])
+          .is("read_at", null)
+      : noMessages,
     supabase
       .from("workout_plans")
       .select("id, name")

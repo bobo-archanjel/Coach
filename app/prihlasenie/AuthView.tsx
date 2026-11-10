@@ -121,7 +121,9 @@ export function AuthView() {
   }
 
   useEffect(() => {
-    if (window.location.hash === "#register") setActiveTab("register");
+    const hash = window.location.hash;
+    if (hash === "#register" || hash === "#register-trener") setActiveTab("register");
+    if (hash === "#register-trener") setRegisterRole("trainer");
   }, []);
 
   const [oauthError, setOauthError] = useState(false);
@@ -290,7 +292,9 @@ export function AuthView() {
   // Rola sa volí explicitne (tréner vs. klient). Klient sa registruje VŽDY
   // rovnako — bez pozývacieho kódu (feature/registracia-update): po registrácii
   // dostane vlastný kód, ktorý ukáže trénerovi. Tréner ho zadá v "Pridať klienta".
-  const [registerRole, setRegisterRole] = useState<"trainer" | "client">("trainer");
+  // predvolene klient — klientov sa registruje viac než trénerov; tréner príde z landingu
+  // cez #register-trener (cenník, „Začať skúšobné obdobie“) s predvoleným trénerom
+  const [registerRole, setRegisterRole] = useState<"trainer" | "client">("client");
   const isClientSignup = registerRole === "client";
   const registerLoadingText = useLoadingMessage(registerStatus === "loading", [
     "Vytváram účet…",
@@ -640,18 +644,18 @@ export function AuthView() {
                 <button
                   type="button"
                   className={styles.tabBtn}
-                  aria-pressed={!isClientSignup}
-                  onClick={() => setRegisterRole("trainer")}
-                >
-                  Som tréner
-                </button>
-                <button
-                  type="button"
-                  className={styles.tabBtn}
                   aria-pressed={isClientSignup}
                   onClick={() => setRegisterRole("client")}
                 >
                   Som klient
+                </button>
+                <button
+                  type="button"
+                  className={styles.tabBtn}
+                  aria-pressed={!isClientSignup}
+                  onClick={() => setRegisterRole("trainer")}
+                >
+                  Som tréner
                 </button>
               </div>
 
