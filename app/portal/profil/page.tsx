@@ -1,9 +1,11 @@
 import { cookies } from "next/headers";
 import { AppLink as Link } from "@/app/components/AppLink";
+import { ChangePasswordForm } from "@/app/components/ChangePasswordForm";
 import { SignOutButton } from "@/app/components/SignOutButton";
 import { DeleteAccountSection } from "@/app/portal/profil/DeleteAccountSection";
 import { TrainerConnection } from "@/app/portal/profil/TrainerConnection";
 import { loadProfilView } from "@/app/portal/profil/profilView";
+import { getUser } from "@/lib/supabase/server";
 import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 import { V6_THEME_COOKIE, parseV6Theme } from "@/app/v6design/theme";
 import s from "../portal.module.css";
@@ -13,7 +15,11 @@ import s from "../portal.module.css";
 
 export default async function ProfilPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
-  const [view, cookieStore] = await Promise.all([loadProfilView(preview), cookies()]);
+  const [view, cookieStore, { data: userData }] = await Promise.all([
+    loadProfilView(preview),
+    cookies(),
+    getUser(),
+  ]);
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
 
   return (
@@ -31,6 +37,13 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
           <ThemeSwitch initial={theme} />
           <p className={s.hint}>Auto prepína svetlú a tmavú tému podľa nastavenia telefónu.</p>
         </div>
+
+        {userData.user?.email && (
+          <div className={s.panel}>
+            <p className={s.panelLabel}>Heslo</p>
+            <ChangePasswordForm email={userData.user.email} />
+          </div>
+        )}
 
         <div className={s.panel}>
           <p className={s.panelLabel}>Osobné údaje</p>

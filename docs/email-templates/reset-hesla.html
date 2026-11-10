@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reset hesla</title>
+  </head>
+  <body style="margin:0; padding:0; background:#f2ece6;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2ece6;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#fbf6f1; border:1px solid #efe6dd; border-radius:28px; overflow:hidden;">
+            <tr>
+              <td align="center" style="padding:32px 32px 8px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding-right:8px; vertical-align:middle;">
+                      <img
+                        src="https://coach-pi-bice.vercel.app/brand/logo-mark.png"
+                        alt=""
+                        width="26"
+                        height="26"
+                        style="display:block;"
+                      />
+                    </td>
+                    <td
+                      style="vertical-align:middle; color:#1f1a17; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-weight:800; font-size:21px; letter-spacing:-0.02em;"
+                    >
+                      FitPilot
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 8px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <h1 style="margin:0 0 12px; color:#1f1a17; font-size:22px; font-weight:800; letter-spacing:-0.02em;">
+                  Zabudnuté heslo
+                </h1>
+                <p style="margin:0 0 20px; color:#574d47; font-size:15px; line-height:1.55;">
+                  Niekto (dúfajme ty) požiadal o reset hesla k tvojmu FitPilot účtu. Klikni na tlačidlo nižšie a nastav si nové.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:0 32px 28px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td
+                      align="center"
+                      bgcolor="#d9694a"
+                      style="border-radius:999px; background:linear-gradient(140deg, #ea8a6c 0%, #d9694a 46%, #bd5034 100%);"
+                    >
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        style="display:inline-block; color:#ffffff; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; letter-spacing:-0.01em; text-decoration:none; padding:13px 28px;"
+                      >
+                        Nastaviť nové heslo
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 28px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <p style="margin:0; color:#7d726a; font-size:12.5px; line-height:1.5;">
+                  Ak tlačidlo nefunguje, skopíruj tento odkaz do prehliadača:<br />
+                  <a href="{{ .ConfirmationURL }}" style="color:#b4492d; word-break:break-all;">{{ .ConfirmationURL }}</a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 28px; border-top:1px solid #efe6dd; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <p style="margin:0; color:#7d726a; font-size:12px; line-height:1.5;">
+                  Ak si o reset hesla nepožiadal/a ty, tento e-mail jednoducho ignoruj — heslo sa nezmení, kým cez tento odkaz
+                  nikto nenastaví nové. Potrebuješ pomoc? <a href="mailto:podpora@myfitpilot.sk" style="color:#b4492d;">podpora@myfitpilot.sk</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
