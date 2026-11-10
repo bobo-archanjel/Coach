@@ -63,15 +63,6 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const AppleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 17 18" fill="none">
-    <path
-      fill="currentColor"
-      d="M14.1 9.6c-.03-1.9 1.56-2.82 1.63-2.86-.89-1.3-2.27-1.48-2.76-1.5-1.26-.13-2.46.74-3.1.74-.65 0-1.65-.72-2.71-.7-1.39.02-2.68.81-3.39 2.05-1.45 2.5-.37 6.2 1.03 8.24.68.99 1.49 2.1 2.56 2.06 1.02-.04 1.41-.66 2.64-.66 1.23 0 1.58.66 2.65.64 1.1-.02 1.8-1 2.47-1.99.78-1.14 1.1-2.25 1.12-2.3-.02-.01-2.15-.83-2.14-3.72ZM11.9 3.2c.58-.7.97-1.68.86-2.65-.83.03-1.84.55-2.45 1.25-.54.62-1.02 1.62-.89 2.57.93.07 1.88-.47 2.48-1.17Z"
-    />
-  </svg>
-);
-
 const CheckIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <path d="M3 9.5l3.4 3.4L15 4.5" stroke="var(--iron-red)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -113,12 +104,12 @@ export function AuthView() {
   const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
-  // Gmail/Apple prihlásenie (feature/login) — presmerovanie na providera, návrat ide
+  // Gmail prihlásenie (feature/login) — presmerovanie na providera, návrat ide
   // cez app/auth/callback/route.ts (server si vymení `code` za session). `role` sa
   // posiela len z registrácie (podľa zvoleného tabu Tréner/Klient) — pri prihlásení
   // existujúceho účtu žiadnu rolu nepotrebujeme, tá je už v `profiles`.
-  const [oauthPending, setOauthPending] = useState<"google" | "apple" | null>(null);
-  async function handleOAuth(provider: "google" | "apple", role?: "trainer" | "client") {
+  const [oauthPending, setOauthPending] = useState<"google" | null>(null);
+  async function handleOAuth(provider: "google", role?: "trainer" | "client") {
     setOauthPending(provider);
     const redirectTo = new URL("/auth/callback", window.location.origin);
     if (role) redirectTo.searchParams.set("role", role);
@@ -472,15 +463,6 @@ export function AuthView() {
                   {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
                   Pokračovať s Google
                 </button>
-                <button
-                  type="button"
-                  className={styles.oauthBtn}
-                  disabled={oauthPending !== null}
-                  onClick={() => handleOAuth("apple")}
-                >
-                  {oauthPending === "apple" ? <span className={styles.spinner} aria-hidden="true" /> : <AppleIcon />}
-                  Pokračovať s Apple
-                </button>
               </div>
               <div className={styles.divider}>
                 <span>alebo</span>
@@ -707,15 +689,6 @@ export function AuthView() {
                 >
                   {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
                   Pokračovať s Google
-                </button>
-                <button
-                  type="button"
-                  className={styles.oauthBtn}
-                  disabled={oauthPending !== null}
-                  onClick={() => handleOAuth("apple", registerRole)}
-                >
-                  {oauthPending === "apple" ? <span className={styles.spinner} aria-hidden="true" /> : <AppleIcon />}
-                  Pokračovať s Apple
                 </button>
               </div>
               <div className={styles.divider}>
