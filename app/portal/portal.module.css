@@ -2828,6 +2828,8 @@
   gap: 12px;
 }
 .trPlan {
+  /* posun z odkazu ?plan= (upozornenie) — plán nezalezie pod sticky hlavičku */
+  scroll-margin-top: 84px;
   background: var(--card-bg);
   border: 1px solid var(--surface-border);
   border-radius: 26px;
