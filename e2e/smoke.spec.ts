@@ -79,10 +79,15 @@ test.describe("Prihlásenie /prihlasenie", () => {
     await page.goto("/prihlasenie");
     await page.getByRole("tab", { name: "Registrácia" }).click();
 
-    // default = tréner
-    await expect(page.getByRole("heading", { name: /Začni skúšobné/i })).toBeVisible();
+    // default = klient (klientov sa registruje viac), „Som klient“ je prvé
+    const roles = page.getByRole("group", { name: "Registrujem sa ako" }).getByRole("button");
+    await expect(roles.first()).toHaveText("Som klient");
+    await expect(page.getByRole("button", { name: /^Som klient$/i })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("heading", { name: /Vytvor si/i })).toBeVisible();
 
-    // prepni na klienta → žiadne pole na pozývací kód, registrácia je rovnaká ako trénerská
+    // tréner → nadpis skúšobného obdobia; späť na klienta → žiadne pole na pozývací kód
+    await page.getByRole("button", { name: /^Som tréner$/i }).click();
+    await expect(page.getByRole("heading", { name: /Začni skúšobné/i })).toBeVisible();
     await page.getByRole("button", { name: /^Som klient$/i }).click();
     await expect(page.getByRole("heading", { name: /Vytvor si/i })).toBeVisible();
     await expect(page.getByLabel(/Pozývací kód/i)).toHaveCount(0);
@@ -92,6 +97,12 @@ test.describe("Prihlásenie /prihlasenie", () => {
     // feature/navod: prázdny formulár → tlačidlo zostáva disabled, kým meno aj
     // ostatné polia nie sú platné (rovnaký princíp ako prihlásenie vyššie).
     await expect(submitBtn).toBeDisabled();
+  });
+
+  test("odkaz pre trénera z landingu (#register-trener) otvorí registráciu trénera", async ({ page }) => {
+    await page.goto("/prihlasenie#register-trener");
+    await expect(page.getByRole("button", { name: /^Som tréner$/i })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("heading", { name: /Začni skúšobné/i })).toBeVisible();
   });
 
   test("neúspešné prihlásenie ukáže chybu, nie crash", async ({ page }) => {
