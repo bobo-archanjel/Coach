@@ -223,6 +223,14 @@ export function AuthView() {
   const [forgotInvalid, setForgotInvalid] = useState(false);
   const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "success">("idle");
   const [forgotError, setForgotError] = useState<string | null>(null);
+  // Supabase pošle na jeden e-mail najviac jeden odkaz za minútu — kým odpočet beží,
+  // tlačidlo nejde stlačiť (druhý klik predtým prepísal „poslali sme“ na „zlyhalo“).
+  const [forgotCooldown, setForgotCooldown] = useState(0);
+  useEffect(() => {
+    if (forgotCooldown <= 0) return;
+    const t = setTimeout(() => setForgotCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [forgotCooldown]);
   const forgotLoadingText = useLoadingMessage(forgotStatus === "loading", ["Odosielam…", "Ešte chvíľku…"]);
 
   async function handleForgotSubmit(e: FormEvent<HTMLFormElement>) {
@@ -244,11 +252,27 @@ export function AuthView() {
     // enumeráciou účtov) — správa je preto vždy rovnaká, aj pri chybe siete
     // necháme používateľa skúsiť znova cez formError, ale neprezrádzame existenciu.
     if (error) {
+      const msg = error.message.toLowerCase();
+      // 429 „For security purposes, you can only request this after N seconds“ = na tento
+      // e-mail odišiel odkaz pred chvíľou — rovnaká neutrálna správa ako pri úspechu
+      // (neprezradí, či účet existuje) a odpočet do ďalšieho pokusu.
+      const wait = msg.match(/after (\d+) seconds?/);
+      if (error.status === 429 && wait) {
+        setForgotStatus("success");
+        setForgotCooldown(Number(wait[1]));
+        return;
+      }
       setForgotStatus("idle");
-      setForgotError("Odoslanie zlyhalo. Skús to o chvíľu znova.");
+      // celoprojektový limit odosielania e-mailov („email rate limit exceeded“)
+      setForgotError(
+        error.status === 429 || msg.includes("rate limit")
+          ? "Práve sa posiela priveľa e-mailov. Skús to prosím o pár minút."
+          : "Odoslanie zlyhalo. Skús to o chvíľu znova.",
+      );
       return;
     }
     setForgotStatus("success");
+    setForgotCooldown(60);
   }
 
   // ---- register form state ----
@@ -610,16 +634,23 @@ export function AuthView() {
                 <button
                   type="submit"
                   className={`${styles.btnSubmit} ${forgotStatus === "success" ? styles.success : ""}`}
-                  disabled={forgotStatus === "loading"}
+                  disabled={forgotStatus === "loading" || forgotCooldown > 0}
                 >
                   {forgotStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{forgotStatus === "loading" ? (forgotLoadingText ?? "Odosielam…") : "Poslať odkaz na reset"}</span>
+                  <span>
+                    {forgotStatus === "loading"
+                      ? (forgotLoadingText ?? "Odosielam…")
+                      : forgotCooldown > 0
+                        ? `Poslať znova o ${forgotCooldown} s`
+                        : "Poslať odkaz na reset"}
+                  </span>
                 </button>
 
                 {forgotStatus === "success" && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Ak účet s týmto e-mailom existuje, poslali sme naň odkaz na reset hesla.
+                    Ak účet s týmto e-mailom existuje, poslali sme naň odkaz na reset hesla. Ak ho do pár minút
+                    nevidíš, pozri aj priečinok Spam.
                   </div>
                 )}
                 {forgotError && (
