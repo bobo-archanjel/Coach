@@ -686,7 +686,7 @@ export default async function LandingPage() {
                     Základný dashboard
                   </li>
                 </ul>
-                <Link href="/prihlasenie#register" className={`btn btn-ghost ${styles.priceCta}`}>
+                <Link href="/prihlasenie#register-trener" className={`btn btn-ghost ${styles.priceCta}`}>
                   Vybrať Starter
                 </Link>
               </div>
@@ -711,7 +711,7 @@ export default async function LandingPage() {
                     AI generátor plánov pre trénera
                   </li>
                 </ul>
-                <Link href="/prihlasenie#register" className={`btn btn-primary ${styles.priceCta}`}>
+                <Link href="/prihlasenie#register-trener" className={`btn btn-primary ${styles.priceCta}`}>
                   Vybrať Pro
                   <ArrowIcon />
                 </Link>
@@ -737,7 +737,7 @@ export default async function LandingPage() {
                     Pokročilé reporty
                   </li>
                 </ul>
-                <Link href="/prihlasenie#register" className={`btn btn-ghost ${styles.priceCta}`}>
+                <Link href="/prihlasenie#register-trener" className={`btn btn-ghost ${styles.priceCta}`}>
                   Vybrať Business
                 </Link>
               </div>
@@ -797,7 +797,7 @@ export default async function LandingPage() {
                 </h2>
                 <p>14 dní zadarmo, bez viazanosti. Nastavenie klientov trvá menej ako obed.</p>
               </div>
-              <Link href="/prihlasenie#register" className={`btn ${styles.finalCtaBtn}`}>
+              <Link href="/prihlasenie#register-trener" className={`btn ${styles.finalCtaBtn}`}>
                 Začať skúšobné obdobie
                 <ArrowIcon />
               </Link>
