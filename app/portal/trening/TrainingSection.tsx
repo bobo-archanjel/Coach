@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import type { ExerciseOption, PortalPlan, PortalTemplate, PortalTrainingData } from "@/lib/portal/types";
 import {
   chooseActivePlanAction,
@@ -83,7 +84,12 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [templateNote, setTemplateNote] = useState<{ planId: string; text: string; error: boolean } | null>(null);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(data.activePlanId);
+  // ?plan=<id> (odkaz z upozornenia „Nový tréningový plán“) rozbalí presne ten plán,
+  // inak aktívny plán (karta Dnes)
+  const searchParams = useSearchParams();
+  const linkedPlanId = searchParams.get("plan");
+  const linkedPlan = linkedPlanId && plans.some((p) => p.id === linkedPlanId) ? linkedPlanId : null;
+  const [expandedId, setExpandedId] = useState<string | null>(linkedPlan ?? data.activePlanId);
   // Vybraný deň v rámci rozbaleného tréningu — samostatný krok pred zobrazením
   // cvikov a tlačidla "Začať tréning" (predtým sa všetky dni so všetkými cvikmi
   // vypísali naraz, pôsobilo to chaoticky).
@@ -125,6 +131,18 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const onSaved = () => {
     closeBuilder();
   };
+
+  useEffect(() => {
+    if (!linkedPlan) return;
+    setExpandedId(linkedPlan);
+    setSelectedDayId(null);
+    setMode("list");
+    // po vykreslení rozbaleného plánu — posun naň (pod hlavičkou)
+    const t = window.setTimeout(() => {
+      document.getElementById(`plan-${linkedPlan}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [linkedPlan]);
 
   // Ťuk na tréning len rozbalí/zbalí zoznam jeho dní — nemení, čo beží na karte
   // Dnes. Aktívny plán sa mení „Nastaviť ako aktívny“ alebo „Začať tréning“ pri dni.
@@ -332,7 +350,11 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
             const expanded = expandedId === plan.id;
             const selectedDay = expanded && selectedDayId ? (plan.days.find((d) => d.id === selectedDayId) ?? null) : null;
             return (
-              <li key={plan.id} className={`${styles.trPlan} ${plan.isActive ? styles.trPlanActive : ""}`}>
+              <li
+                key={plan.id}
+                id={`plan-${plan.id}`}
+                className={`${styles.trPlan} ${plan.isActive ? styles.trPlanActive : ""}`}
+              >
                 <button
                   type="button"
                   className={styles.trPlanHead}

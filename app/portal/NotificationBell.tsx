@@ -202,7 +202,9 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
 
   const dismissOnOpen = useCallback(
     (href: string, keys: string[], days: number | null) => {
-      if (href === pathname) {
+      // Odkaz na tú istú stránku (napr. /portal/trening?plan=… z /portal/trening) trasu
+      // nezmení — odložené skrytie by sa nikdy neuložilo a po obnovení by sa vrátilo.
+      if (href.split("?")[0] === pathname) {
         dismiss(keys, days);
         return;
       }
@@ -267,6 +269,10 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                     <Link
                       href={item.href}
                       className={`${styles.bellItemMain} ${item.tone === "alert" ? styles.bellToneAlert : styles.bellToneWatch}`}
+                      onClick={() => {
+                        if (item.dismissOnOpen && item.dismiss) dismissOnOpen(item.href!, item.dismiss.keys, item.dismiss.days);
+                        setOpenAt(null);
+                      }}
                     >
                       {item.title}
                     </Link>
@@ -296,7 +302,10 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                       <li key={l.href + l.label}>
                         <Link
                           href={l.href}
-                          onClick={l.dismissKey ? () => dismissOnOpen(l.href, [l.dismissKey!], item.dismiss?.days ?? null) : undefined}
+                          onClick={() => {
+                            if (l.dismissKey) dismissOnOpen(l.href, [l.dismissKey], item.dismiss?.days ?? null);
+                            setOpenAt(null);
+                          }}
                         >
                           {l.label}
                         </Link>

@@ -88,7 +88,12 @@ export interface PortalAttentionItem {
   /** "Označiť ako prečítané" (len správy) — nastaví skutočné read_at */
   markRead: boolean;
   dismiss: { keys: string[]; days: number | null } | null;
+  /** klik na nadpis (odkaz) upozornenie zároveň skryje — nový plán/jedálniček je „videný“ */
+  dismissOnOpen?: boolean;
 }
+
+/** Odkaz na konkrétny plán v sekcii Tréning — rozbalí ho a posunie sa naň (TrainingSection). */
+export const portalPlanHref = (planId: string) => `/portal/trening?plan=${encodeURIComponent(planId)}`;
 
 function plural(n: number, one: string, few: string, many: string): string {
   if (n === 1) return one;
@@ -151,13 +156,14 @@ export function buildPortalAttentionItems(data: PortalAttentionData): PortalAtte
         data.newPlans.length === 1
           ? `Nový tréningový plán: ${data.newPlans[0].name}`
           : `${data.newPlans.length} nových tréningových plánov`,
-      href: data.newPlans.length === 1 ? "/portal/trening" : null,
+      href: data.newPlans.length === 1 ? portalPlanHref(data.newPlans[0].id) : null,
       links:
         data.newPlans.length === 1
           ? []
-          : data.newPlans.map((p) => ({ label: p.name, meta: "", href: "/portal/trening", dismissKey: p.key })),
+          : data.newPlans.map((p) => ({ label: p.name, meta: "", href: portalPlanHref(p.id), dismissKey: p.key })),
       markRead: false,
       dismiss: { keys: data.newPlans.map((p) => p.key), days: null },
+      dismissOnOpen: true,
     });
   }
 
@@ -176,6 +182,7 @@ export function buildPortalAttentionItems(data: PortalAttentionData): PortalAtte
           : data.newMealPlans.map((p) => ({ label: p.name, meta: "", href: "/portal/strava", dismissKey: p.key })),
       markRead: false,
       dismiss: { keys: data.newMealPlans.map((p) => p.key), days: null },
+      dismissOnOpen: true,
     });
   }
 
