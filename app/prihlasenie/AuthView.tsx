@@ -42,6 +42,27 @@ const ErrorIcon = () => (
   </svg>
 );
 
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18">
+    <path
+      fill="#4285F4"
+      d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"
+    />
+    <path
+      fill="#34A853"
+      d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.36 0-4.36-1.59-5.08-3.73H.9v2.33C2.37 15.98 5.44 18 9 18Z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M3.92 10.69A5.4 5.4 0 0 1 3.64 9c0-.59.1-1.16.28-1.69V4.98H.9A8.95 8.95 0 0 0 0 9c0 1.45.35 2.82.9 4.02l3.02-2.33Z"
+    />
+    <path
+      fill="#EA4335"
+      d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.44 0 2.37 2.02.9 4.98l3.02 2.33C4.64 5.17 6.64 3.58 9 3.58Z"
+    />
+  </svg>
+);
+
 const CheckIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <path d="M3 9.5l3.4 3.4L15 4.5" stroke="var(--iron-red)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -83,8 +104,32 @@ export function AuthView() {
   const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
+  // Gmail prihlásenie (feature/login) — presmerovanie na providera, návrat ide
+  // cez app/auth/callback/route.ts (server si vymení `code` za session). `role` sa
+  // posiela len z registrácie (podľa zvoleného tabu Tréner/Klient) — pri prihlásení
+  // existujúceho účtu žiadnu rolu nepotrebujeme, tá je už v `profiles`.
+  const [oauthPending, setOauthPending] = useState<"google" | null>(null);
+  async function handleOAuth(provider: "google", role?: "trainer" | "client") {
+    setOauthPending(provider);
+    const redirectTo = new URL("/auth/callback", window.location.origin);
+    if (role) redirectTo.searchParams.set("role", role);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: redirectTo.toString() },
+    });
+    if (error) setOauthPending(null);
+  }
+
   useEffect(() => {
     if (window.location.hash === "#register") setActiveTab("register");
+  }, []);
+
+  const [oauthError, setOauthError] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("oauth_error")) {
+      setOauthError(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   }, []);
 
   // ---- login form state ----
@@ -408,6 +453,28 @@ export function AuthView() {
                 <p>Prihlás sa do svojho konta.</p>
               </div>
 
+              <div className={styles.oauthRow}>
+                <button
+                  type="button"
+                  className={styles.oauthBtn}
+                  disabled={oauthPending !== null}
+                  onClick={() => handleOAuth("google")}
+                >
+                  {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
+                  Pokračovať s Google
+                </button>
+              </div>
+              <div className={styles.divider}>
+                <span>alebo</span>
+              </div>
+
+              {oauthError && (
+                <div className={`${styles.formStatus} ${styles.error}`} role="alert" style={{ marginBottom: 16 }}>
+                  <ErrorIcon />
+                  Prihlásenie zlyhalo. Skús to prosím znova.
+                </div>
+              )}
+
               <form ref={loginFormRef} noValidate onSubmit={handleLoginSubmit} onInput={updateLoginCanSubmit}>
                 <Honeypot />
                 <div className={styles.field}>
@@ -611,6 +678,21 @@ export function AuthView() {
                     <p>14 dní zadarmo pre trénerov, bez viazanosti a bez karty.</p>
                   </>
                 )}
+              </div>
+
+              <div className={styles.oauthRow}>
+                <button
+                  type="button"
+                  className={styles.oauthBtn}
+                  disabled={oauthPending !== null}
+                  onClick={() => handleOAuth("google", registerRole)}
+                >
+                  {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
+                  Pokračovať s Google
+                </button>
+              </div>
+              <div className={styles.divider}>
+                <span>alebo</span>
               </div>
 
               <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit} onInput={updateRegisterCanSubmit}>

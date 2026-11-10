@@ -8,6 +8,11 @@
         "rule": "app/dashboard/dashboard.module.css",
         "value": "layout-transition transition: width 0.3s ease",
         "createdAt": "2026-11-08T16:28:40.396Z"
+      },
+      {
+        "rule": "app/dashboard/dashboard.module.css",
+        "value": "layout-transition transition: height 0.26s cubic-bezier(0.25, 0.1, 0.25, 1) 0.04s",
+        "createdAt": "2026-11-10T10:50:21.893Z"
       }
     ]
   }
