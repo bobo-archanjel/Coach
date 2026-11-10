@@ -407,6 +407,19 @@ select pg_temp.chk('H2: klient si aktívny plán prepne sám (set_active_plan)',
   :'own_set' = 'OK' and (select active_plan_id from public.clients where id = :'apc') = :'pb'::uuid,
   :'own_set' || ' active=' || coalesce((select active_plan_id::text from public.clients where id = :'apc'), 'null'));
 
+-- ============================================================ H3) onboarding sprievodca raz (0057)
+select pg_temp.try(:AP, 'select public.complete_onboarding_tour()') as tour_set \gset
+select pg_temp.chk('H3: používateľ si zapíše „sprievodca videný“ (RPC)',
+  :'tour_set' = 'OK' and (select tour_completed_at from public.profiles where id = :AP) is not null, :'tour_set');
+select tour_completed_at as tour_first from public.profiles where id = :AP \gset
+select pg_temp.try(:AP, 'select public.complete_onboarding_tour()') as tour_again \gset
+select pg_temp.chk('H3: opakované volanie čas prvého videnia neprepíše',
+  :'tour_again' = 'OK' and (select tour_completed_at from public.profiles where id = :AP) = :'tour_first'::timestamptz);
+select pg_temp.chk('H3: RPC mení len vlastný profil',
+  (select tour_completed_at from public.profiles where id = :T1) is null);
+select pg_temp.chk('H3: anon nevolá complete_onboarding_tour',
+  pg_temp.try(null, 'select public.complete_onboarding_tour()', 'anon') like 'ERR:%');
+
 -- ============================================================ výsledok
 \echo
 \echo ===== VÝSLEDKY =====

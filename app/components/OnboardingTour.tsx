@@ -47,6 +47,10 @@ export function OnboardingTour({ steps, tourSeen }: { steps: TourStep[]; tourSee
       setActive(true);
       setStepIndex(0);
     }
+    // Automatické spustenie (prvé prihlásenie) sa hneď zapíše ako „videné“ — aj keď
+    // používateľ sprievodcu nedokončí (zavrie kartu, odhlási sa), pri ďalšom prihlásení
+    // sa už nespustí. Manuálne „Spustiť návod znova“ (?tour=1) nič nezapisuje vopred.
+    if (!forceReplay && !tourSeen) void completeTourAction();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceReplay]);
 

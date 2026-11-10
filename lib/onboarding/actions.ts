@@ -58,7 +58,11 @@ export async function getTourSeen(userId: string | null): Promise<boolean> {
   return data.tour_completed_at != null;
 }
 
-/** Zavolá sa pri dokončení AJ pri preskočení — obe znamenajú "už nezobrazovať automaticky". */
+/**
+ * „Sprievodca videný“ — zavolá sa hneď, ako sa sprievodca pri prvom prihlásení sám spustí
+ * (aj keď ho používateľ nedokončí), a znova pri dokončení/preskočení. Automaticky sa tak
+ * ukáže len raz; „Spustiť návod znova“ (?tour=1) funguje vždy.
+ */
 export async function completeTourAction(): Promise<{ ok: boolean }> {
   // Cookie sa nastaví VŽDY, nezávisle od DB zápisu nižšie — aj keď DB zápis
   // zlyhá (napr. chýbajúca migrácia/grant na inej DB), appka aspoň v TOMTO
@@ -71,11 +75,16 @@ export async function completeTourAction(): Promise<{ ok: boolean }> {
   } = await getUser();
   if (!user) return { ok: DEV_NO_SESSION };
 
+  // RPC (0057) — priamy UPDATE profiles padal na chýbajúcom stĺpcovom grante; bez
+  // migrácie 0057 skúsi ešte priamy zápis (DB s grantom z 0053).
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("profiles")
-    .update({ tour_completed_at: new Date().toISOString() })
-    .eq("id", user.id);
+  let { error } = await supabase.rpc("complete_onboarding_tour");
+  if (error && /complete_onboarding_tour|function/i.test(error.message)) {
+    ({ error } = await supabase
+      .from("profiles")
+      .update({ tour_completed_at: new Date().toISOString() })
+      .eq("id", user.id));
+  }
   if (error) {
     console.error("completeTourAction:", error.message);
     return { ok: false };
