@@ -8,5 +8,36 @@
   "personalHint": "Věk, výšku, váhu, cíle a alergie z onboardingu si tu brzy doplníš — pak uvidíš i svůj pokrok v čase.",
   "tour": "Průvodce",
   "tourHint": "Krátký průvodce aplikací, kterého jsi viděl při prvním přihlášení.",
-  "tourRestart": "Spustit průvodce znovu"
+  "tourRestart": "Spustit průvodce znovu",
+  "connection": {
+    "shareText": "Přidej mě jako svého klienta ve FitPilot. Můj kód: {code}",
+    "shareTitle": "Můj kód FitPilot",
+    "codeLabel": "Tvůj kód pro trenéra",
+    "copied": "Zkopírováno",
+    "copy": "Kopírovat",
+    "share": "Sdílet",
+    "codeHint": "Pošli tento kód svému trenérovi. Zadá ho u sebe a tím se propojíte — aplikaci do té doby plně používáš i sám.",
+    "codePending": "Kód se právě připravuje — obnov stránku za chvíli.",
+    "trainer": "Trenér",
+    "linkedWith": "Propojen/a s trenérem <b>{name}</b>",
+    "linked": "Propojen/a s trenérem",
+    "leaveNamed": "Odpojit se od trenéra {name}?",
+    "leave": "Odpojit se od trenéra?",
+    "leaveText": "Tvé tréninky, měření a deník zůstávají — trenér k nim už nebude mít přístup.",
+    "leaving": "Odpojuji…",
+    "yesLeave": "Ano, odpojit",
+    "cancel": "Zrušit",
+    "leaveButton": "Odpojit se od trenéra",
+    "noTrainer": "Zatím nemáš trenéra. Až mu pošleš kód výše a on tě přidá, uvidíš tu jeho jméno a v Chatu ti přijde potvrzení."
+  },
+  "deletion": {
+    "title": "Smazání dat",
+    "byTrainer": "Trenér požádal o smazání — tréninky, výživa, deník i zprávy se natrvalo odstraní za {days, plural, one {# den} few {# dny} other {# dní}}.",
+    "byYou": "Požádal/a jsi o smazání — tréninky, výživa, deník i zprávy se natrvalo odstraní za {days, plural, one {# den} few {# dny} other {# dní}}.",
+    "cancel": "Zrušit smazání",
+    "confirm": "Opravdu chceš smazat své tréninky, jídelníček, deník i zprávy s trenérem? Data zůstanou 30 dní (dá se zrušit), pak se natrvalo odstraní.",
+    "yes": "Ano, smazat",
+    "no": "Ne",
+    "request": "Požádat o smazání mých dat"
+  }
 }

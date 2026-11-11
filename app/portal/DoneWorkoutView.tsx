@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { useState } from "react";
 import type { LoggedExercise, LoggedSet, PortalExercise } from "@/lib/portal/types";
 import {
@@ -31,12 +33,12 @@ const PencilIcon = () => (
   </svg>
 );
 
-function setLabel(s: LoggedSet): string {
+function setLabel(s: LoggedSet, repsLabel: (n: number) => string, locale: Locale): string {
   const parts: string[] = [];
-  if (s.reps != null) parts.push(`${s.reps} op.`);
-  if (s.weight != null) parts.push(`${s.weight.toLocaleString("sk-SK")} kg`);
+  if (s.reps != null) parts.push(repsLabel(s.reps));
+  if (s.weight != null) parts.push(`${s.weight.toLocaleString(intlLocale(locale))} kg`);
   if (s.durationS != null) parts.push(formatDuration(s.durationS));
-  if (s.distanceM != null) parts.push(formatDistance(s.distanceM));
+  if (s.distanceM != null) parts.push(formatDistance(s.distanceM, locale));
   const base = parts.join(" × ") || "—";
   return s.rpe != null ? `${base} · RPE ${s.rpe}` : base;
 }
@@ -63,6 +65,8 @@ export function DoneWorkoutView({
   editableUntil?: string | null;
   exercises: PortalExercise[];
 }) {
+  const t = useTranslations("workout");
+  const locale = useLocale();
   const [editing, setEditing] = useState(false);
   const canEdit = !!logId && isStillEditable(editableUntil);
 
@@ -90,7 +94,7 @@ export function DoneWorkoutView({
               {ex.sets.length > 0 && (
                 <ol className={styles.doneSetList}>
                   {ex.sets.map((s, j) => (
-                    <li key={j}>{setLabel(s)}</li>
+                    <li key={j}>{setLabel(s, (n) => t("reps", { reps: n }), locale)}</li>
                   ))}
                 </ol>
               )}
@@ -99,12 +103,12 @@ export function DoneWorkoutView({
           ))}
         </div>
       ) : (
-        <p className={styles.doneNoValues}>Tréning si ukončil bez zapísaných hodnôt.</p>
+        <p className={styles.doneNoValues}>{t("noValues")}</p>
       )}
 
       {(sessionRpe != null || sessionNote) && (
         <p className={styles.doneNote}>
-          {sessionRpe != null && <>Náročnosť: RPE {sessionRpe}</>}
+          {sessionRpe != null && t("rpeLine", { rpe: sessionRpe })}
           {sessionRpe != null && sessionNote && " · "}
           {sessionNote && <>„{sessionNote}“</>}
         </p>
@@ -113,14 +117,14 @@ export function DoneWorkoutView({
       {canEdit && editableUntil ? (
         <>
           <button type="button" className={styles.editValuesBtn} onClick={() => setEditing(true)}>
-            <PencilIcon /> Upraviť hodnoty
+            <PencilIcon /> {t("editValues")}
           </button>
-          <p className={styles.lockNote}>Zabudnuté hodnoty môžeš opraviť do {formatEditDeadline(editableUntil)}.</p>
+          <p className={styles.lockNote}>{t("editUntil", { deadline: formatEditDeadline(editableUntil, undefined, locale) })}</p>
         </>
       ) : (
         <p className={styles.lockNote}>
-          <LockIcon /> Dokončený{completedAt ? ` – ${formatCompletedDate(completedAt)}` : ""}. Zapísané hodnoty sa už
-          nedajú meniť.
+          <LockIcon />{" "}
+          {completedAt ? t("lockedOn", { date: formatCompletedDate(completedAt, locale) }) : t("locked")}
         </p>
       )}
     </>

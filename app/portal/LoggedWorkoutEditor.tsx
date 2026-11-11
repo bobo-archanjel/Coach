@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
 import { formatEditDeadline } from "@/lib/workouts/completed";
@@ -30,6 +31,8 @@ export function LoggedWorkoutEditor({
   editableUntil: string;
   onClose: () => void;
 }) {
+  const t = useTranslations("workout");
+  const locale = useLocale();
   const [values, setValues] = useState<WorkoutFormValues>(() => formValuesFromLog(exercises, logged, rpe, note));
   const [showInvalid, setShowInvalid] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,21 +65,21 @@ export function LoggedWorkoutEditor({
 
   return (
     <div className={styles.logForm}>
-      <p className={styles.editDeadline}>Hodnoty môžeš upraviť do {formatEditDeadline(editableUntil)}.</p>
+      <p className={styles.editDeadline}>{t("editDeadline", { deadline: formatEditDeadline(editableUntil, undefined, locale) })}</p>
 
       <WorkoutSetsFields exercises={exercises} values={values} onChange={setValues} showInvalid={showInvalid} />
 
       <div className={styles.editActions}>
         <button type="button" className={styles.swBtnGhost} onClick={onClose} disabled={pending}>
-          Zrušiť
+          {t("cancel")}
         </button>
         <button type="button" className={styles.swBtnPrimary} onClick={save} disabled={pending}>
-          {pending ? "Ukladám…" : "Uložiť zmeny"}
+          {pending ? t("saving") : t("saveChanges")}
         </button>
       </div>
       {showInvalid && summary.invalidCount > 0 && (
         <p role="alert" className={styles.editError}>
-          Oprav označené hodnoty.
+          {t("fixValues")}
         </p>
       )}
       {error && <p className={styles.editError}>{error}</p>}

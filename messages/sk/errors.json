@@ -122,5 +122,47 @@
   "analytics": {
     "noActiveClients": "Zatiaľ nemáš aktívnych klientov na zhrnutie.",
     "overviewFailed": "Prehľad sa nepodarilo načítať — skús to znova."
+  },
+  "portal": {
+    "sessionExpired": "Session vypršala.",
+    "unknownLoad": "Neznáma chyba pri načítaní.",
+    "invalidWeek": "Neplatný týždeň.",
+    "notLinked": "Účet ešte nie je prepojený."
+  },
+  "client": {
+    "notLinkedTrainer": "Tvoj účet nie je prepojený s trénerom.",
+    "profileMissing": "Nepodarilo sa nájsť tvoj profil.",
+    "clientProfileMissing": "Nenašli sme tvoj klientský profil.",
+    "recordNotFound": "Záznam sa nenašiel.",
+    "gramsRange": "Zadaj gramáž (1–5000 g).",
+    "invalidSetValue": "Niektorá zapísaná hodnota nie je platná — skontroluj série a skús to znova.",
+    "missingRecordId": "Chýba identifikátor záznamu.",
+    "planNameRequired": "Zadaj názov tréningového plánu.",
+    "foodNameRequired": "Zadaj názov potraviny (max 120 znakov).",
+    "kcalRequired": "Zadaj kalórie na 100 g.",
+    "atLeastOneValue": "Zadaj aspoň jednu hodnotu.",
+    "chooseSlot": "Vyber jedlo dňa.",
+    "onlyClientOwnPlans": "Vlastné tréningy môže vytvárať len klient.",
+    "planCreateFailed": "Tréning sa nepodarilo vytvoriť.",
+    "workoutNotFound": "Tréning sa nenašiel.",
+    "alreadyLogged": "Tento tréning už máš dnes zapísaný — tieto hodnoty sa neuložili. Obnov stránku a pozri si uložený záznam.",
+    "cannotDelete": "Tento tréning nemôžeš zmazať.",
+    "cannotEdit": "Tento tréning nemôžeš upraviť.",
+    "addNamedDay": "Pridaj aspoň jeden deň s názvom.",
+    "replySaveFailed": "Odpoveď sa nepodarilo uložiť. Skús to prosím znova.",
+    "disconnectFailed": "Odpojenie zlyhalo. Skús to o chvíľu znova.",
+    "conversationFailed": "Nepodarilo sa založiť konverzáciu.",
+    "invalidWorkoutData": "Neplatné dáta tréningu.",
+    "macrosNonNegative": "Makrá musia byť čísla 0 alebo viac.",
+    "kcalMax": "Kalórie na 100 g môžu byť najviac 900.",
+    "editWindow": "Hodnoty sa dajú upraviť len 24 hodín po ukončení tréningu.",
+    "dayNotFound": "Deň sa nenašiel.",
+    "missingWorkoutData": "Chýbajú dáta tréningu.",
+    "missingLog": "Chýba záznam tréningu.",
+    "missingFoodName": "Chýba názov potraviny.",
+    "missingDay": "Chýba deň tréningu.",
+    "macrosMax": "Bielkoviny, sacharidy a tuky spolu nemôžu mať viac ako 100 g na 100 g.",
+    "aiCoachTrainerOnly": "AI Kouč je zatiaľ dostupný len klientom s prideleným trénerom.",
+    "diaryRange": "Zapisovať sa dá len za posledných {days} dní, nie do budúcnosti."
   }
 }

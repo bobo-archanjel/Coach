@@ -1,10 +1,15 @@
+import { cache } from "react";
+import { getTranslations } from "next-intl/server";
+import { getUserLocale } from "@/lib/i18n/server";
+import { MONTH_SHORT, WEEKDAY_SHORT } from "@/lib/i18n/dates";
+import { tErr } from "@/lib/i18n/serverErrors";
 import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 import { getGlobalExerciseRows } from "@/lib/exerciseLibrary";
 import { stripMarkdown } from "@/lib/ai/plainText";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
-import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
   computeFoodStreak,
   computeTrainingStreak,
@@ -54,8 +59,12 @@ import { dbErr } from "@/lib/dbError";
 import { editableUntil, isStillEditable, parseLoggedEntries } from "@/lib/workouts/completed";
 
 const TZ = "Europe/Bratislava";
-const WEEKDAY_LABELS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"]; // index 0 = pondelok
-const MONTH_ABBR = ["jan", "feb", "mar", "apr", "máj", "jún", "júl", "aug", "sep", "okt", "nov", "dec"];
+/** Jazyk a texty požiadavky (dni týždňa, mesiace, záložné názvy) — raz na request. */
+const portalLabels = cache(async () => {
+  const [locale, t, tl] = await Promise.all([getUserLocale(), getTranslations("portalData"), getTranslations("labels")]);
+  return { locale, t, tl };
+});
+type PortalLabels = Awaited<ReturnType<typeof portalLabels>>;
 const HISTORY_DAYS = 12;
 /** Ako ďaleko dozadu sa dá listovať v páse „Tento týždeň" (≈ 1 rok). */
 const WEEK_HISTORY_FLOOR_DAYS = 371;
@@ -133,10 +142,10 @@ function mondayOf(d: Date): Date {
 }
 
 /** „18. – 24. aug" (jeden mesiac) alebo „30. aug – 5. sep" (na prelome). */
-function weekRangeLabel(monday: Date): string {
+function weekRangeLabel(monday: Date, L: PortalLabels): string {
   const sunday = addDays(monday, 6);
-  const m1 = MONTH_ABBR[monday.getUTCMonth()];
-  const m2 = MONTH_ABBR[sunday.getUTCMonth()];
+  const m1 = MONTH_SHORT[L.locale][monday.getUTCMonth()];
+  const m2 = MONTH_SHORT[L.locale][sunday.getUTCMonth()];
   const d1 = monday.getUTCDate();
   const d2 = sunday.getUTCDate();
   return m1 === m2 ? `${d1}. – ${d2}. ${m2}` : `${d1}. ${m1} – ${d2}. ${m2}`;
@@ -154,19 +163,19 @@ function restLabel(seconds: number | null | undefined): string {
   return `${seconds} s`;
 }
 
-function scheme(sets: number | null | undefined, reps: string | null | undefined): string {
+function scheme(sets: number | null | undefined, reps: string | null | undefined, L: PortalLabels): string {
   if (sets && reps) return `${sets} × ${reps}`;
   if (reps) return reps;
-  if (sets) return `${sets} série`;
+  if (sets) return L.t("sets", { count: sets });
   return "";
 }
 
-function toPortalExercise(entry: ExerciseEntry, position: number): PortalExercise {
+function toPortalExercise(entry: ExerciseEntry, position: number, L: PortalLabels): PortalExercise {
   return {
     idx: String(position + 1),
-    name: (entry.exercise_name ?? "Cvik").trim(),
-    scheme: scheme(entry.sets, entry.reps),
-    load: entry.load_kg != null ? `${entry.load_kg} kg` : "vlastná váha",
+    name: (entry.exercise_name ?? L.t("exercise")).trim(),
+    scheme: scheme(entry.sets, entry.reps, L),
+    load: entry.load_kg != null ? `${entry.load_kg} kg` : L.t("bodyweight"),
     rest: restLabel(entry.rest_seconds),
     tempo: entry.tempo ?? undefined,
     entryId: entry.entry_id ?? null,
@@ -197,7 +206,7 @@ function hasExercises(day: { exercises: unknown }): boolean {
  * v DB reálne existujú: nové logy `{entryId, name, sets}` (finishWorkoutAction) aj
  * staršie / seed logy bez zápisu (`[]`) alebo v snake tvare `{exercise_name}`.
  */
-function parseLoggedExercises(raw: unknown): LoggedExerciseView[] {
+function parseLoggedExercises(raw: unknown, L: PortalLabels): LoggedExerciseView[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((e): LoggedExerciseView | null => {
@@ -205,7 +214,7 @@ function parseLoggedExercises(raw: unknown): LoggedExerciseView[] {
       const x = e as Record<string, unknown>;
       const rawName =
         (typeof x.name === "string" && x.name) || (typeof x.exercise_name === "string" && x.exercise_name) || "";
-      const name = rawName.trim() || "Cvik";
+      const name = rawName.trim() || L.t("exercise");
       const setsRaw = Array.isArray(x.sets) ? x.sets : [];
       const sets = setsRaw
         .map((s): LoggedSetView | null => {
@@ -234,6 +243,7 @@ async function buildWeekView(
   monday: Date,
   todayIso: string,
 ): Promise<WeekView> {
+  const L = await portalLabels();
   const startIso = iso(monday);
   const endIso = iso(addDays(monday, 6));
 
@@ -252,9 +262,9 @@ async function buildWeekView(
     const day = l.workout_days as unknown as { name: string | null; workout_plans: { name: string } | null } | null;
     const list = byDate.get(l.performed_on as string) ?? [];
     list.push({
-      dayName: day?.name?.trim() || "Tréning",
+      dayName: day?.name?.trim() || L.t("workout"),
       planName: day?.workout_plans?.name ?? null,
-      exercises: parseLoggedExercises(l.entries),
+      exercises: parseLoggedExercises(l.entries, L),
     });
     byDate.set(l.performed_on as string, list);
   }
@@ -265,13 +275,13 @@ async function buildWeekView(
     const sessions = byDate.get(dISO) ?? [];
     const state: DayCellState =
       dISO === todayIso ? "today" : sessions.length > 0 ? "done" : dISO > todayIso ? "future" : "none";
-    return { label: WEEKDAY_LABELS[i], dayNum: date.getUTCDate(), iso: dISO, state, sessions };
+    return { label: WEEKDAY_SHORT[L.locale][i], dayNum: date.getUTCDate(), iso: dISO, state, sessions };
   });
 
   const currentMondayIso = iso(mondayOf(new Date(`${todayIso}T12:00:00Z`)));
   return {
     mondayIso: startIso,
-    rangeLabel: weekRangeLabel(monday),
+    rangeLabel: weekRangeLabel(monday, L),
     isCurrentWeek: startIso === currentMondayIso,
     days,
   };
@@ -292,7 +302,7 @@ export async function getPortalData(): Promise<PortalResult> {
     const {
       data: { user },
     } = await getUser();
-    if (!user) return { state: "error", message: "Session vypršala." };
+    if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
     // Nezávislé dopyty — paralelne (rovnaký dôvod ako getLinkedClient nižšie).
     // `getProfile` je request-cache-ovaný — layout /portal už tento riadok
@@ -460,7 +470,7 @@ export async function getPortalData(): Promise<PortalResult> {
         // Všetky dni plánu odcvičené — nič ďalšie neponúkať (plán je jednorazový).
         session = {
           kind: "complete",
-          title: plan.name ?? "Tréningový plán",
+          title: plan.name ?? (await portalLabels()).t("plan"),
           focus: "",
           durationLabel: "",
           exercises: [],
@@ -475,7 +485,8 @@ export async function getPortalData(): Promise<PortalResult> {
         const todaysLogForTarget = logsTodayByDay.get(targetDay.id) ?? null;
         const doneToday = todaysLogForTarget !== null;
 
-        const exList = parseEntries(targetDay.exercises).map((e, i) => toPortalExercise(e, i));
+        const L = await portalLabels();
+        const exList = parseEntries(targetDay.exercises).map((e, i) => toPortalExercise(e, i, L));
         // Po dokončení sa namiesto plánovaných cvikov ukazuje to, čo klient skutočne
         // zadal (Fáza B) — "vrátiť sa do tréningu" má zmysel len ak vidí svoje dáta,
         // nie znovu ten istý plán, ktorý mu ešte len je pripravený. Bez zadaných
@@ -577,7 +588,7 @@ export async function getPortalData(): Promise<PortalResult> {
   } catch (err) {
     return {
       state: "error",
-      message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní.",
+      message: err instanceof Error ? err.message : await tErr("portal.unknownLoad"),
     };
   }
 }
@@ -603,19 +614,19 @@ async function getLinkedClient(userId: string) {
  */
 export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult> {
   try {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(mondayIso)) return { state: "error", message: "Neplatný týždeň." };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(mondayIso)) return { state: "error", message: await tErr("portal.invalidWeek") };
     const parsed = new Date(`${mondayIso}T12:00:00Z`);
-    if (Number.isNaN(parsed.getTime())) return { state: "error", message: "Neplatný týždeň." };
+    if (Number.isNaN(parsed.getTime())) return { state: "error", message: await tErr("portal.invalidWeek") };
 
     const supabase = await createClient();
     const {
       data: { user },
     } = await getUser();
-    if (!user) return { state: "error", message: "Session vypršala." };
+    if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
     const { client, error } = await getLinkedClient(user.id);
     if (error) return { state: "error", message: await dbErr(error, "data") };
-    if (!client) return { state: "error", message: "Účet ešte nie je prepojený." };
+    if (!client) return { state: "error", message: await tErr("portal.notLinked") };
 
     const { isoDate, base } = todayInTz();
     const currentMonday = mondayOf(base);
@@ -628,7 +639,7 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
     const week = await buildWeekView(supabase, client.id, monday, isoDate);
     return { state: "ok", week };
   } catch (err) {
-    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+    return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }
 }
 
@@ -646,12 +657,13 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
  * builder (`TrainingSection.openBuilder`), nie ako súčasť tejto funkcie.
  */
 export async function getPortalTraining(): Promise<PortalTrainingResult> {
+  const L = await portalLabels();
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await getUser();
-    if (!user) return { state: "error", message: "Session vypršala." };
+    if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
     const { client, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
@@ -694,7 +706,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       name: t.name,
       days: ((t.plan_template_days ?? []) as { name: string; exercises: unknown }[]).map((d) => ({
         name: d.name,
-        exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
+        exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i, L)),
       })),
     }));
 
@@ -744,7 +756,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
         list.push({
           id: d.id,
           name: d.name,
-          exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i)),
+          exercises: parseEntries(d.exercises).map((e, i) => toPortalExercise(e, i, L)),
           done: doneIds.has(d.id),
           doneToday: doneTodayIds.has(d.id),
           lastLog: lastLogByDay.get(d.id) ?? null,
@@ -763,7 +775,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
 
     return { state: "ok", data: { plans, activePlanId, templates } };
   } catch (err) {
-    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+    return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }
 }
 
@@ -817,12 +829,13 @@ type MealEntryRow = {
  * stav nedáva zmysel — každá časť má vlastný empty-state priamo v UI.
  */
 export async function getPortalNutrition(): Promise<PortalNutritionResult> {
+  const L = await portalLabels();
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await getUser();
-    if (!user) return { state: "error", message: "Session vypršala." };
+    if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
@@ -893,7 +906,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
             carbsG: macros.carbsG,
             fatG: macros.fatG,
           }));
-          return { slotLabel: MEAL_SLOT_LABELS[slot], entries: mealEntries };
+          return { slotLabel: L.tl(`mealSlot.${slot}`), entries: mealEntries };
         }).filter((g) => g.entries.length > 0);
 
         const totalKcal = sumMacros(scaled.map(({ macros }) => macros)).kcal;
@@ -905,7 +918,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
     const data: PortalNutritionData = { macroGoal, mealPlanId, mealPlanName, mealDays };
     return { state: "ok", data };
   } catch (err) {
-    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+    return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }
 }
 
@@ -927,12 +940,13 @@ type FoodLogRow = {
  * pridanie hľadá panel AddFoodSheet sám (značky online, skener čiarových kódov).
  */
 export async function getPortalFoodDiary(requestedDate?: string): Promise<PortalDiaryResult> {
+  const L = await portalLabels();
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await getUser();
-    if (!user) return { state: "error", message: "Session vypršala." };
+    if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
@@ -998,7 +1012,7 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
       }));
       return {
         slot,
-        slotLabel: MEAL_SLOT_LABELS[slot],
+        slotLabel: L.tl(`mealSlot.${slot}`),
         entries,
         kcal: sumMacros(items.map(({ macros }) => macros)).kcal,
       };
@@ -1015,7 +1029,7 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
     };
     return { state: "ok", data };
   } catch (err) {
-    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+    return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }
 }
 
@@ -1030,7 +1044,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     const {
       data: { user },
     } = await getUser();
-    if (!user) return { state: "error", message: "Session vypršala." };
+    if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
@@ -1065,7 +1079,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     const data: PortalChatData = { messages, trainerName };
     return { state: "ok", data };
   } catch (err) {
-    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+    return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }
 }
 
@@ -1082,7 +1096,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     const {
       data: { user },
     } = await getUser();
-    if (!user) return { state: "error", message: "Session vypršala." };
+    if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
@@ -1113,6 +1127,6 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     const data: PortalAiChatData = { messages };
     return { state: "ok", data };
   } catch (err) {
-    return { state: "error", message: err instanceof Error ? err.message : "Neznáma chyba pri načítaní." };
+    return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }
 }

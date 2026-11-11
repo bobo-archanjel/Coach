@@ -1,9 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import type { PortalPlanChoice } from "@/lib/portal/types";
-import { pluralSk } from "@/lib/portal/streak";
 import { chooseActivePlanAction } from "@/app/portal/trening/actions";
 import { clearWorkoutStarted, isWorkoutStarted } from "@/app/portal/workoutSession";
 import s from "./portal.module.css";
@@ -19,7 +19,6 @@ const CheckIcon = () => (
   </svg>
 );
 
-const daysLabel = (n: number) => (n > 0 ? `Plán na ${n} ${pluralSk(n, "deň", "dni", "dní")}` : "Zatiaľ bez dní");
 
 /**
  * Karta Dnes: „Plán: <názov>“ a pri viacerých zverejnených plánoch „Zmeniť“ — spodný
@@ -28,6 +27,7 @@ const daysLabel = (n: number) => (n > 0 ? `Plán na ${n} ${pluralSk(n, "deň", "
  * preruší — rozpísané hodnoty ostávajú uložené pri svojom dni.
  */
 export function PlanSwitch({ choice, dayId = null }: { choice: PortalPlanChoice; dayId?: string | null }) {
+  const t = useTranslations("today.planSwitch");
   const [open, setOpen] = useState(false);
   const changeRef = useRef<HTMLButtonElement>(null);
   const canChange = choice.plans.length > 1;
@@ -40,7 +40,7 @@ export function PlanSwitch({ choice, dayId = null }: { choice: PortalPlanChoice;
   return (
     <>
       <div className={s.psRow}>
-        <span className={s.psLabel}>Plán</span>
+        <span className={s.psLabel}>{t("plan")}</span>
         <span className={s.psName}>{choice.activePlanName}</span>
         {canChange && (
           <button
@@ -50,7 +50,7 @@ export function PlanSwitch({ choice, dayId = null }: { choice: PortalPlanChoice;
             onClick={() => setOpen(true)}
             aria-haspopup="dialog"
           >
-            Zmeniť
+            {t("change")}
           </button>
         )}
       </div>
@@ -68,6 +68,7 @@ function PlanSwitchSheet({
   dayId: string | null;
   onClose: () => void;
 }) {
+  const t = useTranslations("today.planSwitch");
   const [pending, startTransition] = useTransition();
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,20 +116,20 @@ function PlanSwitchSheet({
 
   const sheet = (
     <div className={s.psLayer}>
-      <button type="button" className={s.psScrim} aria-label="Zavrieť" tabIndex={-1} onClick={onClose} />
+      <button type="button" className={s.psScrim} aria-label={t("close")} tabIndex={-1} onClick={onClose} />
       <div className={s.psSheet} role="dialog" aria-modal="true" aria-labelledby="plan-switch-title">
         <div className={s.psHead}>
           <h2 id="plan-switch-title" className={s.psTitle}>
-            Aktívny tréningový plán
+            {t("title")}
           </h2>
-          <button type="button" className={s.psClose} onClick={onClose} aria-label="Zavrieť">
+          <button type="button" className={s.psClose} onClick={onClose} aria-label={t("close")}>
             <CloseIcon />
           </button>
         </div>
-        <p className={s.psHint}>Vybraný plán sa ukáže na karte Dnes. Môžeš ho kedykoľvek zmeniť.</p>
+        <p className={s.psHint}>{t("hint")}</p>
         {running && (
           <p className={s.psWarn} role="note">
-            Práve máš rozbehnutý tréning — prepnutím sa preruší. Rozpísané hodnoty ostanú uložené.
+            {t("inProgress")}
           </p>
         )}
         <ul className={s.psList}>
@@ -151,13 +152,13 @@ function PlanSwitchSheet({
                     <span className={s.psItemName}>{plan.name}</span>
                     <span className={s.psItemMeta}>
                       <span className={s.trSrcChip} data-src={plan.source}>
-                        {plan.source === "trainer" ? "Od trénera" : "Vlastný"}
+                        {plan.source === "trainer" ? t("fromTrainer") : t("own")}
                       </span>
-                      <span className={s.chip}>{daysLabel(plan.dayCount)}</span>
+                      <span className={s.chip}>{t("days", { count: plan.dayCount })}</span>
                     </span>
                   </span>
                   <span className={s.psItemEnd} aria-hidden={!active && pickedId !== plan.id}>
-                    {active ? <CheckIcon /> : pending && pickedId === plan.id ? "Prepínam…" : null}
+                    {active ? <CheckIcon /> : pending && pickedId === plan.id ? t("switching") : null}
                   </span>
                 </button>
               </li>

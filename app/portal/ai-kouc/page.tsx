@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { ChatThread } from "@/app/components/ChatThread";
 import { getPortalAiChat } from "@/lib/portal/data";
 import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "@/app/portal/ai-kouc/actions";
@@ -13,28 +14,28 @@ import s from "../portal.module.css";
 export default async function AiKoucPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
   const result = preview === "ok" && process.env.NODE_ENV === "development" ? PREVIEW : await getPortalAiChat();
+  const [tp, t] = await Promise.all([getTranslations("portal"), getTranslations("portal.aiCoach")]);
 
   if (result.state === "error") {
     return (
-      <Notice icon={<AlertIcon />} title="Nepodarilo sa načítať AI Kouč" tone="alert" action={<RetryButton />}>
-        Skús to o chvíľu znova.
+      <Notice icon={<AlertIcon />} title={t("loadFailed")} tone="alert" action={<RetryButton />}>
+        {t("retry")}
       </Notice>
     );
   }
 
   if (result.state === "unlinked") {
     return (
-      <Notice icon={<ProfileIcon />} title={result.firstName ? `Vitaj, ${result.firstName}` : "Vitaj vo FitPilot"}>
-        Tvoj účet ešte nie je prepojený s trénerom. Prepojenie spraví tréner zo svojej strany.
+      <Notice icon={<ProfileIcon />} title={result.firstName ? tp("welcomeName", { name: result.firstName }) : tp("welcome")}>
+        {tp("unlinkedShort")}
       </Notice>
     );
   }
 
   if (result.state === "no_trainer") {
     return (
-      <Notice icon={<ProfileIcon />} title="AI Kouč zatiaľ nie je dostupný">
-        AI Kouč funguje len pre klientov s prideleným trénerom — bez trénera by sme nemal komu poslať upozornenie pri
-        zdravotnej téme.
+      <Notice icon={<ProfileIcon />} title={t("unavailable")}>
+        {t("unavailableText")}
       </Notice>
     );
   }
@@ -56,30 +57,28 @@ export default async function AiKoucPage({ searchParams }: { searchParams: Promi
             <AiIcon />
           </span>
           <div>
-            <h1 className={s.chatTitle}>AI Kouč</h1>
-            <p className={s.chatSub}>Súkromný asistent</p>
+            <h1 className={s.chatTitle}>{t("title")}</h1>
+            <p className={s.chatSub}>{t("sub")}</p>
           </div>
         </div>
         {hasMessages && (
           <form action={resetAiKoucConversationAction}>
             <button type="submit" className={s.aiKoucResetBtn}>
-              Začať odznova
+              {t("reset")}
             </button>
           </form>
         )}
       </div>
       <p className={s.aiKoucNotice}>
-        Rozprávaš sa s AI asistentom, nie s trénerom priamo — táto konverzácia je súkromná, tréner ju nevidí. Pri zmienke
-        o bolesti/zranení alebo žiadosti o náhradu cviku dostane tréner len krátku správu v Správach, nikdy celý tento
-        chat.
+        {t("notice")}
       </p>
       <ChatThread
         messages={messages}
         mySide="client"
         sendAction={sendAiKoucMessageAction}
-        emptyTitle="Opýtaj sa AI Kouča"
-        emptyText="Napríklad: čo mám zjesť, aby som splnil dnešný cieľ? Alebo: aký cvik mi navrhneš namiesto tohto?"
-        placeholder="Napíš AI Koučovi…"
+        emptyTitle={t("emptyTitle")}
+        emptyText={t("emptyText")}
+        placeholder={t("placeholder")}
         fill
         // proaktívny check-in príde max. raz za pár dní — bez pollu (ako /portal/ai-kouc)
         pollMs={0}

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { ChatThread } from "@/app/components/ChatThread";
 import { getPortalChat } from "@/lib/portal/data";
 import { markClientChatSeenAction, sendClientMessageAction } from "@/app/portal/actions";
@@ -12,28 +13,28 @@ import s from "../portal.module.css";
 export default async function ChatPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
   const result = (preview && previewResult(preview)) || (await getPortalChat());
+  const [tp, t] = await Promise.all([getTranslations("portal"), getTranslations("portal.chat")]);
 
   if (result.state === "error") {
     return (
-      <Notice icon={<AlertIcon />} title="Nepodarilo sa načítať chat" tone="alert" action={<RetryButton />}>
-        Skús to o chvíľu znova. Ak to potrvá, napíš svojmu trénerovi inou cestou.
+      <Notice icon={<AlertIcon />} title={t("loadFailed")} tone="alert" action={<RetryButton />}>
+        {t("retryOther")}
       </Notice>
     );
   }
 
   if (result.state === "unlinked") {
     return (
-      <Notice icon={<ProfileIcon />} title={result.firstName ? `Vitaj, ${result.firstName}` : "Vitaj vo FitPilot"}>
-        Tvoj účet ešte nie je prepojený s trénerom. Prepojenie spraví tréner zo svojej strany.
+      <Notice icon={<ProfileIcon />} title={result.firstName ? tp("welcomeName", { name: result.firstName }) : tp("welcome")}>
+        {tp("unlinkedShort")}
       </Notice>
     );
   }
 
   if (result.state === "no_trainer") {
     return (
-      <Notice icon={<ProfileIcon />} title="Zatiaľ bez trénera">
-        Keď svojmu trénerovi pošleš kód z <strong>Profilu</strong> a on ťa pridá, otvorí sa tu vaše vlákno a príde ti
-        potvrdenie.
+      <Notice icon={<ProfileIcon />} title={t("noTrainer")}>
+        {t.rich("noTrainerText", { b: (chunks) => <strong>{chunks}</strong> })}
       </Notice>
     );
   }
@@ -50,8 +51,8 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
             {initial || <ChatIcon />}
           </span>
           <div>
-            <h1 className={s.chatTitle}>{trainerName ? `Tréner ${trainerName}` : "Tréner"}</h1>
-            <p className={s.chatSub}>Správy s tvojím trénerom</p>
+            <h1 className={s.chatTitle}>{trainerName ? t("trainerNamed", { name: trainerName }) : t("trainer")}</h1>
+            <p className={s.chatSub}>{t("sub")}</p>
           </div>
         </div>
       </div>
@@ -62,9 +63,9 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
         onSeen={markClientChatSeenAction}
         markerUrl="/api/chat/marker"
         realtimeTable="messages"
-        emptyTitle="Napíš trénerovi"
-        emptyText="Otázka k plánu, pocit z tréningu, čokoľvek — tréner ti odpovie sem."
-        placeholder="Správa pre trénera…"
+        emptyTitle={t("emptyTitle")}
+        emptyText={t("emptyText")}
+        placeholder={t("placeholder")}
         fill
       />
     </div>

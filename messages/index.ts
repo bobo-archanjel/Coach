@@ -29,6 +29,13 @@ import skCalendar from "./sk/calendar.json";
 import skTemplates from "./sk/templates.json";
 import skInbox from "./sk/inbox.json";
 import skAnalytics from "./sk/analytics.json";
+import skToday from "./sk/today.json";
+import skPortalData from "./sk/portalData.json";
+import skStopwatch from "./sk/stopwatch.json";
+import skWorkout from "./sk/workout.json";
+import skClientBuilder from "./sk/clientBuilder.json";
+import skTraining from "./sk/training.json";
+import skPortal from "./sk/portal.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -55,6 +62,13 @@ import csCalendar from "./cs/calendar.json";
 import csTemplates from "./cs/templates.json";
 import csInbox from "./cs/inbox.json";
 import csAnalytics from "./cs/analytics.json";
+import csToday from "./cs/today.json";
+import csPortalData from "./cs/portalData.json";
+import csStopwatch from "./cs/stopwatch.json";
+import csWorkout from "./cs/workout.json";
+import csClientBuilder from "./cs/clientBuilder.json";
+import csTraining from "./cs/training.json";
+import csPortal from "./cs/portal.json";
 
 export const sk = {
   common: skCommon,
@@ -82,6 +96,13 @@ export const sk = {
   templates: skTemplates,
   inbox: skInbox,
   analytics: skAnalytics,
+  today: skToday,
+  portalData: skPortalData,
+  stopwatch: skStopwatch,
+  workout: skWorkout,
+  clientBuilder: skClientBuilder,
+  training: skTraining,
+  portal: skPortal,
 };
 
 export type Messages = typeof sk;
@@ -112,6 +133,13 @@ export const cs: Messages = {
   templates: csTemplates,
   inbox: csInbox,
   analytics: csAnalytics,
+  today: csToday,
+  portalData: csPortalData,
+  stopwatch: csStopwatch,
+  workout: csWorkout,
+  clientBuilder: csClientBuilder,
+  training: csTraining,
+  portal: csPortal,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };

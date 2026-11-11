@@ -28,3 +28,9 @@ export const RELATIVE_DAY: Record<Locale, { today: string; tomorrow: string; yes
   sk: { today: "dnes", tomorrow: "zajtra", yesterday: "včera" },
   cs: { today: "dnes", tomorrow: "zítra", yesterday: "včera" },
 };
+
+/** Skratky mesiacov (pás „Tento týždeň“: „3. – 9. nov“). */
+export const MONTH_SHORT: Record<Locale, readonly string[]> = {
+  sk: ["jan", "feb", "mar", "apr", "máj", "jún", "júl", "aug", "sep", "okt", "nov", "dec"],
+  cs: ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"],
+};

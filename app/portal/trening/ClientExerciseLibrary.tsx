@@ -1,13 +1,13 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { muscleGroupLabel } from "@/lib/i18n/muscles";
 import { useMemo, useState } from "react";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { displayExerciseName } from "@/lib/exercises";
 import {
   LIBRARY_MUSCLE_FILTERS,
-  LIBRARY_MUSCLE_LABEL_SK,
   LIBRARY_EQUIPMENT_FILTERS,
-  LIBRARY_EQUIPMENT_LABEL_SK,
   exerciseMatchesMuscleFilter,
   exerciseMatchesEquipmentFilter,
   type LibraryMuscleFilter,
@@ -58,6 +58,9 @@ export function ClientExerciseLibrary({
   onAdd: (name: string, exerciseId: string | null) => string | null;
   onDetail: (exerciseId: string, name: string) => void;
 }) {
+  const locale = useLocale();
+  const t = useTranslations("training.library");
+  const tl = useTranslations("labels");
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);
@@ -87,7 +90,7 @@ export function ClientExerciseLibrary({
 
   const add = (at: "custom" | "list", name: string, exerciseId: string | null): boolean => {
     if (!hasDay) {
-      setHint({ at, text: "Najprv pridaj tréningový deň." });
+      setHint({ at, text: t("addDayFirstDot") });
       return false;
     }
     const err = onAdd(name, exerciseId);
@@ -98,10 +101,10 @@ export function ClientExerciseLibrary({
   return (
     <div className={`${b.library} ${styles.trBuilderLib}`}>
       <button type="button" className={b.libraryToggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className={b.libraryHead}>Knižnica cvikov ({library.length})</span>
+        <span className={b.libraryHead}>{t("title", { count: library.length })}</span>
         <ChevronIcon className={`${b.libraryChevron} ${open ? b.libraryChevronOpen : ""}`} />
       </button>
-      {!hasDay && <p className={b.libraryHint}>Najprv vytvor tréningový deň, potom sem klikni na cvik.</p>}
+      {!hasDay && <p className={b.libraryHint}>{t("hint")}</p>}
 
       <div className={`${b.libraryBody} ${!open ? b.collapsed : ""}`}>
         <form
@@ -109,7 +112,7 @@ export function ClientExerciseLibrary({
           onSubmit={(e) => {
             e.preventDefault();
             if (!customName.trim()) {
-              setHint({ at: "custom", text: "Napíš názov cviku." });
+              setHint({ at: "custom", text: t("nameRequired") });
               return;
             }
             if (add("custom", customName.trim(), null)) setCustomName("");
@@ -122,20 +125,20 @@ export function ClientExerciseLibrary({
               setCustomName(e.target.value);
               if (hint?.at === "custom") setHint(null);
             }}
-            placeholder="Nový vlastný cvik"
+            placeholder={t("customPlaceholder")}
             maxLength={80}
             className={b.customExerciseInput}
-            aria-label="Názov vlastného cviku"
+            aria-label={t("customAria")}
           />
-          <button type="submit" className="btn btn-ghost btn-sm" title="Pridá cvik do tohto tréningu">
-            + Pridať do tréningu
+          <button type="submit" className="btn btn-ghost btn-sm" title={t("customTitle")}>
+            {t("addToWorkout")}
           </button>
           {hint?.at === "custom" && <p className={b.formError}>{hint.text}</p>}
         </form>
 
         <input
           type="text"
-          placeholder="Hľadať cvik…"
+          placeholder={t("search")}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -143,10 +146,10 @@ export function ClientExerciseLibrary({
             setPage(0);
           }}
           className={b.librarySearch}
-          aria-label="Hľadať cvik"
+          aria-label={t("searchAria")}
         />
 
-        <div className={b.libraryFilterRow} role="group" aria-label="Filter podľa partie">
+        <div className={b.libraryFilterRow} role="group" aria-label={t("filterMuscle")}>
           <button
             type="button"
             className={`${b.libraryFilterChip} ${muscleFilter === null ? b.libraryFilterChipActive : ""}`}
@@ -155,7 +158,7 @@ export function ClientExerciseLibrary({
               setPage(0);
             }}
           >
-            Všetky partie
+            {t("allMuscles")}
           </button>
           {LIBRARY_MUSCLE_FILTERS.map((f) => (
             <button
@@ -167,11 +170,11 @@ export function ClientExerciseLibrary({
                 setPage(0);
               }}
             >
-              {LIBRARY_MUSCLE_LABEL_SK[f]}
+              {tl(`muscle.${f}`)}
             </button>
           ))}
         </div>
-        <div className={b.libraryFilterRow} role="group" aria-label="Filter podľa vybavenia">
+        <div className={b.libraryFilterRow} role="group" aria-label={t("filterEquipment")}>
           <button
             type="button"
             className={`${b.libraryFilterChip} ${equipmentFilter === null ? b.libraryFilterChipActive : ""}`}
@@ -180,7 +183,7 @@ export function ClientExerciseLibrary({
               setPage(0);
             }}
           >
-            Akékoľvek vybavenie
+            {t("anyEquipment")}
           </button>
           {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
             <button
@@ -192,7 +195,7 @@ export function ClientExerciseLibrary({
                 setPage(0);
               }}
             >
-              {LIBRARY_EQUIPMENT_LABEL_SK[f]}
+              {tl(`equipment.${f}`)}
             </button>
           ))}
         </div>
@@ -204,7 +207,7 @@ export function ClientExerciseLibrary({
         )}
         <div className={b.libraryList}>
           {library.length === 0 ? (
-            <p className={b.libraryEmpty}>Načítavam knižnicu…</p>
+            <p className={b.libraryEmpty}>{t("loading")}</p>
           ) : paged.length > 0 ? (
             paged.map((ex) => {
               const name = displayExerciseName(ex.name, ex.nameSk);
@@ -214,14 +217,14 @@ export function ClientExerciseLibrary({
                     <button
                       type="button"
                       className={b.libraryItem}
-                      title={hasDay ? `Pridať ${name} do dňa` : "Najprv pridaj tréningový deň"}
+                      title={hasDay ? t("addToDay", { name }) : t("addDayFirst")}
                       onClick={() => add("list", name, ex.id)}
                     >
                       <ExerciseThumb src={ex.imageUrl} alt="" size={28} />
                       <span className={b.libraryItemName}>{name}</span>
                       {ex.muscleGroup && (
-                        <span className={b.libraryItemMuscle} title={ex.muscleGroup}>
-                          {ex.muscleGroup}
+                        <span className={b.libraryItemMuscle} title={muscleGroupLabel(ex.muscleGroup, locale)}>
+                          {muscleGroupLabel(ex.muscleGroup, locale)}
                         </span>
                       )}
                     </button>
@@ -238,7 +241,7 @@ export function ClientExerciseLibrary({
               );
             })
           ) : (
-            <p className={b.libraryEmpty}>Žiadny cvik nezodpovedá hľadaniu.</p>
+            <p className={b.libraryEmpty}>{t("noMatch")}</p>
           )}
         </div>
 
@@ -249,7 +252,7 @@ export function ClientExerciseLibrary({
               className={b.libraryPagerBtn}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
-              aria-label="Predchádzajúca strana"
+              aria-label={t("prevPage")}
             >
               <ArrowIcon className={b.libraryPagerPrev} />
             </button>
@@ -261,7 +264,7 @@ export function ClientExerciseLibrary({
               className={b.libraryPagerBtn}
               onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
               disabled={safePage === pageCount - 1}
-              aria-label="Ďalšia strana"
+              aria-label={t("nextPage")}
             >
               <ArrowIcon />
             </button>

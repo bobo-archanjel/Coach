@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -118,11 +119,11 @@ function cleanEntries(raw: unknown): CleanEntry[] {
 
 type CleanDay = { id: string | null; name: string; exercises: CleanEntry[] };
 
-function cleanDraft(raw: unknown): { name: string; days: CleanDay[] } | { error: string } {
-  if (!raw || typeof raw !== "object") return { error: "Chýbajú dáta tréningu." };
+async function cleanDraft(raw: unknown): Promise<{ name: string; days: CleanDay[] } | { error: string }> {
+  if (!raw || typeof raw !== "object") return { error: await tErr("client.missingWorkoutData") };
   const d = raw as Record<string, unknown>;
   const name = cleanText(d.name, 60);
-  if (!name) return { error: "Zadaj názov tréningového plánu." };
+  if (!name) return { error: await tErr("client.planNameRequired") };
 
   const daysRaw = Array.isArray(d.days) ? d.days.slice(0, MAX_DAYS) : [];
   const days: CleanDay[] = daysRaw
@@ -139,7 +140,7 @@ function cleanDraft(raw: unknown): { name: string; days: CleanDay[] } | { error:
     })
     .filter((x): x is CleanDay => x !== null);
 
-  if (days.length === 0) return { error: "Pridaj aspoň jeden deň s názvom." };
+  if (days.length === 0) return { error: await tErr("client.addNamedDay") };
   return { name, days };
 }
 
@@ -149,7 +150,7 @@ async function ensureSelfClientId(
 ): Promise<{ clientId: string | null; error: string | null }> {
   const { data, error } = await supabase.rpc("ensure_self_client");
   if (error) {
-    if (error.message.includes("not_a_client")) return { clientId: null, error: "Vlastné tréningy môže vytvárať len klient." };
+    if (error.message.includes("not_a_client")) return { clientId: null, error: await tErr("client.onlyClientOwnPlans") };
     return { clientId: null, error: await dbErr(error, "actions") };
   }
   return { clientId: (data as string) ?? null, error: null };
@@ -166,19 +167,19 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(draftJson);
   } catch {
-    return { error: "Neplatné dáta tréningu." };
+    return { error: await tErr("client.invalidWorkoutData") };
   }
-  const cleaned = cleanDraft(parsed);
+  const cleaned = await cleanDraft(parsed);
   if ("error" in cleaned) return { error: cleaned.error };
 
   const { clientId, error: cErr } = await ensureSelfClientId(supabase);
-  if (cErr || !clientId) return { error: cErr ?? "Nepodarilo sa nájsť tvoj profil." };
+  if (cErr || !clientId) return { error: cErr ?? await tErr("client.profileMissing") };
 
   // ---------- vytvorenie ----------
   if (!planId) {
@@ -187,7 +188,7 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
       .insert({ client_id: clientId, trainer_id: null, name: cleaned.name })
       .select("id")
       .single();
-    if (planErr || !plan) return { error: planErr?.message ?? "Tréning sa nepodarilo vytvoriť." };
+    if (planErr || !plan) return { error: planErr?.message ?? await tErr("client.planCreateFailed") };
 
     // Aktívny plán sa tu už nemení — nový plán zvolený aktívny neprebije; aktívnym sa
     // stane sám len pri prvom pláne klienta (trigger workout_plans_pin_active, 0056).
@@ -218,7 +219,7 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
   ]);
   if (exErr) return { error: await dbErr(exErr, "actions") };
   if (!existing || existing.trainer_id !== null || existing.client_id !== clientId) {
-    return { error: "Tento tréning nemôžeš upraviť." };
+    return { error: await tErr("client.cannotEdit") };
   }
   if (cdErr) return { error: await dbErr(cdErr, "actions") };
 
@@ -256,10 +257,10 @@ export async function deleteClientPlanAction(planId: string): Promise<ActionStat
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const { clientId, error: cErr } = await ensureSelfClientId(supabase);
-  if (cErr || !clientId) return { error: cErr ?? "Nepodarilo sa nájsť tvoj profil." };
+  if (cErr || !clientId) return { error: cErr ?? await tErr("client.profileMissing") };
 
   const { data: plan, error: pErr } = await supabase
     .from("workout_plans")
@@ -268,7 +269,7 @@ export async function deleteClientPlanAction(planId: string): Promise<ActionStat
     .maybeSingle();
   if (pErr) return { error: await dbErr(pErr, "actions") };
   if (!plan || plan.trainer_id !== null || plan.client_id !== clientId) {
-    return { error: "Tento tréning nemôžeš zmazať." };
+    return { error: await tErr("client.cannotDelete") };
   }
 
   const { error } = await supabase.from("workout_plans").delete().eq("id", planId);
@@ -285,10 +286,10 @@ export async function saveOwnTemplateAction(planId: string): Promise<ActionState
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const { clientId, error: cErr } = await ensureSelfClientId(supabase);
-  if (cErr || !clientId) return { error: cErr ?? "Nepodarilo sa nájsť tvoj profil." };
+  if (cErr || !clientId) return { error: cErr ?? await tErr("client.profileMissing") };
 
   const res = await saveOwnPlanAsTemplate(supabase, user.id, clientId, planId);
   if (res.error) return { error: res.error };
@@ -303,7 +304,7 @@ export async function deleteOwnTemplateAction(templateId: string): Promise<Actio
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const res = await deleteWorkoutTemplate(supabase, user.id, templateId);
   if (res.error) return { error: res.error };
@@ -347,8 +348,8 @@ async function callSetActivePlan(planId: string, dayId: string | null): Promise<
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId, p_day_id: dayId });
   if (!error) return ok;
-  if (error.message.includes("not_authenticated")) return { error: "Nie si prihlásený." };
-  if (error.message.includes("plan_not_found")) return { error: "Tréning sa nenašiel." };
-  if (error.message.includes("day_not_found")) return { error: "Deň sa nenašiel." };
+  if (error.message.includes("not_authenticated")) return { error: await tErr("notSignedIn") };
+  if (error.message.includes("plan_not_found")) return { error: await tErr("client.workoutNotFound") };
+  if (error.message.includes("day_not_found")) return { error: await tErr("client.dayNotFound") };
   return { error: await dbErr(error, "actions") };
 }

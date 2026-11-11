@@ -19,14 +19,14 @@ function previewView(kind: string): ProfilView | null {
   const code = "FP-4A9F2C7E1B8D6035AC12";
   switch (kind) {
     case "has_trainer":
-      return { code, hasTrainer: true, trainerName: "Marek Novák", deletionRequestedAt: null, deletionRequestedBy: null };
+      return { code, hasTrainer: true, trainerName: "Marek Novák" /* i18n-ignore — DEV náhľad */, deletionRequestedAt: null, deletionRequestedBy: null };
     case "no_trainer":
       return { code, hasTrainer: false, trainerName: null, deletionRequestedAt: null, deletionRequestedBy: null };
     case "deletion":
       return {
         code,
         hasTrainer: true,
-        trainerName: "Marek Novák",
+        trainerName: "Marek Novák" /* i18n-ignore — DEV náhľad */,
         deletionRequestedAt: new Date(Date.now() - 4 * 86_400_000).toISOString(),
         deletionRequestedBy: "client",
       };

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StopwatchIcon } from "./icons";
 import styles from "./portal.module.css";
@@ -53,6 +54,7 @@ function fmtClock(ms: number): string {
 }
 
 export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished: boolean }) {
+  const t = useTranslations("stopwatch");
   const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState(false);
   const [entrance, setEntrance] = useState(false); // pop-in len pri "Začať tréning", nie pri obnove z LS
@@ -343,7 +345,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
           type="button"
           tabIndex={-1}
           className={styles.swScrim}
-          aria-label="Zavrieť stopky"
+          aria-label={t("closeAria")}
           onClick={closePanel}
         />
       )}
@@ -355,8 +357,8 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
         aria-expanded={open}
         aria-label={
           fabTime
-            ? `Stopky — ${mode === "timer" ? "časovač" : "počítadlo"} ${fabTime}. Otvoriť panel.`
-            : "Otvoriť stopky"
+            ? t("fabRunning", { mode: mode === "timer" ? t("modeTimer") : t("modeStopwatch"), time: fabTime })
+            : t("open")
         }
         onClick={() => setOpen((v) => !v)}
       >
@@ -374,23 +376,23 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
           className={styles.swPanel}
           role="dialog"
           aria-modal="true"
-          aria-label="Stopky a časovač"
+          aria-label={t("dialog")}
         >
           <div className={styles.swHead}>
-            <p className={styles.swTitle}>Stopky</p>
-            <button ref={closeRef} type="button" className={styles.swClose} onClick={closePanel} aria-label="Zavrieť">
+            <p className={styles.swTitle}>{t("stopwatch")}</p>
+            <button ref={closeRef} type="button" className={styles.swClose} onClick={closePanel} aria-label={t("close")}>
               <CloseIcon />
             </button>
           </div>
 
-          <div className={styles.swSeg} role="group" aria-label="Režim">
+          <div className={styles.swSeg} role="group" aria-label={t("mode")}>
             <button
               type="button"
               className={`${styles.swSegBtn} ${mode === "stopwatch" ? styles.swSegBtnOn : ""}`}
               aria-pressed={mode === "stopwatch"}
               onClick={() => setMode("stopwatch")}
             >
-              Stopky
+              {t("stopwatch")}
             </button>
             <button
               type="button"
@@ -398,7 +400,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
               aria-pressed={mode === "timer"}
               onClick={() => setMode("timer")}
             >
-              Časovač
+              {t("timer")}
             </button>
           </div>
 
@@ -409,31 +411,31 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
                 <span className={styles.swReadoutFrac}>.{sw.cs}</span>
               </p>
               <p className={styles.swStatus} aria-live="polite">
-                {swRunning ? "Beží" : swElapsed > 0 ? "Zastavené" : "Pripravené"}
+                {swRunning ? t("running") : swElapsed > 0 ? t("stopped") : t("ready")}
               </p>
 
               <div className={styles.swControls}>
                 {swRunning ? (
                   <>
                     <button type="button" className={styles.swBtnGhost} onClick={swLap}>
-                      Medzičas
+                      {t("lap")}
                     </button>
                     <button type="button" className={styles.swBtnPrimary} onClick={swPause}>
-                      Pauza
+                      {t("pause")}
                     </button>
                   </>
                 ) : swElapsed > 0 ? (
                   <>
                     <button type="button" className={styles.swBtnGhost} onClick={swReset}>
-                      Nulovať
+                      {t("reset")}
                     </button>
                     <button type="button" className={styles.swBtnPrimary} onClick={swStart}>
-                      Pokračovať
+                      {t("resume")}
                     </button>
                   </>
                 ) : (
                   <button type="button" className={styles.swBtnPrimary} onClick={swStart}>
-                    Štart
+                    {t("start")}
                   </button>
                 )}
               </div>
@@ -470,12 +472,12 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
               </p>
               <p className={styles.swStatus} aria-live="polite">
                 {alarm
-                  ? "Pauza hotová"
+                  ? t("timerDone")
                   : timerStatus === "running"
-                    ? "Odpočet beží"
+                    ? t("countingDown")
                     : timerStatus === "paused"
-                      ? "Pozastavené"
-                      : "Nastav dĺžku pauzy"}
+                      ? t("paused")
+                      : t("setRest")}
               </p>
 
               {(timerStatus === "idle" || timerStatus === "done") && (
@@ -498,7 +500,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
                       className={styles.swStep}
                       onClick={() => setDuration(timerDurationMs - 15_000)}
                       disabled={timerDurationMs <= TIMER_MIN_MS}
-                      aria-label="Skrátiť o 15 sekúnd"
+                      aria-label={t("minus15")}
                     >
                       −15s
                     </button>
@@ -508,7 +510,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
                       className={styles.swStep}
                       onClick={() => setDuration(timerDurationMs + 15_000)}
                       disabled={timerDurationMs >= TIMER_MAX_MS}
-                      aria-label="Predĺžiť o 15 sekúnd"
+                      aria-label={t("plus15")}
                     >
                       +15s
                     </button>
@@ -520,24 +522,24 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
                 {timerStatus === "running" ? (
                   <>
                     <button type="button" className={styles.swBtnGhost} onClick={timerReset}>
-                      Nulovať
+                      {t("reset")}
                     </button>
                     <button type="button" className={styles.swBtnPrimary} onClick={timerPause}>
-                      Pauza
+                      {t("pause")}
                     </button>
                   </>
                 ) : timerStatus === "paused" ? (
                   <>
                     <button type="button" className={styles.swBtnGhost} onClick={timerReset}>
-                      Nulovať
+                      {t("reset")}
                     </button>
                     <button type="button" className={styles.swBtnPrimary} onClick={() => timerStart(timerRemainingMs)}>
-                      Pokračovať
+                      {t("resume")}
                     </button>
                   </>
                 ) : (
                   <button type="button" className={styles.swBtnPrimary} onClick={() => timerStart()}>
-                    {alarm ? "Znova" : "Štart"}
+                    {alarm ? t("again") : t("start")}
                   </button>
                 )}
               </div>
@@ -545,7 +547,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
           )}
 
           <button type="button" className={styles.swHide} onClick={() => { setActive(false); hideStopwatchFor(dayId); try { localStorage.removeItem(SW_KEY); } catch {} }}>
-            Skryť stopky
+            {t("hide")}
           </button>
         </div>
       )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
@@ -26,7 +27,8 @@ const ClientPlanBuilder = dynamic(() => import("./ClientPlanBuilder").then((m) =
 });
 
 function BuilderLoading() {
-  return <p className={styles.trEmptyDay}>Načítavam…</p>;
+  const tr = useTranslations("training");
+  return <p className={styles.trEmptyDay}>{tr("loading")}</p>;
 }
 
 /* Zoznam tréningových plánov klienta + vstup do buildera vlastného tréningu.
@@ -61,19 +63,9 @@ const PencilIcon = () => (
   </svg>
 );
 
-function dayWord(n: number): string {
-  if (n === 1) return "deň";
-  if (n >= 2 && n <= 4) return "dni";
-  return "dní";
-}
-
-function exWord(n: number): string {
-  if (n === 1) return "cvik";
-  if (n >= 2 && n <= 4) return "cviky";
-  return "cvikov";
-}
-
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
+  const tr = useTranslations("training");
+  const locale = useLocale();
   const { plans, templates } = data;
 
   const [mode, setMode] = useState<"list" | "build">("list");
@@ -195,7 +187,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       const res = await saveOwnTemplateAction(planId);
       setTemplateNote({
         planId,
-        text: res.error ?? "Uložené — nájdeš ju hore v Moje šablóny.",
+        text: res.error ?? tr("templateSaved"),
         error: Boolean(res.error),
       });
       // Novú šablónu hneď ukáž — inak by klient musel zbalený zoznam hore hľadať.
@@ -248,15 +240,15 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   }
 
   return (
-    <section aria-label="Tréningové plány" className={styles.trWrap}>
+    <section aria-label={tr("plans")} className={styles.trWrap}>
       <div className={styles.trHead}>
-        <p className={styles.panelLabel}>Tréningové plány</p>
+        <p className={styles.panelLabel}>{tr("plans")}</p>
         <button
           type="button"
           className={plans.length > 0 ? styles.trBuildBtnGhost : styles.trBuildBtn}
           onClick={() => openBuilder(null)}
         >
-          <PlusIcon /> Vlastný tréning
+          <PlusIcon /> {tr("ownWorkout")}
         </button>
       </div>
 
@@ -277,7 +269,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
             aria-expanded={templatesOpen}
             aria-controls="moje-sablony"
           >
-            <span className={styles.trTplToggleLabel}>Moje šablóny</span>
+            <span className={styles.trTplToggleLabel}>{tr("myTemplates")}</span>
             <span className={styles.trTplCount}>{templates.length}</span>
             <ChevronIcon className={`${styles.trChev} ${templatesOpen ? styles.trChevOpen : ""}`} />
           </button>
@@ -290,20 +282,20 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                     <span className={styles.trTplText}>
                       <span className={styles.trTplName}>{t.name}</span>
                       <span className={styles.trTplMeta}>
-                        {t.days.length} {dayWord(t.days.length)} · {exCount} {exWord(exCount)}
+                        {tr("tplMeta", { days: t.days.length, exercises: exCount })}
                       </span>
                     </span>
                     <span className={styles.trTplActions}>
                       {confirmTplDelete === t.id ? (
                         <>
-                          <span className={styles.trConfirmText}>Zmazať šablónu?</span>
+                          <span className={styles.trConfirmText}>{tr("deleteTemplate")}</span>
                           <button
                             type="button"
                             className={styles.trDangerBtn}
                             onClick={() => removeTemplate(t.id)}
                             disabled={pending}
                           >
-                            Zmazať
+                            {tr("delete")}
                           </button>
                           <button
                             type="button"
@@ -311,17 +303,17 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             onClick={() => setConfirmTplDelete(null)}
                             disabled={pending}
                           >
-                            Nie
+                            {tr("no")}
                           </button>
                         </>
                       ) : (
                         <>
                           {/* Nový tréning predvyplnený šablónou — uloží sa ako nový, šablóna ostane. */}
                           <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(null, t)}>
-                            Použiť
+                            {tr("use")}
                           </button>
                           <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(t.id)}>
-                            Zmazať
+                            {tr("delete")}
                           </button>
                         </>
                       )}
@@ -338,10 +330,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
       {plans.length === 0 ? (
         <div className={styles.panel}>
-          <p className={styles.trEmptyLead}>Zatiaľ tu nič nie je</p>
+          <p className={styles.trEmptyLead}>{tr("emptyLead")}</p>
           <p className={styles.trEmptyBody}>
-            Vytvor si vlastný tréning — naklikáš cviky, uložíš a bude ti fungovať rovnako ako plán od trénera.
-            Ak máš trénera, tvoj plán sa tu objaví hneď, ako ti ho pridá.
+            {tr("emptyText")} {tr("trainerHint")}
           </p>
         </div>
       ) : (
@@ -367,15 +358,15 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                     <ChevronIcon className={`${styles.trChev} ${expanded ? styles.trChevOpen : ""}`} />
                   </span>
                   <span className={styles.trPlanChips}>
-                    {plan.isActive && <span className={styles.trActivePill}>Aktívny</span>}
+                    {plan.isActive && <span className={styles.trActivePill}>{tr("active")}</span>}
                     <span className={styles.trSrcChip} data-src={plan.source}>
-                      {plan.source === "trainer" ? "Od trénera" : "Vlastný"}
+                      {plan.source === "trainer" ? tr("fromTrainer") : tr("own")}
                     </span>
                     {/* „Plán na 3 dni" — samotné „3 dni" klienti nechápali (koľko dní v týždni? trvanie?). */}
                     <span className={styles.chip}>
                       {plan.days.length > 0
-                        ? `Plán na ${plan.days.length} ${dayWord(plan.days.length)}`
-                        : "Zatiaľ bez dní"}
+                        ? tr("planDays", { count: plan.days.length })
+                        : tr("planDays", { count: 0 })}
                     </span>
                   </span>
                 </button>
@@ -385,9 +376,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                     {!selectedDay && !plan.isActive && plan.days.length > 0 && (
                       <div className={styles.trActiveRow}>
                         <button type="button" className={styles.trGhostBtn} onClick={() => makeActive(plan)} disabled={pending}>
-                          Nastaviť ako aktívny
+                          {tr("setActive")}
                         </button>
-                        <span className={styles.trHint}>Zobrazí sa na karte Dnes.</span>
+                        <span className={styles.trHint}>{tr("showsOnToday")}</span>
                       </div>
                     )}
                     {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (
@@ -396,11 +387,11 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                       </p>
                     )}
                     {plan.days.length === 0 ? (
-                      <p className={styles.trEmptyDay}>Tento tréning nemá žiadne dni.</p>
+                      <p className={styles.trEmptyDay}>{tr("noDays")}</p>
                     ) : selectedDay ? (
                       <>
                         <button type="button" className={styles.trDayBack} onClick={backToDays}>
-                          <ChevronIcon className={styles.trDayBackIcon} /> Všetky dni
+                          <ChevronIcon className={styles.trDayBackIcon} /> {tr("allDays")}
                         </button>
                         <div className={styles.trDay}>
                           <p className={styles.panelLabel}>
@@ -422,7 +413,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                           ) : selectedDay.exercises.length > 0 ? (
                             <ExercisePreviewList exercises={selectedDay.exercises} />
                           ) : (
-                            <p className={styles.trEmptyDay}>Žiadne cviky.</p>
+                            <p className={styles.trEmptyDay}>{tr("noExercises")}</p>
                           )}
                         </div>
 
@@ -434,7 +425,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               onClick={() => startPlan(plan, selectedDay.id)}
                               disabled={pending}
                             >
-                              Začať tréning
+                              {tr("start")}
                             </button>
                           </div>
                         ) : editingLogId === null &&
@@ -446,17 +437,19 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               className={styles.editValuesBtn}
                               onClick={() => setEditingLogId(selectedDay.lastLog!.id)}
                             >
-                              <PencilIcon /> Upraviť hodnoty
+                              <PencilIcon /> {tr("editValues")}
                             </button>
                             <p className={styles.lockNote}>
-                              Zabudnuté hodnoty môžeš opraviť do {formatEditDeadline(selectedDay.lastLog.editableUntil!)}.
+                              {tr("editUntil", { deadline: formatEditDeadline(selectedDay.lastLog.editableUntil!, undefined, locale) })}
                             </p>
                           </div>
                         ) : editingLogId === null ? (
                           <p className={styles.lockNote}>
-                            Odcvičené
-                            {selectedDay.lastLog?.completedAt ? ` ${formatCompletedDate(selectedDay.lastLog.completedAt)}` : ""}.
-                            Hodnoty sa dali upraviť 24 hodín po ukončení, teraz sú uzavreté.
+                            {tr("doneLocked", {
+                              date: selectedDay.lastLog?.completedAt
+                                ? ` ${formatCompletedDate(selectedDay.lastLog.completedAt, locale)}`
+                                : "",
+                            })}
                           </p>
                         ) : null}
                       </>
@@ -469,10 +462,10 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                 <span className={styles.trDayBtnName}>{day.name}</span>
                                 <span className={styles.trDayBtnMeta}>
                                   <span className={`${styles.trDoneBadge} ${!day.done ? styles.trDoneBadgeHidden : ""}`}>
-                                    Hotovo
+                                    {tr("done")}
                                   </span>
                                   <span className={styles.chip}>
-                                    {day.exercises.length} {exWord(day.exercises.length)}
+                                    {tr("exercises", { count: day.exercises.length })}
                                   </span>
                                   <ChevronIcon className={styles.trDayBtnChevron} />
                                 </span>
@@ -485,14 +478,14 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                           <div className={styles.trPlanActions}>
                             {confirmDelete === plan.id ? (
                               <>
-                                <span className={styles.trConfirmText}>Naozaj zmazať tento tréning?</span>
+                                <span className={styles.trConfirmText}>{tr("deleteWorkout")}</span>
                                 <button
                                   type="button"
                                   className={styles.trDangerBtn}
                                   onClick={() => removePlan(plan.id)}
                                   disabled={pending}
                                 >
-                                  Zmazať
+                                  {tr("delete")}
                                 </button>
                                 <button
                                   type="button"
@@ -500,13 +493,13 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                   onClick={() => setConfirmDelete(null)}
                                   disabled={pending}
                                 >
-                                  Nie
+                                  {tr("no")}
                                 </button>
                               </>
                             ) : (
                               <>
                                 <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(plan)}>
-                                  Upraviť
+                                  {tr("edit")}
                                 </button>
                                 <button
                                   type="button"
@@ -514,14 +507,14 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                   onClick={() => saveTemplate(plan.id)}
                                   disabled={pending}
                                 >
-                                  Uložiť ako šablónu
+                                  {tr("saveTemplate")}
                                 </button>
                                 <button
                                   type="button"
                                   className={`${styles.trGhostBtn} btn-danger`}
                                   onClick={() => setConfirmDelete(plan.id)}
                                 >
-                                  Zmazať
+                                  {tr("delete")}
                                 </button>
                               </>
                             )}
@@ -546,7 +539,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       )}
 
       {plans.length > 1 && (
-        <p className={styles.trHint}>Ťukni na tréning a vyber si deň — „Začať tréning“ ho nastaví ako aktívny na karte Dnes.</p>
+        <p className={styles.trHint}>{tr("hint")}</p>
       )}
     </section>
   );

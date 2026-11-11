@@ -1,0 +1,7 @@
+{
+  "sets": "{count, plural, one {# série} few {# série} other {# sérií}}",
+  "bodyweight": "vlastní váha",
+  "exercise": "Cvik",
+  "workout": "Trénink",
+  "plan": "Tréninkový plán"
+}

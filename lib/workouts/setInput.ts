@@ -11,7 +11,9 @@
 export const REPS_MAX = 999;
 export const WEIGHT_MAX_KG = 1000;
 
-export type ParsedValue = { value: number | null; error: string | null };
+/** Kód chyby zápisu série — text je v messages/<jazyk>/labels.json → setInput.<kód>. */
+export type SetInputError = "repsInteger" | "repsMax" | "weightNumber" | "weightMax";
+export type ParsedValue = { value: number | null; error: SetInputError | null };
 
 const EMPTY: ParsedValue = { value: null, error: null };
 
@@ -19,9 +21,9 @@ const EMPTY: ParsedValue = { value: null, error: null };
 export function parseReps(raw: string): ParsedValue {
   const s = raw.trim();
   if (s === "") return EMPTY;
-  if (!/^\d+$/.test(s)) return { value: null, error: "Opakovania zadaj ako celé číslo." };
+  if (!/^\d+$/.test(s)) return { value: null, error: "repsInteger" };
   const n = Number(s);
-  if (n > REPS_MAX) return { value: null, error: `Najviac ${REPS_MAX} opakovaní.` };
+  if (n > REPS_MAX) return { value: null, error: "repsMax" };
   return { value: n, error: null };
 }
 
@@ -29,9 +31,9 @@ export function parseReps(raw: string): ParsedValue {
 export function parseWeight(raw: string): ParsedValue {
   const s = raw.trim().replace(/\s+/g, "").replace(",", ".");
   if (s === "") return EMPTY;
-  if (!/^\d+(\.\d{1,2})?$/.test(s)) return { value: null, error: "Váhu zadaj ako číslo, napr. 62,5." };
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return { value: null, error: "weightNumber" };
   const n = Number(s);
-  if (n > WEIGHT_MAX_KG) return { value: null, error: `Najviac ${WEIGHT_MAX_KG} kg.` };
+  if (n > WEIGHT_MAX_KG) return { value: null, error: "weightMax" };
   return { value: n, error: null };
 }
 

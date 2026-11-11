@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { PortalDiaryEntry } from "@/lib/portal/types";
 import styles from "../portal.module.css";
@@ -43,6 +44,7 @@ export function DiaryRow({
   onRemove: (id: string) => void;
   onUpdateGrams: (id: string, grams: number) => void;
 }) {
+  const t = useTranslations("portal.diary");
   const [mode, setMode] = useState<"view" | "edit" | "confirmRemove">("view");
   const [grams, setGrams] = useState(String(entry.grams));
   // Optimistický riadok ešte nemá skutočné ID z DB — úprava/odobratie počká.
@@ -75,16 +77,16 @@ export function DiaryRow({
                 if (e.key === "Enter") saveGrams();
                 if (e.key === "Escape") setMode("view");
               }}
-              aria-label={`Gramáž ${entry.name}`}
+              aria-label={t("gramsAria", { name: entry.name })}
               autoFocus
             />
             <span className={styles.gramUnit}>g</span>
           </span>
           <button type="button" className="btn btn-primary btn-sm" onClick={saveGrams}>
-            Uložiť
+            {t("save")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("view")}>
-            Zrušiť
+            {t("cancel")}
           </button>
         </span>
       </li>
@@ -103,7 +105,7 @@ export function DiaryRow({
       {mode === "confirmRemove" ? (
         <span className={styles.diaryRowActions}>
           <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => onRemove(entry.id)}>
-            Odobrať
+            {t("remove")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("view")}>
             Nie
@@ -119,7 +121,7 @@ export function DiaryRow({
               setGrams(String(entry.grams));
               setMode("edit");
             }}
-            aria-label={`Upraviť gramáž ${entry.name}`}
+            aria-label={t("editGramsAria", { name: entry.name })}
           >
             <PencilIcon />
           </button>
@@ -128,7 +130,7 @@ export function DiaryRow({
             className={`${styles.removeBtn} btn-danger`}
             disabled={pendingRow}
             onClick={() => setMode("confirmRemove")}
-            aria-label={`Odobrať ${entry.name}`}
+            aria-label={t("removeAria", { name: entry.name })}
           >
             <TrashIcon />
           </button>

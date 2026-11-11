@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { cancelOwnDeletionAction, requestOwnDeletionAction } from "../actions";
 import styles from "../portal.module.css";
@@ -11,12 +12,6 @@ function daysLeft(requestedAt: string): number {
   return Math.max(0, Math.ceil((deadline - Date.now()) / (24 * 3600_000)));
 }
 
-function daysLabel(n: number): string {
-  if (n === 1) return "1 deň";
-  if (n >= 2 && n <= 4) return `${n} dni`;
-  return `${n} dní`;
-}
-
 export function DeleteAccountSection({
   requestedAt,
   requestedBy,
@@ -24,6 +19,7 @@ export function DeleteAccountSection({
   requestedAt: string | null;
   requestedBy: "trainer" | "client" | null;
 }) {
+  const t = useTranslations("profile.deletion");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -45,26 +41,26 @@ export function DeleteAccountSection({
 
   return (
     <div className={styles.panel}>
-      <p className={styles.panelLabel}>Zmazanie dát</p>
+      <p className={styles.panelLabel}>{t("title")}</p>
       {requestedAt ? (
         <>
           <p className={styles.dzText}>
-            {requestedBy === "trainer" ? "Tréner požiadal" : "Požiadal/a si"} o zmazanie — tréningy,
-            výživa, denník aj správy sa natrvalo odstránia o {daysLabel(daysLeft(requestedAt))}.
+            {requestedBy === "trainer"
+              ? t("byTrainer", { days: daysLeft(requestedAt) })
+              : t("byYou", { days: daysLeft(requestedAt) })}
           </p>
           <button type="button" className="btn btn-ghost btn-sm" onClick={cancel} disabled={pending}>
-            Zrušiť zmazanie
+            {t("cancel")}
           </button>
         </>
       ) : confirming ? (
         <>
           <p className={styles.dzText}>
-            Naozaj chceš zmazať svoje tréningy, jedálniček, denník aj správy s trénerom? Dáta zostanú
-            30 dní (dá sa zrušiť), potom sa natrvalo odstránia.
+            {t("confirm")}
           </p>
           <div className={styles.dzActions}>
             <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={request} disabled={pending}>
-              Áno, zmazať
+              {t("yes")}
             </button>
             <button
               type="button"
@@ -72,13 +68,13 @@ export function DeleteAccountSection({
               onClick={() => setConfirming(false)}
               disabled={pending}
             >
-              Nie
+              {t("no")}
             </button>
           </div>
         </>
       ) : (
         <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
-          Požiadať o zmazanie mojich dát
+          {t("request")}
         </button>
       )}
       {error && <p className={styles.dzError}>{error}</p>}

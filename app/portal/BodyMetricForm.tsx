@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { startTransition, useActionState, useEffect, useMemo, useOptimistic, useState, type FormEvent } from "react";
 import { addOwnBodyMetricAction } from "./actions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
@@ -10,22 +12,22 @@ interface ActionState {
 }
 const initialState: ActionState = { error: null };
 
-function dateLabel(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
+function dateLabel(iso: string, locale: Locale): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
-const EXTRA_FIELDS: { key: keyof BodyMetricEntry; label: string }[] = [
-  { key: "waistCm", label: "Pás" },
-  { key: "chestCm", label: "Hrudník" },
-  { key: "hipsCm", label: "Boky" },
-  { key: "armCm", label: "Paža" },
-  { key: "thighCm", label: "Stehno" },
+const EXTRA_FIELDS: { key: keyof BodyMetricEntry; label: "waist" | "chest" | "hips" | "arm" | "thigh" }[] = [
+  { key: "waistCm", label: "waist" },
+  { key: "chestCm", label: "chest" },
+  { key: "hipsCm", label: "hips" },
+  { key: "armCm", label: "arm" },
+  { key: "thighCm", label: "thigh" },
 ];
 
 /** "Pás 82 cm · Boky 95 cm" — len zadané obvody, v poradí ako vo formulári. */
-function extrasSummary(e: BodyMetricEntry): string {
+function extrasSummary(e: BodyMetricEntry, label: (k: (typeof EXTRA_FIELDS)[number]["label"]) => string): string {
   return EXTRA_FIELDS.filter(({ key }) => e[key] != null)
-    .map(({ key, label }) => `${label} ${e[key]} cm`)
+    .map(({ key, label: k }) => `${label(k)} ${e[key]} cm`)
     .join(" · ");
 }
 
@@ -42,6 +44,8 @@ function extrasSummary(e: BodyMetricEntry): string {
  * skroluje (max-height), aby karta Dnes nerástla donekonečna.
  */
 export function BodyMetricForm({ today, history }: { today: string; history: BodyMetricEntry[] }) {
+  const t = useTranslations("today.metric");
+  const locale = useLocale();
   const [state, formAction, pending] = useActionState(addOwnBodyMetricAction, initialState);
   const [open, setOpen] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(false);
@@ -110,7 +114,7 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
     <>
       {open ? (
         <form onSubmit={handleSubmit} className={styles.addPanel}>
-          <span className={styles.addPanelLabel}>Nové meranie</span>
+          <span className={styles.addPanelLabel}>{t("newMeasurement")}</span>
 
           <div className={styles.metricRow}>
             <input type="date" name="measured_on" defaultValue={today} max={today} disabled={pending} className={styles.metricInput} />
@@ -120,7 +124,7 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
                 type="number"
                 inputMode="decimal"
                 step="0.1"
-                placeholder="Váha"
+                placeholder={t("weight")}
                 disabled={pending}
                 className={styles.metricInput}
               />
@@ -130,31 +134,31 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
 
           {!showMeasurements ? (
             <button type="button" className={styles.metricToggle} onClick={() => setShowMeasurements(true)}>
-              + Aj obvody (pás, hrudník, boky, paža, stehno)
+              {t("withCircumferences")}
             </button>
           ) : (
             <div className={styles.metricRowWrap}>
-              <input name="waist_cm" type="number" inputMode="decimal" step="0.1" placeholder="Pás (cm)" disabled={pending} className={styles.metricInputSm} />
-              <input name="chest_cm" type="number" inputMode="decimal" step="0.1" placeholder="Hrudník (cm)" disabled={pending} className={styles.metricInputSm} />
-              <input name="hips_cm" type="number" inputMode="decimal" step="0.1" placeholder="Boky (cm)" disabled={pending} className={styles.metricInputSm} />
-              <input name="arm_cm" type="number" inputMode="decimal" step="0.1" placeholder="Paža (cm)" disabled={pending} className={styles.metricInputSm} />
-              <input name="thigh_cm" type="number" inputMode="decimal" step="0.1" placeholder="Stehno (cm)" disabled={pending} className={styles.metricInputSm} />
+              <input name="waist_cm" type="number" inputMode="decimal" step="0.1" placeholder={t("waistCm")} disabled={pending} className={styles.metricInputSm} />
+              <input name="chest_cm" type="number" inputMode="decimal" step="0.1" placeholder={t("chestCm")} disabled={pending} className={styles.metricInputSm} />
+              <input name="hips_cm" type="number" inputMode="decimal" step="0.1" placeholder={t("hipsCm")} disabled={pending} className={styles.metricInputSm} />
+              <input name="arm_cm" type="number" inputMode="decimal" step="0.1" placeholder={t("armCm")} disabled={pending} className={styles.metricInputSm} />
+              <input name="thigh_cm" type="number" inputMode="decimal" step="0.1" placeholder={t("thighCm")} disabled={pending} className={styles.metricInputSm} />
             </div>
           )}
 
           <div className={styles.metricActions}>
             <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-              {pending ? "Ukladám…" : "Uložiť meranie"}
+              {pending ? t("saving") : t("save")}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={pending}>
-              Zrušiť
+              {t("cancel")}
             </button>
           </div>
           {state.error && <p className={styles.addError}>{state.error}</p>}
         </form>
       ) : (
         <button type="button" className="btn btn-ghost btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => setOpen(true)}>
-          + Zapísať meranie
+          {t("add")}
         </button>
       )}
 
@@ -162,11 +166,11 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
         <div className={styles.metricHistory}>
           <div className={styles.metricHistoryList}>
             {recent.map((e) => {
-              const extras = extrasSummary(e);
+              const extras = extrasSummary(e, (k) => t(k));
               return (
                 <div key={e.measuredOn} className={styles.metricHistoryRow}>
                   <div className={styles.metricHistoryMain}>
-                    <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn)}</span>
+                    <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn, locale)}</span>
                     <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${e.weightKg} kg` : "—"}</span>
                   </div>
                   {extras && <p className={styles.metricHistoryExtra}>{extras}</p>}
