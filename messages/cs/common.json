@@ -9,5 +9,10 @@
   "delete": "Smazat",
   "edit": "Upravit",
   "add": "Přidat",
-  "optional": "volitelné"
+  "optional": "volitelné",
+  "errorTitle": "Něco se pokazilo",
+  "errorText": "Zkontroluj připojení a zkus to znovu.",
+  "retry": "Zkusit znovu",
+  "notFound": "Tato stránka neexistuje nebo byla přesunuta.",
+  "backHome": "Zpět na úvod"
 }

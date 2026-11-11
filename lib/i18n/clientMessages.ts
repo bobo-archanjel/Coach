@@ -2,7 +2,7 @@ import type { Messages } from "@/messages";
 
 /** Menné priestory, ktoré používajú len serverové komponenty / route handlery — do
  *  prehliadača sa neposielajú (zbytočné kB v každej stránke). */
-const SERVER_ONLY = [] as const satisfies readonly (keyof Messages)[];
+const SERVER_ONLY = ["landing"] as const satisfies readonly (keyof Messages)[];
 
 /** Texty pre NextIntlClientProvider (klientske komponenty). */
 export function clientMessages(messages: Messages): Partial<Messages> {

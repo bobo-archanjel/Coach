@@ -5,6 +5,7 @@
 // všetko; po splnení zmizne (Zeigarnik effect naopak — dokončená vec sa
 // nemusí pripomínať ďalej). Zdieľané medzi registráciou a resetom hesla.
 
+import { useTranslations } from "next-intl";
 import { passwordCriteria } from "@/lib/passwordStrength";
 import styles from "./PasswordRequirements.module.css";
 
@@ -20,12 +21,13 @@ const CheckMark = ({ met }: { met: boolean }) => (
 
 export function PasswordRequirements({ password }: { password: string }) {
   const criteria = passwordCriteria(password);
+  const t = useTranslations("password");
   return (
     <ul className={styles.list} aria-live="polite">
       {criteria.map((c) => (
         <li key={c.key} className={c.met ? styles.met : undefined}>
           <CheckMark met={c.met} />
-          {c.label}
+          {t(`criterion.${c.key}`)}
         </li>
       ))}
     </ul>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { applyV6Theme } from "./ThemeSwitch";
 import s from "./themeToggle.module.css";
 
@@ -35,13 +36,14 @@ function shownTheme(): "light" | "dark" {
  * prehliadač vykreslia to isté a ikona nepreblikne.
  */
 export function ThemeToggle() {
+  const t = useTranslations("theme");
   return (
     <button
       type="button"
       className={s.toggle}
       onClick={() => applyV6Theme(shownTheme() === "dark" ? "light" : "dark")}
-      aria-label="Prepnúť svetlý / tmavý režim"
-      title="Prepnúť svetlý / tmavý režim"
+      aria-label={t("toggle")}
+      title={t("toggle")}
     >
       <SunIcon />
       <MoonIcon />

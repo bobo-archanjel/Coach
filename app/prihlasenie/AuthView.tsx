@@ -3,12 +3,13 @@
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { LogoMark } from "../components/LogoMark";
 import { PasswordRequirements } from "../components/PasswordRequirements";
 import { useLoadingMessage } from "../components/useLoadingMessage";
 import { TurnstileScript, useTurnstile } from "../components/Turnstile";
 import { createClient } from "@/lib/supabase/client";
-import { checkPassword } from "@/lib/passwordStrength";
+import { checkPassword, type PasswordIssue } from "@/lib/passwordStrength";
 import { loginAction, registerAction, type LoginState, type RegisterState } from "./actions";
 import styles from "./auth.module.css";
 
@@ -100,6 +101,8 @@ function validate(form: HTMLFormElement, fieldNames: string[]) {
  * v layout.tsx — téma sa prepína na landing page); po prihlásení vždy /portal alebo /dashboard.
  */
 export function AuthView() {
+  const t = useTranslations("auth");
+  const tp = useTranslations("password");
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -157,9 +160,9 @@ export function AuthView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loginError]);
   const loginLoadingText = useLoadingMessage(loginStatus === "loading", [
-    "Prihlasujem…",
-    "Overujem údaje…",
-    "Už to bude…",
+    t("loggingIn"),
+    t("verifying"),
+    t("almost"),
   ]);
 
   // Pre-fill e-mailu z predošlého prihlásenia so zaškrtnutým "Zapamätať si ma".
@@ -231,7 +234,7 @@ export function AuthView() {
     const t = setTimeout(() => setForgotCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [forgotCooldown]);
-  const forgotLoadingText = useLoadingMessage(forgotStatus === "loading", ["Odosielam…", "Ešte chvíľku…"]);
+  const forgotLoadingText = useLoadingMessage(forgotStatus === "loading", [t("sending"), t("moment")]);
 
   async function handleForgotSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -266,8 +269,8 @@ export function AuthView() {
       // celoprojektový limit odosielania e-mailov („email rate limit exceeded“)
       setForgotError(
         error.status === 429 || msg.includes("rate limit")
-          ? "Práve sa posiela priveľa e-mailov. Skús to prosím o pár minút."
-          : "Odoslanie zlyhalo. Skús to o chvíľu znova.",
+          ? t("forgotRateLimit")
+          : t("forgotFailed"),
       );
       return;
     }
@@ -311,7 +314,7 @@ export function AuthView() {
   // (meno/e-mail) sa reálne vyhodnocuje až pri submite (handleRegisterSubmit má
   // finálne hodnoty všetkých polí), tu len dĺžka/rozmanitosť pre rýchlu spätnú väzbu.
   const [registerPassword, setRegisterPassword] = useState("");
-  const [registerPasswordIssues, setRegisterPasswordIssues] = useState<string[]>([]);
+  const [registerPasswordIssues, setRegisterPasswordIssues] = useState<PasswordIssue[]>([]);
   const [registerCanSubmit, setRegisterCanSubmit] = useState(false);
   // Rola sa volí explicitne (tréner vs. klient). Klient sa registruje VŽDY
   // rovnako — bez pozývacieho kódu (feature/registracia-update): po registrácii
@@ -321,9 +324,9 @@ export function AuthView() {
   const [registerRole, setRegisterRole] = useState<"trainer" | "client">("client");
   const isClientSignup = registerRole === "client";
   const registerLoadingText = useLoadingMessage(registerStatus === "loading", [
-    "Vytváram účet…",
-    "Nastavujem profil…",
-    "Už to bude…",
+    t("creatingAccount"),
+    t("settingUp"),
+    t("almost"),
   ]);
 
   // Tlačidlo ostáva disabled, kým nie je vyplnené a platné VŠETKO (natívna HTML5
@@ -412,15 +415,11 @@ export function AuthView() {
             <LogoMark className={styles.logoMark} />
             FitPilot
           </Link>
-          <p className={styles.brandTagline}>Tréning. Výživa. Komunikácia. Rast.</p>
+          <p className={styles.brandTagline}>{t("tagline")}</p>
         </div>
 
         <div className={styles.brandMid}>
-          <h1>
-            Tvoji klienti.
-            <br />
-            Tvoj systém.
-          </h1>
+          <h1>{t.rich("headline", { br: () => <br /> })}</h1>
           <div className="bar-rule red">
             <span className="plate" />
             <span className="bar" />
@@ -428,27 +427,27 @@ export function AuthView() {
           <ul className={styles.valueList}>
             <li>
               <CheckIcon />
-              Tréningy, makrá aj AI chat na jednom mieste, po slovensky.
+              {t("value1")}
             </li>
             <li>
               <CheckIcon />
-              AI vždy len navrhuje — posledné slovo má tréner.
+              {t("value2")}
             </li>
             <li>
               <CheckIcon />
-              14 dní zadarmo, bez viazanosti.
+              {t("value3")}
             </li>
           </ul>
         </div>
 
         <p className={styles.brandFoot}>
-          Potrebuješ pomoc? <a href="mailto:podpora@myfitpilot.sk">podpora@myfitpilot.sk</a>
+          {t("help")} <a href="mailto:podpora@myfitpilot.sk">podpora@myfitpilot.sk</a>
         </p>
       </aside>
 
       <main className={styles.formPanel}>
         <div className={styles.authCard}>
-          <div className={styles.tabs} role="tablist" aria-label="Prihlásenie alebo registrácia">
+          <div className={styles.tabs} role="tablist" aria-label={t("tabsLabel")}>
             <button
               type="button"
               className={styles.tabBtn}
@@ -457,7 +456,7 @@ export function AuthView() {
               aria-controls="panel-login"
               onClick={() => setActiveTab("login")}
             >
-              Prihlásenie
+              {t("tabLogin")}
             </button>
             <button
               type="button"
@@ -470,15 +469,15 @@ export function AuthView() {
                 setForgotOpen(false);
               }}
             >
-              Registrácia
+              {t("tabRegister")}
             </button>
           </div>
 
           {activeTab === "login" && !forgotOpen && (
             <section id="panel-login" role="tabpanel" aria-labelledby="tab-login">
               <div className={styles.authHead}>
-                <h2>Vitaj späť</h2>
-                <p>Prihlás sa do svojho konta.</p>
+                <h2>{t("loginTitle")}</h2>
+                <p>{t("loginSub")}</p>
               </div>
 
               <div className={styles.oauthRow}>
@@ -489,29 +488,29 @@ export function AuthView() {
                   onClick={() => handleOAuth("google")}
                 >
                   {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
-                  Pokračovať s Google
+                  {t("google")}
                 </button>
               </div>
               <div className={styles.divider}>
-                <span>alebo</span>
+                <span>{t("or")}</span>
               </div>
 
               {oauthError && (
                 <div className={`${styles.formStatus} ${styles.error}`} role="alert" style={{ marginBottom: 16 }}>
                   <ErrorIcon />
-                  Prihlásenie zlyhalo. Skús to prosím znova.
+                  {t("oauthFailed")}
                 </div>
               )}
 
               <form ref={loginFormRef} noValidate onSubmit={handleLoginSubmit} onInput={updateLoginCanSubmit}>
                 <Honeypot />
                 <div className={styles.field}>
-                  <label htmlFor="login-email">E-mail</label>
+                  <label htmlFor="login-email">{t("email")}</label>
                   <input
                     id="login-email"
                     name="email"
                     type="email"
-                    placeholder="tvoj@email.sk"
+                    placeholder={t("emailPlaceholder")}
                     autoComplete="email"
                     required
                     aria-invalid={loginInvalid.email}
@@ -522,13 +521,13 @@ export function AuthView() {
                   {loginInvalid.email && (
                     <span className={styles.fieldError}>
                       <ErrorIcon />
-                      Zadaj platnú e-mailovú adresu.
+                      {t("emailInvalid")}
                     </span>
                   )}
                 </div>
 
                 <div className={`${styles.field} ${styles.hasToggle}`}>
-                  <label htmlFor="login-password">Heslo</label>
+                  <label htmlFor="login-password">{t("password")}</label>
                   <div className={styles.inputWrap}>
                     <input
                       id="login-password"
@@ -545,7 +544,7 @@ export function AuthView() {
                     <button
                       type="button"
                       className={styles.toggleVisibility}
-                      aria-label={loginShowPassword ? "Skryť heslo" : "Zobraziť heslo"}
+                      aria-label={loginShowPassword ? t("hidePassword") : t("showPassword")}
                       onClick={() => setLoginShowPassword((v) => !v)}
                     >
                       <EyeIcon />
@@ -554,7 +553,7 @@ export function AuthView() {
                   {loginInvalid.password && (
                     <span className={styles.fieldError}>
                       <ErrorIcon />
-                      Heslo musí mať aspoň 8 znakov.
+                      {t("passwordTooShort")}
                     </span>
                   )}
                 </div>
@@ -562,10 +561,10 @@ export function AuthView() {
                 <div className={styles.rowBetween}>
                   <label className={styles.checkboxRow} style={{ fontSize: 13 }}>
                     <input type="checkbox" name="remember" />
-                    Zapamätať si ma
+                    {t("remember")}
                   </label>
                   <button type="button" className={styles.link} onClick={() => setForgotOpen(true)}>
-                    Zabudnuté heslo?
+                    {t("forgotLink")}
                   </button>
                 </div>
 
@@ -577,13 +576,13 @@ export function AuthView() {
                   disabled={loginStatus === "loading" || !loginCanSubmit}
                 >
                   {loginStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{loginStatus === "loading" ? (loginLoadingText ?? "Prihlasujem…") : "Prihlásiť sa"}</span>
+                  <span>{loginStatus === "loading" ? (loginLoadingText ?? t("loggingIn")) : t("loginSubmit")}</span>
                 </button>
 
                 {loginStatus === "success" && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Prihlásenie prebehlo úspešne. Presmerúvam…
+                    {t("loginSuccess")}
                   </div>
                 )}
                 {loginError && (
@@ -595,9 +594,9 @@ export function AuthView() {
               </form>
 
               <p className={styles.switchLine}>
-                Nemáš ešte účet?{" "}
+                {t("noAccount")}{" "}
                 <button type="button" className={styles.link} onClick={() => setActiveTab("register")}>
-                  Vytvoriť účet
+                  {t("createAccount")}
                 </button>
               </p>
             </section>
@@ -606,18 +605,18 @@ export function AuthView() {
           {activeTab === "login" && forgotOpen && (
             <section id="panel-forgot" role="tabpanel" aria-labelledby="tab-login">
               <div className={styles.authHead}>
-                <h2>Zabudnuté heslo</h2>
-                <p>Zadaj e-mail, pošleme ti naň odkaz na nastavenie nového hesla.</p>
+                <h2>{t("forgotTitle")}</h2>
+                <p>{t("forgotSub")}</p>
               </div>
 
               <form ref={forgotFormRef} noValidate onSubmit={handleForgotSubmit}>
                 <div className={styles.field}>
-                  <label htmlFor="forgot-email">E-mail</label>
+                  <label htmlFor="forgot-email">{t("email")}</label>
                   <input
                     id="forgot-email"
                     name="email"
                     type="email"
-                    placeholder="tvoj@email.sk"
+                    placeholder={t("emailPlaceholder")}
                     autoComplete="email"
                     required
                     aria-invalid={forgotInvalid}
@@ -626,7 +625,7 @@ export function AuthView() {
                   {forgotInvalid && (
                     <span className={styles.fieldError}>
                       <ErrorIcon />
-                      Zadaj platnú e-mailovú adresu.
+                      {t("emailInvalid")}
                     </span>
                   )}
                 </div>
@@ -639,18 +638,17 @@ export function AuthView() {
                   {forgotStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
                   <span>
                     {forgotStatus === "loading"
-                      ? (forgotLoadingText ?? "Odosielam…")
+                      ? (forgotLoadingText ?? t("sending"))
                       : forgotCooldown > 0
-                        ? `Poslať znova o ${forgotCooldown} s`
-                        : "Poslať odkaz na reset"}
+                        ? t("resendIn", { seconds: forgotCooldown })
+                        : t("sendReset")}
                   </span>
                 </button>
 
                 {forgotStatus === "success" && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Ak účet s týmto e-mailom existuje, poslali sme naň odkaz na reset hesla. Ak ho do pár minút
-                    nevidíš, pozri aj priečinok Spam.
+                    {t("forgotSent")}
                   </div>
                 )}
                 {forgotError && (
@@ -663,7 +661,7 @@ export function AuthView() {
 
               <p className={styles.switchLine}>
                 <button type="button" className={styles.link} onClick={() => setForgotOpen(false)}>
-                  ← Späť na prihlásenie
+                  {t("backToLogin")}
                 </button>
               </p>
             </section>
@@ -671,14 +669,14 @@ export function AuthView() {
 
           {activeTab === "register" && (
             <section id="panel-register" role="tabpanel" aria-labelledby="tab-register">
-              <div className={styles.tabs} role="group" aria-label="Registrujem sa ako">
+              <div className={styles.tabs} role="group" aria-label={t("roleGroup")}>
                 <button
                   type="button"
                   className={styles.tabBtn}
                   aria-pressed={isClientSignup}
                   onClick={() => setRegisterRole("client")}
                 >
-                  Som klient
+                  {t("roleClient")}
                 </button>
                 <button
                   type="button"
@@ -686,31 +684,20 @@ export function AuthView() {
                   aria-pressed={!isClientSignup}
                   onClick={() => setRegisterRole("trainer")}
                 >
-                  Som tréner
+                  {t("roleTrainer")}
                 </button>
               </div>
 
               <div className={styles.authHead}>
                 {isClientSignup ? (
                   <>
-                    <h2>
-                      Vytvor si
-                      <br />
-                      účet
-                    </h2>
-                    <p>
-                      Trénuj sám alebo s trénerom. Po registrácii dostaneš vlastný kód — stačí ho poslať trénerovi a on
-                      ťa pridá.
-                    </p>
+                    <h2>{t.rich("clientTitle", { br: () => <br /> })}</h2>
+                    <p>{t("clientSub")}</p>
                   </>
                 ) : (
                   <>
-                    <h2>
-                      Začni skúšobné
-                      <br />
-                      obdobie
-                    </h2>
-                    <p>14 dní zadarmo pre trénerov, bez viazanosti a bez karty.</p>
+                    <h2>{t.rich("trainerTitle", { br: () => <br /> })}</h2>
+                    <p>{t("trainerSub")}</p>
                   </>
                 )}
               </div>
@@ -723,22 +710,22 @@ export function AuthView() {
                   onClick={() => handleOAuth("google", registerRole)}
                 >
                   {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
-                  Pokračovať s Google
+                  {t("google")}
                 </button>
               </div>
               <div className={styles.divider}>
-                <span>alebo</span>
+                <span>{t("or")}</span>
               </div>
 
               <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit} onInput={updateRegisterCanSubmit}>
                 <Honeypot />
                 <div className={styles.field}>
-                  <label htmlFor="reg-name">Meno a priezvisko</label>
+                  <label htmlFor="reg-name">{t("name")}</label>
                   <input
                     id="reg-name"
                     name="name"
                     type="text"
-                    placeholder="Martina Kováčová"
+                    placeholder={t("namePlaceholder")}
                     autoComplete="name"
                     required
                     aria-invalid={registerInvalid.name}
@@ -748,18 +735,18 @@ export function AuthView() {
                   {registerInvalid.name && (
                     <span className={styles.fieldError}>
                       <ErrorIcon />
-                      Zadaj svoje meno.
+                      {t("nameRequired")}
                     </span>
                   )}
                 </div>
 
                 <div className={styles.field}>
-                  <label htmlFor="reg-email">E-mail</label>
+                  <label htmlFor="reg-email">{t("email")}</label>
                   <input
                     id="reg-email"
                     name="email"
                     type="email"
-                    placeholder="tvoj@email.sk"
+                    placeholder={t("emailPlaceholder")}
                     autoComplete="email"
                     required
                     aria-invalid={registerInvalid.email}
@@ -769,19 +756,19 @@ export function AuthView() {
                   {registerInvalid.email && (
                     <span className={styles.fieldError}>
                       <ErrorIcon />
-                      Zadaj platnú e-mailovú adresu.
+                      {t("emailInvalid")}
                     </span>
                   )}
                 </div>
 
                 <div className={`${styles.field} ${styles.hasToggle}`}>
-                  <label htmlFor="reg-password">Heslo</label>
+                  <label htmlFor="reg-password">{t("password")}</label>
                   <div className={styles.inputWrap}>
                     <input
                       id="reg-password"
                       name="password"
                       type={registerShowPassword ? "text" : "password"}
-                      placeholder="min. 8 znakov"
+                      placeholder={t("passwordPlaceholder")}
                       autoComplete="new-password"
                       required
                       minLength={8}
@@ -795,7 +782,7 @@ export function AuthView() {
                     <button
                       type="button"
                       className={styles.toggleVisibility}
-                      aria-label={registerShowPassword ? "Skryť heslo" : "Zobraziť heslo"}
+                      aria-label={registerShowPassword ? t("hidePassword") : t("showPassword")}
                       onClick={() => setRegisterShowPassword((v) => !v)}
                     >
                       <EyeIcon />
@@ -804,12 +791,12 @@ export function AuthView() {
                   {registerPassword ? (
                     <PasswordRequirements password={registerPassword} />
                   ) : (
-                    <span className={styles.fieldHint}>Aspoň 8 znakov, kombinuj písmená aj čísla.</span>
+                    <span className={styles.fieldHint}>{t("passwordHint")}</span>
                   )}
                   {registerInvalid.password && (
                     <span className={styles.fieldError}>
                       <ErrorIcon />
-                      {registerPasswordIssues[0] ?? "Heslo musí mať aspoň 8 znakov."}
+                      {registerPasswordIssues[0] ? tp(`issue.${registerPasswordIssues[0]}`) : t("passwordTooShort")}
                     </span>
                   )}
                 </div>
@@ -822,20 +809,25 @@ export function AuthView() {
                       required
                       onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
                     />
-                    Súhlasím s{" "}
-                    <a href="/obchodne-podmienky" target="_blank" rel="noopener noreferrer" className={styles.link}>
-                      obchodnými podmienkami
-                    </a>{" "}
-                    a{" "}
-                    <a href="/ochrana-sukromia" target="_blank" rel="noopener noreferrer" className={styles.link}>
-                      ochranou súkromia
-                    </a>
-                    .
+                    <span>
+                      {t.rich("terms", {
+                        terms: (chunks) => (
+                          <a href="/obchodne-podmienky" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                            {chunks}
+                          </a>
+                        ),
+                        privacy: (chunks) => (
+                          <a href="/ochrana-sukromia" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                            {chunks}
+                          </a>
+                        ),
+                      })}
+                    </span>
                   </label>
                   {registerInvalid.terms && (
                     <span className={styles.fieldError} style={{ marginLeft: 27 }}>
                       <ErrorIcon />
-                      Na registráciu je potrebný súhlas s podmienkami.
+                      {t("termsRequired")}
                     </span>
                   )}
                 </div>
@@ -850,23 +842,23 @@ export function AuthView() {
                   {registerStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
                   <span>
                     {registerStatus === "loading"
-                      ? (registerLoadingText ?? "Vytváram účet…")
+                      ? (registerLoadingText ?? t("creatingAccount"))
                       : isClientSignup
-                        ? "Vytvoriť účet"
-                        : "Začať skúšobné obdobie"}
+                        ? t("registerClient")
+                        : t("registerTrainer")}
                   </span>
                 </button>
 
                 {registerStatus === "success" && !registerNeedsConfirm && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Účet vytvorený. Presmerúvam…
+                    {t("registered")}
                   </div>
                 )}
                 {registerStatus === "success" && registerNeedsConfirm && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Účet vytvorený. Skontroluj si e-mail a potvrď registráciu, potom sa môžeš prihlásiť.
+                    {t("registeredConfirm")}
                   </div>
                 )}
                 {registerError && (
@@ -878,9 +870,9 @@ export function AuthView() {
               </form>
 
               <p className={styles.switchLine}>
-                Už máš účet?{" "}
+                {t("haveAccount")}{" "}
                 <button type="button" className={styles.link} onClick={() => setActiveTab("login")}>
-                  Prihlásiť sa
+                  {t("loginSubmit")}
                 </button>
               </p>
             </section>

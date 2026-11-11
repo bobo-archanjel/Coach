@@ -29,6 +29,7 @@ import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile, isHoneypotTripped } from "@/lib/turnstile";
 import { checkPassword } from "@/lib/passwordStrength";
+import { getTranslations } from "next-intl/server";
 
 export interface LoginState {
   error: string | null;
@@ -41,13 +42,20 @@ export interface RegisterState {
   needsConfirm: boolean;
 }
 
-const GENERIC_ERROR = "Nesprávny e-mail alebo heslo.";
-const LOCKOUT_ERROR = "Príliš veľa neúspešných pokusov. Skús to znova o 15 minút, alebo si obnov heslo.";
-const CAPTCHA_ERROR = "Overenie zlyhalo. Skús to prosím znova.";
-const REGISTER_GENERIC_ERROR = "Registráciu sa nepodarilo dokončiť. Skús to prosím znova.";
-/** Registrácia už použitého e-mailu — výslovne (požiadavka produktu), zisťovanie účtov
+/** Chybové hlášky v jazyku používateľa (messages/<jazyk>/auth.json → errors). Registrácia
+ *  už použitého e-mailu (emailInUse) je výslovná (požiadavka produktu), zisťovanie účtov
  *  brzdí Turnstile a rate limit Supabase. */
-const EMAIL_IN_USE_ERROR = "Tento e-mail sa už používa. Prihlás sa, alebo si obnov heslo cez „Zabudnuté heslo?“.";
+async function authErrors() {
+  const t = await getTranslations("auth.errors");
+  return {
+    GENERIC_ERROR: t("generic"),
+    LOCKOUT_ERROR: t("lockout"),
+    CAPTCHA_ERROR: t("captcha"),
+    REGISTER_GENERIC_ERROR: t("registerGeneric"),
+    EMAIL_IN_USE_ERROR: t("emailInUse"),
+    t,
+  };
+}
 
 const MAX_PER_EMAIL = 10;
 const MAX_PER_EMAIL_AND_IP = 5;
@@ -66,13 +74,14 @@ async function clientIp(): Promise<string> {
 }
 
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
+  const { GENERIC_ERROR, LOCKOUT_ERROR, CAPTCHA_ERROR, t } = await authErrors();
   // Honeypot skôr než čokoľvek iné — bot dostane rovnakú generickú chybu ako
   // zlé heslo, žiadny odlišný signál, ktorý by mu prezradil, že bol odhalený.
   if (isHoneypotTripped(formData)) return { error: GENERIC_ERROR, redirectTo: null };
 
   const email = ((formData.get("email") as string | null) ?? "").trim();
   const password = (formData.get("password") as string | null) ?? "";
-  if (!email || !password) return { error: "Vyplň e-mail aj heslo.", redirectTo: null };
+  if (!email || !password) return { error: t("fillEmailPassword"), redirectTo: null };
   if (email.length > MAX_INPUT_LENGTH || password.length > 1024) return { error: GENERIC_ERROR, redirectTo: null };
 
   const ip = await clientIp();
@@ -158,6 +167,7 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
  * akcie (mimo formulára) by inak vedelo obísť klientskú kontrolu úplne.
  */
 export async function registerAction(_prevState: RegisterState, formData: FormData): Promise<RegisterState> {
+  const { REGISTER_GENERIC_ERROR, CAPTCHA_ERROR, EMAIL_IN_USE_ERROR, t } = await authErrors();
   if (isHoneypotTripped(formData)) return { error: REGISTER_GENERIC_ERROR, redirectTo: null, needsConfirm: false };
 
   const name = ((formData.get("name") as string | null) ?? "").trim();
@@ -165,16 +175,17 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
   const password = (formData.get("password") as string | null) ?? "";
   const role = (formData.get("role") as string | null) === "client" ? "client" : "trainer";
   if (!name || !email || !password) {
-    return { error: "Vyplň všetky povinné polia.", redirectTo: null, needsConfirm: false };
+    return { error: t("fillRequired"), redirectTo: null, needsConfirm: false };
   }
   if (name.length > MAX_INPUT_LENGTH || email.length > MAX_INPUT_LENGTH || password.length > 1024) {
     return { error: REGISTER_GENERIC_ERROR, redirectTo: null, needsConfirm: false };
   }
 
   const pwCheck = checkPassword(password, [name, email.split("@")[0] ?? ""]);
+  const tp = await getTranslations("password");
   if (!pwCheck.ok) {
     return {
-      error: pwCheck.issues[0] ?? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla.",
+      error: pwCheck.issues[0] ? tp(`issue.${pwCheck.issues[0]}`) : tp("fallback"),
       redirectTo: null,
       needsConfirm: false,
     };
@@ -205,9 +216,9 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
     const msg = error.message.toLowerCase();
     return {
       error: msg.includes("rate limit")
-            ? "Priveľa registrácií za krátky čas z tejto adresy. Skús to o chvíľu znova."
+            ? t("registerRateLimit")
             : msg.includes("password")
-              ? "Heslo nespĺňa požiadavky — použi aspoň 8 znakov, kombinuj písmená a čísla."
+              ? (await getTranslations("password"))("fallback")
               : REGISTER_GENERIC_ERROR,
       redirectTo: null,
       needsConfirm: false,

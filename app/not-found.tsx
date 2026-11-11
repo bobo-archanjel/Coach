@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { LogoMark } from "./components/LogoMark";
 import styles from "./legal.module.css";
@@ -13,7 +14,8 @@ const ArrowIcon = () => (
  * jazyk ako landing/auth (tmavé pozadie, bar-rule, Inter), nie generická biela
  * stránka mimo brandu.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations("common");
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -29,9 +31,9 @@ export default function NotFound() {
             <span className="bar" />
           </div>
           <h1>404</h1>
-          <p>Táto stránka neexistuje alebo bola presunutá.</p>
+          <p>{t("notFound")}</p>
           <Link href="/" className="btn btn-primary">
-            Späť na úvod
+            {t("backHome")}
             <ArrowIcon />
           </Link>
         </div>

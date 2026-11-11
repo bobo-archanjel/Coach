@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { V6_THEME_COLOR, V6_THEME_COOKIE, type V6Theme } from "./theme";
 import s from "./themeSwitch.module.css";
@@ -27,10 +28,10 @@ const MoonIcon = () => (
   </svg>
 );
 
-const OPTIONS: { value: V6Theme; label: string; Icon: () => React.ReactElement }[] = [
-  { value: "auto", label: "Auto", Icon: AutoIcon },
-  { value: "light", label: "Svetlá", Icon: SunIcon },
-  { value: "dark", label: "Tmavá", Icon: MoonIcon },
+const OPTIONS: { value: V6Theme; Icon: () => React.ReactElement }[] = [
+  { value: "auto", Icon: AutoIcon },
+  { value: "light", Icon: SunIcon },
+  { value: "dark", Icon: MoonIcon },
 ];
 
 /** Farba stavového riadku — upraví existujúce meta značky (Next ich spravuje, nemazať). */
@@ -55,6 +56,7 @@ export function applyV6Theme(next: V6Theme) {
 /** Svetlá / Tmavá / Automaticky (podľa telefónu) — Nastavenia dashboardu, Profil portálu. */
 export function ThemeSwitch({ initial }: { initial: V6Theme }) {
   const [theme, setTheme] = useState<V6Theme>(initial);
+  const t = useTranslations("theme");
 
   const choose = (next: V6Theme) => {
     setTheme(next);
@@ -62,8 +64,8 @@ export function ThemeSwitch({ initial }: { initial: V6Theme }) {
   };
 
   return (
-    <div className={s.themeSeg} role="radiogroup" aria-label="Téma">
-      {OPTIONS.map(({ value, label, Icon }) => (
+    <div className={s.themeSeg} role="radiogroup" aria-label={t("group")}>
+      {OPTIONS.map(({ value, Icon }) => (
         <button
           key={value}
           type="button"
@@ -73,7 +75,7 @@ export function ThemeSwitch({ initial }: { initial: V6Theme }) {
           onClick={() => choose(value)}
         >
           <Icon />
-          {label}
+          {t(value)}
         </button>
       ))}
     </div>

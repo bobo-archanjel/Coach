@@ -6,6 +6,7 @@
 // (overené cez signInWithPassword) — ochrana proti zmene hesla cez ukradnutú/
 // odloženú session bez znalosti pôvodného hesla (rovnaký dôvod ako re-auth
 // pri citlivých akciách inde v appke).
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { checkPassword } from "@/lib/passwordStrength";
@@ -31,6 +32,7 @@ const EyeIcon = () => (
 );
 
 export function ChangePasswordForm({ email }: { email: string }) {
+  const t = useTranslations("password");
   const [supabase] = useState(() => createClient());
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -47,21 +49,21 @@ export function ChangePasswordForm({ email }: { email: string }) {
     const confirm = (form.elements.namedItem("confirm") as HTMLInputElement).value;
 
     if (!current) {
-      setError("Zadaj súčasné heslo.");
+      setError(t("change.currentRequired"));
       return;
     }
     const emailLocalPart = email.split("@")[0] ?? "";
     const pwCheck = checkPassword(next, [emailLocalPart]);
     if (!pwCheck.ok) {
-      setError(pwCheck.issues[0]);
+      setError(t(`issue.${pwCheck.issues[0]}`));
       return;
     }
     if (next !== confirm) {
-      setError("Nové heslá sa nezhodujú.");
+      setError(t("change.mismatch"));
       return;
     }
     if (next === current) {
-      setError("Nové heslo musí byť iné ako súčasné.");
+      setError(t("change.sameAsCurrent"));
       return;
     }
 
@@ -69,14 +71,14 @@ export function ChangePasswordForm({ email }: { email: string }) {
     const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: current });
     if (reauthError) {
       setStatus("idle");
-      setError("Súčasné heslo nie je správne.");
+      setError(t("change.currentWrong"));
       return;
     }
 
     const { error: updateError } = await supabase.auth.updateUser({ password: next });
     if (updateError) {
       setStatus("idle");
-      setError("Zmenu hesla sa nepodarilo uložiť. Skús to prosím znova.");
+      setError(t("change.failed"));
       return;
     }
 
@@ -88,7 +90,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
   return (
     <form className={styles.form} noValidate onSubmit={handleSubmit}>
       <div className={`${styles.field} ${styles.hasToggle}`}>
-        <label htmlFor="cp-current">Súčasné heslo</label>
+        <label htmlFor="cp-current">{t("change.current")}</label>
         <div className={styles.inputWrap}>
           <input
             id="cp-current"
@@ -101,7 +103,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
           <button
             type="button"
             className={styles.toggleVisibility}
-            aria-label={showCurrent ? "Skryť heslo" : "Zobraziť heslo"}
+            aria-label={showCurrent ? t("change.hide") : t("change.show")}
             onClick={() => setShowCurrent((v) => !v)}
           >
             <EyeIcon />
@@ -110,13 +112,13 @@ export function ChangePasswordForm({ email }: { email: string }) {
       </div>
 
       <div className={`${styles.field} ${styles.hasToggle}`}>
-        <label htmlFor="cp-next">Nové heslo</label>
+        <label htmlFor="cp-next">{t("change.new")}</label>
         <div className={styles.inputWrap}>
           <input
             id="cp-next"
             name="next"
             type={showNew ? "text" : "password"}
-            placeholder="min. 8 znakov"
+            placeholder={t("change.placeholder")}
             autoComplete="new-password"
             required
             minLength={8}
@@ -126,7 +128,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
           <button
             type="button"
             className={styles.toggleVisibility}
-            aria-label={showNew ? "Skryť heslo" : "Zobraziť heslo"}
+            aria-label={showNew ? t("change.hide") : t("change.show")}
             onClick={() => setShowNew((v) => !v)}
           >
             <EyeIcon />
@@ -135,17 +137,17 @@ export function ChangePasswordForm({ email }: { email: string }) {
         {newPassword ? (
           <PasswordRequirements password={newPassword} />
         ) : (
-          <span className={styles.fieldHint}>Aspoň 8 znakov, kombinuj písmená aj čísla.</span>
+          <span className={styles.fieldHint}>{t("change.hint")}</span>
         )}
       </div>
 
       <div className={styles.field}>
-        <label htmlFor="cp-confirm">Zopakuj nové heslo</label>
+        <label htmlFor="cp-confirm">{t("change.confirm")}</label>
         <input
           id="cp-confirm"
           name="confirm"
           type={showNew ? "text" : "password"}
-          placeholder="min. 8 znakov"
+          placeholder={t("change.placeholder")}
           autoComplete="new-password"
           required
           minLength={8}
@@ -154,13 +156,13 @@ export function ChangePasswordForm({ email }: { email: string }) {
 
       <button type="submit" className={styles.btnSubmit} disabled={status === "loading"}>
         {status === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-        <span>{status === "loading" ? "Ukladám…" : "Zmeniť heslo"}</span>
+        <span>{status === "loading" ? t("change.saving") : t("change.submit")}</span>
       </button>
 
       {status === "success" && (
         <div className={styles.status} role="status">
           <SuccessIcon />
-          Heslo bolo zmenené.
+          {t("change.done")}
         </div>
       )}
       {error && (
