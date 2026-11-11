@@ -81,20 +81,6 @@ function TemplatesIcon() {
   );
 }
 
-function SettingsIcon() {
-  return (
-    <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
-      <path
-        d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4M17.7 17.7l-1.4-1.4M7.7 7.7 6.3 6.3"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
@@ -102,13 +88,12 @@ const NAV_ITEMS = [
   { href: "/dashboard/kalendar", label: "Kalendár", Icon: CalendarIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/kalendar") },
   { href: "/dashboard/sablony", label: "Šablóny", Icon: TemplatesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/sablony") },
   { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
-  { href: "/dashboard/nastavenia", label: "Nastavenia", Icon: SettingsIcon, tour: "nav-nastavenia", match: (p: string) => p.startsWith("/dashboard/nastavenia") },
 ];
 
 /**
  * Navigácia trénera — rovnako ako klientsky portál: zvonček a avatar s iniciálou mena
  * (na mobile v hornej lište, na počítači avatar s menom dole v bočnom paneli). Avatar vedie
- * do Nastavení, kde je aj „Odhlásiť sa“.
+ * do Nastavení, kde je aj „Odhlásiť sa“ — Nastavenia preto nie sú medzi položkami menu.
  */
 export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCount?: number; displayName?: string | null }) {
   const pathname = usePathname();
@@ -156,6 +141,8 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
       <Link
         href="/dashboard/nastavenia"
         className={`${styles.sidebarUser} ${settingsActive ? styles.sidebarUserOn : ""}`}
+        data-tour="nav-nastavenia"
+        aria-current={settingsActive ? "page" : undefined}
         aria-label={`${displayName ?? "Účet"} — Nastavenia`}
       >
         <span className={styles.userAvatar} aria-hidden="true">
