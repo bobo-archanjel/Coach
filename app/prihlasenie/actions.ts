@@ -20,6 +20,8 @@
 // záznamy sa mažú po dni. Priamy prístup na Supabase Auth API tieto limity NEobchádza
 // len vďaka nastaveniam projektu — viď docs/security/SUPABASE_HARDENING.md.
 
+import { syncLocaleCookieFromProfile } from "@/lib/i18n/sync";
+import { getUserLocale } from "@/lib/i18n/server";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { after } from "next/server";
@@ -125,7 +127,11 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
     });
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+  const [{ data: profile }] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle(),
+    // jazyk účtu → cookie (feature/cestina), nech appka hovorí jazykom účtu aj na novom zariadení
+    syncLocaleCookieFromProfile(supabase, data.user.id),
+  ]);
 
   if (profile?.role === "client") {
     // Poistka: každý klient má mať vlastný `clients` riadok + kód (feature/registracia-update).
@@ -183,7 +189,8 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: name, role } },
+    // locale: jazyk profilu (0059, handle_new_user) aj potvrdzovacieho e-mailu (docs/email-templates)
+    options: { data: { full_name: name, role, locale: await getUserLocale() } },
   });
   // E-mail už má účet: s potvrdzovaním e-mailu Supabase nevráti chybu, ale „falošného“
   // používateľa bez identít (ochrana pred zisťovaním účtov) — appka by ukázala „skontroluj

@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
+import { ogLocale } from "@/lib/i18n/locales";
+import { MESSAGES } from "@/messages";
+import { clientMessages } from "@/lib/i18n/clientMessages";
 import { KeyboardState } from "./components/KeyboardState";
 import "./globals.css";
 
@@ -19,21 +24,24 @@ const inter = Inter({
 // prehliadači), nič viac netreba.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: { default: "FitPilot", template: "%s · FitPilot" },
-  description: "AI-native platforma pre fitness trénerov a ich klientov — tréning, výživa, komunikácia, rast.",
-  openGraph: {
-    siteName: "FitPilot",
-    locale: "sk_SK",
-    type: "website",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "FitPilot — tréning, výživa, AI kouč" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    images: ["/og-image.png"],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [locale, t] = await Promise.all([getLocale(), getTranslations("meta")]);
+  return {
+    metadataBase: new URL(siteUrl),
+    title: { default: "FitPilot", template: "%s · FitPilot" },
+    description: t("description"),
+    openGraph: {
+      siteName: "FitPilot",
+      locale: ogLocale(locale),
+      type: "website",
+      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: t("ogAlt") }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: ["/og-image.png"],
+    },
+  };
+}
 
 // viewportFit: "cover" umožňuje env(safe-area-inset-*) — potrebné pre fixnú
 // bottom tab bar na dashboarde (notch/home indicator na telefónoch).
@@ -45,15 +53,16 @@ export const viewport: Viewport = {
 
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   return (
     // suppressHydrationWarning: niektoré browser extensions (napr. prekladače) vkladajú
     // vlastné atribúty do <html> pred hydratáciou (napr. webcrx-bridged) — nie je to náš bug.
-    <html lang="sk" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         {/* --app-h = skutočná výška obrazovky (innerHeight) ešte pred prvým vykreslením —
             výška chatu na mobile (viď KeyboardState), bez poskočenia po načítaní. */}
@@ -64,7 +73,10 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.variable}>
-        {children}
+        {/* texty pre klientske komponenty (bez serverových — landing, právne stránky, PDF) */}
+        <NextIntlClientProvider locale={locale} messages={clientMessages(MESSAGES[locale])} timeZone="Europe/Bratislava">
+          {children}
+        </NextIntlClientProvider>
         <KeyboardState />
         {/* Plausible (feature/security#2) — cookieless, žiadne osobné údaje, preto
             bez cookie banneru. Načíta sa len keď je nastavená doména (env), nech appka

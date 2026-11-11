@@ -5,6 +5,7 @@ import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
 import { StickyMobileCta } from "./components/StickyMobileCta";
 import { ThemeToggle } from "./v6design/ThemeToggle";
+import { LanguageToggle } from "./v6design/LanguageToggle";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "./v6design/theme";
 import tokens from "./v6design/styles/tokens.module.css";
 import styles from "./page.module.css";
@@ -124,6 +125,7 @@ export default async function LandingPage() {
               Vyskúšať zadarmo
               <ArrowIcon />
             </Link>
+            <LanguageToggle />
             <ThemeToggle />
           </nav>
         </div>

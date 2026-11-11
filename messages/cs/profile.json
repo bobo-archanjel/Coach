@@ -1,0 +1,12 @@
+{
+  "title": "Profil",
+  "subtitle": "Kód pro trenéra, stav propojení a nastavení účtu.",
+  "appearance": "Vzhled",
+  "appearanceHint": "Auto přepíná světlý a tmavý motiv podle nastavení telefonu.",
+  "password": "Heslo",
+  "personal": "Osobní údaje",
+  "personalHint": "Věk, výšku, váhu, cíle a alergie z onboardingu si tu brzy doplníš — pak uvidíš i svůj pokrok v čase.",
+  "tour": "Průvodce",
+  "tourHint": "Krátký průvodce aplikací, kterého jsi viděl při prvním přihlášení.",
+  "tourRestart": "Spustit průvodce znovu"
+}
