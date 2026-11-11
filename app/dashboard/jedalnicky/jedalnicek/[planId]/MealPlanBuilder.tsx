@@ -14,6 +14,7 @@ import { MealSlotSection } from "@/app/components/food/MealSlotSection";
 import food from "@/app/components/food/food.module.css";
 import styles from "./builder.module.css";
 import dashStyles from "../../../dashboard.module.css";
+import { EmptyDayCard } from "@/app/components/EmptyDayCard";
 
 /** Riadok knižnice potravín (page.tsx: globálna knižnica + vlastné potraviny trénera). */
 export interface LibraryFood {
@@ -326,7 +327,7 @@ export function MealPlanBuilder({
               </div>
             </>
           ) : (
-            <p className={styles.emptyDay}>Vytvor prvý deň vyššie.</p>
+            <EmptyDayCard title="Zatiaľ žiadny deň" text="Pridaj prvý deň tlačidlom „+ deň“ vyššie." />
           )}
         </div>
       </div>

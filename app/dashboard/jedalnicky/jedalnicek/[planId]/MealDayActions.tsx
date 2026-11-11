@@ -91,8 +91,9 @@ export function MealDayActions({
     );
   }
 
+  // akcie aktívneho dňa vždy spolu v jednom riadku pod pilulkami dní
   return (
-    <>
+    <div className={styles.dayActionsRow}>
       <button
         type="button"
         className={styles.renameDayTab}
@@ -116,6 +117,6 @@ export function MealDayActions({
       <button type="button" className={styles.deleteDayTab} onClick={() => setMode("confirmingDelete")}>
         Zmazať deň
       </button>
-    </>
+    </div>
   );
 }

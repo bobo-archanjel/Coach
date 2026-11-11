@@ -175,7 +175,7 @@ test.describe("PlanBuilder bez dní (?preview=builder_empty)", () => {
     await expect(item).toBeEnabled();
     await item.click();
     await expect(page.getByText("Najprv pridaj tréningový deň.")).toBeVisible();
-    await expect(page.getByText("Vytvor prvý deň vyššie.")).toBeVisible();
+    await expect(page.getByText("Zatiaľ žiadny deň", { exact: true })).toBeVisible();
 
     expect(real(errs), real(errs).join("\n")).toEqual([]);
   });
