@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { dbErr } from "@/lib/dbError";
+import { MAX_PLAN_CLIENTS, areTrainerClients, uniqueClientIds } from "@/lib/planRecipients";
 
 /** Hodnoty formulára termínu — pri chybe sa vracajú späť, nech sa po validácii nevymažú polia. */
 export interface AppointmentFormValues {
   client_id: string;
+  /** nový termín — vybraní klienti (ClientMultiSelect posiela viac polí `client_id`) */
+  client_ids?: string[];
   title: string;
   date: string;
   time: string;
@@ -37,8 +40,10 @@ function bratislavaToUtcIso(dateStr: string, timeStr: string): string {
 
 function readValues(formData: FormData): AppointmentFormValues {
   const str = (k: string) => ((formData.get(k) as string | null) ?? "").trim();
+  const clientIds = uniqueClientIds(formData.getAll("client_id"));
   return {
-    client_id: str("client_id"),
+    client_id: clientIds[0] ?? "",
+    client_ids: clientIds,
     title: str("title"),
     date: str("date"),
     time: str("time"),
@@ -90,11 +95,19 @@ export async function createAppointmentAction(_prevState: ActionState, formData:
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nie si prihlásený." };
 
+  // Nový termín môže byť pre viacerých klientov naraz (rovnako ako tréningový plán) —
+  // každý dostane vlastný riadok s rovnakým časom, názvom a poznámkou.
   const values = readValues(formData);
+  const clientIds = values.client_ids ?? [];
+  if (clientIds.length === 0) return { error: "Vyber aspoň jedného klienta.", values };
+  if (clientIds.length > MAX_PLAN_CLIENTS) return { error: `Naraz najviac ${MAX_PLAN_CLIENTS} klientov.`, values };
+  if (!(await areTrainerClients(supabase, user.id, clientIds))) return { error: "Niektorý z klientov nepatrí tebe.", values };
+
   const checked = await validateAppointment(supabase, user.id, values);
   if ("error" in checked) return { error: checked.error, values };
 
-  const { error } = await supabase.from("appointments").insert({ trainer_id: user.id, ...checked.row });
+  const rows = clientIds.map((client_id) => ({ trainer_id: user.id, ...checked.row, client_id }));
+  const { error } = await supabase.from("appointments").insert(rows);
   if (error) return { error: dbErr(error, "actions"), values };
 
   revalidatePath("/dashboard/kalendar");

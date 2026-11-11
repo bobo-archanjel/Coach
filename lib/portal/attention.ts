@@ -24,7 +24,7 @@ export function isValidClientDismissKey(key: unknown): key is string {
 }
 
 /** Termín sa stáva "upozornením" (nie len pasívnou kartou na Dnes) od tohto počtu hodín vopred. */
-export const APPOINTMENT_REMINDER_HOURS = 48;
+export const APPOINTMENT_REMINDER_HOURS = 24; // deň vopred (rovnako ako u trénera)
 /**
  * Plán/jedálniček sa počíta ako "nový" len do tohto počtu dní od vytvorenia —
  * BEZ tohto okna by pri prvom nasadení tejto featury vyskočili ako "nové"

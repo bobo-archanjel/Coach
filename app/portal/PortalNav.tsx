@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogoMark } from "@/app/components/LogoMark";
 import { NavLinkPendingSignal } from "@/app/components/NavigationProgress";
 import { NotificationBellSlot } from "./NotificationBell";
-import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon, ProfileIcon } from "@/app/portal/icons";
+import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon } from "@/app/portal/icons";
 import s from "./portal.module.css";
 
 const BASE = "/portal";
@@ -20,7 +20,6 @@ const NAV_ITEMS = [
   { href: `${BASE}/chat`, label: "Chat", Icon: ChatIcon, tour: "nav-chat", match: (p: string) => p.startsWith(`${BASE}/chat`) },
   // AI Kouč len pre klientov s prideleným trénerom — viď aiKoucVisible nižšie.
   { href: `${BASE}/ai-kouc`, label: "AI Kouč", Icon: AiIcon, tour: null, match: (p: string) => p.startsWith(`${BASE}/ai-kouc`) },
-  { href: `${BASE}/profil`, label: "Profil", Icon: ProfileIcon, tour: "nav-profil", match: (p: string) => p.startsWith(`${BASE}/profil`) },
 ];
 
 /**
@@ -93,6 +92,8 @@ export function PortalNav({
       <Link
         href={`${BASE}/profil`}
         className={`${s.v6SideUser} ${pathname.startsWith(`${BASE}/profil`) ? s.v6SideUserOn : ""}`}
+        data-tour="nav-profil"
+        aria-current={pathname.startsWith(`${BASE}/profil`) ? "page" : undefined}
       >
         <span className={s.v6SideAvatar} aria-hidden="true">
           {displayName?.trim().charAt(0).toUpperCase() || "?"}

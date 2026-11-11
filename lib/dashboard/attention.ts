@@ -23,8 +23,12 @@ export const ONBOARDING_DISMISS_KEY = "onboarding";
 
 export const lateDismissKey = (clientId: string, since: string) => `late:${clientId}:${since}`;
 export const digestDismissKey = (weekStart: string) => `digest:${weekStart}`;
+export const apptDismissKey = (appointmentId: string) => `appt:${appointmentId}`;
 
-const KEY_PATTERN = /^(late:[\w-]{1,64}:\d{4}-\d{2}-\d{2}|digest:\d{4}-\d{2}-\d{2}|onboarding)$/;
+/** Termín sa ukáže vo zvončeku trénera (aj klienta) deň vopred — od tohto počtu hodín pred začiatkom. */
+export const APPOINTMENT_REMINDER_HOURS = 24;
+
+const KEY_PATTERN = /^(late:[\w-]{1,64}:\d{4}-\d{2}-\d{2}|digest:\d{4}-\d{2}-\d{2}|appt:[\w-]{1,64}|onboarding)$/;
 /** Server action neprijme ľubovoľný reťazec — len kľúče v tvare, ktorý vyrábajú funkcie vyššie. */
 export function isValidDismissKey(key: unknown): key is string {
   return typeof key === "string" && key.length <= 120 && KEY_PATTERN.test(key);
@@ -38,9 +42,30 @@ export interface AttentionLateClient {
   key: string;
 }
 
+/** Klient s neprečítanými správami (meno namiesto „od klientov“ vo zvončeku). */
+export interface AttentionUnreadClient {
+  id: string;
+  name: string;
+  count: number;
+}
+
+/** Termín trénera do APPOINTMENT_REMINDER_HOURS hodín. */
+export interface AttentionAppointment {
+  id: string;
+  clientName: string;
+  title: string;
+  startsAt: string;
+  /** kľúč skrytia (apptDismissKey) */
+  key: string;
+}
+
 export interface AttentionData {
   /** neprečítané správy od klientov */
   unread: number;
+  /** rozpis neprečítaných správ po klientoch (najviac správ prvý); bez neho všeobecný text */
+  unreadByClient?: AttentionUnreadClient[];
+  /** blížiace sa termíny (do APPOINTMENT_REMINDER_HOURS hodín), najbližší prvý */
+  appointments?: AttentionAppointment[];
   /** meškajúci klienti (aktívni, ≥ LATE_THRESHOLD_DAYS bez tréningu), najdlhšie meškajúci prvý */
   late: AttentionLateClient[];
   /** týždenné zhoršenie portfolio-health (najväčšia skupina), null = nič / ešte málo snapshotov */
@@ -51,6 +76,8 @@ export interface AttentionData {
 export function applyDismissals(data: AttentionData, dismissed: ReadonlySet<string>): AttentionData {
   return {
     unread: data.unread,
+    unreadByClient: data.unreadByClient,
+    appointments: data.appointments?.filter((a) => !dismissed.has(a.key)),
     late: data.late.filter((c) => !dismissed.has(c.key)),
     digest: data.digest && !dismissed.has(data.digest.key) ? data.digest : null,
   };
@@ -65,7 +92,7 @@ export interface AttentionLink {
 }
 
 export interface AttentionItem {
-  id: "messages" | "late" | "digest";
+  id: "messages" | "appointments" | "late" | "digest";
   tone: "alert" | "watch";
   title: string;
   /** null = nadpis nie je odkaz (klikateľné sú len podpoložky, napr. konkrétni meškajúci klienti) */
@@ -81,15 +108,27 @@ export interface AttentionItem {
 /** Koľko konkrétnych klientov sa vypíše pod položkou "meškajú"; zvyšok je "a ďalší N". */
 const MAX_LINKS = 4;
 
+/** „št 13. 11. 14:00“ — čas termínu v zóne Europe/Bratislava. */
+function formatApptWhen(startsAt: string): string {
+  return new Date(startsAt).toLocaleString("sk-SK", {
+    weekday: "short",
+    day: "numeric",
+    month: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Bratislava",
+  });
+}
+
 function plural(n: number, one: string, few: string, many: string): string {
   if (n === 1) return one;
   if (n >= 2 && n <= 4) return few;
   return many;
 }
 
-/** Počet na odznaku zvončeka: neprečítané správy + meškajúci klienti + klienti so zhoršením. */
+/** Počet na odznaku zvončeka: neprečítané správy + blížiace sa termíny + meškajúci klienti + klienti so zhoršením. */
 export function attentionTotal(data: AttentionData): number {
-  return data.unread + data.late.length + (data.digest?.count ?? 0);
+  return data.unread + (data.appointments?.length ?? 0) + data.late.length + (data.digest?.count ?? 0);
 }
 
 /**
@@ -101,14 +140,75 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
   const items: AttentionItem[] = [];
 
   if (data.unread > 0) {
+    const msgs = (n: number) => `${n} ${plural(n, "neprečítaná správa", "neprečítané správy", "neprečítaných správ")}`;
+    const byClient = data.unreadByClient ?? [];
+    const threadHref = (clientId: string) => `/dashboard/spravy?client=${encodeURIComponent(clientId)}`;
+    if (byClient.length === 1) {
+      // jeden klient → jeho meno v nadpise a odkaz rovno do jeho vlákna
+      items.push({
+        id: "messages",
+        tone: "alert",
+        title: `${msgs(data.unread)} od ${byClient[0].name}`,
+        href: threadHref(byClient[0].id),
+        links: [],
+        markRead: true,
+        dismiss: null,
+      });
+    } else if (byClient.length > 1) {
+      const shown = byClient.slice(0, MAX_LINKS);
+      const links: AttentionLink[] = shown.map((c) => ({
+        label: c.name,
+        meta: `${c.count} ${plural(c.count, "správa", "správy", "správ")}`,
+        href: threadHref(c.id),
+      }));
+      if (byClient.length > shown.length) {
+        links.push({ label: `a ďalší ${byClient.length - shown.length}`, meta: "", href: "/dashboard/spravy" });
+      }
+      items.push({
+        id: "messages",
+        tone: "alert",
+        title: msgs(data.unread),
+        href: "/dashboard/spravy",
+        links,
+        markRead: true,
+        dismiss: null,
+      });
+    } else {
+      items.push({
+        id: "messages",
+        tone: "alert",
+        title: `${msgs(data.unread)} od klientov`,
+        href: "/dashboard/spravy",
+        links: [],
+        markRead: true,
+        dismiss: null,
+      });
+    }
+  }
+
+  const appts = data.appointments ?? [];
+  if (appts.length > 0) {
+    const shown = appts.slice(0, MAX_LINKS);
+    const links: AttentionLink[] = shown.map((a) => ({
+      label: a.clientName,
+      // názov len ak ho tréner zadal (bez neho je v DB predvolený „Termín“)
+      meta: a.title && a.title !== "Termín" ? `${formatApptWhen(a.startsAt)} · ${a.title}` : formatApptWhen(a.startsAt),
+      href: "/dashboard/kalendar",
+      dismissKey: a.key,
+    }));
+    if (appts.length > shown.length) {
+      links.push({ label: `a ďalší ${appts.length - shown.length}`, meta: "", href: "/dashboard/kalendar" });
+    }
     items.push({
-      id: "messages",
+      id: "appointments",
       tone: "alert",
-      title: `${data.unread} ${plural(data.unread, "neprečítaná správa", "neprečítané správy", "neprečítaných správ")} od klientov`,
-      href: "/dashboard/spravy",
-      links: [],
-      markRead: true,
-      dismiss: null,
+      // rovnaký text ako vo zvončeku klienta (lib/portal/attention.ts)
+      title: `${appts.length} ${plural(appts.length, "blížiaci sa termín", "blížiace sa termíny", "blížiacich sa termínov")}`,
+      href: null,
+      links,
+      markRead: false,
+      // termín po čase sám zmizne (prejde), skrytie platí natrvalo
+      dismiss: { keys: appts.map((a) => a.key), days: null },
     });
   }
 

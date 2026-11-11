@@ -9,6 +9,7 @@ import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
 import b from "./builder.module.css";
 import styles from "../portal.module.css";
+import { EmptyDayCard } from "@/app/components/EmptyDayCard";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -433,7 +434,8 @@ export function ClientPlanBuilder({
                   </div>
                 </div>
               ) : (
-                <>
+                // akcie aktívneho dňa vždy spolu v jednom riadku pod pilulkami dní
+                <div className={b.dayActionsRow}>
                   <button
                     type="button"
                     className={b.dayActionTab}
@@ -461,7 +463,7 @@ export function ClientPlanBuilder({
                   <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
                     Zmazať deň
                   </button>
-                </>
+                </div>
               ))}
           </div>
 
@@ -534,13 +536,10 @@ export function ClientPlanBuilder({
                   ),
                 )
               ) : (
-                <p className={b.emptyDay}>
-                  Zatiaľ žiadne cviky — klikni na cvik v knižnici, pridá sa sem s defaultnými hodnotami, ktoré si hneď
-                  upravíš.
-                </p>
+                <EmptyDayCard title="Zatiaľ žiadne cviky" tip={{ title: "Ako pridať cvik", text: "Klikni na cvik v knižnici — pridá sa sem s predvolenými hodnotami, ktoré si hneď upravíš." }} />
               )
             ) : (
-              <p className={b.emptyDay}>Vytvor prvý deň vyššie.</p>
+              <EmptyDayCard title="Zatiaľ žiadny deň" text="Pridaj prvý deň tlačidlom „+ deň“ vyššie." />
             )}
           </div>
         </div>

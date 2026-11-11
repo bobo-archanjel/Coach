@@ -1,0 +1,37 @@
+/* Prázdny stav dňa v builderi (EmptyDayCard) — dizajn v6. Na počítači je vo vnútri
+   sklenenej karty panela dňa, preto len tlmená plocha s prerušovaným rámikom; na mobile
+   panel kartu nemá, preto sklenená karta. */
+.card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 20px;
+  border: 1px dashed var(--fill-strong);
+  border-radius: 22px;
+  background: var(--fill);
+  text-align: center;
+}
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+}
+.text {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+@media (max-width: 760px) {
+  .card {
+    border: 1px solid var(--surface-border);
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
+  }
+}

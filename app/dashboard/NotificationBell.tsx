@@ -195,7 +195,8 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   // a efekt na pathname by nebežal — vtedy rovno cez dismiss().
   const dismissOnOpen = useCallback(
     (href: string, keys: string[], days: number | null) => {
-      if (href === pathname) {
+      // odkaz na tú istú stránku (iný query reťazec) trasu nezmení — skryť hneď
+      if (href.split("?")[0] === pathname) {
         dismiss(keys, days);
         return;
       }
@@ -260,6 +261,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                     <Link
                       href={item.href}
                       className={`${styles.bellItemMain} ${item.tone === "alert" ? styles.bellToneAlert : styles.bellToneWatch}`}
+                      onClick={() => setOpenAt(null)}
                     >
                       {item.title}
                     </Link>
@@ -287,12 +289,16 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                 {item.links.length > 0 && (
                   <ul className={styles.bellLinks}>
                     {item.links.map((l) => (
-                      <li key={l.href + l.label}>
+                      // dismissKey je unikátny (napr. dva termíny toho istého klienta majú rovnaký odkaz aj meno)
+                      <li key={l.dismissKey ?? l.href + l.label}>
                         <Link
                           href={l.href}
                           // Otvorením klienta tréner upozornenie "vybavil" — skryje sa rovnako
                           // ako cez ×, t. j. na pár dní a vráti sa, ak klient stále mešká.
-                          onClick={l.dismissKey ? () => dismissOnOpen(l.href, [l.dismissKey!], item.dismiss?.days ?? null) : undefined}
+                          onClick={() => {
+                            if (l.dismissKey) dismissOnOpen(l.href, [l.dismissKey], item.dismiss?.days ?? null);
+                            setOpenAt(null);
+                          }}
                         >
                           {l.label}
                         </Link>
@@ -301,8 +307,8 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                           <button
                             type="button"
                             className={styles.bellX}
-                            aria-label={`Skryť ${l.label} na ${item.dismiss?.days ?? 7} dní`}
-                            title="Skryť na 7 dní"
+                            aria-label={item.dismiss?.days ? `Skryť ${l.label} na ${item.dismiss.days} dní` : `Skryť ${l.label}`}
+                            title={item.dismiss?.days ? `Skryť na ${item.dismiss.days} dní` : "Skryť"}
                             onClick={() => dismiss([l.dismissKey!], item.dismiss?.days ?? null)}
                           >
                             ×
