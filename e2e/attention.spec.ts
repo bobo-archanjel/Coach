@@ -8,6 +8,7 @@ import {
   lateDismissKey,
   DISMISS_LATE_DAYS,
   ONBOARDING_DISMISS_KEY,
+  apptDismissKey,
   type AttentionData,
 } from "../lib/dashboard/attention";
 
@@ -53,6 +54,50 @@ test("skloňovanie neprečítaných správ", () => {
   expect(title(1)).toBe("1 neprečítaná správa od klientov");
   expect(title(3)).toBe("3 neprečítané správy od klientov");
   expect(title(5)).toBe("5 neprečítaných správ od klientov");
+});
+
+test("správy od jedného klienta: jeho meno v nadpise, odkaz do jeho vlákna", () => {
+  const [item] = buildAttentionItems({ ...EMPTY, unread: 2, unreadByClient: [{ id: "c1", name: "Lucia K.", count: 2 }] });
+  expect(item.title).toBe("2 neprečítané správy od Lucia K.");
+  expect(item.href).toBe("/dashboard/spravy?client=c1");
+  expect(item.links).toEqual([]);
+});
+
+test("správy od viacerých klientov: súčet v nadpise, mená s počtom pod ním (max 4 + „a ďalší“)", () => {
+  const byClient = Array.from({ length: 6 }, (_, i) => ({ id: `c${i}`, name: `Klient ${i}`, count: 6 - i }));
+  const [item] = buildAttentionItems({ ...EMPTY, unread: 21, unreadByClient: byClient });
+  expect(item.title).toBe("21 neprečítaných správ");
+  expect(item.href).toBe("/dashboard/spravy");
+  expect(item.links.slice(0, 4)).toEqual([
+    { label: "Klient 0", meta: "6 správ", href: "/dashboard/spravy?client=c0" },
+    { label: "Klient 1", meta: "5 správ", href: "/dashboard/spravy?client=c1" },
+    { label: "Klient 2", meta: "4 správy", href: "/dashboard/spravy?client=c2" },
+    { label: "Klient 3", meta: "3 správy", href: "/dashboard/spravy?client=c3" },
+  ]);
+  expect(item.links[4]).toEqual({ label: "a ďalší 2", meta: "", href: "/dashboard/spravy" });
+  expect(item.markRead).toBe(true);
+});
+
+test("termíny do 24 h: po správach, meno klienta, čas a názov, skrytie natrvalo", () => {
+  const appts = [
+    { id: "a1", clientName: "Lucia K.", title: "Konzultácia", startsAt: "2026-11-12T13:00:00Z", key: apptDismissKey("a1") },
+    { id: "a2", clientName: "Peter M.", title: "Termín", startsAt: "2026-11-12T15:30:00Z", key: apptDismissKey("a2") },
+  ];
+  const items = buildAttentionItems({ ...EMPTY, unread: 1, late: late(1), appointments: appts });
+  expect(items.map((i) => i.id)).toEqual(["messages", "appointments", "late"]);
+  const appt = items[1];
+  expect(appt.title).toBe("2 blížiace sa termíny");
+  expect(appt.href).toBeNull();
+  expect(appt.links.map((l) => [l.label, l.href, l.dismissKey])).toEqual([
+    ["Lucia K.", "/dashboard/kalendar", "appt:a1"],
+    ["Peter M.", "/dashboard/kalendar", "appt:a2"],
+  ]);
+  // čas v zóne Bratislava (13:00 UTC = 14:00 SEČ), názov len ak ho tréner zadal
+  expect(appt.links[0].meta).toMatch(/14:00 · Konzultácia$/);
+  expect(appt.links[1].meta).toMatch(/16:30$/);
+  expect(appt.dismiss).toEqual({ keys: ["appt:a1", "appt:a2"], days: null });
+  expect(buildAttentionItems({ ...EMPTY, appointments: appts.slice(0, 1) })[0].title).toBe("1 blížiaci sa termín");
+  expect(attentionTotal({ ...EMPTY, unread: 1, appointments: appts })).toBe(3);
 });
 
 test("skloňovanie meškajúcich klientov (1 mešká / 2–4 meškajú / 5+ mešká)", () => {
@@ -133,6 +178,15 @@ test.describe("skrývanie", () => {
   test("skrytie zahŕňa aj klientov za orezaným zoznamom (nie len tých 4 zobrazených)", () => {
     const [item] = buildAttentionItems({ ...EMPTY, late: late(7) });
     expect(item.dismiss?.keys).toHaveLength(7);
+  });
+
+  test("skrytý termín zmizne zo zvončeka aj z odznaku", () => {
+    const appt = (id: string) => ({ id, clientName: "A", title: "Termín", startsAt: "2026-11-12T13:00:00Z", key: apptDismissKey(id) });
+    const filtered = applyDismissals({ ...EMPTY, appointments: [appt("a1"), appt("a2")] }, new Set(["appt:a1"]));
+    expect(filtered.appointments?.map((a) => a.id)).toEqual(["a2"]);
+    expect(attentionTotal(filtered)).toBe(1);
+    expect(isValidDismissKey(apptDismissKey("3f2b8c1e-0000-4000-8000-123456789abc"))).toBe(true);
+    expect(isValidDismissKey("appt:")).toBe(false);
   });
 
   test("validácia kľúčov: len tvary, ktoré vyrába appka", () => {

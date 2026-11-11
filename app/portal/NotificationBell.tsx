@@ -299,7 +299,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                 {item.links.length > 0 && (
                   <ul className={styles.bellLinks}>
                     {item.links.map((l) => (
-                      <li key={l.href + l.label}>
+                      <li key={l.dismissKey ?? l.href + l.label}>
                         <Link
                           href={l.href}
                           onClick={() => {
