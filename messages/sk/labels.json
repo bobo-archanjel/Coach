@@ -1,5 +1,8 @@
 {
-  "sex": { "muz": "Muž", "zena": "Žena" },
+  "sex": {
+    "muz": "Muž",
+    "zena": "Žena"
+  },
   "activity": {
     "sedavy": "Sedavý (kancelária, žiadny šport)",
     "lahka": "Ľahká aktivita (1–3× týždenne)",
@@ -7,15 +10,65 @@
     "vysoka": "Vysoká aktivita (6–7× týždenne)",
     "velmi_vysoka": "Veľmi vysoká (fyzická práca + šport)"
   },
-  "goal": { "chudnutie": "Chudnutie", "udrzanie": "Udržanie", "naberanie": "Naberanie" },
-  "planGoal": { "chudnutie": "Chudnutie", "hypertrofia": "Hypertrofia", "sila": "Sila", "kondicia": "Kondícia" },
-  "mealSlot": { "ranajky": "Raňajky", "desiata": "Desiata", "obed": "Obed", "olovrant": "Olovrant", "vecera": "Večera", "ine": "Iné" },
-  "muscle": { "hrudnik": "Hrudník", "chrbat": "Chrbát", "ramena": "Ramená", "ruky": "Ruky", "nohy": "Nohy", "zadok": "Zadok", "brucho": "Brucho" },
-  "equipment": { "len_telo": "Len telo", "domace_vybavenie": "Domáce vybavenie", "plna_posilnovna": "Posilňovňa" },
+  "goal": {
+    "chudnutie": "Chudnutie",
+    "udrzanie": "Udržanie",
+    "naberanie": "Naberanie"
+  },
+  "planGoal": {
+    "chudnutie": "Chudnutie",
+    "hypertrofia": "Hypertrofia",
+    "sila": "Sila",
+    "kondicia": "Kondícia"
+  },
+  "mealSlot": {
+    "ranajky": "Raňajky",
+    "desiata": "Desiata",
+    "obed": "Obed",
+    "olovrant": "Olovrant",
+    "vecera": "Večera",
+    "ine": "Iné"
+  },
+  "muscle": {
+    "hrudnik": "Hrudník",
+    "chrbat": "Chrbát",
+    "ramena": "Ramená",
+    "ruky": "Ruky",
+    "nohy": "Nohy",
+    "zadok": "Zadok",
+    "brucho": "Brucho"
+  },
+  "equipment": {
+    "len_telo": "Len telo",
+    "domace_vybavenie": "Domáce vybavenie",
+    "plna_posilnovna": "Posilňovňa"
+  },
   "setInput": {
     "repsInteger": "Opakovania zadaj ako celé číslo.",
     "repsMax": "Najviac {max} opakovaní.",
     "weightNumber": "Váhu zadaj ako číslo, napr. 62,5.",
     "weightMax": "Najviac {max} kg."
+  },
+  "dayCategory": {
+    "push": "Tlak (Push)",
+    "pull": "Ťah (Pull)",
+    "legs": "Nohy",
+    "upper": "Horná časť tela",
+    "lower": "Dolná časť tela",
+    "fullbody": "Celé telo",
+    "arms": "Ruky",
+    "chest": "Hrudník",
+    "back": "Chrbát",
+    "shoulders": "Ramená"
+  },
+  "wholeFocus": {
+    "vyvazene": "Vyvážene",
+    "horna": "Viac horná časť tela",
+    "dolna": "Viac dolná časť tela (zadok)"
+  },
+  "experience": {
+    "zaciatocnik": "Začiatočník",
+    "stredne_pokrocily": "Stredne pokročilý",
+    "pokrocily": "Pokročilý"
   }
 }

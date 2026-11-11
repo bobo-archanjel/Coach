@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { renameDayAction } from "../actions";
 import styles from "./builder.module.css";
@@ -20,6 +21,7 @@ export function RenameDayForm({
   name: string;
   onClose: () => void;
 }) {
+  const t = useTranslations("plans.builder");
   const [value, setValue] = useState(name);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -38,7 +40,7 @@ export function RenameDayForm({
       onSubmit={(e) => {
         e.preventDefault();
         const trimmed = value.trim();
-        if (!trimmed) return setError("Zadaj názov dňa.");
+        if (!trimmed) return setError(t("dayNameRequired"));
         if (trimmed === name) return onClose();
         setError(null);
         startTransition(async () => {
@@ -51,17 +53,17 @@ export function RenameDayForm({
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        aria-label="Názov dňa"
+        aria-label={t("dayName")}
         maxLength={120}
         className={styles.addDayInput}
         disabled={pending}
         autoFocus
       />
       <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-        {pending ? "Ukladám…" : "Hotovo"}
+        {pending ? t("saving") : t("done")}
       </button>
       <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} disabled={pending}>
-        Zrušiť
+        {t("cancel")}
       </button>
       {error && <p className={styles.formError}>{error}</p>}
     </form>

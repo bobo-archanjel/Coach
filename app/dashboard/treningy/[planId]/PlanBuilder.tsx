@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
@@ -31,6 +32,7 @@ export function PlanBuilder({
   /** dni, z ktorých klient už odcvičil tréning (plan_snapshot.day_id, 0048) */
   completedDayIds?: string[];
 }) {
+  const t = useTranslations("plans.builder");
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
   // „Premenovať“ otvorený pre aktívny deň — prepnutie dňa ho zavrie
   const [renaming, setRenaming] = useState(false);
@@ -119,7 +121,7 @@ export function PlanBuilder({
               // akcie aktívneho dňa vždy spolu v jednom riadku pod pilulkami dní
               <div className={styles.dayActionsRow}>
                 <button type="button" className={styles.dayActionTab} onClick={() => setRenaming(true)}>
-                  Premenovať
+                  {t("rename")}
                 </button>
                 <DuplicateDayButton
                   key={`dup-${activeDay.id}`}
@@ -159,10 +161,10 @@ export function PlanBuilder({
                 />
               ))
             ) : (
-              <EmptyDayCard title="Zatiaľ žiadne cviky" tip={{ title: "Ako pridať cvik", text: "Klikni na cvik v knižnici — pridá sa sem s predvolenými hodnotami, ktoré si hneď upravíš." }} />
+              <EmptyDayCard title={t("noExercises")} tip={{ title: t("howToAdd"), text: t("howToAddText") }} />
             )
           ) : (
-            <EmptyDayCard title="Zatiaľ žiadny deň" text="Pridaj prvý deň tlačidlom „+ deň“ vyššie." />
+            <EmptyDayCard title={t("noDays")} text={t("noDaysText")} />
           )}
         </div>
       </div>

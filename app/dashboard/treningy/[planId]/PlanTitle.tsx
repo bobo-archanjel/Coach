@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { renamePlanAction, type ActionState } from "../actions";
 import styles from "../../dashboard.module.css";
@@ -26,6 +27,7 @@ export function PlanTitle({
   name: string;
   rename?: (planId: string, name: string) => Promise<ActionState>;
 }) {
+  const t = useTranslations("plans.builder");
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name);
   const [shown, setShown] = useState(name);
@@ -74,8 +76,8 @@ export function PlanTitle({
           type="button"
           className={styles.planTitleEdit}
           onClick={() => setEditing(true)}
-          aria-label="Upraviť názov plánu"
-          title="Upraviť názov plánu"
+          aria-label={t("editPlanName")}
+          title={t("editPlanName")}
         >
           <PencilIcon />
         </button>
@@ -94,7 +96,7 @@ export function PlanTitle({
       <input
         ref={inputRef}
         type="text"
-        aria-label="Názov plánu"
+        aria-label={t("planName")}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
@@ -106,10 +108,10 @@ export function PlanTitle({
       />
       <div className={styles.templateGrid}>
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? "Ukladám…" : "Uložiť"}
+          {pending ? t("saving") : t("save")}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={cancel} disabled={pending}>
-          Zrušiť
+          {t("cancel")}
         </button>
         {error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{error}</p>}
       </div>

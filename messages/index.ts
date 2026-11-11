@@ -23,6 +23,7 @@ import skErrors from "./sk/errors.json";
 import skClients from "./sk/clients.json";
 import skClientDetail from "./sk/clientDetail.json";
 import skLabels from "./sk/labels.json";
+import skPlans from "./sk/plans.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -43,6 +44,7 @@ import csErrors from "./cs/errors.json";
 import csClients from "./cs/clients.json";
 import csClientDetail from "./cs/clientDetail.json";
 import csLabels from "./cs/labels.json";
+import csPlans from "./cs/plans.json";
 
 export const sk = {
   common: skCommon,
@@ -64,6 +66,7 @@ export const sk = {
   clients: skClients,
   clientDetail: skClientDetail,
   labels: skLabels,
+  plans: skPlans,
 };
 
 export type Messages = typeof sk;
@@ -88,6 +91,7 @@ export const cs: Messages = {
   clients: csClients,
   clientDetail: csClientDetail,
   labels: csLabels,
+  plans: csPlans,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };

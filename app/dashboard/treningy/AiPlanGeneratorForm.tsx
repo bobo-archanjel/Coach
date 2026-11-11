@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState, useTransition, type FormEvent } from "react";
 import { ThinkingOrb } from "thinking-orbs";
 import { AppLink as Link } from "../../components/AppLink";
@@ -14,12 +15,9 @@ import {
 import {
   type PlanFocus,
   DAY_CATEGORIES,
-  DAY_CATEGORY_LABEL_SK,
-  WHOLE_PLAN_FOCUS_LABEL_SK,
   isSingleDayFocus,
 } from "@/lib/ai/planCategories";
 import { defaultFocusForSex } from "@/lib/ai/planClientContext";
-import { pluralSk } from "@/lib/portal/streak";
 import { InfoTip } from "@/app/components/InfoTip";
 import { ClientMultiSelect } from "../ClientMultiSelect";
 import styles from "../dashboard.module.css";
@@ -29,12 +27,6 @@ const initialState: ActionState = { error: null };
 /** Psychológia spinnerov (feature/navod) — rotujúci text namiesto statického
  * "Generujem…", zobrazí sa až po ~500ms (useLoadingMessage), takže rýchla
  * odpoveď nikdy nestihne mihnúť loading chrome. */
-const AI_GENERATING_MESSAGES = [
-  "Premýšľam nad plánom…",
-  "Vyberám cviky z knižnice…",
-  "Skladám dni dokopy…",
-  "Ešte chvíľu, dolaďujem to…",
-];
 
 type ClientOption = { id: string; full_name: string; sex: "muz" | "zena" | null };
 /** „auto“ = zameranie podľa pohlavia každého klienta zvlášť (len pri viacerých klientoch) */
@@ -58,7 +50,9 @@ interface Batch {
 
 export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
   const [state, formAction, singlePending] = useActionState(generatePlanWithAiAction, initialState);
-  const loadingMessage = useLoadingMessage(singlePending, AI_GENERATING_MESSAGES);
+  const t = useTranslations("plans.ai");
+  const tl = useTranslations("labels");
+  const loadingMessage = useLoadingMessage(singlePending, [t("msg1"), t("msg2"), t("msg3"), t("msg4")]);
   const [batchPending, startBatch] = useTransition();
   const [selected, setSelected] = useState<string[]>(() => (clients.length === 1 ? [clients[0].id] : []));
   const [missingClient, setMissingClient] = useState(false);
@@ -73,10 +67,10 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
   const singleDay = focus !== "auto" && isSingleDayFocus(focus);
 
   if (clients.length === 0) {
-    return <p className={styles.noWorkouts}>Najprv pridaj klienta na stránke Klienti.</p>;
+    return <p className={styles.noWorkouts}>{t("noClients")}</p>;
   }
 
-  const nameOf = (id: string) => clients.find((c) => c.id === id)?.full_name ?? "Klient";
+  const nameOf = (id: string) => clients.find((c) => c.id === id)?.full_name ?? t("clientFallback");
 
   function onSelectionChange(ids: string[]) {
     setSelected(ids);
@@ -98,7 +92,7 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
         try {
           res = await generateAiPlanForClientAction(params, clientId);
         } catch {
-          res = { error: "Spojenie so serverom zlyhalo.", planId: null, warnings: [] };
+          res = { error: t("connectionFailed"), planId: null, warnings: [] };
         }
         items.push({ ...res, clientId, name: nameOf(clientId) });
         setBatch((b) => b && { ...b, items: [...items] });
@@ -127,16 +121,18 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
 
   const count = selected.length;
   const submitLabel = multi
-    ? `${singleDay ? "Navrhnúť tréning" : "Navrhnúť plány"} pre ${count} ${pluralSk(count, "klienta", "klientov", "klientov")}`
+    ? singleDay
+      ? t("submitMultiDay", { count })
+      : t("submitMultiPlan", { count })
     : singleDay
-      ? "Navrhnúť tréning na jeden deň"
-      : "Navrhnúť plán s AI";
+      ? t("submitDay")
+      : t("submitPlan");
   const running = batch !== null && batch.current !== null;
   const failed = batch && !running ? batch.items.filter((it) => !it.planId) : [];
   const succeeded = batch ? batch.items.filter((it) => it.planId).length : 0;
 
   return (
-    <form action={formAction} onSubmit={onSubmit} className={styles.addClientForm} aria-label="AI generátor plánu">
+    <form action={formAction} onSubmit={onSubmit} className={styles.addClientForm} aria-label={t("formLabel")}>
       <ClientMultiSelect
         clients={clients}
         selected={selected}
@@ -147,28 +143,28 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
       <div className={styles.addClientFields}>
         <select name="goal" required disabled={pending} className={styles.addClientInput} defaultValue="">
           <option value="" disabled>
-            Cieľ
+            {t("goal")}
           </option>
-          <option value="chudnutie">Chudnutie</option>
-          <option value="hypertrofia">Hypertrofia (nárast svalov)</option>
-          <option value="sila">Sila</option>
-          <option value="kondicia">Všeobecná kondícia</option>
+          <option value="chudnutie">{t("goalLose")}</option>
+          <option value="hypertrofia">{t("goalHypertrophy")}</option>
+          <option value="sila">{t("goalStrength")}</option>
+          <option value="kondicia">{t("goalFitness")}</option>
         </select>
         <select name="experience" required disabled={pending} className={styles.addClientInput} defaultValue="">
           <option value="" disabled>
-            Skúsenosť
+            {t("experience")}
           </option>
-          <option value="zaciatocnik">Začiatočník</option>
-          <option value="stredne_pokrocily">Stredne pokročilý</option>
-          <option value="pokrocily">Pokročilý</option>
+          <option value="zaciatocnik">{tl("experience.zaciatocnik")}</option>
+          <option value="stredne_pokrocily">{tl("experience.stredne_pokrocily")}</option>
+          <option value="pokrocily">{tl("experience.pokrocily")}</option>
         </select>
         <select name="equipment" required disabled={pending} className={styles.addClientInput} defaultValue="">
           <option value="" disabled>
-            Vybavenie
+            {t("equipment")}
           </option>
-          <option value="plna_posilnovna">Plná posilňovňa</option>
-          <option value="domace_vybavenie">Domáce vybavenie</option>
-          <option value="len_telo">Len vlastná váha</option>
+          <option value="plna_posilnovna">{t("equipmentGym")}</option>
+          <option value="domace_vybavenie">{t("equipmentHome")}</option>
+          <option value="len_telo">{t("equipmentBody")}</option>
         </select>
         <select
           name="focus"
@@ -179,19 +175,19 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
             setFocus(e.target.value as FocusChoice);
             setFocusTouched(true);
           }}
-          aria-label="Zameranie"
-          title="Zameranie"
+          aria-label={t("focus")}
+          title={t("focus")}
         >
-          <optgroup label="Celý plán">
-            {multi && <option value="auto">Podľa pohlavia klienta</option>}
-            <option value="vyvazene">{WHOLE_PLAN_FOCUS_LABEL_SK.vyvazene}</option>
-            <option value="horna">{WHOLE_PLAN_FOCUS_LABEL_SK.horna}</option>
-            <option value="dolna">{WHOLE_PLAN_FOCUS_LABEL_SK.dolna}</option>
+          <optgroup label={t("wholePlan")}>
+            {multi && <option value="auto">{t("bySex")}</option>}
+            <option value="vyvazene">{tl("wholeFocus.vyvazene")}</option>
+            <option value="horna">{tl("wholeFocus.horna")}</option>
+            <option value="dolna">{tl("wholeFocus.dolna")}</option>
           </optgroup>
-          <optgroup label="Jeden deň na partiu">
+          <optgroup label={t("oneDay")}>
             {DAY_CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>
-                {DAY_CATEGORY_LABEL_SK[cat]}
+                {tl(`dayCategory.${cat}`)}
               </option>
             ))}
           </optgroup>
@@ -205,29 +201,31 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
             required
             disabled={pending}
             className={styles.addClientInputSm}
-            placeholder="počet dní"
-            aria-label="Počet tréningových dní v týždni"
-            title="Počet dní v týždni"
+            placeholder={t("daysPlaceholder")}
+            aria-label={t("daysAria")}
+            title={t("daysTitle")}
           />
         )}
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-          {running ? `Generujem ${batch.current! + 1}/${batch.total}…` : singlePending ? "Generujem…" : submitLabel}
+          {running
+            ? t("generatingProgress", { current: batch.current! + 1, total: batch.total })
+            : singlePending
+              ? t("generating")
+              : submitLabel}
         </button>
-        <InfoTip title="Ako funguje AI generátor">
+        <InfoTip title={t("howTitle")}>
           {singleDay
-            ? `Appka vygeneruje presne 1 tréningový deň zameraný na „${DAY_CATEGORY_LABEL_SK[focus as (typeof DAY_CATEGORIES)[number]]}" — cviky výhradne z tejto partie, počet dní v týždni sa neberie do úvahy. Plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať.`
-            : "Appka vygeneruje plán na zadaný počet dní, AI vyberie konkrétne cviky z knižnice s ohľadom na zvolené zameranie — plán sa otvorí ako koncept, pred publikovaním vieš čokoľvek upraviť aj premenovať. Zameranie sa predvyplní podľa pohlavia klienta, ak ho appka pozná."}
-          {" "}
-          Pri viacerých klientoch vznikne pre každého samostatný koncept — AI zohľadní aj jeho údaje (cieľ z karty, vek,
-          váhu, aktivitu a tvoju poznámku o obmedzeniach).
+            ? t("howDay", { category: tl(`dayCategory.${focus as (typeof DAY_CATEGORIES)[number]}`) })
+            : t("howPlan")}{" "}
+          {t("howMulti")}
         </InfoTip>
       </div>
-      {missingClient && <p className={styles.addClientError}>Vyber aspoň jedného klienta.</p>}
+      {missingClient && <p className={styles.addClientError}>{t("chooseClient")}</p>}
       {singlePending && (
         <div className={styles.aiPlanResult}>
           <div className={styles.aiGeneratingRow}>
             <ThinkingOrb state="solving" size={64} />
-            <p className={styles.aiGeneratingText}>{loadingMessage ?? "Generujem…"}</p>
+            <p className={styles.aiGeneratingText}>{loadingMessage ?? t("generating")}</p>
           </div>
         </div>
       )}
@@ -240,7 +238,7 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
             </p>
           ))}
           <Link href={`/dashboard/treningy/${state.planId}`} className="btn btn-primary btn-sm">
-            Otvoriť koncept →
+            {t("openDraft")}
           </Link>
         </div>
       )}
@@ -250,12 +248,13 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
           {running ? (
             <>
               <p className={styles.aiBatchHead}>
-                Generujem {batch.current! + 1}/{batch.total}… <span className={styles.aiBatchCurrent}>{batch.currentName}</span>
+                {t("generatingProgress", { current: batch.current! + 1, total: batch.total })}{" "}
+                <span className={styles.aiBatchCurrent}>{batch.currentName}</span>
               </p>
               <div
                 className={styles.aiBatchBar}
                 role="progressbar"
-                aria-label="Priebeh generovania"
+                aria-label={t("progressLabel")}
                 aria-valuemin={0}
                 aria-valuemax={batch.total}
                 aria-valuenow={batch.items.length - batch.kept}
@@ -265,8 +264,8 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
             </>
           ) : (
             <p className={styles.aiBatchHead}>
-              Hotovo: {succeeded} z {batch.items.length} {pluralSk(batch.items.length, "plánu", "plánov", "plánov")} vygenerovaných
-              {failed.length > 0 ? ` · ${failed.length} ${pluralSk(failed.length, "zlyhal", "zlyhali", "zlyhalo")}` : ""}.
+              {t("batchDone", { succeeded, count: batch.items.length })}
+              {failed.length > 0 ? t("batchFailed", { count: failed.length }) : ""}.
             </p>
           )}
           {batch.items.length > 0 && (
@@ -278,7 +277,7 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
                   </span>
                   {it.planId ? (
                     <Link href={`/dashboard/treningy/${it.planId}`} className={styles.aiBatchLink}>
-                      Otvoriť koncept →
+                      {t("openDraft")}
                     </Link>
                   ) : (
                     <span className={styles.aiBatchError}>{it.error}</span>
@@ -305,7 +304,7 @@ export function AiPlanGeneratorForm({ clients }: { clients: ClientOption[] }) {
               }
               disabled={pending}
             >
-              Skúsiť znova ({failed.length})
+              {t("retry", { count: failed.length })}
             </button>
           )}
         </div>
