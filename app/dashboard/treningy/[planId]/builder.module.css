@@ -697,10 +697,6 @@
   }
 }
 
-.emptyDay {
-  color: var(--paper-faint);
-  font-size: 13.5px;
-}
 
 .formError {
   font-size: 12px;
@@ -806,4 +802,32 @@
   color: var(--danger);
   border-color: var(--danger-line);
   background: var(--danger-soft);
+}
+
+/* ---------- akcie aktívneho dňa (Premenovať · Duplikovať · Zmazať deň) ----------
+   Vždy spolu v jednom riadku pod pilulkami dní — predtým sa v zalamovanom rade dní
+   trhali medzi riadky. Mobil: tri rovnaké stĺpce. Potvrdenie zmazania ide na celý riadok. */
+.dayActionsRow {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.dayActionsRow > button {
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .dayActionsRow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dayActionsRow > button {
+    justify-content: center;
+    padding-inline: 4px;
+    font-size: 12.5px;
+  }
+  .dayActionsRow > :not(button) {
+    grid-column: 1 / -1;
+  }
 }

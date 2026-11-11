@@ -35,7 +35,7 @@ export const TRAINER_TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="nav-nastavenia"]',
     title: "Nastavenia",
-    body: "Tu nájdeš aj tento návod, keby si si ho niekedy chcel prejsť znova.",
+    body: "Klikni na svoju ikonu — v Nastaveniach je profil, odhlásenie aj tento návod, keby si si ho chcel prejsť znova.",
   },
 ];
 
@@ -68,6 +68,6 @@ export const CLIENT_TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="nav-profil"]',
     title: "Profil",
-    body: "Tu nájdeš svoj kód pre trénera, prepojenie účtu a tento návod, keby si si ho chcel prejsť znova.",
+    body: "Klikni na svoju ikonu — v Profile je kód pre trénera, prepojenie účtu aj tento návod, keby si si ho chcel prejsť znova.",
   },
 ];

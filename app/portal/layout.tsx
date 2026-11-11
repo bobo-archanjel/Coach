@@ -53,7 +53,7 @@ export default async function PortalLayout({ children }: { children: React.React
             </Link>
             <div className={s.v6TopActions}>
               <NotificationBellSlot placement="header" />
-              <Link href="/portal/profil" className={s.v6Avatar} aria-label="Profil">
+              <Link href="/portal/profil" className={s.v6Avatar} aria-label="Profil" data-tour="nav-profil">
                 {initial}
               </Link>
             </div>

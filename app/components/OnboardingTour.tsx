@@ -58,7 +58,12 @@ export function OnboardingTour({ steps, tourSeen }: { steps: TourStep[]; tourSee
     if (!active) return;
     const step = steps[stepIndex];
     if (!step) return;
-    const el = document.querySelector(step.target);
+    // Prvý viditeľný prvok — tá istá kotva môže byť dvakrát (ikona klienta v hlavičke na
+    // mobile aj dole v bočnom paneli na počítači), jeden z nich je skrytý (display: none).
+    const el = Array.from(document.querySelectorAll(step.target)).find((n) => {
+      const r = n.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    });
     if (!el) {
       setRect(null);
       return;

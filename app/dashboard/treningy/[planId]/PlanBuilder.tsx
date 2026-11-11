@@ -10,6 +10,7 @@ import { RenameDayForm } from "./RenameDayForm";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "./builder.module.css";
+import { EmptyDayCard } from "@/app/components/EmptyDayCard";
 
 interface Day {
   id: string;
@@ -115,7 +116,8 @@ export function PlanBuilder({
                 onClose={() => setRenaming(false)}
               />
             ) : (
-              <>
+              // akcie aktívneho dňa vždy spolu v jednom riadku pod pilulkami dní
+              <div className={styles.dayActionsRow}>
                 <button type="button" className={styles.dayActionTab} onClick={() => setRenaming(true)}>
                   Premenovať
                 </button>
@@ -136,7 +138,7 @@ export function PlanBuilder({
                   exerciseCount={activeDay.exercises.length}
                   hasCompleted={completedDayIds.includes(activeDay.id)}
                 />
-              </>
+              </div>
             ))}
         </div>
 
@@ -157,13 +159,10 @@ export function PlanBuilder({
                 />
               ))
             ) : (
-              <p className={styles.emptyDay}>
-                Zatiaľ žiadne cviky — klikni na cvik v knižnici, pridá sa sem s defaultnými
-                hodnotami, ktoré si hneď upravíš.
-              </p>
+              <EmptyDayCard title="Zatiaľ žiadne cviky" tip={{ title: "Ako pridať cvik", text: "Klikni na cvik v knižnici — pridá sa sem s predvolenými hodnotami, ktoré si hneď upravíš." }} />
             )
           ) : (
-            <p className={styles.emptyDay}>Vytvor prvý deň vyššie.</p>
+            <EmptyDayCard title="Zatiaľ žiadny deň" text="Pridaj prvý deň tlačidlom „+ deň“ vyššie." />
           )}
         </div>
       </div>

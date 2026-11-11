@@ -159,8 +159,8 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByText("Odcvičené spolu")).toBeVisible();
     await expect(page.getByText("Tento týždeň")).toBeVisible();
 
-    // spodná navigácia — 6 položiek
-    await expect(page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link")).toHaveCount(6);
+    // spodná navigácia — 5 položiek (Profil je pod ikonou s iniciálou, nie v menu)
+    await expect(page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link")).toHaveCount(5);
 
     // ring SVG
     await expect(page.locator("svg text", { hasText: "0/6" })).toBeVisible();
@@ -229,19 +229,23 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
 
   test("spodná navigácia vedie na všetky taby bez pádu", async ({ page }) => {
     // Tréning + Strava sú dostavané (getPortalTraining/getPortalNutrition) — lokálne
-    // bez DB ukážu Notice (error/no_plan), ale nesmú spadnúť. Chat + Profil sú ComingSoon.
+    // bez DB ukážu Notice (error/no_plan), ale nesmú spadnúť. Chat je ComingSoon.
     for (const [label, url] of [
       ["Tréning", /\/portal\/trening/],
       ["Strava", /\/portal\/strava/],
       ["Denník", /\/portal\/dennik/],
       ["Chat", /\/portal\/chat/],
-      ["Profil", /\/portal\/profil/],
     ] as const) {
       await page.goto("/portal?preview=ok");
       await page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link", { name: label }).click();
       await expect(page).toHaveURL(url);
       await expect(page.getByRole("heading").first()).toBeVisible(); // niečo sa vykreslilo
     }
+    // Profil už nie je v menu — vedie naň ikona s iniciálou (hlavička na mobile, bočný panel na počítači)
+    await page.goto("/portal?preview=ok");
+    await page.locator('[data-tour="nav-profil"]:visible').click();
+    await expect(page).toHaveURL(/\/portal\/profil/);
+    await expect(page.getByRole("heading").first()).toBeVisible();
   });
 
   test("Profil: kód pre trénera + stav prepojenia", async ({ page }) => {
