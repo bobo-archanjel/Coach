@@ -1,3 +1,41 @@
 {
-  "notSignedIn": "Nie si prihlásený."
+  "notSignedIn": "Nie si prihlásený.",
+  "notYourClient": "Tento klient nepatrí tebe.",
+  "missingClient": "Chýba klient.",
+  "chooseClient": "Vyber klienta.",
+  "chooseAtLeastOneClient": "Vyber aspoň jedného klienta.",
+  "noneOfClientsYours": "Žiadny z vybraných klientov nepatrí tebe.",
+  "someClientNotYours": "Niektorý z klientov nepatrí tebe.",
+  "maxClients": "Naraz najviac {max} klientov.",
+  "emptyMessage": "Prázdna správa.",
+  "messageTooLong": "Správa je príliš dlhá (max 4000 znakov).",
+  "bulkMax": "Naraz sa dá poslať max {max} klientom.",
+  "planNotFound": "Plán sa nenašiel.",
+  "planNotFoundOrUnpublished": "Plán sa nenašiel alebo ešte nie je zverejnený.",
+  "planNotSent": "Plán ešte nie je odoslaný.",
+  "sendFailedTo": "Nepodarilo sa poslať: {names}. Skús to znova.",
+  "db": {
+    "generic": "Nepodarilo sa dokončiť akciu. Skús to prosím znova.",
+    "forbidden": "Na túto akciu nemáš oprávnenie.",
+    "duplicate": "Takýto záznam už existuje.",
+    "invalidValue": "Zadaná hodnota nie je platná.",
+    "missingRelated": "Súvisiaci záznam neexistuje alebo už nie je dostupný.",
+    "notFound": "Záznam sa nenašiel.",
+    "rateLimited": "Príliš veľa správ za minútu — chvíľu počkaj a skús znova.",
+    "locked": "Dokončený tréning sa už nedá upraviť ani zmazať.",
+    "lockedEditWindow": "Hodnoty dokončeného tréningu sa dajú upraviť len 24 hodín po jeho ukončení."
+  },
+  "addClient": {
+    "codeRequired": "Zadaj kód klienta.",
+    "codeTooShort": "Kód je príliš krátky — skopíruj ho celý.",
+    "codeInvalid": "Tento kód už neplatí — buď je v ňom preklep, alebo bol už raz použitý (z bezpečnostných dôvodov sa po spárovaní mení). Ak si tohto klienta už pridal, nájdeš ho v zozname klientov; inak si od neho vyžiadaj aktuálny kód z jeho profilu.",
+    "alreadyYours": "Tohto klienta už máš v zozname.",
+    "otherTrainer": "Tento klient je už priradený k inému trénerovi. Musí sa najprv odpojiť vo svojom profile.",
+    "rateLimited": "Priveľa pokusov o pridanie. Skús to znova o 15 minút.",
+    "trainerOnly": "Klientov môže pridávať len trénerský účet.",
+    "failed": "Pridanie zlyhalo. Skús to o chvíľu znova.",
+    "nameRequired": "Meno klienta je povinné.",
+    "createFailed": "Klienta sa nepodarilo pridať. Skús to prosím znova."
+  },
+  "planLocked": "Klient tento plán celý odcvičil — plán je uzamknutý a nedá sa upravovať."
 }

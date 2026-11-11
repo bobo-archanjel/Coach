@@ -5,11 +5,13 @@ import { AddClientForm } from "./AddClientForm";
 import type { RosterItem } from "./ClientRoster";
 import { ClientsBoard } from "./ClientsBoard";
 import { getLateStatusByClient } from "@/lib/dashboard/lateStatus";
-import { getHealthDigest, BUCKET_LABEL } from "@/lib/dashboard/healthDigest";
+import { getHealthDigest } from "@/lib/dashboard/healthDigest";
+import { getLocale, getTranslations } from "next-intl/server";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { getActiveDismissals } from "@/lib/dashboard/dismissals";
 import { digestDismissKey, lateDismissKey, ONBOARDING_DISMISS_KEY } from "@/lib/dashboard/attention";
 import { DismissibleNotice, LateAlertPanel } from "./DashboardNotices";
-import { pluralSk } from "@/lib/portal/streak";
+import { pluralSk } from "@/lib/portal/streak"; // i18n: len DEV náhľad
 import styles from "@/app/dashboard/dashboard.module.css";
 
 /** Grace period pred hard delete (0018_client_deletion.sql, pg_cron `purge_deleted_clients`). */
@@ -18,14 +20,15 @@ const DELETION_GRACE_DAYS = 30;
 type ClientStatus = { label: string; days: number; tone: "active" | "late" } | null;
 
 /** Klient s ukončenou spoluprácou (0020) — dáta ostávajú, spolupráca sa dá obnoviť. */
-const ENDED_LABEL = "spolupráca ukončená";
+const ENDED_LABEL = "spolupráca ukončená"; // i18n-ignore — len DEV náhľad nižšie
 
-/** Dátum, kedy sa klient natrvalo zmaže (deletion_requested_at + grace period), sk-SK formát. */
-function purgeDateLabel(requestedAt: string): string {
+/** Dátum, kedy sa klient natrvalo zmaže (deletion_requested_at + grace period), v jazyku používateľa. */
+function purgeDateLabel(requestedAt: string, locale: Locale = "sk"): string {
   const purgeDate = new Date(new Date(requestedAt).getTime() + DELETION_GRACE_DAYS * 86_400_000);
-  return purgeDate.toLocaleDateString("sk-SK");
+  return purgeDate.toLocaleDateString(intlLocale(locale));
 }
 
+// i18n-ignore-start — DEV náhľady (vymyslené dáta)
 // DEV náhľad zoznamu klientov bez DB (?preview=deletion) — overuje presun na spodok,
 // stlmený vzhľad a badge dátumu zmazania pre klienta v GDPR grace period (0018), aj
 // medzistupeň ukončenej spolupráce (0020 — nad klientmi na zmazanie, dáta ostávajú).
@@ -63,10 +66,12 @@ const DELETION_PREVIEW = [
     deletion_requested_at: new Date(Date.now() - 5 * 86_400_000).toISOString(),
   },
 ];
+// i18n-ignore-end
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
 
+  // i18n-ignore-start — DEV náhľady (?preview=addclient|deletion|notices)
   // DEV náhľad formulára "Pridať klienta" bez session (feature/registracia-update).
   if (preview === "addclient" && process.env.NODE_ENV === "development") {
     return (
@@ -193,10 +198,16 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     );
   }
 
+  // i18n-ignore-end
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await getUser();
+  const [
+    {
+      data: { user },
+    },
+    t,
+    tb,
+    locale,
+  ] = await Promise.all([getUser(), getTranslations("clients"), getTranslations("bell.bucket"), getLocale()]);
 
   // Layout guard robí vlastný getUser() call — pri studenom štarte (cookie ešte
   // neoverená) sa môžu rozísť. Radšej redirect než pád na `user!.id`.
@@ -239,7 +250,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const statusByClient = new Map<string, ClientStatus>(
     [...lateStatus].map(([clientId, s]) => [
       clientId,
-      s.tone === "late" ? { label: `${s.days} dní bez tréningu`, days: s.days, tone: "late" } : { label: "aktívny", days: s.days, tone: "active" },
+      s.tone === "late"
+        ? { label: t("daysWithout", { count: s.days }), days: s.days, tone: "late" }
+        : { label: t("active"), days: s.days, tone: "active" },
     ]),
   );
 
@@ -279,9 +292,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       since: client.paired_at ?? client.created_at,
       unread: unread.get(client.id) ?? 0,
       pendingDeletion,
-      deletionLabel: pendingDeletion ? purgeDateLabel(client.deletion_requested_at!) : null,
+      deletionLabel: pendingDeletion ? purgeDateLabel(client.deletion_requested_at!, locale) : null,
       ended,
-      statusLabel: pendingDeletion ? null : ended ? ENDED_LABEL : (status?.label ?? null),
+      statusLabel: pendingDeletion ? null : ended ? t("ended") : (status?.label ?? null),
       statusTone: status?.tone ?? null,
     };
   });
@@ -297,41 +310,35 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Klienti</h1>
-        <p>
-          {clients?.length ?? 0} {pluralSk(clients?.length ?? 0, "klient", "klienti", "klientov")} v starostlivosti —
-          kliknutím otvoríš detail.
-        </p>
+        <h1>{t("title")}</h1>
+        <p>{t("countInCare", { count: clients?.length ?? 0 })}</p>
       </div>
 
       {!onboardingDone && !dismissed.has(ONBOARDING_DISMISS_KEY) && (
         <DismissibleNotice
           dismissKey={ONBOARDING_DISMISS_KEY}
-          label="Skryť prvé kroky"
+          label={t("hideOnboarding")}
           className={`${styles.card} ${styles.onboardingCard}`}
         >
-          <h3>Prvé kroky</h3>
+          <h3>{t("onboardingTitle")}</h3>
           <ul className={styles.onboardingList}>
             <li className={hasClient ? styles.onboardingDone : undefined}>
               <span className={styles.onboardingCheck} aria-hidden="true">
                 {hasClient ? "✓" : "1"}
               </span>
-              <span>Pridaj prvého klienta cez „+ Nový klient“</span>
+              <span>{t("step1")}</span>
             </li>
             <li className={hasPlan ? styles.onboardingDone : undefined}>
               <span className={styles.onboardingCheck} aria-hidden="true">
                 {hasPlan ? "✓" : "2"}
               </span>
-              <span>
-                Postav mu tréningový plán —{" "}
-                <Link href="/dashboard/treningy">otvoriť Tréningy</Link>
-              </span>
+              <span>{t.rich("step2", { link: (chunks) => <Link href="/dashboard/treningy">{chunks}</Link> })}</span>
             </li>
             <li className={hasLinkedClient ? styles.onboardingDone : undefined}>
               <span className={styles.onboardingCheck} aria-hidden="true">
                 {hasLinkedClient ? "✓" : "3"}
               </span>
-              <span>Pošli mu pozývací kód, nech si appku pripojí (kód nájdeš v detaile klienta)</span>
+              <span>{t("step3")}</span>
             </li>
           </ul>
         </DismissibleNotice>
@@ -340,18 +347,16 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       {healthDigest && !dismissed.has(digestDismissKey(healthDigest.weekStart)) && (
         <DismissibleNotice
           dismissKey={digestDismissKey(healthDigest.weekStart)}
-          label="Skryť týždenný prehľad"
+          label={t("hideDigest")}
           className={styles.digestBanner}
         >
-          <p className={styles.digestBannerTitle}>Týždenný prehľad</p>
+          <p className={styles.digestBannerTitle}>{t("digestTitle")}</p>
           <p className={styles.digestBannerText}>
-            {healthDigest.count} {healthDigest.count === 1 ? "klient klesol" : "klienti klesli"} zo „
-            {BUCKET_LABEL[healthDigest.from]}“ do „{BUCKET_LABEL[healthDigest.to]}“ tento týždeň.{" "}
-            <Link href="/dashboard/analytika">Pozrieť analytiku</Link>
+            {t("digestText", { count: healthDigest.count, from: tb(healthDigest.from), to: tb(healthDigest.to) })}{" "}
+            <Link href="/dashboard/analytika">{t("digestLink")}</Link>
           </p>
         </DismissibleNotice>
       )}
-
       <LateAlertPanel clients={lateClients} />
 
       <ClientsBoard initialItems={rosterItems} />

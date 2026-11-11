@@ -32,7 +32,7 @@ export async function requestOwnDeletionAction(): Promise<ActionState> {
   const clientId = await currentClientId(supabase);
   if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
   const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath("/portal/profil");
   return ok;
 }
@@ -43,7 +43,7 @@ export async function cancelOwnDeletionAction(): Promise<ActionState> {
   const clientId = await currentClientId(supabase);
   if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
   const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath("/portal/profil");
   return ok;
 }
@@ -72,7 +72,7 @@ export async function dismissCooperationNoticeAction(): Promise<ActionState> {
   const clientId = await currentClientId(supabase);
   if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
   const { error } = await supabase.rpc("dismiss_cooperation_notice", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath("/portal");
   return ok;
 }
@@ -155,7 +155,7 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
     },
     { onConflict: "client_id,measured_on" },
   );
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/portal", "layout");
   revalidatePath(`/dashboard/klienti/${client.id}`);
@@ -303,7 +303,7 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
       revalidatePath("/portal", "layout");
       return { error: "Tento tréning už máš dnes zapísaný — tieto hodnoty sa neuložili. Obnov stránku a pozri si uložený záznam." };
     }
-    return { error: dbErr(error, "actions") };
+    return { error: await dbErr(error, "actions") };
   }
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
@@ -347,7 +347,7 @@ export async function updateWorkoutLogAction(input: {
     .update({ entries, rpe, note })
     .eq("id", input.logId)
     .select("id");
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   if (!data || data.length === 0) {
     return { error: "Hodnoty sa dajú upraviť len 24 hodín po ukončení tréningu." };
   }
@@ -442,7 +442,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
     ...macros,
   });
 
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/portal/dennik");
   return ok;
@@ -466,7 +466,7 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
     .eq("id", id)
     .select("id")
     .maybeSingle();
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   if (!data) return { error: "Záznam sa nenašiel." };
 
   revalidatePath("/portal/dennik");
@@ -481,7 +481,7 @@ export async function removeFoodLogAction(_prevState: ActionState, formData: For
   if (!id) return { error: "Chýba identifikátor záznamu." };
 
   const { data, error } = await supabase.from("food_logs").delete().eq("id", id).select("id");
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   if (!data || data.length === 0) return { error: "Záznam sa nenašiel." };
 
   revalidatePath("/portal/dennik");
@@ -510,7 +510,7 @@ export async function sendClientMessageAction(_prevState: ActionState, formData:
     sender_id: user.id,
     body,
   });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/portal/chat");
   return ok;

@@ -4,7 +4,7 @@ import type { BodyMetricEntry, StrengthPoint, StrengthPR } from "@/lib/dashboard
 import { BodyMetricsCard } from "./BodyMetricsCard";
 import { StrengthCard } from "./StrengthCard";
 import { ProgressSummaryCard } from "./ProgressSummaryCard";
-import { pluralSk } from "@/lib/portal/streak";
+import { getTranslations } from "next-intl/server";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
 
@@ -55,6 +55,8 @@ export async function AnalyticsPanel({
   strengthByExercise: Record<string, StrengthPoint[]>;
   strengthPRs?: StrengthPR[];
 }) {
+  const t = await getTranslations("clientDetail.analytics");
+  const b = { b: (chunks: React.ReactNode) => <strong>{chunks}</strong> };
   const planPct30 = trainingAdherence?.planCompletion.window30 ?? null;
   const nutritionPct30 = adherence?.hasGoal ? adherence.window30.pct : null;
   const wDelta = weightDelta90(bodyMetrics);
@@ -63,19 +65,19 @@ export async function AnalyticsPanel({
   // diagnostikovať situáciu (tréning ide, strava nie, váha stojí…) bez skladania
   // čísel z troch kariet nižšie. Zobrazí sa len keď je aspoň jedno číslo dostupné.
   const summaryParts: { label: string; value: string }[] = [];
-  if (trainingAdherence) summaryParts.push({ label: "Tréning", value: `${trainingAdherence.window30.pct} %` });
-  if (planPct30?.pct != null) summaryParts.push({ label: "Plán", value: `${planPct30.pct} %` });
-  if (nutritionPct30 != null) summaryParts.push({ label: "Strava", value: `${nutritionPct30} %` });
-  if (wDelta != null) summaryParts.push({ label: "Váha", value: `${wDelta > 0 ? "+" : ""}${wDelta} kg (90 dní)` });
+  if (trainingAdherence) summaryParts.push({ label: t("training"), value: `${trainingAdherence.window30.pct} %` });
+  if (planPct30?.pct != null) summaryParts.push({ label: t("plan"), value: `${planPct30.pct} %` });
+  if (nutritionPct30 != null) summaryParts.push({ label: t("nutrition"), value: `${nutritionPct30} %` });
+  if (wDelta != null) summaryParts.push({ label: t("weight"), value: t("weightDelta", { delta: `${wDelta > 0 ? "+" : ""}${wDelta}` }) });
 
   return (
     <div className={styles.cardStack}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <a href={`/api/export/progress/${clientId}/pdf`} className="btn btn-ghost btn-sm">
-          Stiahnuť PDF
+          {t("downloadPdf")}
         </a>
         <a href={`/api/export/progress/${clientId}/csv`} className="btn btn-ghost btn-sm">
-          Stiahnuť CSV (merania)
+          {t("downloadCsv")}
         </a>
       </div>
 
@@ -92,57 +94,67 @@ export async function AnalyticsPanel({
       <ProgressSummaryCard clientId={clientId} />
 
       <div className={styles.card}>
-        <h3>Analytika</h3>
+        <h3>{t("title")}</h3>
         <h4 className={styles.cardSubhead}>
-          Adherencia tréningu{" "}
-          <InfoTip title="Adherencia tréningu">% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).</InfoTip>
+          {t("trainingAdherence")} <InfoTip title={t("trainingAdherence")}>{t("trainingAdherenceTip")}</InfoTip>
         </h4>
         {trainingAdherence ? (
           <>
             <div className={styles.adherenceWindowRow}>
               <span>
-                30 dní: <strong>{trainingAdherence.window30.pct}&nbsp;%</strong> ({trainingAdherence.window30.trainedDays}/
-                {trainingAdherence.window30.totalDays} dní)
+                {t.rich("windowDays", {
+                  ...b,
+                  window: 30,
+                  pct: trainingAdherence.window30.pct,
+                  done: trainingAdherence.window30.trainedDays,
+                  total: trainingAdherence.window30.totalDays,
+                })}
               </span>
               <span>
-                90 dní: <strong>{trainingAdherence.window90.pct}&nbsp;%</strong> ({trainingAdherence.window90.trainedDays}/
-                {trainingAdherence.window90.totalDays} dní)
+                {t.rich("windowDays", {
+                  ...b,
+                  window: 90,
+                  pct: trainingAdherence.window90.pct,
+                  done: trainingAdherence.window90.trainedDays,
+                  total: trainingAdherence.window90.totalDays,
+                })}
               </span>
             </div>
             <h4 className={styles.cardSubhead}>
-              Splnenie plánu{" "}
-              <InfoTip title="Splnenie plánu">
-                Nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom z plánu (prekročenie sa počíta ako 100 %).
-              </InfoTip>
+              {t("planCompletion")} <InfoTip title={t("planCompletion")}>{t("planCompletionTip")}</InfoTip>
             </h4>
             {planPct30?.pct != null || trainingAdherence.planCompletion.window90.pct != null ? (
               <>
                 <div className={styles.adherenceWindowRow}>
                   <span>
-                    30 dní: <strong>{planPct30?.pct != null ? `${planPct30.pct} %` : "—"}</strong> (
-                    {planPct30?.sessionsScored ?? 0}{" "}
-                    {pluralSk(planPct30?.sessionsScored ?? 0, "tréning", "tréningy", "tréningov")})
+                    {t.rich("windowSessions", {
+                      ...b,
+                      window: 30,
+                      pct: planPct30?.pct != null ? `${planPct30.pct} %` : "—",
+                      count: planPct30?.sessionsScored ?? 0,
+                    })}
                   </span>
                   <span>
-                    90 dní:{" "}
-                    <strong>
-                      {trainingAdherence.planCompletion.window90.pct != null
-                        ? `${trainingAdherence.planCompletion.window90.pct} %`
-                        : "—"}
-                    </strong>{" "}
-                    ({trainingAdherence.planCompletion.window90.sessionsScored}{" "}
-                    {pluralSk(trainingAdherence.planCompletion.window90.sessionsScored, "tréning", "tréningy", "tréningov")})
+                    {t.rich("windowSessions", {
+                      ...b,
+                      window: 90,
+                      pct:
+                        trainingAdherence.planCompletion.window90.pct != null
+                          ? `${trainingAdherence.planCompletion.window90.pct} %`
+                          : "—",
+                      count: trainingAdherence.planCompletion.window90.sessionsScored,
+                    })}
                   </span>
                 </div>
               </>
             ) : (
               <p className={styles.adherenceHint}>
-                Zatiaľ žiadny odcvičený tréning s naviazaným plánovaným dňom — nedá sa porovnať s predpisom.
+                {t("noPlanCompare")}
               </p>
             )}
           </>
         ) : (
-          <p className={styles.noWorkouts}>Adherenciu tréningu sa nepodarilo načítať.</p>
+          <p className={styles.noWorkouts}>{t("trainingFailed")}</p>
         )}
 
         <BodyMetricsCard entries={bodyMetrics} />
@@ -155,31 +167,31 @@ export async function AnalyticsPanel({
       </div>
 
       <div className={styles.card}>
-        <h3>Sledovanie jedálnička</h3>
+        <h3>{t("nutritionTitle")}</h3>
         {nutrition ? (
           <>
-            <h4 className={styles.cardSubhead}>Makro cieľ</h4>
+            <h4 className={styles.cardSubhead}>{t("macroGoal")}</h4>
             <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Kalorický cieľ</span>
-              <span className={styles.infoValue}>{nutrition.calories_target} kcal/deň</span>
+              <span className={styles.infoLabel}>{t("calorieGoal")}</span>
+              <span className={styles.infoValue}>{t("kcalPerDay", { kcal: nutrition.calories_target })}</span>
             </div>
             <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Makrá</span>
+              <span className={styles.infoLabel}>{t("macros")}</span>
               <span className={styles.infoValue}>
-                {nutrition.protein_g} g B · {nutrition.carbs_g} g S · {nutrition.fat_g} g T
+                {t("macroLine", { protein: nutrition.protein_g, carbs: nutrition.carbs_g, fat: nutrition.fat_g })}
               </span>
             </div>
             <Link href={`/dashboard/klienti/${clientId}?sekcia=jedalnicky`} className={styles.backLink} style={{ marginTop: 8, marginBottom: 0 }}>
-              Upraviť →
+              {t("edit")}
             </Link>
 
             {adherence?.hasGoal && (
               <>
-                <h4 className={styles.cardSubhead}>Adherencia stravy</h4>
+                <h4 className={styles.cardSubhead}>{t("nutritionAdherence")}</h4>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Dnes</span>
+                  <span className={styles.infoLabel}>{t("today")}</span>
                   <span className={styles.infoValue}>
-                    {adherence.todayKcal} / {adherence.kcalGoal} kcal · <strong>{adherence.todayPct}&nbsp;%</strong> z cieľa
+                    {t.rich("todayLine", { ...b, kcal: adherence.todayKcal ?? "—", goal: adherence.kcalGoal ?? "—", pct: adherence.todayPct ?? "—" })}
                   </span>
                 </div>
                 <div className={styles.adherenceStrip} aria-hidden="true">
@@ -190,22 +202,19 @@ export async function AnalyticsPanel({
                     </div>
                   ))}
                 </div>
-                <p className={styles.adherenceHint}>Posledných 7 dní · zelená = 85–115 % cieľa, sivá = bez záznamu.</p>
+                <p className={styles.adherenceHint}>{t("last7Hint")}</p>
                 <div className={styles.adherenceWindowRow}>
-                  <span>
-                    30 dní: <strong>{adherence.window30.pct}&nbsp;%</strong>
-                  </span>
-                  <span>
-                    90 dní: <strong>{adherence.window90.pct}&nbsp;%</strong>
-                  </span>
+                  <span>{t.rich("windowPct", { ...b, window: 30, pct: `${adherence.window30.pct} %` })}</span>
+                  <span>{t.rich("windowPct", { ...b, window: 90, pct: `${adherence.window90.pct} %` })}</span>
                 </div>
               </>
             )}
           </>
         ) : (
           <p className={styles.noWorkouts}>
-            Makro cieľ zatiaľ nenastavený — <Link href={`/dashboard/klienti/${clientId}?sekcia=jedalnicky`}>vypočítať teraz</Link>. Bez cieľa sa
-            nedá počítať ani adherencia stravy.
+            {t.rich("noGoal", {
+              link: (chunks) => <Link href={`/dashboard/klienti/${clientId}?sekcia=jedalnicky`}>{chunks}</Link>,
+            })}
           </p>
         )}
       </div>

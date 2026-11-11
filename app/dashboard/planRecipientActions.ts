@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { deliverPlanToRecipients, type PlanKind } from "@/lib/planRecipients";
@@ -14,14 +15,14 @@ export async function removePlanRecipientAction(kind: PlanKind, planId: string, 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
   const { error } = await supabase
     .from("plan_recipients")
     .delete()
     .eq(kind === "workout" ? "workout_plan_id" : "meal_plan_id", planId)
     .eq("client_id", clientId)
     .eq("trainer_id", user.id);
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath(builderPath(kind, planId));
   return { error: null };
 }
@@ -32,14 +33,14 @@ export async function sendToRemainingRecipientsAction(kind: PlanKind, planId: st
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
   const { data: plan } = await supabase
     .from(kind === "workout" ? "workout_plans" : "meal_plans")
     .select("published")
     .eq("id", planId)
     .eq("trainer_id", user.id)
     .maybeSingle();
-  if (!plan?.published) return { error: "Plán ešte nie je odoslaný." };
+  if (!plan?.published) return { error: await tErr("planNotSent") };
   const delivery = await deliverPlanToRecipients(supabase, user.id, kind, planId);
   revalidatePath(builderPath(kind, planId));
   revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/jedalnicky");

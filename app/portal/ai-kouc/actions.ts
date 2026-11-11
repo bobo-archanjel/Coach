@@ -41,7 +41,7 @@ export async function sendAiKoucMessageAction(
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (clientErr) return { error: dbErr(clientErr, "actions") };
+  if (clientErr) return { error: await dbErr(clientErr, "actions") };
   if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
   if (!client.trainer_id) return { error: "AI Kouč je zatiaľ dostupný len klientom s prideleným trénerom." };
 
@@ -58,7 +58,7 @@ export async function sendAiKoucMessageAction(
     .order("created_at", { referencedTable: "ai_messages", ascending: false })
     .limit(HISTORY_FETCH_LIMIT, { referencedTable: "ai_messages" })
     .maybeSingle();
-  if (existingErr) return { error: dbErr(existingErr, "actions") };
+  if (existingErr) return { error: await dbErr(existingErr, "actions") };
   if (existingConv) {
     conversationId = existingConv.id;
     historyRows = [...((existingConv.ai_messages as typeof historyRows | null) ?? [])].reverse();
@@ -68,7 +68,7 @@ export async function sendAiKoucMessageAction(
       .insert({ client_id: client.id })
       .select("id")
       .single();
-    if (convErr) return { error: dbErr(convErr, "actions") };
+    if (convErr) return { error: await dbErr(convErr, "actions") };
     conversationId = newConv.id;
   }
   if (!conversationId) return { error: "Nepodarilo sa založiť konverzáciu." };
@@ -92,7 +92,7 @@ export async function sendAiKoucMessageAction(
       history,
     }),
   ]);
-  if (insertUserErr) return { error: dbErr(insertUserErr, "actions") };
+  if (insertUserErr) return { error: await dbErr(insertUserErr, "actions") };
 
   // Odpoveď asistenta zapisuje SERVER (service role), nie session klienta — od migrácie
   // 0036 klient smie vkladať len vlastné (user) správy, inak by si vedel podvrhnúť

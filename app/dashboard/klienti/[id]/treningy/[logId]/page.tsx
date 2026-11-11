@@ -1,3 +1,5 @@
+import { getLocale, getTranslations } from "next-intl/server";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -47,6 +49,7 @@ interface CompletedWorkoutView {
   exercises: CompareExercise[];
 }
 
+// i18n-ignore-start — DEV náhľad (vymyslené dáta)
 // DEV náhľad bez session (?preview=done) — plán vs. realita vrátane cviku mimo
 // plánu, vynechaného cviku, série navyše a poznámok (e2e/training-done.spec.ts).
 function previewView(clientId: string, logId: string): CompletedWorkoutView {
@@ -81,35 +84,37 @@ function previewView(clientId: string, logId: string): CompletedWorkoutView {
     exercises: comparePlanWithActual(snapshot, entries),
   };
 }
+// i18n-ignore-end
 
-function plannedSummary(p: SnapshotExercise): string {
+type LogT = Awaited<ReturnType<typeof getTranslations<"clientDetail.log">>>;
+
+function plannedSummary(p: SnapshotExercise, t: LogT): string {
   const parts = [`${p.sets} × ${p.reps ?? "?"}`];
-  parts.push(p.loadKg != null ? `${p.loadKg} kg` : "vlastná váha");
-  if (p.tempo) parts.push(`tempo ${p.tempo}`);
-  if (p.restSeconds != null) parts.push(`pauza ${p.restSeconds} s`);
+  parts.push(p.loadKg != null ? `${p.loadKg} kg` : t("bodyweight"));
+  if (p.tempo) parts.push(t("tempo", { tempo: p.tempo }));
+  if (p.restSeconds != null) parts.push(t("rest", { seconds: p.restSeconds }));
   return parts.join(" · ");
 }
 
-function plannedCell(row: CompareRow): string {
-  if (!row.planned) return "navyše";
-  const reps = row.planned.reps ? `${row.planned.reps} op.` : "—";
+function plannedCell(row: CompareRow, t: LogT): string {
+  if (!row.planned) return t("extra");
+  const reps = row.planned.reps ? t("repsShort", { reps: row.planned.reps }) : "—";
   return row.planned.loadKg != null ? `${reps} × ${row.planned.loadKg} kg` : reps;
 }
 
-function actualCell(row: CompareRow): string {
+function actualCell(row: CompareRow, t: LogT, locale: Locale): string {
   const a = row.actual;
-  if (!a) return "neodcvičené";
+  if (!a) return t("notDone");
   const parts: string[] = [];
-  if (a.reps != null) parts.push(`${a.reps} op.`);
+  if (a.reps != null) parts.push(t("repsShort", { reps: a.reps }));
   if (a.weight != null) parts.push(`${a.weight} kg`);
   if (a.durationS != null) parts.push(formatDuration(a.durationS));
-  if (a.distanceM != null) parts.push(formatDistance(a.distanceM));
+  if (a.distanceM != null) parts.push(formatDistance(a.distanceM, locale));
   return parts.join(" × ") || "—";
 }
 
 // kľúče tried v completed.module.css (styles[TONE_CLASS[tone]])
 const TONE_CLASS = { below: "toneBelow", above: "toneAbove", met: "toneMet" } as const;
-const TONE_LABEL = { below: "pod plánom", above: "nad plán", met: "podľa plánu" } as const;
 
 export default async function CompletedWorkoutPage({
   params,
@@ -154,15 +159,16 @@ export default async function CompletedWorkoutPage({
     };
   }
 
+  const [t, locale] = await Promise.all([getTranslations("clientDetail.log"), getLocale()]);
   const completed = view.status === "completed";
-  const dateLabel = formatCompletedDate(view.completedAt ?? `${view.performedOn}T12:00:00Z`);
-  const title = view.snapshot?.dayName ?? "Tréning";
+  const dateLabel = formatCompletedDate(view.completedAt ?? `${view.performedOn}T12:00:00Z`, locale);
+  const title = view.snapshot?.dayName ?? t("workoutFallback");
 
   return (
     <>
       <Link href={`/dashboard/klienti/${view.clientId}`} className={dashboardStyles.backLink}>
         <BackIcon />
-        Späť na klienta
+        {t("back")}
       </Link>
 
       <div className={styles.head}>
@@ -177,28 +183,28 @@ export default async function CompletedWorkoutPage({
           <span className={completed ? styles.doneBadge : styles.progressBadge} data-testid="workout-status">
             {completed ? (
               <>
-                <LockIcon /> Dokončený – {dateLabel}
+                <LockIcon /> {t("completed", { date: dateLabel })}
               </>
             ) : (
-              "Prebieha"
+              t("inProgress")
             )}
           </span>
           {completed && (
-            <InfoTip title="Záznam tréningu">
-              Toto je záznam toho, čo klient odcvičil — ty ho upraviť ani zmazať nemôžeš (klient môže opraviť zabudnuté
-              hodnoty 24 hodín po ukončení). Ak chceš tréning zopakovať alebo zmeniť, vytvor si z neho novú kópiu.
-            </InfoTip>
+            <InfoTip title={t("recordTitle")}>{t("recordTip")}</InfoTip>
           )}
         </span>
       </div>
 
       {view.editedAt && (
         <p className={styles.editedNote} data-testid="workout-edited">
-          Klient hodnoty dodatočne upravil – {formatCompletedDate(view.editedAt)}{" "}
-          {new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "numeric", minute: "2-digit" }).format(
-            new Date(view.editedAt),
-          )}
-          .
+          {t("edited", {
+            date: formatCompletedDate(view.editedAt, locale),
+            time: new Intl.DateTimeFormat(intlLocale(locale), {
+              timeZone: "Europe/Bratislava",
+              hour: "numeric",
+              minute: "2-digit",
+            }).format(new Date(view.editedAt)),
+          })}
         </p>
       )}
 
@@ -210,12 +216,12 @@ export default async function CompletedWorkoutPage({
         <div className={styles.sessionMeta}>
           {view.rpe != null && (
             <p>
-              <span className={styles.metaLabel}>Náročnosť (RPE)</span> {view.rpe}/10
+              <span className={styles.metaLabel}>{t("rpe")}</span> {view.rpe}/10
             </p>
           )}
           {view.note && (
             <p>
-              <span className={styles.metaLabel}>Poznámka klienta</span> „{view.note}“
+              <span className={styles.metaLabel}>{t("clientNote")}</span> „{view.note}“
             </p>
           )}
         </div>
@@ -223,30 +229,29 @@ export default async function CompletedWorkoutPage({
 
       {view.snapshot?.backfilled && (
         <p className={styles.backfillNote}>
-          Tréning je starší než ukladanie plánu k záznamu — plán zobrazujeme podľa jeho aktuálnej verzie, nemusí
-          presne zodpovedať tomu, čo mal klient v ten deň naplánované.
+          {t("backfilled")}
         </p>
       )}
 
       {view.exercises.length === 0 ? (
-        <p className={dashboardStyles.noWorkouts}>Klient ukončil tréning bez zapísaných hodnôt.</p>
+        <p className={dashboardStyles.noWorkouts}>{t("noValues")}</p>
       ) : (
         <div className={styles.exerciseList}>
           {view.exercises.map((ex) => (
             <section key={ex.key} className={styles.exercise} data-testid="completed-exercise">
               <header className={styles.exerciseHead}>
                 <h2 className={styles.exerciseName}>{ex.name}</h2>
-                {ex.status === "skipped" && <span className={styles.chipMuted}>Nezapísané</span>}
-                {ex.status === "extra" && <span className={styles.chipMuted}>Mimo plánu</span>}
+                {ex.status === "skipped" && <span className={styles.chipMuted}>{t("skipped")}</span>}
+                {ex.status === "extra" && <span className={styles.chipMuted}>{t("outsidePlan")}</span>}
               </header>
-              {ex.planned && <p className={styles.plannedLine}>Plán: {plannedSummary(ex.planned)}</p>}
+              {ex.planned && <p className={styles.plannedLine}>{t("planLine", { summary: plannedSummary(ex.planned, t) })}</p>}
 
               {ex.rows.length > 0 && (
-                <div className={styles.setTable} role="table" aria-label={`Série — ${ex.name}`}>
+                <div className={styles.setTable} role="table" aria-label={t("setsOf", { name: ex.name })}>
                   <div className={styles.setHeadRow} role="row">
-                    <span role="columnheader">Séria</span>
-                    <span role="columnheader">Plán</span>
-                    <span role="columnheader">Skutočnosť</span>
+                    <span role="columnheader">{t("set")}</span>
+                    <span role="columnheader">{t("plan")}</span>
+                    <span role="columnheader">{t("actual")}</span>
                   </div>
                   {ex.rows.map((row) => {
                     const tone = rowTone(row);
@@ -256,12 +261,17 @@ export default async function CompletedWorkoutPage({
                           {row.index}.
                         </span>
                         <span role="cell" className={styles.planned}>
-                          {plannedCell(row)}
+                          {plannedCell(row, t)}
                         </span>
                         <span role="cell" className={`${styles.actual} ${tone ? styles[TONE_CLASS[tone]] : ""}`}>
-                          {actualCell(row)}
+                          {actualCell(row, t, locale)}
                           {row.actual?.rpe != null && <span className={styles.rpe}> · RPE {row.actual.rpe}</span>}
-                          {tone && tone !== "met" && <span className={styles.srOnly}> ({TONE_LABEL[tone]})</span>}
+                          {tone && tone !== "met" && (
+                            <span className={styles.srOnly}>
+                              {" "}
+                              ({t(tone === "below" ? "toneBelow" : tone === "above" ? "toneAbove" : "toneMet")})
+                            </span>
+                          )}
                         </span>
                       </div>
                     );

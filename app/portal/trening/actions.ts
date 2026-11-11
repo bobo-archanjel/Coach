@@ -150,7 +150,7 @@ async function ensureSelfClientId(
   const { data, error } = await supabase.rpc("ensure_self_client");
   if (error) {
     if (error.message.includes("not_a_client")) return { clientId: null, error: "Vlastné tréningy môže vytvárať len klient." };
-    return { clientId: null, error: dbErr(error, "actions") };
+    return { clientId: null, error: await dbErr(error, "actions") };
   }
   return { clientId: (data as string) ?? null, error: null };
 }
@@ -200,7 +200,7 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
           exercises: day.exercises,
         })),
       );
-      if (daysErr) return { error: dbErr(daysErr, "actions") };
+      if (daysErr) return { error: await dbErr(daysErr, "actions") };
     }
 
     revalidatePath("/portal", "layout");
@@ -216,11 +216,11 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
     supabase.from("workout_plans").select("id, trainer_id, client_id").eq("id", planId).maybeSingle(),
     supabase.from("workout_days").select("id").eq("plan_id", planId),
   ]);
-  if (exErr) return { error: dbErr(exErr, "actions") };
+  if (exErr) return { error: await dbErr(exErr, "actions") };
   if (!existing || existing.trainer_id !== null || existing.client_id !== clientId) {
     return { error: "Tento tréning nemôžeš upraviť." };
   }
-  if (cdErr) return { error: dbErr(cdErr, "actions") };
+  if (cdErr) return { error: await dbErr(cdErr, "actions") };
 
   const currentIds = new Set((currentDays ?? []).map((d) => d.id));
   const keptIds = new Set(cleaned.days.map((d) => d.id).filter((id): id is string => !!id && currentIds.has(id)));
@@ -244,7 +244,7 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
     ...(toDelete.length > 0 ? [supabase.from("workout_days").delete().in("id", toDelete)] : []),
   ]);
   const failed = results.find((r) => r.error);
-  if (failed?.error) return { error: dbErr(failed.error, "actions") };
+  if (failed?.error) return { error: await dbErr(failed.error, "actions") };
 
   revalidatePath("/portal", "layout");
   return { error: null, planId };
@@ -266,13 +266,13 @@ export async function deleteClientPlanAction(planId: string): Promise<ActionStat
     .select("id, trainer_id, client_id")
     .eq("id", planId)
     .maybeSingle();
-  if (pErr) return { error: dbErr(pErr, "actions") };
+  if (pErr) return { error: await dbErr(pErr, "actions") };
   if (!plan || plan.trainer_id !== null || plan.client_id !== clientId) {
     return { error: "Tento tréning nemôžeš zmazať." };
   }
 
   const { error } = await supabase.from("workout_plans").delete().eq("id", planId);
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   // active_plan_id sa vynuluje sám (on delete set null) → Dnes spadne na najnovší.
   revalidatePath("/portal", "layout");
@@ -350,5 +350,5 @@ async function callSetActivePlan(planId: string, dayId: string | null): Promise<
   if (error.message.includes("not_authenticated")) return { error: "Nie si prihlásený." };
   if (error.message.includes("plan_not_found")) return { error: "Tréning sa nenašiel." };
   if (error.message.includes("day_not_found")) return { error: "Deň sa nenašiel." };
-  return { error: dbErr(error, "actions") };
+  return { error: await dbErr(error, "actions") };
 }

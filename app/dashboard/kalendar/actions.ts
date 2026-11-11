@@ -108,7 +108,7 @@ export async function createAppointmentAction(_prevState: ActionState, formData:
 
   const rows = clientIds.map((client_id) => ({ trainer_id: user.id, ...checked.row, client_id }));
   const { error } = await supabase.from("appointments").insert(rows);
-  if (error) return { error: dbErr(error, "actions"), values };
+  if (error) return { error: await dbErr(error, "actions"), values };
 
   revalidatePath("/dashboard/kalendar");
   return ok;
@@ -136,7 +136,7 @@ export async function updateAppointmentAction(_prevState: ActionState, formData:
     .eq("trainer_id", user.id)
     .select("id")
     .maybeSingle();
-  if (error) return { error: dbErr(error, "actions"), values };
+  if (error) return { error: await dbErr(error, "actions"), values };
   if (!data) return { error: "Termín sa nenašiel.", values };
 
   revalidatePath("/dashboard/kalendar");

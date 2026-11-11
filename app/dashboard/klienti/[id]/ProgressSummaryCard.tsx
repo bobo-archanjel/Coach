@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { generateProgressSummaryAction, type ProgressSummaryState } from "../actions";
 import { InfoTip } from "@/app/components/InfoTip";
@@ -15,20 +16,18 @@ const initialState: ProgressSummaryState = { summary: null, error: null };
  */
 export function ProgressSummaryCard({ clientId }: { clientId: string }) {
   const [state, formAction, pending] = useActionState(generateProgressSummaryAction, initialState);
+  const t = useTranslations("clientDetail.aiSummary");
 
   return (
     <div className={styles.card}>
       <h3>
-        AI zhrnutie progresu{" "}
-        <InfoTip title="AI zhrnutie progresu">
-          Krátke zhrnutie adherencie, váhy a sily za posledné dni — appka spočíta čísla, AI ich len sformuluje.
-        </InfoTip>
+        {t("title")} <InfoTip title={t("title")}>{t("tip")}</InfoTip>
       </h3>
 
       <form action={formAction}>
         <input type="hidden" name="client_id" value={clientId} />
         <button type="submit" className="btn btn-ghost btn-sm" disabled={pending}>
-          {pending ? "Generujem…" : "Zhrnúť progres"}
+          {pending ? t("generating") : t("generate")}
         </button>
       </form>
 

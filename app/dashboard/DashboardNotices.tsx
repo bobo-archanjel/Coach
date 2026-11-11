@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 // Skrývateľné upozornenia na hlavnej ploche /dashboard (feature/funkcionalita) —
 // tie isté, čo zvonček, nech nič "nesvieti" donekonečna. Kľúče a pravidlá skrytia
 // sú v lib/dashboard/attention.ts, ukladanie v ./attention/actions.ts (migrácia 0035).
@@ -11,7 +12,6 @@ import { DISMISS_LATE_DAYS } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction } from "./attention/actions";
 import styles from "./dashboard.module.css";
 
-const SAVE_FAILED = "Skrytie sa nepodarilo uložiť. Skús to znova o chvíľu.";
 
 /** Jeden skrytý-alebo-nie blok (digest banner, checklist prvých krokov). */
 export function DismissibleNotice({
@@ -29,6 +29,7 @@ export function DismissibleNotice({
   children: ReactNode;
 }) {
   const [hidden, setHidden] = useState(false);
+  const t = useTranslations("clients");
   const [failed, setFailed] = useState(false);
   if (hidden) return null;
 
@@ -42,7 +43,7 @@ export function DismissibleNotice({
       {children}
       {failed && (
         <p className={styles.noticeError} role="alert">
-          {SAVE_FAILED}
+          {t("hideFailed")}
         </p>
       )}
       <button
@@ -77,6 +78,7 @@ export interface LateNoticeClient {
 /** Alert panel "meškajúci klienti" so skrytím jedného aj všetkých naraz (na 7 dní). */
 export function LateAlertPanel({ clients }: { clients: LateNoticeClient[] }) {
   const [hiddenKeys, setHiddenKeys] = useState<ReadonlySet<string>>(new Set());
+  const t = useTranslations("clients");
   const [failed, setFailed] = useState(false);
   const visible = clients.filter((c) => !hiddenKeys.has(c.key));
   if (visible.length === 0) return null;
@@ -102,16 +104,16 @@ export function LateAlertPanel({ clients }: { clients: LateNoticeClient[] }) {
     <div className={styles.alertPanel} role="status">
       <div className={styles.alertPanelHead}>
         <p className={styles.alertPanelTitle}>
-          {n === 1 ? "1 klient mešká s tréningom" : `${n} klienti meškajú s tréningom`}
+          {t("lateTitle", { count: n })}
         </p>
         {n > 1 && (
           <button
             type="button"
             className={styles.alertPanelAction}
-            title={`Skryje na ${DISMISS_LATE_DAYS} dní, potom sa vrátia, ak stále meškajú.`}
+            title={t("lateHideAllHint", { days: DISMISS_LATE_DAYS })}
             onClick={() => hide(visible.map((c) => c.key))}
           >
-            Skryť všetky
+            {t("hideAll")}
           </button>
         )}
       </div>
@@ -123,8 +125,8 @@ export function LateAlertPanel({ clients }: { clients: LateNoticeClient[] }) {
             <button
               type="button"
               className={styles.alertPanelX}
-              aria-label={`Skryť ${c.name} na ${DISMISS_LATE_DAYS} dní`}
-              title={`Skryť na ${DISMISS_LATE_DAYS} dní`}
+              aria-label={t("hideClient", { name: c.name, days: DISMISS_LATE_DAYS })}
+              title={t("hideForDays", { days: DISMISS_LATE_DAYS })}
               onClick={() => hide([c.key])}
             >
               ×
@@ -134,7 +136,7 @@ export function LateAlertPanel({ clients }: { clients: LateNoticeClient[] }) {
       </ul>
       {failed && (
         <p className={styles.noticeError} role="alert">
-          {SAVE_FAILED}
+          {t("hideFailed")}
         </p>
       )}
     </div>

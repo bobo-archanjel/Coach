@@ -20,6 +20,9 @@ import skComponents from "./sk/components.json";
 import skChat from "./sk/chat.json";
 import skFood from "./sk/food.json";
 import skErrors from "./sk/errors.json";
+import skClients from "./sk/clients.json";
+import skClientDetail from "./sk/clientDetail.json";
+import skLabels from "./sk/labels.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -37,6 +40,9 @@ import csComponents from "./cs/components.json";
 import csChat from "./cs/chat.json";
 import csFood from "./cs/food.json";
 import csErrors from "./cs/errors.json";
+import csClients from "./cs/clients.json";
+import csClientDetail from "./cs/clientDetail.json";
+import csLabels from "./cs/labels.json";
 
 export const sk = {
   common: skCommon,
@@ -55,6 +61,9 @@ export const sk = {
   chat: skChat,
   food: skFood,
   errors: skErrors,
+  clients: skClients,
+  clientDetail: skClientDetail,
+  labels: skLabels,
 };
 
 export type Messages = typeof sk;
@@ -76,6 +85,9 @@ export const cs: Messages = {
   chat: csChat,
   food: csFood,
   errors: csErrors,
+  clients: csClients,
+  clientDetail: csClientDetail,
+  labels: csLabels,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };

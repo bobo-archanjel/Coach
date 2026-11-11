@@ -22,3 +22,9 @@ export const MONTH_GENITIVE: Record<Locale, readonly string[]> = {
   sk: ["januára", "februára", "marca", "apríla", "mája", "júna", "júla", "augusta", "septembra", "októbra", "novembra", "decembra"],
   cs: ["ledna", "února", "března", "dubna", "května", "června", "července", "srpna", "září", "října", "listopadu", "prosince"],
 };
+
+/** Relatívne dni pri krátkych časoch („dnes 21:30“, „zajtra 8:05“). */
+export const RELATIVE_DAY: Record<Locale, { today: string; tomorrow: string; yesterday: string }> = {
+  sk: { today: "dnes", tomorrow: "zajtra", yesterday: "včera" },
+  cs: { today: "dnes", tomorrow: "zítra", yesterday: "včera" },
+};

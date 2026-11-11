@@ -5,6 +5,8 @@
 // pomáha útočníkovi mapovať schému. Používateľ dostane zrozumiteľný text, pôvodná
 // chyba ide len do serverového logu.
 
+import { tErr, type ErrorKey } from "@/lib/i18n/serverErrors";
+
 interface DbErrorLike {
   message?: string;
   code?: string;
@@ -12,34 +14,39 @@ interface DbErrorLike {
   hint?: string | null;
 }
 
-/** Text hlášky, ktorý sme v DB napísali PRE používateľa (trigger flood guardu,
- *  zámok dokončeného tréningu 0048). */
-const FRIENDLY_PREFIXES = ["rate_limited:", "locked:"];
+/** Hlášky, ktoré sme v DB napísali PRE používateľa (trigger flood guardu 0036, zámok
+ *  dokončeného tréningu 0048/0049) — v DB sú po slovensky, preto sa tu podľa prefixu
+ *  (a pri zámku podľa okna 24 h) vyberie preložený text. */
+function friendlyKey(msg: string): ErrorKey | null {
+  if (msg.startsWith("rate_limited:")) return "db.rateLimited";
+  if (msg.startsWith("locked:")) return /24/.test(msg) ? "db.lockedEditWindow" : "db.locked";
+  return null;
+}
 
-export function dbErr(err: DbErrorLike | null | undefined, context?: string): string {
-  if (!err) return "Nepodarilo sa dokončiť akciu. Skús to prosím znova.";
+/** Bezpečná chybová hláška v jazyku používateľa — `return { error: await dbErr(error, "actions") }`. */
+export async function dbErr(err: DbErrorLike | null | undefined, context?: string): Promise<string> {
+  if (!err) return tErr("db.generic");
 
   console.error(`${context ?? "db"}: [${err.code ?? "?"}] ${err.message ?? ""}`);
 
-  const msg = err.message ?? "";
-  const prefix = FRIENDLY_PREFIXES.find((p) => msg.startsWith(p));
-  if (prefix) return msg.slice(prefix.length).trim();
+  const friendly = friendlyKey(err.message ?? "");
+  if (friendly) return tErr(friendly);
 
   switch (err.code) {
     case "42501": // insufficient_privilege / RLS
-      return "Na túto akciu nemáš oprávnenie.";
+      return tErr("db.forbidden");
     case "23505": // unique_violation
-      return "Takýto záznam už existuje.";
+      return tErr("db.duplicate");
     case "23514": // check_violation
     case "22P02": // invalid_text_representation
     case "22003": // numeric_value_out_of_range
     case "22001": // string_data_right_truncation
-      return "Zadaná hodnota nie je platná.";
+      return tErr("db.invalidValue");
     case "23503": // foreign_key_violation
-      return "Súvisiaci záznam neexistuje alebo už nie je dostupný.";
+      return tErr("db.missingRelated");
     case "PGRST116": // .single() bez riadku
-      return "Záznam sa nenašiel.";
+      return tErr("db.notFound");
     default:
-      return "Nepodarilo sa dokončiť akciu. Skús to prosím znova.";
+      return tErr("db.generic");
   }
 }

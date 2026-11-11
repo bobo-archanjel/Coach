@@ -66,7 +66,7 @@ export async function createUserFoodAction(
     .single();
   if (error) {
     if (error.code === "23505") return fail(t("duplicate"));
-    return fail(dbErr(error, "actions"));
+    return fail(await dbErr(error, "actions"));
   }
 
   return {

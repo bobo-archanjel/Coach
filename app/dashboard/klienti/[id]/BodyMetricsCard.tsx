@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { LineChart, type LineChartPoint } from "../../LineChart";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 import styles from "@/app/dashboard/dashboard.module.css";
@@ -10,16 +11,17 @@ import styles from "@/app/dashboard/dashboard.module.css";
  * "Analytika" (`page.tsx`) — nevykresľuje vlastnú `.card`.
  */
 export async function BodyMetricsCard({ entries }: { entries: BodyMetricEntry[] }) {
+  const t = await getTranslations("clientDetail.body");
   const weightPoints: LineChartPoint[] = entries
     .filter((e) => e.weightKg != null)
     .map((e) => ({ date: e.measuredOn, value: e.weightKg as number }));
 
   return (
     <div>
-      <h4 className={styles.cardSubhead}>Váha</h4>
+      <h4 className={styles.cardSubhead}>{t("weight")}</h4>
       <LineChart points={weightPoints} unit="kg" />
       {weightPoints.length === 0 && (
-        <p className={styles.chartHint}>Klient si zatiaľ nezapísal žiadne meranie — robí to sám v portáli, na karte „Dnes“.</p>
+        <p className={styles.chartHint}>{t("empty")}</p>
       )}
     </div>
   );

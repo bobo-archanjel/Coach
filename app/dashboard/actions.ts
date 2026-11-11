@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,27 +21,26 @@ export interface AddByCodeState {
  */
 export async function addClientByCodeAction(_prev: AddByCodeState, formData: FormData): Promise<AddByCodeState> {
   const code = ((formData.get("code") as string | null) ?? "").trim();
-  if (!code) return { error: "Zadaj kód klienta.", addedName: null };
-  if (code.length < 6) return { error: "Kód je príliš krátky — skopíruj ho celý.", addedName: null };
+  if (!code) return { error: await tErr("addClient.codeRequired"), addedName: null };
+  if (code.length < 6) return { error: await tErr("addClient.codeTooShort"), addedName: null };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("add_client_by_code", { p_code: code });
 
   if (error) {
-    const map: Record<string, string> = {
-      // Kód je jednorazový — RPC ho pri úspešnom spárovaní rotuje (0036, bezpečnostné
-      // opatrenie proti opätovnému použitiu). Preto "neplatný" najčastejšie neznamená
-      // preklep, ale že kód už bol raz použitý — hláška to musí odlíšiť, inak trénera
-      // navádza hľadať chybu u seba/klienta, keď v skutočnosti je klient už spárovaný.
-      invalid_code:
-        "Tento kód už neplatí — buď je v ňom preklep, alebo bol už raz použitý (z bezpečnostných dôvodov sa po spárovaní mení). Ak si tohto klienta už pridal, nájdeš ho v zozname klientov; inak si od neho vyžiadaj aktuálny kód z jeho profilu.",
-      already_your_client: "Tohto klienta už máš v zozname.",
-      already_has_trainer: "Tento klient je už priradený k inému trénerovi. Musí sa najprv odpojiť vo svojom profile.",
-      too_many_attempts: "Priveľa pokusov o pridanie. Skús to znova o 15 minút.",
-      not_a_trainer: "Klientov môže pridávať len trénerský účet.",
-    };
-    const key = Object.keys(map).find((k) => error.message.includes(k));
-    return { error: key ? map[key] : "Pridanie zlyhalo. Skús to o chvíľu znova.", addedName: null };
+    // Kód je jednorazový — RPC ho pri úspešnom spárovaní rotuje (0036, bezpečnostné
+    // opatrenie proti opätovnému použitiu). Preto "neplatný" najčastejšie neznamená
+    // preklep, ale že kód už bol raz použitý — hláška (addClient.codeInvalid) to odlišuje,
+    // inak trénera navádza hľadať chybu u seba/klienta, keď je klient už spárovaný.
+    const map = {
+      invalid_code: "addClient.codeInvalid",
+      already_your_client: "addClient.alreadyYours",
+      already_has_trainer: "addClient.otherTrainer",
+      too_many_attempts: "addClient.rateLimited",
+      not_a_trainer: "addClient.trainerOnly",
+    } as const;
+    const key = (Object.keys(map) as (keyof typeof map)[]).find((k) => error.message.includes(k));
+    return { error: await tErr(key ? map[key] : "addClient.failed"), addedName: null };
   }
 
   const row = Array.isArray(data) ? data[0] : data;
@@ -61,7 +61,7 @@ export async function addClientAction(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "Nie si prihlásený." };
+    return { error: await tErr("notSignedIn") };
   }
 
   const fullName = (formData.get("full_name") as string | null)?.trim() ?? "";
@@ -69,7 +69,7 @@ export async function addClientAction(
   const notes = (formData.get("notes") as string | null)?.trim() || null;
 
   if (!fullName) {
-    return { error: "Meno klienta je povinné." };
+    return { error: await tErr("addClient.nameRequired") };
   }
 
   // Voliteľné základné údaje — na rozdiel od nutrition_profiles (0004) nie sú
@@ -104,7 +104,7 @@ export async function addClientAction(
 
   if (error || !created) {
     console.error("addClientAction:", error?.message);
-    return { error: "Klienta sa nepodarilo pridať. Skús to prosím znova." };
+    return { error: await tErr("addClient.createFailed") };
   }
 
   if (notes) {

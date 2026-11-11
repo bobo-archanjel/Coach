@@ -302,7 +302,7 @@ export async function getPortalData(): Promise<PortalResult> {
       getMyClient(user.id),
     ]);
 
-    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
+    if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
 
     const firstName = firstNameOf(client?.full_name) ?? firstNameOf(profile?.full_name);
     if (!client) return { state: "unlinked", firstName };
@@ -377,7 +377,7 @@ export async function getPortalData(): Promise<PortalResult> {
         planErr = error;
       }
     }
-    if (!planRow && planErr) return { state: "error", message: dbErr(planErr, "data") };
+    if (!planRow && planErr) return { state: "error", message: await dbErr(planErr, "data") };
     // Bez plánu (nový klient) alebo s prázdnym aktívnym plánom Dnes nekončí len oznamom:
     // session = null → prázdna karta plánu, ale pozdrav, prehľad, týždeň, séria a meranie
     // ostávajú (rovnaké dáta zo sideData ako pri pláne).
@@ -614,7 +614,7 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, error } = await getLinkedClient(user.id);
-    if (error) return { state: "error", message: dbErr(error, "data") };
+    if (error) return { state: "error", message: await dbErr(error, "data") };
     if (!client) return { state: "error", message: "Účet ešte nie je prepojený." };
 
     const { isoDate, base } = todayInTz();
@@ -654,7 +654,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, error: clientErr } = await getLinkedClient(user.id);
-    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
+    if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
 
     if (!client) {
       return { state: "ok", data: { plans: [], activePlanId: null, templates: [] } };
@@ -686,7 +686,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
         .order("created_at", { ascending: false })
         .order("day_number", { referencedTable: "plan_template_days", ascending: true }),
     ]);
-    if (planErr) return { state: "error", message: dbErr(planErr, "data") };
+    if (planErr) return { state: "error", message: await dbErr(planErr, "data") };
     // Šablóny sú doplnok — ich chyba nezhodí celú sekciu Tréning, len sa nezobrazia.
     if (tplErr) console.error("getPortalTraining templates:", tplErr.message);
     const templates: PortalTemplate[] = (tplRows ?? []).map((t) => ({
@@ -825,7 +825,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
-    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
+    if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
     const [{ data: profile, error: profileErr }, { data: plan, error: planErr }] = await Promise.all([
@@ -845,8 +845,8 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         .limit(1)
         .maybeSingle(),
     ]);
-    if (profileErr) return { state: "error", message: dbErr(profileErr, "data") };
-    if (planErr) return { state: "error", message: dbErr(planErr, "data") };
+    if (profileErr) return { state: "error", message: await dbErr(profileErr, "data") };
+    if (planErr) return { state: "error", message: await dbErr(planErr, "data") };
 
     const macroGoal = profile
       ? {
@@ -935,7 +935,7 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
-    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
+    if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
 
     const { isoDate: todayIso } = todayInTz();
@@ -956,8 +956,8 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
         .order("created_at", { ascending: true }),
     ]);
 
-    if (profileErr) return { state: "error", message: dbErr(profileErr, "data") };
-    if (logErr) return { state: "error", message: dbErr(logErr, "data") };
+    if (profileErr) return { state: "error", message: await dbErr(profileErr, "data") };
+    if (logErr) return { state: "error", message: await dbErr(logErr, "data") };
 
     const goal = profile
       ? {
@@ -1033,7 +1033,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
-    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
+    if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     // Bez trénera nie je s kým chatovať — po napojení sem príde systémová správa
     // "tréner ťa pridal" a klient uvidí normálne vlákno (feature/registracia-update).
@@ -1051,7 +1051,7 @@ export async function getPortalChat(): Promise<PortalChatResult> {
       .order("created_at", { ascending: false })
       .limit(300);
 
-    if (msgErr) return { state: "error", message: dbErr(msgErr, "data") };
+    if (msgErr) return { state: "error", message: await dbErr(msgErr, "data") };
 
     const messages: PortalChatMessage[] = [...(rows ?? [])].reverse().map((m) => ({
       id: m.id,
@@ -1085,7 +1085,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     if (!user) return { state: "error", message: "Session vypršala." };
 
     const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
-    if (clientErr) return { state: "error", message: dbErr(clientErr, "data") };
+    if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     if (!client.trainer_id) return { state: "no_trainer" };
 
@@ -1098,7 +1098,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
       // posledných 300, nie prvých — viď getPortalChat
       .order("created_at", { ascending: false })
       .limit(300);
-    if (msgErr) return { state: "error", message: dbErr(msgErr, "data") };
+    if (msgErr) return { state: "error", message: await dbErr(msgErr, "data") };
 
     const messages: PortalAiChatMessage[] = [...(rows ?? [])].reverse().map((m) => ({
       id: m.id,

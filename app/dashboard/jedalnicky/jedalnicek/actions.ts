@@ -84,7 +84,7 @@ export async function publishMealPlanAction(_prevState: ActionState, formData: F
     .eq("trainer_id", user.id)
     .select("client_id")
     .maybeSingle();
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   if (!data) return { error: "Jedálniček sa nenašiel." };
 
   // šablóna pre viacerých klientov (0052): každý ďalší príjemca dostane vlastnú kópiu
@@ -121,7 +121,7 @@ export async function deleteMealPlanAction(planId: string): Promise<ActionState>
   if (!plan) return { error: "Jedálniček sa nenašiel." };
 
   const { error } = await supabase.from("meal_plans").delete().eq("id", planId).eq("trainer_id", user.id);
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/dashboard/jedalnicky");
   revalidatePath(`/dashboard/klienti/${plan.client_id}`);
@@ -148,7 +148,7 @@ export async function renameMealPlanAction(planId: string, rawName: string): Pro
     .eq("trainer_id", user.id)
     .select("client_id")
     .maybeSingle();
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   if (!data) return { error: "Jedálniček sa nenašiel." };
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
@@ -210,7 +210,7 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (!plan) return { error: "Jedálniček sa nenašiel." };
-  if (foodsError) return { error: dbErr(foodsError, "actions") };
+  if (foodsError) return { error: await dbErr(foodsError, "actions") };
 
   const foodById = new Map((foods ?? []).map((f) => [f.id, f]));
   // Potravina medzitým zmazaná z knižnice → nechaj snapshot, ktorý už v dni bol.
@@ -250,7 +250,7 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
 
   if (toDelete.length > 0) {
     const { error } = await supabase.from("meal_days").delete().in("id", toDelete).eq("plan_id", planId);
-    if (error) return { error: dbErr(error, "actions") };
+    if (error) return { error: await dbErr(error, "actions") };
   }
   const updates = await Promise.all(
     rows
@@ -264,12 +264,12 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
       ),
   );
   const updateError = updates.find((u) => u.error)?.error;
-  if (updateError) return { error: dbErr(updateError, "actions") };
+  if (updateError) return { error: await dbErr(updateError, "actions") };
 
   const inserts = rows.filter((r) => !r.id).map(({ day_number, name, meals }) => ({ plan_id: planId, day_number, name, meals }));
   if (inserts.length > 0) {
     const { error } = await supabase.from("meal_days").insert(inserts);
-    if (error) return { error: dbErr(error, "actions") };
+    if (error) return { error: await dbErr(error, "actions") };
   }
 
   revalidatePath(`/dashboard/jedalnicky/jedalnicek/${planId}`);
