@@ -50,6 +50,6 @@ export function ogLocale(locale: Locale): string {
 }
 
 /** Názov jazyka v ňom samom — v prepínači sa nikdy neprekladá. */
-export const LOCALE_NAME: Record<Locale, string> = { sk: "Slovenčina", cs: "Čeština" };
+export const LOCALE_NAME: Record<Locale, string> = { sk: "Slovenčina", cs: "Čeština" }; // i18n-ignore
 /** Skratka na kompaktnom prepínači (landing). */
 export const LOCALE_SHORT: Record<Locale, string> = { sk: "SK", cs: "CZ" };

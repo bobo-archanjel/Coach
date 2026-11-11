@@ -11,6 +11,7 @@
 // na plné dáta), refresh pri fokuse/otvorení/zmene trasy/intervale, a okamžite
 // pri novej správe cez Supabase Realtime (RLS-scoped).
 
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { usePathname } from "next/navigation";
@@ -66,6 +67,8 @@ export function NotificationBellSlot({ placement }: { placement: "header" | "sid
 }
 
 export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number }) {
+  const t = useTranslations("bell");
+  const locale = useLocale();
   const pathname = usePathname();
   const [data, setData] = useState<PortalAttentionData | null>(null);
   const [failed, setFailed] = useState(false);
@@ -178,7 +181,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   }, [open]);
 
   const total = data ? portalAttentionTotal(data) : initialUnread;
-  const items = data ? buildPortalAttentionItems(data) : [];
+  const items = data ? buildPortalAttentionItems(data, locale) : [];
 
   const dismiss = useCallback(
     (keys: string[], days: number | null) => {
@@ -243,7 +246,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
         className={`${styles.bellBtn} ${open ? styles.bellBtnOpen : ""}`}
         aria-expanded={open}
         aria-controls="portal-attention-panel"
-        aria-label={total > 0 ? `Upozornenia, ${total}` : "Upozornenia"}
+        aria-label={total > 0 ? t("ariaCount", { count: total }) : t("aria")}
         onClick={() => {
           if (!open) void refresh(15_000);
           setOpenAt(open ? null : pathname);
@@ -254,13 +257,13 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
       </button>
 
       {open && (
-        <div id="portal-attention-panel" className={styles.bellPanel} role="region" aria-label="Upozornenia">
-          <p className={styles.bellPanelTitle}>Čo je nové</p>
+        <div id="portal-attention-panel" className={styles.bellPanel} role="region" aria-label={t("aria")}>
+          <p className={styles.bellPanelTitle}>{t("clientTitle")}</p>
 
           {data === null ? (
-            <p className={styles.bellEmpty}>{failed ? "Upozornenia sa nepodarilo načítať." : "Načítavam…"}</p>
+            <p className={styles.bellEmpty}>{failed ? t("loadFailed") : t("loading")}</p>
           ) : items.length === 0 ? (
-            <p className={styles.bellEmpty}>Nič nové — všetko si videl/videla.</p>
+            <p className={styles.bellEmpty}>{t("clientEmpty")}</p>
           ) : (
             items.map((item) => (
               <div key={item.id} className={styles.bellItem}>
@@ -283,7 +286,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                   )}
                   {item.markRead && (
                     <button type="button" className={styles.bellAction} onClick={markRead}>
-                      Označiť ako prečítané
+                      {t("markRead")}
                     </button>
                   )}
                   {item.dismiss && (
@@ -292,7 +295,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                       className={styles.bellAction}
                       onClick={() => dismiss(item.dismiss!.keys, item.dismiss!.days)}
                     >
-                      {item.dismiss.keys.length > 1 ? "Skryť všetky" : "Skryť"}
+                      {item.dismiss.keys.length > 1 ? t("hideAll") : t("hide")}
                     </button>
                   )}
                 </div>
@@ -314,7 +317,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                           <button
                             type="button"
                             className={styles.bellX}
-                            aria-label={`Skryť ${l.label}`}
+                            aria-label={t("hideItem", { label: l.label })}
                             onClick={() => dismiss([l.dismissKey!], item.dismiss?.days ?? null)}
                           >
                             ×
@@ -329,7 +332,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
           )}
           {actionFailed && (
             <p className={styles.bellError} role="alert">
-              Nepodarilo sa uložiť. Skús to znova o chvíľu.
+              {t("saveFailed")}
             </p>
           )}
         </div>

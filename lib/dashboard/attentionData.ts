@@ -21,6 +21,7 @@ const DEV_NO_SESSION = process.env.NODE_ENV === "development";
 
 // DEV bez session (rovnaký princíp ako DEV_OPEN v app/dashboard/layout.tsx): vzorové
 // dáta, nech sa dá zvonček pozerať bez prihlásenia. V produkcii sa nikdy nepoužije.
+// i18n-ignore-start — DEV náhľad (vymyslené dáta)
 const PREVIEW_DATA: AttentionData = {
   unread: 3,
   unreadByClient: [
@@ -42,6 +43,7 @@ const PREVIEW_DATA: AttentionData = {
   ],
   digest: { from: "watch", to: "risk", count: 2, key: digestDismissKey("2026-09-14") },
 };
+// i18n-ignore-end
 
 /** `null` = nepodarilo sa načítať (UI ponechá posledný známy stav, nič nehlási). */
 export async function loadAttention(): Promise<AttentionData | null> {
@@ -102,7 +104,7 @@ export async function loadAttention(): Promise<AttentionData | null> {
   const appointments = (apptErr ? [] : (apptRows ?? [])).map((a) => ({
     id: a.id as string,
     clientName: nameOf.get(a.client_id as string) ?? "Klient",
-    title: (a.title as string) || "Termín",
+    title: (a.title as string) || "Termín", // i18n-ignore — predvolený názov v DB (stĺpec NOT NULL)
     startsAt: a.starts_at as string,
     key: apptDismissKey(a.id as string),
   }));

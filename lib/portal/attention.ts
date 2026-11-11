@@ -13,6 +13,9 @@
 // Neprečítané správy sa neskrývajú — "prečítať" znamená skutočné read_at
 // (mark_messages_read), rovnako ako na strane trénera.
 
+import { bellTranslator, formatApptWhen } from "@/lib/i18n/bell";
+import type { Locale } from "@/lib/i18n/locales";
+
 export const planDismissKey = (planId: string) => `plan:${planId}`;
 export const mealDismissKey = (planId: string) => `meal:${planId}`;
 export const apptDismissKey = (appointmentId: string) => `appt:${appointmentId}`;
@@ -95,20 +98,9 @@ export interface PortalAttentionItem {
 /** Odkaz na konkrétny plán v sekcii Tréning — rozbalí ho a posunie sa naň (TrainingSection). */
 export const portalPlanHref = (planId: string) => `/portal/trening?plan=${encodeURIComponent(planId)}`;
 
-function plural(n: number, one: string, few: string, many: string): string {
-  if (n === 1) return one;
-  if (n >= 2 && n <= 4) return few;
-  return many;
-}
-
 /** Počet na odznaku zvončeka: neprečítané správy + nové plány/jedálničky + blížiace sa termíny. */
 export function portalAttentionTotal(data: PortalAttentionData): number {
   return data.unread + data.newPlans.length + data.newMealPlans.length + data.appointments.length;
-}
-
-function formatApptWhen(startsAt: string): string {
-  const d = new Date(startsAt);
-  return d.toLocaleString("sk-SK", { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 /**
@@ -116,14 +108,15 @@ function formatApptWhen(startsAt: string): string {
  * (časovo najkritickejšie), nové plány, nové jedálničky. Očakáva už odfiltrované
  * skryté upozornenia (applyPortalDismissals).
  */
-export function buildPortalAttentionItems(data: PortalAttentionData): PortalAttentionItem[] {
+export function buildPortalAttentionItems(data: PortalAttentionData, locale: Locale = "sk"): PortalAttentionItem[] {
   const items: PortalAttentionItem[] = [];
+  const t = bellTranslator(locale);
 
   if (data.unread > 0) {
     items.push({
       id: "messages",
       tone: "alert",
-      title: `${data.unread} ${plural(data.unread, "neprečítaná správa", "neprečítané správy", "neprečítaných správ")} od trénera`,
+      title: t("client.unreadFromTrainer", { count: data.unread }),
       href: "/portal/chat",
       links: [],
       markRead: true,
@@ -135,11 +128,11 @@ export function buildPortalAttentionItems(data: PortalAttentionData): PortalAtte
     items.push({
       id: "appointments",
       tone: "alert",
-      title: `${data.appointments.length} ${plural(data.appointments.length, "blížiaci sa termín", "blížiace sa termíny", "blížiacich sa termínov")}`,
+      title: t("upcoming", { count: data.appointments.length }),
       href: null,
       links: data.appointments.map((a) => ({
         label: a.title,
-        meta: formatApptWhen(a.startsAt),
+        meta: formatApptWhen(a.startsAt, locale),
         href: "/portal",
         dismissKey: a.key,
       })),
@@ -154,8 +147,8 @@ export function buildPortalAttentionItems(data: PortalAttentionData): PortalAtte
       tone: "watch",
       title:
         data.newPlans.length === 1
-          ? `Nový tréningový plán: ${data.newPlans[0].name}`
-          : `${data.newPlans.length} nových tréningových plánov`,
+          ? t("client.newPlan", { name: data.newPlans[0].name })
+          : t("client.newPlans", { count: data.newPlans.length }),
       href: data.newPlans.length === 1 ? portalPlanHref(data.newPlans[0].id) : null,
       links:
         data.newPlans.length === 1
@@ -173,8 +166,8 @@ export function buildPortalAttentionItems(data: PortalAttentionData): PortalAtte
       tone: "watch",
       title:
         data.newMealPlans.length === 1
-          ? `Nový jedálniček: ${data.newMealPlans[0].name}`
-          : `${data.newMealPlans.length} nových jedálničkov`,
+          ? t("client.newMealPlan", { name: data.newMealPlans[0].name })
+          : t("client.newMealPlans", { count: data.newMealPlans.length }),
       href: data.newMealPlans.length === 1 ? "/portal/strava" : null,
       links:
         data.newMealPlans.length === 1

@@ -1,0 +1,41 @@
+{
+  "aria": "Upozornění",
+  "ariaCount": "Upozornění, {count}",
+  "trainerTitle": "Co potřebuje tvou pozornost",
+  "clientTitle": "Co je nového",
+  "loadFailed": "Upozornění se nepodařilo načíst.",
+  "loading": "Načítám…",
+  "trainerEmpty": "Vše vyřízeno — nic nečeká na tvou reakci.",
+  "clientEmpty": "Nic nového — všechno už jsi viděl/a.",
+  "markRead": "Označit jako přečtené",
+  "hide": "Skrýt",
+  "hideAll": "Skrýt vše",
+  "hideForDaysHint": "Skryje na {days} dní, pak se vrátí, pokud to stále platí.",
+  "hideItem": "Skrýt {label}",
+  "hideItemForDays": "Skrýt {label} na {days} dní",
+  "hideForDays": "Skrýt na {days} dní",
+  "saveFailed": "Nepodařilo se uložit. Zkus to znovu za chvíli.",
+  "andMore": "a další {count}",
+  "unread": "{count, plural, one {# nepřečtená zpráva} few {# nepřečtené zprávy} other {# nepřečtených zpráv}}",
+  "upcoming": "{count, plural, one {# blížící se termín} few {# blížící se termíny} other {# blížících se termínů}}",
+  "trainer": {
+    "unreadFrom": "{count, plural, one {# nepřečtená zpráva} few {# nepřečtené zprávy} other {# nepřečtených zpráv}} od {name}",
+    "unreadFromClients": "{count, plural, one {# nepřečtená zpráva} few {# nepřečtené zprávy} other {# nepřečtených zpráv}} od klientů",
+    "messageCount": "{count, plural, one {# zpráva} few {# zprávy} other {# zpráv}}",
+    "daysWithout": "{count, plural, one {# den} few {# dny} other {# dní}} bez tréninku",
+    "late": "{count, plural, one {# klient se opožďuje} few {# klienti se opožďují} other {# klientů se opožďuje}} s tréninkem",
+    "digest": "{count, plural, one {# klient klesl} few {# klienti klesli} other {# klientů kleslo}} ze „{from}“ do „{to}“ tento týden"
+  },
+  "client": {
+    "unreadFromTrainer": "{count, plural, one {# nepřečtená zpráva} few {# nepřečtené zprávy} other {# nepřečtených zpráv}} od trenéra",
+    "newPlan": "Nový tréninkový plán: {name}",
+    "newPlans": "{count, plural, one {# nový tréninkový plán} few {# nové tréninkové plány} other {# nových tréninkových plánů}}",
+    "newMealPlan": "Nový jídelníček: {name}",
+    "newMealPlans": "{count, plural, one {# nový jídelníček} few {# nové jídelníčky} other {# nových jídelníčků}}"
+  },
+  "bucket": {
+    "ok": "V pořádku",
+    "watch": "Sleduj",
+    "risk": "Riziko"
+  }
+}

@@ -20,6 +20,7 @@ const DEV_NO_SESSION = process.env.NODE_ENV === "development";
 
 // DEV bez session (rovnaký princíp ako v lib/dashboard/attentionData.ts) — vzorové
 // dáta, nech sa dá zvonček pozerať bez prihlásenia. V produkcii sa nikdy nepoužije.
+// i18n-ignore-start — DEV náhľad (vymyslené dáta)
 const PREVIEW_DATA: PortalAttentionData = {
   unread: 1,
   newPlans: [{ id: "p1", name: "Hypertrofia — 4 dni/týždeň", key: planDismissKey("p1") }],
@@ -28,6 +29,7 @@ const PREVIEW_DATA: PortalAttentionData = {
     { id: "a1", title: "Konzultácia", startsAt: new Date(Date.now() + 20 * 3_600_000).toISOString(), key: apptDismissKey("a1") },
   ],
 };
+// i18n-ignore-end
 
 /** `null` = nepodarilo sa načítať (UI ponechá posledný známy stav, nič nehlási). */
 export async function loadPortalAttention(): Promise<PortalAttentionData | null> {

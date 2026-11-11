@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
@@ -81,13 +82,13 @@ function TemplatesIcon() {
   );
 }
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Klienti", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
-  { href: "/dashboard/treningy", label: "Tréningy", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
-  { href: "/dashboard/jedalnicky", label: "Jedálničky", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
-  { href: "/dashboard/kalendar", label: "Kalendár", Icon: CalendarIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/kalendar") },
-  { href: "/dashboard/sablony", label: "Šablóny", Icon: TemplatesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/sablony") },
-  { href: "/dashboard/spravy", label: "Správy", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
+const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean }[] = [
+  { href: "/dashboard", label: "clients", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
+  { href: "/dashboard/treningy", label: "plans", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
+  { href: "/dashboard/jedalnicky", label: "mealPlans", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
+  { href: "/dashboard/kalendar", label: "calendar", Icon: CalendarIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/kalendar") },
+  { href: "/dashboard/sablony", label: "templates", Icon: TemplatesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/sablony") },
+  { href: "/dashboard/spravy", label: "messages", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
 ];
 
 /**
@@ -97,6 +98,7 @@ const NAV_ITEMS = [
  */
 export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCount?: number; displayName?: string | null }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const settingsActive = pathname.startsWith("/dashboard/nastavenia");
 
   return (
@@ -110,7 +112,7 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
         <NotificationBell initialUnread={unreadCount} />
       </div>
 
-      <nav className={styles.navList} aria-label="Trénerský dashboard">
+      <nav className={styles.navList} aria-label={t("trainerLabel")}>
         {NAV_ITEMS.map(({ href, label, Icon, tour, match }) => {
           const active = match(pathname);
           const showBadge = href === "/dashboard/spravy" && unreadCount > 0;
@@ -126,9 +128,9 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
               onClick={href === "/dashboard/spravy" && pathname === href ? revealInboxList : undefined}
             >
               <Icon />
-              {label}
+              {t(label)}
               {showBadge && (
-                <span className={styles.navBadge} aria-label={`${unreadCount} neprečítaných správ`}>
+                <span className={styles.navBadge} aria-label={t("unreadBadge", { count: unreadCount })}>
                   {unreadCount}
                 </span>
               )}
@@ -143,12 +145,12 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
         className={`${styles.sidebarUser} ${settingsActive ? styles.sidebarUserOn : ""}`}
         data-tour="nav-nastavenia"
         aria-current={settingsActive ? "page" : undefined}
-        aria-label={`${displayName ?? "Účet"} — Nastavenia`}
+        aria-label={t("accountSettings", { name: displayName ?? t("account") })}
       >
         <span className={styles.userAvatar} aria-hidden="true">
           {displayName?.charAt(0).toUpperCase() || "?"}
         </span>
-        <span className={styles.userName}>{displayName || "Nastavenia"}</span>
+        <span className={styles.userName}>{displayName || t("settings")}</span>
       </Link>
     </aside>
   );

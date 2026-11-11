@@ -1,0 +1,16 @@
+{
+  "today": "Dnes",
+  "yesterday": "Včera",
+  "sendFailed": "Zprávu se nepodařilo odeslat — zkontroluj připojení a zkus to znovu.",
+  "placeholder": "Napiš zprávu…",
+  "history": "Historie zpráv",
+  "emojiCategories": "Kategorie emoji",
+  "insertEmoji": "Vložit {emoji}",
+  "hideEmoji": "Skrýt emoji",
+  "addEmoji": "Přidat emoji",
+  "writeMessage": "Napsat zprávu",
+  "send": "Odeslat",
+  "emojiMood": "Nálada",
+  "emojiFitness": "Fitness",
+  "emojiFood": "Jídlo"
+}

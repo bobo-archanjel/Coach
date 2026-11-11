@@ -43,5 +43,9 @@
     "eslint-config-next": "^15.1.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "use-intl": "4.14.9",
+    "icu-minify": "4.14.9"
   }
 }

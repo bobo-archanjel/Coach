@@ -15,7 +15,9 @@
 // Neprečítané správy sa neskrývajú — "prečítať" znamená skutočné read_at
 // (mark_messages_read), inak by sa odznaky rozišli s realitou.
 
-import { BUCKET_LABEL, type HealthBucket } from "./healthDigest";
+import type { HealthBucket } from "./healthDigest";
+import { bellTranslator, formatApptWhen } from "@/lib/i18n/bell";
+import type { Locale } from "@/lib/i18n/locales";
 
 /** Na koľko dní sa skryje meškajúci klient, kým sa upozornenie nevráti. */
 export const DISMISS_LATE_DAYS = 7;
@@ -105,26 +107,11 @@ export interface AttentionItem {
   dismiss: { keys: string[]; days: number | null } | null;
 }
 
+/** Predvolený názov termínu v DB (kalendar/actions.ts, keď tréner názov nezadá) — nie text UI. */
+const DEFAULT_APPT_TITLE = "Termín"; // i18n-ignore
+
 /** Koľko konkrétnych klientov sa vypíše pod položkou "meškajú"; zvyšok je "a ďalší N". */
 const MAX_LINKS = 4;
-
-/** „št 13. 11. 14:00“ — čas termínu v zóne Europe/Bratislava. */
-function formatApptWhen(startsAt: string): string {
-  return new Date(startsAt).toLocaleString("sk-SK", {
-    weekday: "short",
-    day: "numeric",
-    month: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Bratislava",
-  });
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  if (n === 1) return one;
-  if (n >= 2 && n <= 4) return few;
-  return many;
-}
 
 /** Počet na odznaku zvončeka: neprečítané správy + blížiace sa termíny + meškajúci klienti + klienti so zhoršením. */
 export function attentionTotal(data: AttentionData): number {
@@ -136,11 +123,11 @@ export function attentionTotal(data: AttentionData): number {
  * odpoveď a vybaví sa to za minútu), meškajúci klienti, týždenný digest.
  * Očakáva už odfiltrované skryté upozornenia (applyDismissals).
  */
-export function buildAttentionItems(data: AttentionData): AttentionItem[] {
+export function buildAttentionItems(data: AttentionData, locale: Locale = "sk"): AttentionItem[] {
   const items: AttentionItem[] = [];
+  const t = bellTranslator(locale);
 
   if (data.unread > 0) {
-    const msgs = (n: number) => `${n} ${plural(n, "neprečítaná správa", "neprečítané správy", "neprečítaných správ")}`;
     const byClient = data.unreadByClient ?? [];
     const threadHref = (clientId: string) => `/dashboard/spravy?client=${encodeURIComponent(clientId)}`;
     if (byClient.length === 1) {
@@ -148,7 +135,7 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
       items.push({
         id: "messages",
         tone: "alert",
-        title: `${msgs(data.unread)} od ${byClient[0].name}`,
+        title: t("trainer.unreadFrom", { count: data.unread, name: byClient[0].name }),
         href: threadHref(byClient[0].id),
         links: [],
         markRead: true,
@@ -158,16 +145,16 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
       const shown = byClient.slice(0, MAX_LINKS);
       const links: AttentionLink[] = shown.map((c) => ({
         label: c.name,
-        meta: `${c.count} ${plural(c.count, "správa", "správy", "správ")}`,
+        meta: t("trainer.messageCount", { count: c.count }),
         href: threadHref(c.id),
       }));
       if (byClient.length > shown.length) {
-        links.push({ label: `a ďalší ${byClient.length - shown.length}`, meta: "", href: "/dashboard/spravy" });
+        links.push({ label: t("andMore", { count: byClient.length - shown.length }), meta: "", href: "/dashboard/spravy" });
       }
       items.push({
         id: "messages",
         tone: "alert",
-        title: msgs(data.unread),
+        title: t("unread", { count: data.unread }),
         href: "/dashboard/spravy",
         links,
         markRead: true,
@@ -177,7 +164,7 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
       items.push({
         id: "messages",
         tone: "alert",
-        title: `${msgs(data.unread)} od klientov`,
+        title: t("trainer.unreadFromClients", { count: data.unread }),
         href: "/dashboard/spravy",
         links: [],
         markRead: true,
@@ -192,18 +179,21 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
     const links: AttentionLink[] = shown.map((a) => ({
       label: a.clientName,
       // názov len ak ho tréner zadal (bez neho je v DB predvolený „Termín“)
-      meta: a.title && a.title !== "Termín" ? `${formatApptWhen(a.startsAt)} · ${a.title}` : formatApptWhen(a.startsAt),
+      meta:
+        a.title && a.title !== DEFAULT_APPT_TITLE
+          ? `${formatApptWhen(a.startsAt, locale)} · ${a.title}`
+          : formatApptWhen(a.startsAt, locale),
       href: "/dashboard/kalendar",
       dismissKey: a.key,
     }));
     if (appts.length > shown.length) {
-      links.push({ label: `a ďalší ${appts.length - shown.length}`, meta: "", href: "/dashboard/kalendar" });
+      links.push({ label: t("andMore", { count: appts.length - shown.length }), meta: "", href: "/dashboard/kalendar" });
     }
     items.push({
       id: "appointments",
       tone: "alert",
       // rovnaký text ako vo zvončeku klienta (lib/portal/attention.ts)
-      title: `${appts.length} ${plural(appts.length, "blížiaci sa termín", "blížiace sa termíny", "blížiacich sa termínov")}`,
+      title: t("upcoming", { count: appts.length }),
       href: null,
       links,
       markRead: false,
@@ -217,18 +207,18 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
     const shown = data.late.slice(0, MAX_LINKS);
     const links: AttentionLink[] = shown.map((c) => ({
       label: c.name,
-      meta: `${c.days} ${plural(c.days, "deň", "dni", "dní")} bez tréningu`,
+      meta: t("trainer.daysWithout", { count: c.days }),
       href: `/dashboard/klienti/${c.id}`,
       dismissKey: c.key,
     }));
     if (n > shown.length) {
-      links.push({ label: `a ďalší ${n - shown.length}`, meta: "", href: "/dashboard" });
+      links.push({ label: t("andMore", { count: n - shown.length }), meta: "", href: "/dashboard" });
     }
     items.push({
       id: "late",
       tone: "alert",
-      // slovenská zhoda: 1 klient mešká / 2–4 klienti meškajú / 5+ klientov mešká
-      title: `${n} ${plural(n, "klient mešká", "klienti meškajú", "klientov mešká")} s tréningom`,
+      // zhoda podľa počtu: 1 klient mešká / 2–4 klienti meškajú / 5+ klientov mešká
+      title: t("trainer.late", { count: n }),
       href: null,
       links,
       markRead: false,
@@ -241,7 +231,7 @@ export function buildAttentionItems(data: AttentionData): AttentionItem[] {
     items.push({
       id: "digest",
       tone: "watch",
-      title: `${count} ${plural(count, "klient klesol", "klienti klesli", "klientov kleslo")} zo „${BUCKET_LABEL[from]}“ do „${BUCKET_LABEL[to]}“ tento týždeň`,
+      title: t("trainer.digest", { count, from: t(`bucket.${from}`), to: t(`bucket.${to}`) }),
       href: "/dashboard/analytika",
       links: [],
       markRead: false,

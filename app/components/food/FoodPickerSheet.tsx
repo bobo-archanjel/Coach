@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { scaleFoodMacros } from "@/lib/meals";
@@ -80,6 +81,7 @@ export function FoodPickerSheet({
   onFoodCreated?: (food: PortalFoodOption) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("food");
   const withLibrary = library !== undefined;
   const [source, setSource] = useState<Source>(withLibrary ? "library" : "online");
   const [query, setQuery] = useState("");
@@ -118,7 +120,7 @@ export function FoodPickerSheet({
         .catch((err: unknown) =>
           err instanceof DOMException && err.name === "AbortError"
             ? null
-            : { error: "Vyhľadávanie momentálne nefunguje, skús to o chvíľu.", results: [] },
+            : { error: t("searchFailed"), results: [] },
         )
         .then((res) => {
           if (!res || searchSeq.current !== seq) return; // zrušené / medzitým prišiel novší dopyt
@@ -146,7 +148,7 @@ export function FoodPickerSheet({
     const seq = ++lookupSeq.current;
     fetch(`/api/potraviny/kod/${encodeURIComponent(code)}`)
       .then((r) => r.json() as Promise<BarcodeLookupResult>)
-      .catch((): BarcodeLookupResult => ({ status: "error", error: "Vyhľadanie kódu zlyhalo, skontroluj pripojenie." }))
+      .catch((): BarcodeLookupResult => ({ status: "error", error: t("lookupFailed") }))
       .then((res) => {
         if (lookupSeq.current !== seq) return; // medzitým zrušené / nový sken
         if (res.status === "found") {
@@ -179,7 +181,7 @@ export function FoodPickerSheet({
         setLookup({
           kind: "error",
           code: "—",
-          message: "Tento produkt nemá čiarový kód, nedá sa uložiť. Vyber iný alebo ho založ ako novú potravinu.",
+          message: t("noBarcode"),
         });
       return;
     }
@@ -249,20 +251,20 @@ export function FoodPickerSheet({
     <li key={`${option.foodId ?? option.name}-${i}`}>
       <button type="button" className={styles.pick} onClick={() => choose(option)}>
         <span className={styles.pickName}>{option.name}</span>
-        <span className={styles.pickMacro}>{Math.round(option.kcal100g)} kcal / 100 g</span>
+        <span className={styles.pickMacro}>{t("per100Short", { kcal: Math.round(option.kcal100g) })}</span>
       </button>
     </li>
   );
 
   const sheet = (
     <div className={styles.sheetLayer}>
-      <button type="button" className={styles.sheetScrim} aria-label="Zavrieť" tabIndex={-1} onClick={onClose} />
+      <button type="button" className={styles.sheetScrim} aria-label={t("close")} tabIndex={-1} onClick={onClose} />
       <div className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="add-food-title">
         <div className={styles.sheetHead}>
           <h2 id="add-food-title" className={styles.sheetTitle}>
             {title}
           </h2>
-          <button type="button" className={styles.sheetClose} onClick={onClose} aria-label="Zavrieť">
+          <button type="button" className={styles.sheetClose} onClick={onClose} aria-label={t("close")}>
             <CloseIcon />
           </button>
         </div>
@@ -281,28 +283,38 @@ export function FoodPickerSheet({
                   max={5000}
                   value={grams}
                   onChange={(e) => setGrams(e.target.value)}
-                  aria-label="Gramáž v gramoch"
+                  aria-label={t("grams")}
                 />
                 <span className={styles.gramUnit}>g</span>
               </label>
               <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={submitPicked}>
-                {pending ? "…" : "Pridať"}
+                {pending ? "…" : t("add")}
               </button>
             </div>
             {pickedPreview && (
               <p className={styles.meta}>
-                ≈ {pickedPreview.kcal} kcal · {pickedPreview.proteinG}g B · {pickedPreview.carbsG}g S · {pickedPreview.fatG}g T
+                {t("perPortion", {
+                  kcal: pickedPreview.kcal,
+                  protein: pickedPreview.proteinG,
+                  carbs: pickedPreview.carbsG,
+                  fat: pickedPreview.fatG,
+                })}
               </p>
             )}
             {picked.barcode && (
               <p className={styles.meta}>
-                Na 100 g: {Math.round(picked.kcal100g)} kcal · {picked.protein100g}g B · {picked.carbs100g}g S ·{" "}
-                {picked.fat100g}g T{picked.servingGrams ? ` · porcia ${picked.servingGrams} g` : ""}
+                {t("per100", {
+                  kcal: Math.round(picked.kcal100g),
+                  protein: picked.protein100g,
+                  carbs: picked.carbs100g,
+                  fat: picked.fat100g,
+                })}
+                {picked.servingGrams ? t("serving", { grams: picked.servingGrams }) : ""}
               </p>
             )}
-            {picked.source === "off" && <p className={styles.source}>Zdroj: Open Food Facts</p>}
+            {picked.source === "off" && <p className={styles.source}>{t("sourceOff")}</p>}
             <button type="button" className={styles.textBtn} style={{ alignSelf: "flex-start" }} onClick={() => setPicked(null)}>
-              ← iné jedlo
+              {t("otherFood")}
             </button>
             {error && <p className={styles.error}>{error}</p>}
           </>
@@ -311,10 +323,10 @@ export function FoodPickerSheet({
             <FoodCreateForm prefill={lookup.prefill} onCreated={created} onCancel={cancelLookup} />
           ) : lookup.kind === "loading" ? (
             <div className={styles.scanResult} role="status">
-              <p className={styles.scanResultTitle}>Hľadám produkt…</p>
-              <p className={styles.scanCode}>Kód {lookup.code}</p>
+              <p className={styles.scanResultTitle}>{t("lookingUp")}</p>
+              <p className={styles.scanCode}>{t("code", { code: lookup.code })}</p>
               <button type="button" className={styles.textBtn} onClick={cancelLookup}>
-                Zrušiť
+                {t("cancel")}
               </button>
             </div>
           ) : (
@@ -322,10 +334,10 @@ export function FoodPickerSheet({
               <p className={styles.error} role="alert">
                 {lookup.message}
               </p>
-              {lookup.code !== "—" && <p className={styles.scanCode}>Kód {lookup.code}</p>}
+              {lookup.code !== "—" && <p className={styles.scanCode}>{t("code", { code: lookup.code })}</p>}
               <div className={styles.scanActions}>
                 <button type="button" className="btn btn-primary btn-sm" onClick={() => setScanOpen(true)}>
-                  Skenovať znova
+                  {t("scanAgain")}
                 </button>
                 <button
                   type="button"
@@ -334,10 +346,10 @@ export function FoodPickerSheet({
                     setLookup({ kind: "not_found", prefill: emptyPrefill(lookup.code === "—" ? "" : lookup.code) })
                   }
                 >
-                  Založiť potravinu
+                  {t("createFood")}
                 </button>
                 <button type="button" className={styles.textBtn} onClick={cancelLookup}>
-                  Späť
+                  {t("back")}
                 </button>
               </div>
             </div>
@@ -345,12 +357,12 @@ export function FoodPickerSheet({
         ) : (
           <>
             {withLibrary && (
-              <div className={styles.tabs} role="tablist" aria-label="Zdroj potraviny">
+              <div className={styles.tabs} role="tablist" aria-label={t("sourceGroup")}>
                 {(
                   [
-                    ["library", "Knižnica"],
-                    ["online", "Značky (online)"],
-                    ["new", "Nová potravina"],
+                    ["library", t("tabLibrary")],
+                    ["online", t("tabOnline")],
+                    ["new", t("tabNew")],
                   ] as const
                 ).map(([value, label]) => (
                   <button
@@ -375,30 +387,30 @@ export function FoodPickerSheet({
                   <input
                     className={styles.search}
                     type="search"
-                    placeholder={source === "library" ? "Hľadať v knižnici…" : "Hľadaj značku, napr. „Rajo maslo“…"}
+                    placeholder={source === "library" ? t("searchLibraryPlaceholder") : t("searchOnlinePlaceholder")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    aria-label={source === "library" ? "Hľadať potravinu v knižnici" : "Hľadať značkový produkt online"}
+                    aria-label={source === "library" ? t("searchLibrary") : t("searchOnline")}
                     autoFocus
                   />
                   <button type="button" className={styles.scanBtn} onClick={() => setScanOpen(true)}>
                     <ScanIcon />
-                    Skenovať
+                    {t("scan")}
                   </button>
                 </div>
                 {source === "library" ? (
                   <ul className={styles.list}>
                     {libraryMatches.map(resultRow)}
-                    {libraryMatches.length === 0 && <li className={styles.empty}>V knižnici sa nič nenašlo.</li>}
+                    {libraryMatches.length === 0 && <li className={styles.empty}>{t("libraryEmpty")}</li>}
                   </ul>
                 ) : (
                   // zoznam až pri hľadaní — dovtedy len pole a Skenovať, bez prázdneho rámika
                   !shortQuery && (
                     <ul className={styles.list}>
                       {results.map(resultRow)}
-                      {searching && <li className={styles.empty}>Hľadám…</li>}
+                      {searching && <li className={styles.empty}>{t("searching")}</li>}
                       {!searching && !searchError && results.length === 0 && (
-                        <li className={styles.empty}>Nič sa nenašlo — skús iný názov alebo naskenuj kód.</li>
+                        <li className={styles.empty}>{t("onlineEmpty")}</li>
                       )}
                       {searchError && <li className={styles.empty}>{searchError}</li>}
                     </ul>
@@ -407,7 +419,7 @@ export function FoodPickerSheet({
               </>
             )}
             {error && <p className={styles.error}>{error}</p>}
-            {justAdded && !error && <p className={styles.ok}>{`„${justAdded}“ pridané.`}</p>}
+            {justAdded && !error && <p className={styles.ok}>{t("added", { name: justAdded })}</p>}
           </>
         )}
       </div>

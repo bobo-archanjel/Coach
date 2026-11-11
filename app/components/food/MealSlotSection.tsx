@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import type { MealSlot } from "@/lib/meals";
 import styles from "./food.module.css";
@@ -100,6 +101,7 @@ export function MealSlotSection({
   onAdd: () => void;
   children: ReactNode;
 }) {
+  const t = useTranslations("components.mealSlot");
   return (
     <div className={styles.slot}>
       <div className={styles.slotHead}>
@@ -115,13 +117,13 @@ export function MealSlotSection({
           <span className={`${styles.slotKcal} ${count === 0 ? styles.slotKcalEmpty : ""}`}>{kcal} kcal</span>
           <ChevronIcon className={`${styles.slotChevron} ${open ? styles.slotChevronOpen : ""}`} />
         </button>
-        <button type="button" className={styles.slotAdd} onClick={onAdd} aria-label={`Pridať jedlo: ${label}`}>
+        <button type="button" className={styles.slotAdd} onClick={onAdd} aria-label={t("add", { label })}>
           <PlusIcon />
         </button>
       </div>
       {open && (
         <div id={`meal-${slot}`} className={styles.slotBody}>
-          {count > 0 ? children : <p className={styles.slotEmpty}>Zatiaľ nič — pridaj jedlo cez +.</p>}
+          {count > 0 ? children : <p className={styles.slotEmpty}>{t("empty")}</p>}
         </div>
       )}
     </div>
