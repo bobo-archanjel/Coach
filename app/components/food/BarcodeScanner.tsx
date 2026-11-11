@@ -190,6 +190,8 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
       stopped = true;
       stopStream();
     };
+    // kamera sa spúšťa raz pri otvorení — preklad (t) sa počas skenovania nemení
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Escape zavrie, stránka pod oknom sa neposúva, fokus na "Zavrieť".

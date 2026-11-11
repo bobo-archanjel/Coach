@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { dbErr } from "@/lib/dbError";
@@ -66,11 +67,11 @@ async function validateAppointment(
   trainerId: string,
   v: AppointmentFormValues,
 ): Promise<{ error: string } | { row: ValidatedAppointment }> {
-  if (!v.client_id) return { error: "Vyber klienta." };
-  if (v.title.length > 200) return { error: "Názov je príliš dlhý (max 200 znakov)." };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date)) return { error: "Zadaj dátum." };
-  if (!/^\d{2}:\d{2}$/.test(v.time)) return { error: "Zadaj čas." };
-  if (v.note.length > 1000) return { error: "Poznámka je príliš dlhá (max 1000 znakov)." };
+  if (!v.client_id) return { error: await tErr("chooseClient") };
+  if (v.title.length > 200) return { error: await tErr("calendar.titleTooLong") };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date)) return { error: await tErr("calendar.dateRequired") };
+  if (!/^\d{2}:\d{2}$/.test(v.time)) return { error: await tErr("calendar.timeRequired") };
+  if (v.note.length > 1000) return { error: await tErr("calendar.noteTooLong") };
 
   const { data: client } = await supabase
     .from("clients")
@@ -78,13 +79,14 @@ async function validateAppointment(
     .eq("id", v.client_id)
     .eq("trainer_id", trainerId)
     .maybeSingle();
-  if (!client) return { error: "Tento klient nepatrí tebe." };
+  if (!client) return { error: await tErr("notYourClient") };
 
   const startsAt = bratislavaToUtcIso(v.date, v.time);
   const endsAt = /^\d{2}:\d{2}$/.test(v.end_time) ? bratislavaToUtcIso(v.date, v.end_time) : null;
-  if (endsAt && endsAt <= startsAt) return { error: "Koniec termínu musí byť po jeho začiatku." };
+  if (endsAt && endsAt <= startsAt) return { error: await tErr("calendar.endAfterStart") };
 
   // Názov je voliteľný (povinné sú klient, dátum a čas) — stĺpec je NOT NULL, preto fallback.
+  // i18n-ignore — predvolený názov termínu v DB (kľúč aj v lib/dashboard/attention.ts)
   return { row: { client_id: v.client_id, title: v.title || "Termín", starts_at: startsAt, ends_at: endsAt, note: v.note || null } };
 }
 
@@ -93,15 +95,15 @@ export async function createAppointmentAction(_prevState: ActionState, formData:
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   // Nový termín môže byť pre viacerých klientov naraz (rovnako ako tréningový plán) —
   // každý dostane vlastný riadok s rovnakým časom, názvom a poznámkou.
   const values = readValues(formData);
   const clientIds = values.client_ids ?? [];
-  if (clientIds.length === 0) return { error: "Vyber aspoň jedného klienta.", values };
-  if (clientIds.length > MAX_PLAN_CLIENTS) return { error: `Naraz najviac ${MAX_PLAN_CLIENTS} klientov.`, values };
-  if (!(await areTrainerClients(supabase, user.id, clientIds))) return { error: "Niektorý z klientov nepatrí tebe.", values };
+  if (clientIds.length === 0) return { error: await tErr("chooseAtLeastOneClient"), values };
+  if (clientIds.length > MAX_PLAN_CLIENTS) return { error: await tErr("maxClients", { max: MAX_PLAN_CLIENTS }), values };
+  if (!(await areTrainerClients(supabase, user.id, clientIds))) return { error: await tErr("someClientNotYours"), values };
 
   const checked = await validateAppointment(supabase, user.id, values);
   if ("error" in checked) return { error: checked.error, values };
@@ -120,11 +122,11 @@ export async function updateAppointmentAction(_prevState: ActionState, formData:
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const appointmentId = (formData.get("appointment_id") as string | null) ?? "";
   const values = readValues(formData);
-  if (!appointmentId) return { error: "Chýba termín.", values };
+  if (!appointmentId) return { error: await tErr("calendar.missingAppointment"), values };
 
   const checked = await validateAppointment(supabase, user.id, values);
   if ("error" in checked) return { error: checked.error, values };
@@ -137,7 +139,7 @@ export async function updateAppointmentAction(_prevState: ActionState, formData:
     .select("id")
     .maybeSingle();
   if (error) return { error: await dbErr(error, "actions"), values };
-  if (!data) return { error: "Termín sa nenašiel.", values };
+  if (!data) return { error: await tErr("calendar.appointmentNotFound"), values };
 
   revalidatePath("/dashboard/kalendar");
   return ok;

@@ -24,6 +24,11 @@ import skClients from "./sk/clients.json";
 import skClientDetail from "./sk/clientDetail.json";
 import skLabels from "./sk/labels.json";
 import skPlans from "./sk/plans.json";
+import skMealPlans from "./sk/mealPlans.json";
+import skCalendar from "./sk/calendar.json";
+import skTemplates from "./sk/templates.json";
+import skInbox from "./sk/inbox.json";
+import skAnalytics from "./sk/analytics.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -45,6 +50,11 @@ import csClients from "./cs/clients.json";
 import csClientDetail from "./cs/clientDetail.json";
 import csLabels from "./cs/labels.json";
 import csPlans from "./cs/plans.json";
+import csMealPlans from "./cs/mealPlans.json";
+import csCalendar from "./cs/calendar.json";
+import csTemplates from "./cs/templates.json";
+import csInbox from "./cs/inbox.json";
+import csAnalytics from "./cs/analytics.json";
 
 export const sk = {
   common: skCommon,
@@ -67,6 +77,11 @@ export const sk = {
   clientDetail: skClientDetail,
   labels: skLabels,
   plans: skPlans,
+  mealPlans: skMealPlans,
+  calendar: skCalendar,
+  templates: skTemplates,
+  inbox: skInbox,
+  analytics: skAnalytics,
 };
 
 export type Messages = typeof sk;
@@ -92,6 +107,11 @@ export const cs: Messages = {
   clientDetail: csClientDetail,
   labels: csLabels,
   plans: csPlans,
+  mealPlans: csMealPlans,
+  calendar: csCalendar,
+  templates: csTemplates,
+  inbox: csInbox,
+  analytics: csAnalytics,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };

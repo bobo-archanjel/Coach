@@ -133,7 +133,7 @@ export function FoodPickerSheet({
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [query, source]);
+  }, [query, source, t]);
 
   // Skener čiarových kódov: overlay s kamerou / ručným zadaním, potom vyhľadanie kódu.
   const [scanOpen, setScanOpen] = useState(false);

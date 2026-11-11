@@ -1,13 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import styles from "./builder.module.css";
-
-function foodsLabel(n: number): string {
-  if (n === 0) return "";
-  if (n === 1) return " aj s 1 potravinou";
-  return ` aj s ${n} potravinami`;
-}
 
 /**
  * "Premenovať" + "Duplikovať" + "Zmazať deň" vedľa "+ deň" v riadku pilulek — rovnaký vzor ako
@@ -31,6 +26,7 @@ export function MealDayActions({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const t = useTranslations("mealPlans.builder");
   const [mode, setMode] = useState<"idle" | "renaming" | "confirmingDelete">("idle");
   const [value, setValue] = useState(name);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +47,8 @@ export function MealDayActions({
         onSubmit={(e) => {
           e.preventDefault();
           const trimmed = value.trim();
-          if (!trimmed) return setError("Zadaj názov dňa.");
-          if (trimmed.length > 120) return setError("Názov dňa môže mať najviac 120 znakov.");
+          if (!trimmed) return setError(t("dayNameRequired"));
+          if (trimmed.length > 120) return setError(t("dayNameTooLong"));
           onRename(trimmed);
           setMode("idle");
         }}
@@ -60,15 +56,15 @@ export function MealDayActions({
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          aria-label="Názov dňa"
+          aria-label={t("dayName")}
           className={styles.addDayInput}
           autoFocus
         />
         <button type="submit" className="btn btn-primary btn-sm">
-          Hotovo
+          {t("done")}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("idle")}>
-          Zrušiť
+          {t("cancel")}
         </button>
         {error && <p className={styles.formError}>{error}</p>}
       </form>
@@ -77,14 +73,14 @@ export function MealDayActions({
 
   if (mode === "confirmingDelete") {
     return (
-      <div className={styles.deleteDayConfirm} role="alertdialog" aria-label={`Zmazať deň ${name}`}>
-        <p className={styles.deleteDayQuestion}>Zmazať deň „{name}“{foodsLabel(foodCount)}?</p>
+      <div className={styles.deleteDayConfirm} role="alertdialog" aria-label={t("deleteDayAria", { name })}>
+        <p className={styles.deleteDayQuestion}>{t("deleteDayConfirm", { name, count: foodCount })}</p>
         <div className={styles.deleteDayActions}>
           <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={onDelete}>
-            Áno, zmazať deň
+            {t("yesDeleteDay")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("idle")}>
-            Zrušiť
+            {t("cancel")}
           </button>
         </div>
       </div>
@@ -103,19 +99,19 @@ export function MealDayActions({
           setMode("renaming");
         }}
       >
-        Premenovať
+        {t("rename")}
       </button>
       <button
         type="button"
         className={styles.renameDayTab}
         onClick={onDuplicate}
         disabled={!canDuplicate}
-        title={canDuplicate ? "Pridá kópiu tohto dňa aj s potravinami na koniec" : "Jedálniček má už maximum dní"}
+        title={canDuplicate ? t("duplicateTitle") : t("maxDays")}
       >
-        Duplikovať
+        {t("duplicate")}
       </button>
       <button type="button" className={styles.deleteDayTab} onClick={() => setMode("confirmingDelete")}>
-        Zmazať deň
+        {t("deleteDay")}
       </button>
     </div>
   );

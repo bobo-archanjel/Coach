@@ -73,5 +73,54 @@
     "aiDailyLimit": "Dosáhl/a jsi dnešního limitu AI generování plánů ({limit}). Zkus to zítra.",
     "aiPlanName": "AI plán — {goal}",
     "createPlanFailed": "Plán se nepodařilo vytvořit."
+  },
+  "meals": {
+    "notFound": "Jídelníček se nenašel.",
+    "missingId": "Chybí ID jídelníčku.",
+    "nameRequired": "Zadej název jídelníčku.",
+    "nameRequired2": "Zadej název jídelníčku.",
+    "chooseActivity": "Vyber úroveň aktivity.",
+    "nameTooLong": "Název může mít nejvýše 120 znaků.",
+    "dayNameTooLong": "Název dne může mít nejvýše 120 znaků.",
+    "foodMissing": "Některá potravina se nenašla — obnov stránku a zkus to znovu.",
+    "invalidAge": "Neplatný věk.",
+    "invalidSlot": "Neplatné jídlo dne.",
+    "invalidHeight": "Neplatná výška.",
+    "invalidWeight": "Neplatná váha.",
+    "macroSaveFailed": "Cíl maker se nepodařilo uložit. Zkontroluj hodnoty a zkus to znovu.",
+    "dayNameRequired": "Každý den musí mít název.",
+    "createFailed": "Jídelníček se nepodařilo vytvořit.",
+    "changed": "Jídelníček se mezitím změnil — obnov stránku a zkus to znovu.",
+    "maxDays": "Jídelníček může mít nejvýše {max} dní.",
+    "tooManyItems": "Den „{name}“ má příliš mnoho položek.",
+    "invalidGrams": "Zadej platnou gramáž (1–5000 g) v dni „{name}“."
+  },
+  "calendar": {
+    "titleTooLong": "Název je příliš dlouhý (max. 200 znaků).",
+    "dateRequired": "Zadej datum.",
+    "timeRequired": "Zadej čas.",
+    "noteTooLong": "Poznámka je příliš dlouhá (max. 1000 znaků).",
+    "endAfterStart": "Konec termínu musí být po jeho začátku.",
+    "missingAppointment": "Chybí termín.",
+    "appointmentNotFound": "Termín se nenašel."
+  },
+  "templates": {
+    "planNoDays": "Plán nemá žádné dny k uložení do šablony.",
+    "onlyOwnWorkout": "Šablonu jde uložit jen z tvého vlastního tréninku.",
+    "workoutNoDays": "Trénink nemá žádné dny k uložení do šablony.",
+    "defaultName": "Šablona",
+    "createFailed": "Šablonu se nepodařilo vytvořit.",
+    "notFound": "Šablona se nenašla.",
+    "planCreateFailed": "Plán se nepodařilo vytvořit.",
+    "mealNotFound": "Jídelníček se nenašel.",
+    "mealNoDays": "Jídelníček nemá žádné dny k uložení do šablony.",
+    "mealCreateFailed": "Jídelníček se nepodařilo vytvořit.",
+    "missingTemplate": "Chybí šablona.",
+    "draftFailed": "Koncept se nepodařilo vytvořit.",
+    "missingMealId": "Chybí ID jídelníčku."
+  },
+  "analytics": {
+    "noActiveClients": "Zatím nemáš aktivní klienty ke shrnutí.",
+    "overviewFailed": "Přehled se nepodařilo načíst — zkus to znovu."
   }
 }

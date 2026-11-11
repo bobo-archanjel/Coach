@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState, useRef, useEffect } from "react";
 import { bulkSendTrainerMessageAction, type BulkMessageState } from "../klienti/actions";
 import styles from "../dashboard.module.css";
@@ -7,6 +8,7 @@ import styles from "../dashboard.module.css";
 const initialState: BulkMessageState = { error: null, sentCount: null };
 
 export function BulkMessageForm({ clients }: { clients: { id: string; full_name: string }[] }) {
+  const t = useTranslations("inbox");
   const [state, formAction, pending] = useActionState(bulkSendTrainerMessageAction, initialState);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const formRef = useRef<HTMLFormElement>(null);
@@ -38,14 +40,14 @@ export function BulkMessageForm({ clients }: { clients: { id: string; full_name:
   }
 
   if (clients.length === 0) {
-    return <p className={styles.noWorkouts}>Zatiaľ nemáš žiadnych klientov.</p>;
+    return <p className={styles.noWorkouts}>{t("noClients")}</p>;
   }
 
   return (
     <form ref={formRef} action={formAction}>
       <label className={styles.bulkClientRow}>
         <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-        <strong>Vybrať všetkých ({clients.length})</strong>
+        <strong>{t("selectAll", { count: clients.length })}</strong>
       </label>
 
       <div className={styles.bulkClientList}>
@@ -59,7 +61,7 @@ export function BulkMessageForm({ clients }: { clients: { id: string; full_name:
 
       <textarea
         name="body"
-        placeholder="Text správy pre vybraných klientov…"
+        placeholder={t("bodyPlaceholder")}
         required
         maxLength={4000}
         rows={4}
@@ -69,9 +71,9 @@ export function BulkMessageForm({ clients }: { clients: { id: string; full_name:
 
       <div className={styles.bulkFooter}>
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending || selected.size === 0}>
-          {pending ? "Odosielam…" : selected.size > 0 ? `Odoslať ${selected.size} klientom` : "Odoslať"}
+          {pending ? t("sending") : selected.size > 0 ? t("sendTo", { count: selected.size }) : t("send")}
         </button>
-        {state.sentCount != null && !state.error && <span className={styles.clientSince}>Odoslané {state.sentCount} klientom.</span>}
+        {state.sentCount != null && !state.error && <span className={styles.clientSince}>{t("sentTo", { count: state.sentCount })}</span>}
         {state.error && <span className={styles.noWorkouts}>{state.error}</span>}
       </div>
     </form>

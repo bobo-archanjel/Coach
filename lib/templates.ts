@@ -9,6 +9,7 @@
 // workout_days.exercises / meal_days.meals) — appka do nich nezasahuje, len
 // ich presúva medzi tabuľkami.
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlanGoal } from "./planGoals";
 import { dbErr } from "@/lib/dbError";
@@ -45,9 +46,9 @@ export async function saveWorkoutPlanAsTemplate(
     supabase.from("workout_plans").select("id, name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle(),
     supabase.from("workout_days").select("day_number, name, exercises").eq("plan_id", planId).order("day_number"),
   ]);
-  if (!plan) return { error: "Plán sa nenašiel." };
+  if (!plan) return { error: await tErr("planNotFound") };
   if (daysErr) return { error: await dbErr(daysErr, "templates") };
-  if (!days || days.length === 0) return { error: "Plán nemá žiadne dni na uloženie do šablóny." };
+  if (!days || days.length === 0) return { error: await tErr("templates.planNoDays") };
 
   return insertPlanTemplate(supabase, trainerId, cleanName(templateName, plan.name), isPlanGoal(goal) ? goal : null, days);
 }
@@ -74,11 +75,11 @@ export async function saveOwnPlanAsTemplate(
       .maybeSingle(),
     supabase.from("workout_days").select("day_number, name, exercises").eq("plan_id", planId).order("day_number"),
   ]);
-  if (!plan) return { error: "Šablónu sa dá uložiť len z tvojho vlastného tréningu." };
+  if (!plan) return { error: await tErr("templates.onlyOwnWorkout") };
   if (daysErr) return { error: await dbErr(daysErr, "templates") };
-  if (!days || days.length === 0) return { error: "Tréning nemá žiadne dni na uloženie do šablóny." };
+  if (!days || days.length === 0) return { error: await tErr("templates.workoutNoDays") };
 
-  return insertPlanTemplate(supabase, ownerId, cleanName(plan.name, "Šablóna"), null, days);
+  return insertPlanTemplate(supabase, ownerId, cleanName(plan.name, await tErr("templates.defaultName")), null, days);
 }
 
 async function insertPlanTemplate(
@@ -93,7 +94,7 @@ async function insertPlanTemplate(
     .insert({ trainer_id: ownerId, name, goal })
     .select("id")
     .single();
-  if (templateErr || !template) return { error: templateErr?.message ?? "Šablónu sa nepodarilo vytvoriť." };
+  if (templateErr || !template) return { error: templateErr?.message ?? await tErr("templates.createFailed") };
 
   const rows = days.map((d) => ({ template_id: template.id, day_number: d.day_number, name: d.name, exercises: d.exercises }));
   const { error: insertErr } = await supabase.from("plan_template_days").insert(rows);
@@ -116,8 +117,8 @@ export async function applyWorkoutTemplateToClient(
     supabase.from("clients").select("id").eq("id", clientId).eq("trainer_id", trainerId).maybeSingle(),
     supabase.from("plan_template_days").select("day_number, name, exercises").eq("template_id", templateId).order("day_number"),
   ]);
-  if (!template) return { error: "Šablóna sa nenašla.", planId: null };
-  if (!client) return { error: "Tento klient nepatrí tebe.", planId: null };
+  if (!template) return { error: await tErr("templates.notFound"), planId: null };
+  if (!client) return { error: await tErr("notYourClient"), planId: null };
   if (daysErr) return { error: await dbErr(daysErr, "templates"), planId: null };
 
   // Nový plán je koncept (published: false), presne ako ručne vytvorený alebo AI vygenerovaný —
@@ -127,7 +128,7 @@ export async function applyWorkoutTemplateToClient(
     .insert({ client_id: clientId, trainer_id: trainerId, name: template.name, published: false })
     .select("id")
     .single();
-  if (planErr || !newPlan) return { error: planErr?.message ?? "Plán sa nepodarilo vytvoriť.", planId: null };
+  if (planErr || !newPlan) return { error: planErr?.message ?? await tErr("templates.planCreateFailed"), planId: null };
 
   if (templateDays && templateDays.length > 0) {
     const rows = templateDays.map((d) => ({ plan_id: newPlan.id, day_number: d.day_number, name: d.name, exercises: d.exercises }));
@@ -156,16 +157,16 @@ export async function saveMealPlanAsTemplate(
     supabase.from("meal_plans").select("id, name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle(),
     supabase.from("meal_days").select("day_number, name, meals").eq("plan_id", planId).order("day_number"),
   ]);
-  if (!plan) return { error: "Jedálniček sa nenašiel." };
+  if (!plan) return { error: await tErr("templates.mealNotFound") };
   if (daysErr) return { error: await dbErr(daysErr, "templates") };
-  if (!days || days.length === 0) return { error: "Jedálniček nemá žiadne dni na uloženie do šablóny." };
+  if (!days || days.length === 0) return { error: await tErr("templates.mealNoDays") };
 
   const { data: template, error: templateErr } = await supabase
     .from("meal_templates")
     .insert({ trainer_id: trainerId, name: cleanName(templateName, plan.name) })
     .select("id")
     .single();
-  if (templateErr || !template) return { error: templateErr?.message ?? "Šablónu sa nepodarilo vytvoriť." };
+  if (templateErr || !template) return { error: templateErr?.message ?? await tErr("templates.createFailed") };
 
   const rows = days.map((d) => ({ template_id: template.id, day_number: d.day_number, name: d.name, meals: d.meals }));
   const { error: insertErr } = await supabase.from("meal_template_days").insert(rows);
@@ -187,8 +188,8 @@ export async function applyMealTemplateToClient(
     supabase.from("clients").select("id").eq("id", clientId).eq("trainer_id", trainerId).maybeSingle(),
     supabase.from("meal_template_days").select("day_number, name, meals").eq("template_id", templateId).order("day_number"),
   ]);
-  if (!template) return { error: "Šablóna sa nenašla.", planId: null };
-  if (!client) return { error: "Tento klient nepatrí tebe.", planId: null };
+  if (!template) return { error: await tErr("templates.notFound"), planId: null };
+  if (!client) return { error: await tErr("notYourClient"), planId: null };
   if (daysErr) return { error: await dbErr(daysErr, "templates"), planId: null };
 
   const { data: newPlan, error: planErr } = await supabase
@@ -197,7 +198,7 @@ export async function applyMealTemplateToClient(
     .insert({ client_id: clientId, trainer_id: trainerId, name: template.name, published: false })
     .select("id")
     .single();
-  if (planErr || !newPlan) return { error: planErr?.message ?? "Jedálniček sa nepodarilo vytvoriť.", planId: null };
+  if (planErr || !newPlan) return { error: planErr?.message ?? await tErr("templates.mealCreateFailed"), planId: null };
 
   if (templateDays && templateDays.length > 0) {
     const rows = templateDays.map((d) => ({ plan_id: newPlan.id, day_number: d.day_number, name: d.name, meals: d.meals }));

@@ -46,19 +46,3 @@ export function classifyTopic(text: string, isHealthConcern: boolean): string | 
   }
   return null;
 }
-
-/** Používateľsky čitateľná nálepka pre widget na /dashboard/analytika. */
-export const TOPIC_LABELS: Record<string, string> = {
-  koleno: "bolesť/nepohodlie v kolene",
-  "chrbát": "bolesť chrbta",
-  rameno: "bolesť/nepohodlie v ramene",
-  "členok/členky": "bolesť v členku",
-  "zápästie": "bolesť zápästia",
-  "bedro/bok": "bolesť bedra/boku",
-  "lakeť": "bolesť lakťa",
-  "iné zdravotné": "iná zdravotná téma",
-  "motivácia": "pokles motivácie",
-  "spánok/únava": "spánok/únava",
-  "stres/úzkosť": "stres/úzkosť",
-  "hlad/chute": "hlad/chute",
-};

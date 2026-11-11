@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import styles from "../dashboard.module.css";
 
 /**
@@ -11,10 +12,11 @@ import styles from "../dashboard.module.css";
  * ktorá sa dokresľuje, nie ako rozbitý/cudzí placeholder.
  */
 export default function Loading() {
+  const t = useTranslations("inbox");
   return (
     <div className={styles.pageHead}>
-      <h1>Správy</h1>
-      <p>Načítavam konverzácie…</p>
+      <h1>{t("title")}</h1>
+      <p>{t("loading")}</p>
     </div>
   );
 }

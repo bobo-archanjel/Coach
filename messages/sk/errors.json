@@ -73,5 +73,54 @@
     "aiDailyLimit": "Dosiahol/a si dnešný limit AI generovania plánov ({limit}). Skús to zajtra.",
     "aiPlanName": "AI plán — {goal}",
     "createPlanFailed": "Plán sa nepodarilo vytvoriť."
+  },
+  "meals": {
+    "notFound": "Jedálniček sa nenašiel.",
+    "missingId": "Chýba ID jedálnička.",
+    "nameRequired": "Zadaj názov jedálnička.",
+    "nameRequired2": "Zadaj názov jedálničku.",
+    "chooseActivity": "Vyber úroveň aktivity.",
+    "nameTooLong": "Názov môže mať najviac 120 znakov.",
+    "dayNameTooLong": "Názov dňa môže mať najviac 120 znakov.",
+    "foodMissing": "Niektorá potravina sa nenašla — obnov stránku a skús znova.",
+    "invalidAge": "Neplatný vek.",
+    "invalidSlot": "Neplatné jedlo dňa.",
+    "invalidHeight": "Neplatná výška.",
+    "invalidWeight": "Neplatná váha.",
+    "macroSaveFailed": "Makro cieľ sa nepodarilo uložiť. Skontroluj hodnoty a skús to znova.",
+    "dayNameRequired": "Každý deň musí mať názov.",
+    "createFailed": "Jedálniček sa nepodarilo vytvoriť.",
+    "changed": "Jedálniček sa medzitým zmenil — obnov stránku a skús znova.",
+    "maxDays": "Jedálniček môže mať najviac {max} dní.",
+    "tooManyItems": "Deň „{name}“ má priveľa položiek.",
+    "invalidGrams": "Zadaj platnú gramáž (1–5000 g) v dni „{name}“."
+  },
+  "calendar": {
+    "titleTooLong": "Názov je príliš dlhý (max 200 znakov).",
+    "dateRequired": "Zadaj dátum.",
+    "timeRequired": "Zadaj čas.",
+    "noteTooLong": "Poznámka je príliš dlhá (max 1000 znakov).",
+    "endAfterStart": "Koniec termínu musí byť po jeho začiatku.",
+    "missingAppointment": "Chýba termín.",
+    "appointmentNotFound": "Termín sa nenašiel."
+  },
+  "templates": {
+    "planNoDays": "Plán nemá žiadne dni na uloženie do šablóny.",
+    "onlyOwnWorkout": "Šablónu sa dá uložiť len z tvojho vlastného tréningu.",
+    "workoutNoDays": "Tréning nemá žiadne dni na uloženie do šablóny.",
+    "defaultName": "Šablóna",
+    "createFailed": "Šablónu sa nepodarilo vytvoriť.",
+    "notFound": "Šablóna sa nenašla.",
+    "planCreateFailed": "Plán sa nepodarilo vytvoriť.",
+    "mealNotFound": "Jedálniček sa nenašiel.",
+    "mealNoDays": "Jedálniček nemá žiadne dni na uloženie do šablóny.",
+    "mealCreateFailed": "Jedálniček sa nepodarilo vytvoriť.",
+    "missingTemplate": "Chýba šablóna.",
+    "draftFailed": "Koncept sa nepodarilo vytvoriť.",
+    "missingMealId": "Chýba ID jedálničku."
+  },
+  "analytics": {
+    "noActiveClients": "Zatiaľ nemáš aktívnych klientov na zhrnutie.",
+    "overviewFailed": "Prehľad sa nepodarilo načítať — skús to znova."
   }
 }

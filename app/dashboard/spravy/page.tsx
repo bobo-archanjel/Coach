@@ -1,3 +1,5 @@
+import { getLocale, getTranslations } from "next-intl/server";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { ChatThread } from "@/app/components/ChatThread";
@@ -22,19 +24,19 @@ type MessageRow = {
   created_at: string;
 };
 
-function previewOf(m: MessageRow): string {
-  const prefix = m.sender === "trainer" ? "Ty: " : "";
+function previewOf(m: MessageRow, you: string): string {
+  const prefix = m.sender === "trainer" ? you : "";
   const text = m.body.replace(/\s+/g, " ").trim();
   const truncated = text.length > 64 ? `${text.slice(0, 64)}…` : text;
   return `${prefix}${truncated}`;
 }
 
-function timeLabel(iso: string): string {
+function timeLabel(iso: string, locale: Locale): string {
   const d = new Date(iso);
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
-  if (sameDay) return d.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" });
-  return d.toLocaleDateString("sk-SK", { day: "numeric", month: "numeric" });
+  if (sameDay) return d.toLocaleTimeString(intlLocale(locale), { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric" });
 }
 
 export default async function SpravyPage({
@@ -42,6 +44,7 @@ export default async function SpravyPage({
 }: {
   searchParams: Promise<{ client?: string }>;
 }) {
+  const [t, locale] = await Promise.all([getTranslations("inbox"), getLocale()]);
   const { client: selectedClientId } = await searchParams;
   const {
     data: { user },
@@ -49,8 +52,8 @@ export default async function SpravyPage({
   if (!user) {
     return (
       <div className={styles.emptyState}>
-        <h2>Session vypršala</h2>
-        <p>Prihlás sa prosím znova.</p>
+        <h2>{t("sessionExpired")}</h2>
+        <p>{t("signInAgain")}</p>
       </div>
     );
   }
@@ -121,14 +124,14 @@ export default async function SpravyPage({
       {/* Otvorený chat na mobile = len chat: hlavička aj "Hromadná správa" sa skryjú
           (zoznam konverzácií už skrýva .inboxGrid[data-has-selection]). */}
       <div className={`${styles.pageHead} ${styles.hideOnThreadMobile}`}>
-        <h1>Správy</h1>
-        <p>Všetky konverzácie s klientmi na jednom mieste.</p>
+        <h1>{t("title")}</h1>
+        <p>{t("subtitle")}</p>
       </div>
 
       {threads.length === 0 ? (
         <div className={styles.emptyState}>
-          <h2>Zatiaľ žiadne konverzácie</h2>
-          <p>Keď ti klient napíše, alebo mu napíšeš z jeho detailu, objaví sa tu.</p>
+          <h2>{t("emptyTitle")}</h2>
+          <p>{t("emptyText")}</p>
         </div>
       ) : (
         <SpravyView
@@ -137,25 +140,25 @@ export default async function SpravyPage({
             <div className={styles.inboxGrid} data-has-selection={selectedClientId ? "true" : "false"}>
               <div className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxList}`}>
                 <div className={styles.roster}>
-                  {threads.map((t) => {
-                    const active = t.id === selectedClientId;
+                  {threads.map((th) => {
+                    const active = th.id === selectedClientId;
                     return (
                       <Link
-                        key={t.id}
-                        href={`/dashboard/spravy?client=${t.id}`}
+                        key={th.id}
+                        href={`/dashboard/spravy?client=${th.id}`}
                         className={`${styles.clientCard} ${styles.inboxRow} ${active ? styles.inboxRowActive : ""}`}
                       >
                         <div>
-                          <div className={styles.clientName}>{t.name}</div>
-                          <div className={styles.clientGoal}>{t.last ? previewOf(t.last) : "Zatiaľ žiadna správa"}</div>
+                          <div className={styles.clientName}>{th.name}</div>
+                          <div className={styles.clientGoal}>{th.last ? previewOf(th.last, t("you")) : t("noMessageYet")}</div>
                         </div>
                         <div className={styles.clientMeta}>
-                          {t.unread > 0 && (
-                            <span className={styles.unreadPill} title={`${t.unread} neprečítaných správ`}>
-                              {t.unread}
+                          {th.unread > 0 && (
+                            <span className={styles.unreadPill} title={t("unread", { count: th.unread })}>
+                              {th.unread}
                             </span>
                           )}
-                          {t.last && <span className={styles.clientSince}>{timeLabel(t.last.created_at)}</span>}
+                          {th.last && <span className={styles.clientSince}>{timeLabel(th.last.created_at, locale)}</span>}
                         </div>
                       </Link>
                     );
@@ -183,17 +186,17 @@ export default async function SpravyPage({
                       markerUrl={`/api/chat/marker?client=${encodeURIComponent(selectedClientId)}`}
                       realtimeTable="messages"
                       realtimeFilter={`client_id=eq.${selectedClientId}`}
-                      emptyTitle="Zatiaľ žiadne správy"
+                      emptyTitle={t("threadEmptyTitle")}
                       // Bez skloňovania mena — prípona tvorila "Evaa", "Martinaovi".
-                      emptyText={`Napíš prvú správu — ${selectedName} ju uvidí v portáli.`}
-                      placeholder="Napíš správu…"
+                      emptyText={t("threadEmptyText", { name: selectedName })}
+                      placeholder={t("placeholder")}
                       embedded
                     />
                   </>
                 ) : (
                   <div className={styles.emptyState} style={{ border: "none", padding: "clamp(24px, 6vw, 48px)" }}>
-                    <h2>Vyber konverzáciu</h2>
-                    <p>Klikni na klienta v zozname a otvor jeho vlákno.</p>
+                    <h2>{t("pickTitle")}</h2>
+                    <p>{t("pickText")}</p>
                   </div>
                 )}
               </ThreadSwipeBack>
