@@ -40,5 +40,8 @@
   "reps": "Opakovania",
   "rest": "Pauza (s)",
   "restValue": "pauza {seconds} s",
-  "namePlaceholder": "napr. white monster plan"
+  "namePlaceholder": "napr. white monster plan",
+  "daysAria": "Tréningové dni",
+  "newDayTitle": "Nový deň",
+  "close": "Zavrieť"
 }

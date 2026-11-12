@@ -36,6 +36,35 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
     expect(real(errs), real(errs).join("\n")).toEqual([]);
   });
 
+  test("„+ deň“ otvorí okno: názov dňa s fokusom, Esc zavrie a fokus sa vráti na „+ deň“", async ({ page }) => {
+    const errs = collectErrors(page);
+    await page.goto("/dashboard/treningy/x?preview=builder");
+
+    const addDay = page.getByRole("button", { name: "+ deň" });
+    await addDay.click();
+    const dialog = page.getByRole("dialog", { name: "Nový deň" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("Názov dňa")).toBeFocused();
+    await expect(dialog.getByRole("button", { name: "Pridať", exact: true })).toBeVisible();
+    // stránka pod oknom sa neposúva
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(addDay).toBeFocused();
+
+    // Zrušiť aj ✕ zavrú
+    await addDay.click();
+    await dialog.getByRole("button", { name: "Zrušiť" }).click();
+    await expect(dialog).toHaveCount(0);
+    await addDay.click();
+    await dialog.getByRole("button", { name: "Zavrieť" }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+
+    expect(real(errs), real(errs).join("\n")).toEqual([]);
+  });
+
   test("šípky poradia: krajné sú disabled, presun preusporiada zoznam", async ({ page }) => {
     await page.goto("/dashboard/treningy/x?preview=builder");
 
@@ -133,10 +162,66 @@ test.describe("názov plánu — ceruzka (?preview=builder)", () => {
   });
 });
 
-test.describe("zmazanie plánu dole pri PDF", () => {
-  test("koncept: dole len PDF (maže sa cez Zmazať koncept hore)", async ({ page }) => {
+test.describe("späť na zoznam tréningov", () => {
+  /** Ťah prstom po prvku `selector` zo x=from do x=to (po krokoch, nech React stihne prekresliť). */
+  async function swipe(page: Page, selector: string, from: number, to: number) {
+    const steps = [from, from + 20, from + (to - from) / 2, to];
+    const fire = (type: string, x: number) =>
+      page.evaluate(
+        ({ selector, type, x }) => {
+          const el = document.querySelector(selector)!;
+          const touch = new Touch({ identifier: 1, target: el, clientX: x, clientY: 320 });
+          el.dispatchEvent(
+            new TouchEvent(type, {
+              bubbles: true,
+              cancelable: true,
+              touches: type === "touchend" ? [] : [touch],
+              changedTouches: [touch],
+            }),
+          );
+        },
+        { selector, type, x },
+      );
+    await fire("touchstart", steps[0]);
+    for (const x of steps.slice(1)) {
+      await fire("touchmove", x);
+      await page.waitForTimeout(40);
+    }
+    await fire("touchend", to);
+  }
+
+  test("bez odkazu „Späť na tréningy“; na mobile potiahnutie zľava doprava vráti na zoznam", async ({ page }, testInfo) => {
     await page.goto("/dashboard/treningy/x?preview=builder");
-    await expect(page.getByRole("link", { name: "Stiahnuť PDF" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Späť na tréningy/ })).toHaveCount(0);
+    test.skip(testInfo.project.name !== "mobile", "gesto len na dotykovom zariadení");
+
+    // ťah v dráhe dní (posúva sa do strany) gesto späť nespustí
+    await swipe(page, "[class*='dayTabs']", 60, 300);
+    await page.waitForTimeout(400);
+    expect(new URL(page.url()).pathname).toBe("/dashboard/treningy/x");
+
+    // ťah cez nadpis plánu → zoznam tréningov (bez session v náhľade presmeruje na prihlásenie)
+    await swipe(page, "h1", 40, 280);
+    await page.waitForURL((url) => url.pathname === "/dashboard/treningy" || url.pathname.includes("prihlasenie"), {
+      timeout: 15_000,
+    });
+  });
+});
+
+test.describe("zmazanie plánu dole pri PDF", () => {
+  test("koncept: dole PDF + Uložiť ako šablónu v jednom riadku, bez výberu cieľa (maže sa cez Zmazať koncept hore)", async ({ page }) => {
+    await page.goto("/dashboard/treningy/x?preview=builder");
+    const pdf = page.getByRole("link", { name: "Stiahnuť PDF" });
+    const tpl = page.getByRole("button", { name: "Uložiť ako šablónu" });
+    await expect(pdf).toBeVisible();
+    await expect(tpl).toHaveCount(1);
+    await expect(tpl).toBeVisible();
+    const [a, b] = [await pdf.boundingBox(), await tpl.boundingBox()];
+    expect(Math.abs(a!.y - b!.y)).toBeLessThanOrEqual(2);
+    // tlačidlo šablóny je až pod builderom (pod PDF riadkom nie je nič z publikovania)
+    const publish = await page.getByRole("button", { name: "Potvrdiť a uložiť" }).boundingBox();
+    expect(b!.y).toBeGreaterThan(publish!.y);
+    await expect(page.getByRole("combobox", { name: "Cieľ" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Zmazať", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Zmazať koncept" })).toBeVisible();
   });

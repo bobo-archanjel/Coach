@@ -131,8 +131,10 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
 
     const builder = page.getByRole("region", { name: "Nový vlastný tréning" });
     await builder.getByLabel("Názov tréningového plánu").fill(clientPlanName);
-    await builder.locator("#client-day-name").fill("E2E Nohy");
-    await builder.getByRole("button", { name: "Pridať", exact: true }).click();
+    await builder.getByRole("button", { name: "+ deň" }).click();
+    const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
+    await dayDialog.locator("#client-day-name").fill("E2E Nohy");
+    await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
     await builder.getByLabel("Názov vlastného cviku").fill("E2E Výpad");
     await builder.getByRole("button", { name: "+ Pridať do tréningu" }).click();
 

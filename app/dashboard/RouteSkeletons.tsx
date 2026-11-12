@@ -168,12 +168,11 @@ function KlientDetailSkeleton() {
   );
 }
 
-/** /dashboard/treningy/[planId] — späť + hlavička + builder v stĺpci ako u klienta
+/** /dashboard/treningy/[planId] — hlavička + builder v stĺpci ako u klienta (späť = potiahnutie)
     (cviky dňa hore, knižnica pod nimi; app/components/workoutBuilder.module.css). */
 function PlanBuilderSkeleton() {
   return (
     <div className={`${styles.skeletonWrap} ${styles.planPage}`}>
-      <B className={styles.skeletonBackLink} />
       <div className={styles.skeletonDetailHead}>
         <B className={styles.skeletonDetailTitle} />
         <B className={styles.skeletonLineShort} />

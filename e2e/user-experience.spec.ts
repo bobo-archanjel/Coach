@@ -66,8 +66,11 @@ test.describe("Builder: akcie dňa a prázdne stavy", () => {
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
     await expect(page.getByText("Zatiaľ žiadny deň", { exact: true })).toBeVisible();
 
-    await page.locator("#client-day-name").fill("Push");
-    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+    await page.getByRole("button", { name: "+ deň" }).click();
+    const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
+    await dayDialog.locator("#client-day-name").fill("Push");
+    await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
+    await expect(dayDialog).toHaveCount(0);
     await expect(page.getByText("Zatiaľ žiadne cviky", { exact: true })).toBeVisible();
     // pôvodný dlhý text už nie je voľne na stránke — je v okne za otáznikom
     await expect(page.getByText(/Klikni na cvik v knižnici/)).toHaveCount(0);

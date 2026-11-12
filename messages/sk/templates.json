@@ -4,8 +4,6 @@
   "kinds": "Druh šablón",
   "tabWorkout": "Tréningy",
   "tabMeal": "Jedálničky",
-  "goal": "Cieľ",
-  "all": "Všetky",
   "emptyWorkout": "Zatiaľ žiadne tréningové šablóny — otvor plán na <link>Tréningy</link> a ulož ho ako šablónu.",
   "emptyMeal": "Zatiaľ žiadne jedálničkové šablóny — otvor jedálniček v sekcii <link>Jedálničky</link> a ulož ho ako šablónu.",
   "searchWorkout": "Hľadať tréningovú šablónu…",
@@ -43,8 +41,6 @@
     "creating": "Vytváram…"
   },
   "save": {
-    "goal": "Cieľ šablóny",
-    "noGoal": "Bez cieľa",
     "saving": "Ukladám…",
     "save": "Uložiť ako šablónu",
     "saved": "Uložené — pozri v <link>Šablónach</link>."

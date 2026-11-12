@@ -11,7 +11,6 @@
 
 import { tErr } from "@/lib/i18n/serverErrors";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isPlanGoal } from "./planGoals";
 import { dbErr } from "@/lib/dbError";
 
 export interface TemplateResult {
@@ -39,7 +38,6 @@ export async function saveWorkoutPlanAsTemplate(
   trainerId: string,
   planId: string,
   templateName: string,
-  goal?: string | null,
 ): Promise<TemplateResult> {
   // vlastníctvo aj dni naraz (dni potrebujú len planId; RLS ich aj tak obmedzí na trénera)
   const [{ data: plan }, { data: days, error: daysErr }] = await Promise.all([
@@ -50,7 +48,7 @@ export async function saveWorkoutPlanAsTemplate(
   if (daysErr) return { error: await dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: await tErr("templates.planNoDays") };
 
-  return insertPlanTemplate(supabase, trainerId, cleanName(templateName, plan.name), isPlanGoal(goal) ? goal : null, days);
+  return insertPlanTemplate(supabase, trainerId, cleanName(templateName, plan.name), days);
 }
 
 /**
@@ -79,19 +77,19 @@ export async function saveOwnPlanAsTemplate(
   if (daysErr) return { error: await dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: await tErr("templates.workoutNoDays") };
 
-  return insertPlanTemplate(supabase, ownerId, cleanName(plan.name, await tErr("templates.defaultName")), null, days);
+  return insertPlanTemplate(supabase, ownerId, cleanName(plan.name, await tErr("templates.defaultName")), days);
 }
 
 async function insertPlanTemplate(
   supabase: SupabaseClient,
   ownerId: string,
   name: string,
-  goal: string | null,
   days: { day_number: number; name: string; exercises: unknown }[],
 ): Promise<TemplateResult> {
   const { data: template, error: templateErr } = await supabase
     .from("plan_templates")
-    .insert({ trainer_id: ownerId, name, goal })
+    // plan_templates.goal (0025) sa už nenastavuje — cieľ šablóny zrušený (feature/design-fixes)
+    .insert({ trainer_id: ownerId, name })
     .select("id")
     .single();
   if (templateErr || !template) return { error: templateErr?.message ?? await tErr("templates.createFailed") };

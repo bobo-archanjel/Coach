@@ -138,7 +138,6 @@
     "howToAddText": "Klikni na cvik v knižnici — pridá sa sem s predvolenými hodnotami, ktoré si hneď upravíš.",
     "noDays": "Zatiaľ žiadny deň",
     "noDaysText": "Pridaj prvý deň tlačidlom „+ deň“ vyššie.",
-    "back": "Späť na tréningy",
     "doneBadge": "Hotovo",
     "lockedTitle": "Plán je uzamknutý",
     "lockedText": "Klient tento plán celý odcvičil — plán je uzamknutý. Dole si ho môžeš stiahnuť ako PDF alebo uložiť ako šablónu a z nej vytvoriť nový.",
@@ -153,6 +152,9 @@
     "tempoValue": "tempo {value}",
     "restValue": "pauza {seconds} s",
     "exerciseDetail": "Detail cviku {name}",
-    "customHeading": "Vlastný cvik"
+    "customHeading": "Vlastný cvik",
+    "daysAria": "Tréningové dni",
+    "newDayTitle": "Nový deň",
+    "close": "Zavrieť"
   }
 }

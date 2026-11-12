@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
-import { AddDayInline } from "./AddDayInline";
+import { AddDayDialog } from "./AddDayDialog";
 import { DeleteDayControl } from "./DeleteDayControl";
 import { DuplicateDayButton } from "./DuplicateDayButton";
 import { RenameDayForm } from "./RenameDayForm";
@@ -12,6 +12,7 @@ import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "@/app/components/workoutBuilder.module.css";
 import { EmptyDayCard } from "@/app/components/EmptyDayCard";
+import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 
 interface Day {
   id: string;
@@ -36,6 +37,12 @@ export function PlanBuilder({
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
   // „Premenovať“ otvorený pre aktívny deň — prepnutie dňa ho zavrie
   const [renaming, setRenaming] = useState(false);
+  // okno „+ deň“
+  const [adding, setAdding] = useState(false);
+  // dni pred otvorením „+ deň“ — nový deň (po revalidácii) sa podľa nich nájde a vyberie
+  const knownDayIds = useRef<Set<string> | null>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useActiveTabInView(tabsRef, activeDayId);
 
   // Lokálna kópia dní kvôli optimistickému presunu poradia cvikov — po revalidácii
   // sa zosúladí so serverovou pravdou (nový `days` prop pri každom refetchi).
@@ -52,6 +59,14 @@ export function PlanBuilder({
 
   // Ak aktívny deň zmizol (napr. z iného tabu) alebo ešte nebol vybraný, spadni na prvý dostupný.
   useEffect(() => {
+    // práve pridaný deň („+ deň“) — vyber ho, ako u klienta
+    const known = knownDayIds.current;
+    const added = known ? localDays.find((d) => !known.has(d.id)) : undefined;
+    if (added) {
+      knownDayIds.current = null;
+      if (activeDayId !== added.id) setActiveDayId(added.id);
+      return;
+    }
     const wanted = pendingDayId.current;
     if (wanted) {
       if (!localDays.some((d) => d.id === wanted)) return;
@@ -90,7 +105,8 @@ export function PlanBuilder({
   return (
     <div className={styles.builderGrid}>
       <div className={styles.canvas}>
-        <div className={styles.dayTabs}>
+        {/* Výber dňa = prepínač (dráha), nie tlačidlá; počet cvikov je len vizuálny (aria-hidden) */}
+        <div ref={tabsRef} className={styles.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
           {localDays.map((day) => (
             <button
               key={day.id}
@@ -101,22 +117,50 @@ export function PlanBuilder({
                 setRenaming(false);
               }}
               aria-current={day.id === activeDayId ? "true" : undefined}
+              title={day.name}
             >
-              {day.name}
+              <span className={styles.dayTabName}>{day.name}</span>
+              <span className={styles.dayTabCount} aria-hidden="true">
+                {day.exercises.length}
+              </span>
             </button>
           ))}
-          <AddDayInline planId={planId} nextDayNumber={localDays.length + 1} />
-          {activeDay &&
-            (renaming ? (
-              <RenameDayForm
-                key={`rename-${activeDay.id}`}
-                planId={planId}
-                dayId={activeDay.id}
-                name={activeDay.name}
-                onClose={() => setRenaming(false)}
-              />
-            ) : (
-              // akcie aktívneho dňa vždy spolu v jednom riadku pod pilulkami dní
+          <button
+            type="button"
+            className={styles.addDayTab}
+            onClick={() => {
+              knownDayIds.current = new Set(localDays.map((d) => d.id));
+              setAdding(true);
+              setRenaming(false);
+            }}
+          >
+            {t("addDay")}
+          </button>
+        </div>
+
+        {adding && (
+          <AddDayDialog
+            planId={planId}
+            nextDayNumber={localDays.length + 1}
+            onClose={(added) => {
+              setAdding(false);
+              if (!added) knownDayIds.current = null;
+            }}
+          />
+        )}
+
+        {activeDay &&
+          (renaming ? (
+            <RenameDayForm
+              key={`rename-${activeDay.id}`}
+              planId={planId}
+              dayId={activeDay.id}
+              name={activeDay.name}
+              onClose={() => setRenaming(false)}
+            />
+          ) : (
+            // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
+            <div className={styles.dayHead}>
               <div className={styles.dayActionsRow}>
                 <button type="button" className={styles.dayActionTab} onClick={() => setRenaming(true)}>
                   {t("rename")}
@@ -139,8 +183,8 @@ export function PlanBuilder({
                   hasCompleted={completedDayIds.includes(activeDay.id)}
                 />
               </div>
-            ))}
-        </div>
+            </div>
+          ))}
 
         <div className={styles.dayPanel}>
           {activeDay ? (

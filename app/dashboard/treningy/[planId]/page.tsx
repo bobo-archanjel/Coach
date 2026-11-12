@@ -1,3 +1,4 @@
+import { SwipeBack } from "@/app/components/SwipeBack";
 import { getLocale, getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../../components/AppLink";
 import { notFound } from "next/navigation";
@@ -7,7 +8,6 @@ import { PlanBuilder } from "./PlanBuilder";
 import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
 import { listPlanRecipients } from "@/lib/planRecipients";
 import { PublishActions, PublishBadge } from "./PublishControl";
-import { WorkoutTemplateTop } from "../../sablony/WorkoutTemplateControls";
 import { PlanTitle } from "./PlanTitle";
 import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
@@ -17,12 +17,6 @@ import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
-
-const BackIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path d="M9 3 4 7l5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 // i18n-ignore-start — DEV náhľad (vymyslené dáta)
 // DEV náhľad buildera bez session (?preview=builder) — viac dní s rôzne dlhými
@@ -82,11 +76,7 @@ export default async function PlanDetailPage({
       if (data && data.length > 0) previewLibrary = data as ExerciseLibraryRow[];
     }
     return (
-      <div className={styles.planPage}>
-        <Link href="/dashboard/treningy" className={styles.backLink}>
-          <BackIcon />
-          Späť na tréningy
-        </Link>
+      <SwipeBack href="/dashboard/treningy" className={styles.planPage}>
         <div className={styles.detailHead}>
           <div className={styles.detailTitle}>
             <PlanTitle planId={planId} name="AI plán — hypertrofia" />
@@ -106,7 +96,7 @@ export default async function PlanDetailPage({
         <div className={styles.planFooterActions}>
           <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted />
         </div>
-      </div>
+      </SwipeBack>
     );
   }
   // i18n-ignore-end
@@ -161,11 +151,8 @@ export default async function PlanDetailPage({
   const [t, locale] = await Promise.all([getTranslations("plans.builder"), getLocale()]);
 
   return (
-    <div className={styles.planPage}>
-      <Link href="/dashboard/treningy" className={styles.backLink}>
-        <BackIcon />
-        {t("back")}
-      </Link>
+    // Späť na zoznam tréningov: na mobile potiahnutím zľava doprava (SwipeBack), na počítači bočné menu.
+    <SwipeBack href="/dashboard/treningy" className={styles.planPage}>
 
       <div className={styles.detailHead}>
         <div className={styles.detailTitle}>
@@ -189,12 +176,11 @@ export default async function PlanDetailPage({
         </div>
       </div>
 
-      {/* Publikovanie aj šablóna v rovnakej 2-stĺpcovej mriežke pod sebou — súmerné tlačidlá.
-          Hotový plán ich hore nemá — šablóna je dole vedľa PDF (bez Zmazať). */}
+      {/* Publikovanie hore; „Uložiť ako šablónu“ je dole vedľa „Stiahnuť PDF“ (PlanFooterActions).
+          Hotový plán publikovanie nemá. */}
       {!locked && (
         <div className={styles.planActions}>
           <PublishActions planId={planId} published={plan.published} recipientCount={recipients.length} />
-          <WorkoutTemplateTop planId={planId} defaultName={plan.name} />
         </div>
       )}
 
@@ -232,27 +218,15 @@ export default async function PlanDetailPage({
 
       {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
       <div className={styles.planFooterActions}>
-        {locked ? (
-          // Hotový plán sa nemaže — ostáva ako záznam; namiesto "Zmazať" uloženie ako šablóna.
-          <WorkoutTemplateTop
-            planId={planId}
-            defaultName={plan.name}
-            withGoal={false}
-            leading={
-              <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-                {t("downloadPdf")}
-              </a>
-            }
-          />
-        ) : (
-          <PlanFooterActions
-            planId={planId}
-            planName={plan.name}
-            published={plan.published}
-            hasCompleted={(completedLogs?.length ?? 0) > 0}
-          />
-        )}
+        {/* Hotový plán sa nemaže — ostáva ako záznam (PDF + šablóna, bez „Zmazať“). */}
+        <PlanFooterActions
+          planId={planId}
+          planName={plan.name}
+          published={plan.published}
+          hasCompleted={(completedLogs?.length ?? 0) > 0}
+          canDelete={!locked}
+        />
       </div>
-    </div>
+    </SwipeBack>
   );
 }

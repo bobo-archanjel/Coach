@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { PLAN_GOALS, isPlanGoal } from "@/lib/planGoals";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { TemplatesList, type TemplateItem } from "./TemplatesList";
@@ -27,28 +26,27 @@ function toDays(rows: DayRow[] | null, kind: Kind): TemplateItem["days"] {
 }
 
 /**
- * Šablóny trénera — záložky Tréningy / Jedálničky (?typ=), pri tréningoch filter cieľa
- * (?goal=), hľadanie podľa názvu a náhľad obsahu na karte; „Použiť“ otvorí výber klienta
+ * Šablóny trénera — záložky Tréningy / Jedálničky (?typ=), hľadanie podľa názvu a náhľad
+ * obsahu na karte (filter podľa cieľa zrušený vo feature/design-fixes); „Použiť“ otvorí výber klienta
  * a vytvorí koncept (TemplateCard / ApplyTemplateDialog). Šablóny vznikajú na detaile
  * plánu tlačidlom „Uložiť ako šablónu“.
  */
-export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ typ?: string; goal?: string }> }) {
-  const [tt, tl] = await Promise.all([getTranslations("templates"), getTranslations("labels")]);
+export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ typ?: string }> }) {
+  const tt = await getTranslations("templates");
   const {
     data: { user },
   } = await getUser();
   if (!user) redirect("/prihlasenie");
   const supabase = await createClient();
 
-  const { typ, goal: goalParam } = await searchParams;
+  const { typ } = await searchParams;
   const kind: Kind = typ === "jedalnicky" ? "meal" : "workout";
-  const activeGoal = kind === "workout" && isPlanGoal(goalParam) ? goalParam : null;
 
   const [{ data: clients }, { data: planTemplates }, { data: mealTemplates }] = await Promise.all([
     supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
     supabase
       .from("plan_templates")
-      .select("id, name, goal, created_at, plan_template_days(day_number, name, exercises)")
+      .select("id, name, created_at, plan_template_days(day_number, name, exercises)")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -61,19 +59,14 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
   const workoutItems: TemplateItem[] = (planTemplates ?? []).map((tpl) => ({
     id: tpl.id,
     name: tpl.name,
-    goal: tpl.goal,
     days: toDays(tpl.plan_template_days as DayRow[] | null, "workout"),
   }));
   const mealItems: TemplateItem[] = (mealTemplates ?? []).map((tpl) => ({
     id: tpl.id,
     name: tpl.name,
-    goal: null,
     days: toDays(tpl.meal_template_days as DayRow[] | null, "meal"),
   }));
-  // Filter podľa cieľa je len pri tréningových šablónach — jedálničkové goal nemajú
-  // (0025_templates.sql: `goal` stĺpec existuje iba na plan_templates).
-  const items =
-    kind === "workout" ? (activeGoal ? workoutItems.filter((i) => i.goal === activeGoal) : workoutItems) : mealItems;
+  const items = kind === "workout" ? workoutItems : mealItems;
 
   const tab = (value: Kind, label: string, count: number) => (
     <Link
@@ -98,20 +91,7 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
         {tab("meal", tt("tabMeal"), mealItems.length)}
       </nav>
 
-      {kind === "workout" && workoutItems.length > 0 && (
-        <div className={t.goals} role="group" aria-label={tt("goal")}>
-          <Link href="/dashboard/sablony" className={`${t.goal} ${!activeGoal ? t.goalActive : ""}`}>
-            {tt("all")}
-          </Link>
-          {PLAN_GOALS.map((g) => (
-            <Link key={g} href={`/dashboard/sablony?goal=${g}`} className={`${t.goal} ${activeGoal === g ? t.goalActive : ""}`}>
-              {tl(`planGoal.${g}`)}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {(kind === "workout" ? workoutItems : mealItems).length === 0 ? (
+      {items.length === 0 ? (
         <p className={t.empty}>
           {kind === "workout" ? (
             tt.rich("emptyWorkout", { link: (chunks) => <Link href="/dashboard/treningy">{chunks}</Link> })
@@ -120,7 +100,7 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
           )}
         </p>
       ) : (
-        <TemplatesList key={`${kind}-${activeGoal ?? ""}`} kind={kind} items={items} clients={clients ?? []} />
+        <TemplatesList key={kind} kind={kind} items={items} clients={clients ?? []} />
       )}
     </>
   );
