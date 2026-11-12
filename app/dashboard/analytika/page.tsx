@@ -1,10 +1,11 @@
+import { getLocale, getTranslations } from "next-intl/server";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { AppLink as Link } from "../../components/AppLink";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview, type ClientAnalyticsRow } from "@/lib/dashboard/analytics";
 import { clientStatus, sortScore } from "@/lib/dashboard/portfolioStatus";
-import { pluralSk } from "@/lib/portal/streak";
 import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { RosterSummaryCard } from "./RosterSummaryCard";
@@ -32,19 +33,20 @@ function portfolioHealth(rows: ClientAnalyticsRow[]): { ok: number; watch: numbe
   return health;
 }
 
-function dateLabel(iso: string | null): string {
-  if (!iso) return "nikdy";
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
+function dateLabel(iso: string | null, never: string, locale: Locale): string {
+  if (!iso) return never;
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 /** "dnes" / "včera" / "pred N dňami" — pre widget Posledné PR. */
-function agoLabel(iso: string): string {
+function agoLabel(iso: string, t: Awaited<ReturnType<typeof getTranslations<"analytics">>>): string {
   const days = Math.round((Date.now() - new Date(`${iso}T12:00:00Z`).getTime()) / 86_400_000);
-  if (days <= 0) return "dnes";
-  if (days === 1) return "včera";
-  return `pred ${days} dňami`;
+  if (days <= 0) return t("today");
+  if (days === 1) return t("yesterday");
+  return t("daysAgo", { count: days });
 }
 
+// i18n-ignore-start — DEV náhľad (vymyslené dáta)
 // DEV náhľad bez session (?preview=ok) — zoradenie od najviac rizikových klientov.
 const PREVIEW_CLIENTS = [
   { id: "p1", full_name: "Ohrozený Oto", ended_at: null, deletion_requested_at: null },
@@ -80,7 +82,10 @@ function daysAgoIso(n: number): string {
   return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 }
 
+// i18n-ignore-end
+
 export default async function AnalytikaPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+  const [ta, locale] = await Promise.all([getTranslations("analytics"), getLocale()]);
   const { preview } = await searchParams;
   const isPreview = preview === "ok" && process.env.NODE_ENV === "development";
 
@@ -126,10 +131,10 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
     return (
       <>
         <div className={styles.pageHead}>
-          <h1>Analytika</h1>
-          <p>Prehľad adherencie a progresu naprieč klientmi.</p>
+          <h1>{ta("title")}</h1>
+          <p>{ta("subtitle")}</p>
         </div>
-        <p className={styles.noWorkouts}>Prehľad sa nepodarilo načítať — skús obnoviť stránku.</p>
+        <p className={styles.noWorkouts}>{ta("loadFailed")}</p>
       </>
     );
   }
@@ -145,19 +150,10 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
     <>
       <div className={styles.pageHead}>
         <h1>
-          Analytika{" "}
-          {rows.length > 0 && (
-            <InfoTip title="Ako čítať percentá">
-              % = podiel dní za posledných 30 dní, kedy bol klient „v poriadku“ (strava 85–115&nbsp;% cieľa, tréning =
-              odcvičil aspoň jeden deň). „Plán“ = nakoľko sa odcvičené série/opakovania/váha zhodujú s predpisom
-              z tréningového plánu. Klient bez makro cieľa nemá stravu s čím porovnať.
-            </InfoTip>
-          )}
+          {ta("title")} {rows.length > 0 && <InfoTip title={ta("howTitle")}>{ta("howText")}</InfoTip>}
         </h1>
         <p>
-          {activeClients.length === 0
-            ? "Zatiaľ nemáš klientov na analýzu."
-            : `${activeClients.length} ${pluralSk(activeClients.length, "klient", "klienti", "klientov")} · zoradené od tých, ktorí najviac potrebujú pozornosť.`}
+          {activeClients.length === 0 ? ta("noClients") : ta("sorted", { count: activeClients.length })}
         </p>
       </div>
 
@@ -166,20 +162,20 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
           <div className={styles.portfolioHealth}>
             <div className={`${styles.portfolioStat} ${styles.phOk}`}>
               <div className={styles.portfolioStatCount}>{health.ok}</div>
-              <div className={styles.portfolioStatLabel}>V poriadku</div>
+              <div className={styles.portfolioStatLabel}>{ta("ok")}</div>
             </div>
             <div className={`${styles.portfolioStat} ${styles.phWatch}`}>
               <div className={styles.portfolioStatCount}>{health.watch}</div>
-              <div className={styles.portfolioStatLabel}>Sleduj</div>
+              <div className={styles.portfolioStatLabel}>{ta("watch")}</div>
             </div>
             <div className={`${styles.portfolioStat} ${styles.phRisk}`}>
               <div className={styles.portfolioStatCount}>{health.risk}</div>
-              <div className={styles.portfolioStatLabel}>Riziko</div>
+              <div className={styles.portfolioStatLabel}>{ta("risk")}</div>
             </div>
             {health.none > 0 && (
               <div className={`${styles.portfolioStat} ${styles.phNone}`}>
                 <div className={styles.portfolioStatCount}>{health.none}</div>
-                <div className={styles.portfolioStatLabel}>Bez dát</div>
+                <div className={styles.portfolioStatLabel}>{ta("none")}</div>
               </div>
             )}
           </div>
@@ -203,33 +199,34 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
               <div>
                 <div className={styles.clientName}>{client.full_name}</div>
                 <span className={styles.clientSince}>
-                  {data.latestWeightKg != null ? `${data.latestWeightKg} kg` : "váha nezaznamenaná"}
-                  {data.weightDeltaKg != null && (
-                    <> · {data.weightDeltaKg > 0 ? "+" : ""}{data.weightDeltaKg} kg (90 dní)</>
-                  )}
+                  {data.latestWeightKg != null ? `${data.latestWeightKg} kg` : ta("noWeight")}
+                  {data.weightDeltaKg != null &&
+                    ta("weightDelta", { delta: `${data.weightDeltaKg > 0 ? "+" : ""}${data.weightDeltaKg}` })}
                 </span>
               </div>
               <span className={styles.clientMeta}>
                 <span className={`${styles.statusChip} ${styles[pctTone(data.nutritionPct30)]}`}>
-                  {data.nutritionPct30 != null ? `Strava ${data.nutritionPct30} %` : "Strava — bez cieľa"}
+                  {data.nutritionPct30 != null ? ta("nutritionPct", { pct: data.nutritionPct30 }) : ta("nutritionNoGoal")}
                 </span>
                 <span className={`${styles.statusChip} ${styles[pctTone(data.trainingPct30)]}`}>
-                  Tréning {data.trainingPct30}&nbsp;%
+                  {ta("trainingPct", { pct: data.trainingPct30 })}
                 </span>
                 {data.planCompletionPct30 != null && (
                   <span className={`${styles.statusChip} ${styles[pctTone(data.planCompletionPct30)]}`}>
-                    Plán {data.planCompletionPct30}&nbsp;%
+                    {ta("planPct", { pct: data.planCompletionPct30 })}
                   </span>
                 )}
-                <span className={styles.clientSince}>posledný tréning: {dateLabel(data.lastTrainedOn)}</span>
+                <span className={styles.clientSince}>
+                  {ta("lastTraining", { date: dateLabel(data.lastTrainedOn, ta("never"), locale) })}
+                </span>
               </span>
             </Link>
           ))}
         </div>
       ) : (
         <div className={styles.emptyState}>
-          <h2>Zatiaľ nič na zobrazenie</h2>
-          <p>Pridaj klientov a nechaj ich zbierať dáta (tréningy, strava, merania).</p>
+          <h2>{ta("emptyTitle")}</h2>
+          <p>{ta("emptyText")}</p>
         </div>
       )}
     </>
@@ -243,7 +240,7 @@ async function RecentPRPanel({
   clients: { id: string; full_name: string }[];
   data: Promise<Map<string, StrengthPR[]> | null>;
 }) {
-  const recentPRs = await data;
+  const [recentPRs, t] = await Promise.all([data, getTranslations("analytics")]);
   const prList = clients
     .flatMap((c) => (recentPRs?.get(c.id) ?? []).map((pr) => ({ client: c, pr })))
     .sort((a, b) => b.pr.achievedOn.localeCompare(a.pr.achievedOn))
@@ -251,7 +248,7 @@ async function RecentPRPanel({
   if (prList.length === 0) return null;
   return (
     <div className={styles.prPanel}>
-      <p className={styles.prPanelTitle}>Posledné osobné maximá · 14 dní</p>
+      <p className={styles.prPanelTitle}>{t("prTitle")}</p>
       <ul className={styles.prPanelList}>
         {prList.map(({ client, pr }, i) => (
           <li key={`${client.id}-${pr.exercise}-${i}`}>
@@ -259,7 +256,7 @@ async function RecentPRPanel({
               {client.full_name} · {pr.exercise}
             </Link>
             <span>
-              {pr.bestWeightKg} kg × {pr.reps} · {agoLabel(pr.achievedOn)}
+              {pr.bestWeightKg} kg × {pr.reps} · {agoLabel(pr.achievedOn, t)}
             </span>
           </li>
         ))}
@@ -269,22 +266,18 @@ async function RecentPRPanel({
 }
 
 async function AiInsightsPanel({ data }: { data: Promise<AiTopicInsight[] | null> }) {
-  const aiInsights = await data;
+  const [aiInsights, t] = await Promise.all([data, getTranslations("analytics")]);
   if (!aiInsights || aiInsights.length === 0) return null;
   return (
     <div className={styles.aiInsightsPanel}>
       <p className={styles.aiInsightsPanelTitle}>
-        AI Kouč · skoré signály · {"posledných 7 dní"}{" "}
-        <InfoTip title="AI Kouč · skoré signály">
-          Agregované naprieč aspoň 3 klientmi, bez prístupu appky k obsahu konverzácie — AI Kouč zostáva súkromný chat.
-        </InfoTip>
+        {t("aiTitle")} <InfoTip title={t("aiTipTitle")}>{t("aiTip")}</InfoTip>
       </p>
       <ul className={styles.aiInsightsList}>
         {aiInsights.map((i) => (
           <li key={i.topic}>
             <span>
-              {i.clientCount} {pluralSk(i.clientCount, "klient sa pýtal", "klienti sa pýtali", "klientov sa pýtalo")}
-              AI Kouča na
+              {t("aiAsked", { count: i.clientCount })}
             </span>
             <span>{i.label}</span>
           </li>

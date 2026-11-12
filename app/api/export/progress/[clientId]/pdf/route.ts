@@ -1,5 +1,8 @@
 // FitPilot — export progresu klienta do PDF (feature/export-dat).
 
+import { getTranslations } from "next-intl/server";
+import { tErr } from "@/lib/i18n/serverErrors";
+import { getUserLocale } from "@/lib/i18n/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
@@ -12,7 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cli
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Nie si prihlásený." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: await tErr("notSignedIn") }, { status: 401 });
 
   const { data: client } = await supabase
     .from("clients")
@@ -20,7 +23,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cli
     .eq("id", clientId)
     .eq("trainer_id", user.id)
     .maybeSingle();
-  if (!client) return NextResponse.json({ error: "Klient sa nenašiel." }, { status: 404 });
+  if (!client) return NextResponse.json({ error: await tErr("api.clientNotFound") }, { status: 404 });
 
   const [trainingAdherence, nutritionAdherence, bodyMetrics, strengthProgress] = await Promise.all([
     getTrainingAdherence(clientId),
@@ -36,9 +39,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cli
     bodyMetrics: bodyMetrics ?? [],
     strengthNames: strengthProgress?.names ?? [],
     strengthByExercise: strengthProgress?.byExercise ?? {},
-  });
+  }, await getUserLocale());
 
-  const fileName = `progres-${client.full_name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || "klient"}.pdf`;
+  const tc = await getTranslations("errors.csv");
+  const fileName = `${tc("progressFile")}-${client.full_name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || tc("clientFallback")}.pdf`;
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",

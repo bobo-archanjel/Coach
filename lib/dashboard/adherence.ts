@@ -1,3 +1,5 @@
+import { getUserLocale } from "@/lib/i18n/server";
+import { WEEKDAY_SHORT } from "@/lib/i18n/dates";
 import { createClient } from "@/lib/supabase/server";
 import { scaleFoodMacros, sumMacros } from "@/lib/meals";
 
@@ -7,7 +9,6 @@ import { scaleFoodMacros, sumMacros } from "@/lib/meals";
 // žiadna nová migrácia. Rovnaká TZ konvencia ako lib/portal/data.ts (Europe/Bratislava).
 
 const TZ = "Europe/Bratislava";
-const WEEKDAY_LABELS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
 const HISTORY_DAYS = 7;
 /** 85–115 % cieľa = "v poriadku" — rovnaká hranica ako 7-dňový pás bodiek (adherenceGood). */
 export const ON_TRACK_MIN_PCT = 85;
@@ -113,6 +114,7 @@ function computeWindow(kcalByDate: Map<string, number>, kcalGoal: number | null,
  * `hasGoal: false`, nie null — to nie je chyba).
  */
 export async function getNutritionAdherence(clientId: string): Promise<NutritionAdherence | null> {
+  const locale = await getUserLocale();
   const supabase = await createClient();
   const { isoDate, base } = todayInTz();
   const historyStart = iso(addDays(base, -(WINDOW_90_DAYS - 1)));
@@ -148,7 +150,7 @@ export async function getNutritionAdherence(clientId: string): Promise<Nutrition
     const kcal = kcalByDate.get(dateStr);
     const pct = kcal != null && kcalGoal ? Math.round((kcal / kcalGoal) * 100) : null;
     const weekdayIdx = (date.getUTCDay() + 6) % 7; // 0 = pondelok
-    days.push({ label: WEEKDAY_LABELS[weekdayIdx], dateNum: date.getUTCDate(), pct });
+    days.push({ label: WEEKDAY_SHORT[locale][weekdayIdx], dateNum: date.getUTCDate(), pct });
   }
 
   const todayKcal = kcalByDate.get(isoDate) ?? 0;

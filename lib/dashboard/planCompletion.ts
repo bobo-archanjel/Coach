@@ -52,8 +52,6 @@ export async function getPlanCompletion(
   return result;
 }
 
-/** Hláška pre úpravy plánu, ktorý klient celý odcvičil (badge "Hotovo"). */
-export const PLAN_LOCKED_ERROR = "Klient tento plán celý odcvičil — plán je uzamknutý a nedá sa upravovať.";
 
 type DayLogCount = { id: string; workout_logs: { count: number }[] | null };
 

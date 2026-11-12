@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { completeTourAction } from "@/lib/onboarding/actions";
 import type { TourStep } from "@/lib/onboarding/tourSteps";
+import { useTranslations } from "next-intl";
 import styles from "./OnboardingTour.module.css";
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -25,6 +26,7 @@ const TOOLTIP_GAP = 14;
 const TOOLTIP_WIDTH = 320;
 
 export function OnboardingTour({ steps, tourSeen }: { steps: TourStep[]; tourSeen: boolean }) {
+  const t = useTranslations("tour");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -131,7 +133,7 @@ export function OnboardingTour({ steps, tourSeen }: { steps: TourStep[]; tourSee
   }
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={`Návod: ${step.title}`}>
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={t("label", { title: step.title })}>
       {rect && (
         <div
           className={styles.spotlight}
@@ -148,12 +150,12 @@ export function OnboardingTour({ steps, tourSeen }: { steps: TourStep[]; tourSee
         <p className={styles.body}>{step.body}</p>
         <div className={styles.actions}>
           <button type="button" className={styles.skipBtn} onClick={() => void finish()}>
-            Preskočiť
+            {t("skip")}
           </button>
           <div className={styles.actionsRight}>
             {stepIndex > 0 && (
               <button type="button" className={styles.backBtn} onClick={() => setStepIndex((i) => i - 1)}>
-                Späť
+                {t("back")}
               </button>
             )}
             <button
@@ -161,7 +163,7 @@ export function OnboardingTour({ steps, tourSeen }: { steps: TourStep[]; tourSee
               className={styles.nextBtn}
               onClick={() => (isLast ? void finish() : setStepIndex((i) => i + 1))}
             >
-              {isLast ? "Dokončiť" : "Ďalej"}
+              {isLast ? t("finish") : t("next")}
             </button>
           </div>
         </div>

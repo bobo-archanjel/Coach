@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { ExerciseDetail } from "@/lib/exercises";
@@ -40,6 +41,7 @@ export function ExerciseDetailModal({
   onClose: () => void;
 }) {
   const [imgIdx, setImgIdx] = useState(0);
+  const t = useTranslations("components.exercise");
 
   useEffect(() => {
     setImgIdx(0);
@@ -56,19 +58,19 @@ export function ExerciseDetailModal({
 
   return (
     <>
-      <button type="button" className={styles.scrim} aria-label="Zavrieť náhľad cviku" onClick={onClose} />
+      <button type="button" className={styles.scrim} aria-label={t("closePreview")} onClick={onClose} />
       <div className={styles.panel} role="dialog" aria-modal="true" aria-label={title}>
         <div className={styles.head}>
           <h3 className={styles.title}>{title}</h3>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Zavrieť">
+          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t("close")}>
             <CloseIcon />
           </button>
         </div>
 
         {detail === undefined ? (
-          <p className={styles.state}>Načítavam…</p>
+          <p className={styles.state}>{t("loading")}</p>
         ) : detail === null ? (
-          <p className={styles.state}>Pre tento cvik zatiaľ nemáme podrobný náhľad.</p>
+          <p className={styles.state}>{t("noDetail")}</p>
         ) : (
           <>
             {detail.muscleGroup && <p className={styles.muscle}>{detail.muscleGroup}</p>}
@@ -80,7 +82,7 @@ export function ExerciseDetailModal({
                       remotePatterns whitelist + optimalizácia (WebP, resize) v next.config.ts. */}
                   <Image
                     src={images[imgIdx]}
-                    alt={`${title} — krok ${imgIdx + 1}`}
+                    alt={t("step", { title, step: imgIdx + 1 })}
                     fill
                     sizes="(max-width: 600px) 90vw, 420px"
                     className={styles.image}
@@ -92,7 +94,7 @@ export function ExerciseDetailModal({
                       type="button"
                       className={styles.navBtn}
                       onClick={() => setImgIdx((i) => (i - 1 + images.length) % images.length)}
-                      aria-label="Predchádzajúci obrázok"
+                      aria-label={t("prevImage")}
                     >
                       <ChevronIcon dir="left" />
                     </button>
@@ -105,7 +107,7 @@ export function ExerciseDetailModal({
                       type="button"
                       className={styles.navBtn}
                       onClick={() => setImgIdx((i) => (i + 1) % images.length)}
-                      aria-label="Ďalší obrázok"
+                      aria-label={t("nextImage")}
                     >
                       <ChevronIcon dir="right" />
                     </button>
@@ -125,7 +127,7 @@ export function ExerciseDetailModal({
             )}
 
             {images.length === 0 && detail.instructions.length === 0 && (
-              <p className={styles.state}>Pre tento cvik zatiaľ nemáme podrobný náhľad.</p>
+              <p className={styles.state}>{t("noDetail")}</p>
             )}
           </>
         )}

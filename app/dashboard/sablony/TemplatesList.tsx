@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { TemplateCard } from "./TemplateCard";
 import styles from "./templates.module.css";
@@ -29,6 +30,7 @@ export function TemplatesList({
   items: TemplateItem[];
   clients: { id: string; full_name: string }[];
 }) {
+  const t = useTranslations("templates");
   const [query, setQuery] = useState("");
   const shown = useMemo(() => {
     const q = normalize(query.trim());
@@ -40,10 +42,10 @@ export function TemplatesList({
       <input
         className={styles.search}
         type="search"
-        placeholder={kind === "workout" ? "Hľadať tréningovú šablónu…" : "Hľadať jedálničkovú šablónu…"}
+        placeholder={kind === "workout" ? t("searchWorkout") : t("searchMeal")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        aria-label="Hľadať šablónu podľa názvu"
+        aria-label={t("searchAria")}
       />
       {shown.length > 0 ? (
         <div className={styles.grid}>
@@ -52,7 +54,7 @@ export function TemplatesList({
           ))}
         </div>
       ) : (
-        <p className={styles.empty}>{query.trim() ? "Žiadna šablóna s takým názvom." : "Žiadna šablóna s týmto cieľom."}</p>
+        <p className={styles.empty}>{query.trim() ? t("noNameMatch") : t("noGoalMatch")}</p>
       )}
     </>
   );

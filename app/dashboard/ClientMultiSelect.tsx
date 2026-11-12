@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styles from "./clientPicker.module.css";
 
@@ -55,6 +56,7 @@ export function ClientMultiSelect({
   invalid?: boolean;
 }) {
   const panelId = useId();
+  const t = useTranslations("components.clientPicker");
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -106,7 +108,7 @@ export function ClientMultiSelect({
   }, [open]);
 
   const count = selected.length;
-  const triggerLabel = count === 0 ? "Vyber klientov" : clients.length > count ? "Pridať ďalších" : "Upraviť výber";
+  const triggerLabel = count === 0 ? t("choose") : clients.length > count ? t("addMore") : t("editSelection");
 
   return (
     <div ref={rootRef} className={styles.picker}>
@@ -122,7 +124,7 @@ export function ClientMultiSelect({
               className={styles.chipRemove}
               onClick={() => toggle(c.id)}
               disabled={disabled}
-              aria-label={`Odobrať klienta ${c.full_name}`}
+              aria-label={t("remove", { name: c.full_name })}
             >
               <CloseIcon />
             </button>
@@ -150,22 +152,22 @@ export function ClientMultiSelect({
               <input
                 className={styles.search}
                 type="search"
-                placeholder="Hľadať klienta…"
+                placeholder={t("searchPlaceholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Hľadať klienta"
+                aria-label={t("search")}
               />
               <div className={styles.selectRow}>
-                <span className={styles.selectCount}>{count === 0 ? "Nikto nevybraný" : `Vybraní: ${count}`}</span>
+                <span className={styles.selectCount}>{count === 0 ? t("noneSelected") : t("selected", { count })}</span>
                 {shown.length > 0 && (
                   <button type="button" className={styles.selectAll} onClick={toggleAllShown} disabled={disabled}>
-                    {allShownSelected ? "Zrušiť výber" : query.trim() ? "Vybrať nájdených" : "Vybrať všetkých"}
+                    {allShownSelected ? t("clearSelection") : query.trim() ? t("selectFound") : t("selectAll")}
                   </button>
                 )}
               </div>
             </>
           )}
-          <div className={styles.list} role="group" aria-label="Klienti">
+          <div className={styles.list} role="group" aria-label={t("group")}>
             {shown.map((c) => {
               const on = selectedSet.has(c.id);
               return (
@@ -188,11 +190,11 @@ export function ClientMultiSelect({
                 </button>
               );
             })}
-            {shown.length === 0 && <p className={styles.empty}>Žiadny klient s takým menom.</p>}
+            {shown.length === 0 && <p className={styles.empty}>{t("noMatch")}</p>}
           </div>
           <div className={styles.panelFoot}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>
-              Hotovo
+              {t("done")}
             </button>
           </div>
         </div>

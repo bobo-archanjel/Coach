@@ -1,6 +1,9 @@
 import { AppLink as Link } from "../components/AppLink";
 import { getPortalData } from "@/lib/portal/data";
-import { MIN_VISIBLE_STREAK, pluralSk, type PortalStreaks } from "@/lib/portal/streak";
+import { MIN_VISIBLE_STREAK, type PortalStreaks } from "@/lib/portal/streak";
+import { useLocale, useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { PortalData, TodaySession } from "@/lib/portal/types";
 import { previewResult } from "@/app/portal/preview";
 import { DoneWorkoutView } from "@/app/portal/DoneWorkoutView";
@@ -21,30 +24,32 @@ import s from "./portal.module.css";
 const RING_R = 40;
 const RING_CIRC = 2 * Math.PI * RING_R;
 
-function greetingPart(hour: number): string {
-  return hour < 10 ? "Dobré ráno" : hour < 18 ? "Dobrý deň" : "Dobrý večer";
+type TodayT = ReturnType<typeof useTranslations<"today">>;
+
+function greetingPart(hour: number, t: TodayT): string {
+  return hour < 10 ? t("goodMorning") : hour < 18 ? t("goodDay") : t("goodEvening");
 }
 
 const cap = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
 /** "dnes o 18:00" / "zajtra o 9:30" / "streda 10.9. o 8:00" */
-function appointmentWhenLabel(startsAtIso: string): string {
+function appointmentWhenLabel(startsAtIso: string, t: TodayT, locale: Locale): string {
   const start = new Date(startsAtIso);
   const now = new Date();
   const sameDay = start.toDateString() === now.toDateString();
   const tomorrow = new Date(now.getTime() + 86_400_000);
   const isTomorrow = start.toDateString() === tomorrow.toDateString();
-  const time = start.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" });
-  if (sameDay) return `dnes o ${time}`;
-  if (isTomorrow) return `zajtra o ${time}`;
-  const dayLabel = start.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "numeric" });
-  return `${dayLabel} o ${time}`;
+  const time = start.toLocaleTimeString(intlLocale(locale), { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return t("todayAt", { time });
+  if (isTomorrow) return t("tomorrowAt", { time });
+  const dayLabel = start.toLocaleDateString(intlLocale(locale), { weekday: "long", day: "numeric", month: "numeric" });
+  return t("dayAt", { day: dayLabel, time });
 }
 
 /** Dátum trvalého zmazania (deletion_requested_at + 30 dní grace period, 0018). */
-function purgeDateLabel(requestedAt: string): string {
+function purgeDateLabel(requestedAt: string, locale: Locale): string {
   const purgeDate = new Date(new Date(requestedAt).getTime() + 30 * 86_400_000);
-  return purgeDate.toLocaleDateString("sk-SK");
+  return purgeDate.toLocaleDateString(intlLocale(locale));
 }
 
 const CheckIcon = () => (
@@ -66,6 +71,7 @@ const RulerIcon = () => (
 );
 
 function ProgressRing({ done, total }: { done: number; total: number }) {
+  const t = useTranslations("today");
   const fraction = total > 0 ? done / total : 0;
   const offset = RING_CIRC * (1 - fraction);
   return (
@@ -77,7 +83,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
         {done}/{total}
       </text>
       <text className={s.ringCenterSub} x="46" y="59" textAnchor="middle" dominantBaseline="middle">
-        CVIKOV
+        {t("exercisesRing")}
       </text>
     </svg>
   );
@@ -86,6 +92,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
 /** Série pod grafom (lib/portal/streak.ts — od MIN_VISIBLE_STREAK dní). */
 function StreakChips({ streaks }: { streaks: PortalStreaks }) {
   const { training, food } = streaks;
+  const t = useTranslations("today");
   const showTraining = training.count >= MIN_VISIBLE_STREAK;
   const showFood = food.count >= MIN_VISIBLE_STREAK;
   if (!showTraining && !showFood) return null;
@@ -93,10 +100,10 @@ function StreakChips({ streaks }: { streaks: PortalStreaks }) {
   const need = training.needThisWeek;
   let hint: string | null = null;
   if (showTraining && need > 0) {
-    const what = `${need} ${pluralSk(need, "tréning", "tréningy", "tréningov")}`;
-    hint = training.atRisk ? `Ešte ${what} tento týždeň a séria pokračuje.` : `Do splnenia týždňa chýba ešte ${what}.`;
+    const what = t("needTrainings", { count: need });
+    hint = training.atRisk ? t("hintAtRisk", { what }) : t("hintMissing", { what });
   } else if (showFood && food.atRisk) {
-    hint = "Zapíš dnes aspoň jedno jedlo, nech séria pokračuje.";
+    hint = t("hintFood");
   }
 
   return (
@@ -104,12 +111,12 @@ function StreakChips({ streaks }: { streaks: PortalStreaks }) {
       <div className={s.chipRow}>
         {showTraining && (
           <span className={s.chip}>
-            Tréning: {training.count} {pluralSk(training.count, "týždeň", "týždne", "týždňov")} v rade
+            {t("streakTraining", { count: training.count })}
           </span>
         )}
         {showFood && (
           <span className={s.chip}>
-            Zápis jedla: {food.count} {pluralSk(food.count, "deň", "dni", "dní")} v rade
+            {t("streakFood", { count: food.count })}
           </span>
         )}
       </div>
@@ -121,20 +128,20 @@ function StreakChips({ streaks }: { streaks: PortalStreaks }) {
 export default async function PortalHome({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
   const result = (preview && previewResult(preview)) || (await getPortalData());
+  const t = await getTranslations("today");
 
   if (result.state === "error") {
     return (
-      <Notice icon={<AlertIcon />} title="Nepodarilo sa načítať tvoj deň" tone="alert" action={<RetryButton />}>
-        Skús to o chvíľu znova. Ak to potrvá, napíš svojmu trénerovi.
+      <Notice icon={<AlertIcon />} title={t("loadFailedTitle")} tone="alert" action={<RetryButton />}>
+        {t("loadFailedText")}
       </Notice>
     );
   }
 
   if (result.state === "unlinked") {
     return (
-      <Notice icon={<ProfileIcon />} title={result.firstName ? `Vitaj, ${result.firstName}` : "Vitaj vo FitPilot"}>
-        Tvoj účet ešte nie je prepojený s trénerom. Prepojenie spraví tréner zo svojej strany — potom sa ti tu zobrazí
-        tvoj plán a dnešný tréning.
+      <Notice icon={<ProfileIcon />} title={result.firstName ? t("welcomeName", { name: result.firstName }) : t("welcome")}>
+        {t("unlinked")}
       </Notice>
     );
   }
@@ -160,25 +167,26 @@ function Today({ data }: { data: PortalData }) {
     planChoice,
     hasTrainer,
   } = data;
+  const t = useTranslations("today");
+  const locale = useLocale();
 
   const d = new Date(`${today}T12:00:00Z`);
-  const dateLabel = cap(d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }));
+  const dateLabel = cap(d.toLocaleDateString(intlLocale(locale), { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }));
 
   return (
     <>
       {deletionNotice && (
         <div className={s.deletionNotice} role="status">
           <p className={s.deletionNoticeTitle}>
-            {deletionNotice.requestedBy === "trainer" ? "Odstránený/á z portfólia trénera" : "Zmazanie dát prebieha"}
+            {deletionNotice.requestedBy === "trainer" ? t("removedByTrainer") : t("deletionInProgress")}
           </p>
           <p className={s.deletionNoticeText}>
             {deletionNotice.requestedBy === "trainer"
-              ? "Tréner ťa odstránil zo svojho portfólia. Tvoje tréningy, výživa, denník aj správy sa natrvalo vymažú"
-              : "Požiadal/a si o zmazanie svojich dát — vymažú sa"}{" "}
-            {purgeDateLabel(deletionNotice.requestedAt)}, pokiaľ zmazanie nezrušíš.
+              ? t("removedText", { date: purgeDateLabel(deletionNotice.requestedAt, locale) })
+              : t("deletionText", { date: purgeDateLabel(deletionNotice.requestedAt, locale) })}
           </p>
           <Link href="/portal/profil" className={s.deletionNoticeLink}>
-            Spravovať v Profile →
+            {t("manageInProfile")}
           </Link>
         </div>
       )}
@@ -188,8 +196,8 @@ function Today({ data }: { data: PortalData }) {
       <header className={s.hello}>
         <p className={s.helloDate}>{dateLabel}</p>
         <h1 className={s.helloTitle}>
-          {clientFirstName ? `${greetingPart(hour)},` : null}
-          <span className={s.helloName}>{clientFirstName || greetingPart(hour)}</span>
+          {clientFirstName ? `${greetingPart(hour, t)},` : null}
+          <span className={s.helloName}>{clientFirstName || greetingPart(hour, t)}</span>
         </h1>
       </header>
 
@@ -199,7 +207,7 @@ function Today({ data }: { data: PortalData }) {
             {coachNote.initials}
           </span>
           <div>
-            <p className={s.noteFrom}>{coachNote.trainer ? `Tréner ${coachNote.trainer}` : "Tréner"}</p>
+            <p className={s.noteFrom}>{coachNote.trainer ? t("trainerNamed", { name: coachNote.trainer }) : t("trainer")}</p>
             <p className={s.noteText}>{coachNote.text}</p>
           </div>
         </div>
@@ -211,7 +219,11 @@ function Today({ data }: { data: PortalData }) {
             <CalendarIcon />
           </span>
           <p>
-            Najbližší termín: <strong>{nextAppointment.title}</strong> — {appointmentWhenLabel(nextAppointment.startsAt)}
+            {t.rich("nextAppointment", {
+              b: (chunks) => <strong>{chunks}</strong>,
+              title: nextAppointment.title,
+              when: appointmentWhenLabel(nextAppointment.startsAt, t, locale),
+            })}
           </p>
         </div>
       )}
@@ -230,19 +242,19 @@ function Today({ data }: { data: PortalData }) {
         />
       )}
 
-      <section className={s.after} aria-label="Prehľad">
-        <h2 className={s.sectionTitle}>Môj prehľad</h2>
+      <section className={s.after} aria-label={t("overview")}>
+        <h2 className={s.sectionTitle}>{t("myOverview")}</h2>
 
         <div className={s.panel}>
           <div className={s.panelHead}>
-            <p className={s.panelLabel}>Odcvičené spolu</p>
+            <p className={s.panelLabel}>{t("doneTotal")}</p>
             <span className={s.panelIcon}>
               <TrainingIcon />
             </span>
           </div>
           <div className={s.streakHead}>
             <span className={s.streakNum}>{totalSessions}</span>
-            <span className={s.streakUnit}>{pluralSk(totalSessions, "tréning", "tréningy", "tréningov")}</span>
+            <span className={s.streakUnit}>{t("trainings", { count: totalSessions })}</span>
           </div>
           <div className={s.bars} aria-hidden="true">
             {streakHistory.map((state, i) => (
@@ -250,8 +262,8 @@ function Today({ data }: { data: PortalData }) {
             ))}
           </div>
           <div className={s.barsLegend} aria-hidden="true">
-            <span>pred {streakHistory.length} dňami</span>
-            <span>včera</span>
+            <span>{t("daysAgo", { count: streakHistory.length })}</span>
+            <span>{t("yesterday")}</span>
           </div>
           <StreakChips streaks={streaks} />
         </div>
@@ -260,7 +272,7 @@ function Today({ data }: { data: PortalData }) {
 
         <div className={s.panel}>
           <div className={s.panelHead}>
-            <p className={s.panelLabel}>Meranie</p>
+            <p className={s.panelLabel}>{t("measurement")}</p>
             <span className={s.panelIcon}>
               <RulerIcon />
             </span>
@@ -276,22 +288,23 @@ function Today({ data }: { data: PortalData }) {
 function NextWorkout({ session }: { session: TodaySession }) {
   const total = session.exercises.length;
   const complete = session.kind === "complete";
+  const t = useTranslations("today");
   return (
     <>
         {/* ďalší tréning v poradí — terakotový pás s prstencom, pod ním akcia */}
-        <section className={s.hero} aria-label={complete ? "Tréningový plán hotový" : "Ďalší tréning"}>
+        <section className={s.hero} aria-label={complete ? t("planDone") : t("nextWorkout")}>
           <div className={s.heroBand}>
             <div className={s.heroText}>
               <p className={s.heroKicker}>
-                {complete ? "Tréningový plán" : session.kind === "done" ? "Dnešný tréning" : "Ďalší tréning"}
+                {complete ? t("plan") : session.kind === "done" ? t("todayWorkout") : t("nextWorkout")}
               </p>
-              <h2 className={s.heroTitle}>{complete ? "Plán máš hotový" : session.title}</h2>
+              <h2 className={s.heroTitle}>{complete ? t("planFinished") : session.title}</h2>
               {/* názov plánu je v riadku PlanSwitch nad kartou — tu by bol druhýkrát */}
               {!complete && session.focus && <p className={s.heroFocus}>{session.focus}</p>}
               {!complete && (
                 <div className={s.heroChips}>
                   <span className={s.heroChip}>
-                    {total} {pluralSk(total, "cvik", "cviky", "cvikov")}
+                    {t("exercises", { count: total })}
                   </span>
                   {session.durationLabel && <span className={s.heroChip}>{session.durationLabel}</span>}
                 </div>
@@ -309,14 +322,13 @@ function NextWorkout({ session }: { session: TodaySession }) {
           <div className={s.heroBody}>
             {complete && (
               <p className={s.doneMark}>
-                <CheckIcon /> Odcvičil si všetky dni plánu. Ďalší ti pripraví tréner — alebo si vytvor vlastný v sekcii
-                Tréning.
+                <CheckIcon /> {t("allDaysDone")}
               </p>
             )}
 
             {session.kind === "done" && (
               <p className={s.doneMark}>
-                <CheckIcon /> Tento tréning máš dnes hotový — vrátiš sa sem kedykoľvek, kým je dnešný deň
+                <CheckIcon /> {t("doneToday")}
               </p>
             )}
 
@@ -350,21 +362,22 @@ function NextWorkout({ session }: { session: TodaySession }) {
  * ako karta ďalšieho tréningu, len tlmená; prehľad, týždeň aj meranie pod ňou ostávajú.
  */
 function EmptyPlan({ planName, canSwitch, hasTrainer }: { planName: string | null; canSwitch: boolean; hasTrainer: boolean }) {
-  const title = planName ? `Plán „${planName}“ je zatiaľ prázdny` : hasTrainer ? "Plán je na ceste" : "Zatiaľ nemáš tréningový plán";
+  const t = useTranslations("today");
+  const title = planName ? t("emptyNamed", { name: planName }) : hasTrainer ? t("onTheWay") : t("noPlan");
   const text = planName
     ? canSwitch
-      ? "Tento plán ešte nemá žiadne cviky. Zmeň aktívny plán vyššie, alebo počkaj, kým ho tréner doplní."
+      ? t("emptySwitch")
       : hasTrainer
-        ? "Tento plán ešte nemá žiadne cviky — tréner ho čoskoro doplní."
-        : "Tento plán ešte nemá žiadne cviky. Doplň ich v sekcii Tréning."
+        ? t("emptyTrainer")
+        : t("emptyOwn")
     : hasTrainer
-      ? "Tréner ti zatiaľ nepriradil aktívny tréningový plán. Hneď ako to spraví, nájdeš tu dnešný tréning."
-      : "Vytvor si vlastný v sekcii Tréning — alebo pošli svoj kód z Profilu trénerovi a plán ti pripraví on.";
+      ? t("noPlanTrainer")
+      : t("noPlanOwn");
   return (
-    <section className={s.hero} aria-label="Tréningový plán">
+    <section className={s.hero} aria-label={t("plan")}>
       <div className={`${s.heroBand} ${s.heroBandEmpty}`}>
         <div className={s.heroText}>
-          <p className={s.heroKicker}>Tréningový plán</p>
+          <p className={s.heroKicker}>{t("plan")}</p>
           <h2 className={s.heroTitle}>{title}</h2>
           <p className={s.heroFocus}>{text}</p>
         </div>
@@ -378,7 +391,7 @@ function EmptyPlan({ planName, canSwitch, hasTrainer }: { planName: string | nul
       {!hasTrainer && (
         <div className={s.heroBody}>
           <Link href="/portal/trening" className={`btn btn-primary ${s.startBtn}`}>
-            {planName ? "Doplniť plán" : "Vytvoriť plán"}
+            {planName ? t("fillPlan") : t("createPlan")}
           </Link>
         </div>
       )}

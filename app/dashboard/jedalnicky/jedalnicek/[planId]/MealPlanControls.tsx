@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { deleteMealPlanAction, publishMealPlanAction, type ActionState } from "../actions";
@@ -24,13 +25,10 @@ const CheckIcon = () => (
  */
 
 export function MealPublishBadge({ published, visibleToClient }: { published: boolean; visibleToClient: boolean }) {
+  const t = useTranslations("mealPlans.controls");
   return (
     <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
-      {!published
-        ? "Koncept — klient ho ešte nevidí"
-        : visibleToClient
-          ? "Zverejnený — klient ho vidí"
-          : "Zverejnený — klient vidí novší jedálniček"}
+      {!published ? t("draftBadge") : visibleToClient ? t("publishedVisible") : t("publishedNewer")}
     </span>
   );
 }
@@ -86,6 +84,7 @@ export function MealPublishActions({
   /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
   recipientCount?: number;
 }) {
+  const t = useTranslations("mealPlans.controls");
   const [state, formAction, pending] = useActionState(publishMealPlanAction, initialState);
   const [, startPublish] = useTransition();
   // koľkým klientom sa posielalo — po odoslaní príjemcovia z DB zmiznú (prop je potom 0)
@@ -110,7 +109,7 @@ export function MealPublishActions({
   const confirmMsg = justPublished && !state.error && (
     <span className={`${styles.publishConfirm} ${styles.templateStatus}`} role="status">
       <CheckIcon />
-      {sentTo.current > 1 ? `Poslané ${sentTo.current} klientom — jedálniček už vidia.` : "Poslané — klient jedálniček už vidí."}
+      {sentTo.current > 1 ? t("sentToMany", { count: sentTo.current }) : t("sentOne")}
     </span>
   );
 
@@ -120,9 +119,9 @@ export function MealPublishActions({
     <div className={styles.templateGrid}>
       {del.confirming ? (
         <>
-          <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>Zmazať tento koncept?</p>
+          <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>{t("deleteDraftConfirm")}</p>
           <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={del.doDelete} disabled={del.pending}>
-            {del.pending ? "Mažem…" : "Áno, zmazať"}
+            {del.pending ? t("deleting") : t("yesDelete")}
           </button>
           <button
             type="button"
@@ -130,7 +129,7 @@ export function MealPublishActions({
             onClick={() => del.setConfirming(false)}
             disabled={del.pending}
           >
-            Zrušiť
+            {t("cancel")}
           </button>
         </>
       ) : (
@@ -138,17 +137,19 @@ export function MealPublishActions({
           <button type="button" className="btn btn-primary btn-sm" onClick={() => void publish()} disabled={pending || saving}>
             {/* Krátko — dlhý text sa v polovičnej šírke na telefóne lámal („Uložiť a poslať"). */}
             {saving
-              ? "Ukladám…"
+              ? t("saving")
               : pending
-                ? "Posielam…"
+                ? t("sending")
                 : recipientCount > 0
-                  ? `${dirty ? "Uložiť a poslať" : "Poslať"} ${recipientCount + 1} klientom`
+                  ? dirty
+                    ? t("saveAndSendTo", { count: recipientCount + 1 })
+                    : t("sendTo", { count: recipientCount + 1 })
                   : dirty
-                    ? "Uložiť a poslať"
-                    : "Poslať klientovi"}
+                    ? t("saveAndSend")
+                    : t("sendToClient")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => del.setConfirming(true)}>
-            Zmazať koncept
+            {t("deleteDraft")}
           </button>
         </>
       )}
@@ -179,6 +180,7 @@ export function MealPlanFooterActions({
   published: boolean;
   visibleToClient: boolean;
 }) {
+  const t = useTranslations("mealPlans.controls");
   const [templateState, templateAction, templatePending] = useActionState(saveMealTemplateAction, initialState);
   const [, startTemplate] = useTransition();
   const del = useDeleteMealPlan(planId);
@@ -194,17 +196,14 @@ export function MealPlanFooterActions({
     return (
       <div className={styles.templateGrid} role="alertdialog" aria-labelledby="delete-meal-plan-question">
         <p id="delete-meal-plan-question" className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>
-          Naozaj zmazať jedálniček „{planName}“?
-          {visibleToClient
-            ? " Klient ho prestane vidieť (ukáže sa mu predošlý zverejnený, ak nejaký je)."
-            : ""}{" "}
-          Jeho denník jedla ostáva.
+          {t("deleteConfirm", { name: planName })}
+          {visibleToClient ? t("deleteHides") : ""} {t("diaryStays")}
         </p>
         <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={del.doDelete} disabled={del.pending}>
-          {del.pending ? "Mažem…" : "Áno, zmazať"}
+          {del.pending ? t("deleting") : t("yesDelete")}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => del.setConfirming(false)} disabled={del.pending}>
-          Zrušiť
+          {t("cancel")}
         </button>
         {del.error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{del.error}</p>}
       </div>
@@ -214,14 +213,14 @@ export function MealPlanFooterActions({
   return (
     <div className={styles.templateGrid}>
       <a href={`/api/export/meal-plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-        Stiahnuť PDF
+        {t("downloadPdf")}
       </a>
       <button type="button" className="btn btn-ghost btn-sm" onClick={saveTemplate} disabled={templatePending}>
-        {templatePending ? "Ukladám…" : "Uložiť ako šablónu"}
+        {templatePending ? t("saving") : t("saveTemplate")}
       </button>
       {published && (
         <button type="button" className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`} onClick={() => del.setConfirming(true)}>
-          Zmazať
+          {t("delete")}
         </button>
       )}
       {!templatePending && templateState.error && (
@@ -229,7 +228,7 @@ export function MealPlanFooterActions({
       )}
       {!templatePending && templateState !== initialState && !templateState.error && (
         <span className={`${styles.clientSince} ${styles.templateStatus}`}>
-          Uložené — pozri v <Link href="/dashboard/sablony">Šablónach</Link>.
+          {t.rich("savedTemplate", { link: (chunks) => <Link href="/dashboard/sablony">{chunks}</Link> })}
         </span>
       )}
     </div>

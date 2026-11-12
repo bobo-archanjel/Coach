@@ -1,3 +1,4 @@
+// i18n-ignore-file: podklad pre AI model (interné dáta v prompte); jazyk odpovede určuje outputLanguageRule
 // FitPilot — AI blok, feature/AIupgrade: história tréningu klienta pre AI
 // generátor plánov. Doteraz generátor poznal len cieľ/skúsenosť/vybavenie/
 // telesné údaje (planClientContext.ts) — každý nový plán vznikal "od nuly",

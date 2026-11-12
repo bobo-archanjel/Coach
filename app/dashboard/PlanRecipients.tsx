@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { removePlanRecipientAction, sendToRemainingRecipientsAction } from "./planRecipientActions";
 import type { PlanKind, PlanRecipient } from "@/lib/planRecipients";
@@ -28,6 +29,7 @@ export function PlanRecipients({
   recipients: PlanRecipient[];
 }) {
   const [pending, startTransition] = useTransition();
+  const t = useTranslations("clients.recipients");
   const [error, setError] = useState<string | null>(null);
   if (recipients.length === 0) return null;
 
@@ -40,7 +42,7 @@ export function PlanRecipients({
 
   return (
     <div className={styles.recipients}>
-      <span className={styles.recipientsLabel}>{published ? "Nepodarilo sa poslať:" : "Pošle sa aj:"}</span>
+      <span className={styles.recipientsLabel}>{published ? t("failed") : t("alsoSends")}</span>
       {recipients.map((r) => (
         <span key={r.clientId} className={styles.recipientChip}>
           {r.name}
@@ -50,7 +52,7 @@ export function PlanRecipients({
               className={styles.recipientRemove}
               onClick={() => run(() => removePlanRecipientAction(kind, planId, r.clientId))}
               disabled={pending}
-              aria-label={`Odobrať príjemcu ${r.name}`}
+              aria-label={t("remove", { name: r.name })}
             >
               <CloseIcon />
             </button>
@@ -64,7 +66,7 @@ export function PlanRecipients({
           onClick={() => run(() => sendToRemainingRecipientsAction(kind, planId))}
           disabled={pending}
         >
-          {pending ? "Posielam…" : "Poslať znova"}
+          {pending ? t("sending") : t("resend")}
         </button>
       )}
       {error && <span className={styles.recipientsError}>{error}</span>}

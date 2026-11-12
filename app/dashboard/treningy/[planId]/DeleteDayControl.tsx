@@ -1,13 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { deleteDayAction } from "../actions";
 import styles from "./builder.module.css";
-
-function exercisesLabel(n: number): string {
-  if (n === 0) return "";
-  return n === 1 ? " aj s 1 cvikom" : ` aj s ${n} cvikmi`;
-}
 
 /**
  * "Zmazať deň" vedľa "+ deň" — zmaže práve zvolený deň. Dvojkrokové inline
@@ -29,6 +25,7 @@ export function DeleteDayControl({
   /** klient už tento deň odcvičil — ukážeme, že jeho záznamy ostanú */
   hasCompleted: boolean;
 }) {
+  const t = useTranslations("plans.builder");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -54,7 +51,7 @@ export function DeleteDayControl({
   if (!confirming) {
     return (
       <button type="button" className={styles.deleteDayTab} onClick={() => setConfirming(true)}>
-        Zmazať deň
+        {t("deleteDay")}
       </button>
     );
   }
@@ -62,15 +59,15 @@ export function DeleteDayControl({
   return (
     <div className={styles.deleteDayConfirm} role="alertdialog" aria-labelledby={`delete-day-${dayId}`}>
       <p id={`delete-day-${dayId}`} className={styles.deleteDayQuestion}>
-        Naozaj zmazať deň „{dayName}“{exercisesLabel(exerciseCount)}? Nedá sa to vrátiť späť.
-        {hasCompleted && " Tréningy, ktoré klient z tohto dňa už odcvičil, ostanú uložené."}
+        {t("deleteDayConfirm", { name: dayName, count: exerciseCount })}
+        {hasCompleted && t("deleteDayKeepsLogs")}
       </p>
       <div className={styles.deleteDayActions}>
         <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={pending}>
-          {pending ? "Mažem…" : "Áno, zmazať deň"}
+          {pending ? t("deleting") : t("yesDeleteDay")}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
-          Zrušiť
+          {t("cancel")}
         </button>
       </div>
       {error && <p className={styles.formError}>{error}</p>}

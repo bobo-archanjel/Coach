@@ -1,0 +1,31 @@
+{
+  "notConfigured": "AI chat zatiaľ nie je nastavený. Skús to prosím neskôr.",
+  "loadFailed": "Nepodarilo sa načítať tvoje dáta. Skús to prosím znova.",
+  "dailyLimit": "Dosiahol/a si dnešný limit AI správ ({limit}). Skús to znova zajtra, alebo napíš priamo trénerovi.",
+  "noReply": "Prepáč, nepodarilo sa mi odpovedať.",
+  "failed": "Nastala chyba pri odpovedi AI. Skús to prosím znova.",
+  "healthEscalation": "Pri bolesti, zranení alebo inom zdravotnom probléme ti nedokážem poradiť — to patrí do rúk tvojho trénera, nie AI. Dal/a som mu o tom hneď vedieť v správach, ozve sa ti. Ak ide o akútny stav, neváhaj a vyhľadaj lekársku pomoc.",
+  "crisis": "Ďakujem, že si mi to napísal/a. Toto je vážne a nechcem, aby si v tom bol/a sám/sama. Ak si v bezprostrednom nebezpečenstve alebo myslíš na to, že si ublížiš, zavolaj hneď na 112 (v SR aj 155). Ozvi sa aj niekomu blízkemu alebo svojmu lekárovi. Dal/a som o tom vedieť aj tvojmu trénerovi, ozve sa ti osobne. AI asistent ti v tejto situácii nedokáže pomôcť.",
+  "plan": {
+    "focusNotMet": "Cieľové zameranie „{focus}“ sa nepodarilo úplne naplniť ({pct} % cvikov z cielenej časti tela{glutes}) — over si rozloženie cvikov v koncepte a prípadne dopĺň ručne.",
+    "glutes": ", {count} cvikov na zadok",
+    "dayTooFew": "Deň má po filtri len {count} z {min} cvikov — kandidátov pre túto kategóriu/vybavenie nezostalo dosť, over si ho v koncepte.",
+    "emptyLibrary": "Knižnica cvikov je prázdna alebo pre zvolené vybavenie nezostal žiadny cvik — skús inú úroveň vybavenia.",
+    "emptyCategory": "Pre kategóriu „{category}“ a zvolené vybavenie nezostal žiadny cvik — skús inú úroveň vybavenia.",
+    "noProposal": "AI nevrátila návrh plánu. Skús to prosím znova.",
+    "badShape": "AI vrátila návrh v neočakávanom tvare. Skús to prosím znova.",
+    "dayFallback": "Tréningový deň",
+    "noUsable": "AI nevrátila použiteľný plán (žiadny navrhnutý cvik nebol z knižnice). Skús to prosím znova.",
+    "failed": "Nastala chyba pri generovaní plánu. Skús to prosím znova.{suffix}",
+    "singleDayName": "{category} — {date}"
+  },
+  "summary": {
+    "notConfigured": "AI zatiaľ nie je nakonfigurované (chýba API kľúč).",
+    "noRoster": "Zatiaľ nemáš aktívnych klientov s dátami na zhrnutie.",
+    "noClientData": "Klient zatiaľ nemá dosť dát (žiadne tréningy, merania ani makro cieľ) na zmysluplné zhrnutie.",
+    "rosterLimit": "Dnešný limit {limit} zhrnutí portfólia je vyčerpaný — skús to zajtra.",
+    "clientLimit": "Dnešný limit {limit} zhrnutí pre tohto klienta je vyčerpaný — skús to zajtra.",
+    "empty": "Nepodarilo sa vygenerovať zhrnutie.",
+    "failed": "Nastala chyba pri generovaní zhrnutia. Skús to prosím znova."
+  }
+}

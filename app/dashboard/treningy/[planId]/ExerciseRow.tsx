@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useActionState, useEffect, useRef, useTransition } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -56,6 +57,7 @@ export function ExerciseRow({
   reorderPending?: boolean;
   onMove?: (direction: "up" | "down") => void;
 }) {
+  const t = useTranslations("plans.builder");
   const [editing, setEditing] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState(updateExerciseEntryAction, initialState);
   const [removeState, removeAction, removePending] = useActionState(removeExerciseEntryAction, initialState);
@@ -92,7 +94,7 @@ export function ExerciseRow({
         <span className={styles.editName}>{entry.exercise_name}</span>
         <div className={styles.editGrid}>
           <label className={`${styles.editField} ${styles.editFieldSets}`}>
-            <span className={styles.editFieldLabel}>Série</span>
+            <span className={styles.editFieldLabel}>{t("sets")}</span>
             <input name="sets" type="number" min={1} defaultValue={entry.sets} required />
           </label>
           <label className={`${styles.editField} ${styles.editFieldReps}`}>
@@ -100,7 +102,7 @@ export function ExerciseRow({
             <input name="reps" type="text" defaultValue={entry.reps} required />
           </label>
           <label className={`${styles.editField} ${styles.editFieldLoad}`}>
-            <span className={styles.editFieldLabel}>Záťaž (kg)</span>
+            <span className={styles.editFieldLabel}>{t("load")}</span>
             <input name="load_kg" type="number" step="0.5" defaultValue={entry.load_kg ?? ""} placeholder="—" />
           </label>
           <label className={`${styles.editField} ${styles.editFieldTempo}`}>
@@ -114,10 +116,10 @@ export function ExerciseRow({
         </div>
         <div className={styles.editActions}>
           <button type="submit" className="btn btn-primary btn-sm" disabled={updatePending}>
-            {updatePending ? "Ukladám…" : "Uložiť"}
+            {updatePending ? t("saving") : t("save")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)} disabled={updatePending}>
-            Zrušiť
+            {t("cancel")}
           </button>
         </div>
         {updateState.error && <p className={styles.formError}>{updateState.error}</p>}
@@ -155,7 +157,7 @@ export function ExerciseRow({
               className={styles.iconBtn}
               onClick={() => onMove("up")}
               disabled={isFirst || reorderPending}
-              aria-label="Posunúť cvik vyššie"
+              aria-label={t("moveUp")}
             >
               <ChevronIcon />
             </button>
@@ -164,20 +166,20 @@ export function ExerciseRow({
               className={`${styles.iconBtn} ${styles.reorderDown}`}
               onClick={() => onMove("down")}
               disabled={isLast || reorderPending}
-              aria-label="Posunúť cvik nižšie"
+              aria-label={t("moveDown")}
             >
               <ChevronIcon />
             </button>
           </div>
         )}
-        <button type="button" className={styles.iconBtn} onClick={() => setEditing(true)} aria-label="Upraviť cvik">
+        <button type="button" className={styles.iconBtn} onClick={() => setEditing(true)} aria-label={t("editExercise")}>
           <EditIcon />
         </button>
         <form action={removeAction}>
           <input type="hidden" name="day_id" value={dayId} readOnly />
           <input type="hidden" name="plan_id" value={planId} readOnly />
           <input type="hidden" name="entry_id" value={entry.entry_id} readOnly />
-          <button type="submit" className={`${styles.iconBtn} btn-danger`} disabled={removePending} aria-label="Odstrániť cvik">
+          <button type="submit" className={`${styles.iconBtn} btn-danger`} disabled={removePending} aria-label={t("removeExercise")}>
             <TrashIcon />
           </button>
         </form>

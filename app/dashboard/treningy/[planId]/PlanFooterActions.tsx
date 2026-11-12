@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { deletePlanAction } from "../actions";
 import styles from "../../dashboard.module.css";
@@ -21,6 +22,7 @@ export function PlanFooterActions({
   published: boolean;
   hasCompleted: boolean;
 }) {
+  const t = useTranslations("plans.builder");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -47,14 +49,14 @@ export function PlanFooterActions({
     return (
       <div className={styles.templateGrid} role="alertdialog" aria-labelledby="delete-plan-question">
         <p id="delete-plan-question" className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>
-          Naozaj zmazať tréning „{planName}“? Klient ho prestane vidieť v portáli a nedá sa to vrátiť späť.
-          {hasCompleted && " Tréningy, ktoré už klient odcvičil, ostanú uložené."}
+          {t("deletePlanConfirm", { name: planName })}
+          {hasCompleted && t("deletePlanKeepsLogs")}
         </p>
         <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={pending}>
-          {pending ? "Mažem…" : "Áno, zmazať"}
+          {pending ? t("deleting") : t("yesDelete")}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
-          Zrušiť
+          {t("cancel")}
         </button>
         {error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{error}</p>}
       </div>
@@ -64,11 +66,11 @@ export function PlanFooterActions({
   return (
     <div className={styles.templateGrid}>
       <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-        Stiahnuť PDF
+        {t("downloadPdf")}
       </a>
       {published && (
         <button type="button" className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`} onClick={() => setConfirming(true)}>
-          Zmazať
+          {t("delete")}
         </button>
       )}
     </div>

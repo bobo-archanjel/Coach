@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { useCallback, useEffect, useState } from "react";
 import { getPortalWeekAction } from "./actions";
 import type { WeekDay, WeekView } from "@/lib/portal/types";
@@ -47,8 +49,8 @@ function shiftIso(mondayIso: string, deltaWeeks: number): string {
   return new Date(d.getTime() + deltaWeeks * 7 * 86_400_000).toISOString().slice(0, 10);
 }
 
-function fullDate(iso: string): string {
-  const label = new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", {
+function fullDate(iso: string, locale: Locale): string {
+  const label = new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -57,12 +59,14 @@ function fullDate(iso: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function setLabel(reps: number | null, weight: number | null): string {
-  const r = reps != null ? `${reps} op.` : "—";
+function setLabel(reps: number | null, weight: number | null, repsLabel: (n: number) => string): string {
+  const r = reps != null ? repsLabel(reps) : "—";
   return weight != null ? `${r} × ${weight} kg` : r;
 }
 
 export function WeekHistory({ initial }: { initial: WeekView }) {
+  const t = useTranslations("today.week");
+  const locale = useLocale();
   const [week, setWeek] = useState<WeekView>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,8 +78,8 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
     const res = await getPortalWeekAction(mondayIso);
     setLoading(false);
     if (res.state === "ok") setWeek(res.week);
-    else setError(res.message ?? "Týždeň sa nepodarilo načítať.");
-  }, []);
+    else setError(res.message ?? t("loadFailed"));
+  }, [t]);
 
   const openDay = openIso ? week.days.find((d) => d.iso === openIso) ?? null : null;
   const hasHistory = week.days.some((d) => d.sessions.length > 0);
@@ -83,14 +87,14 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
   return (
     <div className={styles.panel}>
       <div className={styles.weekHead}>
-        <p className={styles.panelLabel}>{week.isCurrentWeek ? "Tento týždeň" : "Týždeň"}</p>
+        <p className={styles.panelLabel}>{week.isCurrentWeek ? t("thisWeek") : t("week")}</p>
         <div className={styles.weekPager}>
           <button
             type="button"
             className={styles.weekNav}
             onClick={() => load(shiftIso(week.mondayIso, -1))}
             disabled={loading}
-            aria-label="Predchádzajúci týždeň"
+            aria-label={t("prev")}
           >
             <ChevronIcon dir="left" />
           </button>
@@ -100,7 +104,7 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
             className={styles.weekNav}
             onClick={() => load(shiftIso(week.mondayIso, 1))}
             disabled={loading || week.isCurrentWeek}
-            aria-label="Nasledujúci týždeň"
+            aria-label={t("next")}
           >
             <ChevronIcon dir="right" />
           </button>
@@ -128,7 +132,7 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
               type="button"
               className={className}
               onClick={() => setOpenIso(day.iso)}
-              aria-label={`${fullDate(day.iso)} — zobraziť odcvičený tréning`}
+              aria-label={t("showDone", { date: fullDate(day.iso, locale) })}
             >
               {inner}
             </button>
@@ -144,13 +148,13 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
         <p className={styles.weekNote}>
           {error}{" "}
           <button type="button" className={styles.weekRetry} onClick={() => load(week.mondayIso)}>
-            Skúsiť znova
+            {t("retry")}
           </button>
         </p>
       ) : (
         !week.isCurrentWeek &&
         !hasHistory &&
-        !loading && <p className={styles.weekNote}>V tomto týždni žiadny odcvičený tréning.</p>
+        !loading && <p className={styles.weekNote}>{t("noneThisWeek")}</p>
       )}
 
       {openDay && <SessionDialog day={openDay} onClose={() => setOpenIso(null)} />}
@@ -159,6 +163,8 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
 }
 
 function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) {
+  const t = useTranslations("today.week");
+  const locale = useLocale();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -169,14 +175,14 @@ function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) 
 
   return (
     <>
-      <button type="button" className={styles.whScrim} aria-label="Zavrieť náhľad" onClick={onClose} />
-      <div className={styles.whPanel} role="dialog" aria-modal="true" aria-label={`Tréning ${fullDate(day.iso)}`}>
+      <button type="button" className={styles.whScrim} aria-label={t("closePreview")} onClick={onClose} />
+      <div className={styles.whPanel} role="dialog" aria-modal="true" aria-label={t("dialog", { date: fullDate(day.iso, locale) })}>
         <div className={styles.whHead}>
           <div>
-            <h3 className={styles.whTitle}>{fullDate(day.iso)}</h3>
-            <p className={styles.whSub}>{multi ? `${day.sessions.length} tréningy` : day.sessions[0]?.dayName}</p>
+            <h3 className={styles.whTitle}>{fullDate(day.iso, locale)}</h3>
+            <p className={styles.whSub}>{multi ? t("sessions", { count: day.sessions.length }) : day.sessions[0]?.dayName}</p>
           </div>
-          <button type="button" className={styles.whClose} onClick={onClose} aria-label="Zavrieť">
+          <button type="button" className={styles.whClose} onClick={onClose} aria-label={t("close")}>
             <CloseIcon />
           </button>
         </div>
@@ -196,9 +202,9 @@ function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) 
                       <p className={styles.whExName}>{ex.name}</p>
                       <ol className={styles.whSetList}>
                         {ex.sets.length > 0 ? (
-                          ex.sets.map((s, k) => <li key={k}>{setLabel(s.reps, s.weight)}</li>)
+                          ex.sets.map((s, k) => <li key={k}>{setLabel(s.reps, s.weight, (n) => t("reps", { reps: n }))}</li>)
                         ) : (
-                          <li className={styles.whSetEmpty}>bez zápisu sérií</li>
+                          <li className={styles.whSetEmpty}>{t("noSets")}</li>
                         )}
                       </ol>
                     </li>
@@ -206,7 +212,7 @@ function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) 
                 </ul>
               ) : (
                 <p className={styles.whNoEntries}>
-                  <CheckIcon /> Tréning označený ako hotový — bez zápisu skutočných sérií.
+                  <CheckIcon /> {t("doneNoSets")}
                 </p>
               )}
             </section>

@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { calculateNutrition, type ActivityLevel, type Goal, type Sex } from "@/lib/nutrition";
@@ -22,7 +23,7 @@ export async function saveNutritionProfileAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { error: "Nie si prihlásený." };
+    return { error: await tErr("notSignedIn") };
   }
 
   const clientId = formData.get("client_id")?.toString();
@@ -34,13 +35,13 @@ export async function saveNutritionProfileAction(
   const goal = formData.get("goal")?.toString() as Goal;
   const notes = formData.get("notes")?.toString().trim() || null;
 
-  if (!clientId) return { error: "Chýba klient." };
+  if (!clientId) return { error: await tErr("missingClient") };
   if (!SEX_VALUES.includes(sex)) return { error: "Vyber pohlavie." };
-  if (!Number.isFinite(age) || age <= 0 || age >= 120) return { error: "Neplatný vek." };
-  if (!Number.isFinite(weightKg) || weightKg <= 0) return { error: "Neplatná váha." };
-  if (!Number.isFinite(heightCm) || heightCm <= 0) return { error: "Neplatná výška." };
-  if (!ACTIVITY_VALUES.includes(activityLevel)) return { error: "Vyber úroveň aktivity." };
-  if (!GOAL_VALUES.includes(goal)) return { error: "Vyber cieľ." };
+  if (!Number.isFinite(age) || age <= 0 || age >= 120) return { error: await tErr("meals.invalidAge") };
+  if (!Number.isFinite(weightKg) || weightKg <= 0) return { error: await tErr("meals.invalidWeight") };
+  if (!Number.isFinite(heightCm) || heightCm <= 0) return { error: await tErr("meals.invalidHeight") };
+  if (!ACTIVITY_VALUES.includes(activityLevel)) return { error: await tErr("meals.chooseActivity") };
+  if (!GOAL_VALUES.includes(goal)) return { error: await tErr("plans.chooseGoal") };
 
   const result = calculateNutrition({ sex, age, weightKg, heightCm, activityLevel, goal });
 
@@ -66,7 +67,7 @@ export async function saveNutritionProfileAction(
 
   if (error) {
     console.error("saveNutritionProfileAction:", error.message);
-    return { error: "Makro cieľ sa nepodarilo uložiť. Skontroluj hodnoty a skús to znova." };
+    return { error: await tErr("meals.macroSaveFailed") };
   }
 
   // Súkromná poznámka trénera k výžive ide do trainer_private_notes (0036): stĺpec

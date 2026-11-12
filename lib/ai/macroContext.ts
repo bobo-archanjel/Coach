@@ -95,8 +95,8 @@ export async function getMacroContext(
       .eq("eaten_on", isoDate),
   ]);
 
-  if (profileErr) return { context: null, error: dbErr(profileErr, "macroContext") };
-  if (logErr) return { context: null, error: dbErr(logErr, "macroContext") };
+  if (profileErr) return { context: null, error: await dbErr(profileErr, "macroContext") };
+  if (logErr) return { context: null, error: await dbErr(logErr, "macroContext") };
 
   const scaled = ((logRows ?? []) as FoodLogRow[]).map((r) =>
     scaleFoodMacros(

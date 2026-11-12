@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { LogoMark } from "../../components/LogoMark";
 import { createClient } from "@/lib/supabase/client";
 import { checkPassword } from "@/lib/passwordStrength";
@@ -39,6 +40,8 @@ type LinkState = "checking" | "ready" | "invalid";
  */
 export function NewPasswordView() {
   const router = useRouter();
+  const t = useTranslations("auth");
+  const tp = useTranslations("password");
   const [supabase] = useState(() => createClient());
   const [linkState, setLinkState] = useState<LinkState>("checking");
   const [showPassword, setShowPassword] = useState(false);
@@ -84,11 +87,11 @@ export function NewPasswordView() {
 
     const pwCheck = checkPassword(password);
     if (!pwCheck.ok) {
-      setError(pwCheck.issues[0]);
+      setError(tp(`issue.${pwCheck.issues[0]}`));
       return;
     }
     if (password !== confirm) {
-      setError("Heslá sa nezhodujú.");
+      setError(t("mismatch"));
       return;
     }
 
@@ -115,7 +118,7 @@ export function NewPasswordView() {
             <LogoMark className={styles.logoMark} />
             FitPilot
           </Link>
-          <p className={styles.brandTagline}>Tréning. Výživa. Komunikácia. Rast.</p>
+          <p className={styles.brandTagline}>{t("tagline")}</p>
         </div>
       </aside>
 
@@ -123,19 +126,19 @@ export function NewPasswordView() {
         <div className={styles.authCard}>
           {linkState === "checking" && (
             <div className={styles.authHead}>
-              <h2>Overujem odkaz…</h2>
-              <p>Chvíľu strpenia.</p>
+              <h2>{t("checkingLink")}</h2>
+              <p>{t("pleaseWait")}</p>
             </div>
           )}
 
           {linkState === "invalid" && (
             <>
               <div className={styles.authHead}>
-                <h2>Odkaz už neplatí</h2>
-                <p>Tento odkaz na reset hesla je neplatný alebo expiroval — požiadaj o nový.</p>
+                <h2>{t("linkInvalidTitle")}</h2>
+                <p>{t("linkInvalidText")}</p>
               </div>
               <Link href="/prihlasenie" className={styles.btnSubmit} style={{ textDecoration: "none" }}>
-                Späť na prihlásenie
+                {t("backToLoginPlain")}
               </Link>
             </>
           )}
@@ -143,19 +146,19 @@ export function NewPasswordView() {
           {linkState === "ready" && (
             <>
               <div className={styles.authHead}>
-                <h2>Nové heslo</h2>
-                <p>Zadaj nové heslo k svojmu účtu.</p>
+                <h2>{t("newTitle")}</h2>
+                <p>{t("newSub")}</p>
               </div>
 
               <form ref={formRef} noValidate onSubmit={handleSubmit}>
                 <div className={`${styles.field} ${styles.hasToggle}`}>
-                  <label htmlFor="new-password">Nové heslo</label>
+                  <label htmlFor="new-password">{t("newPassword")}</label>
                   <div className={styles.inputWrap}>
                     <input
                       id="new-password"
                       name="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="min. 8 znakov"
+                      placeholder={t("passwordPlaceholder")}
                       autoComplete="new-password"
                       required
                       minLength={8}
@@ -163,7 +166,7 @@ export function NewPasswordView() {
                     <button
                       type="button"
                       className={styles.toggleVisibility}
-                      aria-label={showPassword ? "Skryť heslo" : "Zobraziť heslo"}
+                      aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                       onClick={() => setShowPassword((v) => !v)}
                     >
                       <EyeIcon />
@@ -172,12 +175,12 @@ export function NewPasswordView() {
                 </div>
 
                 <div className={styles.field}>
-                  <label htmlFor="confirm-password">Zopakuj nové heslo</label>
+                  <label htmlFor="confirm-password">{t("newConfirm")}</label>
                   <input
                     id="confirm-password"
                     name="confirm"
                     type={showPassword ? "text" : "password"}
-                    placeholder="min. 8 znakov"
+                    placeholder={t("passwordPlaceholder")}
                     autoComplete="new-password"
                     required
                     minLength={8}
@@ -190,13 +193,13 @@ export function NewPasswordView() {
                   disabled={status === "loading"}
                 >
                   {status === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{status === "loading" ? "Ukladám…" : "Nastaviť nové heslo"}</span>
+                  <span>{status === "loading" ? t("saving") : t("newSubmit")}</span>
                 </button>
 
                 {status === "success" && (
                   <div className={styles.formStatus} role="status">
                     <SuccessIcon />
-                    Heslo bolo zmenené. Presmerúvam na prihlásenie…
+                    {t("newDone")}
                   </div>
                 )}
                 {error && (

@@ -1,14 +1,13 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useActionState } from "react";
 import { addCustomExerciseAction, addCustomExerciseToDayAction, type ActionState } from "../actions";
 import { LibraryItem } from "./LibraryItem";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import {
   LIBRARY_MUSCLE_FILTERS,
-  LIBRARY_MUSCLE_LABEL_SK,
   LIBRARY_EQUIPMENT_FILTERS,
-  LIBRARY_EQUIPMENT_LABEL_SK,
   exerciseMatchesMuscleFilter,
   exerciseMatchesEquipmentFilter,
   type LibraryMuscleFilter,
@@ -40,6 +39,8 @@ export function ExerciseLibrary({
   activeDayId: string | null;
   planId: string;
 }) {
+  const t = useTranslations("plans.builder");
+  const tl = useTranslations("labels");
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);
@@ -89,15 +90,15 @@ export function ExerciseLibrary({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        <span className={styles.libraryHead}>Knižnica cvikov ({exercises.length})</span>
+        <span className={styles.libraryHead}>{t("library", { count: exercises.length })}</span>
         <ChevronIcon className={`${styles.libraryChevron} ${open ? styles.libraryChevronOpen : ""}`} />
       </button>
-      {!activeDayId && <p className={styles.libraryHint}>Najprv vytvor tréningový deň, potom sem klikni na cvik.</p>}
+      {!activeDayId && <p className={styles.libraryHint}>{t("libraryHint")}</p>}
 
       <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
         <form className={styles.customExerciseForm}>
-          <input name="name" type="text" placeholder="Nový vlastný cvik" required disabled={customPending} className={styles.customExerciseInput} />
-          <input name="muscle_group" type="text" placeholder="Partia (voliteľné)" disabled={customPending} className={styles.customExerciseInput} />
+          <input name="name" type="text" placeholder={t("customName")} required disabled={customPending} className={styles.customExerciseInput} />
+          <input name="muscle_group" type="text" placeholder={t("customMuscle")} disabled={customPending} className={styles.customExerciseInput} />
           <input type="hidden" name="plan_id" value={planId} readOnly />
           <input type="hidden" name="day_id" value={activeDayId ?? ""} readOnly />
           <button
@@ -105,7 +106,7 @@ export function ExerciseLibrary({
             formAction={addToDay}
             className="btn btn-ghost btn-sm"
             disabled={customPending}
-            title="Pridá cvik len do tohto tréningu, nie do knižnice"
+            title={t("customToDayTitle")}
             onClick={(e) => {
               if (!activeDayId) {
                 e.preventDefault();
@@ -113,31 +114,31 @@ export function ExerciseLibrary({
               }
             }}
           >
-            {dayPending ? "Pridávam…" : "+ Pridať do tréningu"}
+            {dayPending ? t("adding") : t("addToWorkout")}
           </button>
-          {noDayHint === "custom" && !activeDayId && <p className={styles.formError}>Najprv pridaj tréningový deň.</p>}
+          {noDayHint === "custom" && !activeDayId && <p className={styles.formError}>{t("addDayFirstDot")}</p>}
           {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
           <button type="submit" formAction={addToLibrary} className="btn btn-ghost btn-sm" disabled={customPending}>
-            {libPending ? "Pridávam…" : "+ Pridať do knižnice"}
+            {libPending ? t("adding") : t("addToLibrary")}
           </button>
           {libState.error && <p className={styles.formError}>{libState.error}</p>}
         </form>
 
         <input
           type="text"
-          placeholder="Hľadať cvik…"
+          placeholder={t("search")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className={styles.librarySearch}
         />
 
-        <div className={styles.libraryFilterRow} role="group" aria-label="Filter podľa partie">
+        <div className={styles.libraryFilterRow} role="group" aria-label={t("filterMuscle")}>
           <button
             type="button"
             className={`${styles.libraryFilterChip} ${muscleFilter === null ? styles.libraryFilterChipActive : ""}`}
             onClick={() => setMuscleFilter(null)}
           >
-            Všetky partie
+            {t("allMuscles")}
           </button>
           {LIBRARY_MUSCLE_FILTERS.map((f) => (
             <button
@@ -146,17 +147,17 @@ export function ExerciseLibrary({
               className={`${styles.libraryFilterChip} ${muscleFilter === f ? styles.libraryFilterChipActive : ""}`}
               onClick={() => setMuscleFilter(muscleFilter === f ? null : f)}
             >
-              {LIBRARY_MUSCLE_LABEL_SK[f]}
+              {tl(`muscle.${f}`)}
             </button>
           ))}
         </div>
-        <div className={styles.libraryFilterRow} role="group" aria-label="Filter podľa vybavenia">
+        <div className={styles.libraryFilterRow} role="group" aria-label={t("filterEquipment")}>
           <button
             type="button"
             className={`${styles.libraryFilterChip} ${equipmentFilter === null ? styles.libraryFilterChipActive : ""}`}
             onClick={() => setEquipmentFilter(null)}
           >
-            Akékoľvek vybavenie
+            {t("anyEquipment")}
           </button>
           {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
             <button
@@ -165,14 +166,14 @@ export function ExerciseLibrary({
               className={`${styles.libraryFilterChip} ${equipmentFilter === f ? styles.libraryFilterChipActive : ""}`}
               onClick={() => setEquipmentFilter(equipmentFilter === f ? null : f)}
             >
-              {LIBRARY_EQUIPMENT_LABEL_SK[f]}
+              {tl(`equipment.${f}`)}
             </button>
           ))}
         </div>
 
         {noDayHint === "list" && !activeDayId && (
           <p className={styles.formError} role="alert">
-            Najprv pridaj tréningový deň.
+            {t("addDayFirstDot")}
           </p>
         )}
         <div className={styles.libraryList}>
@@ -187,7 +188,7 @@ export function ExerciseLibrary({
               />
             ))
           ) : (
-            <p className={styles.libraryEmpty}>Žiadny cvik nezodpovedá hľadaniu.</p>
+            <p className={styles.libraryEmpty}>{t("noMatch")}</p>
           )}
         </div>
 
@@ -198,7 +199,7 @@ export function ExerciseLibrary({
               className={styles.libraryPagerBtn}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
-              aria-label="Predchádzajúca strana"
+              aria-label={t("prevPage")}
             >
               <ArrowIcon className={styles.libraryPagerPrev} />
             </button>
@@ -210,7 +211,7 @@ export function ExerciseLibrary({
               className={styles.libraryPagerBtn}
               onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
               disabled={safePage === pageCount - 1}
-              aria-label="Ďalšia strana"
+              aria-label={t("nextPage")}
             >
               <ArrowIcon />
             </button>

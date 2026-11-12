@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalExercise, PortalPlan, PortalTemplate } from "@/lib/portal/types";
@@ -92,11 +93,6 @@ function toDraftDays(days: { id?: string; name: string; exercises: PortalExercis
   }));
 }
 
-function exercisesLabel(n: number): string {
-  if (n === 0) return "";
-  return n === 1 ? " aj s 1 cvikom" : ` aj s ${n} cvikmi`;
-}
-
 export function ClientPlanBuilder({
   library,
   initial,
@@ -111,6 +107,7 @@ export function ClientPlanBuilder({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const t = useTranslations("clientBuilder");
   const prefilled = initial !== null || template !== null;
   const [name, setName] = useState(initial?.name ?? template?.name ?? "");
   // Nový prázdny tréning začína bez dní (ako u trénera) s otvoreným "+ deň" — prvý
@@ -177,11 +174,11 @@ export function ClientPlanBuilder({
   const addDay = () => {
     const trimmed = dayName.trim();
     if (!trimmed) {
-      setDayError("Zadaj názov tréningu.");
+      setDayError(t("dayNameRequired"));
       return;
     }
     if (days.length >= MAX_DAYS) {
-      setDayError(`Tréning môže mať najviac ${MAX_DAYS} dní.`);
+      setDayError(t("maxDays", { max: MAX_DAYS }));
       return;
     }
     const d: BDay = { key: uid(), id: null, name: trimmed, exercises: [] };
@@ -190,7 +187,7 @@ export function ClientPlanBuilder({
     setDayName("");
     setDayError(null);
     setAddingDay(false);
-    if (error === "Pridaj aspoň jeden deň.") setError(null);
+    if (error === t("addDayRequired")) setError(null);
   };
   const removeDay = (key: string) => {
     setDays((prev) => prev.filter((d) => d.key !== key));
@@ -199,7 +196,7 @@ export function ClientPlanBuilder({
   const renameDay = (key: string) => {
     const trimmed = (renameValue ?? "").trim();
     if (!trimmed) {
-      setRenameError("Zadaj názov tréningu.");
+      setRenameError(t("dayNameRequired"));
       return;
     }
     patchDay(key, (d) => ({ ...d, name: trimmed }));
@@ -214,7 +211,7 @@ export function ClientPlanBuilder({
     const copy: BDay = {
       key: uid(),
       id: null,
-      name: `${src.name} (kópia)`.slice(0, 60),
+      name: t("copyName", { name: src.name }).slice(0, 60),
       exercises: src.exercises.map((e) => ({ ...e, key: uid(), entryId: undefined })),
     };
     setDays((prev) => [...prev, copy]);
@@ -222,8 +219,8 @@ export function ClientPlanBuilder({
   };
 
   const addExercise = (exName: string, exerciseId: string | null): string | null => {
-    if (!activeDay) return "Najprv pridaj tréningový deň.";
-    if (activeDay.exercises.length >= MAX_EXERCISES) return `Deň môže mať najviac ${MAX_EXERCISES} cvikov.`;
+    if (!activeDay) return t("addDayFirst");
+    if (activeDay.exercises.length >= MAX_EXERCISES) return t("maxExercises", { max: MAX_EXERCISES });
     patchDay(activeDay.key, (d) => ({ ...d, exercises: [...d.exercises, newExercise(exName, exerciseId)] }));
     return null;
   };
@@ -242,11 +239,11 @@ export function ClientPlanBuilder({
   const save = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("Zadaj názov tréningového plánu.");
+      setError(t("planNameRequired"));
       return;
     }
     if (days.length === 0) {
-      setError("Pridaj aspoň jeden deň.");
+      setError(t("addDayRequired"));
       return;
     }
     const draft: PlanDraft = {
@@ -276,25 +273,25 @@ export function ClientPlanBuilder({
   };
 
   return (
-    <section aria-label={initial ? "Úprava vlastného tréningu" : "Nový vlastný tréning"} className={styles.trWrap}>
+    <section aria-label={initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
       <div className={styles.trBuilderTop}>
         <button type="button" className={styles.trBackBtn} onClick={onCancel} disabled={pending}>
-          <BackIcon /> Späť
+          <BackIcon /> {t("back")}
         </button>
         <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending}>
-          {pending ? "Ukladám…" : "Uložiť"}
+          {pending ? t("saving") : t("save")}
         </button>
       </div>
 
       <label className={styles.trNameField}>
-        <span className={styles.panelLabel}>Názov tréningového plánu</span>
+        <span className={styles.panelLabel}>{t("planName")}</span>
         <input
           type="text"
           value={name}
           onChange={(e) => {
             setName(e.target.value);
             // Hláška o chýbajúcom názve nemá visieť, keď ho klient už dopĺňa (QA 2026-09-23).
-            if (error === "Zadaj názov tréningového plánu.") setError(null);
+            if (error === t("planNameRequired")) setError(null);
           }}
           placeholder="napr. white monster plan"
           maxLength={60}
@@ -335,7 +332,7 @@ export function ClientPlanBuilder({
               >
                 {/* deň plánu = jeden tréning (napr. "Deň 1 — Push") */}
                 <label htmlFor="client-day-name" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
-                  Názov tréningu
+                  {t("dayName")}
                 </label>
                 <input
                   id="client-day-name"
@@ -345,14 +342,14 @@ export function ClientPlanBuilder({
                     setDayName(e.target.value);
                     if (dayError) setDayError(null);
                   }}
-                  placeholder={`napr. Deň ${days.length + 1} — Push`}
+                  placeholder={t("dayPlaceholder", { n: days.length + 1 })}
                   maxLength={60}
                   // Pri novom tréningu je formulár otvorený hneď — focus by preskočil názov tréningu.
                   autoFocus={days.length > 0}
                   className={b.addDayInput}
                 />
                 <button type="submit" className="btn btn-primary btn-sm">
-                  Pridať
+                  {t("add")}
                 </button>
                 <button
                   type="button"
@@ -363,7 +360,7 @@ export function ClientPlanBuilder({
                     setDayError(null);
                   }}
                 >
-                  Zrušiť
+                  {t("cancel")}
                 </button>
                 {dayError && <p className={b.formError}>{dayError}</p>}
               </form>
@@ -376,7 +373,7 @@ export function ClientPlanBuilder({
                   setRenameValue(null);
                 }}
               >
-                + deň
+                {t("addDay")}
               </button>
             )}
 
@@ -390,7 +387,7 @@ export function ClientPlanBuilder({
                   }}
                 >
                   <label htmlFor="client-day-rename" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
-                    Názov tréningu
+                    {t("dayName")}
                   </label>
                   <input
                     id="client-day-rename"
@@ -405,7 +402,7 @@ export function ClientPlanBuilder({
                     className={b.addDayInput}
                   />
                   <button type="submit" className="btn btn-primary btn-sm">
-                    Hotovo
+                    {t("done")}
                   </button>
                   <button
                     type="button"
@@ -415,21 +412,21 @@ export function ClientPlanBuilder({
                       setRenameError(null);
                     }}
                   >
-                    Zrušiť
+                    {t("cancel")}
                   </button>
                   {renameError && <p className={b.formError}>{renameError}</p>}
                 </form>
               ) : confirmDelete ? (
                 <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
                   <p id="delete-day-question" className={b.deleteDayQuestion}>
-                    Naozaj zmazať deň „{activeDay.name}“{exercisesLabel(activeDay.exercises.length)}?
+                    {t("deleteDayConfirm", { name: activeDay.name, count: activeDay.exercises.length })}
                   </p>
                   <div className={b.deleteDayActions}>
                     <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
-                      Áno, zmazať deň
+                      {t("yesDeleteDay")}
                     </button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
-                      Zrušiť
+                      {t("cancel")}
                     </button>
                   </div>
                 </div>
@@ -445,7 +442,7 @@ export function ClientPlanBuilder({
                       setAddingDay(false);
                     }}
                   >
-                    Premenovať
+                    {t("rename")}
                   </button>
                   <button
                     type="button"
@@ -454,14 +451,14 @@ export function ClientPlanBuilder({
                     disabled={days.length >= MAX_DAYS}
                     title={
                       days.length >= MAX_DAYS
-                        ? `Tréning môže mať najviac ${MAX_DAYS} dní`
-                        : "Pridá kópiu tohto dňa aj s cvikmi na koniec"
+                        ? t("maxDays", { max: MAX_DAYS })
+                        : t("duplicateTitle")
                     }
                   >
-                    Duplikovať
+                    {t("duplicate")}
                   </button>
                   <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
-                    Zmazať deň
+                    {t("deleteDay")}
                   </button>
                 </div>
               ))}
@@ -506,7 +503,7 @@ export function ClientPlanBuilder({
                             className={b.iconBtn}
                             onClick={() => moveExercise(activeDay.key, ex.key, "up")}
                             disabled={i === 0}
-                            aria-label="Posunúť cvik vyššie"
+                            aria-label={t("moveUp")}
                           >
                             <ChevronIcon />
                           </button>
@@ -515,19 +512,19 @@ export function ClientPlanBuilder({
                             className={`${b.iconBtn} ${b.reorderDown}`}
                             onClick={() => moveExercise(activeDay.key, ex.key, "down")}
                             disabled={i === activeDay.exercises.length - 1}
-                            aria-label="Posunúť cvik nižšie"
+                            aria-label={t("moveDown")}
                           >
                             <ChevronIcon />
                           </button>
                         </div>
-                        <button type="button" className={b.iconBtn} onClick={() => setEditKey(ex.key)} aria-label="Upraviť cvik">
+                        <button type="button" className={b.iconBtn} onClick={() => setEditKey(ex.key)} aria-label={t("editExercise")}>
                           <EditIcon />
                         </button>
                         <button
                           type="button"
                           className={`${b.iconBtn} btn-danger`}
                           onClick={() => removeExercise(activeDay.key, ex.key)}
-                          aria-label="Odstrániť cvik"
+                          aria-label={t("removeExercise")}
                         >
                           <TrashIcon />
                         </button>
@@ -536,10 +533,10 @@ export function ClientPlanBuilder({
                   ),
                 )
               ) : (
-                <EmptyDayCard title="Zatiaľ žiadne cviky" tip={{ title: "Ako pridať cvik", text: "Klikni na cvik v knižnici — pridá sa sem s predvolenými hodnotami, ktoré si hneď upravíš." }} />
+                <EmptyDayCard title={t("noExercises")} tip={{ title: t("howToAdd"), text: t("howToAddText") }} />
               )
             ) : (
-              <EmptyDayCard title="Zatiaľ žiadny deň" text="Pridaj prvý deň tlačidlom „+ deň“ vyššie." />
+              <EmptyDayCard title={t("noDays")} text={t("noDaysText")} />
             )}
           </div>
         </div>
@@ -552,7 +549,7 @@ export function ClientPlanBuilder({
       )}
 
       <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
-        {pending ? "Ukladám…" : initial ? "Uložiť zmeny" : "Uložiť tréning"}
+        {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}
       </button>
 
       {detailFor && (
@@ -572,6 +569,7 @@ function ExerciseEditForm({
   onApply: (patch: Pick<BEx, "sets" | "reps" | "loadKg" | "restSeconds">) => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations("clientBuilder");
   return (
     <form
       className={b.editForm}
@@ -585,7 +583,7 @@ function ExerciseEditForm({
       <span className={b.editName}>{ex.name}</span>
       <div className={b.editGrid}>
         <label className={`${b.editField} ${b.editFieldSets}`}>
-          <span className={b.editFieldLabel}>Série</span>
+          <span className={b.editFieldLabel}>{t("sets")}</span>
           <input name="sets" type="number" inputMode="numeric" min={1} max={20} defaultValue={ex.sets} required />
         </label>
         <label className={`${b.editField} ${b.editFieldReps}`}>
@@ -593,7 +591,7 @@ function ExerciseEditForm({
           <input name="reps" type="text" maxLength={20} defaultValue={ex.reps} placeholder="10 / 8-12 / 30 s" required />
         </label>
         <label className={`${b.editField} ${b.editFieldLoad}`}>
-          <span className={b.editFieldLabel}>Záťaž (kg)</span>
+          <span className={b.editFieldLabel}>{t("load")}</span>
           <input name="load_kg" type="number" inputMode="decimal" step="0.5" min={0} defaultValue={ex.loadKg} placeholder="—" />
         </label>
         <label className={`${b.editField} ${b.editFieldRest}`}>
@@ -604,10 +602,10 @@ function ExerciseEditForm({
       <div className={b.editActions}>
         {/* "Hotovo", nie "Uložiť" ako u trénera — tu sa nič neukladá, zmena čaká na "Uložiť tréning". */}
         <button type="submit" className="btn btn-primary btn-sm">
-          Hotovo
+          {t("done")}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
-          Zrušiť
+          {t("cancel")}
         </button>
       </div>
     </form>

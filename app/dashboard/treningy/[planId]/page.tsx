@@ -1,3 +1,4 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../../components/AppLink";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +24,7 @@ const BackIcon = () => (
   </svg>
 );
 
+// i18n-ignore-start — DEV náhľad (vymyslené dáta)
 // DEV náhľad buildera bez session (?preview=builder) — viac dní s rôzne dlhými
 // názvami (test lámania piluliek) + deň so 6 cvikmi (test šípok poradia na kraji).
 function previewEntry(i: number, name: string): WorkoutExerciseEntry {
@@ -39,6 +41,7 @@ const PREVIEW_LIBRARY = [
   { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [], equipment: "barbell" },
   { id: "lib2", name: "Farmer's Walk", name_sk: "Farmárska chôdza", muscle_group: "predlaktia", image_url: [], equipment: "dumbbell" },
 ];
+// i18n-ignore-end
 
 export default async function PlanDetailPage({
   params,
@@ -52,6 +55,7 @@ export default async function PlanDetailPage({
 
   // ?preview=builder_empty — nový plán bez dní (hláška pri kliku na cvik bez dňa).
   // ?preview=builder_live — publikovaný plán (dole "Zmazať" vedľa PDF).
+  // i18n-ignore-start — DEV náhľad
   if (
     (preview === "builder" || preview === "builder_empty" || preview === "builder_live") &&
     process.env.NODE_ENV === "development"
@@ -105,6 +109,7 @@ export default async function PlanDetailPage({
       </>
     );
   }
+  // i18n-ignore-end
 
   const supabase = await createClient();
 
@@ -153,12 +158,13 @@ export default async function PlanDetailPage({
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
   // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú plán aj títo
   const recipients = await listPlanRecipients(supabase, "workout", planId);
+  const [t, locale] = await Promise.all([getTranslations("plans.builder"), getLocale()]);
 
   return (
     <>
       <Link href="/dashboard/treningy" className={styles.backLink}>
         <BackIcon />
-        Späť na tréningy
+        {t("back")}
       </Link>
 
       <div className={styles.detailHead}>
@@ -171,19 +177,13 @@ export default async function PlanDetailPage({
         </div>
         {/* Vysvetlenie stavu plánu na požiadanie (otáznik vedľa odznaku), nie odsek pod hlavičkou. */}
         <div className={styles.detailHeadStatus}>
-          {locked ? <span className={styles.planDoneBadge}>Hotovo</span> : <PublishBadge published={plan.published} />}
+          {locked ? <span className={styles.planDoneBadge}>{t("doneBadge")}</span> : <PublishBadge published={plan.published} />}
           {locked ? (
-            <InfoTip title="Plán je uzamknutý">
-              Klient tento plán celý odcvičil — plán je uzamknutý. Dole si ho môžeš stiahnuť ako PDF alebo uložiť ako
-              šablónu a z nej vytvoriť nový.
-            </InfoTip>
+            <InfoTip title={t("lockedTitle")}>{t("lockedText")}</InfoTip>
           ) : (
             completedLogs &&
             completedLogs.length > 0 && (
-              <InfoTip title="Úpravy plánu">
-                Klient už z tohto plánu cvičil. Úpravy sa prejavia len v ďalších tréningoch — odcvičené tréningy ostávajú
-                uložené presne tak, ako ich klient zapísal.
-              </InfoTip>
+              <InfoTip title={t("editsTitle")}>{t("editsText")}</InfoTip>
             )
           )}
         </div>
@@ -212,7 +212,7 @@ export default async function PlanDetailPage({
 
       {completedLogs && completedLogs.length > 0 && (
         <section className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginTop: 20 }}>
-          <h3>Odcvičené tréningy</h3>
+          <h3>{t("completedLogs")}</h3>
           <div className={styles.roster}>
             {completedLogs.map((log) => (
               <Link
@@ -220,9 +220,9 @@ export default async function PlanDetailPage({
                 href={`/dashboard/klienti/${plan.client_id}/treningy/${log.id}`}
                 className={styles.logLinkRow}
               >
-                <span className={styles.clientName}>{parsePlanSnapshot(log.plan_snapshot)?.dayName ?? "Tréning"}</span>
+                <span className={styles.clientName}>{parsePlanSnapshot(log.plan_snapshot)?.dayName ?? t("workoutFallback")}</span>
                 <span className={`${styles.statusChip} ${styles.active}`}>
-                  Dokončený – {formatCompletedDate(log.completed_at ?? `${log.performed_on}T12:00:00Z`)}
+                  {t("completedOn", { date: formatCompletedDate(log.completed_at ?? `${log.performed_on}T12:00:00Z`, locale) })}
                 </span>
               </Link>
             ))}
@@ -240,7 +240,7 @@ export default async function PlanDetailPage({
             withGoal={false}
             leading={
               <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-                Stiahnuť PDF
+                {t("downloadPdf")}
               </a>
             }
           />

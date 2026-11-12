@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { generateProgressSummary } from "@/lib/ai/progressSummary";
@@ -16,13 +17,13 @@ export async function sendTrainerMessageAction(_prevState: ActionState, formData
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const clientId = (formData.get("client_id") as string | null) ?? "";
   const body = ((formData.get("body") as string | null) ?? "").trim();
-  if (!clientId) return { error: "Chýba klient." };
-  if (!body) return { error: "Prázdna správa." };
-  if (body.length > 4000) return { error: "Správa je príliš dlhá (max 4000 znakov)." };
+  if (!clientId) return { error: await tErr("missingClient") };
+  if (!body) return { error: await tErr("emptyMessage") };
+  if (body.length > 4000) return { error: await tErr("messageTooLong") };
 
   // Overenie vlastníctva klienta — RLS to drží tiež, ale radšej jasná hláška.
   const { data: c } = await supabase
@@ -31,7 +32,7 @@ export async function sendTrainerMessageAction(_prevState: ActionState, formData
     .eq("id", clientId)
     .eq("trainer_id", user.id)
     .maybeSingle();
-  if (!c) return { error: "Tento klient nepatrí tebe." };
+  if (!c) return { error: await tErr("notYourClient") };
 
   const { error } = await supabase.from("messages").insert({
     client_id: clientId,
@@ -39,7 +40,7 @@ export async function sendTrainerMessageAction(_prevState: ActionState, formData
     sender_id: user.id,
     body,
   });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
@@ -65,23 +66,23 @@ export async function bulkSendTrainerMessageAction(_prevState: BulkMessageState,
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený.", sentCount: null };
+  if (!user) return { error: await tErr("notSignedIn"), sentCount: null };
 
   const clientIds = formData.getAll("client_id").map(String).filter(Boolean);
   const body = ((formData.get("body") as string | null) ?? "").trim();
 
-  if (clientIds.length === 0) return { error: "Vyber aspoň jedného klienta.", sentCount: null };
-  if (clientIds.length > MAX_BULK_RECIPIENTS) return { error: `Naraz sa dá poslať max ${MAX_BULK_RECIPIENTS} klientom.`, sentCount: null };
-  if (!body) return { error: "Prázdna správa.", sentCount: null };
-  if (body.length > 4000) return { error: "Správa je príliš dlhá (max 4000 znakov).", sentCount: null };
+  if (clientIds.length === 0) return { error: await tErr("chooseAtLeastOneClient"), sentCount: null };
+  if (clientIds.length > MAX_BULK_RECIPIENTS) return { error: await tErr("bulkMax", { max: MAX_BULK_RECIPIENTS }), sentCount: null };
+  if (!body) return { error: await tErr("emptyMessage"), sentCount: null };
+  if (body.length > 4000) return { error: await tErr("messageTooLong"), sentCount: null };
 
   const { data: owned } = await supabase.from("clients").select("id").eq("trainer_id", user.id).in("id", clientIds);
   const ownedIds = (owned ?? []).map((c) => c.id);
-  if (ownedIds.length === 0) return { error: "Žiadny z vybraných klientov nepatrí tebe.", sentCount: null };
+  if (ownedIds.length === 0) return { error: await tErr("noneOfClientsYours"), sentCount: null };
 
   const rows = ownedIds.map((clientId) => ({ client_id: clientId, sender: "trainer" as const, sender_id: user.id, body }));
   const { error } = await supabase.from("messages").insert(rows);
-  if (error) return { error: dbErr(error, "actions"), sentCount: null };
+  if (error) return { error: await dbErr(error, "actions"), sentCount: null };
 
   revalidatePath("/dashboard/spravy");
   revalidatePath("/dashboard/klienti/[id]", "page");
@@ -121,7 +122,7 @@ export async function markTrainerChatSeenAction(clientId: string): Promise<void>
 export async function endClientCooperationAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("end_client_cooperation", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
@@ -131,7 +132,7 @@ export async function endClientCooperationAction(clientId: string): Promise<Acti
 export async function resumeClientCooperationAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("resume_client_cooperation", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
@@ -146,10 +147,10 @@ export async function setClientActivePlanAction(clientId: string, planId: string
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_client_active_plan", { p_client_id: clientId, p_plan_id: planId });
   if (error) {
-    if (error.message.includes("not_authenticated")) return { error: "Nie si prihlásený." };
-    if (error.message.includes("client_not_found")) return { error: "Tento klient nepatrí tebe." };
-    if (error.message.includes("plan_not_found")) return { error: "Plán sa nenašiel alebo ešte nie je zverejnený." };
-    return { error: dbErr(error, "actions") };
+    if (error.message.includes("not_authenticated")) return { error: await tErr("notSignedIn") };
+    if (error.message.includes("client_not_found")) return { error: await tErr("notYourClient") };
+    if (error.message.includes("plan_not_found")) return { error: await tErr("planNotFoundOrUnpublished") };
+    return { error: await dbErr(error, "actions") };
   }
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/portal", "layout");
@@ -160,7 +161,7 @@ export async function setClientActivePlanAction(clientId: string, planId: string
 export async function requestClientDeletionAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
@@ -170,7 +171,7 @@ export async function requestClientDeletionAction(clientId: string): Promise<Act
 export async function cancelClientDeletionAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath(`/dashboard/klienti/${clientId}`);
   revalidatePath("/dashboard");
   return ok;
@@ -195,10 +196,10 @@ export async function generateProgressSummaryAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ...noSummary, error: "Nie si prihlásený." };
+  if (!user) return { ...noSummary, error: await tErr("notSignedIn") };
 
   const clientId = (formData.get("client_id") as string | null) ?? "";
-  if (!clientId) return { ...noSummary, error: "Chýba klient." };
+  if (!clientId) return { ...noSummary, error: await tErr("missingClient") };
 
   const { data: client } = await supabase
     .from("clients")
@@ -206,7 +207,7 @@ export async function generateProgressSummaryAction(
     .eq("id", clientId)
     .eq("trainer_id", user.id)
     .maybeSingle();
-  if (!client) return { ...noSummary, error: "Tento klient nepatrí tebe." };
+  if (!client) return { ...noSummary, error: await tErr("notYourClient") };
 
   const result = await generateProgressSummary(supabase, {
     trainerId: user.id,

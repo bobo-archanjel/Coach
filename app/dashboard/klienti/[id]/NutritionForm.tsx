@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { saveNutritionProfileAction, type ActionState } from "@/app/dashboard/jedalnicky/actions";
+import { useTranslations } from "next-intl";
 import {
   ACTIVITY_LABELS,
   GOAL_LABELS,
@@ -42,6 +43,8 @@ export function NutritionForm({
   defaults?: { age: number | null; weight_kg: number | null; height_cm: number | null };
 }) {
   const [state, formAction, pending] = useActionState(saveNutritionProfileAction, initialState);
+  const t = useTranslations("clientDetail.nutritionForm");
+  const tl = useTranslations("labels");
 
   const [sex, setSex] = useState<Sex>(profile?.sex ?? "muz");
   const [age, setAge] = useState((profile?.age ?? defaults?.age)?.toString() ?? "");
@@ -92,12 +95,12 @@ export function NutritionForm({
   return (
     <div className={styles.detailGrid}>
       <div className={styles.card}>
-        <h3>Vstupné údaje</h3>
+        <h3>{t("inputs")}</h3>
         <form action={formAction}>
           <input type="hidden" name="client_id" value={clientId} readOnly />
           <div className={styles.fieldGrid}>
             <label>
-              <span className={styles.timeFieldLabel}>Pohlavie</span>
+              <span className={styles.timeFieldLabel}>{t("sex")}</span>
               <select
                 name="sex"
                 value={sex}
@@ -105,19 +108,19 @@ export function NutritionForm({
                 className={styles.addClientInput}
                 disabled={pending}
               >
-                <option value="muz">Muž</option>
-                <option value="zena">Žena</option>
+                <option value="muz">{tl("sex.muz")}</option>
+                <option value="zena">{tl("sex.zena")}</option>
               </select>
             </label>
             <label>
-              <span className={styles.timeFieldLabel}>Vek (roky)</span>
+              <span className={styles.timeFieldLabel}>{t("age")}</span>
               <input
                 name="age"
                 type="number"
                 inputMode="numeric"
                 min={1}
                 max={119}
-                placeholder="napr. 30"
+                placeholder={t("agePlaceholder")}
                 required
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
@@ -126,14 +129,14 @@ export function NutritionForm({
               />
             </label>
             <label>
-              <span className={styles.timeFieldLabel}>Váha (kg)</span>
+              <span className={styles.timeFieldLabel}>{t("weight")}</span>
               <input
                 name="weight_kg"
                 type="number"
                 inputMode="decimal"
                 min={1}
                 step="0.1"
-                placeholder="napr. 75"
+                placeholder={t("weightPlaceholder")}
                 required
                 value={weightKg}
                 onChange={(e) => setWeightKg(e.target.value)}
@@ -142,14 +145,14 @@ export function NutritionForm({
               />
             </label>
             <label>
-              <span className={styles.timeFieldLabel}>Výška (cm)</span>
+              <span className={styles.timeFieldLabel}>{t("height")}</span>
               <input
                 name="height_cm"
                 type="number"
                 inputMode="decimal"
                 min={1}
                 step="0.1"
-                placeholder="napr. 175"
+                placeholder={t("heightPlaceholder")}
                 required
                 value={heightCm}
                 onChange={(e) => setHeightCm(e.target.value)}
@@ -158,7 +161,7 @@ export function NutritionForm({
               />
             </label>
             <label className={styles.fieldGridFull}>
-              <span className={styles.timeFieldLabel}>Aktivita</span>
+              <span className={styles.timeFieldLabel}>{t("activity")}</span>
               <select
                 name="activity_level"
                 value={activityLevel}
@@ -166,15 +169,15 @@ export function NutritionForm({
                 className={styles.addClientInput}
                 disabled={pending}
               >
-                {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
+                {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {tl(`activity.${value}`)}
                   </option>
                 ))}
               </select>
             </label>
             <label className={styles.fieldGridFull}>
-              <span className={styles.timeFieldLabel}>Cieľ</span>
+              <span className={styles.timeFieldLabel}>{t("goal")}</span>
               <select
                 name="goal"
                 value={goal}
@@ -182,18 +185,18 @@ export function NutritionForm({
                 className={styles.addClientInput}
                 disabled={pending}
               >
-                {Object.entries(GOAL_LABELS).map(([value, label]) => (
+                {(Object.keys(GOAL_LABELS) as Goal[]).map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {tl(`goal.${value}`)}
                   </option>
                 ))}
               </select>
             </label>
             <label className={styles.fieldGridFull}>
-              <span className={styles.timeFieldLabel}>Poznámka (vidíš len ty)</span>
+              <span className={styles.timeFieldLabel}>{t("note")}</span>
               <textarea
                 name="notes"
-                placeholder="Voliteľné"
+                placeholder={t("optional")}
                 defaultValue={profile?.notes ?? ""}
                 className={styles.addClientInput}
                 disabled={pending}
@@ -201,7 +204,7 @@ export function NutritionForm({
               />
             </label>
             <button type="submit" className={`btn btn-primary btn-sm ${styles.fieldGridFull}`} disabled={pending}>
-              {pending ? "Ukladám…" : profile ? "Aktualizovať makro cieľ" : "Uložiť makro cieľ"}
+              {pending ? t("saving") : profile ? t("update") : t("save")}
             </button>
           </div>
           {state.error && <p className={styles.addClientError}>{state.error}</p>}
@@ -209,26 +212,29 @@ export function NutritionForm({
       </div>
 
       <div className={styles.card}>
-        <h3>Výsledok{isUnsavedPreview && profile ? " (neuložený náhľad)" : isUnsavedPreview ? " (náhľad)" : ""}</h3>
+        <h3>
+          {t("result")}
+          {isUnsavedPreview && profile ? t("unsavedPreview") : isUnsavedPreview ? t("preview") : ""}
+        </h3>
         {result ? (
           <>
             <div className={styles.infoRow}>
               <span className={styles.infoLabel}>BMR</span>
-              <span className={styles.infoValue}>{result.bmr} kcal/deň — bazálny metabolizmus</span>
+              <span className={styles.infoValue}>{t("bmr", { kcal: result.bmr })}</span>
             </div>
             <div className={styles.infoRow}>
               <span className={styles.infoLabel}>TDEE</span>
-              <span className={styles.infoValue}>{result.tdee} kcal/deň — s aktivitou</span>
+              <span className={styles.infoValue}>{t("tdee", { kcal: result.tdee })}</span>
             </div>
             <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Kalorický cieľ</span>
-              <span className={styles.infoValue}>{result.caloriesTarget} kcal/deň</span>
+              <span className={styles.infoLabel}>{t("calorieGoal")}</span>
+              <span className={styles.infoValue}>{t("kcalPerDay", { kcal: result.caloriesTarget })}</span>
             </div>
 
             <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
               <div className={styles.macroBarRow}>
                 <div className={styles.macroTop}>
-                  <span>Bielkoviny</span>
+                  <span>{t("protein")}</span>
                   <span className={styles.macroVal}>{result.proteinG} g</span>
                 </div>
                 <div className={styles.macroTrack}>
@@ -240,7 +246,7 @@ export function NutritionForm({
               </div>
               <div className={styles.macroBarRow}>
                 <div className={styles.macroTop}>
-                  <span>Sacharidy</span>
+                  <span>{t("carbs")}</span>
                   <span className={styles.macroVal}>{result.carbsG} g</span>
                 </div>
                 <div className={styles.macroTrack}>
@@ -252,7 +258,7 @@ export function NutritionForm({
               </div>
               <div className={styles.macroBarRow}>
                 <div className={styles.macroTop}>
-                  <span>Tuky</span>
+                  <span>{t("fat")}</span>
                   <span className={styles.macroVal}>{result.fatG} g</span>
                 </div>
                 <div className={styles.macroTrack}>
@@ -265,7 +271,7 @@ export function NutritionForm({
             </div>
           </>
         ) : (
-          <p className={styles.noWorkouts}>Vyplň vek, váhu a výšku — výsledok sa dopočíta automaticky.</p>
+          <p className={styles.noWorkouts}>{t("fillHint")}</p>
         )}
       </div>
     </div>

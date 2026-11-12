@@ -1,10 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { applyTemplateToClientsAction } from "./actions";
-import { pluralSk } from "@/lib/portal/streak";
 import styles from "./templates.module.css";
 
 const normalize = (s: string) =>
@@ -44,6 +44,7 @@ export function ApplyTemplateDialog({
   clients: { id: string; full_name: string }[];
   onClose: () => void;
 }) {
+  const t = useTranslations("templates.apply");
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ReadonlySet<string>>(
@@ -79,7 +80,7 @@ export function ApplyTemplateDialog({
     startTransition(async () => {
       const res = await applyTemplateToClientsAction(kind, templateId, [...selected]);
       if (res.error || !res.href) {
-        setError(res.error ?? "Koncept sa nepodarilo vytvoriť.");
+        setError(res.error ?? t("failed"));
         return;
       }
       router.push(res.href);
@@ -105,54 +106,54 @@ export function ApplyTemplateDialog({
   }, []);
 
   const count = selected.size;
-  const submitLabel = count <= 1 ? "Vytvoriť koncept" : `Vytvoriť koncept pre ${count} ${pluralSk(count, "klienta", "klientov", "klientov")}`;
+  const submitLabel = count <= 1 ? t("create") : t("createFor", { count });
 
   const dialog = (
     <div className={styles.dialogLayer}>
-      <button type="button" className={styles.dialogScrim} aria-label="Zavrieť" tabIndex={-1} onClick={onClose} />
+      <button type="button" className={styles.dialogScrim} aria-label={t("close")} tabIndex={-1} onClick={onClose} />
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="apply-tpl-title">
         <div className={styles.dialogHead}>
           <div>
             <h2 id="apply-tpl-title" className={styles.dialogTitle}>
-              Použiť šablónu
+              {t("title")}
             </h2>
             <p className={styles.dialogSub}>
-              „{templateName}“ — otvorí sa koncept na úpravu. Vybraní klienti ho uvidia, až keď ho pošleš.
+              {t("sub", { name: templateName })}
             </p>
           </div>
-          <button type="button" className={styles.dialogClose} onClick={onClose} aria-label="Zavrieť">
+          <button type="button" className={styles.dialogClose} onClick={onClose} aria-label={t("close")}>
             <CloseIcon />
           </button>
         </div>
 
         {clients.length === 0 ? (
-          <p className={styles.empty}>Najprv pridaj klienta na stránke Klienti.</p>
+          <p className={styles.empty}>{t("noClients")}</p>
         ) : (
           <>
             {clients.length > 6 && (
               <input
                 className={styles.search}
                 type="search"
-                placeholder="Hľadať klienta…"
+                placeholder={t("searchPlaceholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Hľadať klienta"
+                aria-label={t("search")}
                 autoFocus
               />
             )}
             {clients.length > 1 && (
               <div className={styles.selectRow}>
                 <span className={styles.selectCount}>
-                  {count === 0 ? "Vyber klientov" : `Vybraní: ${count}`}
+                  {count === 0 ? t("chooseClients") : t("selected", { count })}
                 </span>
                 {shown.length > 0 && (
                   <button type="button" className={styles.selectAll} onClick={toggleAllShown}>
-                    {allShownSelected ? "Zrušiť výber" : query.trim() ? "Vybrať nájdených" : "Vybrať všetkých"}
+                    {allShownSelected ? t("clearSelection") : query.trim() ? t("selectFound") : t("selectAll")}
                   </button>
                 )}
               </div>
             )}
-            <div className={styles.clientList} role="group" aria-label="Klienti">
+            <div className={styles.clientList} role="group" aria-label={t("clients")}>
               {shown.map((c) => {
                 const on = selected.has(c.id);
                 return (
@@ -174,7 +175,7 @@ export function ApplyTemplateDialog({
                   </button>
                 );
               })}
-              {shown.length === 0 && <p className={styles.empty}>Žiadny klient s takým menom.</p>}
+              {shown.length === 0 && <p className={styles.empty}>{t("noMatch")}</p>}
             </div>
           </>
         )}
@@ -186,10 +187,10 @@ export function ApplyTemplateDialog({
         )}
         <div className={styles.dialogActions}>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} disabled={pending}>
-            Zrušiť
+            {t("cancel")}
           </button>
           <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={count === 0 || pending}>
-            {pending ? "Vytváram…" : submitLabel}
+            {pending ? t("creating") : submitLabel}
           </button>
         </div>
       </div>

@@ -78,6 +78,7 @@ export type BodyRegion = "horna" | "dolna" | "core";
  * toto. `zadok` (glutes) je zámerne samostatná partia, nie súčasť "stehná" —
  * zameranie "viac dolná časť" ju cieli explicitne.
  */
+// i18n-ignore-start — slovenské kľúče muscle_group z DB
 export const MUSCLE_REGION: Record<string, BodyRegion> = {
   // dolná časť tela
   "stehná (kvadriceps)": "dolna",
@@ -101,6 +102,7 @@ export const MUSCLE_REGION: Record<string, BodyRegion> = {
   "spodný chrbát": "core",
 };
 
+// i18n-ignore-end
 /** SK názov partie „zadok" — cieľ pre zameranie „viac dolná časť tela". */
 export const GLUTES_MUSCLE_GROUP = "zadok";
 

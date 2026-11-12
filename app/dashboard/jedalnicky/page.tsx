@@ -1,9 +1,9 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
-import { pluralSk } from "@/lib/portal/streak";
 import styles from "@/app/dashboard/dashboard.module.css";
 
 /**
@@ -12,6 +12,7 @@ import styles from "@/app/dashboard/dashboard.module.css";
  * údaje + výsledok) je v detaile klienta, záložka Jedálničky.
  */
 export default async function JedalnickyPage() {
+  const t = await getTranslations("mealPlans");
   const supabase = await createClient();
   const {
     data: { user },
@@ -42,12 +43,12 @@ export default async function JedalnickyPage() {
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Jedálničky</h1>
-        <p>Zostav jedálniček klientovi — dni, jedlá a gramáže. Makro cieľ nastavíš v detaile klienta.</p>
+        <h1>{t("title")}</h1>
+        <p>{t("subtitle")}</p>
       </div>
 
       <div className={styles.card} style={{ marginBottom: 20 }}>
-        <h3>Nový jedálniček</h3>
+        <h3>{t("newMealPlan")}</h3>
         <CreateMealPlanForm clients={clients ?? []} />
       </div>
 
@@ -64,23 +65,23 @@ export default async function JedalnickyPage() {
                     {plan.name}
                     {!plan.published ? (
                       <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>
-                        Koncept
+                        {t("draft")}
                       </span>
                     ) : (
                       activeByClient.get(plan.client_id) === plan.id && (
                         <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`} style={{ marginLeft: 8 }}>
-                          Aktívny
+                          {t("active")}
                         </span>
                       )
                     )}
                   </div>
                   <div className={styles.clientGoal}>
                     {clientName}
-                    {kcal != null && ` · ≈ ${kcal} kcal/deň`}
+                    {kcal != null && t("kcalPerDay", { kcal })}
                   </div>
                 </div>
                 <span className={styles.clientSince}>
-                  {days.length} {pluralSk(days.length, "deň", "dni", "dní")}
+                  {t("days", { count: days.length })}
                 </span>
               </Link>
             );
@@ -88,8 +89,8 @@ export default async function JedalnickyPage() {
         </div>
       ) : (
         <div className={styles.emptyState} style={{ marginBottom: 28 }}>
-          <h2>Zatiaľ žiadne jedálničky</h2>
-          <p>Vytvor prvý jedálniček vyššie.</p>
+          <h2>{t("emptyTitle")}</h2>
+          <p>{t("emptyText")}</p>
         </div>
       )}
     </>

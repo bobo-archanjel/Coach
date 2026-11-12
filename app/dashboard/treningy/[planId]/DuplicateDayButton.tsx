@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { duplicateDayAction } from "../actions";
 import styles from "./builder.module.css";
@@ -18,6 +19,7 @@ export function DuplicateDayButton({
   dayId: string;
   onDuplicated: (newDayId: string) => void;
 }) {
+  const t = useTranslations("plans.builder");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -25,7 +27,7 @@ export function DuplicateDayButton({
     setError(null);
     startTransition(async () => {
       const res = await duplicateDayAction(planId, dayId);
-      if (res.error || !res.dayId) setError(res.error ?? "Deň sa nepodarilo skopírovať.");
+      if (res.error || !res.dayId) setError(res.error ?? t("duplicateFailed"));
       else onDuplicated(res.dayId);
     });
   };
@@ -37,9 +39,9 @@ export function DuplicateDayButton({
         className={styles.dayActionTab}
         onClick={duplicate}
         disabled={pending}
-        title="Pridá kópiu tohto dňa aj s cvikmi na koniec"
+        title={t("duplicateTitle")}
       >
-        {pending ? "Kopírujem…" : "Duplikovať"}
+        {pending ? t("duplicating") : t("duplicate")}
       </button>
       {error && <p className={styles.formError}>{error}</p>}
     </>

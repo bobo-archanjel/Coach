@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { duplicateCompletedWorkoutAction } from "../../../../treningy/actions";
 import styles from "./completed.module.css";
@@ -8,6 +9,7 @@ import styles from "./completed.module.css";
 export function DuplicateWorkoutButton({ logId, disabled }: { logId: string; disabled?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const t = useTranslations("clientDetail.log");
 
   const duplicate = () => {
     setError(null);
@@ -21,7 +23,7 @@ export function DuplicateWorkoutButton({ logId, disabled }: { logId: string; dis
   return (
     <div className={styles.duplicateBox}>
       <button type="button" className="btn btn-primary btn-sm" onClick={duplicate} disabled={pending || disabled}>
-        {pending ? "Vytváram kópiu…" : "Duplikovať ako nový tréning"}
+        {pending ? t("duplicating") : t("duplicate")}
       </button>
       {error && (
         <p className={styles.duplicateError} role="alert">

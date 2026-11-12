@@ -6,6 +6,7 @@ import type { ClientAnalyticsRow } from "./analytics";
 
 export type ClientStatus = "ok" | "watch" | "risk" | "none";
 
+// i18n-ignore-start — slovenské názvy pre prompt AI digestu (UI: analytics.ok/watch/risk/none)
 export const CLIENT_STATUS_LABEL: Record<ClientStatus, string> = {
   ok: "V poriadku",
   watch: "Sleduj",
@@ -13,6 +14,7 @@ export const CLIENT_STATUS_LABEL: Record<ClientStatus, string> = {
   none: "Bez dát",
 };
 
+// i18n-ignore-end
 /** Priemer adherencie stravy a tréningu za 30 dní (bez dát = 100, nech neklesne do rizika). */
 export function sortScore(row: ClientAnalyticsRow): number {
   const values = [row.nutritionPct30, row.trainingPct30].filter((v): v is number => v != null);

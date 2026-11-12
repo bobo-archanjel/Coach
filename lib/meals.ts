@@ -4,6 +4,7 @@
 
 export type MealSlot = "ranajky" | "desiata" | "obed" | "olovrant" | "vecera" | "ine";
 
+// i18n-ignore-start — slovenské názvy pre prompt AI (UI: labels.mealSlot)
 export const MEAL_SLOT_LABELS: Record<MealSlot, string> = {
   ranajky: "Raňajky",
   desiata: "Desiata",
@@ -13,6 +14,7 @@ export const MEAL_SLOT_LABELS: Record<MealSlot, string> = {
   ine: "Iné",
 };
 
+// i18n-ignore-end
 export const MEAL_SLOT_ORDER: MealSlot[] = ["ranajky", "desiata", "obed", "olovrant", "vecera", "ine"];
 
 export interface FoodMacros100g {

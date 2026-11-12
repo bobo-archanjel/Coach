@@ -1,7 +1,16 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
-import { parseReps, parseWeight, summarizeWorkoutForm, type SetDraftRow } from "@/lib/workouts/setInput";
+import {
+  parseReps,
+  parseWeight,
+  REPS_MAX,
+  summarizeWorkoutForm,
+  WEIGHT_MAX_KG,
+  type SetDraftRow,
+} from "@/lib/workouts/setInput";
 import styles from "./portal.module.css";
 
 /**
@@ -33,8 +42,8 @@ const RemoveIcon = () => (
 );
 
 /** Váha z plánu ako placeholder ("60" / "62,5") — klient vidí, čo má dvíhať. */
-function weightPlaceholder(kg: number | null): string {
-  return kg != null ? kg.toLocaleString("sk-SK", { maximumFractionDigits: 2 }) : "kg";
+function weightPlaceholder(kg: number | null, locale: Locale): string {
+  return kg != null ? kg.toLocaleString(intlLocale(locale), { maximumFractionDigits: 2 }) : "kg";
 }
 
 const numToField = (n: number | null | undefined) =>
@@ -102,6 +111,9 @@ export function WorkoutSetsFields({
   onChange: (next: WorkoutFormValues) => void;
   showInvalid: boolean;
 }) {
+  const t = useTranslations("workout");
+  const tl = useTranslations("labels");
+  const locale = useLocale();
   const { rows, notes, rpe, sessionNote } = values;
   const setRows = (next: Record<number, SetRow[]>) => onChange({ ...values, rows: next });
 
@@ -133,8 +145,8 @@ export function WorkoutSetsFields({
                         type="text"
                         inputMode="numeric"
                         autoComplete="off"
-                        placeholder={ex.plannedReps ?? "op."}
-                        aria-label={`${ex.name}, séria ${rowIdx + 1}, opakovania`}
+                        placeholder={ex.plannedReps ?? t("repsPlaceholder")}
+                        aria-label={t("repsAria", { name: ex.name, n: rowIdx + 1 })}
                         aria-invalid={showInvalid && repsErr ? true : undefined}
                         value={row.reps}
                         onChange={(e) => updateRow(exIdx, rowIdx, "reps", e.target.value)}
@@ -146,8 +158,8 @@ export function WorkoutSetsFields({
                         type="text"
                         inputMode="decimal"
                         autoComplete="off"
-                        placeholder={weightPlaceholder(ex.loadKg)}
-                        aria-label={`${ex.name}, séria ${rowIdx + 1}, váha v kg`}
+                        placeholder={weightPlaceholder(ex.loadKg, locale)}
+                        aria-label={t("weightAria", { name: ex.name, n: rowIdx + 1 })}
                         aria-invalid={showInvalid && weightErr ? true : undefined}
                         value={row.weight}
                         onChange={(e) => updateRow(exIdx, rowIdx, "weight", e.target.value)}
@@ -158,19 +170,23 @@ export function WorkoutSetsFields({
                       type="button"
                       className={styles.setRemove}
                       onClick={() => removeRow(exIdx, rowIdx)}
-                      aria-label="Odobrať sériu"
+                      aria-label={t("removeSet")}
                     >
                       <RemoveIcon />
                     </button>
                   </div>
-                  {rowErr && <p className={styles.setError}>{rowErr}</p>}
+                  {rowErr && (
+                    <p className={styles.setError}>
+                      {tl(`setInput.${rowErr}`, { max: rowErr === "repsMax" ? REPS_MAX : WEIGHT_MAX_KG })}
+                    </p>
+                  )}
                 </div>
               );
             })}
           </div>
           <div className={styles.logExerciseActions}>
             <button type="button" className={styles.addSetBtn} onClick={() => addRow(exIdx)}>
-              <PlusIcon /> Pridať sériu
+              <PlusIcon /> {t("addSet")}
             </button>
             {notes[exIdx] === undefined && (
               <button
@@ -178,7 +194,7 @@ export function WorkoutSetsFields({
                 className={styles.addSetBtn}
                 onClick={() => onChange({ ...values, notes: { ...notes, [exIdx]: "" } })}
               >
-                <PlusIcon /> Poznámka
+                <PlusIcon /> {t("note")}
               </button>
             )}
           </div>
@@ -187,8 +203,8 @@ export function WorkoutSetsFields({
               className={styles.logNoteInput}
               rows={2}
               maxLength={500}
-              placeholder="Poznámka k cviku pre trénera (nepovinné)"
-              aria-label={`Poznámka k cviku ${ex.name}`}
+              placeholder={t("notePlaceholder")}
+              aria-label={t("noteAria", { name: ex.name })}
               value={notes[exIdx]}
               onChange={(e) => onChange({ ...values, notes: { ...notes, [exIdx]: e.target.value } })}
             />
@@ -198,13 +214,13 @@ export function WorkoutSetsFields({
 
       <div className={styles.logSessionMeta}>
         <label className={styles.logRpeField}>
-          <span>Náročnosť tréningu (RPE)</span>
+          <span>{t("rpe")}</span>
           <select value={rpe} onChange={(e) => onChange({ ...values, rpe: e.target.value })}>
             <option value="">—</option>
             {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>
                 {n}
-                {n === 1 ? " – veľmi ľahké" : n === 10 ? " – maximum" : ""}
+                {n === 1 ? t("rpeEasy") : n === 10 ? t("rpeMax") : ""}
               </option>
             ))}
           </select>
@@ -213,8 +229,8 @@ export function WorkoutSetsFields({
           className={styles.logNoteInput}
           rows={2}
           maxLength={1000}
-          placeholder="Ako sa ti cvičilo? (nepovinné)"
-          aria-label="Poznámka k tréningu"
+          placeholder={t("sessionPlaceholder")}
+          aria-label={t("sessionAria")}
           value={sessionNote}
           onChange={(e) => onChange({ ...values, sessionNote: e.target.value })}
         />

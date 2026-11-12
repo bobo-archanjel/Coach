@@ -1,5 +1,8 @@
 "use client";
 
+import { useLocale } from "next-intl";
+import { muscleGroupLabel } from "@/lib/i18n/muscles";
+import { useTranslations } from "next-intl";
 import { useActionState, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { addExerciseToDayAction, getExerciseDetailAction, type ActionState } from "../actions";
@@ -32,6 +35,8 @@ export function LibraryItem({
   /** klik bez vytvoreného dňa — rodič ukáže hlášku (namiesto mŕtveho, neaktívneho tlačidla) */
   onNoDay?: () => void;
 }) {
+  const locale = useLocale();
+  const t = useTranslations("plans.builder");
   const [, formAction, pending] = useActionState(addExerciseToDayAction, initialState);
   const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
   const [showDetail, setShowDetail] = useState(false);
@@ -58,7 +63,7 @@ export function LibraryItem({
           type="submit"
           className={styles.libraryItem}
           disabled={pending}
-          title={!dayId ? "Najprv pridaj tréningový deň" : `Pridať ${name} do dňa`}
+          title={!dayId ? t("addDayFirst") : t("addToDay", { name })}
           onClick={(e) => {
             if (!dayId) {
               e.preventDefault();
@@ -69,8 +74,8 @@ export function LibraryItem({
           <ExerciseThumb src={exercise.image_url[0] ?? null} alt="" size={28} />
           <span className={styles.libraryItemName}>{name}</span>
           {exercise.muscle_group && (
-            <span className={styles.libraryItemMuscle} title={exercise.muscle_group}>
-              {exercise.muscle_group}
+            <span className={styles.libraryItemMuscle} title={muscleGroupLabel(exercise.muscle_group, locale)}>
+              {muscleGroupLabel(exercise.muscle_group, locale)}
             </span>
           )}
         </button>

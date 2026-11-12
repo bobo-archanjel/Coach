@@ -1,0 +1,7 @@
+{
+  "title": "Jazyk",
+  "hint": "Jazyk appky na tomto aj ďalších zariadeniach, kde sa prihlásiš.",
+  "label": "Jazyk appky",
+  "toggle": "Zmeniť jazyk",
+  "saveFailed": "Jazyk sa nepodarilo uložiť do účtu — na tomto zariadení ostáva zmenený."
+}

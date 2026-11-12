@@ -1,7 +1,8 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale } from "@/lib/i18n/locales";
 import { useId, useMemo, useState } from "react";
-import { pluralSk } from "@/lib/portal/streak";
 import styles from "./dashboard.module.css";
 
 export interface DualLineChartPoint {
@@ -35,6 +36,8 @@ export function DualLineChart({
   seriesB: Series;
   height?: number;
 }) {
+  const t = useTranslations("clientDetail.charts");
+  const locale = useLocale();
   const gradientIdA = useId();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -73,7 +76,7 @@ export function DualLineChart({
   }, [points, H, padTop, padBottom]);
 
   if (points.length === 0) {
-    return <p className={styles.chartEmpty}>Zatiaľ žiadne dáta na graf.</p>;
+    return <p className={styles.chartEmpty}>{t("empty")}</p>;
   }
 
   const last = points[points.length - 1];
@@ -99,7 +102,7 @@ export function DualLineChart({
   };
 
   const dateLabel = (iso: string) =>
-    new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", timeZone: "UTC" });
+    new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", timeZone: "UTC" });
 
   return (
     <div className={styles.chartWrap}>
@@ -120,7 +123,14 @@ export function DualLineChart({
         onPointerMove={handleMove}
         onPointerLeave={() => setHoverIdx(null)}
         role="img"
-        aria-label={`Graf, posledná hodnota ${seriesA.label} ${last.a} ${seriesA.unit}, ${seriesB.label} ${last.b} ${seriesB.unit}`}
+        aria-label={t("lastValueDual", {
+          labelA: seriesA.label,
+          a: last.a,
+          unitA: seriesA.unit,
+          labelB: seriesB.label,
+          b: last.b,
+          unitB: seriesB.unit,
+        })}
       >
         <defs>
           <linearGradient id={gradientIdA} x1="0" y1="0" x2="0" y2="1">
@@ -172,7 +182,7 @@ export function DualLineChart({
       )}
 
       <p className={styles.chartRange}>
-        {points.length} {pluralSk(points.length, "záznam", "záznamy", "záznamov")}
+        {t("records", { count: points.length })}
       </p>
     </div>
   );

@@ -1,0 +1,55 @@
+{
+  "label": "Průvodce: {title}",
+  "skip": "Přeskočit",
+  "back": "Zpět",
+  "next": "Další",
+  "finish": "Dokončit",
+  "trainer": {
+    "navClients": {
+      "title": "Klienti",
+      "body": "Celé tvé portfolio na jednom místě — kdo má aktivní plán, kdo se opožďuje s tréninkem."
+    },
+    "navTreningy": {
+      "title": "Tréninky",
+      "body": "Postav plán ručně v builderu, nebo ať ti ho AI navrhne za pár sekund z knihovny cviků."
+    },
+    "navVyziva": {
+      "title": "Jídelníčky",
+      "body": "Makra a jídelníčky jsou tu plnohodnotná součást, ne placený doplněk."
+    },
+    "navSpravy": {
+      "title": "Zprávy",
+      "body": "Přímá komunikace s klienty — jednotlivě, nebo hromadně celé skupině najednou."
+    },
+    "navNastavenia": {
+      "title": "Nastavení",
+      "body": "Klikni na svou ikonu — v Nastavení je profil, odhlášení i tento průvodce, kdyby sis ho chtěl projít znovu."
+    }
+  },
+  "client": {
+    "navToday": {
+      "title": "Dnes",
+      "body": "Tvůj dnešní trénink a vzkaz od trenéra. Jedním ťuknutím spustíš odklikávání sérií."
+    },
+    "navTrening": {
+      "title": "Trénink",
+      "body": "Všechny tvé plány — i vlastní, pokud zatím trénuješ bez trenéra."
+    },
+    "navStrava": {
+      "title": "Strava",
+      "body": "Makra a jídelníček na jednom místě — aplikace ti spočítá cíl podle tvých údajů."
+    },
+    "navDennik": {
+      "title": "Deník",
+      "body": "Zapisuj si stravu během dne, aplikace průběžně sečte makra za tebe."
+    },
+    "navChat": {
+      "title": "Chat",
+      "body": "Přímý rozhovor s trenérem, když ho máš — zprávy i systémová upozornění na jednom místě."
+    },
+    "navProfil": {
+      "title": "Profil",
+      "body": "Klikni na svou ikonu — v Profilu je kód pro trenéra, propojení účtu i tento průvodce, kdyby sis ho chtěl projít znovu."
+    }
+  }
+}

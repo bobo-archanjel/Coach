@@ -11,6 +11,10 @@
 // 4. Claude (Haiku) dostane kontext + posledných pár správ a len naformuluje
 //    odpoveď zo skutočných dát — nevymýšľa makrá ani čas.
 
+import { getTranslations } from "next-intl/server";
+import { getUserLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/locales";
+import { outputLanguageRule, speakLanguage } from "./language";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { after } from "next/server";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
@@ -23,8 +27,6 @@ import {
   needsHealthEscalation,
   isCrisisText,
   hasExerciseSwapIntent,
-  HEALTH_ESCALATION_REPLY,
-  CRISIS_REPLY,
   buildEscalationNoticeForTrainer,
   buildCrisisNoticeForTrainer,
   buildSoftExerciseNoticeForTrainer,
@@ -52,9 +54,10 @@ export type SendChatResult =
   | { status: "not_configured"; reply: string }
   | { status: "error"; reply: string };
 
-function buildSystemPrompt(exerciseSwapGuard: boolean): string {
+// i18n-ignore-start — pokyny pre model (interné); jazyk odpovede určuje outputLanguageRule(locale)
+function buildSystemPrompt(exerciseSwapGuard: boolean, locale: Locale): string {
   const lines = [
-    "Si AI Kouč vo fitness aplikácii FitPilot. Rozprávaš sa priamo s klientom trénera, po slovensky, stručne a vecne.",
+    `Si AI Kouč vo fitness aplikácii FitPilot. Rozprávaš sa priamo s klientom trénera, ${speakLanguage(locale)}, stručne a vecne.`,
     "Tvoja úloha: pomôcť s výživou (čo a koľko zjesť podľa cieľa) a s tréningom (čo má dnes cvičiť podľa plánu, ako mu idú tréningy, alternatívy cvikov) — VÝHRADNE na základe dát, ktoré ti pošle appka v tejto správe. Tréningový plán aj históriu tréningov klienta máš nižšie, nikdy netvrď, že ich nevidíš. Nikdy si nevymýšľaj čísla makier, potraviny, cviky ani tréningy, ktoré ti neboli poskytnuté.",
     "Na otázky typu 'ako mi to ide', 'som na dobrej ceste', 'aký mám progres' NEODPOVEDAJ len opisom aktuálneho plánu — použi blok 'Objektívny progres klienta' nižšie (adherencia tréningu/stravy, trend váhy vs. cieľ). To je skutočné hodnotenie, plán je len čo má robiť, nie ako sa mu darí.",
     "Keď navrhuješ konkrétne jedlo (aj celý jedálniček na deň), VYBERAJ VÝHRADNE z 'Knižnica potravín' nižšie (ak je priložená) — to JE kompletný zoznam všetkého, čo appka má, nič viac neexistuje. NIKDY sa klienta nepýtaj, aké potraviny má rád/dostupné, ani ho neposielaj za trénerom po túto informáciu — knižnicu už máš, rozdeľ ju sám rozumne medzi jedlá dňa podľa zostávajúcich makier. Ak klientovi niečo z návrhu nechutí, povie ti to sám v ďalšej správe a ty navrhneš inú položku z tej istej knižnice — nepýtaj sa na to vopred.",
@@ -64,7 +67,7 @@ function buildSystemPrompt(exerciseSwapGuard: boolean): string {
     // Chat bublina zobrazuje čistý text (zachová len riadkovanie) — markdown by
     // klient videl ako surové hviezdičky a pomlčky (QA 2026-09-23).
     "Formát: píš čistý text bez markdownu — žiadne **hviezdičky**, # nadpisy ani --- oddeľovače. Štruktúru vytvor novými riadkami; položky zoznamu začni znakom • a názov jedla dňa napíš na samostatný riadok s dvojbodkou (napr. „Raňajky:“).",
-    "Jazyk: výhradne spisovná slovenčina — žiadne české slová ani tvary.",
+    outputLanguageRule(locale),
     "Ak v odpovedi odporúčaš/spomenieš konkrétny cvik zo zoznamu 'Cviky s ID' nižšie (ak je priložený), na úplný koniec CELEJ odpovede pridaj na vlastný riadok marker [CVIKY: id1, id2] s PRESNÝMI ID z toho zoznamu (časť pred '::'), oddelené čiarkou — nikdy nie názvami, nikdy nie ID, ktoré si vymyslíš. Ak si žiadny konkrétny cvik z toho zoznamu nespomenul, marker úplne vynechaj. Klient tento marker nikdy neuvidí (appka ho odstráni), takže nijako nemení, ako mu znie bežný text pred ním.",
   ];
   if (exerciseSwapGuard) {
@@ -74,6 +77,7 @@ function buildSystemPrompt(exerciseSwapGuard: boolean): string {
   }
   return lines.join("\n");
 }
+// i18n-ignore-end
 
 interface ChatMessageRow {
   role: "user" | "assistant";
@@ -125,6 +129,8 @@ export async function sendAiChatMessage(
   params: { trainerId: string; clientId: string; conversationId: string; userText: string; history: ChatMessageRow[] },
 ): Promise<SendChatResult> {
   const { trainerId, clientId, userText, history } = params;
+  // jazyk odpovede = jazyk klienta (cookie fp-locale, zosynchronizovaná s profilom)
+  const [locale, t] = await Promise.all([getUserLocale(), getTranslations("ai")]);
 
   // ---------- 0. KRÍZA (sebapoškodenie/suicidálne myšlienky) ----------
   // Osobitná, najprísnejšia vetva: nikdy nejde cez model ani cez výnimku "výmena
@@ -136,7 +142,7 @@ export async function sendAiChatMessage(
       p_body: buildCrisisNoticeForTrainer(),
     });
     if (error) console.error("insert_ai_escalation_message (crisis):", error.message);
-    return { status: "escalated", reply: CRISIS_REPLY };
+    return { status: "escalated", reply: t("crisis") };
   }
 
   // ---------- 1. zdravotný pre-filter ----------
@@ -151,14 +157,14 @@ export async function sendAiChatMessage(
       p_body: buildEscalationNoticeForTrainer(userText),
     });
     if (error) console.error("insert_ai_escalation_message:", error.message);
-    return { status: "escalated", reply: HEALTH_ESCALATION_REPLY };
+    return { status: "escalated", reply: t("healthEscalation") };
   }
 
   // ---------- 2. AI nakonfigurované? ----------
   // (Denný limit sa rezervuje až tesne PRED volaním modelu, viď nižšie — rezervácia je
   // atomická a započíta sa hneď, takže paralelné požiadavky ju neobídu.)
   if (!isAiConfigured()) {
-    return { status: "not_configured", reply: "AI chat zatiaľ nie je nastavený. Skús to prosím neskôr." };
+    return { status: "not_configured", reply: t("notConfigured") };
   }
 
   // ---------- 3. deterministický kontext + 3c. rezervácia limitu ----------
@@ -210,15 +216,16 @@ export async function sendAiChatMessage(
     ),
   ]);
   if (ctxError || !context || !slot) {
-    return { status: "error", reply: "Nepodarilo sa načítať tvoje dáta. Skús to prosím znova." };
+    return { status: "error", reply: t("loadFailed") };
   }
   if (!slot.allowed) {
     return {
       status: "rate_limited",
-      reply: `Dosiahol/a si dnešný limit AI správ (${AI_CHAT_DAILY_LIMIT()}). Skús to znova zajtra, alebo napíš priamo trénerovi.`,
+      reply: t("dailyLimit", { limit: AI_CHAT_DAILY_LIMIT() }),
     };
   }
 
+  // i18n-ignore-start — dáta pre model (interné)
   const contextBlock = context.hasGoal
     ? [
         `Dnešný cieľ klienta: ${context.goal!.caloriesTarget} kcal, ${context.goal!.proteinG} g bielkovín, ${context.goal!.carbsG} g sacharidov, ${context.goal!.fatG} g tukov.`,
@@ -253,6 +260,7 @@ export async function sendAiChatMessage(
     }
   }
 
+  // i18n-ignore-end
   // Cviky, ktoré appka vie overiť a k odpovedi priložiť ako klikateľný detail
   // (marker [CVIKY: ...], viď extractReferencedExercises vyššie) — plán vždy,
   // náhrada len keď appka reálne našla kandidátov.
@@ -276,7 +284,7 @@ export async function sendAiChatMessage(
       model: AI_MODEL.CHAT,
       max_tokens: MAX_REPLY_TOKENS,
       system: [
-        buildSystemPrompt(softEscalation),
+        buildSystemPrompt(softEscalation, locale),
         contextBlock,
         timeBlock,
         training.block,
@@ -291,7 +299,7 @@ export async function sendAiChatMessage(
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    const rawReply = textBlock && textBlock.type === "text" ? textBlock.text : "Prepáč, nepodarilo sa mi odpovedať.";
+    const rawReply = textBlock && textBlock.type === "text" ? textBlock.text : t("noReply");
     const { text: cleanedReply, exercises: referencedExercises } = extractReferencedExercises(rawReply, knownExercises);
     const reply = stripMarkdown(cleanedReply);
 
@@ -327,6 +335,6 @@ export async function sendAiChatMessage(
     };
   } catch (err) {
     console.error("sendAiChatMessage (Claude call):", err instanceof Error ? err.message : err);
-    return { status: "error", reply: "Nastala chyba pri odpovedi AI. Skús to prosím znova." };
+    return { status: "error", reply: t("failed") };
   }
 }

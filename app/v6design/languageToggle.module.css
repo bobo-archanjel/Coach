@@ -1,0 +1,80 @@
+/* Jazyk na úvodnej stránke (LanguageToggle) — rovnaké okrúhle tlačidlo ako ThemeToggle,
+   pod ním malé sklenené menu. Tokeny z koreňa .root (tokens.module.css). */
+.root {
+  position: relative;
+  flex: none;
+}
+.toggle {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.toggle:hover {
+  border-color: var(--fill-strong);
+  color: var(--accent-text);
+}
+.toggle:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+  min-width: 176px;
+  padding: 6px;
+  border: 1px solid var(--surface-border, var(--hairline));
+  border-radius: 18px;
+  background: var(--sheet-bg-strong, var(--surface-solid));
+  box-shadow: var(--card-shadow, var(--shadow-1));
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.item:hover {
+  background: var(--fill);
+}
+.itemOn,
+.itemOn:hover {
+  background: var(--fill-strong);
+}
+.short {
+  min-width: 24px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--paper-dim);
+}

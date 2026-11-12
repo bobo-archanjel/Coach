@@ -13,6 +13,7 @@
 // s throttlom, aby navigovanie po dashboarde nespúšťalo dopyt pri každom kliku —
 // a okamžite pri novej správe (Supabase Realtime, RLS-scoped, migrácia 0033).
 
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { usePathname } from "next/navigation";
@@ -41,6 +42,8 @@ const REALTIME_DEBOUNCE_MS = 1_500;
 let channelSeq = 0;
 
 export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number }) {
+  const t = useTranslations("bell");
+  const locale = useLocale();
   const pathname = usePathname();
   const [data, setData] = useState<AttentionData | null>(null);
   const [failed, setFailed] = useState(false);
@@ -165,7 +168,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   }, [open]);
 
   const total = data ? attentionTotal(data) : initialUnread;
-  const items = data ? buildAttentionItems(data) : [];
+  const items = data ? buildAttentionItems(data, locale) : [];
 
   // Skrytie/označenie je OPTIMISTICKÉ — upozornenie zmizne hneď, server sa dozvie na
   // pozadí. Ak zlyhá, dotiahne sa skutočný stav (upozornenie sa vráti), nič sa
@@ -235,7 +238,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
         className={`${styles.bellBtn} ${open ? styles.bellBtnOpen : ""}`}
         aria-expanded={open}
         aria-controls="attention-panel"
-        aria-label={total > 0 ? `Upozornenia, ${total}` : "Upozornenia"}
+        aria-label={total > 0 ? t("ariaCount", { count: total }) : t("aria")}
         onClick={() => {
           if (!open) void refresh(15_000);
           setOpenAt(open ? null : pathname);
@@ -246,13 +249,13 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
       </button>
 
       {open && (
-        <div id="attention-panel" className={styles.bellPanel} role="region" aria-label="Upozornenia">
-          <p className={styles.bellPanelTitle}>Čo potrebuje tvoju pozornosť</p>
+        <div id="attention-panel" className={styles.bellPanel} role="region" aria-label={t("aria")}>
+          <p className={styles.bellPanelTitle}>{t("trainerTitle")}</p>
 
           {data === null ? (
-            <p className={styles.bellEmpty}>{failed ? "Upozornenia sa nepodarilo načítať." : "Načítavam…"}</p>
+            <p className={styles.bellEmpty}>{failed ? t("loadFailed") : t("loading")}</p>
           ) : items.length === 0 ? (
-            <p className={styles.bellEmpty}>Všetko vybavené — nič nečaká na tvoju reakciu.</p>
+            <p className={styles.bellEmpty}>{t("trainerEmpty")}</p>
           ) : (
             items.map((item) => (
               <div key={item.id} className={styles.bellItem}>
@@ -272,7 +275,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                   )}
                   {item.markRead && (
                     <button type="button" className={styles.bellAction} onClick={markRead}>
-                      Označiť ako prečítané
+                      {t("markRead")}
                     </button>
                   )}
                   {item.dismiss && (
@@ -280,9 +283,9 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                       type="button"
                       className={styles.bellAction}
                       onClick={() => dismiss(item.dismiss!.keys, item.dismiss!.days)}
-                      title={item.dismiss.days ? `Skryje na ${item.dismiss.days} dní, potom sa vráti, ak to stále platí.` : undefined}
+                      title={item.dismiss.days ? t("hideForDaysHint", { days: item.dismiss.days }) : undefined}
                     >
-                      {item.dismiss.keys.length > 1 ? "Skryť všetky" : "Skryť"}
+                      {item.dismiss.keys.length > 1 ? t("hideAll") : t("hide")}
                     </button>
                   )}
                 </div>
@@ -307,8 +310,12 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                           <button
                             type="button"
                             className={styles.bellX}
-                            aria-label={item.dismiss?.days ? `Skryť ${l.label} na ${item.dismiss.days} dní` : `Skryť ${l.label}`}
-                            title={item.dismiss?.days ? `Skryť na ${item.dismiss.days} dní` : "Skryť"}
+                            aria-label={
+                              item.dismiss?.days
+                                ? t("hideItemForDays", { label: l.label, days: item.dismiss.days })
+                                : t("hideItem", { label: l.label })
+                            }
+                            title={item.dismiss?.days ? t("hideForDays", { days: item.dismiss.days }) : t("hide")}
                             onClick={() => dismiss([l.dismissKey!], item.dismiss?.days ?? null)}
                           >
                             ×
@@ -323,7 +330,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
           )}
           {actionFailed && (
             <p className={styles.bellError} role="alert">
-              Nepodarilo sa uložiť. Skús to znova o chvíľu.
+              {t("saveFailed")}
             </p>
           )}
         </div>

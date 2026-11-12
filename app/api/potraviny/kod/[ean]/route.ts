@@ -6,6 +6,7 @@
 // a klient potravinu dokončí vo formulári „Založiť potravinu“ (source='user').
 // Len prihlásený používateľ; limit na používateľa aj na volania OFF z tejto inštancie.
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
@@ -97,19 +98,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const {
     data: { user },
   } = await getUser();
-  if (!user) return reply({ status: "error", error: "Nie si prihlásený." }, 401);
+  if (!user) return reply({ status: "error", error: await tErr("notSignedIn") }, 401);
 
   const { ean } = await params;
   const hintParam = request.nextUrl.searchParams.get("format");
   const hint = BARCODE_FORMATS.find((f) => f === hintParam) ?? null;
   const parsed = ean.length <= 20 ? parseBarcode(ean, hint) : null;
   if (!parsed) {
-    return reply({ status: "invalid", error: "Neplatný čiarový kód — skontroluj číslice pod kódom." }, 400);
+    return reply({ status: "invalid", error: await tErr("api.invalidBarcode") }, 400);
   }
   const code = parsed.code;
 
   if (!allowWithinWindow(`barcode:${user.id}`, 30, 60_000)) {
-    return reply({ status: "error", error: "Priveľa skenov naraz, skús to o chvíľu." }, 429);
+    return reply({ status: "error", error: await tErr("api.tooManyScans") }, 429);
   }
 
   // 1) vlastná DB
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { data: rows, error } = await supabase.from("foods").select(FOOD_COLUMNS).eq("barcode", code).limit(10);
   if (error) {
     console.error("potraviny/kod DB:", error.message);
-    return reply({ status: "error", error: "Vyhľadanie kódu zlyhalo, skús to znova." }, 500);
+    return reply({ status: "error", error: await tErr("api.lookupFailed") }, 500);
   }
   const best = pickBest((rows ?? []) as FoodRow[], user.id);
   if (best) return reply({ status: "found", food: toOption(best, code) });
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // 2) Open Food Facts — limit na inštanciu (OFF ráta požiadavky na IP)
   if (!allowWithinWindow("barcode:off", 15, 60_000)) {
     return reply(
-      { status: "error", error: "Databáza produktov je teraz vyťažená. Skús to o minútu alebo potravinu založ ručne." },
+      { status: "error", error: await tErr("api.offBusy") },
       429,
     );
   }
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (err) {
     console.error("potraviny/kod OFF:", err);
     return reply(
-      { status: "error", error: "Open Food Facts teraz neodpovedá. Skús to o chvíľu alebo potravinu založ ručne." },
+      { status: "error", error: await tErr("api.offDown") },
       502,
     );
   }

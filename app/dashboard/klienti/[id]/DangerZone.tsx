@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
   cancelClientDeletionAction,
@@ -16,12 +17,6 @@ function daysLeft(requestedAt: string): number {
   return Math.max(0, Math.ceil((deadline - Date.now()) / (24 * 3600_000)));
 }
 
-function daysLabel(n: number): string {
-  if (n === 1) return "1 deň";
-  if (n >= 2 && n <= 4) return `${n} dni`;
-  return `${n} dní`;
-}
-
 export function DangerZone({
   clientId,
   firstName,
@@ -35,6 +30,7 @@ export function DangerZone({
   deletionRequestedAt: string | null;
   deletionRequestedBy: "trainer" | "client" | null;
 }) {
+  const t = useTranslations("clientDetail.danger");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -78,26 +74,24 @@ export function DangerZone({
       {/* Ukončenie spolupráce (0020) — nesúvisí s GDPR výmazom nižšie, dáta ostávajú. */}
       {!deletionRequestedAt && (
         <div className={styles.dangerSection}>
-          <h3>Spolupráca</h3>
+          <h3>{t("coopTitle")}</h3>
           {endedAt ? (
             <>
               <p className={styles.dangerText}>
-                Spolupráca s klientom {firstName} je ukončená — tréningy, výživa aj denník zostávajú
-                uložené, kedykoľvek sa dá obnoviť.
+                {t("coopEnded", { name: firstName })}
               </p>
               <button type="button" className="btn btn-ghost btn-sm" onClick={resumeCooperation} disabled={coopPending}>
-                Obnoviť spoluprácu
+                {t("resume")}
               </button>
             </>
           ) : confirmingEnd ? (
             <>
               <p className={styles.dangerText}>
-                Naozaj ukončiť spoluprácu s klientom {firstName}? Klient dostane správu v chate. Tréningy, výživa
-                aj denník zostanú uložené a spoluprácu môžeš kedykoľvek obnoviť.
+                {t("confirmEnd", { name: firstName })}
               </p>
               <div className={styles.dangerActions}>
                 <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={endCooperation} disabled={coopPending}>
-                  Áno, ukončiť
+                  {t("yesEnd")}
                 </button>
                 <button
                   type="button"
@@ -105,13 +99,13 @@ export function DangerZone({
                   onClick={() => setConfirmingEnd(false)}
                   disabled={coopPending}
                 >
-                  Nie
+                  {t("no")}
                 </button>
               </div>
             </>
           ) : (
             <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirmingEnd(true)}>
-              Ukončiť spoluprácu
+              {t("end")}
             </button>
           )}
           {coopError && <p className={styles.dangerError}>{coopError}</p>}
@@ -119,26 +113,26 @@ export function DangerZone({
       )}
 
       <div className={styles.dangerSection}>
-        <h3>Zmazanie klienta</h3>
+        <h3>{t("deleteTitle")}</h3>
         {deletionRequestedAt ? (
           <>
             <p className={styles.dangerText}>
-              {deletionRequestedBy === "client" ? `${firstName} požiadal/a` : "Požiadal/a si"} o zmazanie —
-              tréningy, výživa, denník aj správy sa natrvalo odstránia o {daysLabel(daysLeft(deletionRequestedAt))}.
+              {deletionRequestedBy === "client"
+                ? t("requestedByClient", { name: firstName, days: daysLeft(deletionRequestedAt) })
+                : t("requestedByYou", { days: daysLeft(deletionRequestedAt) })}
             </p>
             <button type="button" className="btn btn-ghost btn-sm" onClick={cancel} disabled={pending}>
-              Zrušiť zmazanie
+              {t("cancelDeletion")}
             </button>
           </>
         ) : confirming ? (
           <>
             <p className={styles.dangerText}>
-              Naozaj zmazať klienta {firstName}? Tréningy, jedálniček, denník aj chat zostanú 30 dní (dá sa zrušiť),
-              potom sa natrvalo odstránia.
+              {t("confirmDelete", { name: firstName })}
             </p>
             <div className={styles.dangerActions}>
               <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={request} disabled={pending}>
-                Áno, zmazať
+                {t("yesDelete")}
               </button>
               <button
                 type="button"
@@ -146,13 +140,13 @@ export function DangerZone({
                 onClick={() => setConfirming(false)}
                 disabled={pending}
               >
-                Nie
+                {t("no")}
               </button>
             </div>
           </>
         ) : (
           <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
-            Požiadať o zmazanie klienta
+            {t("requestDelete")}
           </button>
         )}
         {error && <p className={styles.dangerError}>{error}</p>}

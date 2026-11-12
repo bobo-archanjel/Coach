@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { MealEntryRow } from "./MealEntryRow";
 import { AddMealDayInline } from "./AddMealDayInline";
@@ -7,7 +8,7 @@ import { MealDayActions } from "./MealDayActions";
 import { MacroChips } from "./MacroChips";
 import { MealPublishActions } from "./MealPlanControls";
 import { saveMealPlanDaysAction, type MealEntry } from "../actions";
-import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type { PortalFoodOption } from "@/lib/portal/types";
 import { FoodPickerSheet } from "@/app/components/food/FoodPickerSheet";
 import { MealSlotSection } from "@/app/components/food/MealSlotSection";
@@ -46,7 +47,6 @@ interface Day {
 const NEW_PREFIX = "new-";
 /** rovnaký limit ako saveMealPlanDaysAction (actions.ts) */
 const MAX_DAYS = 31;
-const UNSAVED_MSG = "Máš neuložené zmeny v jedálničku. Odísť bez uloženia?";
 
 // crypto.randomUUID existuje len v secure contexte — na iPhone cez LAN (http://192.168…)
 // by spadol. Server aj tak overí formát a prípadne pridelí vlastné ID.
@@ -79,6 +79,8 @@ export function MealPlanBuilder({
   /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
   recipientCount?: number;
 }) {
+  const t = useTranslations("mealPlans.builder");
+  const tl = useTranslations("labels");
   const [saved, setSaved] = useState(days);
   const [draft, setDraft] = useState(days);
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
@@ -138,7 +140,7 @@ export function MealPlanBuilder({
       if (!a || a.getAttribute("target") === "_blank") return;
       const href = a.getAttribute("href") ?? "";
       if (href.startsWith("#") || href.startsWith("/api/")) return;
-      if (!window.confirm(UNSAVED_MSG)) {
+      if (!window.confirm(t("unsaved"))) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -149,7 +151,7 @@ export function MealPlanBuilder({
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("click", onClick, true);
     };
-  }, [dirty]);
+  }, [dirty, t]);
 
   useEffect(() => {
     if (!justSaved) return;
@@ -176,7 +178,7 @@ export function MealPlanBuilder({
     const src = draft.find((d) => d.id === dayId);
     if (!src || draft.length >= MAX_DAYS) return;
     const id = `${NEW_PREFIX}${localId()}`;
-    const name = `${src.name} (kópia)`.slice(0, 120);
+    const name = t("copyName", { name: src.name }).slice(0, 120);
     edit((ds) => [...ds, { id, day_number: ds.length + 1, name, meals: src.meals.map((m) => ({ ...m, entry_id: localId() })) }]);
     setActiveDayId(id);
   };
@@ -285,7 +287,7 @@ export function MealPlanBuilder({
             <>
               {dayTotal && activeDay.meals.length > 0 && (
                 <div className={styles.dayTotals}>
-                  <span>{dayTotal.kcal} kcal / deň</span>
+                  <span>{t("kcalPerDay", { kcal: dayTotal.kcal })}</span>
                   <MacroChips proteinG={dayTotal.proteinG} carbsG={dayTotal.carbsG} fatG={dayTotal.fatG} size="lg" />
                 </div>
               )}
@@ -296,7 +298,7 @@ export function MealPlanBuilder({
                     <MealSlotSection
                       key={slot}
                       slot={slot}
-                      label={MEAL_SLOT_LABELS[slot]}
+                      label={tl(`mealSlot.${slot}`)}
                       kcal={sumMacros(entries.map((e) => scaleFoodMacros(e, e.grams))).kcal}
                       count={entries.length}
                       open={expanded.has(slot)}
@@ -327,14 +329,14 @@ export function MealPlanBuilder({
               </div>
             </>
           ) : (
-            <EmptyDayCard title="Zatiaľ žiadny deň" text="Pridaj prvý deň tlačidlom „+ deň“ vyššie." />
+            <EmptyDayCard title={t("noDays")} text={t("noDaysText")} />
           )}
         </div>
       </div>
 
       {addSlot && activeDay && (
         <FoodPickerSheet
-          title={`${activeDay.name} · ${MEAL_SLOT_LABELS[addSlot]}`}
+          title={`${activeDay.name} · ${tl(`mealSlot.${addSlot}`)}`}
           library={libraryOptions}
           onSubmit={(option, grams) => addFood(option, grams, addSlot)}
           onFoodCreated={(option) => setLibraryOptions((prev) => [...prev, option])}
@@ -344,21 +346,21 @@ export function MealPlanBuilder({
 
       {/* len zverejnený jedálniček — koncept sa ukladá horným „Uložiť a poslať" */}
       {published && (dirty || saveError || justSaved) && (
-        <div className={styles.saveBar} role="region" aria-label="Uloženie zmien">
+        <div className={styles.saveBar} role="region" aria-label={t("saveRegion")}>
           <span className={`${styles.saveBarText} ${saveError ? styles.saveBarError : ""}`} role="status">
             {saveError
               ? saveError
               : dirty
-                ? "Neuložené zmeny — klient ich uvidí až po uložení."
-                : "Zmeny uložené."}
+                ? t("unsavedChanges")
+                : t("saved")}
           </span>
           {dirty && (
             <div className={styles.saveBarActions}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={discard} disabled={savePending}>
-                Zahodiť
+                {t("discard")}
               </button>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => void save()} disabled={savePending}>
-                {savePending ? "Ukladám…" : "Uložiť zmeny"}
+                {savePending ? t("saving") : t("saveChanges")}
               </button>
             </div>
           )}

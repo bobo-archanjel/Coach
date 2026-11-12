@@ -1,3 +1,4 @@
+// i18n-ignore-file: kľúčové slová (SK aj CZ) a slovenské kľúče tém z DB (CHECK v 0036) — nálepky v lib/i18n/aiTopics.ts
 // FitPilot — AI blok: deterministický klasifikátor témy pre agregované AI Kouč
 // insighty trénera (feature/AI). AI Kouč je súkromná konverzácia (0017) — tréner
 // nikdy nevidí obsah správy, len tému z tohto PEVNÉHO zoznamu (nikdy voľný text,
@@ -8,21 +9,21 @@
     bolesti/nepohodlí (isHealthConcern) — inak by bežná otázka na cvik danej
     partie ("cviky na ramená") falošne vyzerala ako zdravotný signál. */
 const BODY_PART_TOPICS: readonly [string, readonly string[]][] = [
-  ["koleno", ["koleno", "kolena", "kolene", "kolien", "kolenom"]],
-  ["chrbát", ["chrbát", "chrbat", "chrbtic", "krížoch", "krizoch", "driek"]],
-  ["rameno", ["rameno", "ramena", "ramene", "plece", "pleca", "plecom"]],
-  ["členok/členky", ["členok", "clenok", "členky", "clenky", "členku", "clenku"]],
-  ["zápästie", ["zápästie", "zapastie", "zápästí", "zapasti"]],
-  ["bedro/bok", ["bedro", "bedrá", "bedra", "bok", "boky"]],
-  ["lakeť", ["lakeť", "laket", "lakte"]],
+  ["koleno", ["koleno", "kolena", "kolene", "kolien", "kolenom", "koleni", "kolenou", "kolen"]],
+  ["chrbát", ["chrbát", "chrbat", "chrbtic", "krížoch", "krizoch", "driek", "záda", "zada", "zádech", "zadech", "páteř", "pater", "bedrech"]],
+  ["rameno", ["rameno", "ramena", "ramene", "plece", "pleca", "plecom", "rameni", "ramenem"]],
+  ["členok/členky", ["členok", "clenok", "členky", "clenky", "členku", "clenku", "kotník", "kotnik"]],
+  ["zápästie", ["zápästie", "zapastie", "zápästí", "zapasti", "zápěstí", "zapesti"]],
+  ["bedro/bok", ["bedro", "bedrá", "bedra", "bok", "boky", "kyčel", "kycel", "kyčl", "kycl"]],
+  ["lakeť", ["lakeť", "laket", "lakte", "loket", "lokte", "loktu", "lokti"]],
 ] as const;
 
 /** Nezdravotné, ale stále užitočné skoré signály (motivácia, spánok, stres, hlad). */
 const OTHER_TOPICS: readonly [string, readonly string[]][] = [
-  ["motivácia", ["nechce sa mi", "chýba mi motivác", "chyba mi motivac", "vzdávam", "vzdavam", "nemám chuť cvičiť", "nemam chut cvicit"]],
-  ["spánok/únava", ["nespavosť", "nespavost", "zle spím", "zle spim", "unaven", "únaven", "vyčerpan", "vycerpan"]],
-  ["stres/úzkosť", ["stres", "úzkosť", "uzkost", "nervozn", "prepracovan"]],
-  ["hlad/chute", ["strašný hlad", "strasny hlad", "chuť na sladk", "chut na sladk", "stále hladný", "stale hladny", "prejedám sa", "prejedam sa"]],
+  ["motivácia", ["nechce sa mi", "chýba mi motivác", "chyba mi motivac", "vzdávam", "vzdavam", "nemám chuť cvičiť", "nemam chut cvicit", "nechce se mi", "chybí mi motivac", "chybi mi motivac", "vzdávám", "nemám chuť cvičit"]],
+  ["spánok/únava", ["nespavosť", "nespavost", "zle spím", "zle spim", "unaven", "únaven", "vyčerpan", "vycerpan", "špatně spím", "spatne spim", "nespavost"]],
+  ["stres/úzkosť", ["stres", "úzkosť", "uzkost", "úzkost", "nervozn", "nervózn", "prepracovan", "přepracovan"]],
+  ["hlad/chute", ["strašný hlad", "strasny hlad", "chuť na sladk", "chut na sladk", "stále hladný", "stale hladny", "prejedám sa", "prejedam sa", "pořád hladov", "porad hladov", "přejídám se", "prejidam se"]],
 ];
 
 /**
@@ -46,19 +47,3 @@ export function classifyTopic(text: string, isHealthConcern: boolean): string | 
   }
   return null;
 }
-
-/** Používateľsky čitateľná nálepka pre widget na /dashboard/analytika. */
-export const TOPIC_LABELS: Record<string, string> = {
-  koleno: "bolesť/nepohodlie v kolene",
-  "chrbát": "bolesť chrbta",
-  rameno: "bolesť/nepohodlie v ramene",
-  "členok/členky": "bolesť v členku",
-  "zápästie": "bolesť zápästia",
-  "bedro/bok": "bolesť bedra/boku",
-  "lakeť": "bolesť lakťa",
-  "iné zdravotné": "iná zdravotná téma",
-  "motivácia": "pokles motivácie",
-  "spánok/únava": "spánok/únava",
-  "stres/úzkosť": "stres/úzkosť",
-  "hlad/chute": "hlad/chute",
-};

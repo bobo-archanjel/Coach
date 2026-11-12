@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale } from "@/lib/i18n/locales";
 // Klientský zoznam s hľadaním podľa mena/cieľa (feature/OnBoarding) — pri
 // väčšom počte klientov 3 pevné skupiny (aktívny/ukončený/na zmazanie) už
 // nestačia na rýchlu orientáciu. Čisto klientský filter nad už načítaným
@@ -47,6 +49,8 @@ function normalize(s: string): string {
 const SEARCH_THRESHOLD = 5; // pod týmto počtom klientov je hľadanie zbytočný šum navyše
 
 export function ClientRoster({ items }: { items: RosterItem[] }) {
+  const t = useTranslations("clients");
+  const locale = useLocale();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -63,9 +67,9 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Hľadať podľa mena alebo cieľa…"
+            placeholder={t("searchPlaceholder")}
             className={styles.rosterSearchInput}
-            aria-label="Hľadať klienta"
+            aria-label={t("search")}
           />
         </div>
       )}
@@ -84,18 +88,18 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                 </div>
                 <span className={styles.clientMeta}>
                   {client.pending ? (
-                    <span className={styles.statusChip}>pridávam…</span>
+                    <span className={styles.statusChip}>{t("adding")}</span>
                   ) : (
                     <>
                       {client.unread > 0 && (
-                        <span className={styles.unreadPill} title={`${client.unread} neprečítaných správ`}>
-                          {client.unread} {client.unread === 1 ? "správa" : client.unread >= 2 && client.unread <= 4 ? "správy" : "správ"}
+                        <span className={styles.unreadPill} title={t("unreadTitle", { count: client.unread })}>
+                          {t("unreadPill", { count: client.unread })}
                         </span>
                       )}
                       {client.pendingDeletion ? (
-                        <span className={styles.deletionChip}>Zmaže sa {client.deletionLabel}</span>
+                        <span className={styles.deletionChip}>{t("deletesOn", { date: client.deletionLabel ?? "" })}</span>
                       ) : client.ended ? (
-                        <span className={`${styles.statusChip} ${styles.ended}`}>spolupráca ukončená</span>
+                        <span className={`${styles.statusChip} ${styles.ended}`}>{t("ended")}</span>
                       ) : (
                         client.statusLabel && (
                           <span className={`${styles.statusChip} ${styles[client.statusTone ?? "active"]}`}>
@@ -105,7 +109,9 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                       )}
                     </>
                   )}
-                  <span className={styles.clientSince}>od {new Date(client.since).toLocaleDateString("sk-SK")}</span>
+                  <span className={styles.clientSince}>
+                    {t("since", { date: new Date(client.since).toLocaleDateString(intlLocale(locale)) })}
+                  </span>
                 </span>
               </>
             );
@@ -124,22 +130,22 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
         </div>
       ) : items.length > 0 ? (
         <EmptyState
-          title="Nič sa nenašlo"
-          body="Skús iné meno alebo cieľ."
+          title={t("noMatchTitle")}
+          body={t("noMatchText")}
           action={
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQuery("")}>
-              Vymazať hľadanie
+              {t("clearSearch")}
             </button>
           }
         />
       ) : (
         <EmptyState
           icon={<ClientsIcon />}
-          title="Zatiaľ nemáš žiadnych klientov"
-          body="Pridaj prvého klienta a začni mu stavať tréningový plán aj jedálniček."
+          title={t("emptyTitle")}
+          body={t("emptyText")}
           action={
             <a href="#add-client" className="btn btn-primary btn-sm">
-              + Pridať prvého klienta
+              {t("addFirst")}
             </a>
           }
         />

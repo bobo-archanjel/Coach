@@ -1,7 +1,8 @@
+import { getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { PLAN_GOALS, PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
+import { PLAN_GOALS, isPlanGoal } from "@/lib/planGoals";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { TemplatesList, type TemplateItem } from "./TemplatesList";
@@ -32,6 +33,7 @@ function toDays(rows: DayRow[] | null, kind: Kind): TemplateItem["days"] {
  * plánu tlačidlom „Uložiť ako šablónu“.
  */
 export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ typ?: string; goal?: string }> }) {
+  const [tt, tl] = await Promise.all([getTranslations("templates"), getTranslations("labels")]);
   const {
     data: { user },
   } = await getUser();
@@ -87,27 +89,23 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
     <>
       <div className={styles.pageHead}>
         <h1>
-          Šablóny{" "}
-          <InfoTip title="Šablóny">
-            Ulož si tréningový plán alebo jedálniček ako šablónu na detaile plánu (&bdquo;Uložiť ako šablónu&ldquo;) a znovu
-            ju použi pre ďalšieho klienta — vytvorí sa bežný koncept na doladenie, nič sa neposiela klientovi automaticky.
-          </InfoTip>
+          {tt("title")} <InfoTip title={tt("title")}>{tt("tip")}</InfoTip>
         </h1>
       </div>
 
-      <nav className={t.tabs} aria-label="Druh šablón">
-        {tab("workout", "Tréningy", workoutItems.length)}
-        {tab("meal", "Jedálničky", mealItems.length)}
+      <nav className={t.tabs} aria-label={tt("kinds")}>
+        {tab("workout", tt("tabWorkout"), workoutItems.length)}
+        {tab("meal", tt("tabMeal"), mealItems.length)}
       </nav>
 
       {kind === "workout" && workoutItems.length > 0 && (
-        <div className={t.goals} role="group" aria-label="Cieľ">
+        <div className={t.goals} role="group" aria-label={tt("goal")}>
           <Link href="/dashboard/sablony" className={`${t.goal} ${!activeGoal ? t.goalActive : ""}`}>
-            Všetky
+            {tt("all")}
           </Link>
           {PLAN_GOALS.map((g) => (
             <Link key={g} href={`/dashboard/sablony?goal=${g}`} className={`${t.goal} ${activeGoal === g ? t.goalActive : ""}`}>
-              {PLAN_GOAL_LABEL_SK[g]}
+              {tl(`planGoal.${g}`)}
             </Link>
           ))}
         </div>
@@ -116,15 +114,9 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
       {(kind === "workout" ? workoutItems : mealItems).length === 0 ? (
         <p className={t.empty}>
           {kind === "workout" ? (
-            <>
-              Zatiaľ žiadne tréningové šablóny — otvor plán na <Link href="/dashboard/treningy">Tréningy</Link> a ulož ho
-              ako šablónu.
-            </>
+            tt.rich("emptyWorkout", { link: (chunks) => <Link href="/dashboard/treningy">{chunks}</Link> })
           ) : (
-            <>
-              Zatiaľ žiadne jedálničkové šablóny — otvor jedálniček v sekcii <Link href="/dashboard/jedalnicky">Jedálničky</Link> a ulož
-              ho ako šablónu.
-            </>
+            tt.rich("emptyMeal", { link: (chunks) => <Link href="/dashboard/jedalnicky">{chunks}</Link> })
           )}
         </p>
       ) : (

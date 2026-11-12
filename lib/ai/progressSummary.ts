@@ -9,6 +9,9 @@
 // Bez perzistencie zámerne (Krok "AI sumarizácia" v ROADMAP) — počíta sa
 // nanovo pri každom kliku, jedno lacné volanie Haiku, žiadna nová tabuľka.
 
+import { getTranslations } from "next-intl/server";
+import { getUserLocale } from "@/lib/i18n/server";
+import { outputLanguageRule, speakLanguage } from "./language";
 import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAnthropicClient, AI_MODEL, isAiConfigured } from "./client";
@@ -25,6 +28,7 @@ export type ProgressSummaryResult =
   | { status: "no_data"; summary: string }
   | { status: "error"; summary: string };
 
+// i18n-ignore-start — podklad pre model (interné dáta)
 /** Posledné meranie vs. najstaršie v poslednej ~90-dňovej histórii — jednoduchý trend, nie AI výpočet. */
 function weightTrendLine(metrics: Awaited<ReturnType<typeof getBodyMetrics>>): string | null {
   if (!metrics || metrics.length === 0) return null;
@@ -53,6 +57,7 @@ function strengthTrendLines(progress: Awaited<ReturnType<typeof getAllStrengthPr
   });
 }
 
+// i18n-ignore-end
 /**
  * Vygeneruje krátke AI zhrnutie progresu jedného klienta pre trénera. Volajúci
  * (server action) MUSÍ overiť, že klient patrí prihlásenému trénerovi PRED
@@ -63,8 +68,9 @@ export async function generateProgressSummary(
   supabase: SupabaseClient,
   params: { trainerId: string; clientId: string; clientName: string; clientGoal: string | null },
 ): Promise<ProgressSummaryResult> {
+  const [locale, t] = await Promise.all([getUserLocale(), getTranslations("ai.summary")]);
   if (!isAiConfigured()) {
-    return { status: "not_configured", summary: "AI zatiaľ nie je nakonfigurované (chýba API kľúč)." };
+    return { status: "not_configured", summary: t("notConfigured") };
   }
 
   const [trainingAdherence, nutritionAdherence, bodyMetrics, strengthProgress] = await Promise.all([
@@ -74,6 +80,7 @@ export async function generateProgressSummary(
     getAllStrengthProgress(params.clientId),
   ]);
 
+// i18n-ignore-start — podklad pre model (interné dáta)
   const lines: string[] = [];
   lines.push(`Klient: ${promptSafe(params.clientName, 60)}${params.clientGoal ? ` (cieľ: ${promptSafe(params.clientGoal, 100)})` : ""}.`);
 
@@ -91,29 +98,35 @@ export async function generateProgressSummary(
     lines.push("Klient nemá nastavený makro cieľ — adherenciu stravy nemožno sledovať.");
   }
 
+// i18n-ignore-end
   const weightLine = weightTrendLine(bodyMetrics);
   if (weightLine) lines.push(weightLine);
 
   const strengthLines = strengthTrendLines(strengthProgress);
   if (strengthLines.length > 0) {
+// i18n-ignore-start — podklad pre model
     lines.push("Silový progres (najťažšia séria pri prvom a poslednom zázname):");
     lines.push(...strengthLines.map((l) => `- ${l}`));
   }
 
+// i18n-ignore-end
   // Bez tréningov, meraní aj cieľa stravy nie je z čoho zhrnúť nič zmysluplné.
   const hasAnyData = Boolean(trainingAdherence && trainingAdherence.window90.trainedDays > 0) || Boolean(weightLine) || strengthLines.length > 0;
   if (!hasAnyData) {
-    return { status: "no_data", summary: "Klient zatiaľ nemá dosť dát (žiadne tréningy, merania ani makro cieľ) na zmysluplné zhrnutie." };
+    return { status: "no_data", summary: t("noClientData") };
   }
 
+// i18n-ignore-start — prompt pre model (interné pokyny)
   const system = [
     "Si asistent trénera vo fitness aplikácii FitPilot. Dostaneš hotové číselné dáta o progrese jedného klienta (adherencia, váha, sila) — appka ich už spočítala, ty ich len interpretuješ a zhrnieš.",
-    "Napíš PO SLOVENSKY 3-5 vetné zhrnutie: čo sa zlepšilo, čo sa zhoršilo alebo stagnuje, a na konci JEDNU konkrétnu odporúčanú akciu pre trénera (napr. 'skús skontaktovať klienta', 'zváž zvýšenie záťaže', 'prehodnoťte kalorický cieľ').",
+    `Napíš ${speakLanguage(locale).toUpperCase()} 3-5 vetné zhrnutie: čo sa zlepšilo, čo sa zhoršilo alebo stagnuje, a na konci JEDNU konkrétnu odporúčanú akciu pre trénera (napr. 'skús skontaktovať klienta', 'zváž zvýšenie záťaže', 'prehodnoťte kalorický cieľ').`,
     "Používaj VÝHRADNE čísla, ktoré ti boli poslané — nič si nevymýšľaj, nehádaj príčiny mimo dát (napr. nediagnostikuj zdravotné dôvody stagnácie).",
     "Píš vecne pre trénera (nie pre klienta), bez uvítania a bez zbytočného úvodu — rovno k veci.",
+    outputLanguageRule(locale),
     DATA_IS_NOT_INSTRUCTIONS,
   ].join("\n");
 
+// i18n-ignore-end
   // Atomická rezervácia denného limitu tesne pred volaním modelu (feature/security) —
   // zámerne až po kontrole "no_data", ktorá limit nemá míňať.
   const slot = await reserveAiSlot({
@@ -128,7 +141,7 @@ export async function generateProgressSummary(
   if (!slot.allowed) {
     return {
       status: "rate_limited",
-      summary: `Dnešný limit ${AI_PROGRESS_SUMMARY_DAILY_LIMIT()} zhrnutí pre tohto klienta je vyčerpaný — skús to zajtra.`,
+      summary: t("clientLimit", { limit: AI_PROGRESS_SUMMARY_DAILY_LIMIT() }),
     };
   }
 
@@ -142,7 +155,7 @@ export async function generateProgressSummary(
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    const summary = textBlock && textBlock.type === "text" ? textBlock.text.trim() : "Nepodarilo sa vygenerovať zhrnutie.";
+    const summary = textBlock && textBlock.type === "text" ? textBlock.text.trim() : t("empty");
 
     // zápis spotreby až po odoslaní odpovede (after) — zhrnutie na neho nečaká
     const usage = response.usage;
@@ -161,6 +174,6 @@ export async function generateProgressSummary(
     return { status: "ok", summary };
   } catch (err) {
     console.error("generateProgressSummary (Claude call):", err instanceof Error ? err.message : err);
-    return { status: "error", summary: "Nastala chyba pri generovaní zhrnutia. Skús to prosím znova." };
+    return { status: "error", summary: t("failed") };
   }
 }

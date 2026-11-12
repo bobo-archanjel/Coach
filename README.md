@@ -75,6 +75,24 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-12** — **Čeština ako druhý jazyk** (`feature/cestina`, **migrácia 0059**).
+  - **Prepínač jazyka:** tréner v Nastaveniach a klient v Profile majú kartu „Jazyk“ s výberom Slovenčina / Čeština. Na úvodnej stránke je tlačidlo SK/CZ vedľa ikony svetlý/tmavý režim. `/prihlasenie` preberá zvolený jazyk.
+  - **Kde sa jazyk ukladá:** do cookie `fp-locale` (platí hneď, aj bez prihlásenia) a do účtu (`profiles.locale`, RPC `set_my_locale`). Po prihlásení na novom zariadení sa jazyk prevezme z účtu. Kým nie je výber, rozhoduje prehliadač (`Accept-Language: cs` → čeština), inak slovenčina.
+  - **Čo je preložené:** celá appka oboch rolí, chybové hlášky (aj zo SQL), zvončeky, sprievodca, PDF a CSV exporty, AI (Kouč, generátor plánov a zhrnutia odpovedajú v jazyku používateľa), e-maily (registrácia, reset hesla) a právne stránky.
+  - **Systémové správy v chate** (zmazanie dát, pozastavenie spolupráce, „pridal ťa ako klienta“, AI upozornenia) ostávajú v DB po slovensky a prekladajú sa pri zobrazení (`lib/i18n/systemMessages.ts`), aj staré.
+  - **Mimo rozsahu:** názvy cvikov a potravín z databázy ostávajú po slovensky. Takisto interné náhľady `app/v2`–`v5` a URL adresy.
+  - **Treba spraviť ručne:**
+    1. Spustiť `supabase/migrations/0059_profile_locale.sql` (do vtedy sa jazyk ukladá len do cookie, bez chyby).
+    2. Znova vložiť obe šablóny e-mailov aj predmety do Supabase podľa `docs/email-templates/README.md`.
+    3. Český preklad právnych stránok dať skontrolovať právnikovi a celý český text ideálne rodenému hovoriacemu.
+  - **Pre vývoj:**
+    - texty sú v `messages/<sk|cs>/<oblasť>.json` (knižnica `next-intl`, bez jazyka v URL),
+    - kľúče sú typované (chýbajúci kľúč je chyba v `tsc`),
+    - `node scripts/i18n-check.mjs` nájde slovenský text napísaný priamo v kóde,
+    - `e2e/i18n.spec.ts` stráži rovnaké kľúče sk/cs a formátovanie,
+    - `e2e/jazyk.spec.ts` prepínanie.
+  - Nový text = kľúč do oboch JSON súborov, nie reťazec v kóde.
+
 - **2026-11-11** — **UX úpravy trénera aj klienta** (`feature/user-experience`, bez migrácie).
   - **Akcie dňa v jednom riadku:** Premenovať · Duplikovať · Zmazať deň sú vždy spolu v jednom riadku pod pilulkami dní (tréning trénera, jedálniček, vlastný tréning klienta). Na mobile majú rovnakú šírku.
   - **Prázdne stavy v sklenenej karte:** „Zatiaľ žiadny deň“ (namiesto voľného „Vytvor prvý deň vyššie.“) a „Zatiaľ žiadne cviky“ s otáznikom. Návod „Klikni na cvik v knižnici…“ sa ukáže v okne po kliknutí na otáznik (`app/components/EmptyDayCard.tsx`).

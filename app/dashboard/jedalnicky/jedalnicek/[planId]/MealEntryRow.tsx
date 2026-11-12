@@ -1,8 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { MealEntry } from "../actions";
-import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
+import { MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
 import { MacroChips } from "./MacroChips";
 import styles from "./builder.module.css";
 
@@ -28,6 +29,8 @@ export function MealEntryRow({
   onUpdate: (patch: { meal_slot: MealSlot; grams: number }) => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations("mealPlans.builder");
+  const tl = useTranslations("labels");
   const [editing, setEditing] = useState(false);
   const [slot, setSlot] = useState<MealSlot>(entry.meal_slot);
   const [grams, setGrams] = useState(String(entry.grams));
@@ -43,7 +46,7 @@ export function MealEntryRow({
   const apply = () => {
     const g = Number(grams.replace(",", "."));
     if (!Number.isFinite(g) || g <= 0 || g > 5000) {
-      setError("Zadaj gramáž 1–5000 g.");
+      setError(t("gramsRange"));
       return;
     }
     onUpdate({ meal_slot: slot, grams: Math.round(g * 10) / 10 });
@@ -64,17 +67,17 @@ export function MealEntryRow({
         <span className={styles.editName}>{entry.food_name}</span>
         <div className={styles.editGrid}>
           <label className={`${styles.editField} ${styles.editFieldSlot}`}>
-            <span className={styles.editFieldLabel}>Jedlo dňa</span>
+            <span className={styles.editFieldLabel}>{t("slot")}</span>
             <select value={slot} onChange={(e) => setSlot(e.target.value as MealSlot)}>
               {MEAL_SLOT_ORDER.map((s) => (
                 <option key={s} value={s}>
-                  {MEAL_SLOT_LABELS[s]}
+                  {tl(`mealSlot.${s}`)}
                 </option>
               ))}
             </select>
           </label>
           <label className={`${styles.editField} ${styles.editFieldGrams}`}>
-            <span className={styles.editFieldLabel}>Gramáž (g)</span>
+            <span className={styles.editFieldLabel}>{t("grams")}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -86,10 +89,10 @@ export function MealEntryRow({
         </div>
         <div className={styles.editActions}>
           <button type="submit" className="btn btn-primary btn-sm">
-            Hotovo
+            {t("done")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>
-            Zrušiť
+            {t("cancel")}
           </button>
         </div>
         {error && <p className={styles.formError}>{error}</p>}
@@ -105,10 +108,10 @@ export function MealEntryRow({
       </span>
       <MacroChips proteinG={macros.proteinG} carbsG={macros.carbsG} fatG={macros.fatG} />
       <div className={styles.rowActions}>
-        <button type="button" className={styles.iconBtn} onClick={startEdit} aria-label="Upraviť položku">
+        <button type="button" className={styles.iconBtn} onClick={startEdit} aria-label={t("editItem")}>
           <EditIcon />
         </button>
-        <button type="button" className={`${styles.iconBtn} btn-danger`} onClick={onRemove} aria-label="Odstrániť položku">
+        <button type="button" className={`${styles.iconBtn} btn-danger`} onClick={onRemove} aria-label={t("removeItem")}>
           <TrashIcon />
         </button>
       </div>

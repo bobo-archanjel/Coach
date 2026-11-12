@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { addCustomExerciseAction, type ActionState } from "./actions";
 import styles from "../dashboard.module.css";
@@ -8,6 +9,7 @@ const initialState: ActionState = { error: null };
 
 export function AddCustomExerciseForm() {
   const [state, formAction, pending] = useActionState(addCustomExerciseAction, initialState);
+  const t = useTranslations("plans.customExercise");
 
   return (
     <form action={formAction} className={styles.addClientForm}>
@@ -15,7 +17,7 @@ export function AddCustomExerciseForm() {
         <input
           name="name"
           type="text"
-          placeholder="Názov cviku"
+          placeholder={t("name")}
           required
           disabled={pending}
           className={styles.addClientInput}
@@ -23,12 +25,12 @@ export function AddCustomExerciseForm() {
         <input
           name="muscle_group"
           type="text"
-          placeholder="Svalová partia (voliteľné)"
+          placeholder={t("muscle")}
           disabled={pending}
           className={styles.addClientInput}
         />
         <button type="submit" className="btn btn-ghost btn-sm" disabled={pending}>
-          {pending ? "Pridávam…" : "Pridať vlastný cvik"}
+          {pending ? t("adding") : t("add")}
         </button>
       </div>
       {state.error && <p className={styles.addClientError}>{state.error}</p>}

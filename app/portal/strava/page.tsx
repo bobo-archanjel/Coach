@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getPortalNutrition } from "@/lib/portal/data";
 import { FoodIcon, ProfileIcon } from "@/app/portal/icons";
 import { RetryButton } from "@/app/portal/RetryButton";
@@ -8,26 +9,30 @@ import s from "../portal.module.css";
    dlaždice makier, jedlá ako riadky v karte dňa. */
 
 const MACRO_TILES = [
-  { key: "proteinG", label: "Bielkoviny", color: "var(--accent)" },
-  { key: "carbsG", label: "Sacharidy", color: "var(--plate-yellow)" },
-  { key: "fatG", label: "Tuky", color: "var(--moss)" },
+  { key: "proteinG", label: "protein", color: "var(--accent)" },
+  { key: "carbsG", label: "carbs", color: "var(--plate-yellow)" },
+  { key: "fatG", label: "fat", color: "var(--moss)" },
 ] as const;
 
 export default async function StravaPage() {
-  const result = await getPortalNutrition();
+  const [result, tp, t] = await Promise.all([
+    getPortalNutrition(),
+    getTranslations("portal"),
+    getTranslations("portal.nutrition"),
+  ]);
 
   if (result.state === "error") {
     return (
-      <Notice icon={<AlertIcon />} title="Nepodarilo sa načítať výživu" tone="alert" action={<RetryButton />}>
-        Skús to o chvíľu znova. Ak to potrvá, napíš svojmu trénerovi.
+      <Notice icon={<AlertIcon />} title={t("loadFailed")} tone="alert" action={<RetryButton />}>
+        {tp("retryLater")}
       </Notice>
     );
   }
 
   if (result.state === "unlinked") {
     return (
-      <Notice icon={<ProfileIcon />} title={result.firstName ? `Vitaj, ${result.firstName}` : "Vitaj vo FitPilot"}>
-        Tvoj účet ešte nie je prepojený s trénerom. Prepojenie spraví tréner zo svojej strany.
+      <Notice icon={<ProfileIcon />} title={result.firstName ? tp("welcomeName", { name: result.firstName }) : tp("welcome")}>
+        {tp("unlinkedShort")}
       </Notice>
     );
   }
@@ -37,13 +42,13 @@ export default async function StravaPage() {
   return (
     <>
       <header>
-        <h1 className={s.pageTitle}>Strava</h1>
-        <p className={s.pageSub}>Denný cieľ a jedálniček od trénera.</p>
+        <h1 className={s.pageTitle}>{t("title")}</h1>
+        <p className={s.pageSub}>{t("sub")}</p>
       </header>
 
       <div className={s.panel}>
         <div className={s.panelHead}>
-          <p className={s.panelLabel}>Makro cieľ</p>
+          <p className={s.panelLabel}>{t("macroGoal")}</p>
           <span className={s.panelIcon}>
             <FoodIcon />
           </span>
@@ -52,7 +57,7 @@ export default async function StravaPage() {
           <>
             <div className={s.kcalBig}>
               {macroGoal.caloriesTarget}
-              <span className={s.kcalUnit}>kcal / deň</span>
+              <span className={s.kcalUnit}>{t("kcalPerDay")}</span>
             </div>
             <p className={s.kcalSub}>
               BMR {macroGoal.bmr} kcal · TDEE {macroGoal.tdee} kcal
@@ -64,7 +69,7 @@ export default async function StravaPage() {
                     {macroGoal[key]}
                     <small>g</small>
                   </div>
-                  <div className={s.macroTileLabel}>{label}</div>
+                  <div className={s.macroTileLabel}>{t(label)}</div>
                   <span className={s.macroTileBar} style={{ background: color }} aria-hidden="true" />
                 </div>
               ))}
@@ -72,24 +77,24 @@ export default async function StravaPage() {
           </>
         ) : (
           <div className={s.sessionQuiet}>
-            <p>Tréner ti zatiaľ nenastavil makro cieľ.</p>
+            <p>{t("noGoal")}</p>
           </div>
         )}
       </div>
 
-      <section aria-label="Jedálniček">
+      <section aria-label={t("mealPlan")}>
         <div className={s.sectionHead}>
-          <h2 className={s.sectionTitle}>{mealPlanName ?? "Jedálniček"}</h2>
+          <h2 className={s.sectionTitle}>{mealPlanName ?? t("mealPlan")}</h2>
           {mealPlanId && mealDays.length > 0 && (
             <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
-              Stiahnuť PDF
+              {t("downloadPdf")}
             </a>
           )}
         </div>
         {mealDays.length === 0 ? (
           <div className={s.panel}>
             <div className={s.sessionQuiet}>
-              <p>Tréner ti zatiaľ nezostavil jedálniček.</p>
+              <p>{t("noMealPlan")}</p>
             </div>
           </div>
         ) : (
@@ -102,7 +107,7 @@ export default async function StravaPage() {
                 </div>
                 {day.groups.length === 0 ? (
                   <div className={s.sessionQuiet}>
-                    <p>Tento deň zatiaľ nemá žiadne jedlá.</p>
+                    <p>{t("noMeals")}</p>
                   </div>
                 ) : (
                   day.groups.map((group) => (

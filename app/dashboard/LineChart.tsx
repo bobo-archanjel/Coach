@@ -1,7 +1,8 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale } from "@/lib/i18n/locales";
 import { useId, useMemo, useState } from "react";
-import { pluralSk } from "@/lib/portal/streak";
 import styles from "./dashboard.module.css";
 
 export interface LineChartPoint {
@@ -38,6 +39,8 @@ export function LineChart({
   color?: string;
   height?: number;
 }) {
+  const t = useTranslations("clientDetail.charts");
+  const locale = useLocale();
   const gradientId = useId();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -70,7 +73,7 @@ export function LineChart({
   }, [points, H, padTop, padBottom]);
 
   if (points.length === 0) {
-    return <p className={styles.chartEmpty}>Zatiaľ žiadne dáta na graf.</p>;
+    return <p className={styles.chartEmpty}>{t("empty")}</p>;
   }
 
   const last = points[points.length - 1];
@@ -94,7 +97,7 @@ export function LineChart({
   };
 
   const dateLabel = (iso: string) =>
-    new Date(`${iso}T12:00:00Z`).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", timeZone: "UTC" });
+    new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", timeZone: "UTC" });
 
   return (
     <div className={styles.chartWrap}>
@@ -104,7 +107,7 @@ export function LineChart({
         onPointerMove={handleMove}
         onPointerLeave={() => setHoverIdx(null)}
         role="img"
-        aria-label={`Graf, posledná hodnota ${last.value} ${unit}`}
+        aria-label={t("lastValue", { value: last.value, unit })}
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -153,8 +156,7 @@ export function LineChart({
       )}
 
       <p className={styles.chartRange}>
-        {rangeLabel(points.map((p) => p.value))} {unit} · {points.length}{" "}
-        {pluralSk(points.length, "záznam", "záznamy", "záznamov")}
+        {rangeLabel(points.map((p) => p.value))} {unit} · {t("records", { count: points.length })}
       </p>
     </div>
   );

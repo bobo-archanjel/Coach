@@ -3,6 +3,7 @@
 // (publish) dostane každý vlastnú zverejnenú kópiu plánu a riadky sa zmažú.
 // Volá sa len zo serverových akcií trénera (RLS: plan_recipients vidí len tréner).
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dbErr } from "@/lib/dbError";
 
@@ -59,7 +60,7 @@ export async function addPlanRecipients(
   const { error } = await supabase
     .from("plan_recipients")
     .insert(clientIds.map((clientId) => ({ trainer_id: trainerId, client_id: clientId, [PLAN_COLUMN[kind]]: planId })));
-  return error ? dbErr(error, "templates") : null;
+  return error ? await dbErr(error, "templates") : null;
 }
 
 /**
@@ -83,8 +84,8 @@ export async function deliverPlanToRecipients(
     supabase.from(planTable).select("name").eq("id", planId).eq("trainer_id", trainerId).maybeSingle(),
     supabase.from(dayTable).select(`day_number, name, ${content}`).eq("plan_id", planId).order("day_number"),
   ]);
-  if (!plan) return { delivered: [], error: "Plán sa nenašiel." };
-  if (daysErr) return { delivered: [], error: dbErr(daysErr, "templates") };
+  if (!plan) return { delivered: [], error: await tErr("planNotFound") };
+  if (daysErr) return { delivered: [], error: await dbErr(daysErr, "templates") };
 
   const delivered: string[] = [];
   const failed: string[] = [];
@@ -115,5 +116,5 @@ export async function deliverPlanToRecipients(
     await supabase.from("plan_recipients").delete().eq(PLAN_COLUMN[kind], planId).eq("client_id", r.clientId);
     delivered.push(r.clientId);
   }
-  return { delivered, error: failed.length > 0 ? `Nepodarilo sa poslať: ${failed.join(", ")}. Skús to znova.` : null };
+  return { delivered, error: failed.length > 0 ? await tErr("sendFailedTo", { names: failed.join(", ") }) : null };
 }

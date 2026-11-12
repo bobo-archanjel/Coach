@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { leaveTrainerAction } from "../actions";
 import styles from "../portal.module.css";
@@ -38,6 +39,7 @@ export function TrainerConnection({
    * nepodarilo zistiť); šablóny nižšie preto meno vypisujú len keď je k dispozícii. */
   trainerName: string | null;
 }) {
+  const t = useTranslations("profile.connection");
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -55,7 +57,7 @@ export function TrainerConnection({
   }, [copied]);
 
   const shareText = code
-    ? `Pridaj ma ako svojho klienta vo FitPilot. Môj kód: ${code}`
+    ? t("shareText", { code })
     : "";
 
   const copy = async () => {
@@ -71,7 +73,7 @@ export function TrainerConnection({
   const share = async () => {
     if (!code) return;
     try {
-      await navigator.share({ title: "Môj FitPilot kód", text: shareText });
+      await navigator.share({ title: t("shareTitle"), text: shareText });
     } catch {
       /* používateľ zrušil zdieľanie — nič nerobíme */
     }
@@ -91,7 +93,7 @@ export function TrainerConnection({
       {/* Kód len pre klienta bez trénera — spárovaného klienta by iný tréner aj tak
           odmietol (add_client_by_code → already_has_trainer), takže kód s výzvou
           "pošli ho trénerovi" len mätie (QA 2026-09-23). Po odpojení sa znova ukáže. */}
-      {!hasTrainer && <p className={styles.panelLabel}>Tvoj kód pre trénera</p>}
+      {!hasTrainer && <p className={styles.panelLabel}>{t("codeLabel")}</p>}
 
       {hasTrainer ? null : code ? (
         <>
@@ -100,22 +102,22 @@ export function TrainerConnection({
             <div className={styles.codeActions}>
               <button type="button" className={styles.codeBtn} onClick={copy} aria-live="polite">
                 {copied ? <CheckIcon /> : <CopyIcon />}
-                {copied ? "Skopírované" : "Kopírovať"}
+                {copied ? t("copied") : t("copy")}
               </button>
               {canShare && (
                 <button type="button" className={styles.codeBtn} onClick={share}>
                   <ShareIcon />
-                  Zdieľať
+                  {t("share")}
                 </button>
               )}
             </div>
           </div>
           <p className={styles.codeHint}>
-            Pošli tento kód svojmu trénerovi. Zadá ho u seba a tým sa napojíte — appku dovtedy plne používaš aj sám.
+            {t("codeHint")}
           </p>
         </>
       ) : (
-        <p className={styles.codeHint}>Kód sa práve pripravuje — obnov stránku o chvíľu.</p>
+        <p className={styles.codeHint}>{t("codePending")}</p>
       )}
 
       <div
@@ -123,29 +125,26 @@ export function TrainerConnection({
         style={hasTrainer ? { marginTop: 0, paddingTop: 0, borderTop: "none" } : undefined}
       >
         <p className={styles.panelLabel} style={{ marginTop: hasTrainer ? 0 : 4, marginBottom: 10 }}>
-          Tréner
+          {t("trainer")}
         </p>
         {hasTrainer ? (
           <>
             <p className={styles.trainerName}>
               <span className={styles.trainerDot} aria-hidden="true" />
               {trainerName ? (
-                <>
-                  Prepojený/á s trénerom <strong>{trainerName}</strong>
-                </>
+                t.rich("linkedWith", { name: trainerName, b: (chunks) => <strong>{chunks}</strong> })
               ) : (
-                "Prepojený/á s trénerom"
+                t("linked")
               )}
             </p>
             {confirmLeave ? (
               <div className={styles.trainerLeaveConfirm}>
                 <p className={styles.codeHint} style={{ marginTop: 0 }}>
-                  {trainerName ? `Odpojiť sa od trénera ${trainerName}?` : "Odpojiť sa od trénera?"} Tvoje tréningy,
-                  merania a denník ostávajú — tréner k nim už nebude mať prístup.
+                  {trainerName ? t("leaveNamed", { name: trainerName }) : t("leave")} {t("leaveText")}
                 </p>
                 <div className={styles.trainerLeaveActions}>
                   <button type="button" className="btn btn-primary btn-sm" onClick={leave} disabled={leavePending}>
-                    {leavePending ? "Odpájam…" : "Áno, odpojiť"}
+                    {leavePending ? t("leaving") : t("yesLeave")}
                   </button>
                   <button
                     type="button"
@@ -153,21 +152,20 @@ export function TrainerConnection({
                     onClick={() => setConfirmLeave(false)}
                     disabled={leavePending}
                   >
-                    Zrušiť
+                    {t("cancel")}
                   </button>
                 </div>
               </div>
             ) : (
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmLeave(true)}>
-                Odpojiť sa od trénera
+                {t("leaveButton")}
               </button>
             )}
             {leaveError && <p className={styles.dzError}>{leaveError}</p>}
           </>
         ) : (
           <p className={styles.codeHint} style={{ marginTop: 0 }}>
-            Zatiaľ nemáš trénera. Keď mu pošleš kód vyššie a on ťa pridá, uvidíš tu jeho meno a v Chate ti príde
-            potvrdenie.
+            {t("noTrainer")}
           </p>
         )}
       </div>

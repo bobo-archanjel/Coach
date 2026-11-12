@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { deleteAppointmentAction, type AppointmentFormValues } from "./actions";
 import { AppointmentForm } from "./AddAppointmentForm";
@@ -25,6 +26,7 @@ export function AppointmentRow({
   /** hodnoty pre formulár úpravy (dátum/čas v Europe/Bratislava) */
   editValues: AppointmentFormValues;
 }) {
+  const t = useTranslations("calendar.row");
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -58,19 +60,19 @@ export function AppointmentRow({
             disabled={pending}
             onClick={() => startTransition(() => deleteAppointmentAction(id))}
           >
-            {pending ? "Mažem…" : "Zmazať termín"}
+            {pending ? t("deleting") : t("delete")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
-            Zrušiť
+            {t("cancel")}
           </button>
         </div>
       ) : (
         <div style={{ display: "flex", gap: 6 }}>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
-            Upraviť
+            {t("edit")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
-            Zmazať
+            {t("remove")}
           </button>
         </div>
       )}

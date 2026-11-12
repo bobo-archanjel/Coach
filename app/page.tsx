@@ -1,10 +1,13 @@
 import Link from "next/link";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "next-intl/server";
+import { intlLocale } from "@/lib/i18n/locales";
 import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
 import { StickyMobileCta } from "./components/StickyMobileCta";
 import { ThemeToggle } from "./v6design/ThemeToggle";
+import { LanguageToggle } from "./v6design/LanguageToggle";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "./v6design/theme";
 import tokens from "./v6design/styles/tokens.module.css";
 import styles from "./page.module.css";
@@ -13,19 +16,21 @@ import styles from "./page.module.css";
 // z layout.tsx (ten ostáva fallback pre stránky bez vlastného exportu).
 // Kľúčové slová podľa PRODUCT.md Positioning — SK trh, natívny nástroj pre
 // fitness trénerov, nutrícia ako core funkcia, AI s kontextovou pamäťou.
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("landing");
+  return {
   // Plain string title PREPÍŠE title.template z layout.tsx (Next metadata
   // dedičnosť) — brand meno musí byť tu explicitne, nie spoliehať sa na
   // template. Zistené e2e sadou (test na /FitPilot/i v <title> zlyhal).
-  title: "FitPilot — softvér pre fitness trénerov, tréning a výživa",
-  description:
-    "FitPilot je slovenská appka pre fitness trénerov: správa klientov, tréningové plány, jedálničky a AI kouč s pamäťou klientovho profilu. 14 dní zadarmo.",
+  title: t("metaTitle"),
+  description: t("metaDescription"),
   // feature/optimalizacia (SEO) — canonical na "/" zabraňuje tomu, aby Google
   // indexoval túto stránku duplicitne pod query parametrami (napr. ?utm_...
   // z reklamných kampaní) ako samostatnú URL. Bez toho hrozí "duplicate
   // content" penalizácia a rozriedenie rankingu medzi variantmi tej istej URL.
   alternates: { canonical: "/" },
-};
+  };
+}
 
 /** Farba stavového riadku podľa témy (svetlá/tmavá/auto) — rovnako ako prihlásenie a appka. */
 export async function generateViewport(): Promise<Viewport> {
@@ -58,7 +63,8 @@ const CheckIcon = ({ color, size = 16 }: { color: string; size?: number }) => (
 // `offers.price: "0"` odkazuje na skúšobné obdobie (14 dní zadarmo), nie na
 // trvalo bezplatný produkt — placená fáza (PRODUCT.md fáza 3) zatiaľ nemá
 // zverejnený cenník, preto sa sem nevymýšľa konkrétna suma.
-function StructuredData() {
+async function StructuredData() {
+  const [t, locale] = await Promise.all([getTranslations("landing"), getLocale()]);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
   const jsonLd = {
     "@context": "https://schema.org",
@@ -67,19 +73,18 @@ function StructuredData() {
     url: siteUrl,
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
-    description:
-      "AI-native platforma pre fitness trénerov a ich klientov: správa klientov, tréningové plány, jedálničky a AI kouč s pamäťou klientovho profilu.",
-    inLanguage: "sk-SK",
+    description: t("ldDescription"),
+    inLanguage: intlLocale(locale),
     audience: {
       "@type": "Audience",
-      audienceType: "Fitness treneri",
+      audienceType: t("ldAudience"),
     },
     areaServed: ["SK", "CZ"],
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "EUR",
-      description: "14-dňové skúšobné obdobie bez viazanosti",
+      description: t("ldOffer"),
     },
   };
   return (
@@ -96,7 +101,13 @@ function StructuredData() {
    sklenené karty, terakotové akcie, svetlá/tmavá/auto téma z cookie spoločnej s appkou
    (ikona slnko/mesiac v hlavičke ju prepína). */
 export default async function LandingPage() {
-  const theme = parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value);
+  const [cookieStore, t] = await Promise.all([cookies(), getTranslations("landing")]);
+  const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
+  // t.rich: zalomenie riadku a zvýraznenie v nadpisoch (<br></br>, <accent>…</accent>)
+  const rich = {
+    br: () => <br />,
+    accent: (chunks: React.ReactNode) => <span className={styles.accent}>{chunks}</span>,
+  };
   return (
     <div className={tokens.root} data-theme={theme} data-v6-root="">
       <StructuredData />
@@ -109,21 +120,22 @@ export default async function LandingPage() {
           </Link>
           <nav className={styles.navLinks}>
             <a href="#funkcie" className={styles.navMobileHide}>
-              Funkcie
+              {t("nav.features")}
             </a>
             <a href="#ai" className={styles.navMobileHide}>
-              AI
+              {t("nav.ai")}
             </a>
             <a href="#cennik" className={styles.navMobileHide}>
-              Cenník
+              {t("nav.pricing")}
             </a>
             <Link href="/prihlasenie" className={styles.navMobileHide}>
-              Prihlásiť sa
+              {t("nav.login")}
             </Link>
             <Link href="/prihlasenie" className={`btn btn-primary btn-sm ${styles.ctaBtn}`}>
-              Vyskúšať zadarmo
+              {t("nav.tryFree")}
               <ArrowIcon />
             </Link>
+            <LanguageToggle />
             <ThemeToggle />
           </nav>
         </div>
@@ -134,39 +146,31 @@ export default async function LandingPage() {
           <div className={styles.plateField} aria-hidden="true" />
           <div className={`${styles.wrap} ${styles.heroGrid}`}>
             <div>
-              <h1>
-                Tréningy, výživa aj <span className={styles.accent}>AI kouč.</span>
-                <br />
-                Na jednom mieste.
-              </h1>
-              <p className={styles.heroSub}>
-                FitPilot vedie klientov, tréningové plány aj jedálničky pre fitness trénerov na
-                Slovensku a v Česku. AI robí návrhy a administratívu — posledné slovo má vždy
-                tréner.
-              </p>
+              <h1>{t.rich("hero.title", rich)}</h1>
+              <p className={styles.heroSub}>{t("hero.sub")}</p>
               <div className={styles.heroCtas}>
                 <a href="/prihlasenie" className="btn btn-primary">
-                  Začať 14-dňové skúšobné obdobie
+                  {t("hero.ctaTrial")}
                   <ArrowIcon />
                 </a>
                 <a href="#funkcie" className="btn btn-ghost">
-                  Pozrieť ako to funguje ↓
+                  {t("hero.ctaHow")}
                 </a>
               </div>
-              <p className={styles.heroNote}>Bez viazanosti počas skúšobného obdobia · SK/CZ rozhranie</p>
+              <p className={styles.heroNote}>{t("hero.note")}</p>
             </div>
 
-            <div className={styles.demo} role="img" aria-label="Ukážka trénerského dashboardu s AI chatom">
+            <div className={styles.demo} role="img" aria-label={t("hero.demoLabel")}>
               <div className={styles.demoTop}>
                 <span className={styles.who}>
                   <span className={styles.dot} />
-                  Dashboard — Martina K.
+                  {t("hero.demoWho")}
                 </span>
                 {/* feature/optimalizacia (Lighthouse a11y) — --paper-faint na tomto tmavom
                     pozadí (.demoTop) dávala len 4.45:1, tesne pod požadovaných 4.5:1.
                     --paper-dim je na rovnakom pozadí ~9.4:1, bezpečná rezerva. */}
                 <span className="num" style={{ fontSize: 11, color: "var(--paper-dim)" }}>
-                  UT 27. AUG
+                  {t("hero.demoDate")}
                 </span>
               </div>
               <div className={styles.demoBody}>
@@ -174,31 +178,30 @@ export default async function LandingPage() {
                   <div className={styles.rosterRow}>
                     <span className={styles.avatar}>JN</span>
                     <span>
-                      <span className={styles.name}>Ján N.</span>
+                      <span className={styles.name}>{t("hero.demoJan")}</span>
                       <br />
-                      <span className={styles.meta}>Naberanie · deň 42</span>
+                      <span className={styles.meta}>{t("hero.demoJanMeta")}</span>
                     </span>
-                    <span className={`${styles.chip} ${styles.ok}`}>splnené</span>
+                    <span className={`${styles.chip} ${styles.ok}`}>{t("hero.demoDone")}</span>
                   </div>
                   <div className={styles.rosterRow}>
                     <span className={styles.avatar}>LK</span>
                     <span>
-                      <span className={styles.name}>Lucia K.</span>
+                      <span className={styles.name}>{t("hero.demoLucia")}</span>
                       <br />
-                      <span className={styles.meta}>Chudnutie · deň 15</span>
+                      <span className={styles.meta}>{t("hero.demoLuciaMeta")}</span>
                     </span>
-                    <span className={`${styles.chip} ${styles.warn}`}>3× vynechal log</span>
+                    <span className={`${styles.chip} ${styles.warn}`}>{t("hero.demoMissed")}</span>
                   </div>
                 </div>
                 <div className={styles.aiThread}>
                   <div className={`${styles.bubble} ${styles.client}`}>
-                    <span className={styles.tag}>Lucia · AI chat klienta</span>
-                    Čo mám dnes zjesť, ak mi zostáva 400&nbsp;g bielkovín?
+                    <span className={styles.tag}>{t("hero.demoClientTag")}</span>
+                    {t("hero.demoClientMsg")}
                   </div>
                   <div className={`${styles.bubble} ${styles.ai}`}>
                     <span className={styles.tag}>FitPilot AI</span>
-                    Podľa tvojho jedálnička ešte chýba večera — 250&nbsp;g kuracích pŕs alebo
-                    350&nbsp;g tvarohu ťa dostanú na cieľ.
+                    {t("hero.demoAiMsg")}
                   </div>
                 </div>
               </div>
@@ -210,42 +213,36 @@ export default async function LandingPage() {
           <div className={styles.wrap}>
             <div className={styles.positionGrid}>
               <div data-reveal className={styles.reveal}>
-                <h2 style={{ fontSize: "clamp(1.9rem,3.2vw,2.7rem)", maxWidth: "14ch" }}>
-                  Trénerský softvér, nie preklad z angličtiny
-                </h2>
-                <p style={{ marginTop: 16, color: "var(--paper-dim)", maxWidth: "46ch" }}>
-                  Trainerize, Everfit či TrueCoach robia dobrú prácu — pre americký a britský trh.
-                  FitPilot je stavaný rovno pre slovenských a českých trénerov, s výživou ako
-                  plnohodnotnou súčasťou od prvého dňa, nie plateným doplnkom.
-                </p>
+                <h2 style={{ fontSize: "clamp(1.9rem,3.2vw,2.7rem)", maxWidth: "14ch" }}>{t("position.title")}</h2>
+                <p style={{ marginTop: 16, color: "var(--paper-dim)", maxWidth: "46ch" }}>{t("position.text")}</p>
               </div>
               <div data-reveal className={`${styles.positionList} ${styles.reveal}`}>
                 <div className={styles.positionRow}>
-                  <span className={styles.label}>Jazyk</span>
+                  <span className={styles.label}>{t("position.language")}</span>
                   <div>
-                    <div className={styles.them}>Rozhranie prevažne v angličtine</div>
-                    <div className={styles.us}>Natívna slovenčina a čeština</div>
+                    <div className={styles.them}>{t("position.languageThem")}</div>
+                    <div className={styles.us}>{t("position.languageUs")}</div>
                   </div>
                 </div>
                 <div className={styles.positionRow}>
-                  <span className={styles.label}>Výživa</span>
+                  <span className={styles.label}>{t("position.nutrition")}</span>
                   <div>
-                    <div className={styles.them}>Orezaný, platený doplnok</div>
-                    <div className={styles.us}>Súčasť produktu od základu</div>
+                    <div className={styles.them}>{t("position.nutritionThem")}</div>
+                    <div className={styles.us}>{t("position.nutritionUs")}</div>
                   </div>
                 </div>
                 <div className={styles.positionRow}>
-                  <span className={styles.label}>AI</span>
+                  <span className={styles.label}>{t("position.ai")}</span>
                   <div>
-                    <div className={styles.them}>Len generátor plánu na jedno použitie</div>
-                    <div className={styles.us}>Chat s pamäťou klientovho profilu a histórie</div>
+                    <div className={styles.them}>{t("position.aiThem")}</div>
+                    <div className={styles.us}>{t("position.aiUs")}</div>
                   </div>
                 </div>
                 <div className={styles.positionRow}>
-                  <span className={styles.label}>Cena</span>
+                  <span className={styles.label}>{t("position.price")}</span>
                   <div>
-                    <div className={styles.them}>Tiery a add-ony sa nabaľujú neprehľadne</div>
-                    <div className={styles.us}>Jeden jasný plán, transparentný AI limit</div>
+                    <div className={styles.them}>{t("position.priceThem")}</div>
+                    <div className={styles.us}>{t("position.priceUs")}</div>
                   </div>
                 </div>
               </div>
@@ -256,12 +253,8 @@ export default async function LandingPage() {
         <section id="funkcie" className={styles.section}>
           <div className={styles.wrap}>
             <div data-reveal className={`${styles.sectionHead} ${styles.reveal}`}>
-              <h2>
-                Šesť modulov,
-                <br />
-                jeden pracovný tok
-              </h2>
-              <p>Od prvého kontaktu s klientom až po faktúru — FitPilot pokrýva celý cyklus trénerskej práce.</p>
+              <h2>{t.rich("features.title", rich)}</h2>
+              <p>{t("features.sub")}</p>
             </div>
 
             <div data-reveal className={`${styles.featureRow} ${styles.first} ${styles.reveal}`}>
@@ -274,39 +267,35 @@ export default async function LandingPage() {
                     <path d="M26 39c.5-5.5 3.5-9 8-9s7.3 3.2 8 8" stroke="var(--steel)" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </span>
-                <h3>Správa klientov</h3>
-                <p>
-                  Databáza s kontaktmi, cieľmi a zdravotnými obmedzeniami. Onboarding formulár
-                  zachytí vek, mieru, aktivitu aj alergie hneď na začiatku. História merania
-                  sleduje váhu, obvody aj foto progres na jednom mieste.
-                </p>
+                <h3>{t("features.clientsTitle")}</h3>
+                <p>{t("features.clientsText")}</p>
                 <div className={styles.featureTags}>
-                  <span>Onboarding formulár</span>
-                  <span>História merania</span>
-                  <span>Tagy klientov</span>
+                  <span>{t("features.clientsTag1")}</span>
+                  <span>{t("features.clientsTag2")}</span>
+                  <span>{t("features.clientsTag3")}</span>
                 </div>
               </div>
               <div className={styles.featureVisual}>
                 <div className={styles.vizBiz}>
                   <div className={styles.bizRow}>
-                    <span className={styles.name}>Ján N. · naberanie</span>
-                    <span className={`${styles.status} ${styles.active}`}>● aktívny</span>
-                    <span className={styles.amount}>posl. log dnes</span>
+                    <span className={styles.name}>{t("features.bizJan")}</span>
+                    <span className={`${styles.status} ${styles.active}`}>{t("features.statusActive")}</span>
+                    <span className={styles.amount}>{t("features.lastLogToday")}</span>
                   </div>
                   <div className={styles.bizRow}>
-                    <span className={styles.name}>Lucia K. · chudnutie</span>
-                    <span className={`${styles.status} ${styles.late}`}>● meškanie</span>
-                    <span className={styles.amount}>posl. log pred 4d</span>
+                    <span className={styles.name}>{t("features.bizLucia")}</span>
+                    <span className={`${styles.status} ${styles.late}`}>{t("features.statusLate")}</span>
+                    <span className={styles.amount}>{t("features.lastLog4d")}</span>
                   </div>
                   <div className={styles.bizRow}>
-                    <span className={styles.name}>Peter S. · rehab kolena</span>
-                    <span className={`${styles.status} ${styles.active}`}>● aktívny</span>
-                    <span className={styles.amount}>posl. log dnes</span>
+                    <span className={styles.name}>{t("features.bizPeter")}</span>
+                    <span className={`${styles.status} ${styles.active}`}>{t("features.statusActive")}</span>
+                    <span className={styles.amount}>{t("features.lastLogToday")}</span>
                   </div>
                   <div className={styles.bizRow}>
-                    <span className={styles.name}>Zuzana H. · naberanie</span>
-                    <span className={`${styles.status} ${styles.active}`}>● aktívny</span>
-                    <span className={styles.amount}>posl. log včera</span>
+                    <span className={styles.name}>{t("features.bizZuzana")}</span>
+                    <span className={`${styles.status} ${styles.active}`}>{t("features.statusActive")}</span>
+                    <span className={styles.amount}>{t("features.lastLogYesterday")}</span>
                   </div>
                 </div>
               </div>
@@ -323,51 +312,47 @@ export default async function LandingPage() {
                     <rect x="41" y="19" width="3" height="10" rx="1" fill="var(--steel)" />
                   </svg>
                 </span>
-                <h3>Tréningový builder</h3>
-                <p>
-                  Knižnica cvikov s videom aj technikou. Zostav plán so sériami, opakovaniami,
-                  záťažou, tempom a pauzami a zaraď ho klientovi podľa dní a týždňov. FitPilot
-                  navrhne progresívne preťaženie na základe odcvičenej histórie.
-                </p>
+                <h3>{t("features.builderTitle")}</h3>
+                <p>{t("features.builderText")}</p>
                 <div className={styles.featureTags}>
-                  <span>Knižnica cvikov</span>
-                  <span>Mezocykly</span>
-                  <span>Progresívne preťaženie</span>
+                  <span>{t("features.builderTag1")}</span>
+                  <span>{t("features.builderTag2")}</span>
+                  <span>{t("features.builderTag3")}</span>
                 </div>
               </div>
               <div className={styles.featureVisual}>
                 <div className={styles.vizBuilder}>
                   <div className={styles.vizSet}>
                     <span className={styles.idx}>A1</span>
-                    <span className={styles.exName}>Drep s činkou</span>
+                    <span className={styles.exName}>{t("features.exSquat")}</span>
                     <span className={styles.load}>
                       4× 8 @ 82,5<span className="stencil"> kg</span>
                     </span>
-                    <span className={styles.rest}>pauza 120s</span>
+                    <span className={styles.rest}>{t("features.rest", { seconds: 120 })}</span>
                   </div>
                   <div className={styles.vizSet}>
                     <span className={styles.idx}>A2</span>
-                    <span className={styles.exName}>Rumunský mŕtvy ťah</span>
+                    <span className={styles.exName}>{t("features.exRdl")}</span>
                     <span className={styles.load}>
                       3× 10 @ 60<span className="stencil"> kg</span>
                     </span>
-                    <span className={styles.rest}>pauza 90s</span>
+                    <span className={styles.rest}>{t("features.rest", { seconds: 90 })}</span>
                   </div>
                   <div className={styles.vizSet}>
                     <span className={styles.idx}>B1</span>
-                    <span className={styles.exName}>Bulharský drep</span>
+                    <span className={styles.exName}>{t("features.exBulgarian")}</span>
                     <span className={styles.load}>
                       3× 12 @ 20<span className="stencil"> kg</span>
                     </span>
-                    <span className={styles.rest}>pauza 75s</span>
+                    <span className={styles.rest}>{t("features.rest", { seconds: 75 })}</span>
                   </div>
                   <div className={styles.vizSet}>
                     <span className={styles.idx}>B2</span>
-                    <span className={styles.exName}>Lýtka v stoji</span>
+                    <span className={styles.exName}>{t("features.exCalves")}</span>
                     <span className={styles.load}>
                       4× 15 @ 100<span className="stencil"> kg</span>
                     </span>
-                    <span className={styles.rest}>pauza 60s</span>
+                    <span className={styles.rest}>{t("features.rest", { seconds: 60 })}</span>
                   </div>
                 </div>
               </div>
@@ -391,23 +376,19 @@ export default async function LandingPage() {
                     />
                   </svg>
                 </span>
-                <h3>Výživa a makrá</h3>
-                <p>
-                  Automatický výpočet BMR/TDEE navrhne makrá podľa cieľa klienta. Tréner zostaví
-                  jedálniček alebo nastaví len kalorický cieľ — klient loguje stravu a vidí
-                  plnenie makier deň za dňom.
-                </p>
+                <h3>{t("features.nutritionTitle")}</h3>
+                <p>{t("features.nutritionText")}</p>
                 <div className={styles.featureTags}>
-                  <span>BMR/TDEE výpočet</span>
-                  <span>Food diary</span>
-                  <span>Grafy plnenia</span>
+                  <span>{t("features.nutritionTag1")}</span>
+                  <span>{t("features.nutritionTag2")}</span>
+                  <span>{t("features.nutritionTag3")}</span>
                 </div>
               </div>
               <div className={styles.featureVisual}>
                 <div className={styles.vizMacros}>
                   <div className={styles.macroBarRow}>
                     <div className={styles.macroTop}>
-                      <span>Bielkoviny</span>
+                      <span>{t("features.protein")}</span>
                       <span className={styles.macroVal}>156 / 200 g</span>
                     </div>
                     <div className={styles.macroTrack}>
@@ -416,7 +397,7 @@ export default async function LandingPage() {
                   </div>
                   <div className={styles.macroBarRow}>
                     <div className={styles.macroTop}>
-                      <span>Sacharidy</span>
+                      <span>{t("features.carbs")}</span>
                       <span className={styles.macroVal}>130 / 240 g</span>
                     </div>
                     <div className={styles.macroTrack}>
@@ -425,7 +406,7 @@ export default async function LandingPage() {
                   </div>
                   <div className={styles.macroBarRow}>
                     <div className={styles.macroTop}>
-                      <span>Tuky</span>
+                      <span>{t("features.fat")}</span>
                       <span className={styles.macroVal}>63 / 70 g</span>
                     </div>
                     <div className={styles.macroTrack}>
@@ -444,27 +425,23 @@ export default async function LandingPage() {
                     <path d="M18 6h24v18h-6v6l-7-6" stroke="var(--iron-red)" strokeWidth="2.2" strokeLinejoin="round" />
                   </svg>
                 </span>
-                <h3>Komunikácia</h3>
-                <p>
-                  Chat medzi trénerom a klientom priamo v appke, notifikácie na pripomienky
-                  tréningu a spätná väzba po tréningu — RPE, pocit, poznámka — bez presúvania sa
-                  do WhatsAppu či mailu.
-                </p>
+                <h3>{t("features.chatTitle")}</h3>
+                <p>{t("features.chatText")}</p>
                 <div className={styles.featureTags}>
-                  <span>Chat</span>
-                  <span>Notifikácie</span>
-                  <span>RPE feedback</span>
+                  <span>{t("features.chatTag1")}</span>
+                  <span>{t("features.chatTag2")}</span>
+                  <span>{t("features.chatTag3")}</span>
                 </div>
               </div>
               <div className={styles.featureVisual}>
                 <div className={styles.vizChat}>
                   <div className={`${styles.bubble} ${styles.client}`} style={{ maxWidth: "80%" }}>
-                    <span className={styles.tag}>Peter · klient</span>
-                    Bolí ma rameno pri bench presse, čo mám robiť?
+                    <span className={styles.tag}>{t("features.chatClientTag")}</span>
+                    {t("features.chatClientMsg")}
                   </div>
                   <div className={`${styles.bubble} ${styles.trainer}`} style={{ maxWidth: "80%" }}>
-                    <span className={styles.tag}>Tréner · Martina</span>
-                    Dnes vynechaj tlaky nad hlavu, napíšem ti náhradné cviky do 18:00.
+                    <span className={styles.tag}>{t("features.chatTrainerTag")}</span>
+                    {t("features.chatTrainerMsg")}
                   </div>
                 </div>
               </div>
@@ -479,15 +456,12 @@ export default async function LandingPage() {
                     <circle cx="38" cy="12" r="2.6" fill="var(--iron-red)" />
                   </svg>
                 </span>
-                <h3>Progres tracking</h3>
-                <p>
-                  Grafy vývoja váhy, odhadovaného 1RM a obvodov. Porovnanie fotiek pred/po a
-                  automatické týždenné či mesačné reporty, ktoré tréner nemusí písať ručne.
-                </p>
+                <h3>{t("features.progressTitle")}</h3>
+                <p>{t("features.progressText")}</p>
                 <div className={styles.featureTags}>
-                  <span>Grafy sily</span>
-                  <span>Foto porovnanie</span>
-                  <span>Automatické reporty</span>
+                  <span>{t("features.progressTag1")}</span>
+                  <span>{t("features.progressTag2")}</span>
+                  <span>{t("features.progressTag3")}</span>
                 </div>
               </div>
               <div className={styles.featureVisual}>
@@ -507,7 +481,7 @@ export default async function LandingPage() {
                     <circle cx="280" cy="22" r="4" fill="var(--iron-red)" />
                   </svg>
                   <div className={styles.readout}>
-                    <span>1RM drep · 12 týždňov</span>
+                    <span>{t("features.progressReadout")}</span>
                     <span className={styles.readoutNum}>
                       82,5 → <span style={{ color: "var(--iron-red)" }}>102,5 kg</span>
                     </span>
@@ -525,23 +499,19 @@ export default async function LandingPage() {
                     <path d="M6 24h36" stroke="var(--plate-yellow)" strokeWidth="2.2" />
                   </svg>
                 </span>
-                <h3>Biznis vrstva</h3>
-                <p>
-                  Kalendár a rezervácie konzultácií, fakturácia a platby cez Stripe, balíčky
-                  služieb a multi-klient dashboard — okamžite vidíš, kto má aktívny plán a kto
-                  zaostáva s logovaním.
-                </p>
+                <h3>{t("features.bizTitle")}</h3>
+                <p>{t("features.bizText")}</p>
                 <div className={styles.featureTags}>
-                  <span>Kalendár rezervácií</span>
-                  <span>Stripe fakturácia</span>
-                  <span>Multi-klient prehľad</span>
+                  <span>{t("features.bizTag1")}</span>
+                  <span>{t("features.bizTag2")}</span>
+                  <span>{t("features.bizTag3")}</span>
                 </div>
               </div>
               <div className={styles.featureVisual}>
                 <div className={styles.vizMacros}>
                   <div className={styles.macroBarRow}>
                     <div className={styles.macroTop}>
-                      <span>Aktívni klienti tento mesiac</span>
+                      <span>{t("features.bizActive")}</span>
                       <span className={styles.macroVal}>27 / 30</span>
                     </div>
                     <div className={styles.macroTrack}>
@@ -550,7 +520,7 @@ export default async function LandingPage() {
                   </div>
                   <div className={styles.macroBarRow}>
                     <div className={styles.macroTop}>
-                      <span>Zaplatené predplatné</span>
+                      <span>{t("features.bizPaid")}</span>
                       <span className={styles.macroVal}>24 / 27</span>
                     </div>
                     <div className={styles.macroTrack}>
@@ -559,7 +529,7 @@ export default async function LandingPage() {
                   </div>
                   <div className={styles.macroBarRow}>
                     <div className={styles.macroTop}>
-                      <span>AI requesty využité</span>
+                      <span>{t("features.bizAi")}</span>
                       <span className={styles.macroVal}>312 / 500</span>
                     </div>
                     <div className={styles.macroTrack}>
@@ -575,54 +545,44 @@ export default async function LandingPage() {
         <section id="ai" className={`${styles.section} ${styles.aiSection}`}>
           <div className={styles.wrap}>
             <div data-reveal className={`${styles.sectionHead} ${styles.reveal}`}>
-              <h2>
-                AI, ktorá pozná
-                <br />
-                kontext klienta
-              </h2>
-              <p>
-                Žiadny generický chatbot. FitPilot AI vidí profil, aktuálny plán, makrá a
-                posledné logy — a odpovedá na základe nich, nie všeobecných rád z internetu.
-              </p>
+              <h2>{t.rich("ai.title", rich)}</h2>
+              <p>{t("ai.sub")}</p>
             </div>
 
             <div className={styles.aiColumns}>
               <div data-reveal className={`${styles.aiCard} ${styles.reveal}`}>
-                <h3>Pre klienta</h3>
-                <p>Asistent v appke, ktorý pozná jeho históriu a odpovedá v kontexte.</p>
+                <h3>{t("ai.clientTitle")}</h3>
+                <p>{t("ai.clientSub")}</p>
                 <ul>
                   <li>
                     <CheckIcon color="var(--plate-yellow)" />
-                    „Čo mám dnes jesť, ak mi zostáva 400 g bielkovín?“
+                    {t("ai.client1")}
                   </li>
                   <li>
                     <CheckIcon color="var(--plate-yellow)" />
-                    „Bolí ma rameno pri bench presse, čo robiť?“ → AI odporučí kontaktovať trénera,
-                    nediagnostikuje.
+                    {t("ai.client2")}
                   </li>
                   <li>
                     <CheckIcon color="var(--plate-yellow)" />
-                    História konverzácie sa ukladá per klient — AI si pamätá kontext naprieč
-                    session.
+                    {t("ai.client3")}
                   </li>
                 </ul>
               </div>
               <div data-reveal className={`${styles.aiCard} ${styles.reveal}`}>
-                <h3>Pre trénera</h3>
-                <p>Nástroj na produktivitu, nie autopilot — tréner návrh vždy skontroluje a upraví.</p>
+                <h3>{t("ai.trainerTitle")}</h3>
+                <p>{t("ai.trainerSub")}</p>
                 <ul>
                   <li>
                     <CheckIcon color="var(--iron-red)" />
-                    „Vygeneruj 4-týždňový silový plán pre Jána na nabratie svalovej hmoty.“
+                    {t("ai.trainer1")}
                   </li>
                   <li>
                     <CheckIcon color="var(--iron-red)" />
-                    „Klient má bolesť kolena — uprav plán a vynechaj drepy.“
+                    {t("ai.trainer2")}
                   </li>
                   <li>
                     <CheckIcon color="var(--iron-red)" />
-                    Upozornenie: „Lucia 3× nesplnila tréning tento týždeň.“ — skôr než sa stane
-                    problém.
+                    {t("ai.trainer3")}
                   </li>
                 </ul>
               </div>
@@ -639,11 +599,8 @@ export default async function LandingPage() {
                 <path d="M11 17l4 4 8-9" stroke="var(--iron-red)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <div>
-                <h4>Tréner má vždy posledné slovo</h4>
-                <p>
-                  AI návrh sa nikdy neposiela klientovi automaticky. Zdravotné témy a bolesť sú
-                  tvrdá hranica — appka eskaluje na trénera, nediagnostikuje.
-                </p>
+                <h4>{t("ai.trustTitle")}</h4>
+                <p>{t("ai.trustText")}</p>
               </div>
             </div>
           </div>
@@ -652,93 +609,89 @@ export default async function LandingPage() {
         <section id="cennik" className={styles.section}>
           <div className={styles.wrap}>
             <div data-reveal className={`${styles.sectionHead} ${styles.reveal}`}>
-              <h2>
-                Predplatné pre trénera,
-                <br />
-                nie pre každého klienta
-              </h2>
-              <p>Platíš ty ako tréner, mesačne. Klienti platia teba, nie appku.</p>
+              <h2>{t.rich("pricing.title", rich)}</h2>
+              <p>{t("pricing.sub")}</p>
             </div>
             <span data-reveal className={`${styles.pricingNote} ${styles.reveal}`}>
               <span className={styles.dot} />
-              orientačný cenník pre spustenie — ceny sa môžu do launchu upraviť
+              {t("pricing.note")}
             </span>
 
             <div data-reveal className={`${styles.pricingGrid} ${styles.reveal}`}>
               <div className={styles.priceCard}>
                 <div className={styles.tier}>Starter</div>
-                <div className={styles.for}>do 10 klientov</div>
+                <div className={styles.for}>{t("pricing.starterFor")}</div>
                 <div className={styles.priceRow}>
                   <span className={styles.priceNum}>15–20&nbsp;€</span>
-                  <span className={styles.pricePer}>/ mes</span>
+                  <span className={styles.pricePer}>{t("pricing.perMonth")}</span>
                 </div>
                 <ul>
                   <li>
                     <CheckIcon color="var(--steel)" size={14} />
-                    Tréningový builder a plány
+                    {t("pricing.starter1")}
                   </li>
                   <li>
                     <CheckIcon color="var(--steel)" size={14} />
-                    Jedálničky a food diary
+                    {t("pricing.starter2")}
                   </li>
                   <li>
                     <CheckIcon color="var(--steel)" size={14} />
-                    Základný dashboard
+                    {t("pricing.starter3")}
                   </li>
                 </ul>
                 <Link href="/prihlasenie#register-trener" className={`btn btn-ghost ${styles.priceCta}`}>
-                  Vybrať Starter
+                  {t("pricing.starterCta")}
                 </Link>
               </div>
               <div className={`${styles.priceCard} ${styles.featured}`}>
                 <div className={styles.tier}>Pro</div>
-                <div className={styles.for}>do 50 klientov</div>
+                <div className={styles.for}>{t("pricing.proFor")}</div>
                 <div className={styles.priceRow}>
                   <span className={styles.priceNum}>40–50&nbsp;€</span>
-                  <span className={styles.pricePer}>/ mes</span>
+                  <span className={styles.pricePer}>{t("pricing.perMonth")}</span>
                 </div>
                 <ul>
                   <li>
                     <CheckIcon color="var(--iron-red)" size={14} />
-                    Všetko zo Starter
+                    {t("pricing.pro1")}
                   </li>
                   <li>
                     <CheckIcon color="var(--iron-red)" size={14} />
-                    AI chat pre klientov
+                    {t("pricing.pro2")}
                   </li>
                   <li>
                     <CheckIcon color="var(--iron-red)" size={14} />
-                    AI generátor plánov pre trénera
+                    {t("pricing.pro3")}
                   </li>
                 </ul>
                 <Link href="/prihlasenie#register-trener" className={`btn btn-primary ${styles.priceCta}`}>
-                  Vybrať Pro
+                  {t("pricing.proCta")}
                   <ArrowIcon />
                 </Link>
               </div>
               <div className={styles.priceCard}>
                 <div className={styles.tier}>Business</div>
-                <div className={styles.for}>neobmedzene klientov</div>
+                <div className={styles.for}>{t("pricing.businessFor")}</div>
                 <div className={styles.priceRow}>
                   <span className={styles.priceNum}>80–100&nbsp;€</span>
-                  <span className={styles.pricePer}>/ mes</span>
+                  <span className={styles.pricePer}>{t("pricing.perMonth")}</span>
                 </div>
                 <ul>
                   <li>
                     <CheckIcon color="var(--steel)" size={14} />
-                    Všetko z Pro
+                    {t("pricing.business1")}
                   </li>
                   <li>
                     <CheckIcon color="var(--steel)" size={14} />
-                    Biele logo / branding appky
+                    {t("pricing.business2")}
                   </li>
                   <li>
                     <CheckIcon color="var(--steel)" size={14} />
-                    Pokročilé reporty
+                    {t("pricing.business3")}
                   </li>
                 </ul>
                 <Link href="/prihlasenie#register-trener" className={`btn btn-ghost ${styles.priceCta}`}>
-                  Vybrať Business
+                  {t("pricing.businessCta")}
                 </Link>
               </div>
             </div>
@@ -748,38 +701,29 @@ export default async function LandingPage() {
         <section className={styles.section}>
           <div className={styles.wrap}>
             <div data-reveal className={`${styles.sectionHead} ${styles.reveal}`}>
-              <h2>Ako sa appka bude stavať</h2>
-              <p>Tri fázy, od jadra po plnú výbavu — poradie tu nesie skutočný plán, nie dekoráciu.</p>
+              <h2>{t("roadmap.title")}</h2>
+              <p>{t("roadmap.sub")}</p>
             </div>
             <div data-reveal className={styles.reveal}>
               <div className={`${styles.phaseRow} ${styles.first} ${styles.current}`}>
                 <div className={`${styles.phaseNum} stencil`}>01</div>
                 <div>
-                  <h3>MVP</h3>
-                  <p>
-                    Klienti · tréningový builder · zaraďovanie plánov · food/makro tracking ·
-                    základný dashboard · AI chat pre klienta · AI generátor plánov pre trénera
-                  </p>
+                  <h3>{t("roadmap.mvp")}</h3>
+                  <p>{t("roadmap.mvpText")}</p>
                 </div>
               </div>
               <div className={styles.phaseRow}>
                 <div className={`${styles.phaseNum} stencil`}>02</div>
                 <div>
-                  <h3>Fáza 2</h3>
-                  <p>
-                    Chat tréner ↔ klient, notifikácie, progres grafy, knižnica cvikov s videami,
-                    AI upozornenia na adherenciu
-                  </p>
+                  <h3>{t("roadmap.phase2")}</h3>
+                  <p>{t("roadmap.phase2Text")}</p>
                 </div>
               </div>
               <div className={styles.phaseRow}>
                 <div className={`${styles.phaseNum} stencil`}>03</div>
                 <div>
-                  <h3>Fáza 3</h3>
-                  <p>
-                    Platby a predplatné, kalendár rezervácií, pokročilé reporty, mobilná
-                    optimalizácia / PWA, white-label branding
-                  </p>
+                  <h3>{t("roadmap.phase3")}</h3>
+                  <p>{t("roadmap.phase3Text")}</p>
                 </div>
               </div>
             </div>
@@ -790,15 +734,11 @@ export default async function LandingPage() {
           <div className={styles.wrap}>
             <div data-reveal className={`${styles.finalCtaInner} ${styles.reveal}`}>
               <div>
-                <h2>
-                  Zdvihni administratívu
-                  <br />
-                  zo svojich pliec.
-                </h2>
-                <p>14 dní zadarmo, bez viazanosti. Nastavenie klientov trvá menej ako obed.</p>
+                <h2>{t.rich("final.title", rich)}</h2>
+                <p>{t("final.sub")}</p>
               </div>
               <Link href="/prihlasenie#register-trener" className={`btn ${styles.finalCtaBtn}`}>
-                Začať skúšobné obdobie
+                {t("final.cta")}
                 <ArrowIcon />
               </Link>
             </div>
@@ -814,22 +754,19 @@ export default async function LandingPage() {
               FitPilot
             </div>
             <div className={styles.footLinks}>
-              <a href="#funkcie">Funkcie</a>
-              <a href="#ai">AI</a>
-              <a href="#cennik">Cenník</a>
-              <a href="mailto:podpora@myfitpilot.sk">Kontakt</a>
-              <Link href="/ochrana-sukromia">Ochrana súkromia</Link>
-              <Link href="/obchodne-podmienky">Obchodné podmienky</Link>
-              <Link href="/cookies">Cookies</Link>
+              <a href="#funkcie">{t("nav.features")}</a>
+              <a href="#ai">{t("nav.ai")}</a>
+              <a href="#cennik">{t("nav.pricing")}</a>
+              <a href="mailto:podpora@myfitpilot.sk">{t("footer.contact")}</a>
+              <Link href="/ochrana-sukromia">{t("footer.privacy")}</Link>
+              <Link href="/obchodne-podmienky">{t("footer.terms")}</Link>
+              <Link href="/cookies">{t("footer.cookies")}</Link>
             </div>
           </div>
-          <p className={styles.fine}>
-            FitPilot je koncept pre slovenský a český trh fitness trénerov. Zobrazené dáta
-            klientov, tréningov a cien sú ilustračné ukážky produktu, nie reálne referencie.
-          </p>
+          <p className={styles.fine}>{t("footer.fine")}</p>
         </div>
       </footer>
-      <StickyMobileCta />
+      <StickyMobileCta label={t("hero.ctaTrial")} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { BARCODE_FORMATS, parseBarcode, type BarcodeFormat } from "@/lib/barcode";
@@ -46,18 +47,13 @@ async function createDetector(): Promise<Detector> {
   return new BarcodeDetector({ formats });
 }
 
-function cameraErrorMessage(err: unknown): string {
+/** Kľúč hlášky v messages/<jazyk>/food.json → scanner */
+function cameraErrorKey(err: unknown): "denied" | "noCamera" | "busy" | "failed" {
   const name = err instanceof DOMException ? err.name : "";
-  if (name === "NotAllowedError" || name === "SecurityError") {
-    return "Prístup ku kamere je zamietnutý. Povoľ ho v nastaveniach prehliadača (ikona pri adrese stránky) alebo zadaj číslo kódu ručne.";
-  }
-  if (name === "NotFoundError" || name === "OverconstrainedError") {
-    return "Nenašli sme kameru. Zadaj číslo kódu ručne.";
-  }
-  if (name === "NotReadableError") {
-    return "Kameru práve používa iná aplikácia. Zavri ju a skús znova, alebo zadaj číslo kódu ručne.";
-  }
-  return "Kameru sa nepodarilo spustiť. Zadaj číslo kódu ručne.";
+  if (name === "NotAllowedError" || name === "SecurityError") return "denied";
+  if (name === "NotFoundError" || name === "OverconstrainedError") return "noCamera";
+  if (name === "NotReadableError") return "busy";
+  return "failed";
 }
 
 const CloseIcon = () => (
@@ -81,6 +77,7 @@ const FlashIcon = () => (
  * `onDetected` dostane kód v jednotnom tvare (lib/barcode.ts).
  */
 export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
+  const t = useTranslations("food.scanner");
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -118,8 +115,8 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
         setStatus("error");
         setCameraError(
           window.isSecureContext
-            ? "Tento prehliadač nevie spustiť kameru. Zadaj číslo kódu ručne."
-            : "Kamera funguje len cez zabezpečené pripojenie (HTTPS). Zadaj číslo kódu ručne.",
+            ? t("unsupported")
+            : t("insecure"),
         );
         return;
       }
@@ -131,7 +128,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
       } catch (err) {
         if (stopped) return;
         setStatus("error");
-        setCameraError(cameraErrorMessage(err));
+        setCameraError(t(cameraErrorKey(err)));
         return;
       }
       if (stopped) return stopStream();
@@ -157,7 +154,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
         if (stopped) return;
         stopStream();
         setStatus("error");
-        setCameraError("Skener sa nepodarilo spustiť. Zadaj číslo kódu ručne.");
+        setCameraError(t("scannerFailed"));
         return;
       }
       if (stopped) return stopStream();
@@ -193,6 +190,8 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
       stopped = true;
       stopStream();
     };
+    // kamera sa spúšťa raz pri otvorení — preklad (t) sa počas skenovania nemení
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Escape zavrie, stránka pod oknom sa neposúva, fokus na "Zavrieť".
@@ -226,17 +225,17 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
     e.preventDefault();
     const parsed = parseBarcode(manual);
     if (!parsed) {
-      setManualError("Neplatný kód — zadaj 8, 12 alebo 13 číslic spod čiarového kódu.");
+      setManualError(t("invalidCode"));
       return;
     }
     onDetected(parsed.code);
   }
 
   const hint =
-    status === "starting" ? "Spúšťam kameru…" : status === "scanning" ? "Namier kameru na čiarový kód na obale." : null;
+    status === "starting" ? t("starting") : status === "scanning" ? t("aim") : null;
 
   const overlay = (
-    <div className={styles.scanOverlay} role="dialog" aria-modal="true" aria-label="Skenovanie čiarového kódu">
+    <div className={styles.scanOverlay} role="dialog" aria-modal="true" aria-label={t("dialog")}>
       <video ref={videoRef} className={styles.scanVideo} playsInline muted autoPlay aria-hidden="true" />
       {status !== "error" && (
         <div className={styles.scanShade} aria-hidden="true">
@@ -245,7 +244,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
       )}
 
       <div className={styles.scanTop}>
-        <button ref={closeRef} type="button" className={styles.scanIconBtn} onClick={onClose} aria-label="Zavrieť skener">
+        <button ref={closeRef} type="button" className={styles.scanIconBtn} onClick={onClose} aria-label={t("close")}>
           <CloseIcon />
         </button>
         {torchSupported && (
@@ -254,7 +253,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
             className={`${styles.scanIconBtn} ${torchOn ? styles.scanIconBtnOn : ""}`}
             onClick={toggleTorch}
             aria-pressed={torchOn}
-            aria-label="Blesk"
+            aria-label={t("torch")}
           >
             <FlashIcon />
           </button>
@@ -274,7 +273,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
         )}
         <form className={styles.scanManual} onSubmit={submitManual} noValidate>
           <label htmlFor="scan-manual-code" className={styles.scanManualLabel}>
-            Číslo pod čiarovým kódom
+            {t("manualLabel")}
           </label>
           <div className={styles.scanManualRow}>
             <input
@@ -284,7 +283,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
               inputMode="numeric"
               autoComplete="off"
               maxLength={18}
-              placeholder="napr. 8586000201234"
+              placeholder={t("manualPlaceholder")}
               value={manual}
               onChange={(e) => {
                 setManual(e.target.value);
@@ -292,7 +291,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
               }}
             />
             <button type="submit" className="btn btn-primary">
-              Hľadať
+              {t("search")}
             </button>
           </div>
           {manualError && <p className={styles.scanError}>{manualError}</p>}

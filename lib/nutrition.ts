@@ -6,6 +6,7 @@ export type Sex = "muz" | "zena";
 export type ActivityLevel = "sedavy" | "lahka" | "stredna" | "vysoka" | "velmi_vysoka";
 export type Goal = "chudnutie" | "udrzanie" | "naberanie";
 
+// i18n-ignore-start — slovenské popisy pre prompt AI (UI: labels.activity / labels.goal)
 export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
   sedavy: "Sedavý (kancelária, žiadny šport)",
   lahka: "Ľahká aktivita (1–3× týždenne)",
@@ -20,6 +21,7 @@ export const GOAL_LABELS: Record<Goal, string> = {
   naberanie: "Naberanie",
 };
 
+// i18n-ignore-end
 const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   sedavy: 1.2,
   lahka: 1.375,

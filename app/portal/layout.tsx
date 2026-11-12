@@ -1,10 +1,11 @@
+import { getTranslations } from "next-intl/server";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
-import { CLIENT_TOUR_STEPS } from "@/lib/onboarding/tourSteps";
+import { tourStepsFor } from "@/lib/onboarding/tourSteps";
 import { LogoMark } from "@/app/components/LogoMark";
 import { OnboardingTour } from "@/app/components/OnboardingTour";
 import { NavigationProgressProvider } from "@/app/components/NavigationProgress";
@@ -20,10 +21,13 @@ import s from "./portal.module.css";
    tokeny v app/v6design/styles/tokens.module.css). Auth guard a údaje navigácie
    v loadPortalShell (portalShell.ts). Bývalé /v6design/portal/* presmerúva next.config.ts. */
 
-export const metadata: Metadata = {
-  title: "FitPilot — Portál",
-  description: "Tvoj dnešný tréning a plán týždňa na jednom mieste.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("nav");
+  return {
+  title: t("portalMetaTitle"),
+  description: t("portalMetaDescription"),
+  };
+}
 
 export async function generateViewport(): Promise<Viewport> {
   return { themeColor: v6ThemeColor(parseV6Theme((await cookies()).get(V6_THEME_COOKIE)?.value)) };
@@ -35,7 +39,7 @@ export default async function PortalLayout({ children }: { children: React.React
   // (DB len keď cookie „tour videný“ chýba).
   const [{ chatUnread, aiKoucVisible, displayName }, cookieStore, {
     data: { user },
-  }] = await Promise.all([loadPortalShell(), cookies(), getUser()]);
+  }, tn] = await Promise.all([loadPortalShell(), cookies(), getUser(), getTranslations("nav")]);
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
@@ -53,7 +57,7 @@ export default async function PortalLayout({ children }: { children: React.React
             </Link>
             <div className={s.v6TopActions}>
               <NotificationBellSlot placement="header" />
-              <Link href="/portal/profil" className={s.v6Avatar} aria-label="Profil" data-tour="nav-profil">
+              <Link href="/portal/profil" className={s.v6Avatar} aria-label={tn("profile")} data-tour="nav-profil">
                 {initial}
               </Link>
             </div>
@@ -69,7 +73,7 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
         <Suspense fallback={null}>
-          <OnboardingTour steps={CLIENT_TOUR_STEPS} tourSeen={tourSeen} />
+          <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} />
         </Suspense>
       </NavigationProgressProvider>
     </div>

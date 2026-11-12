@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 // FitPilot — AI blok, Krok 4b: server action pre AI Kouč (klientský AI chat).
 // Vždy pod session prihláseného klienta — RLS na ai_conversations/ai_messages
 // (0014) a insert_ai_escalation_message() (0015) platí automaticky. Konverzácia
@@ -28,11 +29,11 @@ export async function sendAiKoucMessageAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const body = ((formData.get("body") as string | null) ?? "").trim();
-  if (!body) return { error: "Prázdna správa." };
-  if (body.length > 4000) return { error: "Správa je príliš dlhá (max 4000 znakov)." };
+  if (!body) return { error: await tErr("emptyMessage") };
+  if (body.length > 4000) return { error: await tErr("messageTooLong") };
 
   const { data: client, error: clientErr } = await supabase
     .from("clients")
@@ -41,9 +42,9 @@ export async function sendAiKoucMessageAction(
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (clientErr) return { error: dbErr(clientErr, "actions") };
-  if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
-  if (!client.trainer_id) return { error: "AI Kouč je zatiaľ dostupný len klientom s prideleným trénerom." };
+  if (clientErr) return { error: await dbErr(clientErr, "actions") };
+  if (!client) return { error: await tErr("client.notLinkedTrainer") };
+  if (!client.trainer_id) return { error: await tErr("client.aiCoachTrainerOnly") };
 
   // Konverzácia aj jej história jedným dopytom (predtým dva za sebou); založí sa lazy
   // pri prvej správe (unique client_id). História = POSLEDNÝCH N správ (zostupne +
@@ -58,7 +59,7 @@ export async function sendAiKoucMessageAction(
     .order("created_at", { referencedTable: "ai_messages", ascending: false })
     .limit(HISTORY_FETCH_LIMIT, { referencedTable: "ai_messages" })
     .maybeSingle();
-  if (existingErr) return { error: dbErr(existingErr, "actions") };
+  if (existingErr) return { error: await dbErr(existingErr, "actions") };
   if (existingConv) {
     conversationId = existingConv.id;
     historyRows = [...((existingConv.ai_messages as typeof historyRows | null) ?? [])].reverse();
@@ -68,10 +69,10 @@ export async function sendAiKoucMessageAction(
       .insert({ client_id: client.id })
       .select("id")
       .single();
-    if (convErr) return { error: dbErr(convErr, "actions") };
+    if (convErr) return { error: await dbErr(convErr, "actions") };
     conversationId = newConv.id;
   }
-  if (!conversationId) return { error: "Nepodarilo sa založiť konverzáciu." };
+  if (!conversationId) return { error: await tErr("client.conversationFailed") };
 
   const history = historyRows.map((r) => ({ role: r.role as "user" | "assistant", content: r.content }));
 
@@ -92,7 +93,7 @@ export async function sendAiKoucMessageAction(
       history,
     }),
   ]);
-  if (insertUserErr) return { error: dbErr(insertUserErr, "actions") };
+  if (insertUserErr) return { error: await dbErr(insertUserErr, "actions") };
 
   // Odpoveď asistenta zapisuje SERVER (service role), nie session klienta — od migrácie
   // 0036 klient smie vkladať len vlastné (user) správy, inak by si vedel podvrhnúť
@@ -111,7 +112,7 @@ export async function sendAiKoucMessageAction(
   });
   if (insertAssistantErr) {
     console.error("sendAiKoucMessageAction (assistant insert):", insertAssistantErr.message);
-    return { error: "Odpoveď sa nepodarilo uložiť. Skús to prosím znova." };
+    return { error: await tErr("client.replySaveFailed") };
   }
 
   revalidatePath("/portal/ai-kouc");

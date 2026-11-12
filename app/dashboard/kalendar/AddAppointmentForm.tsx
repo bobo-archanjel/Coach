@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useRef, useEffect, useState, type FormEvent } from "react";
 import {
   createAppointmentAction,
@@ -39,6 +40,7 @@ export function AppointmentForm({
   initial?: AppointmentFormValues;
   onDone?: () => void;
 }) {
+  const t = useTranslations("calendar.form");
   const editing = Boolean(appointmentId);
   const [state, formAction, pending] = useActionState(
     editing ? updateAppointmentAction : createAppointmentAction,
@@ -115,10 +117,10 @@ export function AppointmentForm({
             defaultValue={v.client_id}
             onChange={clear("client_id")}
             aria-invalid={missing.has("client_id") || undefined}
-            aria-label="Klient (povinné)"
+            aria-label={t("client")}
           >
             <option value="" disabled>
-              Vyber klienta *
+              {t("chooseClient")}
             </option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -130,7 +132,7 @@ export function AppointmentForm({
         <input
           name="title"
           type="text"
-          placeholder="Názov, napr. Konzultácia (voliteľné)"
+          placeholder={t("titlePlaceholder")}
           maxLength={200}
           defaultValue={v.title}
           disabled={pending}
@@ -139,7 +141,7 @@ export function AppointmentForm({
       </div>
       <div className={styles.addClientFieldsRow}>
         <label className={styles.timeField}>
-          <span className={styles.timeFieldLabel}>Dátum *</span>
+          <span className={styles.timeFieldLabel}>{t("date")}</span>
           <input
             name="date"
             type="date"
@@ -151,7 +153,7 @@ export function AppointmentForm({
           />
         </label>
         <label className={styles.timeField}>
-          <span className={styles.timeFieldLabel}>Od *</span>
+          <span className={styles.timeFieldLabel}>{t("from")}</span>
           <input
             name="time"
             type="time"
@@ -163,7 +165,7 @@ export function AppointmentForm({
           />
         </label>
         <label className={styles.timeField}>
-          <span className={styles.timeFieldLabel}>Do (voliteľné)</span>
+          <span className={styles.timeFieldLabel}>{t("to")}</span>
           <input name="end_time" type="time" defaultValue={v.end_time} disabled={pending} className={styles.addClientInputSm} />
         </label>
       </div>
@@ -171,27 +173,33 @@ export function AppointmentForm({
         <input
           name="note"
           type="text"
-          placeholder="Poznámka (voliteľné)"
+          placeholder={t("notePlaceholder")}
           maxLength={1000}
           defaultValue={v.note}
           disabled={pending}
           className={styles.addClientInput}
         />
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? "Ukladám…" : editing ? "Uložiť zmeny" : selected.length > 1 ? `Pridať termín (${selected.length})` : "Pridať termín"}
+          {pending
+            ? t("saving")
+            : editing
+              ? t("saveChanges")
+              : selected.length > 1
+                ? t("addFor", { count: selected.length })
+                : t("add")}
         </button>
         {editing && (
           <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={pending}>
-            Zrušiť
+            {t("cancel")}
           </button>
         )}
       </div>
       {!editing && selected.length > 1 && (
-        <p className={styles.formHint}>Každý vybraný klient dostane vlastný termín v rovnakom čase.</p>
+        <p className={styles.formHint}>{t("multiHint")}</p>
       )}
       {missing.size > 0 ? (
         <p className={styles.noWorkouts} role="alert">
-          {missing.has("client_id") && missing.size === 1 ? "Vyber aspoň jedného klienta." : "Vyplň zvýraznené povinné polia."}
+          {missing.has("client_id") && missing.size === 1 ? t("chooseAtLeastOne") : t("fillRequired")}
         </p>
       ) : (
         state.error && <p className={styles.noWorkouts}>{state.error}</p>
@@ -201,8 +209,9 @@ export function AppointmentForm({
 }
 
 export function AddAppointmentForm({ clients }: { clients: { id: string; full_name: string }[] }) {
+  const t = useTranslations("calendar");
   if (clients.length === 0) {
-    return <p className={styles.noWorkouts}>Najprv pridaj klienta na stránke Klienti.</p>;
+    return <p className={styles.noWorkouts}>{t("noClients")}</p>;
   }
   return <AppointmentForm clients={clients} />;
 }

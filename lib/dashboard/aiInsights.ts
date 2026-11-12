@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { TOPIC_LABELS } from "@/lib/ai/topicClassify";
+import { aiTopicLabel } from "@/lib/i18n/aiTopics";
+import { getUserLocale } from "@/lib/i18n/server";
 
 // Agregované AI Kouč insighty pre trénera (feature/AI) — "5 klientov sa tento
 // týždeň pýtalo na bolesť kolena" ako skorý varovný signál, BEZ prístupu k
@@ -21,9 +22,10 @@ export async function getAiTopicInsights(supabase: SupabaseClient, days = 7): Pr
     console.error("getAiTopicInsights:", error.message);
     return null;
   }
+  const locale = await getUserLocale();
   return (data ?? []).map((r: { topic: string; client_count: number }) => ({
     topic: r.topic,
-    label: TOPIC_LABELS[r.topic] ?? r.topic,
+    label: aiTopicLabel(r.topic, locale),
     clientCount: r.client_count,
   }));
 }

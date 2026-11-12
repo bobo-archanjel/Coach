@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// Jazyky (feature/cestina): next-intl bez i18n routingu, jazyk z cookie — i18n/request.ts
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 // Supabase projekt, na ktorý sa smie prehliadač pripájať (REST/Auth/Realtime). Predtým
 // `*.supabase.co` — povolilo by odoslať dáta na ĽUBOVOĽNÝ Supabase projekt (kanál na
@@ -153,4 +157,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

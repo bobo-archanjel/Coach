@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getPortalTraining } from "@/lib/portal/data";
 import { previewResult } from "@/app/portal/trening/preview";
 import { TrainingSection } from "@/app/portal/trening/TrainingSection";
@@ -8,13 +9,14 @@ import s from "../portal.module.css";
 /* /portal/trening — plány od trénera aj vlastné, šablóny a builder (TrainingSection). */
 
 export default async function TreningPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+  const t = await getTranslations("training");
   const { preview } = await searchParams;
   const result = (preview && previewResult(preview)) || (await getPortalTraining());
 
   if (result.state === "error") {
     return (
-      <Notice icon={<AlertIcon />} title="Nepodarilo sa načítať tvoje tréningy" tone="alert" action={<RetryButton />}>
-        Skús to o chvíľu znova. Ak to potrvá, napíš svojmu trénerovi.
+      <Notice icon={<AlertIcon />} title={t("loadFailedTitle")} tone="alert" action={<RetryButton />}>
+        {t("loadFailedText")}
       </Notice>
     );
   }
@@ -22,8 +24,8 @@ export default async function TreningPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <header>
-        <h1 className={s.pageTitle}>Tréning</h1>
-        <p className={s.pageSub}>Plány od trénera aj tvoje vlastné — vyber deň a začni.</p>
+        <h1 className={s.pageTitle}>{t("pageTitle")}</h1>
+        <p className={s.pageSub}>{t("pageSub")}</p>
       </header>
       <TrainingSection data={result.data} />
     </>
