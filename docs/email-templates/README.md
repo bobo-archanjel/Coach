@@ -25,9 +25,11 @@ nasadí neskôr, doplň šablónu vtedy.
 
 1. Supabase Dashboard → tvoj projekt → **Authentication → Email Templates**.
 2. Vyber šablónu zo zoznamu (**Confirm signup** / **Reset Password**).
-3. Do poľa **Subject heading** napíš:
-   - Confirm signup: `Potvrď svoju registráciu vo FitPilote`
-   - Reset Password: `Reset hesla vo FitPilote`
+3. Do poľa **Subject heading** vlož (predmet je tiež šablóna — slovensky alebo česky podľa jazyka účtu):
+   - Confirm signup:
+     `{{ if eq .Data.locale "cs" }}Potvrď svou registraci ve FitPilotu{{ else }}Potvrď svoju registráciu vo FitPilote{{ end }}`
+   - Reset Password:
+     `{{ if eq .Data.locale "cs" }}Obnovení hesla ve FitPilotu{{ else }}Reset hesla vo FitPilote{{ end }}`
 4. Do poľa **Message body** (HTML editor) vlož **celý obsah** príslušného `.html`
    súboru z tohto priečinka (vymaž pôvodný obsah poľa, vlož nový).
 5. Klikni **Save**.
@@ -36,6 +38,26 @@ Supabase do šablóny pri odosielaní doplní premenné v `{{ .Premenna }}` tvar
 v týchto dvoch šablónach sa používajú:
 
 - `{{ .ConfirmationURL }}` — hotový odkaz s tokenom (potvrdenie e-mailu / reset hesla).
+- `{{ .Data.locale }}` — jazyk účtu (`sk` / `cs`) z `user_metadata` (feature/cestina).
+
+### Jazyk e-mailu (slovenčina / čeština)
+
+Obe šablóny aj predmety sú dvojjazyčné: každý text je v tvare
+`{{ if eq .Data.locale "cs" }}česky{{ else }}slovensky{{ end }}`. `.Data` je
+`user_metadata` používateľa:
+
+- **registrácia** — `registerAction` posiela `locale` (jazyk, ktorý mal používateľ
+  zvolený pri registrácii) v `options.data`, takže potvrdzovací e-mail príde v ňom,
+- **reset hesla** — jazyk sa do `user_metadata` zapíše pri každej zmene jazyka
+  (`setLocaleAction`: Nastavenia / Profil / prepínač na úvodnej stránke po prihlásení),
+- účty spred tejto zmeny `locale` v metadátach nemajú → dostanú **slovenský** e-mail,
+  kým si raz nezmenia jazyk.
+
+**Po vložení do Supabase over oba jazyky:** zaregistruj testovací účet raz so
+slovenčinou a raz s češtinou (prepínač SK/CZ na úvodnej stránke pred registráciou)
+a skontroluj predmet aj text. Ak by Supabase pri účte bez `locale` hlásil chybu
+šablóny (staršia verzia Go šablón), nahraď podmienku za
+`{{ if and .Data.locale (eq .Data.locale "cs") }}`.
 
 Hlavička šablóny používa **`logo-mark.png`** (farebná značka, 26×26) + samostatný
 text "FitPilot" — rovnaký vzor ako `/prihlasenie` a `DashboardNav.tsx`. **Nie**

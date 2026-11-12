@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="sk">
+<html lang="{{ if eq .Data.locale "cs" }}cs{{ else }}sk{{ end }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Reset hesla</title>
+    <title>{{ if eq .Data.locale "cs" }}Obnovení hesla{{ else }}Reset hesla{{ end }}</title>
   </head>
   <body style="margin:0; padding:0; background:#f2ece6;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2ece6;">
@@ -35,10 +35,10 @@
             <tr>
               <td style="padding:24px 32px 8px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <h1 style="margin:0 0 12px; color:#1f1a17; font-size:22px; font-weight:800; letter-spacing:-0.02em;">
-                  Zabudnuté heslo
+                  {{ if eq .Data.locale "cs" }}Zapomenuté heslo{{ else }}Zabudnuté heslo{{ end }}
                 </h1>
                 <p style="margin:0 0 20px; color:#574d47; font-size:15px; line-height:1.55;">
-                  Niekto (dúfajme ty) požiadal o reset hesla k tvojmu FitPilot účtu. Klikni na tlačidlo nižšie a nastav si nové.
+                  {{ if eq .Data.locale "cs" }}Někdo (doufejme ty) požádal o obnovení hesla k tvému účtu FitPilot. Klikni na tlačítko níže a nastav si nové.{{ else }}Niekto (dúfajme ty) požiadal o reset hesla k tvojmu FitPilot účtu. Klikni na tlačidlo nižšie a nastav si nové.{{ end }}
                 </p>
               </td>
             </tr>
@@ -55,7 +55,7 @@
                         href="{{ .ConfirmationURL }}"
                         style="display:inline-block; color:#ffffff; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; letter-spacing:-0.01em; text-decoration:none; padding:13px 28px;"
                       >
-                        Nastaviť nové heslo
+                        {{ if eq .Data.locale "cs" }}Nastavit nové heslo{{ else }}Nastaviť nové heslo{{ end }}
                       </a>
                     </td>
                   </tr>
@@ -65,7 +65,7 @@
             <tr>
               <td style="padding:0 32px 28px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <p style="margin:0; color:#7d726a; font-size:12.5px; line-height:1.5;">
-                  Ak tlačidlo nefunguje, skopíruj tento odkaz do prehliadača:<br />
+                  {{ if eq .Data.locale "cs" }}Pokud tlačítko nefunguje, zkopíruj tento odkaz do prohlížeče:{{ else }}Ak tlačidlo nefunguje, skopíruj tento odkaz do prehliadača:{{ end }}<br />
                   <a href="{{ .ConfirmationURL }}" style="color:#b4492d; word-break:break-all;">{{ .ConfirmationURL }}</a>
                 </p>
               </td>
@@ -73,8 +73,9 @@
             <tr>
               <td style="padding:16px 32px 28px; border-top:1px solid #efe6dd; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <p style="margin:0; color:#7d726a; font-size:12px; line-height:1.5;">
-                  Ak si o reset hesla nepožiadal/a ty, tento e-mail jednoducho ignoruj — heslo sa nezmení, kým cez tento odkaz
-                  nikto nenastaví nové. Potrebuješ pomoc? <a href="mailto:podpora@myfitpilot.sk" style="color:#b4492d;">podpora@myfitpilot.sk</a>
+                  {{ if eq .Data.locale "cs" }}Pokud jsi o obnovení hesla nepožádal/a ty, tento e-mail jednoduše ignoruj — heslo se nezmění, dokud přes tento odkaz
+                  nikdo nenastaví nové. Potřebuješ pomoc?{{ else }}Ak si o reset hesla nepožiadal/a ty, tento e-mail jednoducho ignoruj — heslo sa nezmení, kým cez tento odkaz
+                  nikto nenastaví nové. Potrebuješ pomoc?{{ end }} <a href="mailto:podpora@myfitpilot.sk" style="color:#b4492d;">podpora@myfitpilot.sk</a>
                 </p>
               </td>
             </tr>

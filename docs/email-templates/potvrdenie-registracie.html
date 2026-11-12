@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="sk">
+<html lang="{{ if eq .Data.locale "cs" }}cs{{ else }}sk{{ end }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Potvrď registráciu</title>
+    <title>{{ if eq .Data.locale "cs" }}Potvrď registraci{{ else }}Potvrď registráciu{{ end }}</title>
   </head>
   <body style="margin:0; padding:0; background:#f2ece6;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2ece6;">
@@ -35,10 +35,10 @@
             <tr>
               <td style="padding:24px 32px 8px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <h1 style="margin:0 0 12px; color:#1f1a17; font-size:22px; font-weight:800; letter-spacing:-0.02em;">
-                  Vitaj vo FitPilote
+                  {{ if eq .Data.locale "cs" }}Vítej ve FitPilotu{{ else }}Vitaj vo FitPilote{{ end }}
                 </h1>
                 <p style="margin:0 0 20px; color:#574d47; font-size:15px; line-height:1.55;">
-                  Ešte jeden krok — potvrď svoju e-mailovú adresu a účet bude pripravený na prihlásenie.
+                  {{ if eq .Data.locale "cs" }}Ještě jeden krok — potvrď svou e-mailovou adresu a účet bude připravený k přihlášení.{{ else }}Ešte jeden krok — potvrď svoju e-mailovú adresu a účet bude pripravený na prihlásenie.{{ end }}
                 </p>
               </td>
             </tr>
@@ -55,7 +55,7 @@
                         href="{{ .ConfirmationURL }}"
                         style="display:inline-block; color:#ffffff; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; letter-spacing:-0.01em; text-decoration:none; padding:13px 28px;"
                       >
-                        Potvrdiť e-mail
+                        {{ if eq .Data.locale "cs" }}Potvrdit e-mail{{ else }}Potvrdiť e-mail{{ end }}
                       </a>
                     </td>
                   </tr>
@@ -65,7 +65,7 @@
             <tr>
               <td style="padding:0 32px 28px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <p style="margin:0; color:#7d726a; font-size:12.5px; line-height:1.5;">
-                  Ak tlačidlo nefunguje, skopíruj tento odkaz do prehliadača:<br />
+                  {{ if eq .Data.locale "cs" }}Pokud tlačítko nefunguje, zkopíruj tento odkaz do prohlížeče:{{ else }}Ak tlačidlo nefunguje, skopíruj tento odkaz do prehliadača:{{ end }}<br />
                   <a href="{{ .ConfirmationURL }}" style="color:#b4492d; word-break:break-all;">{{ .ConfirmationURL }}</a>
                 </p>
               </td>
@@ -73,8 +73,9 @@
             <tr>
               <td style="padding:16px 32px 28px; border-top:1px solid #efe6dd; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <p style="margin:0; color:#7d726a; font-size:12px; line-height:1.5;">
-                  Ak si tento účet nevytvoril/a ty, tento e-mail môžeš ignorovať — nikto bez potvrdenia e-mailu účet nepoužije.
-                  Potrebuješ pomoc? <a href="mailto:podpora@myfitpilot.sk" style="color:#b4492d;">podpora@myfitpilot.sk</a>
+                  {{ if eq .Data.locale "cs" }}Pokud jsi tento účet nevytvořil/a ty, můžeš tento e-mail ignorovat — bez potvrzení e-mailu účet nikdo nepoužije.
+                  Potřebuješ pomoc?{{ else }}Ak si tento účet nevytvoril/a ty, tento e-mail môžeš ignorovať — nikto bez potvrdenia e-mailu účet nepoužije.
+                  Potrebuješ pomoc?{{ end }} <a href="mailto:podpora@myfitpilot.sk" style="color:#b4492d;">podpora@myfitpilot.sk</a>
                 </p>
               </td>
             </tr>
