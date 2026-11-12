@@ -26,7 +26,7 @@ export function LanguageSelect() {
     setFailed(false);
     startTransition(async () => {
       const res = await setLocaleAction(next);
-      if (res.signedIn && !res.savedToAccount) setFailed(true);
+      if (res.signedIn && !res.savedToAccount && !res.accountUnsupported) setFailed(true);
       router.refresh();
     });
   };

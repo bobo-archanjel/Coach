@@ -10,6 +10,8 @@ export interface SetLocaleResult {
   signedIn: boolean;
   /** uložené do profilu (platí na každom zariadení) */
   savedToAccount: boolean;
+  /** migrácia 0059 ešte nie je spustená (RPC chýba) — ostáva len cookie, UI nehlási chybu */
+  accountUnsupported?: boolean;
 }
 
 /**
@@ -35,7 +37,9 @@ export async function setLocaleAction(next: unknown): Promise<SetLocaleResult> {
     supabase.rpc("set_my_locale", { p_locale: next }),
     supabase.auth.updateUser({ data: { locale: next } }),
   ]);
-  if (error) console.error("setLocaleAction:", error.message);
+  // PGRST202 = funkcia v DB nie je (migrácia 0059 nespustená) — ticho, len cookie
+  const accountUnsupported = error?.code === "PGRST202";
+  if (error && !accountUnsupported) console.error("setLocaleAction:", error.message);
   if (metaError) console.error("setLocaleAction (metadata):", metaError.message);
-  return { ok: true, signedIn: true, savedToAccount: !error };
+  return { ok: true, signedIn: true, savedToAccount: !error, accountUnsupported };
 }
