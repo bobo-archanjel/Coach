@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { renameDayAction } from "../actions";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 
 /**
  * "Premenovať" deň — formulár na celý riadok pod pilulkami (rovnako ako v jedálničku,
@@ -50,10 +50,13 @@ export function RenameDayForm({
         });
       }}
     >
+      <label htmlFor="trainer-day-rename" className={styles.addDayLabel}>
+        {t("dayName")}
+      </label>
       <input
+        id="trainer-day-rename"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        aria-label={t("dayName")}
         maxLength={120}
         className={styles.addDayInput}
         disabled={pending}

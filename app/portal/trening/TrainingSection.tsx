@@ -396,7 +396,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                         <div className={styles.trDay}>
                           <p className={styles.panelLabel}>
                             {selectedDay.name}
-                            {selectedDay.done && <span className={styles.trDoneBadge}>Hotovo</span>}
+                            {selectedDay.done && <span className={styles.trDoneBadge}>{tr("done")}</span>}
                           </p>
                           {selectedDay.lastLog &&
                           editingLogId === selectedDay.lastLog.id &&

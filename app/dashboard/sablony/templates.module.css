@@ -64,28 +64,6 @@
   background: var(--accent-soft);
   color: var(--accent-text);
 }
-.goals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-.goal {
-  padding: 7px 14px;
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  background: var(--surface-solid);
-  color: var(--paper-dim);
-  font-size: 13px;
-  font-weight: 650;
-  text-decoration: none;
-}
-.goalActive {
-  border-color: transparent;
-  background: var(--accent-grad);
-  color: var(--on-accent);
-  box-shadow: var(--accent-glow);
-}
 .search {
   width: 100%;
   margin-bottom: 14px;
@@ -146,14 +124,6 @@
   color: var(--paper-faint);
   font-size: 13px;
   font-weight: 600;
-}
-.goalChip {
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-size: 12px;
-  font-weight: 700;
 }
 .cardActions {
   display: flex;

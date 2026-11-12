@@ -36,5 +36,12 @@
   "saveWorkout": "Uložiť tréning",
   "sets": "Série",
   "load": "Záťaž (kg)",
-  "done": "Hotovo"
+  "done": "Hotovo",
+  "reps": "Opakovania",
+  "rest": "Pauza (s)",
+  "restValue": "pauza {seconds} s",
+  "namePlaceholder": "napr. white monster plan",
+  "daysAria": "Tréningové dni",
+  "newDayTitle": "Nový deň",
+  "close": "Zavrieť"
 }

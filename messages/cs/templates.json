@@ -4,8 +4,6 @@
   "kinds": "Druh šablon",
   "tabWorkout": "Tréninky",
   "tabMeal": "Jídelníčky",
-  "goal": "Cíl",
-  "all": "Všechny",
   "emptyWorkout": "Zatím žádné tréninkové šablony — otevři plán v sekci <link>Tréninky</link> a ulož ho jako šablonu.",
   "emptyMeal": "Zatím žádné šablony jídelníčků — otevři jídelníček v sekci <link>Jídelníčky</link> a ulož ho jako šablonu.",
   "searchWorkout": "Hledat tréninkovou šablonu…",
@@ -43,8 +41,6 @@
     "creating": "Vytvářím…"
   },
   "save": {
-    "goal": "Cíl šablony",
-    "noGoal": "Bez cíle",
     "saving": "Ukládám…",
     "save": "Uložit jako šablonu",
     "saved": "Uloženo — najdeš v <link>Šablonách</link>."

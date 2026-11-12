@@ -1,7 +1,9 @@
-/* Builder vlastného tréningu klienta (ClientPlanBuilder / ClientExerciseLibrary), dizajn v6.
-   Rovnaké názvy tried ako trénerov app/dashboard/treningy/[planId]/builder.module.css,
-   ale portál je úzky stĺpec, preto vždy jeden stĺpec: plátno (dni + cviky) hore,
-   knižnica pod ním a dá sa zbaliť na každej šírke.
+/* Builder tréningu v dizajne v6 — spoločný pre trénera (app/dashboard/treningy/[planId])
+   aj klienta (app/portal/trening: ClientPlanBuilder / ClientExerciseLibrary), nech vyzerajú
+   rovnako (feature/design-fixes). Vždy jeden stĺpec: plátno (dni + cviky) hore, pod ním
+   karta „Vlastný cvik“ (vždy viditeľná) a knižnica cvikov (zbalená, kým ju používateľ
+   neotvorí). Trénerove prvky navyše (partia vlastného cviku,
+   „Pridať do knižnice“, tempo, premenovanie dňa) sú na konci súboru.
    Tokeny (--surface, --accent…) z koreňa .root (app/v6design/styles/tokens.module.css). */
 
 .builderGrid {
@@ -17,64 +19,156 @@
   gap: 14px;
 }
 
-/* ---------- dni ---------- */
+/* ---------- dni ----------
+   Výber dňa je prepínač (segmentovaná dráha), nie rad tlačidiel: vybraný deň je vyvýšený
+   biely čip, ostatné tichý text, pri každom počet cvikov. Akcie dňa (Premenovať ·
+   Duplikovať · Zmazať deň) sú oddelene v riadku pod dráhou — predtým
+   dni aj akcie vyzerali ako tlačidlá a pri viacerých dňoch sa to miešalo. */
 .dayTabs {
+  position: relative; /* offsetLeft čipov pre posun aktívneho dňa do záberu (mobil) */
   display: flex;
-  align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
-}
-.dayTab,
-.addDayTab,
-.dayActionTab,
-.deleteDayTab {
-  min-height: 42px;
-  padding: 9px 16px;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.2;
-  cursor: pointer;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 22px;
+  background: var(--fill);
 }
 .dayTab {
-  background: var(--surface-solid);
-  border: 1px solid var(--hairline);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 260px;
+  min-height: 40px;
+  padding: 8px 9px 8px 14px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
   color: var(--paper-dim);
-  box-shadow: var(--shadow-1);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .dayTab:hover {
   color: var(--paper);
+  background: color-mix(in srgb, var(--surface-solid) 55%, transparent);
 }
 .dayTabActive,
 .dayTabActive:hover {
-  background: var(--accent-grad);
-  border-color: transparent;
-  color: var(--on-accent);
-  box-shadow: var(--accent-glow);
+  background: var(--surface-solid);
+  color: var(--paper);
+  font-weight: 720;
+  box-shadow: var(--shadow-1);
+}
+.dayTabName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dayTabCount {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--paper-faint);
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.dayTabActive .dayTabCount {
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 .addDayTab {
+  flex: none;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 18px;
   background: transparent;
-  border: 1.5px dashed var(--fill-strong);
-  color: var(--paper-dim);
+  color: var(--accent-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 720;
+  line-height: 1.2;
+  cursor: pointer;
 }
 .addDayTab:hover {
-  color: var(--paper);
-  border-color: var(--paper-faint);
+  background: var(--accent-soft);
 }
+/* Počítač: rovnomerná mriežka — pri viacerých dňoch zarovnané stĺpce, nie nerovné riadky */
+@media (min-width: 761px) {
+  .dayTabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+  .dayTab {
+    max-width: none;
+    justify-content: space-between;
+  }
+  .addDayTab {
+    justify-self: start;
+  }
+}
+/* Mobil: jeden riadok, ktorý sa posúva do strany (nie kopa zalomených čipov) */
+@media (max-width: 760px) {
+  .dayTabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .dayTabs::-webkit-scrollbar {
+    display: none;
+  }
+  .dayTab,
+  .addDayTab {
+    flex: none;
+    scroll-snap-align: start;
+  }
+  .dayTab {
+    max-width: 72vw;
+  }
+}
+
+/* riadok akcií vybraného dňa pod dráhou (názov aj počet cvikov sú vo vybranom čipe) */
+.dayHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.dayActionTab,
 .deleteDayTab {
+  min-height: 36px;
+  padding: 7px 12px;
+  border-radius: 999px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--paper-faint);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
 }
 /* "Duplikovať" — tiché ako "Zmazať deň", bez deštruktívneho odtieňa */
-.dayActionTab {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--paper-faint);
-}
 .dayActionTab:hover:not(:disabled) {
   color: var(--paper);
+  background: var(--fill);
 }
 .dayActionTab:disabled {
   opacity: 0.5;
@@ -291,6 +385,7 @@
 .editFieldSets,
 .editFieldReps,
 .editFieldLoad,
+.editFieldTempo,
 .editFieldRest {
   width: auto;
 }
@@ -303,7 +398,14 @@
   min-height: 46px;
 }
 
-/* ---------- knižnica cvikov ---------- */
+/* ---------- vlastný cvik + knižnica cvikov (dve karty pod sebou) ---------- */
+.librarySection {
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
 .library {
   order: 2;
   display: flex;
@@ -462,7 +564,7 @@
   color: var(--paper);
   background: var(--fill);
 }
-/* Filter podľa partie/vybavenia (feature/AIupgrade) — viď pôvodný builder.module.css. */
+/* Filter podľa partie/vybavenia (feature/AIupgrade) — taxonómia v lib/exerciseFilters.ts. */
 .libraryFilterRow {
   display: flex;
   flex-wrap: wrap;
@@ -549,15 +651,18 @@
   background: var(--danger-soft);
 }
 
-/* ---------- akcie aktívneho dňa (Premenovať · Duplikovať · Zmazať deň) ----------
-   Vždy spolu v jednom riadku pod pilulkami dní — predtým sa v zalamovanom rade dní
-   trhali medzi riadky. Mobil: tri rovnaké stĺpce. Potvrdenie zmazania ide na celý riadok. */
+/* ---------- akcie vybraného dňa (Premenovať · Duplikovať · Zmazať deň) ----------
+   Spolu v jednom riadku pod dráhou dní. Mobil: tri rovnaké stĺpce. Potvrdenie zmazania
+   ide na celý riadok. */
 .dayActionsRow {
-  flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
+}
+/* potvrdenie zmazania dňa: na celú šírku */
+.dayHead:has(.deleteDayConfirm) .dayActionsRow {
+  flex-basis: 100%;
 }
 .dayActionsRow > button {
   white-space: nowrap;
@@ -566,6 +671,7 @@
   .dayActionsRow {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex-basis: 100%;
   }
   .dayActionsRow > button {
     justify-content: center;
@@ -573,6 +679,35 @@
     font-size: 12.5px;
   }
   .dayActionsRow > :not(button) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ======================================================================
+   Trénerov builder — prvky, ktoré klient nemá
+   ====================================================================== */
+/* „Premenovať“ / „+ deň“: formulár na celý riadok pod pilulkami, popis nad poľom */
+.renameDayForm {
+  flex-basis: 100%;
+}
+.addDayLabel {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--paper-faint);
+}
+/* Chyba pri cviku (napr. odstránenie zlyhalo) — pod kartou na celú šírku */
+.exerciseRow .formError {
+  grid-column: 1 / -1;
+}
+/* Vlastný cvik trénera: názov + partia, „do tréningu“ + „do knižnice“ — na počítači 2 × 2 */
+@media (min-width: 761px) {
+  .customExerciseGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .customExerciseGrid .formError {
     grid-column: 1 / -1;
   }
 }
