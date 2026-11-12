@@ -300,14 +300,6 @@ export function ClientPlanBuilder({
       </label>
 
       <div className={`${b.builderGrid} ${styles.trBuilderGrid}`}>
-        <ClientExerciseLibrary
-          library={library}
-          hasDay={activeDay !== null}
-          defaultOpen={!prefilled}
-          onAdd={addExercise}
-          onDetail={openDetail}
-        />
-
         <div className={`${b.canvas} ${styles.trBuilderCanvas}`}>
           <div className={b.dayTabs}>
             {days.map((d) => (
@@ -540,6 +532,14 @@ export function ClientPlanBuilder({
             )}
           </div>
         </div>
+
+        {/* Až za plátnom aj v DOM — poradie pre klávesnicu/čítačku = vizuálne */}
+        <ClientExerciseLibrary
+          library={library}
+          hasDay={activeDay !== null}
+          onAdd={addExercise}
+          onDetail={openDetail}
+        />
       </div>
 
       {error && (

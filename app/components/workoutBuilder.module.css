@@ -1,7 +1,8 @@
 /* Builder tréningu v dizajne v6 — spoločný pre trénera (app/dashboard/treningy/[planId])
    aj klienta (app/portal/trening: ClientPlanBuilder / ClientExerciseLibrary), nech vyzerajú
-   rovnako (feature/design-fixes). Vždy jeden stĺpec: plátno (dni + cviky) hore, knižnica
-   cvikov pod ním ako zbaliteľná karta. Trénerove prvky navyše (partia vlastného cviku,
+   rovnako (feature/design-fixes). Vždy jeden stĺpec: plátno (dni + cviky) hore, pod ním
+   karta „Vlastný cvik“ (vždy viditeľná) a knižnica cvikov (zbalená, kým ju používateľ
+   neotvorí). Trénerove prvky navyše (partia vlastného cviku,
    „Pridať do knižnice“, tempo, premenovanie dňa) sú na konci súboru.
    Tokeny (--surface, --accent…) z koreňa .root (app/v6design/styles/tokens.module.css). */
 
@@ -305,7 +306,14 @@
   min-height: 46px;
 }
 
-/* ---------- knižnica cvikov ---------- */
+/* ---------- vlastný cvik + knižnica cvikov (dve karty pod sebou) ---------- */
+.librarySection {
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
 .library {
   order: 2;
   display: flex;
@@ -596,18 +604,6 @@
 /* Chyba pri cviku (napr. odstránenie zlyhalo) — pod kartou na celú šírku */
 .exerciseRow .formError {
   grid-column: 1 / -1;
-}
-/* Knižnica bez voľby používateľa („auto“): na počítači otvorená (hlavný nástroj
-   trénera), na mobile zbalená pod cvikmi dňa. Ťuk na hlavičku prepne na ručný stav. */
-@media (max-width: 760px) {
-  .libraryAuto .libraryBody {
-    display: none;
-  }
-}
-@media (min-width: 761px) {
-  .libraryAuto .libraryChevron {
-    transform: rotate(180deg);
-  }
 }
 /* Vlastný cvik trénera: názov + partia, „do tréningu“ + „do knižnice“ — na počítači 2 × 2 */
 @media (min-width: 761px) {

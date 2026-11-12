@@ -152,6 +152,7 @@
     "rest": "Pauza (s)",
     "tempoValue": "tempo {value}",
     "restValue": "pauza {seconds} s",
-    "exerciseDetail": "Detail cviku {name}"
+    "exerciseDetail": "Detail cviku {name}",
+    "customHeading": "Vlastný cvik"
   }
 }

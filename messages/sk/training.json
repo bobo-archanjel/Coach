@@ -56,6 +56,7 @@
     "noMatch": "Žiadny cvik nezodpovedá hľadaniu.",
     "prevPage": "Predchádzajúca strana",
     "nextPage": "Ďalšia strana",
-    "exerciseDetail": "Detail cviku {name}"
+    "exerciseDetail": "Detail cviku {name}",
+    "customHeading": "Vlastný cvik"
   }
 }

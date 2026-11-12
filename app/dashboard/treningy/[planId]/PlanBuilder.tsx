@@ -89,8 +89,6 @@ export function PlanBuilder({
 
   return (
     <div className={styles.builderGrid}>
-      <ExerciseLibrary exercises={library} activeDayId={activeDay?.id ?? null} planId={planId} />
-
       <div className={styles.canvas}>
         <div className={styles.dayTabs}>
           {localDays.map((day) => (
@@ -168,6 +166,9 @@ export function PlanBuilder({
           )}
         </div>
       </div>
+
+      {/* Až za plátnom aj v DOM (nielen cez CSS order) — poradie pre klávesnicu/čítačku = vizuálne */}
+      <ExerciseLibrary exercises={library} activeDayId={activeDay?.id ?? null} planId={planId} />
     </div>
   );
 }
