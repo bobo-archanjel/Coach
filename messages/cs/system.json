@@ -1,0 +1,12 @@
+{
+  "removedByTrainer": "Trenér tě odebral z portfolia. Tvoje tréninky, výživa, deník i zprávy se natrvalo smažou za 30 dní, pokud smazání nezruší.",
+  "deletionRequested": "Požádal/a jsi o smazání svých dat. Smažou se za 30 dní, pokud smazání nezrušíš v Profilu.",
+  "deletionCancelled": "Smazání bylo zrušeno — data zůstávají zachována.",
+  "cooperationPaused": "Trenér ukončil spolupráci. Tvoje tréninky, výživa i deník zůstávají uložené — spolupráci lze kdykoli obnovit.",
+  "cooperationResumed": "Spolupráce s trenérem byla obnovena.",
+  "addedAsClient": "{name} tě přidal/a jako svého klienta. Pokud si to nepřeješ, propojení zrušíš v Profilu.",
+  "trainerFallback": "Trenér",
+  "aiHealthNotice": "⚠️ AI asistent upozorňuje: klient v AI chatu zmínil možnou bolest/zranění: „{quote}“ — doporučujeme ozvat se mu co nejdříve.",
+  "aiCrisisNotice": "⚠️ AI asistent upozorňuje: klient v AI chatu naznačil možnou krizi (myšlenky na sebepoškození). Ozvi se mu prosím co nejdříve osobně a citlivě — obsah zprávy z důvodu soukromí neuvádíme.",
+  "aiSwapNotice": "ℹ️ AI Kouč: klient zmínil nepohodlí a požádal o náhradu cviku: „{quote}“ — AI mu navrhla alternativu z knihovny cviků, ověř prosím, že mu sedí."
+}

@@ -1,3 +1,4 @@
+import { localizeSystemMessage } from "@/lib/i18n/systemMessages";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { AppLink as Link } from "../../components/AppLink";
@@ -24,9 +25,10 @@ type MessageRow = {
   created_at: string;
 };
 
-function previewOf(m: MessageRow, you: string): string {
+function previewOf(m: MessageRow, you: string, locale: Locale): string {
   const prefix = m.sender === "trainer" ? you : "";
-  const text = m.body.replace(/\s+/g, " ").trim();
+  const body = m.sender === "system" ? localizeSystemMessage(m.body, locale) : m.body;
+  const text = body.replace(/\s+/g, " ").trim();
   const truncated = text.length > 64 ? `${text.slice(0, 64)}…` : text;
   return `${prefix}${truncated}`;
 }
@@ -150,7 +152,7 @@ export default async function SpravyPage({
                       >
                         <div>
                           <div className={styles.clientName}>{th.name}</div>
-                          <div className={styles.clientGoal}>{th.last ? previewOf(th.last, t("you")) : t("noMessageYet")}</div>
+                          <div className={styles.clientGoal}>{th.last ? previewOf(th.last, t("you"), locale) : t("noMessageYet")}</div>
                         </div>
                         <div className={styles.clientMeta}>
                           {th.unread > 0 && (

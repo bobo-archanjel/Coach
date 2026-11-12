@@ -1,5 +1,6 @@
 "use client";
 
+import { localizeSystemMessage } from "@/lib/i18n/systemMessages";
 import { useLocale, useTranslations } from "next-intl";
 import { MONTH_GENITIVE, WEEKDAY_LONG } from "@/lib/i18n/dates";
 import type { Locale } from "@/lib/i18n/locales";
@@ -284,7 +285,7 @@ const MessageList = memo(function MessageList({
         <div key={m.id} className={styles.group}>
           {newDay && <div className={styles.daySep}>{day}</div>}
           <div className={styles.systemRow}>
-            <p className={styles.systemNote}>{m.body}</p>
+            <p className={styles.systemNote}>{localizeSystemMessage(m.body, locale)}</p>
             <span className={styles.meta}>{timeOf(m.createdAt)}</span>
           </div>
         </div>
