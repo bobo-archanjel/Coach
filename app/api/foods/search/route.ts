@@ -8,6 +8,7 @@
 // feature/security: len prihlásený, obmedzená dĺžka a throttle — inak by server
 // slúžil ako otvorený proxy na Open Food Facts (vyčerpanie fair-use kvóty).
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { NextResponse, type NextRequest } from "next/server";
 import { getUser } from "@/lib/supabase/server";
 import { searchOpenFoodFactsCached } from "@/lib/openFoodFacts";
@@ -17,12 +18,12 @@ export async function GET(request: NextRequest) {
   const {
     data: { user },
   } = await getUser();
-  if (!user) return NextResponse.json({ error: "Nie si prihlásený.", results: [] }, { status: 401 });
+  if (!user) return NextResponse.json({ error: await tErr("notSignedIn"), results: [] }, { status: 401 });
 
   const query = request.nextUrl.searchParams.get("q") ?? "";
-  if (query.length > 80) return NextResponse.json({ error: "Hľadaný text je príliš dlhý.", results: [] });
+  if (query.length > 80) return NextResponse.json({ error: await tErr("api.queryTooLong"), results: [] });
   if (!allowWithinWindow(`off:${user.id}`, 20, 60_000)) {
-    return NextResponse.json({ error: "Príliš veľa vyhľadávaní naraz, skús to o chvíľu.", results: [] });
+    return NextResponse.json({ error: await tErr("api.tooManySearches"), results: [] });
   }
 
   try {
@@ -30,6 +31,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: null, results });
   } catch (err) {
     console.error("foods/search:", err);
-    return NextResponse.json({ error: "Vyhľadávanie momentálne nefunguje, skús to o chvíľu.", results: [] });
+    return NextResponse.json({ error: await tErr("api.searchFailed"), results: [] });
   }
 }

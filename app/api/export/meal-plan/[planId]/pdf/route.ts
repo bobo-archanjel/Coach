@@ -7,6 +7,9 @@
 // RLS na meal_plans/meal_days (0005): riadok vidí len vlastník-tréner alebo
 // klient, ktorému plán patrí. Cudzí používateľ dostane prázdny výsledok → 404.
 
+import { getTranslations } from "next-intl/server";
+import { tErr } from "@/lib/i18n/serverErrors";
+import { getUserLocale } from "@/lib/i18n/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateMealPlanPdf, type MealPlanReportEntry } from "@/lib/pdf/mealPlanReport";
@@ -17,14 +20,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Nie si prihlásený." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: await tErr("notSignedIn") }, { status: 401 });
 
   const { data: plan } = await supabase
     .from("meal_plans")
     .select("id, name, client_id, clients(full_name)")
     .eq("id", planId)
     .maybeSingle();
-  if (!plan) return NextResponse.json({ error: "Jedálniček sa nenašiel." }, { status: 404 });
+  if (!plan) return NextResponse.json({ error: await tErr("api.mealPlanNotFound") }, { status: 404 });
 
   const [{ data: days }, { data: profile }] = await Promise.all([
     supabase.from("meal_days").select("day_number, name, meals").eq("plan_id", planId).order("day_number"),
@@ -52,9 +55,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
       name: d.name,
       meals: Array.isArray(d.meals) ? (d.meals as MealPlanReportEntry[]) : [],
     })),
-  });
+  }, await getUserLocale());
 
-  const fileName = `${plan.name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || "jedalnicek"}.pdf`;
+  const fileName = `${plan.name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || (await getTranslations("errors.csv"))("mealPlanFallback")}.pdf`;
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",

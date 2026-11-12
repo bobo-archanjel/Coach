@@ -9,6 +9,10 @@
 // Fonty: štandardné PDF fonty nemajú slovenské diakritiky — vlastný TrueType cez fontkit.
 // Inter (OFL, assets/fonts/Inter-LICENSE.txt) — statické rezy z oficiálneho vydania v4.1.
 
+import { createTranslator } from "next-intl";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
+import skPdf from "@/messages/sk/pdf.json";
+import csPdf from "@/messages/cs/pdf.json";
 import { readFileSync } from "fs";
 import path from "path";
 import { PDFDocument, rgb, setCharacterSpacing, type PDFFont, type PDFImage, type PDFPage, type RGB } from "pdf-lib";
@@ -72,7 +76,18 @@ export const COLORS = {
 /** Farby makier ako v appke (MacroChips, makro pruhy): bielkoviny terakota, sacharidy jantár, tuky mach. */
 export const MACRO_COLORS = { protein: COLORS.accent, carbs: COLORS.amber, fat: COLORS.moss };
 
+/* Texty PDF — vlastný translator nad menným priestorom `pdf` (čistý modul bez next/headers,
+   generovanie beží aj v unit testoch); jazyk dodá route handler (getUserLocale). */
+const PDF_MESSAGES: Record<Locale, typeof skPdf> = { sk: skPdf, cs: csPdf };
+
+function pdfTranslator(locale: Locale) {
+  return createTranslator({ locale, messages: { pdf: PDF_MESSAGES[locale] }, namespace: "pdf" });
+}
+
 export interface PdfContext {
+  /** jazyk a texty dokumentu (messages/<jazyk>/pdf.json) — podľa jazyka používateľa */
+  locale: Locale;
+  t: ReturnType<typeof pdfTranslator>;
   doc: PDFDocument;
   regular: PDFFont;
   semibold: PDFFont;
@@ -80,7 +95,8 @@ export interface PdfContext {
   logo: PDFImage | null;
 }
 
-export async function createPdfContext(): Promise<PdfContext> {
+export async function createPdfContext(locale: Locale = "sk"): Promise<PdfContext> {
+  const t = pdfTranslator(locale);
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const [regular, semibold, bold, logo] = await Promise.all([
@@ -90,7 +106,7 @@ export async function createPdfContext(): Promise<PdfContext> {
     // značka loga (wordmark je raster so svetlým textom — na svetlom pozadí by zmizol)
     doc.embedPng(assetBytes("public", "brand", "logo-mark.png")).catch(() => null),
   ]);
-  return { doc, regular, semibold, bold, logo };
+  return { locale, t, doc, regular, semibold, bold, logo };
 }
 
 export interface TableColumn {
@@ -192,7 +208,6 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number, m
 export class PdfWriter {
   private page!: PDFPage;
   private y = 0;
-  private generatedOn = new Date().toLocaleDateString("sk-SK", { timeZone: "Europe/Bratislava" });
 
   constructor(
     private ctx: PdfContext,
@@ -382,7 +397,7 @@ export class PdfWriter {
       const last = j >= input.rows.length;
 
       this.card(this.y, h);
-      this.drawCardTitle(input.title, first ? input.aside : "pokračovanie", !first);
+      this.drawCardTitle(input.title, first ? input.aside : this.ctx.t("continued"), !first);
       let y = this.y - CARD_PAD - TITLE_ROW_H;
       if (first) y = this.drawSubtitle(subtitleLines, y);
       y = this.drawHeaderRow(input.columns, colW, y);
@@ -488,9 +503,10 @@ export class PdfWriter {
   async bytes(): Promise<Uint8Array> {
     const pages = this.ctx.doc.getPages();
     pages.forEach((p, i) => {
-      const left = `FitPilot · vygenerované ${this.generatedOn}`;
+      const generatedOn = new Date().toLocaleDateString(intlLocale(this.ctx.locale), { timeZone: "Europe/Bratislava" });
+      const left = this.ctx.t("generated", { date: generatedOn });
       p.drawText(left, { x: MARGIN, y: 28, size: 8, font: this.ctx.regular, color: COLORS.faint });
-      const right = `Strana ${i + 1} / ${pages.length}`;
+      const right = this.ctx.t("page", { page: i + 1, total: pages.length });
       const w = this.ctx.regular.widthOfTextAtSize(right, 8);
       p.drawText(right, { x: PAGE_WIDTH - MARGIN - w, y: 28, size: 8, font: this.ctx.regular, color: COLORS.faint });
     });

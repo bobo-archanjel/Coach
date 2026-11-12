@@ -3,6 +3,8 @@
 // (Content-Disposition), Server Action to nevie priamo vrátiť prehliadaču.
 // Auth guard je tu vlastný (Route Handlery obchádzajú app/dashboard/layout.tsx).
 
+import { tErr } from "@/lib/i18n/serverErrors";
+import { getUserLocale } from "@/lib/i18n/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generatePlanPdf } from "@/lib/pdf/planReport";
@@ -23,7 +25,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Nie si prihlásený." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: await tErr("notSignedIn") }, { status: 401 });
 
   // Plán aj dni naraz — dni potrebujú len planId (RLS ich obmedzí na trénera) a bez
   // plánu sa aj tak zahodia (404).
@@ -36,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
       .maybeSingle(),
     supabase.from("workout_days").select("day_number, name, exercises").eq("plan_id", planId).order("day_number"),
   ]);
-  if (!plan) return NextResponse.json({ error: "Plán sa nenašiel." }, { status: 404 });
+  if (!plan) return NextResponse.json({ error: await tErr("planNotFound") }, { status: 404 });
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
 
@@ -54,7 +56,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
         restSeconds: ex.rest_seconds,
       })),
     })),
-  });
+  }, await getUserLocale());
 
   const fileName = `${plan.name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || "plan"}.pdf`;
   return new NextResponse(Buffer.from(pdfBytes), {

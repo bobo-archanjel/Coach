@@ -164,5 +164,32 @@
     "macrosMax": "Bílkoviny, sacharidy a tuky dohromady nemohou mít víc než 100 g na 100 g.",
     "aiCoachTrainerOnly": "AI Kouč je zatím dostupný jen klientům s přiděleným trenérem.",
     "diaryRange": "Zapisovat jde jen za posledních {days} dní, ne do budoucna."
+  },
+  "api": {
+    "clientNotFound": "Klient se nenašel.",
+    "mealPlanNotFound": "Jídelníček se nenašel.",
+    "queryTooLong": "Hledaný text je příliš dlouhý.",
+    "tooManySearches": "Příliš mnoho vyhledávání najednou, zkus to za chvíli.",
+    "searchFailed": "Vyhledávání momentálně nefunguje, zkus to za chvíli.",
+    "invalidBarcode": "Neplatný čárový kód — zkontroluj číslice pod kódem.",
+    "tooManyScans": "Příliš mnoho skenů najednou, zkus to za chvíli.",
+    "lookupFailed": "Vyhledání kódu selhalo, zkus to znovu.",
+    "offBusy": "Databáze produktů je teď vytížená. Zkus to za minutu nebo potravinu založ ručně.",
+    "offDown": "Open Food Facts teď neodpovídá. Zkus to za chvíli nebo potravinu založ ručně."
+  },
+  "csv": {
+    "date": "Datum",
+    "weight": "Váha (kg)",
+    "waist": "Pas (cm)",
+    "chest": "Hrudník (cm)",
+    "hips": "Boky (cm)",
+    "arm": "Paže (cm)",
+    "thigh": "Stehno (cm)",
+    "note": "Poznámka",
+    "measurementsFile": "mereni",
+    "clientFallback": "klient",
+    "progressFile": "pokrok",
+    "mealPlanFallback": "jidelnicek",
+    "planFallback": "plan"
   }
 }
