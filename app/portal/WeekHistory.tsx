@@ -79,7 +79,7 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
     setLoading(false);
     if (res.state === "ok") setWeek(res.week);
     else setError(res.message ?? t("loadFailed"));
-  }, []);
+  }, [t]);
 
   const openDay = openIso ? week.days.find((d) => d.iso === openIso) ?? null : null;
   const hasHistory = week.days.some((d) => d.sessions.length > 0);
