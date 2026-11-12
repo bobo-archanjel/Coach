@@ -2421,6 +2421,30 @@ select.addClientInputSm {
 .appointmentBody {
   min-width: 0;
 }
+/* Na počítači je deň vlastná karta — termíny v nej bez ďalšieho rámika (nie karta
+   v karte), viac termínov oddelí tenká čiara. Na mobile má karta dňa rámik zrušený
+   (.cardFlatMobile), tam ostáva termín vlastnou kartou. */
+@media (min-width: 761px) {
+  .appointmentList {
+    gap: 0;
+  }
+  .appointmentRow {
+    padding: 12px 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .appointmentRow:first-child {
+    padding-top: 2px;
+  }
+  .appointmentRow:last-child {
+    padding-bottom: 0;
+  }
+  .appointmentRow + .appointmentRow {
+    border-top: 1px solid var(--hairline);
+  }
+}
 @media (max-width: 480px) {
   .appointmentRow {
     grid-template-columns: 44px 1fr;
