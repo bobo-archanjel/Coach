@@ -27,6 +27,7 @@ let cached: Anthropic | null = null;
 export function getAnthropicClient(): Anthropic {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error(
+      // i18n-ignore — vývojárska chyba (log), volajúci zobrazí vlastnú preloženú hlášku
       "ANTHROPIC_API_KEY nie je nastavený v .env.local — AI funkcie zatiaľ nie sú dostupné.",
     );
   }

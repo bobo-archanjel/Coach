@@ -14,10 +14,12 @@ import { getTrainingHistoryLines } from "@/lib/ai/trainingHistoryContext";
 import type { ActivityLevel, Goal } from "@/lib/nutrition";
 import { reserveAiSlot, AI_PLAN_GEN_DAILY_LIMIT } from "@/lib/ai/rateLimit";
 import { AI_MODEL } from "@/lib/ai/client";
-import { PLAN_GOALS, PLAN_GOAL_LABEL_SK } from "@/lib/planGoals";
+import { PLAN_GOALS } from "@/lib/planGoals";
 import { dbErr } from "@/lib/dbError";
 import { parsePlanSnapshot, snapshotToPlanEntries } from "@/lib/workouts/completed";
-import { getDayForEdit, isPlanLocked, PLAN_LOCKED_ERROR } from "@/lib/dashboard/planCompletion";
+import { getDayForEdit, isPlanLocked } from "@/lib/dashboard/planCompletion";
+import { tErr } from "@/lib/i18n/serverErrors";
+import { getTranslations } from "next-intl/server";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 
 export interface ActionState {
@@ -71,19 +73,19 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const clientIds = uniqueClientIds(formData.getAll("client_id"));
   const name = (formData.get("name") as string | null)?.trim() ?? "";
 
-  if (clientIds.length === 0) return { error: "Vyber klienta." };
+  if (clientIds.length === 0) return { error: await tErr("chooseClient") };
   if (clientIds.length > MAX_PLAN_CLIENTS) return { error: `Naraz najviac ${MAX_PLAN_CLIENTS} klientov.` };
-  if (!name) return { error: "Zadaj názov plánu." };
+  if (!name) return { error: await tErr("plans.planNameRequired") };
 
   // Viacerí klienti → JEDEN koncept pre prvého, ostatní sú jeho príjemcovia (0052) —
   // po odoslaní dostane každý vlastnú kópiu (lib/planRecipients), rovnako ako šablóny.
   const [clientId, ...others] = clientIds;
-  if (!(await areTrainerClients(supabase, user.id, others))) return { error: "Niektorý z vybraných klientov nepatrí tebe." };
+  if (!(await areTrainerClients(supabase, user.id, others))) return { error: await tErr("plans.someSelectedNotYours") };
 
   const { data, error } = await supabase
     .from("workout_plans")
@@ -93,13 +95,13 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
     .select("id")
     .single();
 
-  if (error || !data) return { error: error?.message ?? "Plán sa nepodarilo vytvoriť." };
+  if (error || !data) return { error: error?.message ?? await tErr("plans.createPlanFailed") };
 
   const recipientsError = await addPlanRecipients(supabase, user.id, "workout", data.id, others);
   if (recipientsError) {
     // bez príjemcov by koncept dostal len prvý klient — radšej nič a jasná chyba
     await supabase.from("workout_plans").delete().eq("id", data.id);
-    return { error: `Ďalších klientov sa nepodarilo pridať: ${recipientsError}` };
+    return { error: await tErr("plans.recipientsFailed", { details: recipientsError }) };
   }
 
   revalidatePath("/dashboard/treningy");
@@ -112,16 +114,16 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
  * workout_plans_update_own_trainer — cudzí plán vráti 0 riadkov, nie chybu.
  */
 export async function renamePlanAction(planId: string, rawName: string): Promise<ActionState> {
-  if (!planId) return { error: "Chýba ID plánu." };
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
   const name = rawName.trim();
-  if (!name) return { error: "Zadaj názov plánu." };
-  if (name.length > 120) return { error: "Názov môže mať najviac 120 znakov." };
+  if (!name) return { error: await tErr("plans.planNameRequired") };
+  if (name.length > 120) return { error: await tErr("plans.planNameTooLong") };
 
   // zámok aj session naraz (predtým za sebou)
   const supabase = await createClient();
   const [locked, { data: { user } }] = await Promise.all([isPlanLocked(supabase, planId), supabase.auth.getUser()]);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!user) return { error: "Nie si prihlásený." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const { data, error } = await supabase
     .from("workout_plans")
@@ -129,8 +131,8 @@ export async function renamePlanAction(planId: string, rawName: string): Promise
     .eq("id", planId)
     .eq("trainer_id", user.id)
     .select("client_id");
-  if (error) return { error: dbErr(error, "actions") };
-  if (!data || data.length === 0) return { error: "Plán sa nepodarilo premenovať — skús obnoviť stránku." };
+  if (error) return { error: await dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: await tErr("plans.renamePlanFailed") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   revalidatePath("/dashboard/treningy");
@@ -143,11 +145,11 @@ export async function setPlanPublishedAction(_prevState: ActionState, formData: 
   const supabase = await createClient();
   const planId = formData.get("plan_id") as string | null;
   const published = formData.get("published") === "true";
-  if (!planId) return { error: "Chýba ID plánu." };
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
 
   const [locked, { data: { user } }] = await Promise.all([isPlanLocked(supabase, planId), supabase.auth.getUser()]);
-  if (!user) return { error: "Nie si prihlásený." };
-  if (locked) return { error: PLAN_LOCKED_ERROR };
+  if (!user) return { error: await tErr("notSignedIn") };
+  if (locked) return { error: await tErr("planLocked") };
 
   const { error } = await supabase
     .from("workout_plans")
@@ -155,7 +157,7 @@ export async function setPlanPublishedAction(_prevState: ActionState, formData: 
     .eq("id", planId)
     .eq("trainer_id", user.id);
 
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   // šablóna pre viacerých klientov (0052): každý ďalší príjemca dostane vlastnú kópiu
   const delivery = published ? await deliverPlanToRecipients(supabase, user.id, "workout", planId) : null;
@@ -172,9 +174,9 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const dayNumber = Number(formData.get("day_number"));
 
-  if (!planId) return { error: "Chýba ID plánu." };
-  if (!name) return { error: "Zadaj názov dňa." };
-  if (await isPlanLocked(supabase, planId)) return { error: PLAN_LOCKED_ERROR };
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
+  if (!name) return { error: await tErr("plans.dayNameRequired") };
+  if (await isPlanLocked(supabase, planId)) return { error: await tErr("planLocked") };
 
   const { error } = await supabase.from("workout_days").insert({
     plan_id: planId,
@@ -183,7 +185,7 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
     exercises: [],
   });
 
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -198,15 +200,15 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
  * v builderi aj v rotácii portálu).
  */
 export async function deleteDayAction(planId: string, dayId: string): Promise<ActionState> {
-  if (!planId || !dayId) return { error: "Chýba identifikátor dňa." };
+  if (!planId || !dayId) return { error: await tErr("plans.missingDayId") };
 
   const supabase = await createClient();
   const [locked, { data: { user } }] = await Promise.all([
     isPlanLocked(supabase, planId, dayId),
     supabase.auth.getUser(),
   ]);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!user) return { error: "Nie si prihlásený." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   // RLS workout_days_delete_own_trainer — cudzí deň vráti 0 riadkov, nie chybu.
   const { data: deleted, error } = await supabase
@@ -215,8 +217,8 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
     .eq("id", dayId)
     .eq("plan_id", planId)
     .select("id");
-  if (error) return { error: dbErr(error, "actions") };
-  if (!deleted || deleted.length === 0) return { error: "Deň sa nepodarilo zmazať — skús obnoviť stránku." };
+  if (error) return { error: await dbErr(error, "actions") };
+  if (!deleted || deleted.length === 0) return { error: await tErr("plans.deleteDayFailed") };
 
   const { data: rest } = await supabase
     .from("workout_days")
@@ -241,13 +243,13 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
  * (pilulky dní v portáli); odcvičené tréningy si držia pôvodný názov v plan_snapshot (0048).
  */
 export async function renameDayAction(planId: string, dayId: string, rawName: string): Promise<ActionState> {
-  if (!planId || !dayId) return { error: "Chýba identifikátor dňa." };
+  if (!planId || !dayId) return { error: await tErr("plans.missingDayId") };
   const name = rawName.trim();
-  if (!name) return { error: "Zadaj názov dňa." };
-  if (name.length > 120) return { error: "Názov dňa môže mať najviac 120 znakov." };
+  if (!name) return { error: await tErr("plans.dayNameRequired") };
+  if (name.length > 120) return { error: await tErr("plans.dayNameTooLong") };
 
   const supabase = await createClient();
-  if (await isPlanLocked(supabase, planId, dayId)) return { error: PLAN_LOCKED_ERROR };
+  if (await isPlanLocked(supabase, planId, dayId)) return { error: await tErr("planLocked") };
 
   // RLS workout_days_update_own_trainer — cudzí deň vráti 0 riadkov, nie chybu.
   const { data, error } = await supabase
@@ -256,8 +258,8 @@ export async function renameDayAction(planId: string, dayId: string, rawName: st
     .eq("id", dayId)
     .eq("plan_id", planId)
     .select("id");
-  if (error) return { error: dbErr(error, "actions") };
-  if (!data || data.length === 0) return { error: "Deň sa nepodarilo premenovať — skús obnoviť stránku." };
+  if (error) return { error: await dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: await tErr("plans.renameDayFailed") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -270,7 +272,7 @@ export async function renameDayAction(planId: string, dayId: string, rawName: st
  */
 export async function duplicateDayAction(planId: string, dayId: string): Promise<{ error: string | null; dayId: string | null }> {
   const fail = (error: string) => ({ error, dayId: null });
-  if (!planId || !dayId) return fail("Chýba identifikátor dňa.");
+  if (!planId || !dayId) return fail(await tErr("plans.missingDayId"));
 
   const supabase = await createClient();
   const [locked, { data: src }, { count }] = await Promise.all([
@@ -278,8 +280,8 @@ export async function duplicateDayAction(planId: string, dayId: string): Promise
     supabase.from("workout_days").select("name, exercises").eq("id", dayId).eq("plan_id", planId).maybeSingle(),
     supabase.from("workout_days").select("id", { count: "exact", head: true }).eq("plan_id", planId),
   ]);
-  if (locked) return fail(PLAN_LOCKED_ERROR);
-  if (!src) return fail("Deň sa nenašiel — skús obnoviť stránku.");
+  if (locked) return fail(await tErr("planLocked"));
+  if (!src) return fail(await tErr("plans.dayNotFoundRefresh"));
 
   const exercises = (Array.isArray(src.exercises) ? (src.exercises as WorkoutExerciseEntry[]) : []).map((e) => ({
     ...e,
@@ -288,10 +290,10 @@ export async function duplicateDayAction(planId: string, dayId: string): Promise
   const { data, error } = await supabase
     .from("workout_days")
     // dni sú po zmazaní prečíslované 1..n (deleteDayAction) → kópia ide za posledný
-    .insert({ plan_id: planId, day_number: (count ?? 0) + 1, name: `${src.name} (kópia)`.slice(0, 120), exercises })
+    .insert({ plan_id: planId, day_number: (count ?? 0) + 1, name: (await tErr("plans.copySuffix", { name: src.name })).slice(0, 120), exercises })
     .select("id")
     .single();
-  if (error || !data) return fail(error ? dbErr(error, "actions") : "Deň sa nepodarilo skopírovať.");
+  if (error || !data) return fail(error ? await dbErr(error, "actions") : await tErr("plans.duplicateDayFailed"));
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   revalidatePath("/dashboard/treningy");
@@ -306,8 +308,8 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   const planId = formData.get("plan_id") as string | null;
   const exerciseId = formData.get("exercise_id") as string | null;
 
-  if (!dayId) return { error: "Najprv vytvor alebo vyber deň." };
-  if (!planId) return { error: "Chýba ID plánu." };
+  if (!dayId) return { error: await tErr("plans.createOrPickDay") };
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
   if (!exerciseId) return { error: "Vyber cvik." };
 
   // Deň + zámok (jeden dopyt) a cvik naraz — predtým 5 dopytov za sebou pred zápisom.
@@ -315,9 +317,9 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
     getDayForEdit(supabase, dayId),
     supabase.from("exercises").select("name, name_sk").eq("id", exerciseId).maybeSingle(),
   ]);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!exercise) return { error: "Cvik sa nenašiel." };
-  if (!day) return { error: "Deň sa nenašiel." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!exercise) return { error: await tErr("plans.exerciseNotFound") };
+  if (!day) return { error: await tErr("plans.dayNotFound") };
 
   const newEntry: WorkoutExerciseEntry = {
     entry_id: randomUUID(),
@@ -338,7 +340,7 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
     .update({ exercises: [...current, newEntry] })
     .eq("id", dayId);
 
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -358,13 +360,13 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   const planId = formData.get("plan_id") as string | null;
   const name = (formData.get("name") as string | null)?.trim() ?? "";
 
-  if (!dayId) return { error: "Najprv pridaj tréningový deň." };
-  if (!planId) return { error: "Chýba ID plánu." };
-  if (!name) return { error: "Zadaj názov cviku." };
+  if (!dayId) return { error: await tErr("plans.addDayFirst") };
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
+  if (!name) return { error: await tErr("plans.exerciseNameRequired") };
 
   const { day, locked } = await getDayForEdit(supabase, dayId);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!day) return { error: "Deň sa nenašiel." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!day) return { error: await tErr("plans.dayNotFound") };
 
   const newEntry: WorkoutExerciseEntry = {
     entry_id: randomUUID(),
@@ -383,7 +385,7 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
     .update({ exercises: [...current, newEntry] })
     .eq("id", dayId);
 
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -401,13 +403,13 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
   const tempo = (formData.get("tempo") as string | null)?.trim() || null;
   const restRaw = (formData.get("rest_seconds") as string | null)?.trim();
 
-  if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
-  if (!Number.isFinite(sets) || sets < 1) return { error: "Zadaj počet sérií." };
+  if (!dayId || !planId || !entryId) return { error: await tErr("plans.missingEntryId") };
+  if (!Number.isFinite(sets) || sets < 1) return { error: await tErr("plans.setsRequired") };
   if (!reps) return { error: "Zadaj opakovania." };
 
   const { day, locked } = await getDayForEdit(supabase, dayId);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!day) return { error: "Deň sa nenašiel." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!day) return { error: await tErr("plans.dayNotFound") };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
   const updated = current.map((entry) =>
@@ -424,7 +426,7 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
   );
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -444,16 +446,16 @@ export async function moveExerciseEntryAction(input: {
   direction: "up" | "down";
 }): Promise<ActionState> {
   const { planId, dayId, entryId, direction } = input;
-  if (!planId || !dayId || !entryId) return { error: "Chýba identifikátor záznamu." };
+  if (!planId || !dayId || !entryId) return { error: await tErr("plans.missingEntryId") };
 
   const supabase = await createClient();
   const { day, locked } = await getDayForEdit(supabase, dayId);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!day) return { error: "Deň sa nenašiel." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!day) return { error: await tErr("plans.dayNotFound") };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
   const idx = current.findIndex((e) => e.entry_id === entryId);
-  if (idx < 0) return { error: "Cvik sa nenašiel." };
+  if (idx < 0) return { error: await tErr("plans.exerciseNotFound") };
 
   const target = direction === "up" ? idx - 1 : idx + 1;
   if (target < 0 || target >= current.length) return ok; // už na kraji — nič nemeníme
@@ -462,7 +464,7 @@ export async function moveExerciseEntryAction(input: {
   [updated[idx], updated[target]] = [updated[target], updated[idx]];
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -475,17 +477,17 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
   const planId = formData.get("plan_id") as string | null;
   const entryId = formData.get("entry_id") as string | null;
 
-  if (!dayId || !planId || !entryId) return { error: "Chýba identifikátor záznamu." };
+  if (!dayId || !planId || !entryId) return { error: await tErr("plans.missingEntryId") };
 
   const { day, locked } = await getDayForEdit(supabase, dayId);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!day) return { error: "Deň sa nenašiel." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!day) return { error: await tErr("plans.dayNotFound") };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
   const updated = current.filter((entry) => entry.entry_id !== entryId);
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
@@ -500,12 +502,12 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
  * portál klienta potom spadne na najnovší zostávajúci plán.
  */
 export async function deletePlanAction(planId: string): Promise<ActionState> {
-  if (!planId) return { error: "Chýba ID plánu." };
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
 
   const supabase = await createClient();
   const [locked, { data: { user } }] = await Promise.all([isPlanLocked(supabase, planId), supabase.auth.getUser()]);
-  if (locked) return { error: PLAN_LOCKED_ERROR };
-  if (!user) return { error: "Nie si prihlásený." };
+  if (locked) return { error: await tErr("planLocked") };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const { data: deleted, error } = await supabase
     .from("workout_plans")
@@ -513,8 +515,8 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
     .eq("id", planId)
     .eq("trainer_id", user.id)
     .select("client_id");
-  if (error) return { error: dbErr(error, "actions") };
-  if (!deleted || deleted.length === 0) return { error: "Plán sa nenašiel." };
+  if (error) return { error: await dbErr(error, "actions") };
+  if (!deleted || deleted.length === 0) return { error: await tErr("planNotFound") };
 
   revalidatePath("/dashboard/treningy");
   revalidatePath(`/dashboard/klienti/${deleted[0].client_id}`);
@@ -529,13 +531,13 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
  * klient ho uvidí až po potvrdení — rovnako ako pri createPlanAction.
  */
 export async function duplicateCompletedWorkoutAction(logId: string): Promise<ActionState> {
-  if (!logId) return { error: "Chýba ID tréningu." };
+  if (!logId) return { error: await tErr("plans.missingLogId") };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   // RLS workout_logs_select_own_trainer — tréner vidí len záznamy vlastných klientov.
   const { data: log, error: logErr } = await supabase
@@ -543,22 +545,27 @@ export async function duplicateCompletedWorkoutAction(logId: string): Promise<Ac
     .select("id, client_id, status, plan_snapshot")
     .eq("id", logId)
     .maybeSingle();
-  if (logErr) return { error: dbErr(logErr, "actions") };
-  if (!log) return { error: "Tréning sa nenašiel." };
-  if (log.status !== "completed") return { error: "Duplikovať sa dá len dokončený tréning." };
+  if (logErr) return { error: await dbErr(logErr, "actions") };
+  if (!log) return { error: await tErr("plans.logNotFound") };
+  if (log.status !== "completed") return { error: await tErr("plans.duplicateOnlyCompleted") };
 
   const snapshot = parsePlanSnapshot(log.plan_snapshot);
   if (!snapshot || snapshot.exercises.length === 0) {
-    return { error: "Tréning nemá uložený plán, z ktorého by sa dala urobiť kópia." };
+    return { error: await tErr("plans.noSnapshot") };
   }
 
-  const dayName = snapshot.dayName ?? "Tréning";
+  const dayName = snapshot.dayName ?? (await tErr("plans.workoutFallback"));
   const { data: plan, error: planErr } = await supabase
     .from("workout_plans")
-    .insert({ client_id: log.client_id, trainer_id: user.id, name: `${dayName} (kópia)`, published: false })
+    .insert({
+      client_id: log.client_id,
+      trainer_id: user.id,
+      name: await tErr("plans.copySuffix", { name: dayName }),
+      published: false,
+    })
     .select("id")
     .single();
-  if (planErr || !plan) return { error: dbErr(planErr, "actions") };
+  if (planErr || !plan) return { error: await dbErr(planErr, "actions") };
 
   const { error: dayErr } = await supabase.from("workout_days").insert({
     plan_id: plan.id,
@@ -569,7 +576,7 @@ export async function duplicateCompletedWorkoutAction(logId: string): Promise<Ac
   if (dayErr) {
     // Bez dňa by ostal prázdny koncept — radšej ho zahoď (koncept bez logov sa zmazať dá).
     await supabase.from("workout_plans").delete().eq("id", plan.id);
-    return { error: dbErr(dayErr, "actions") };
+    return { error: await dbErr(dayErr, "actions") };
   }
 
   revalidatePath("/dashboard/treningy");
@@ -582,12 +589,12 @@ export async function addCustomExerciseAction(_prevState: ActionState, formData:
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const muscleGroup = (formData.get("muscle_group") as string | null)?.trim() || null;
 
-  if (!name) return { error: "Zadaj názov cviku." };
+  if (!name) return { error: await tErr("plans.exerciseNameRequired") };
 
   const { error } = await supabase.from("exercises").insert({
     trainer_id: user.id,
@@ -595,7 +602,7 @@ export async function addCustomExerciseAction(_prevState: ActionState, formData:
     muscle_group: muscleGroup,
   });
 
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/dashboard/treningy");
   return ok;
@@ -622,7 +629,7 @@ interface ValidAiPlanParams {
   daysPerWeek: number;
 }
 
-function parseAiPlanParams(raw: AiPlanParams): ValidAiPlanParams | { error: string } {
+async function parseAiPlanParams(raw: AiPlanParams): Promise<ValidAiPlanParams | { error: string }> {
   // Zameranie je voliteľné — chýbajúce / neznáme = "vyvážene" (bezpečný fallback).
   const focus: PlanFocus | "auto" =
     raw.focus === "auto" ? "auto" : PLAN_FOCUSES.includes(raw.focus as PlanFocus) ? (raw.focus as PlanFocus) : "vyvazene";
@@ -630,11 +637,11 @@ function parseAiPlanParams(raw: AiPlanParams): ValidAiPlanParams | { error: stri
   const singleDay = focus !== "auto" && isSingleDayFocus(focus);
   const daysPerWeek = singleDay ? 1 : Number(raw.daysPerWeek);
 
-  if (!raw.goal || !PLAN_GOALS.includes(raw.goal as PlanGoal)) return { error: "Vyber cieľ." };
-  if (!raw.experience || !PLAN_EXPERIENCES.includes(raw.experience as PlanExperience)) return { error: "Vyber skúsenosť klienta." };
-  if (!raw.equipment || !PLAN_EQUIPMENT.includes(raw.equipment as PlanEquipment)) return { error: "Vyber dostupné vybavenie." };
+  if (!raw.goal || !PLAN_GOALS.includes(raw.goal as PlanGoal)) return { error: await tErr("plans.chooseGoal") };
+  if (!raw.experience || !PLAN_EXPERIENCES.includes(raw.experience as PlanExperience)) return { error: await tErr("plans.chooseExperience") };
+  if (!raw.equipment || !PLAN_EQUIPMENT.includes(raw.equipment as PlanEquipment)) return { error: await tErr("plans.chooseEquipment") };
   if (!singleDay && (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7)) {
-    return { error: "Zadaj počet dní 1-7." };
+    return { error: await tErr("plans.daysRange") };
   }
   return {
     goal: raw.goal as PlanGoal,
@@ -668,7 +675,7 @@ async function generateAiPlanForClient(
     // Súkromná poznámka trénera (0036) — obmedzenia/zranenia; klient ju nevidí.
     supabase.from("trainer_private_notes").select("notes").eq("client_id", clientId).eq("scope", "client").maybeSingle(),
   ]);
-  if (!client) return { error: "Klient sa nenašiel." };
+  if (!client) return { error: await tErr("plans.clientNotFound") };
 
   // nutrition_profiles.client_id je unique → PostgREST vráti objekt (ošetrené aj pole)
   const profile = firstRow(
@@ -700,7 +707,7 @@ async function generateAiPlanForClient(
     subjectLimit: AI_PLAN_GEN_DAILY_LIMIT(),
   });
   if (!slot.allowed) {
-    return { error: `Dosiahol/a si dnešný limit AI generovania plánov (${AI_PLAN_GEN_DAILY_LIMIT()}). Skús to zajtra.` };
+    return { error: await tErr("plans.aiDailyLimit", { limit: AI_PLAN_GEN_DAILY_LIMIT() }) };
   }
 
   const result = await generateWorkoutPlan(supabase, {
@@ -743,7 +750,9 @@ async function insertAiPlan(
 ): Promise<{ error: string } | { planId: string; warnings: string[] }> {
   // Partiové (jednodňové) generovanie pomenuje plán podľa kategórie + dátumu
   // (napr. "Chrbát — 18. 9. 2026"), inak default podľa cieľa ako doteraz.
-  const planName = plan.planName ?? `AI plán — ${PLAN_GOAL_LABEL_SK[params.goal]}`;
+  const planName =
+    plan.planName ??
+    (await tErr("plans.aiPlanName", { goal: (await getTranslations("labels.planGoal"))(params.goal) }));
 
   const { data: newPlan, error: planErr } = await supabase
     .from("workout_plans")
@@ -755,7 +764,7 @@ async function insertAiPlan(
     })
     .select("id")
     .single();
-  if (planErr || !newPlan) return { error: planErr?.message ?? "Plán sa nepodarilo vytvoriť." };
+  if (planErr || !newPlan) return { error: planErr?.message ?? await tErr("plans.createPlanFailed") };
 
   const dayRows = plan.days.map((day, i) => ({
     plan_id: newPlan.id,
@@ -777,7 +786,7 @@ async function insertAiPlan(
   if (daysErr) {
     // prázdny koncept bez dní by v zozname len mätol
     await supabase.from("workout_plans").delete().eq("id", newPlan.id);
-    return { error: dbErr(daysErr, "actions") };
+    return { error: await dbErr(daysErr, "actions") };
   }
   return { planId: newPlan.id, warnings: plan.warnings ?? [] };
 }
@@ -796,14 +805,14 @@ async function devAiPlanFixture(
   if (process.env.NODE_ENV !== "development") return null;
   const raw = (await headers()).get("x-e2e-ai-fixture");
   if (!raw) return null;
-  if (raw === `fail:${clientId}`) return { error: "Simulované zlyhanie AI (e2e)." };
+  if (raw === `fail:${clientId}`) return { error: "Simulované zlyhanie AI (e2e)." }; // i18n-ignore — len e2e
   const { data: exercises } = await supabase.from("exercises").select("id, name").order("name").limit(3);
   return {
     plan: {
       planName: `E2E AI · ${focus}`,
       days: [
         {
-          name: "Deň 1",
+          name: "Deň 1", // i18n-ignore — len e2e fixtúra
           exercises: (exercises ?? []).map((e) => ({ exerciseId: e.id, exerciseName: e.name, sets: 3, reps: "8-10", restSeconds: 90 })),
         },
       ],
@@ -822,11 +831,11 @@ export async function generatePlanWithAiAction(_prevState: ActionState, formData
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const clientId = formData.get("client_id") as string | null;
-  if (!clientId) return { error: "Vyber klienta." };
-  const params = parseAiPlanParams({
+  if (!clientId) return { error: await tErr("chooseClient") };
+  const params = await parseAiPlanParams({
     goal: formData.get("goal") as string,
     experience: formData.get("experience") as string,
     equipment: formData.get("equipment") as string,
@@ -866,9 +875,9 @@ export async function generateAiPlanForClientAction(raw: AiPlanParams, clientId:
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Nie si prihlásený.");
-  if (!clientId) return fail("Vyber klienta.");
-  const params = parseAiPlanParams(raw);
+  if (!user) return fail(await tErr("notSignedIn"));
+  if (!clientId) return fail(await tErr("chooseClient"));
+  const params = await parseAiPlanParams(raw);
   if ("error" in params) return fail(params.error);
 
   const generated = await generateAiPlanForClient(supabase, user.id, params, clientId);

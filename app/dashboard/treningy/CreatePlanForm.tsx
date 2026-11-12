@@ -1,9 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useState, type FormEvent } from "react";
 import { createPlanAction, type ActionState } from "./actions";
 import { ClientMultiSelect } from "../ClientMultiSelect";
-import { pluralSk } from "@/lib/portal/streak";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
@@ -17,9 +17,10 @@ export function CreatePlanForm({ clients }: { clients: { id: string; full_name: 
   const [state, formAction, pending] = useActionState(createPlanAction, initialState);
   const [selected, setSelected] = useState<string[]>(() => (clients.length === 1 ? [clients[0].id] : []));
   const [missingClient, setMissingClient] = useState(false);
+  const t = useTranslations("plans.create");
 
   if (clients.length === 0) {
-    return <p className={styles.noWorkouts}>Najprv pridaj klienta na stránke Klienti.</p>;
+    return <p className={styles.noWorkouts}>{t("noClients")}</p>;
   }
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -30,7 +31,7 @@ export function CreatePlanForm({ clients }: { clients: { id: string; full_name: 
 
   const count = selected.length;
   return (
-    <form action={formAction} onSubmit={onSubmit} className={styles.addClientForm} aria-label="Nový plán">
+    <form action={formAction} onSubmit={onSubmit} className={styles.addClientForm} aria-label={t("formLabel")}>
       <ClientMultiSelect
         clients={clients}
         selected={selected}
@@ -45,23 +46,19 @@ export function CreatePlanForm({ clients }: { clients: { id: string; full_name: 
         <input
           name="name"
           type="text"
-          placeholder="Názov plánu (napr. Silový 4-týždňový)"
+          placeholder={t("namePlaceholder")}
           required
           disabled={pending}
           className={styles.addClientInput}
         />
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-          {pending
-            ? "Vytváram…"
-            : count > 1
-              ? `Vytvoriť plán pre ${count} ${pluralSk(count, "klienta", "klientov", "klientov")}`
-              : "Vytvoriť plán"}
+          {pending ? t("creating") : count > 1 ? t("createFor", { count }) : t("create")}
         </button>
       </div>
       {count > 1 && (
-        <p className={styles.formHint}>Otvorí sa jeden koncept — po odoslaní dostane každý klient vlastnú kópiu plánu.</p>
+        <p className={styles.formHint}>{t("multiHint")}</p>
       )}
-      {missingClient && <p className={styles.addClientError}>Vyber aspoň jedného klienta.</p>}
+      {missingClient && <p className={styles.addClientError}>{t("chooseClient")}</p>}
       {state.error && <p className={styles.addClientError}>{state.error}</p>}
     </form>
   );

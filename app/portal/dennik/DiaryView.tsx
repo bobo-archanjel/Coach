@@ -1,8 +1,10 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import Link from "next/link";
 import { startTransition, useActionState, useOptimistic, useState } from "react";
-import { MEAL_SLOT_LABELS, MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type { PortalDiaryData, PortalDiaryEntry, PortalDiaryGroup, PortalFoodOption } from "@/lib/portal/types";
 import { addFoodLogAction, removeFoodLogAction, updateFoodLogAction, type ActionState } from "../actions";
 import { diaryMinDate, shiftDiaryDate } from "@/lib/portal/diaryDate";
@@ -74,10 +76,10 @@ function diaryReducer(entries: PortalDiaryEntry[], action: DiaryAction): PortalD
 }
 
 /** "Dnes" / "Včera" / "Pondelok 21. 9." — nadpis denníka a navigácia medzi dňami. */
-function dayLabel(date: string, today: string): string {
-  if (date === today) return "Dnes";
-  if (date === shiftDiaryDate(today, -1)) return "Včera";
-  const label = new Date(`${date}T12:00:00Z`).toLocaleDateString("sk-SK", {
+function dayLabel(date: string, today: string, words: { today: string; yesterday: string }, locale: Locale): string {
+  if (date === today) return words.today;
+  if (date === shiftDiaryDate(today, -1)) return words.yesterday;
+  const label = new Date(`${date}T12:00:00Z`).toLocaleDateString(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
     month: "numeric",
@@ -125,10 +127,10 @@ function buildOptimisticEntry(option: PortalFoodOption, slot: MealSlot, grams: n
 /** Skupiny podľa jedla dňa — všetkých 6 aj prázdne (každé má riadok s „+“). Počíta sa
     znova z (optimistickej) plochej listiny záznamov, nech pridanie/odobratie hneď
     prepočíta aj skupiny aj súčty, nielen samotný riadok. */
-function buildGroups(entries: PortalDiaryEntry[]): PortalDiaryGroup[] {
+function buildGroups(entries: PortalDiaryEntry[], slotLabel: (slot: MealSlot) => string): PortalDiaryGroup[] {
   return MEAL_SLOT_ORDER.map((slot) => {
     const items = entries.filter((e) => e.slot === slot);
-    return { slot, slotLabel: MEAL_SLOT_LABELS[slot], entries: items, kcal: sumMacros(items).kcal };
+    return { slot, slotLabel: slotLabel(slot), entries: items, kcal: sumMacros(items).kcal };
   });
 }
 
@@ -142,6 +144,10 @@ function buildGroups(entries: PortalDiaryEntry[]): PortalDiaryGroup[] {
  * jedla sa v zozname aj v makro pruhoch prejaví okamžite.
  */
 export function DiaryView({ data }: { data: PortalDiaryData }) {
+  const t = useTranslations("portal.diary");
+  const tl = useTranslations("labels");
+  const locale = useLocale();
+  const words = { today: t("today"), yesterday: t("yesterday") };
   const { goal, date, today } = data;
   const isToday = date === today;
   const prevDate = shiftDiaryDate(date, -1);
@@ -194,7 +200,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
     });
   }
 
-  const groups = buildGroups(entries);
+  const groups = buildGroups(entries, (slot) => tl(`mealSlot.${slot}`));
   // Súčty vždy prepočítané z (optimistickej) plochej listiny — pri chybe
   // uloženia/odobratia React sám zahodí optimistic vrstvu, `entries` sa vráti
   // na pôvodné dáta zo servera a súčet vyjde rovnako ako predtým počítaný `serverTotals`.
@@ -203,11 +209,11 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
   const kcalOver = kcalGoal != null && totals.kcal > kcalGoal;
 
   return (
-    <section className={styles.diary} aria-label="Denník jedla">
+    <section className={styles.diary} aria-label={t("section")}>
       <div className={`${styles.panel} ${styles.diaryHero}`}>
-        <nav className={styles.diaryDateNav} aria-label="Deň denníka">
+        <nav className={styles.diaryDateNav} aria-label={t("dayNav")}>
           {canGoBack ? (
-            <Link href={diaryHref(prevDate, today)} className={styles.diaryDateArrow} aria-label="Predošlý deň">
+            <Link href={diaryHref(prevDate, today)} className={styles.diaryDateArrow} aria-label={t("prevDay")}>
               ‹
             </Link>
           ) : (
@@ -215,20 +221,20 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
               ‹
             </span>
           )}
-          <h1 className={styles.diaryHeading}>{isToday ? "Dnešný príjem" : `Príjem — ${dayLabel(date, today)}`}</h1>
+          <h1 className={styles.diaryHeading}>{isToday ? t("todayIntake") : t("intakeOn", { day: dayLabel(date, today, words, locale) })}</h1>
           {isToday ? (
             <span className={`${styles.diaryDateArrow} ${styles.diaryDateArrowOff}`} aria-hidden="true">
               ›
             </span>
           ) : (
-            <Link href={diaryHref(shiftDiaryDate(date, 1), today)} className={styles.diaryDateArrow} aria-label="Nasledujúci deň">
+            <Link href={diaryHref(shiftDiaryDate(date, 1), today)} className={styles.diaryDateArrow} aria-label={t("nextDay")}>
               ›
             </Link>
           )}
         </nav>
         <div className={styles.kcalLine}>
           <span className={`${styles.diaryKcal} ${kcalOver ? styles.macroOver : ""}`}>{totals.kcal}</span>
-          <span className={styles.diaryKcalGoal}>{kcalGoal != null ? `/ ${kcalGoal} kcal` : "kcal spolu"}</span>
+          <span className={styles.diaryKcalGoal}>{kcalGoal != null ? `/ ${kcalGoal} kcal` : t("kcalTotal")}</span>
         </div>
         {kcalGoal != null && (
           <span className={styles.macroTrack} style={{ marginBottom: 14 }}>
@@ -238,24 +244,24 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
             />
           </span>
         )}
-        <MacroBar label="Bielkoviny" value={totals.proteinG} goal={goal?.proteinG ?? null} />
-        <MacroBar label="Sacharidy" value={totals.carbsG} goal={goal?.carbsG ?? null} />
-        <MacroBar label="Tuky" value={totals.fatG} goal={goal?.fatG ?? null} />
+        <MacroBar label={t("protein")} value={totals.proteinG} goal={goal?.proteinG ?? null} />
+        <MacroBar label={t("carbs")} value={totals.carbsG} goal={goal?.carbsG ?? null} />
+        <MacroBar label={t("fat")} value={totals.fatG} goal={goal?.fatG ?? null} />
         {!goal && (
           <p className={styles.diaryMeta} style={{ marginTop: 10 }}>
-            Tréner ti zatiaľ nenastavil makro cieľ — zobrazuje sa len súčet zjedeného.
+            {t("noGoal")}
           </p>
         )}
       </div>
 
       {removeState.error && (
         <p className={styles.addError} role="alert">
-          Nepodarilo sa odobrať — {removeState.error}
+          {t("removeFailed", { error: removeState.error ?? "" })}
         </p>
       )}
       {updateState.error && (
         <p className={styles.addError} role="alert">
-          Nepodarilo sa upraviť — {updateState.error}
+          {t("updateFailed", { error: updateState.error ?? "" })}
         </p>
       )}
 
@@ -282,8 +288,8 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
 
       {addSlot && (
         <FoodPickerSheet
-          title={`Pridať jedlo · ${MEAL_SLOT_LABELS[addSlot]}`}
-          note={isToday ? null : `Zapisuješ za ${dayLabel(date, today).toLowerCase()}.`}
+          title={t("addTitle", { slot: tl(`mealSlot.${addSlot}`) })}
+          note={isToday ? null : t("writingFor", { day: dayLabel(date, today, words, locale).toLowerCase() })}
           pending={addPending}
           error={addState.error}
           onSubmit={(option, grams) => handleAdd(buildFormData(option, addSlot, grams), buildOptimisticEntry(option, addSlot, grams))}

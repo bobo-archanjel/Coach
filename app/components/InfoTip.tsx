@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styles from "./infoTip.module.css";
@@ -31,6 +32,7 @@ const CloseIcon = () => (
  * kdekoľvek, aj vnútri nadpisu.
  */
 export function InfoTip({ title, children }: { title: string; children: ReactNode }) {
+  const t = useTranslations("components.infoTip");
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -60,7 +62,7 @@ export function InfoTip({ title, children }: { title: string; children: ReactNod
         type="button"
         ref={triggerRef}
         className={styles.trigger}
-        aria-label={`Vysvetlivka: ${title}`}
+        aria-label={t("trigger", { title })}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
@@ -70,13 +72,13 @@ export function InfoTip({ title, children }: { title: string; children: ReactNod
       {open &&
         createPortal(
           <>
-            <button type="button" className={styles.scrim} aria-label="Zavrieť vysvetlivku" tabIndex={-1} onClick={close} />
+            <button type="button" className={styles.scrim} aria-label={t("close")} tabIndex={-1} onClick={close} />
             <div className={styles.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
               <div className={styles.head}>
                 <p id={titleId} className={styles.title}>
                   {title}
                 </p>
-                <button type="button" ref={closeRef} className={styles.closeBtn} onClick={close} aria-label="Zavrieť">
+                <button type="button" ref={closeRef} className={styles.closeBtn} onClick={close} aria-label={t("closeShort")}>
                   <CloseIcon />
                 </button>
               </div>

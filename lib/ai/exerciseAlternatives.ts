@@ -1,3 +1,4 @@
+// i18n-ignore-file: stop-slová (SK aj CZ) na hľadanie cviku v texte klienta, nie text pre používateľa
 // FitPilot — AI blok, Krok 5: reálne kandidátne cviky pre AI Kouča, keď klient
 // žiada náhradu ("aký cvik namiesto X"). Rovnaký vzor ako lib/ai/macroContext.ts —
 // appka najprv sama nájde skutočné dáta v knižnici cvikov, model si smie vybrať
@@ -58,6 +59,31 @@ const STOPWORDS = new Set([
   "spraviť",
   "urobit",
   "urobiť",
+  // čeština (feature/cestina) — appka po česky, klient píše po česky
+  "cvikem",
+  "cviků",
+  "jiný",
+  "jiny",
+  "jiná",
+  "jina",
+  "jaký",
+  "jaky",
+  "jaká",
+  "jaka",
+  "místo",
+  "misto",
+  "vyměnit",
+  "zaměnit",
+  "chci",
+  "nechci",
+  "možnost",
+  "tenhle",
+  "tuhle",
+  "tohle",
+  "dělat",
+  "delat",
+  "udělat",
+  "udelat",
 ]);
 
 /** Vytiahne "obsahové" slová z textu klienta (na fuzzy ilike hľadanie v exercises). */

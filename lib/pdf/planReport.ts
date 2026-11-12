@@ -1,7 +1,7 @@
 // FitPilot — export tréningového plánu do PDF (feature/export-dat, vzhľad v6).
 
+import type { Locale } from "@/lib/i18n/locales";
 import { createPdfContext, PdfWriter, type TableColumn } from "./document";
-import { pluralSk } from "@/lib/portal/streak";
 
 export interface PlanReportExercise {
   exerciseName: string;
@@ -23,14 +23,6 @@ export interface PlanReportInput {
   days: PlanReportDay[];
 }
 
-const COLUMNS: TableColumn[] = [
-  { text: "Cvik", width: 200 },
-  { text: "Série", width: 45, align: "right" },
-  { text: "Opakovania", width: 75, align: "right" },
-  { text: "Záťaž", width: 60, align: "right" },
-  { text: "Tempo", width: 55, align: "right" },
-  { text: "Pauza", width: 55, align: "right" },
-];
 
 /** 45 s · 1 min · 1 min 15 s (predtým „1.3 min“) */
 function restLabel(sec: number | null): string {
@@ -41,34 +33,43 @@ function restLabel(sec: number | null): string {
   return rest ? `${min} min ${rest} s` : `${min} min`;
 }
 
-export async function generatePlanPdf(input: PlanReportInput): Promise<Uint8Array> {
-  const ctx = await createPdfContext();
-  const w = new PdfWriter(ctx, "Tréningový plán");
+export async function generatePlanPdf(input: PlanReportInput, locale: Locale = "sk"): Promise<Uint8Array> {
+  const ctx = await createPdfContext(locale);
+  const t = (key: Parameters<typeof ctx.t>[0], values?: Record<string, string | number>) => ctx.t(key, values);
+  const COLUMNS: TableColumn[] = [
+    { text: t("plan.exercise"), width: 200 },
+    { text: t("plan.sets"), width: 45, align: "right" },
+    { text: t("plan.reps"), width: 75, align: "right" },
+    { text: t("plan.load"), width: 60, align: "right" },
+    { text: t("plan.tempo"), width: 55, align: "right" },
+    { text: t("plan.rest"), width: 55, align: "right" },
+  ];
+  const w = new PdfWriter(ctx, t("plan.kind"));
 
   w.title({
     title: input.planName,
-    meta: [`Klient: ${input.clientName}`],
+    meta: [t("client", { name: input.clientName })],
   });
 
   const exerciseCount = input.days.reduce((s, d) => s + d.exercises.length, 0);
   const setCount = input.days.reduce((s, d) => s + d.exercises.reduce((ss, e) => ss + (Number(e.sets) || 0), 0), 0);
   if (input.days.length > 0) {
     w.tiles([
-      { label: "Tréningové dni", value: String(input.days.length) },
-      { label: "Cviky spolu", value: String(exerciseCount) },
-      { label: "Série spolu", value: String(setCount) },
+      { label: t("plan.days"), value: String(input.days.length) },
+      { label: t("plan.exercisesTotal"), value: String(exerciseCount) },
+      { label: t("plan.setsTotal"), value: String(setCount) },
     ]);
   }
 
   if (input.days.length === 0) {
-    w.tableCard({ title: "Plán zatiaľ nemá žiadne dni", columns: COLUMNS, rows: [], empty: "Pridaj dni a cviky v builderi plánu." });
+    w.tableCard({ title: t("plan.noDays"), columns: COLUMNS, rows: [], empty: t("plan.noDaysHint") });
   }
 
   for (const day of input.days) {
     const n = day.exercises.length;
     w.tableCard({
       title: day.name,
-      aside: n > 0 ? `${n} ${pluralSk(n, "cvik", "cviky", "cvikov")}` : undefined,
+      aside: n > 0 ? t("plan.exerciseCount", { count: n }) : undefined,
       columns: COLUMNS,
       rows: day.exercises.map((ex) => ({
         cells: [
@@ -80,7 +81,7 @@ export async function generatePlanPdf(input: PlanReportInput): Promise<Uint8Arra
           restLabel(ex.restSeconds),
         ],
       })),
-      empty: "Žiadne cviky.",
+      empty: t("plan.noExercises"),
     });
   }
 

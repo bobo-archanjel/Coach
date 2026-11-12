@@ -1,3 +1,4 @@
+// i18n-ignore-file: podklad pre AI model (interné dáta v prompte)
 // Údaje konkrétneho klienta pre AI generátor tréningového plánu (feature/jedalnicky-multi-klient).
 // Tréner zadá cieľ/skúsenosť/vybavenie raz pre celý výber klientov; každý plán sa potom
 // generuje zvlášť a model k tomu dostane aj to, čo appka o danom klientovi vie — cieľ

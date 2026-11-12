@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { setPlanPublishedAction, deletePlanAction, type ActionState } from "../actions";
 import styles from "../../dashboard.module.css";
@@ -14,9 +15,10 @@ const CheckIcon = () => (
 
 /** Stav plánu pri názve — kým je koncept, klient ho v portáli nevidí (viď actions.ts). */
 export function PublishBadge({ published }: { published: boolean }) {
+  const t = useTranslations("plans.builder");
   return (
     <span className={`${styles.publishBadge} ${published ? styles.publishBadgeLive : styles.publishBadgeDraft}`}>
-      {published ? "Publikovaný — klient ho vidí" : "Koncept — klient ho ešte nevidí"}
+      {published ? t("published") : t("draftBadge")}
     </span>
   );
 }
@@ -36,6 +38,7 @@ export function PublishActions({
   /** ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) */
   recipientCount?: number;
 }) {
+  const t = useTranslations("plans.builder");
   const [state, formAction, pending] = useActionState(setPlanPublishedAction, initialState);
   // Stav pri názve sa mení trvalo (podľa `published` z DB), ale samotná zmena je
   // ľahko prehliadnuteľná — táto správa na pár sekúnd jasne potvrdí, že klik
@@ -68,7 +71,7 @@ export function PublishActions({
   const confirmMsg = justSaved && !state.error && (
     <span className={`${styles.publishConfirm} ${styles.templateStatus}`} role="status">
       <CheckIcon />
-      {sentTo.current > 1 ? `Poslané ${sentTo.current} klientom — tréning už vidia.` : "Uložené — klient tréning už vidí."}
+      {sentTo.current > 1 ? t("sentToMany", { count: sentTo.current }) : t("savedVisible")}
     </span>
   );
 
@@ -78,9 +81,9 @@ export function PublishActions({
     <div className={styles.templateGrid}>
       {confirmingDelete ? (
         <>
-          <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>Zmazať tento koncept?</p>
+          <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>{t("deleteDraftConfirm")}</p>
           <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={deletePending}>
-            {deletePending ? "Mažem…" : "Áno, zmazať"}
+            {deletePending ? t("deleting") : t("yesDelete")}
           </button>
           <button
             type="button"
@@ -88,7 +91,7 @@ export function PublishActions({
             onClick={() => setConfirmingDelete(false)}
             disabled={deletePending}
           >
-            Zrušiť
+            {t("cancel")}
           </button>
         </>
       ) : (
@@ -97,11 +100,11 @@ export function PublishActions({
             <input type="hidden" name="plan_id" value={planId} />
             <input type="hidden" name="published" value="true" />
             <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-              {pending ? "Posielam…" : recipientCount > 0 ? `Poslať ${recipientCount + 1} klientom` : "Potvrdiť a uložiť"}
+              {pending ? t("sending") : recipientCount > 0 ? t("sendTo", { count: recipientCount + 1 }) : t("confirmSave")}
             </button>
           </form>
           <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirmingDelete(true)}>
-            Zmazať koncept
+            {t("deleteDraft")}
           </button>
         </>
       )}

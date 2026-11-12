@@ -1,11 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { deleteMealTemplateAction, deleteWorkoutTemplateAction } from "./actions";
 import { ApplyTemplateDialog } from "./ApplyTemplateDialog";
 import type { TemplateItem } from "./TemplatesList";
-import { PLAN_GOAL_LABEL_SK, isPlanGoal } from "@/lib/planGoals";
-import { pluralSk } from "@/lib/portal/streak";
+import { isPlanGoal } from "@/lib/planGoals";
 import styles from "./templates.module.css";
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -28,12 +28,13 @@ export function TemplateCard({
   item: TemplateItem;
   clients: { id: string; full_name: string }[];
 }) {
+  const t = useTranslations("templates");
+  const tl = useTranslations("labels");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deletePending, startDelete] = useTransition();
   const dayCount = item.days.length;
-  const unit = kind === "workout" ? ["cvik", "cviky", "cvikov"] : ["položka", "položky", "položiek"];
 
   function handleDelete() {
     startDelete(async () => {
@@ -47,14 +48,14 @@ export function TemplateCard({
       <div className={styles.cardHead}>
         <h3 className={styles.cardName}>{item.name}</h3>
         <p className={styles.cardMeta}>
-          {dayCount} {pluralSk(dayCount, "deň", "dni", "dní")}
-          {isPlanGoal(item.goal) && <span className={styles.goalChip}>{PLAN_GOAL_LABEL_SK[item.goal]}</span>}
+          {t("days", { count: dayCount })}
+          {isPlanGoal(item.goal) && <span className={styles.goalChip}>{tl(`planGoal.${item.goal}`)}</span>}
         </p>
       </div>
 
       <div className={styles.cardActions}>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setApplyOpen(true)}>
-          Použiť
+          {t("use")}
         </button>
         <button
           type="button"
@@ -63,34 +64,34 @@ export function TemplateCard({
           aria-controls={`tpl-preview-${item.id}`}
           onClick={() => setPreviewOpen((o) => !o)}
         >
-          Náhľad
+          {t("preview")}
           <ChevronIcon className={`${styles.chevron} ${previewOpen ? styles.chevronOpen : ""}`} />
         </button>
         {confirmingDelete ? (
           <span className={styles.deleteConfirm}>
             <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={handleDelete} disabled={deletePending}>
-              {deletePending ? "Mažem…" : "Zmazať"}
+              {deletePending ? t("deleting") : t("delete")}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(false)} disabled={deletePending}>
-              Nie
+              {t("no")}
             </button>
           </span>
         ) : (
           <button type="button" className={styles.deleteBtn} onClick={() => setConfirmingDelete(true)}>
-            Zmazať
+            {t("delete")}
           </button>
         )}
       </div>
 
       {previewOpen && (
         <ol id={`tpl-preview-${item.id}`} className={styles.preview}>
-          {item.days.length === 0 && <li className={styles.previewEmpty}>Šablóna nemá žiadne dni.</li>}
+          {item.days.length === 0 && <li className={styles.previewEmpty}>{t("noDays")}</li>}
           {item.days.map((day, i) => (
             <li key={i} className={styles.previewDay}>
               <span className={styles.previewDayName}>
                 {day.name}
                 <span className={styles.previewCount}>
-                  {day.items.length} {pluralSk(day.items.length, unit[0], unit[1], unit[2])}
+                  {kind === "workout" ? t("exercises", { count: day.items.length }) : t("items", { count: day.items.length })}
                 </span>
               </span>
               {day.items.length > 0 && <span className={styles.previewItems}>{day.items.join(" · ")}</span>}

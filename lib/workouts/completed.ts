@@ -1,3 +1,5 @@
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
+import { RELATIVE_DAY } from "@/lib/i18n/dates";
 // Dokončený tréning: plán (workout_logs.plan_snapshot, 0048) vs. realita
 // (workout_logs.entries). Čistá logika bez next/supabase importov — zdieľaná medzi
 // detailom trénera, portálom a e2e testom (e2e/training-done.spec.ts).
@@ -190,9 +192,9 @@ export function snapshotToPlanEntries(snapshot: PlanSnapshot, newId: () => strin
 }
 
 /** "24. 9. 2026" — dátum dokončenia v Europe/Bratislava. */
-export function formatCompletedDate(iso: string | null): string {
+export function formatCompletedDate(iso: string | null, locale: Locale = "sk"): string {
   if (!iso) return "";
-  return new Intl.DateTimeFormat("sk-SK", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric",
     month: "numeric",
     year: "numeric",
@@ -206,8 +208,8 @@ export function formatDuration(s: number): string {
   return m > 0 ? `${m}:${String(sec).padStart(2, "0")} min` : `${sec} s`;
 }
 
-export function formatDistance(m: number): string {
-  return m >= 1000 ? `${(m / 1000).toLocaleString("sk-SK", { maximumFractionDigits: 2 })} km` : `${m} m`;
+export function formatDistance(m: number, locale: Locale = "sk"): string {
+  return m >= 1000 ? `${(m / 1000).toLocaleString(intlLocale(locale), { maximumFractionDigits: 2 })} km` : `${m} m`;
 }
 
 /** Spodná hranica plánovaných opakovaní: "8-10" → 8, "12" → 12, "max" → null. */
@@ -248,12 +250,12 @@ export function isStillEditable(until: string | null | undefined, now: number = 
 }
 
 /** "dnes 21:30" / "zajtra 8:05" / "28. 9. 14:00" — koniec okna na opravu v Europe/Bratislava. */
-export function formatEditDeadline(until: string, now: Date = new Date()): string {
+export function formatEditDeadline(until: string, now: Date = new Date(), locale: Locale = "sk"): string {
   const tz = "Europe/Bratislava";
   const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
   const d = new Date(until);
-  const time = new Intl.DateTimeFormat("sk-SK", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(d);
-  if (day(d) === day(now)) return `dnes ${time}`;
-  if (day(d) === day(new Date(now.getTime() + 86_400_000))) return `zajtra ${time}`;
-  return `${formatCompletedDate(until)} ${time}`;
+  const time = new Intl.DateTimeFormat(intlLocale(locale), { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(d);
+  if (day(d) === day(now)) return `${RELATIVE_DAY[locale].today} ${time}`;
+  if (day(d) === day(new Date(now.getTime() + 86_400_000))) return `${RELATIVE_DAY[locale].tomorrow} ${time}`;
+  return `${formatCompletedDate(until, locale)} ${time}`;
 }

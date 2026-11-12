@@ -420,6 +420,23 @@ select pg_temp.chk('H3: RPC mení len vlastný profil',
 select pg_temp.chk('H3: anon nevolá complete_onboarding_tour',
   pg_temp.try(null, 'select public.complete_onboarding_tour()', 'anon') like 'ERR:%');
 
+-- ============================================================ H4) jazyk v profile (0059)
+select pg_temp.chk('H4: nový profil má predvolene slovenčinu',
+  (select locale from public.profiles where id = :C) = 'sk');
+select pg_temp.chk('H4: priamy update jazyka v profile je zamietnutý (len cez RPC)',
+  pg_temp.try(:C, format('update public.profiles set locale = ''cs'' where id = %L', :C)) like 'ERR:%'
+  and (select locale from public.profiles where id = :C) = 'sk');
+select pg_temp.try(:C, $s$select public.set_my_locale('cs')$s$) as loc_set \gset
+select pg_temp.chk('H4: používateľ si zmení jazyk cez set_my_locale',
+  :'loc_set' = 'OK' and (select locale from public.profiles where id = :C) = 'cs', :'loc_set');
+select pg_temp.chk('H4: set_my_locale mení len vlastný profil',
+  (select locale from public.profiles where id = :T1) = 'sk');
+select pg_temp.chk('H4: neplatný jazyk je zamietnutý',
+  pg_temp.try(:C, $s$select public.set_my_locale('de')$s$) like 'ERR:%'
+  and (select locale from public.profiles where id = :C) = 'cs');
+select pg_temp.chk('H4: anon nevolá set_my_locale',
+  pg_temp.try(null, $s$select public.set_my_locale('cs')$s$, 'anon') like 'ERR:%');
+
 -- ============================================================ výsledok
 \echo
 \echo ===== VÝSLEDKY =====

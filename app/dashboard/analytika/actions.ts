@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview } from "@/lib/dashboard/analytics";
 import { getRecentPRs } from "@/lib/dashboard/bodyMetrics";
@@ -24,7 +25,7 @@ export async function generateRosterSummaryAction(): Promise<RosterSummaryState>
   const {
     data: { user },
   } = await getUser();
-  if (!user) return { ...empty, error: "Nie si prihlásený." };
+  if (!user) return { ...empty, error: await tErr("notSignedIn") };
 
   const { data: clients } = await supabase
     .from("clients")
@@ -33,11 +34,11 @@ export async function generateRosterSummaryAction(): Promise<RosterSummaryState>
     .order("full_name");
 
   const active = (clients ?? []).filter((c) => !c.ended_at && !c.deletion_requested_at);
-  if (active.length === 0) return { ...empty, error: "Zatiaľ nemáš aktívnych klientov na zhrnutie." };
+  if (active.length === 0) return { ...empty, error: await tErr("analytics.noActiveClients") };
 
   const ids = active.map((c) => c.id);
   const [overview, recentPRs] = await Promise.all([getClientAnalyticsOverview(ids), getRecentPRs(ids, 14)]);
-  if (!overview) return { ...empty, error: "Prehľad sa nepodarilo načítať — skús to znova." };
+  if (!overview) return { ...empty, error: await tErr("analytics.overviewFailed") };
 
   // Kalendárne dni v časovom pásme appky (nie ms/86400000 od poludnia UTC — to pri
   // dnešnom tréningu vedelo dať -1 alebo 0 podľa hodiny).

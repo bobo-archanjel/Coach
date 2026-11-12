@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { getUser, createClient } from "@/lib/supabase/server";
 import { parseBarcode } from "@/lib/barcode";
 import { foodDisplayName } from "@/lib/offProduct";
@@ -27,24 +28,25 @@ export async function createUserFoodAction(
   input: UserFoodInput,
 ): Promise<{ error: string | null; food: PortalFoodOption | null }> {
   const fail = (error: string) => ({ error, food: null });
+  const t = await getTranslations("food.errors");
   const {
     data: { user },
   } = await getUser();
-  if (!user) return fail("Nie si prihlásený.");
+  if (!user) return fail((await getTranslations("errors"))("notSignedIn"));
 
   const rawBarcode = input.barcode.trim();
   const parsed = rawBarcode ? parseBarcode(rawBarcode) : null;
-  if (rawBarcode && !parsed) return fail("Neplatný čiarový kód — zadaj 8, 12 alebo 13 číslic, alebo ho nechaj prázdny.");
+  if (rawBarcode && !parsed) return fail(t("invalidBarcode"));
   const name = input.name.trim();
   const brand = input.brand.trim();
-  if (!name || name.length > 100) return fail("Zadaj názov potraviny (max 100 znakov).");
-  if (brand.length > 60) return fail("Značka môže mať najviac 60 znakov.");
-  if (input.kcal.trim() === "") return fail("Zadaj kalórie na 100 g.");
+  if (!name || name.length > 100) return fail(t("name"));
+  if (brand.length > 60) return fail(t("brand"));
+  if (input.kcal.trim() === "") return fail(t("kcalRequired"));
   const vals = [input.kcal, input.protein, input.carbs, input.fat].map((v) => Number(v.trim().replace(",", ".") || 0));
-  if (vals.some((v) => !Number.isFinite(v) || v < 0)) return fail("Hodnoty musia byť čísla 0 alebo viac.");
+  if (vals.some((v) => !Number.isFinite(v) || v < 0)) return fail(t("numbers"));
   const [kcal, protein, carbs, fat] = vals;
-  if (kcal > 900) return fail("Kalórie na 100 g môžu byť najviac 900.");
-  if (protein + carbs + fat > 100) return fail("Bielkoviny, sacharidy a tuky spolu nemôžu mať viac ako 100 g na 100 g.");
+  if (kcal > 900) return fail(t("kcalMax"));
+  if (protein + carbs + fat > 100) return fail(t("macrosMax"));
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -63,8 +65,8 @@ export async function createUserFoodAction(
     .select("id, name")
     .single();
   if (error) {
-    if (error.code === "23505") return fail("Potravinu s týmto kódom už máš uloženú — naskenuj ho znova.");
-    return fail(dbErr(error, "actions"));
+    if (error.code === "23505") return fail(t("duplicate"));
+    return fail(await dbErr(error, "actions"));
   }
 
   return {

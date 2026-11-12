@@ -28,18 +28,20 @@ const COMMON_PASSWORDS = new Set([
   "zaheslo1",
 ]);
 
+/** Kód problému s heslom — text je v messages/<jazyk>/password.json (`issue.<kód>`). */
+export type PasswordIssue = "length" | "mix" | "common" | "context";
+
 export interface PasswordCheck {
   /** false = submit by mal byť zablokovaný, `issues` obsahuje prečo. */
   ok: boolean;
   score: 0 | 1 | 2 | 3 | 4;
-  label: string;
   /** Blokujúce problémy — prázdne pole = heslo prejde. */
-  issues: string[];
+  issues: PasswordIssue[];
 }
 
+/** Text položky je v messages/<jazyk>/password.json (`criterion.<key>`). */
 export interface PasswordCriterion {
-  key: string;
-  label: string;
+  key: "length" | "letter" | "digit";
   met: boolean;
 }
 
@@ -52,33 +54,31 @@ export interface PasswordCriterion {
  */
 export function passwordCriteria(password: string): PasswordCriterion[] {
   return [
-    { key: "length", label: "Aspoň 8 znakov", met: password.length >= 8 },
-    { key: "letter", label: "Aspoň jedno písmeno", met: /[a-zA-Z]/.test(password) },
-    { key: "digit", label: "Aspoň jedno číslo", met: /[0-9]/.test(password) },
+    { key: "length", met: password.length >= 8 },
+    { key: "letter", met: /[a-zA-Z]/.test(password) },
+    { key: "digit", met: /[0-9]/.test(password) },
   ];
 }
-
-const SCORE_LABELS = ["veľmi slabé", "slabé", "priemerné", "silné", "veľmi silné"];
 
 /**
  * `context` = reťazce, ktoré heslo nesmie obsahovať (meno, časť e-mailu pred @) —
  * najčastejší spôsob, ako je "silné" heslo v skutočnosti triviálne uhádnuteľné.
  */
 export function checkPassword(password: string, context: string[] = []): PasswordCheck {
-  const issues: string[] = [];
+  const issues: PasswordIssue[] = [];
   const lower = password.toLowerCase();
   const hasLetter = /[a-zA-Z]/.test(password);
   const hasDigit = /[0-9]/.test(password);
   const hasSymbol = /[^a-zA-Z0-9]/.test(password);
 
-  if (password.length < 8) issues.push("Aspoň 8 znakov.");
-  if (!hasLetter || !hasDigit) issues.push("Skombinuj písmená aj čísla.");
-  if (COMMON_PASSWORDS.has(lower)) issues.push("Toto heslo je príliš bežné — zvoľ iné.");
+  if (password.length < 8) issues.push("length");
+  if (!hasLetter || !hasDigit) issues.push("mix");
+  if (COMMON_PASSWORDS.has(lower)) issues.push("common");
 
   for (const raw of context) {
     const needle = raw.trim().toLowerCase();
     if (needle.length >= 3 && lower.includes(needle)) {
-      issues.push("Heslo by nemalo obsahovať tvoje meno ani e-mail.");
+      issues.push("context");
       break;
     }
   }
@@ -91,5 +91,5 @@ export function checkPassword(password: string, context: string[] = []): Passwor
   if (COMMON_PASSWORDS.has(lower)) score = 0;
   const clamped = Math.min(score, 4) as PasswordCheck["score"];
 
-  return { ok: issues.length === 0, score: clamped, label: SCORE_LABELS[clamped], issues };
+  return { ok: issues.length === 0, score: clamped, issues };
 }

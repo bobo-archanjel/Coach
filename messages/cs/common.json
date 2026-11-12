@@ -1,0 +1,18 @@
+{
+  "save": "Uložit",
+  "saving": "Ukládám…",
+  "cancel": "Zrušit",
+  "close": "Zavřít",
+  "back": "Zpět",
+  "done": "Hotovo",
+  "loading": "Načítám…",
+  "delete": "Smazat",
+  "edit": "Upravit",
+  "add": "Přidat",
+  "optional": "volitelné",
+  "errorTitle": "Něco se pokazilo",
+  "errorText": "Zkontroluj připojení a zkus to znovu.",
+  "retry": "Zkusit znovu",
+  "notFound": "Tato stránka neexistuje nebo byla přesunuta.",
+  "backHome": "Zpět na úvod"
+}

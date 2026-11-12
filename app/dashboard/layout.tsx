@@ -1,9 +1,10 @@
+import { getTranslations } from "next-intl/server";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
-import { TRAINER_TOUR_STEPS } from "@/lib/onboarding/tourSteps";
+import { tourStepsFor } from "@/lib/onboarding/tourSteps";
 import { OnboardingTour } from "../components/OnboardingTour";
 import { NavigationProgressProvider } from "../components/NavigationProgress";
 import { DashboardNav } from "./DashboardNav";
@@ -13,9 +14,12 @@ import { v6Theme } from "@/app/dashboard/dashTheme";
 import { v6ThemeColor } from "@/app/v6design/theme";
 import tokens from "@/app/v6design/styles/tokens.module.css";
 
-export const metadata: Metadata = {
-  title: "FitPilot — Dashboard",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("nav");
+  return {
+  title: t("trainerMetaTitle"),
+  };
+}
 
 /** Farba stavového riadku podľa témy (svetlá/tmavá/auto). */
 export async function generateViewport(): Promise<Viewport> {
@@ -84,7 +88,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <DashboardSkeletonOverlay />
           </main>
           <Suspense fallback={null}>
-            <OnboardingTour steps={TRAINER_TOUR_STEPS} tourSeen={tourSeen} />
+            <OnboardingTour steps={await tourStepsFor("trainer")} tourSeen={tourSeen} />
           </Suspense>
         </div>
       </NavigationProgressProvider>

@@ -1,3 +1,5 @@
+import { getLocale, getTranslations } from "next-intl/server";
+import { intlLocale } from "@/lib/i18n/locales";
 import { AppLink as Link } from "../../../components/AppLink";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -14,7 +16,6 @@ import { CreateMealPlanButton } from "./CreateMealPlanButton";
 import { NutritionForm } from "./NutritionForm";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
-import { pluralSk } from "@/lib/portal/streak";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
 
 const BackIcon = () => (
@@ -27,6 +28,7 @@ const BackIcon = () => (
 function daysAgoIso(n: number): string {
   return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 }
+// i18n-ignore-start — DEV náhľad (vymyslené dáta)
 const PROGRESS_PREVIEW_METRICS = [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
   measuredOn: daysAgoIso(daysAgo),
   weightKg: 88 - i * 1.1,
@@ -55,6 +57,7 @@ const PROGRESS_PREVIEW_STRENGTH = {
     { exercise: "Mŕtvy ťah", bestWeightKg: 116, reps: 5, achievedOn: daysAgoIso(4) },
   ],
 };
+// i18n-ignore-end
 export default async function ClientDetailPage({
   params,
   searchParams,
@@ -65,6 +68,7 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const { preview, sekcia } = await searchParams;
 
+  // i18n-ignore-start — DEV náhľad (?preview=progress)
   if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV === "development") {
     const empty = preview === "progress_empty";
     return (
@@ -125,7 +129,10 @@ export default async function ClientDetailPage({
     );
   }
 
+  // i18n-ignore-end
   const supabase = await createClient();
+  const [t, locale] = await Promise.all([getTranslations("clientDetail"), getLocale()]);
+  const dateLocale = intlLocale(locale);
 
   // Analytika (adherencia, merania, celá história sily) je najpomalšia časť stránky —
   // štartuje hneď, súbežne so zvyškom, ale stránka na ňu nečaká: hlavička, Tréningy
@@ -215,7 +222,7 @@ export default async function ClientDetailPage({
   const firstName = client.full_name.split(/\s+/)[0];
 
   // Od spárovania s týmto trénerom (0047), nie od registrácie klienta.
-  const memberSince = new Date(client.paired_at ?? client.created_at).toLocaleDateString("sk-SK", {
+  const memberSince = new Date(client.paired_at ?? client.created_at).toLocaleDateString(dateLocale, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -228,18 +235,14 @@ export default async function ClientDetailPage({
       {side}
     </div>
   );
-  const count = (n: number, one: string, few: string, many: string) => (
-    <span className={styles.sectionMeta}>
-      {n} {pluralSk(n, one, few, many)}
-    </span>
-  );
+  const count = (text: string) => <span className={styles.sectionMeta}>{text}</span>;
 
   // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
   const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
   // Aktívny tréningový plán = ten na klientovej karte Dnes (zvolený, inak najnovší zverejnený).
   const activePlanId = resolveActivePlanId(client.active_plan_id, (plans ?? []).filter((p) => p.published));
   const shortDate = (iso: string) =>
-    new Date(iso).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Bratislava" });
+    new Date(iso).toLocaleDateString(dateLocale, { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Bratislava" });
 
   const sections: ClientDetailSection[] = [
     // Poradie = poradie kariet; prvá sa otvorí po kliknutí na klienta. Tréner sa
@@ -248,13 +251,13 @@ export default async function ClientDetailPage({
     // Každá sekcia = stĺpec kariet .card s rovnakou hlavičkou (cardHead) — aj na mobile.
     {
       id: "treningy",
-      label: "Tréningy",
+      label: t("tabTrainings"),
       // Pridelené plány aj to, čo z nich klient odcvičil, na jednom mieste — predtým
       // samostatná karta "Aktivita" pôsobila ako duplicita tejto.
       content: (
         <div className={styles.cardStack}>
           <div className={styles.card}>
-            {cardHead("Tréningové plány", plans && plans.length > 0 ? count(plans.length, "plán", "plány", "plánov") : undefined)}
+            {cardHead(t("plansTitle"), plans && plans.length > 0 ? count(t("planCount", { count: plans.length })) : undefined)}
             {plans && plans.length > 0 ? (
               <div className={styles.roster}>
                 {plans.map((plan) => {
@@ -265,20 +268,20 @@ export default async function ClientDetailPage({
                       <Link href={`/dashboard/treningy/${plan.id}`} className={styles.planRowLink}>
                         <span className={styles.clientName}>{plan.name}</span>
                         {done?.allDone ? (
-                          <span className={styles.planDoneBadge}>Hotovo</span>
+                          <span className={styles.planDoneBadge}>{t("done")}</span>
                         ) : (
                           <span className={styles.clientSince}>
                             {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount}{" "}
-                            {pluralSk(dayCount, "deň", "dni", "dní")}
+                            {t("days", { count: dayCount })}
                           </span>
                         )}
                       </Link>
                       {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí */}
                       <span className={styles.planRowSide}>
                         {!plan.published ? (
-                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>Koncept</span>
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>{t("draft")}</span>
                         ) : plan.id === activePlanId ? (
-                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>Aktívny</span>
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>{t("active")}</span>
                         ) : (
                           <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />
                         )}
@@ -289,12 +292,12 @@ export default async function ClientDetailPage({
               </div>
             ) : (
               <p className={styles.noWorkouts}>
-                Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <Link href="/dashboard/treningy">Tréningy</Link>.
+                {t.rich("noPlans", { link: (chunks) => <Link href="/dashboard/treningy">{chunks}</Link> })}
               </p>
             )}
           </div>
           <div className={styles.card}>
-            {cardHead("Posledná aktivita")}
+            {cardHead(t("recentActivity"))}
             {logs && logs.length > 0 ? (
               <div className={styles.roster}>
                 {logs.map((log) => {
@@ -302,8 +305,8 @@ export default async function ClientDetailPage({
                   const dayName =
                     parsePlanSnapshot(log.plan_snapshot)?.dayName ??
                     (log.workout_days as unknown as { name: string } | null)?.name ??
-                    "Tréning";
-                  const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString("sk-SK", {
+                    t("workoutFallback");
+                  const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString(dateLocale, {
                     weekday: "short",
                     day: "numeric",
                     month: "numeric",
@@ -316,12 +319,12 @@ export default async function ClientDetailPage({
                         <span className={styles.clientName}>{dayName}</span>
                         <span className={styles.logLinkMeta}>
                           {loggedCount > 0
-                            ? `${loggedCount} ${loggedCount === 1 ? "cvik zapísaný" : loggedCount < 5 ? "cviky zapísané" : "cvikov zapísaných"}`
-                            : "bez zapísaných hodnôt"}
+                            ? t("loggedExercises", { count: loggedCount })
+                            : t("noValues")}
                         </span>
                       </span>
                       <span className={styles.logLinkSide}>
-                        {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>Dokončený</span>}
+                        {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>{t("completed")}</span>}
                         <span className={styles.clientSince}>{performedOn}</span>
                       </span>
                     </Link>
@@ -329,7 +332,7 @@ export default async function ClientDetailPage({
                 })}
               </div>
             ) : (
-              <p className={styles.noWorkouts}>Klient zatiaľ neodklikol žiadny tréning.</p>
+              <p className={styles.noWorkouts}>{t("noLogs")}</p>
             )}
           </div>
         </div>
@@ -337,7 +340,7 @@ export default async function ClientDetailPage({
     },
     {
       id: "jedalnicky",
-      label: "Jedálničky",
+      label: t("tabMealPlans"),
       content: (
         <div className={styles.cardStack}>
           {/* Vstupné údaje + Výsledok (BMR, TDEE, kalorický cieľ, makrá) — predtým na
@@ -349,8 +352,8 @@ export default async function ClientDetailPage({
           />
           <div className={styles.card}>
             {cardHead(
-              "Jedálničky",
-              mealPlans && mealPlans.length > 0 ? count(mealPlans.length, "jedálniček", "jedálničky", "jedálničkov") : undefined,
+              t("mealPlansTitle"),
+              mealPlans && mealPlans.length > 0 ? count(t("mealPlanCount", { count: mealPlans.length })) : undefined,
             )}
             {mealPlans && mealPlans.length > 0 ? (
               <div className={styles.roster}>
@@ -362,17 +365,17 @@ export default async function ClientDetailPage({
                       <span>
                         <span className={styles.clientName}>{plan.name}</span>
                         <span className={styles.logLinkMeta}>
-                          Vytvorený {shortDate(plan.created_at)} · {days.length} {pluralSk(days.length, "deň", "dni", "dní")}
+                          {t("createdOn", { date: shortDate(plan.created_at), count: days.length })}
                         </span>
                       </span>
                       <span className={styles.logLinkSide}>
-                        <span className={styles.clientSince}>{kcal != null ? `≈ ${kcal} kcal/deň` : "bez jedál"}</span>
+                        <span className={styles.clientSince}>{kcal != null ? t("kcalPerDay", { kcal }) : t("noMeals")}</span>
                         {!plan.published ? (
-                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>Koncept</span>
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>{t("draft")}</span>
                         ) : plan.id === activeMealPlanId ? (
-                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>Aktívny</span>
+                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>{t("active")}</span>
                         ) : (
-                          <span className={`${styles.statusChip} ${styles.ended}`}>Archivovaný</span>
+                          <span className={`${styles.statusChip} ${styles.ended}`}>{t("archived")}</span>
                         )}
                       </span>
                     </Link>
@@ -381,8 +384,11 @@ export default async function ClientDetailPage({
               </div>
             ) : (
               <div className={styles.sectionEmpty}>
-                <p className={styles.noWorkouts}>Klient zatiaľ nemá žiadny jedálniček.</p>
-                <CreateMealPlanButton clientId={id} defaultName={`Jedálniček ${shortDate(new Date().toISOString())}`} />
+                <p className={styles.noWorkouts}>{t("noMealPlans")}</p>
+                <CreateMealPlanButton
+                  clientId={id}
+                  defaultName={t("defaultMealPlanName", { date: shortDate(new Date().toISOString()) })}
+                />
               </div>
             )}
           </div>
@@ -391,7 +397,7 @@ export default async function ClientDetailPage({
     },
     {
       id: "analytika",
-      label: "Analytika",
+      label: t("tabAnalytics"),
       content: (
         <Suspense fallback={<AnalyticsSkeleton />}>
           <ClientAnalytics clientId={id} nutrition={nutrition} data={analyticsData} />
@@ -400,25 +406,25 @@ export default async function ClientDetailPage({
     },
     {
       id: "info",
-      label: "Info",
+      label: t("tabInfo"),
       content: (
         <div className={styles.cardStack}>
           <div className={styles.card}>
-            {cardHead("Informácie")}
+            {cardHead(t("infoTitle"))}
             <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Klient od</span>
+              <span className={styles.infoLabel}>{t("clientSince")}</span>
               <span className={styles.infoValue}>{memberSince}</span>
             </div>
             <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Pozývací kód</span>
+              <span className={styles.infoLabel}>{t("inviteCode")}</span>
               <span className={styles.infoValue}>{client.invite_code}</span>
             </div>
             {(client.age || client.weight_kg || client.height_cm) && (
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Vek / váha / výška</span>
+                <span className={styles.infoLabel}>{t("ageWeightHeight")}</span>
                 <span className={styles.infoValue}>
                   {[
-                    client.age ? `${client.age} rokov` : null,
+                    client.age ? t("ageYears", { age: client.age }) : null,
                     client.weight_kg ? `${client.weight_kg} kg` : null,
                     client.height_cm ? `${client.height_cm} cm` : null,
                   ]
@@ -428,11 +434,11 @@ export default async function ClientDetailPage({
               </div>
             )}
             <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Poznámky</span>
+              <span className={styles.infoLabel}>{t("notes")}</span>
               {privateNote?.notes ? (
                 <span className={styles.infoValue}>{privateNote.notes}</span>
               ) : (
-                <span className={styles.notesEmpty}>Žiadne poznámky</span>
+                <span className={styles.notesEmpty}>{t("noNotes")}</span>
               )}
             </div>
           </div>
@@ -454,7 +460,7 @@ export default async function ClientDetailPage({
     <>
       <Link href="/dashboard" className={styles.backLink}>
         <BackIcon />
-        Späť na klientov
+        {t("back")}
       </Link>
 
       <div className={styles.detailHead}>

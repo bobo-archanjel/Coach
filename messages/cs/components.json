@@ -1,0 +1,37 @@
+{
+  "infoTip": {
+    "trigger": "Vysvětlivka: {title}",
+    "close": "Zavřít vysvětlivku",
+    "closeShort": "Zavřít"
+  },
+  "signOut": "Odhlásit se",
+  "clientPicker": {
+    "choose": "Vyber klienty",
+    "addMore": "Přidat další",
+    "editSelection": "Upravit výběr",
+    "remove": "Odebrat klienta {name}",
+    "searchPlaceholder": "Hledat klienta…",
+    "search": "Hledat klienta",
+    "noneSelected": "Nikdo nevybrán",
+    "selected": "Vybráno: {count}",
+    "clearSelection": "Zrušit výběr",
+    "selectFound": "Vybrat nalezené",
+    "selectAll": "Vybrat všechny",
+    "group": "Klienti",
+    "noMatch": "Žádný klient s takovým jménem.",
+    "done": "Hotovo"
+  },
+  "exercise": {
+    "closePreview": "Zavřít náhled cviku",
+    "close": "Zavřít",
+    "loading": "Načítám…",
+    "noDetail": "Pro tento cvik zatím nemáme podrobný náhled.",
+    "step": "{title} — krok {step}",
+    "prevImage": "Předchozí obrázek",
+    "nextImage": "Další obrázek"
+  },
+  "mealSlot": {
+    "add": "Přidat jídlo: {label}",
+    "empty": "Zatím nic — přidej jídlo přes +."
+  }
+}

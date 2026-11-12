@@ -1,20 +1,25 @@
 import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getTrainerAiUsageSummary } from "@/lib/ai/usageSummary";
-import { pluralSk } from "@/lib/portal/streak";
+import { getTranslations } from "next-intl/server";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { v6Theme } from "@/app/dashboard/dashTheme";
 import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 import { SignOutButton } from "@/app/components/SignOutButton";
 import { ChangePasswordForm } from "@/app/components/ChangePasswordForm";
+import { LanguageSelect } from "@/app/components/LanguageSelect";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
 
 export default async function NastaveniaPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await getUser();
+  const [
+    {
+      data: { user },
+    },
+    t,
+    tl,
+  ] = await Promise.all([getUser(), getTranslations("settings"), getTranslations("language")]);
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";
@@ -23,31 +28,34 @@ export default async function NastaveniaPage() {
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Nastavenia</h1>
-        <p>Základné údaje tvojho konta.</p>
+        <h1>{t("title")}</h1>
+        <p>{t("subtitle")}</p>
       </div>
 
       <div className={styles.settingsGrid}>
         <div className={styles.card}>
-          <h3>Vzhľad</h3>
+          <h3>{t("appearance")}</h3>
           <ThemeSwitch initial={await v6Theme()} />
-          <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>
-            Auto prepína svetlú a tmavú tému podľa nastavenia zariadenia.
-          </p>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>{t("appearanceHint")}</p>
         </div>
         <div className={styles.card}>
-          <h3>Profil</h3>
+          <h3>{tl("title")}</h3>
+          <LanguageSelect />
+          <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>{tl("hint")}</p>
+        </div>
+        <div className={styles.card}>
+          <h3>{t("profile")}</h3>
           <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Meno</span>
+            <span className={styles.infoLabel}>{t("name")}</span>
             <span className={styles.infoValue}>{fullName}</span>
           </div>
           <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>E-mail</span>
+            <span className={styles.infoLabel}>{t("email")}</span>
             <span className={styles.infoValue}>{email}</span>
           </div>
           <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Rola</span>
-            <span className={styles.infoValue}>Tréner</span>
+            <span className={styles.infoLabel}>{t("role")}</span>
+            <span className={styles.infoValue}>{t("roleTrainer")}</span>
           </div>
           {/* odhlásenie len tu — v hornej lište / bočnom paneli je avatar, ktorý sem vedie */}
           <div className={styles.settingsSignOut}>
@@ -57,65 +65,55 @@ export default async function NastaveniaPage() {
 
         {user?.email && (
           <div className={styles.card}>
-            <h3>Heslo</h3>
+            <h3>{t("password")}</h3>
             <ChangePasswordForm email={user.email} />
           </div>
         )}
 
         <div className={styles.card}>
           <div className={styles.settingsRowHead}>
-            <h3 style={{ marginBottom: 0 }}>Notifikácie</h3>
-            <span className={styles.comingSoon}>čoskoro</span>
+            <h3 style={{ marginBottom: 0 }}>{t("notifications")}</h3>
+            <span className={styles.comingSoon}>{t("comingSoon")}</span>
           </div>
-          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>
-            E-mailové upozornenia na meškajúcich klientov a týždenné súhrny.
-          </p>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>{t("notificationsHint")}</p>
         </div>
 
         <div className={styles.card}>
-          <h3>AI náklady</h3>
+          <h3>{t("aiCosts")}</h3>
           {aiUsage ? (
             <>
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Dnes</span>
+                <span className={styles.infoLabel}>{t("today")}</span>
                 <span className={styles.infoValue}>
-                  {aiUsage.todayCount} {pluralSk(aiUsage.todayCount, "AI požiadavka", "AI požiadavky", "AI požiadaviek")} · ~
-                  {usdFormat(aiUsage.todayCostUsd)}
+                  {t("aiRequests", { count: aiUsage.todayCount })} · ~{usdFormat(aiUsage.todayCostUsd)}
                 </span>
               </div>
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Posledných 7 dní</span>
+                <span className={styles.infoLabel}>{t("last7Days")}</span>
                 <span className={styles.infoValue}>
-                  {aiUsage.weekCount} {pluralSk(aiUsage.weekCount, "AI požiadavka", "AI požiadavky", "AI požiadaviek")} · ~
-                  {usdFormat(aiUsage.weekCostUsd)}
+                  {t("aiRequests", { count: aiUsage.weekCount })} · ~{usdFormat(aiUsage.weekCostUsd)}
                 </span>
               </div>
-              <p style={{ color: "var(--paper-dim)", fontSize: 12.5, marginTop: 10 }}>
-                Orientačný odhad nákladov na AI funkcie tvojho konta — AI kouč klientov, generátor plánov a zhrnutia.
-              </p>
+              <p style={{ color: "var(--paper-dim)", fontSize: 12.5, marginTop: 10 }}>{t("aiCostsHint")}</p>
             </>
           ) : (
-            <p style={{ color: "var(--paper-dim)", fontSize: 13.5 }}>Zatiaľ žiadne AI volania.</p>
+            <p style={{ color: "var(--paper-dim)", fontSize: 13.5 }}>{t("aiNone")}</p>
           )}
         </div>
 
         <div className={styles.card}>
           <div className={styles.settingsRowHead}>
-            <h3 style={{ marginBottom: 0 }}>Fakturácia</h3>
-            <span className={styles.comingSoon}>čoskoro</span>
+            <h3 style={{ marginBottom: 0 }}>{t("billing")}</h3>
+            <span className={styles.comingSoon}>{t("comingSoon")}</span>
           </div>
-          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>
-            Správa predplatného a platobných údajov tu bude dostupná čoskoro.
-          </p>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>{t("billingHint")}</p>
         </div>
 
         <div className={styles.card}>
-          <h3>Návod</h3>
-          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10, marginBottom: 14 }}>
-            Krátky sprievodca appkou, ktorý si videl pri prvom prihlásení.
-          </p>
+          <h3>{t("tour")}</h3>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10, marginBottom: 14 }}>{t("tourHint")}</p>
           <Link href="/dashboard?tour=1" className="btn btn-ghost btn-sm">
-            Spustiť návod znova
+            {t("tourRestart")}
           </Link>
         </div>
       </div>

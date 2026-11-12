@@ -1,0 +1,43 @@
+{
+  "title": "Profil",
+  "subtitle": "Kód pre trénera, stav prepojenia a nastavenia účtu.",
+  "appearance": "Vzhľad",
+  "appearanceHint": "Auto prepína svetlú a tmavú tému podľa nastavenia telefónu.",
+  "password": "Heslo",
+  "personal": "Osobné údaje",
+  "personalHint": "Vek, výška, váha, ciele a alergie z onboardingu si tu doplníš onedlho — potom uvidíš aj svoj progres v čase.",
+  "tour": "Návod",
+  "tourHint": "Krátky sprievodca appkou, ktorý si videl pri prvom prihlásení.",
+  "tourRestart": "Spustiť návod znova",
+  "connection": {
+    "shareText": "Pridaj ma ako svojho klienta vo FitPilot. Môj kód: {code}",
+    "shareTitle": "Môj FitPilot kód",
+    "codeLabel": "Tvoj kód pre trénera",
+    "copied": "Skopírované",
+    "copy": "Kopírovať",
+    "share": "Zdieľať",
+    "codeHint": "Pošli tento kód svojmu trénerovi. Zadá ho u seba a tým sa napojíte — appku dovtedy plne používaš aj sám.",
+    "codePending": "Kód sa práve pripravuje — obnov stránku o chvíľu.",
+    "trainer": "Tréner",
+    "linkedWith": "Prepojený/á s trénerom <b>{name}</b>",
+    "linked": "Prepojený/á s trénerom",
+    "leaveNamed": "Odpojiť sa od trénera {name}?",
+    "leave": "Odpojiť sa od trénera?",
+    "leaveText": "Tvoje tréningy, merania a denník ostávajú — tréner k nim už nebude mať prístup.",
+    "leaving": "Odpájam…",
+    "yesLeave": "Áno, odpojiť",
+    "cancel": "Zrušiť",
+    "leaveButton": "Odpojiť sa od trénera",
+    "noTrainer": "Zatiaľ nemáš trénera. Keď mu pošleš kód vyššie a on ťa pridá, uvidíš tu jeho meno a v Chate ti príde potvrdenie."
+  },
+  "deletion": {
+    "title": "Zmazanie dát",
+    "byTrainer": "Tréner požiadal o zmazanie — tréningy, výživa, denník aj správy sa natrvalo odstránia o {days, plural, one {# deň} few {# dni} other {# dní}}.",
+    "byYou": "Požiadal/a si o zmazanie — tréningy, výživa, denník aj správy sa natrvalo odstránia o {days, plural, one {# deň} few {# dni} other {# dní}}.",
+    "cancel": "Zrušiť zmazanie",
+    "confirm": "Naozaj chceš zmazať svoje tréningy, jedálniček, denník aj správy s trénerom? Dáta zostanú 30 dní (dá sa zrušiť), potom sa natrvalo odstránia.",
+    "yes": "Áno, zmazať",
+    "no": "Nie",
+    "request": "Požiadať o zmazanie mojich dát"
+  }
+}

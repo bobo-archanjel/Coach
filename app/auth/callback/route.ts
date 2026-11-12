@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getUserLocale } from "@/lib/i18n/server";
+import { syncLocaleCookieFromProfile } from "@/lib/i18n/sync";
 
 /**
  * Cieľ OAuth presmerovania (Google/Apple) — Supabase sem po úspešnom overení
@@ -41,6 +43,15 @@ export async function GET(request: Request) {
   } else {
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
     finalRole = profile?.role ?? "trainer";
+  }
+
+  // Jazyk (feature/cestina): nový účet dostane jazyk, v ktorom sa registroval (cookie /
+  // prehliadač); existujúci účet naopak nastaví cookie podľa profilu.
+  if (isFreshSignup) {
+    const locale = await getUserLocale();
+    await supabase.rpc("set_my_locale", { p_locale: locale });
+  } else {
+    await syncLocaleCookieFromProfile(supabase, user.id);
   }
 
   if (finalRole === "client") {

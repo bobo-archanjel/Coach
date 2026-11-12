@@ -24,16 +24,7 @@ export const LIBRARY_MUSCLE_FILTERS: LibraryMuscleFilter[] = [
   "brucho",
 ];
 
-export const LIBRARY_MUSCLE_LABEL_SK: Record<LibraryMuscleFilter, string> = {
-  hrudnik: "Hrudník",
-  chrbat: "Chrbát",
-  ramena: "Ramená",
-  ruky: "Ruky",
-  nohy: "Nohy",
-  zadok: "Zadok",
-  brucho: "Brucho",
-};
-
+// i18n-ignore-start — slovenské kľúče muscle_group z DB
 /** muscle_group (raw SK hodnota z knižnice, viď scripts/import-exercises.mjs MUSCLE_SK) → filter bucket. */
 const LIBRARY_MUSCLE_GROUPS: Record<LibraryMuscleFilter, string[]> = {
   hrudnik: ["hrudník"],
@@ -45,6 +36,7 @@ const LIBRARY_MUSCLE_GROUPS: Record<LibraryMuscleFilter, string[]> = {
   brucho: ["brucho"],
 };
 
+// i18n-ignore-end
 export function exerciseMatchesMuscleFilter(muscleGroup: string | null | undefined, filter: LibraryMuscleFilter): boolean {
   if (!muscleGroup) return false;
   return LIBRARY_MUSCLE_GROUPS[filter].includes(muscleGroup.trim().toLowerCase());
@@ -55,19 +47,13 @@ export type LibraryEquipmentFilter = "len_telo" | "domace_vybavenie" | "plna_pos
 
 export const LIBRARY_EQUIPMENT_FILTERS: LibraryEquipmentFilter[] = ["len_telo", "domace_vybavenie", "plna_posilnovna"];
 
-export const LIBRARY_EQUIPMENT_LABEL_SK: Record<LibraryEquipmentFilter, string> = {
-  len_telo: "Len telo",
-  domace_vybavenie: "Domáce vybavenie",
-  plna_posilnovna: "Posilňovňa",
-};
-
 const LIBRARY_EQUIPMENT_MAX_LEVEL: Record<LibraryEquipmentFilter, 0 | 1 | 2> = {
   len_telo: 0,
   domace_vybavenie: 1,
   plna_posilnovna: 2,
 };
 
-/** Inkluzívne — "Domáce vybavenie" ukáže aj cviky bez vybavenia, nie len presne tú úroveň (rovnaká logika ako exerciseFitsEquipment). */
+/** Inkluzívne — domáce vybavenie ukáže aj cviky bez vybavenia, nie len presne tú úroveň (rovnaká logika ako exerciseFitsEquipment). */
 export function exerciseMatchesEquipmentFilter(
   equipment: string | null | undefined,
   filter: LibraryEquipmentFilter,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { addClientAction, addClientByCodeAction, type AddClientState, type AddByCodeState } from "./actions";
 import type { RosterItem } from "./ClientRoster";
@@ -33,6 +34,7 @@ function normalizeCode(raw: string): string {
 }
 
 export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: RosterItem) => void }) {
+  const t = useTranslations("clients.add");
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"code" | "manual">("code");
   const [codeValue, setCodeValue] = useState("");
@@ -67,7 +69,7 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
     return (
       <div id="add-client" className={styles.addClientForm}>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
-          + Nový klient
+          {t("newClient")}
         </button>
       </div>
     );
@@ -77,7 +79,7 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
     <div id="add-client" className={`${styles.addClientForm} ${styles.addClientPanel}`}>
       {/* Prepínač + otáznik s vysvetlením zvolenej cesty (InfoTip) v jednom riadku. */}
       <div className={styles.addClientModesRow}>
-        <div className={styles.addClientModes} role="tablist" aria-label="Ako pridať klienta">
+        <div className={styles.addClientModes} role="tablist" aria-label={t("modes")}>
           <button
             type="button"
             role="tab"
@@ -85,7 +87,7 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
             className={`${styles.addClientModeBtn} ${mode === "code" ? styles.addClientModeActive : ""}`}
             onClick={() => setMode("code")}
           >
-            Má FitPilot účet
+            {t("hasAccount")}
           </button>
           <button
             type="button"
@@ -94,18 +96,15 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
             className={`${styles.addClientModeBtn} ${mode === "manual" ? styles.addClientModeActive : ""}`}
             onClick={() => setMode("manual")}
           >
-            Ešte nemá účet
+            {t("noAccount")}
           </button>
         </div>
         {mode === "code" ? (
-          <InfoTip title="Klient s FitPilot účtom">
-            Klient si nájde svoj kód v appke v <strong>Profile</strong> a pošle ti ho. Zadaj ho sem — hneď sa napojí a
-            dostane potvrdenie.
+          <InfoTip title={t("hasAccountTitle")}>
+            {t.rich("hasAccountText", { b: (chunks) => <strong>{chunks}</strong> })}
           </InfoTip>
         ) : (
-          <InfoTip title="Klient bez účtu">
-            Vytvoríme mu záznam a vygenerujeme kód, ktorý si klient nárokuje pri registrácii.
-          </InfoTip>
+          <InfoTip title={t("noAccountTitle")}>{t("noAccountText")}</InfoTip>
         )}
       </div>
 
@@ -124,26 +123,26 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
               required
               disabled={codePending}
               className={styles.addClientInput}
-              aria-label="Kód klienta"
+              aria-label={t("code")}
               aria-describedby="add-client-code-count"
             />
             <button type="submit" className="btn btn-primary btn-sm" disabled={codePending}>
-              {codePending ? "Pridávam…" : "Pridať klienta"}
+              {codePending ? t("adding") : t("addClient")}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={codePending}>
-              Zavrieť
+              {t("close")}
             </button>
           </div>
           {codeValue.length > 0 && (
             <p id="add-client-code-count" className={styles.addClientHint} style={{ marginTop: -8 }}>
-              {codeDigitsLen}/{CODE_BODY_LEN} znakov
+              {t("codeCount", { count: codeDigitsLen, total: CODE_BODY_LEN })}
             </p>
           )}
           {codeState.error && <p className={styles.addClientError}>{codeState.error}</p>}
           {codeState.addedName && !codeState.error && (
             <p className={styles.addClientOk} role="status">
               <CheckIcon />
-              {codeState.addedName} pridaný/-á do zoznamu. Klient dostal potvrdenie.
+              {t("added", { name: codeState.addedName })}
             </p>
           )}
         </form>
@@ -174,32 +173,32 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
           }}
         >
           <div className={styles.addClientFields}>
-            <input name="full_name" type="text" placeholder="Meno a priezvisko" required disabled={manualPending} className={styles.addClientInput} />
-            <input name="goal" type="text" placeholder="Cieľ (napr. chudnutie)" disabled={manualPending} className={styles.addClientInput} />
+            <input name="full_name" type="text" placeholder={t("fullName")} required disabled={manualPending} className={styles.addClientInput} />
+            <input name="goal" type="text" placeholder={t("goal")} disabled={manualPending} className={styles.addClientInput} />
           </div>
           {/* Viditeľné popisky nad poľami, nie placeholder: tri polia v riadku majú na
               mobile ~57–67px na text a „Výška (cm)" (85px pri 16px písme) sa orezávala.
               Rovnaký vzor ako Od/Do v AddAppointmentForm (.timeField). */}
           <div className={styles.addClientFieldsRow}>
             <label className={styles.timeField}>
-              <span className={styles.timeFieldLabel}>Vek</span>
+              <span className={styles.timeFieldLabel}>{t("age")}</span>
               <input name="age" type="number" inputMode="numeric" min={1} max={119} disabled={manualPending} className={styles.addClientInputSm} />
             </label>
             <label className={styles.timeField}>
-              <span className={styles.timeFieldLabel}>Váha (kg)</span>
+              <span className={styles.timeFieldLabel}>{t("weight")}</span>
               <input name="weight_kg" type="number" inputMode="decimal" min={1} step="0.1" disabled={manualPending} className={styles.addClientInputSm} />
             </label>
             <label className={styles.timeField}>
-              <span className={styles.timeFieldLabel}>Výška (cm)</span>
+              <span className={styles.timeFieldLabel}>{t("height")}</span>
               <input name="height_cm" type="number" inputMode="decimal" min={1} step="0.1" disabled={manualPending} className={styles.addClientInputSm} />
             </label>
           </div>
           <div className={styles.addClientFields}>
             <button type="submit" className="btn btn-primary btn-sm" disabled={manualPending}>
-              {manualPending ? "Pridávam…" : "Vytvoriť záznam"}
+              {manualPending ? t("adding") : t("createRecord")}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={manualPending}>
-              Zrušiť
+              {t("cancel")}
             </button>
           </div>
           {manualState.error && <p className={styles.addClientError}>{manualState.error}</p>}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { DualLineChart, type DualLineChartPoint } from "../../DualLineChart";
 import type { StrengthPoint } from "@/lib/dashboard/bodyMetrics";
@@ -35,6 +36,7 @@ export function StrengthCard({
   /** cviky, na ktorých je posledný záznam nové osobné maximum (feature/analytika-v2, bod 3) */
   prExerciseNames?: string[];
 }) {
+  const t = useTranslations("clientDetail.strength");
   const [selected, setSelected] = useState(exerciseNames[0] ?? "");
   const isPR = prExerciseNames.includes(selected);
 
@@ -58,11 +60,11 @@ export function StrengthCard({
   return (
     <div>
       <h4 className={styles.cardSubhead}>
-        Sila
+        {t("title")}
         {exerciseNames.length > 0 && (
           <>
             {" "}
-            <InfoTip title="Graf sily">Najťažšia séria pri každom zázname tréningu s týmto cvikom.</InfoTip>
+            <InfoTip title={t("chartTitle")}>{t("chartTip")}</InfoTip>
           </>
         )}
       </h4>
@@ -73,7 +75,7 @@ export function StrengthCard({
             onChange={(e) => setSelected(e.target.value)}
             className={styles.addClientInputSm}
             style={{ marginBottom: 12, width: "100%" }}
-            aria-label="Vyber cvik"
+            aria-label={t("choose")}
           >
             {exerciseNames.map((name) => (
               <option key={name} value={name}>
@@ -85,28 +87,26 @@ export function StrengthCard({
           {isPR && (
             <p className={styles.prBadge}>
               <UpIcon />
-              Nové osobné maximum
+              {t("pr")}
             </p>
           )}
 
           {trend != null && (
             <p className={`${styles.strengthTrend} ${trend > 0 ? styles.strengthTrendUp : trend < 0 ? styles.strengthTrendDown : styles.strengthTrendFlat}`}>
               {trend > 0 ? <UpIcon /> : trend < 0 ? <DownIcon /> : null}
-              {trend > 0 ? "+" : ""}
-              {trend}&nbsp;% váhy za sledované obdobie
+              {t("trend", { trend: `${trend > 0 ? "+" : ""}${trend}` })}
             </p>
           )}
 
           <DualLineChart
             points={points}
-            seriesA={{ label: "Váha", unit: "kg", color: "var(--plate-yellow)" }}
-            seriesB={{ label: "Opakovania", unit: "op.", color: "var(--moss)" }}
+            seriesA={{ label: t("weight"), unit: "kg", color: "var(--plate-yellow)" }}
+            seriesB={{ label: t("reps"), unit: t("repsUnit"), color: "var(--moss)" }}
           />
         </>
       ) : (
         <p className={styles.noWorkouts}>
-          Klient zatiaľ nezapísal váhu pri žiadnom cviku — graf sily sa objaví, keď pri „Ukončiť tréning“ zadá aspoň jednu
-          váhu.
+          {t("empty")}
         </p>
       )}
     </div>

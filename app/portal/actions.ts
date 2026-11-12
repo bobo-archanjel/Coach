@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
@@ -30,9 +31,9 @@ export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeek
 export async function requestOwnDeletionAction(): Promise<ActionState> {
   const supabase = await createClient();
   const clientId = await currentClientId(supabase);
-  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  if (!clientId) return { error: await tErr("client.clientProfileMissing") };
   const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath("/portal/profil");
   return ok;
 }
@@ -41,9 +42,9 @@ export async function requestOwnDeletionAction(): Promise<ActionState> {
 export async function cancelOwnDeletionAction(): Promise<ActionState> {
   const supabase = await createClient();
   const clientId = await currentClientId(supabase);
-  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  if (!clientId) return { error: await tErr("client.clientProfileMissing") };
   const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath("/portal/profil");
   return ok;
 }
@@ -57,8 +58,8 @@ export async function leaveTrainerAction(): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("leave_trainer");
   if (error) {
-    if (error.message.includes("no_client")) return { error: "Nenašli sme tvoj klientský profil." };
-    return { error: "Odpojenie zlyhalo. Skús to o chvíľu znova." };
+    if (error.message.includes("no_client")) return { error: await tErr("client.clientProfileMissing") };
+    return { error: await tErr("client.disconnectFailed") };
   }
   revalidatePath("/portal/profil");
   revalidatePath("/portal");
@@ -70,9 +71,9 @@ export async function leaveTrainerAction(): Promise<ActionState> {
 export async function dismissCooperationNoticeAction(): Promise<ActionState> {
   const supabase = await createClient();
   const clientId = await currentClientId(supabase);
-  if (!clientId) return { error: "Nenašli sme tvoj klientský profil." };
+  if (!clientId) return { error: await tErr("client.clientProfileMissing") };
   const { error } = await supabase.rpc("dismiss_cooperation_notice", { p_client_id: clientId });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   revalidatePath("/portal");
   return ok;
 }
@@ -118,7 +119,7 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const { data: client } = await supabase
     .from("clients")
@@ -127,7 +128,7 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (!client) return { error: "Tvoj účet nie je prepojený s trénerom." };
+  if (!client) return { error: await tErr("client.notLinkedTrainer") };
 
   const measuredOn = (formData.get("measured_on") as string | null) || new Date().toISOString().slice(0, 10);
   const weightKg = optionalNum(formData.get("weight_kg"), 20, 400);
@@ -138,7 +139,7 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
   const thighCm = optionalNum(formData.get("thigh_cm"), 5, 150);
 
   if (weightKg == null && waistCm == null && chestCm == null && hipsCm == null && armCm == null && thighCm == null) {
-    return { error: "Zadaj aspoň jednu hodnotu." };
+    return { error: await tErr("client.atLeastOneValue") };
   }
 
   const { error } = await supabase.from("body_metrics").upsert(
@@ -155,7 +156,7 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
     },
     { onConflict: "client_id,measured_on" },
   );
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/portal", "layout");
   revalidatePath(`/dashboard/klienti/${client.id}`);
@@ -245,10 +246,10 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const dayId = formData.get("day_id") as string | null;
-  if (!dayId) return { error: "Chýba deň tréningu." };
+  if (!dayId) return { error: await tErr("client.missingDay") };
 
   let entries: IncomingExercise[] | null = [];
   const rawEntries = formData.get("entries") as string | null;
@@ -260,7 +261,7 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
     }
   }
   // Predtým sa neplatný vstup ticho zahodil/orezal a uložil — dnes by ostal zamknutý.
-  if (entries === null) return { error: "Niektorá zapísaná hodnota nie je platná — skontroluj série a skús to znova." };
+  if (entries === null) return { error: await tErr("client.invalidSetValue") };
 
   const rpeRaw = Number(formData.get("rpe"));
   const rpe = Number.isInteger(rpeRaw) && rpeRaw >= 1 && rpeRaw <= 10 ? rpeRaw : null;
@@ -273,7 +274,7 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (!client) return { error: "Nepodarilo sa nájsť tvoj profil." };
+  if (!client) return { error: await tErr("client.profileMissing") };
 
   // Insert a RPC sa navzájom nepotrebujú (RPC len čistí `active_day_id` podľa
   // dayId, nie podľa výsledku insertu) — paralelne namiesto čakania jedného na
@@ -301,9 +302,9 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
     // takže ich treba klientovi výslovne nechať (koncept v prehliadači ostáva).
     if (error.code === "23505") {
       revalidatePath("/portal", "layout");
-      return { error: "Tento tréning už máš dnes zapísaný — tieto hodnoty sa neuložili. Obnov stránku a pozri si uložený záznam." };
+      return { error: await tErr("client.alreadyLogged") };
     }
-    return { error: dbErr(error, "actions") };
+    return { error: await dbErr(error, "actions") };
   }
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
@@ -325,7 +326,7 @@ export async function updateWorkoutLogAction(input: {
   rpe: string;
   note: string;
 }): Promise<ActionState> {
-  if (!input.logId) return { error: "Chýba záznam tréningu." };
+  if (!input.logId) return { error: await tErr("client.missingLog") };
 
   let entries: IncomingExercise[] | null;
   try {
@@ -333,7 +334,7 @@ export async function updateWorkoutLogAction(input: {
   } catch {
     entries = null;
   }
-  if (entries === null) return { error: "Niektorá zapísaná hodnota nie je platná — skontroluj série a skús to znova." };
+  if (entries === null) return { error: await tErr("client.invalidSetValue") };
 
   const rpeRaw = Number(input.rpe);
   const rpe = input.rpe && Number.isInteger(rpeRaw) && rpeRaw >= 1 && rpeRaw <= 10 ? rpeRaw : null;
@@ -347,9 +348,9 @@ export async function updateWorkoutLogAction(input: {
     .update({ entries, rpe, note })
     .eq("id", input.logId)
     .select("id");
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
   if (!data || data.length === 0) {
-    return { error: "Hodnoty sa dajú upraviť len 24 hodín po ukončení tréningu." };
+    return { error: await tErr("client.editWindow") };
   }
 
   revalidatePath("/portal", "layout");
@@ -377,25 +378,25 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
   const slot = (formData.get("meal_slot") as string | null) ?? "";
   const grams = Number(formData.get("grams"));
 
-  if (!MEAL_SLOT_ORDER.includes(slot as (typeof MEAL_SLOT_ORDER)[number])) return { error: "Vyber jedlo dňa." };
-  if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: "Zadaj gramáž (1–5000 g)." };
+  if (!MEAL_SLOT_ORDER.includes(slot as (typeof MEAL_SLOT_ORDER)[number])) return { error: await tErr("client.chooseSlot") };
+  if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: await tErr("client.gramsRange") };
 
   // Zápis aj za iný deň (QA 2026-09-23) — rovnaký povolený rozsah ako zobrazenie.
   const today = todayBratislava();
   const eatenOnRaw = (formData.get("eaten_on") as string | null) || today;
   const eatenOn = validDiaryDate(eatenOnRaw, today);
-  if (!eatenOn) return { error: `Zapisovať sa dá len za posledných ${DIARY_MAX_DAYS_BACK} dní, nie do budúcnosti.` };
+  if (!eatenOn) return { error: await tErr("client.diaryRange", { days: DIARY_MAX_DAYS_BACK }) };
 
   // Vlastná potravina (custom=1): názov a makrá zadáva klient, žiadny food_id —
   // preto ich tu overíme, nie len `|| 0` ako pri snapshote z plánu/online.
   if (formData.get("custom") === "1") {
-    if (!name || name.length > 120) return { error: "Zadaj názov potraviny (max 120 znakov)." };
-    if (((formData.get("kcal_100g") as string | null) ?? "").trim() === "") return { error: "Zadaj kalórie na 100 g." };
+    if (!name || name.length > 120) return { error: await tErr("client.foodNameRequired") };
+    if (((formData.get("kcal_100g") as string | null) ?? "").trim() === "") return { error: await tErr("client.kcalRequired") };
     const vals = ["kcal_100g", "protein_100g", "carbs_100g", "fat_100g"].map((k) => Number(formData.get(k)));
-    if (vals.some((v) => !Number.isFinite(v) || v < 0)) return { error: "Makrá musia byť čísla 0 alebo viac." };
+    if (vals.some((v) => !Number.isFinite(v) || v < 0)) return { error: await tErr("client.macrosNonNegative") };
     const [kcal, protein, carbs, fat] = vals;
-    if (kcal > 900) return { error: "Kalórie na 100 g môžu byť najviac 900." };
-    if (protein + carbs + fat > 100) return { error: "Bielkoviny, sacharidy a tuky spolu nemôžu mať viac ako 100 g na 100 g." };
+    if (kcal > 900) return { error: await tErr("client.kcalMax") };
+    if (protein + carbs + fat > 100) return { error: await tErr("client.macrosMax") };
   }
 
   // Autoritatívne makrá z DB; fallback na snapshot z formulára.
@@ -418,7 +419,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+  if (!clientId) return { error: await tErr("client.notLinkedTrainer") };
 
   if (food) {
     macros = {
@@ -430,7 +431,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
     foodName = food.name;
   }
 
-  if (!foodName) return { error: "Chýba názov potraviny." };
+  if (!foodName) return { error: await tErr("client.missingFoodName") };
 
   const { error } = await supabase.from("food_logs").insert({
     client_id: clientId,
@@ -442,7 +443,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
     ...macros,
   });
 
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/portal/dennik");
   return ok;
@@ -457,8 +458,8 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
 
   const id = formData.get("entry_id") as string | null;
   const grams = Number(formData.get("grams"));
-  if (!id) return { error: "Chýba identifikátor záznamu." };
-  if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: "Zadaj gramáž (1–5000 g)." };
+  if (!id) return { error: await tErr("client.missingRecordId") };
+  if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: await tErr("client.gramsRange") };
 
   const { data, error } = await supabase
     .from("food_logs")
@@ -466,8 +467,8 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
     .eq("id", id)
     .select("id")
     .maybeSingle();
-  if (error) return { error: dbErr(error, "actions") };
-  if (!data) return { error: "Záznam sa nenašiel." };
+  if (error) return { error: await dbErr(error, "actions") };
+  if (!data) return { error: await tErr("client.recordNotFound") };
 
   revalidatePath("/portal/dennik");
   return ok;
@@ -478,11 +479,11 @@ export async function removeFoodLogAction(_prevState: ActionState, formData: For
   const supabase = await createClient();
 
   const id = formData.get("entry_id") as string | null;
-  if (!id) return { error: "Chýba identifikátor záznamu." };
+  if (!id) return { error: await tErr("client.missingRecordId") };
 
   const { data, error } = await supabase.from("food_logs").delete().eq("id", id).select("id");
-  if (error) return { error: dbErr(error, "actions") };
-  if (!data || data.length === 0) return { error: "Záznam sa nenašiel." };
+  if (error) return { error: await dbErr(error, "actions") };
+  if (!data || data.length === 0) return { error: await tErr("client.recordNotFound") };
 
   revalidatePath("/portal/dennik");
   return ok;
@@ -494,15 +495,15 @@ export async function sendClientMessageAction(_prevState: ActionState, formData:
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   // Používateľ je už overený vyššie — currentClientId by sieťový auth.getUser() zopakoval.
   const clientId = await clientIdForUser(supabase, user.id);
-  if (!clientId) return { error: "Tvoj účet nie je prepojený s trénerom." };
+  if (!clientId) return { error: await tErr("client.notLinkedTrainer") };
 
   const body = ((formData.get("body") as string | null) ?? "").trim();
-  if (!body) return { error: "Prázdna správa." };
-  if (body.length > 4000) return { error: "Správa je príliš dlhá (max 4000 znakov)." };
+  if (!body) return { error: await tErr("emptyMessage") };
+  if (body.length > 4000) return { error: await tErr("messageTooLong") };
 
   const { error } = await supabase.from("messages").insert({
     client_id: clientId,
@@ -510,7 +511,7 @@ export async function sendClientMessageAction(_prevState: ActionState, formData:
     sender_id: user.id,
     body,
   });
-  if (error) return { error: dbErr(error, "actions") };
+  if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath("/portal/chat");
   return ok;

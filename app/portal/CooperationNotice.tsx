@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { dismissCooperationNoticeAction } from "./actions";
 import styles from "./portal.module.css";
@@ -13,6 +14,7 @@ const CloseIcon = () => (
 /* Banner "spolupráca ukončená" (0020) — X zavrie natrvalo (dismiss_cooperation_notice),
    kým sa spolupráca znova neukončí. Skryje sa hneď po kliku, server si to dobehne na pozadí. */
 export function CooperationNotice() {
+  const t = useTranslations("today.cooperation");
   const [dismissed, setDismissed] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -23,7 +25,7 @@ export function CooperationNotice() {
       <button
         type="button"
         className={styles.cooperationNoticeClose}
-        aria-label="Zavrieť upozornenie"
+        aria-label={t("close")}
         onClick={() => {
           setDismissed(true);
           startTransition(() => {
@@ -33,10 +35,9 @@ export function CooperationNotice() {
       >
         <CloseIcon />
       </button>
-      <p className={styles.cooperationNoticeTitle}>Spolupráca s trénerom bola ukončená</p>
+      <p className={styles.cooperationNoticeTitle}>{t("title")}</p>
       <p className={styles.cooperationNoticeText}>
-        Tvoje tréningy, výživa, denník aj správy zostávajú uložené — spolupráca sa dá kedykoľvek
-        obnoviť. Dovtedy môžeš aplikáciu používať aj samostatne.
+        {t("text")}
       </p>
     </div>
   );

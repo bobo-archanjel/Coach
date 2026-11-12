@@ -17,7 +17,7 @@ const ArrowIcon = () => (
  * úplne hore. Skrytá na desktope cez CSS (`.stickyCta` media query,
  * page.module.css) — hero aj nav CTA sú tam vždy viditeľné bez scrollu.
  */
-export function StickyMobileCta() {
+export function StickyMobileCta({ label }: { label: string }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function StickyMobileCta() {
   return (
     <div className={`${styles.stickyCta} ${visible ? styles.stickyCtaVisible : ""}`} aria-hidden={!visible}>
       <a href="#cennik" className={`btn btn-primary ${styles.stickyCtaBtn}`} tabIndex={visible ? 0 : -1}>
-        Začať 14-dňové skúšobné obdobie
+        {label}
         <ArrowIcon />
       </a>
     </div>

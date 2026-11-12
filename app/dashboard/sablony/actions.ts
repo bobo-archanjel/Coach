@@ -1,5 +1,6 @@
 "use server";
 
+import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -23,12 +24,12 @@ export async function saveWorkoutTemplateAction(_prevState: ActionState, formDat
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const planId = (formData.get("plan_id") as string | null) ?? "";
   const name = (formData.get("name") as string | null) ?? "";
   const goal = (formData.get("goal") as string | null) ?? null;
-  if (!planId) return { error: "Chýba ID plánu." };
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
 
   const result = await saveWorkoutPlanAsTemplate(supabase, user.id, planId, name, goal);
   if (result.error) return result;
@@ -43,11 +44,11 @@ export async function saveMealTemplateAction(_prevState: ActionState, formData: 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Nie si prihlásený." };
+  if (!user) return { error: await tErr("notSignedIn") };
 
   const planId = (formData.get("plan_id") as string | null) ?? "";
   const name = (formData.get("name") as string | null) ?? "";
-  if (!planId) return { error: "Chýba ID jedálničku." };
+  if (!planId) return { error: await tErr("templates.missingMealId") };
 
   const result = await saveMealPlanAsTemplate(supabase, user.id, planId, name);
   if (result.error) return result;
@@ -78,26 +79,26 @@ export async function applyTemplateToClientsAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Nie si prihlásený.");
-  if (!templateId) return fail("Chýba šablóna.");
+  if (!user) return fail(await tErr("notSignedIn"));
+  if (!templateId) return fail(await tErr("templates.missingTemplate"));
   const ids = uniqueClientIds(clientIds);
-  if (ids.length === 0) return fail("Vyber aspoň jedného klienta.");
+  if (ids.length === 0) return fail(await tErr("chooseAtLeastOneClient"));
   if (ids.length > MAX_PLAN_CLIENTS) return fail(`Naraz najviac ${MAX_PLAN_CLIENTS} klientov.`);
 
   const [mainClientId, ...others] = ids;
-  if (!(await areTrainerClients(supabase, user.id, others))) return fail("Niektorý z vybraných klientov nepatrí tebe.");
+  if (!(await areTrainerClients(supabase, user.id, others))) return fail(await tErr("plans.someSelectedNotYours"));
 
   const applied =
     kind === "workout"
       ? await applyWorkoutTemplateToClient(supabase, user.id, templateId, mainClientId)
       : await applyMealTemplateToClient(supabase, user.id, templateId, mainClientId);
-  if (applied.error || !applied.planId) return fail(applied.error ?? "Koncept sa nepodarilo vytvoriť.");
+  if (applied.error || !applied.planId) return fail(applied.error ?? await tErr("templates.draftFailed"));
 
   const recipientsError = await addPlanRecipients(supabase, user.id, kind, applied.planId, others);
   if (recipientsError) {
     // bez príjemcov by koncept dostal len prvý klient — radšej nič a jasná chyba
     await supabase.from(kind === "workout" ? "workout_plans" : "meal_plans").delete().eq("id", applied.planId);
-    return fail(`Ďalších klientov sa nepodarilo pridať: ${recipientsError}`);
+    return fail(await tErr("plans.recipientsFailed", { details: recipientsError }));
   }
 
   revalidatePath(kind === "workout" ? "/dashboard/treningy" : "/dashboard/jedalnicky");

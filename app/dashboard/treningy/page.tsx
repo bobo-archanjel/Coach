@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../components/AppLink";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -63,20 +64,21 @@ export default async function TreningyPage() {
     return { id: c.id, full_name: c.full_name, sex };
   });
 
+  const t = await getTranslations("plans");
   return (
     <>
       <div className={styles.pageHead}>
-        <h1>Tréningy</h1>
-        <p>Zostav plán klientovi — knižnica cvikov, dni, série a opakovania.</p>
+        <h1>{t("title")}</h1>
+        <p>{t("subtitle")}</p>
       </div>
 
       <div className={styles.card} style={{ marginBottom: 20 }}>
-        <h3>Nový plán</h3>
+        <h3>{t("newPlan")}</h3>
         <CreatePlanForm clients={clientList} />
       </div>
 
       <div className={styles.card} style={{ marginBottom: 20 }}>
-        <h3>AI generátor plánu</h3>
+        <h3>{t("aiGenerator")}</h3>
         <AiPlanGeneratorForm clients={clientList} />
       </div>
 
@@ -91,15 +93,15 @@ export default async function TreningyPage() {
                 <div>
                   <div className={styles.clientName}>
                     {plan.name}
-                    {!plan.published && <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>Koncept</span>}
+                    {!plan.published && <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>{t("draft")}</span>}
                   </div>
                   <div className={styles.clientGoal}>{clientName}</div>
                 </div>
                 {done?.allDone ? (
-                  <span className={styles.planDoneBadge}>Hotovo</span>
+                  <span className={styles.planDoneBadge}>{t("done")}</span>
                 ) : (
                   <span className={styles.clientSince}>
-                    {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount} dní
+                    {t("days", { days: done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount })}
                   </span>
                 )}
               </Link>
@@ -108,13 +110,13 @@ export default async function TreningyPage() {
         </div>
       ) : (
         <div className={styles.emptyState} style={{ marginBottom: 28 }}>
-          <h2>Zatiaľ žiadne plány</h2>
-          <p>Vytvor prvý plán vyššie.</p>
+          <h2>{t("emptyTitle")}</h2>
+          <p>{t("emptyText")}</p>
         </div>
       )}
 
       <div className={styles.card}>
-        <h3>Knižnica cvikov ({exerciseCount ?? 0})</h3>
+        <h3>{t("library", { count: exerciseCount ?? 0 })}</h3>
         <AddCustomExerciseForm />
         {(exerciseCount ?? 0) > 0 && <ExerciseLibraryList count={exerciseCount ?? 0} />}
       </div>

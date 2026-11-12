@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../../../components/AppLink";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -16,6 +17,7 @@ const BackIcon = () => (
 );
 
 export default async function MealPlanDetailPage({ params }: { params: Promise<{ planId: string }> }) {
+  const t = await getTranslations("mealPlans");
   const { planId } = await params;
   const supabase = await createClient();
   const {
@@ -64,7 +66,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
     <>
       <Link href="/dashboard/jedalnicky" className={styles.backLink}>
         <BackIcon />
-        Späť na jedálničky
+        {t("back")}
       </Link>
 
       {/* Rovnaké rozloženie ako detail tréningového plánu: názov s ceruzkou + stav vpravo,

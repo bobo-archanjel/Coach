@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addDayAction, type ActionState } from "../actions";
 import styles from "./builder.module.css";
@@ -7,6 +8,7 @@ import styles from "./builder.module.css";
 const initialState: ActionState = { error: null };
 
 export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDayNumber: number }) {
+  const t = useTranslations("plans.builder");
   const [adding, setAdding] = useState(false);
   const [state, formAction, pending] = useActionState(addDayAction, initialState);
   const wasPending = useRef(false);
@@ -21,7 +23,7 @@ export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDa
   if (!adding) {
     return (
       <button type="button" className={styles.addDayTab} onClick={() => setAdding(true)}>
-        + deň
+        {t("addDay")}
       </button>
     );
   }
@@ -33,7 +35,7 @@ export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDa
       <input
         name="name"
         type="text"
-        placeholder={`napr. Deň ${nextDayNumber} — Push`}
+        placeholder={t("dayPlaceholder", { n: nextDayNumber })}
         // Zámerne bez `required` — natívna HTML5 validačná bublina ("Please fill
         // out this field") sa riadi jazykom PREHLIADAČA, nie appky, takže na
         // anglicky nastavenom prehliadači vyskočí anglický text v inak
@@ -45,10 +47,10 @@ export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDa
         className={styles.addDayInput}
       />
       <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-        {pending ? "…" : "Pridať"}
+        {pending ? "…" : t("add")}
       </button>
       <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAdding(false)} disabled={pending}>
-        Zrušiť
+        {t("cancel")}
       </button>
       {state.error && <p className={styles.formError}>{state.error}</p>}
     </form>

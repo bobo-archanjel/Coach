@@ -1,5 +1,9 @@
 "use client";
 
+import { localizeSystemMessage } from "@/lib/i18n/systemMessages";
+import { useLocale, useTranslations } from "next-intl";
+import { MONTH_GENITIVE, WEEKDAY_LONG } from "@/lib/i18n/dates";
+import type { Locale } from "@/lib/i18n/locales";
 import {
   memo,
   startTransition,
@@ -72,9 +76,9 @@ const SmileIcon = () => (
     používatelia v mobilnej klávesnici; tu sú tie, ktoré sa v tomto chate hodia najviac.
     V rámci jednej kategórie nesmie byť emoji dvakrát (slúži ako React key). Prvých
     ~7 v každej kategórii je na mobile vidno bez posúvania — najčastejšie dávaj dopredu. */
-const EMOJI_CATEGORIES: { label: string; icon: string; emoji: string[] }[] = [
+const EMOJI_CATEGORIES: { label: "emojiMood" | "emojiFitness" | "emojiFood"; icon: string; emoji: string[] }[] = [
   {
-    label: "Nálada",
+    label: "emojiMood",
     icon: "😊",
     emoji: [
       "👍", "❤️", "😊", "😄", "😂", "😅", "😍", "🤩",
@@ -84,7 +88,7 @@ const EMOJI_CATEGORIES: { label: string; icon: string; emoji: string[] }[] = [
     ],
   },
   {
-    label: "Fitness",
+    label: "emojiFitness",
     icon: "💪",
     emoji: [
       "💪", "🔥", "🏋️", "🏃", "🚴", "🏊", "🧘", "🤸",
@@ -93,7 +97,7 @@ const EMOJI_CATEGORIES: { label: string; icon: string; emoji: string[] }[] = [
     ],
   },
   {
-    label: "Jedlo",
+    label: "emojiFood",
     icon: "🥗",
     emoji: [
       "🥗", "🍎", "🍌", "🍓", "🫐", "🥑", "🥦", "🥕",
@@ -145,19 +149,6 @@ const PARTS_FMT = new Intl.DateTimeFormat("en-US", {
   minute: "numeric",
   hourCycle: "h23",
 });
-const WEEKDAY_SK: Record<string, string> = {
-  Mon: "pondelok",
-  Tue: "utorok",
-  Wed: "streda",
-  Thu: "štvrtok",
-  Fri: "piatok",
-  Sat: "sobota",
-  Sun: "nedeľa",
-};
-const MONTH_SK = [
-  "januára", "februára", "marca", "apríla", "mája", "júna",
-  "júla", "augusta", "septembra", "októbra", "novembra", "decembra",
-];
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 /** dátum a čas v zóne appky; `key` = "YYYY-MM-DD" na porovnanie dní */
@@ -172,7 +163,8 @@ function zoned(date: Date) {
     year,
     month,
     day,
-    weekday: WEEKDAY_SK[p.weekday ?? ""] ?? "",
+    /** skratka dňa z Intl en-US („Mon“…) — názov podľa jazyka v lib/i18n/dates.ts */
+    weekday: p.weekday ?? "",
     // % 24 — niektoré staršie enginy vrátia o polnoci "24" aj pri h23
     time: `${pad2(Number(p.hour) % 24)}:${pad2(Number(p.minute))}`,
   };
@@ -186,11 +178,17 @@ function graphemeSegmenter(): Intl.Segmenter | null {
   return segmenter;
 }
 
-function dayLabel(iso: string, todayKey: string, yesterdayKey: string): string {
+function dayLabel(
+  iso: string,
+  todayKey: string,
+  yesterdayKey: string,
+  locale: Locale,
+  words: { today: string; yesterday: string },
+): string {
   const d = zoned(new Date(iso));
-  if (d.key === todayKey) return "Dnes";
-  if (d.key === yesterdayKey) return "Včera";
-  return `${d.weekday} ${d.day}. ${MONTH_SK[d.month - 1]}`;
+  if (d.key === todayKey) return words.today;
+  if (d.key === yesterdayKey) return words.yesterday;
+  return `${WEEKDAY_LONG[locale][d.weekday] ?? ""} ${d.day}. ${MONTH_GENITIVE[locale][d.month - 1]}`;
 }
 
 const timeOf = (iso: string) => zoned(new Date(iso)).time;
@@ -240,11 +238,17 @@ const MessageList = memo(function MessageList({
   emptyText: string;
   onOpenExercise?: (ref: ChatExerciseRef) => void;
 }) {
+  const locale = useLocale();
+  const t = useTranslations("chat");
+  const todayWord = t("today");
+  const yesterdayWord = t("yesterday");
   const view = useMemo(() => {
     const today = zoned(new Date());
     // včerajší kalendárny deň (nie "teraz − 24 h", to by pri zmene času raz za rok minulo)
     const yesterdayKey = new Date(Date.UTC(today.year, today.month - 1, today.day - 1)).toISOString().slice(0, 10);
-    const days = rows.map((m) => dayLabel(m.createdAt, today.key, yesterdayKey));
+    const days = rows.map((m) =>
+      dayLabel(m.createdAt, today.key, yesterdayKey, locale, { today: todayWord, yesterday: yesterdayWord }),
+    );
     return rows.map((m, i) => {
       const prev = rows[i - 1];
       const next = rows[i + 1];
@@ -258,7 +262,7 @@ const MessageList = memo(function MessageList({
         jumbo: m.sender !== "system" && isJumboEmoji(m.body),
       };
     });
-  }, [rows]);
+  }, [rows, locale, todayWord, yesterdayWord]);
 
   if (view.length === 0) {
     return (
@@ -281,7 +285,7 @@ const MessageList = memo(function MessageList({
         <div key={m.id} className={styles.group}>
           {newDay && <div className={styles.daySep}>{day}</div>}
           <div className={styles.systemRow}>
-            <p className={styles.systemNote}>{m.body}</p>
+            <p className={styles.systemNote}>{localizeSystemMessage(m.body, locale)}</p>
             <span className={styles.meta}>{timeOf(m.createdAt)}</span>
           </div>
         </div>
@@ -327,7 +331,6 @@ function fitHeight(el: HTMLTextAreaElement | null) {
   el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
 }
 
-const SEND_FAILED = "Správu sa nepodarilo odoslať — skontroluj pripojenie a skús znova.";
 /** Pri odstupe menšom než toto (px) od spodku sa nová správa ešte "dotiahne" dole. */
 const NEAR_BOTTOM_PX = 80;
 
@@ -337,7 +340,7 @@ export function ChatThread({
   sendAction,
   emptyTitle,
   emptyText,
-  placeholder = "Napíš správu…",
+  placeholder,
   fill = false,
   embedded = false,
   pollMs = 12_000,
@@ -397,6 +400,7 @@ export function ChatThread({
       props sa chipy pod správou vôbec nevykreslia (napr. v trénerovom chate). */
   getExerciseDetail?: (exerciseId: string) => Promise<ExerciseDetail | null>;
 }) {
+  const t = useTranslations("chat");
   const router = useRouter();
   const [text, setText] = useState("");
   const [exerciseModal, setExerciseModal] = useState<ChatExerciseRef | null>(null);
@@ -423,7 +427,7 @@ export function ChatThread({
     try {
       res = await sendAction(prev, fd);
     } catch {
-      res = { error: SEND_FAILED };
+      res = { error: t("sendFailed") };
     }
     if (res.error) {
       setText((current) => current || body);
@@ -646,7 +650,7 @@ export function ChatThread({
         ref={scrollRef}
         role="log"
         aria-live="polite"
-        aria-label="História správ"
+        aria-label={t("history")}
         tabIndex={0}
         onScroll={(e) => {
           const el = e.currentTarget;
@@ -688,7 +692,7 @@ export function ChatThread({
         >
           {emojiOpen && (
             <div id="chat-emoji-strip" className={styles.emojiPanel}>
-              <div className={styles.emojiTabs} role="tablist" aria-label="Kategórie emoji">
+              <div className={styles.emojiTabs} role="tablist" aria-label={t("emojiCategories")}>
                 {EMOJI_CATEGORIES.map((cat, i) => (
                   <button
                     key={cat.label}
@@ -708,7 +712,7 @@ export function ChatThread({
                       {cat.icon}
                     </span>
                     {/* na mobile len ikona (jeden riadok = viac miesta pre správy) */}
-                    <span className={styles.emojiTabLabel}>{cat.label}</span>
+                    <span className={styles.emojiTabLabel}>{t(cat.label)}</span>
                   </button>
                 ))}
               </div>
@@ -717,7 +721,7 @@ export function ChatThread({
                 key={emojiCat}
                 className={styles.emojiStrip}
                 role="tabpanel"
-                aria-label={EMOJI_CATEGORIES[emojiCat].label}
+                aria-label={t(EMOJI_CATEGORIES[emojiCat].label)}
                 onTouchStart={(e) => {
                   const t = e.touches[0];
                   touchStartRef.current = t ? { x: t.clientX, y: t.clientY } : null;
@@ -728,7 +732,7 @@ export function ChatThread({
                     key={emoji}
                     type="button"
                     className={styles.emojiBtn}
-                    aria-label={`Vložiť ${emoji}`}
+                    aria-label={t("insertEmoji", { emoji })}
                     // rovnaký vzor ako Odoslať: ťuknutie nesmie vziať fokus poľu (klávesnica ostane)
                     onMouseDown={(e) => e.preventDefault()}
                     onTouchEnd={(e) => {
@@ -751,7 +755,7 @@ export function ChatThread({
           <button
             type="button"
             className={`${styles.emojiToggle} ${emojiOpen ? styles.emojiToggleOn : ""}`}
-            aria-label={emojiOpen ? "Skryť emoji" : "Pridať emoji"}
+            aria-label={emojiOpen ? t("hideEmoji") : t("addEmoji")}
             aria-expanded={emojiOpen}
             aria-controls="chat-emoji-strip"
             onMouseDown={(e) => e.preventDefault()}
@@ -768,19 +772,19 @@ export function ChatThread({
             className={styles.input}
             rows={1}
             value={text}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t("placeholder")}
             onChange={(e) => {
               setText(e.target.value);
               fitHeight(e.currentTarget);
             }}
             onKeyDown={onKeyDown}
-            aria-label="Napísať správu"
+            aria-label={t("writeMessage")}
           />
           <button
             type="submit"
             className={styles.send}
             disabled={pending || !text.trim()}
-            aria-label="Odoslať"
+            aria-label={t("send")}
             // Ťuknutie na Odoslať nesmie vziať fokus poľu — inak sa na telefóne po každej
             // správe zatvorí klávesnica. preventDefault zabráni presunu fokusu, samotný
             // click (odoslanie formulára) ostáva.

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PortalExercise } from "@/lib/portal/types";
 import { finishWorkoutAction, type ActionState } from "./actions";
@@ -47,6 +48,7 @@ function subscribeStarted(onChange: () => void): () => void {
  * opraviť cez "Upraviť hodnoty" (0049), potom je záznam zamknutý.
  */
 export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercises: PortalExercise[] }) {
+  const t = useTranslations("workout");
   // "Tréning začatý" čítame z localStorage UŽ pri prvom vykreslení (useSyncExternalStore),
   // nie až v useEffect — inak karta Dnes po "Začať tréning" v sekcii Tréning na okamih
   // ukázala tlačidlo "Začať tréning" a až potom formulár (záblesk). Na serveri a počas
@@ -105,7 +107,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
     // Server / hydratácia: stav ešte nepoznáme — rezervuj miesto, nič nesprávne neukazuj.
     return (
       <button type="button" className={`btn btn-primary ${styles.startBtn}`} style={{ visibility: "hidden" }} tabIndex={-1} aria-hidden="true">
-        Začať tréning
+        {t("start")}
         <ArrowIcon />
       </button>
     );
@@ -114,7 +116,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   if (!started) {
     return (
       <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={beginWorkout}>
-        Začať tréning
+        {t("start")}
         <ArrowIcon />
       </button>
     );
@@ -146,11 +148,11 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
         disabled={pending}
         onClick={askFinish}
       >
-        {pending ? "Ukladám…" : "Ukončiť tréning"}
+        {pending ? t("saving") : t("finish")}
       </button>
       {showInvalid && summary.invalidCount > 0 && (
         <p role="alert" style={{ color: "var(--error)", fontSize: 12, marginTop: 8, textAlign: "center" }}>
-          Oprav označené hodnoty.
+          {t("fixValues")}
         </p>
       )}
       {state.error && (
@@ -162,33 +164,32 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
           <button
             type="button"
             className={styles.swScrim}
-            aria-label="Zavrieť"
+            aria-label={t("close")}
             onClick={() => setConfirmOpen(false)}
           />
           <div className={styles.confirmPanel} role="alertdialog" aria-modal="true" aria-labelledby="finish-confirm-title">
             <p id="finish-confirm-title" className={styles.confirmTitle}>
-              Ukončiť tréning?
+              {t("confirmTitle")}
             </p>
             {summary.nothingLogged ? (
               <p className={`${styles.confirmBody} ${styles.confirmWarn}`}>
-                Nezapísal si žiadnu sériu. Hodnoty môžeš doplniť ešte 24 hodín cez „Upraviť hodnoty“.
+                {t("nothingLogged")}
               </p>
             ) : (
               <>
                 <p className={styles.confirmBody}>
-                  Zapíšeme dnešné série presne tak, ako si ich zadal. Ak si to ešte nedokončil, radšej pokračuj —
-                  zabudnuté hodnoty môžeš opraviť ešte 24 hodín po ukončení.
+                  {t("confirmBody")}
                 </p>
                 {emptyNames.length > 0 && (
                   <p className={`${styles.confirmBody} ${styles.confirmWarn}`}>
-                    Bez zápisu: {emptyNames.join(", ")}.
+                    {t("notLogged", { names: emptyNames.join(", ") })}
                   </p>
                 )}
               </>
             )}
             <div className={styles.confirmActions}>
               <button type="button" className={styles.swBtnGhost} onClick={() => setConfirmOpen(false)}>
-                Pokračovať v tréningu
+                {t("continue")}
               </button>
               <button
                 type="button"
@@ -198,7 +199,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
                   formRef.current?.requestSubmit();
                 }}
               >
-                Áno, ukončiť
+                {t("yesFinish")}
               </button>
             </div>
           </div>

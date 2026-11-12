@@ -1,3 +1,5 @@
+import { getLocale, getTranslations } from "next-intl/server";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AddAppointmentForm } from "./AddAppointmentForm";
@@ -29,18 +31,26 @@ function dateKeyBratislava(d: Date): string {
 
 /** HH:MM v Europe/Bratislava — rovnaký formát ako <input type="time">. */
 function timeBratislava(iso: string): string {
+  // i18n: „HH:MM“ pre <input type="time"> — formát nezávisí od jazyka
   return new Date(iso).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Bratislava" });
 }
 
-function dayGroupLabel(dateKey: string, todayKey: string, tomorrowKey: string): string {
-  if (dateKey === todayKey) return "Dnes";
-  if (dateKey === tomorrowKey) return "Zajtra";
+function dayGroupLabel(
+  dateKey: string,
+  todayKey: string,
+  tomorrowKey: string,
+  words: { today: string; tomorrow: string },
+  locale: Locale,
+): string {
+  if (dateKey === todayKey) return words.today;
+  if (dateKey === tomorrowKey) return words.tomorrow;
   const d = new Date(`${dateKey}T12:00:00Z`);
-  const label = d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "numeric", timeZone: "UTC" });
+  const label = d.toLocaleDateString(intlLocale(locale), { weekday: "long", day: "numeric", month: "numeric", timeZone: "UTC" });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export default async function KalendarPage() {
+  const [t, locale] = await Promise.all([getTranslations("calendar"), getLocale()]);
   const {
     data: { user },
   } = await getUser();
@@ -71,7 +81,7 @@ export default async function KalendarPage() {
     const key = dateKeyBratislava(new Date(row.starts_at));
     let group = groups.find((g) => g.key === key);
     if (!group) {
-      group = { key, label: dayGroupLabel(key, todayKey, tomorrowKey), items: [] };
+      group = { key, label: dayGroupLabel(key, todayKey, tomorrowKey, { today: t("today"), tomorrow: t("tomorrow") }, locale), items: [] };
       groups.push(group);
     }
     group.items.push(row);
@@ -81,15 +91,12 @@ export default async function KalendarPage() {
     <>
       <div className={styles.pageHead}>
         <h1>
-          Kalendár{" "}
-          <InfoTip title="Kalendár">
-            Voľné termíny s klientmi — konzultácie, tréningy alebo čokoľvek mimo bežného tréningového plánu.
-          </InfoTip>
+          {t("title")} <InfoTip title={t("title")}>{t("tip")}</InfoTip>
         </h1>
       </div>
 
       <div className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginBottom: 20 }}>
-        <h3>Nový termín</h3>
+        <h3>{t("newAppointment")}</h3>
         <AddAppointmentForm clients={clients ?? []} />
       </div>
 
@@ -125,8 +132,8 @@ export default async function KalendarPage() {
         </div>
       ) : (
         <div className={styles.emptyState}>
-          <h2>Žiadne nadchádzajúce termíny</h2>
-          <p>{(clients ?? []).length > 0 ? "Pridaj prvý termín cez formulár „Nový termín“." : "Najprv pridaj klienta na stránke Klienti."}</p>
+          <h2>{t("emptyTitle")}</h2>
+          <p>{(clients ?? []).length > 0 ? t("emptyText") : t("noClients")}</p>
         </div>
       )}
     </>

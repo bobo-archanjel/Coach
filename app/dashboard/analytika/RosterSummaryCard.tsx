@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { generateRosterSummaryAction } from "./actions";
 import { InfoTip } from "@/app/components/InfoTip";
@@ -17,6 +18,7 @@ import styles from "../dashboard.module.css";
  * server action sa v preview nedá spustiť (žiadna session).
  */
 export function RosterSummaryCard({ previewSummary }: { previewSummary?: string | null }) {
+  const t = useTranslations("analytics");
   const [pending, startTransition] = useTransition();
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,15 +36,12 @@ export function RosterSummaryCard({ previewSummary }: { previewSummary?: string 
   return (
     <div className={styles.card} style={{ marginBottom: 20 }}>
       <h3>
-        AI zhrnutie portfólia{" "}
-        <InfoTip title="AI zhrnutie portfólia">
-          Krátky týždenný prehľad — na koho sa tento týždeň zamerať a prečo. Appka spočíta čísla, AI ich len sformuluje.
-        </InfoTip>
+        {t("summaryTitle")} <InfoTip title={t("summaryTitle")}>{t("summaryTip")}</InfoTip>
       </h3>
 
       {!previewSummary && (
         <button type="button" onClick={run} className="btn btn-ghost btn-sm" disabled={pending}>
-          {pending ? "Generujem…" : "Zhrnúť týždeň"}
+          {pending ? t("generating") : t("summarize")}
         </button>
       )}
 

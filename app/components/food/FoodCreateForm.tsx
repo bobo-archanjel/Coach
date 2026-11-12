@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { kcalMismatch } from "@/lib/meals";
 import type { BarcodePrefill, PortalFoodOption } from "@/lib/portal/types";
@@ -25,6 +26,8 @@ export function FoodCreateForm({
   onCreated: (food: PortalFoodOption) => void;
   onCancel?: () => void;
 }) {
+  const t = useTranslations("food.create");
+  const tf = useTranslations("food");
   const fromScan = Boolean(prefill?.barcode);
   const [form, setForm] = useState({
     barcode: prefill?.barcode ?? "",
@@ -48,7 +51,7 @@ export function FoodCreateForm({
     startTransition(async () => {
       const res = await createUserFoodAction(form);
       if (res.error || !res.food) {
-        setError(res.error ?? "Potravinu sa nepodarilo uložiť.");
+        setError(res.error ?? t("saveFailed"));
         return;
       }
       onCreated(res.food);
@@ -59,51 +62,51 @@ export function FoodCreateForm({
     <div className={styles.form}>
       {fromScan ? (
         <>
-          <p className={styles.scanResultTitle}>Tento produkt zatiaľ nepoznáme</p>
-          <p className={styles.meta}>Založ ho podľa obalu — nabudúce ho sken nájde hneď.</p>
-          <p className={styles.scanCode}>Kód {form.barcode}</p>
+          <p className={styles.scanResultTitle}>{t("unknownTitle")}</p>
+          <p className={styles.meta}>{t("unknownText")}</p>
+          <p className={styles.scanCode}>{tf("code", { code: form.barcode })}</p>
         </>
       ) : (
-        <p className={styles.meta}>Potravina, ktorá nie je v knižnici ani medzi značkami. Uvidíš ju len ty.</p>
+        <p className={styles.meta}>{t("intro")}</p>
       )}
       <input
         className={styles.search}
         type="text"
-        placeholder="Názov, napr. „Skyr vanilka“"
+        placeholder={t("namePlaceholder")}
         maxLength={100}
         value={form.name}
         onChange={(e) => setForm({ ...form, name: e.target.value })}
-        aria-label="Názov potraviny"
+        aria-label={t("name")}
       />
       <input
         className={styles.search}
         type="text"
-        placeholder="Značka (nepovinné)"
+        placeholder={t("brandPlaceholder")}
         maxLength={60}
         value={form.brand}
         onChange={(e) => setForm({ ...form, brand: e.target.value })}
-        aria-label="Značka"
+        aria-label={t("brand")}
       />
       {!fromScan && (
         <input
           className={styles.search}
           type="text"
           inputMode="numeric"
-          placeholder="Čiarový kód (nepovinné)"
+          placeholder={t("barcodePlaceholder")}
           maxLength={18}
           value={form.barcode}
           onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-          aria-label="Čiarový kód"
+          aria-label={t("barcode")}
         />
       )}
-      <p className={styles.meta}>Hodnoty na 100 g (nájdeš ich v tabuľke na obale):</p>
+      <p className={styles.meta}>{t("per100Hint")}</p>
       <div className={styles.formGrid}>
         {(
           [
-            ["kcal", "kcal"],
-            ["protein", "Bielkoviny g"],
-            ["carbs", "Sacharidy g"],
-            ["fat", "Tuky g"],
+            ["kcal", t("kcal")],
+            ["protein", t("protein")],
+            ["carbs", t("carbs")],
+            ["fat", t("fat")],
           ] as const
         ).map(([key, label]) => (
           <label key={key} className={styles.formField}>
@@ -122,17 +125,16 @@ export function FoodCreateForm({
       </div>
       {mismatch && (
         <p className={styles.warn} role="status">
-          Kalórie nesedia s makrami — z bielkovín, sacharidov a tukov vychádza asi {mismatch.estimatedKcal} kcal.
-          Skontroluj hodnoty na obale (uložiť sa dá aj tak).
+          {t("mismatch", { kcal: mismatch.estimatedKcal })}
         </p>
       )}
       <div className={styles.scanActions}>
         <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={save}>
-          {pending ? "Ukladám…" : "Uložiť potravinu"}
+          {pending ? t("saving") : t("save")}
         </button>
         {onCancel && (
           <button type="button" className="btn btn-ghost btn-sm" disabled={pending} onClick={onCancel}>
-            Zrušiť
+            {t("cancel")}
           </button>
         )}
       </div>

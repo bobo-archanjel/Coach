@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getPortalFoodDiary } from "@/lib/portal/data";
 import { previewResult } from "@/app/portal/dennik/preview";
 import { DiaryView } from "@/app/portal/dennik/DiaryView";
@@ -16,19 +17,20 @@ export default async function DennikPage({
 }) {
   const { preview, date } = await searchParams;
   const result = (preview && previewResult(preview)) || (await getPortalFoodDiary(date));
+  const [tp, t] = await Promise.all([getTranslations("portal"), getTranslations("portal.diary")]);
 
   if (result.state === "error") {
     return (
-      <Notice icon={<AlertIcon />} title="Nepodarilo sa načítať denník" tone="alert" action={<RetryButton />}>
-        Skús to o chvíľu znova. Ak to potrvá, napíš svojmu trénerovi.
+      <Notice icon={<AlertIcon />} title={t("loadFailed")} tone="alert" action={<RetryButton />}>
+        {tp("retryLater")}
       </Notice>
     );
   }
 
   if (result.state === "unlinked") {
     return (
-      <Notice icon={<ProfileIcon />} title={result.firstName ? `Vitaj, ${result.firstName}` : "Vitaj vo FitPilot"}>
-        Tvoj účet ešte nie je prepojený s trénerom. Prepojenie spraví tréner zo svojej strany.
+      <Notice icon={<ProfileIcon />} title={result.firstName ? tp("welcomeName", { name: result.firstName }) : tp("welcome")}>
+        {tp("unlinkedShort")}
       </Notice>
     );
   }
@@ -36,8 +38,8 @@ export default async function DennikPage({
   return (
     <>
       <header>
-        <h1 className={s.pageTitle}>Denník</h1>
-        <p className={s.pageSub}>Čo si naozaj zjedol, oproti tvojmu cieľu.</p>
+        <h1 className={s.pageTitle}>{t("title")}</h1>
+        <p className={s.pageSub}>{t("sub")}</p>
       </header>
       {/* key: pri prepnutí dňa sa optimistický zoznam aj formulár začnú odznova (ako /portal) */}
       <DiaryView key={result.data.date} data={result.data} />
