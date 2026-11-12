@@ -45,7 +45,8 @@ export const DAY_CATEGORIES: DayCategory[] = [
   "shoulders",
 ];
 
-/** Slovenský názov kategórie — použitý ako text voľby v selecte AJ ako `workout_days.name`/názov plánu pri jednodňovom generovaní. Tréner ho vie premenovať v PlanBuilderi ako hocijaký iný. */
+/** Slovenský názov kategórie pre prompt modelu (interný). Na zobrazenie a názvy dní/plánov sa používa preklad `labels.dayCategory.<kategória>` (messages/<jazyk>/labels.json). */
+// i18n-ignore-start — slovenské nálepky pre prompt modelu (UI: labels.dayCategory)
 export const DAY_CATEGORY_LABEL_SK: Record<DayCategory, string> = {
   push: "Tlak (Push)",
   pull: "Ťah (Pull)",
@@ -59,15 +60,18 @@ export const DAY_CATEGORY_LABEL_SK: Record<DayCategory, string> = {
   shoulders: "Ramená",
 };
 
+// i18n-ignore-end
 /** Celoplánové hodnoty selectu "Zameranie" — menia pomer cvikov na `daysPerWeek` dní (ako doteraz), žiadny split builder. */
 export type WholePlanFocus = "vyvazene" | "horna" | "dolna";
 export const WHOLE_PLAN_FOCUSES: WholePlanFocus[] = ["vyvazene", "horna", "dolna"];
+// i18n-ignore-start — slovenské nálepky pre prompt modelu (UI: labels.wholeFocus)
 export const WHOLE_PLAN_FOCUS_LABEL_SK: Record<WholePlanFocus, string> = {
   vyvazene: "Vyvážene",
   horna: "Viac horná časť tela",
   dolna: "Viac dolná časť tela (zadok)",
 };
 
+// i18n-ignore-end
 /**
  * Jeden plochý select "Zameranie" má 13 hodnôt naraz: 3 celoplánové (menia pomer
  * na `daysPerWeek` dní) + 10 partiových (rýchle vygenerovanie JEDNÉHO dňa,
@@ -89,6 +93,7 @@ export function isSingleDayFocus(focus: PlanFocus): focus is DayCategory {
  * mapou — ak sa import zmení, zmeň aj toto. `krk` (neck) sa zámerne nepriraďuje
  * k žiadnej kategórii dňa (okrajová partia, žiadny deň ju necieli explicitne).
  */
+// i18n-ignore-start — slovenské kľúče muscle_group z DB
 const CHEST_GROUPS = ["hrudník"];
 const BACK_GROUPS = ["chrbát (širák)", "spodný chrbát", "stredný chrbát", "trapézy"];
 const SHOULDER_GROUPS = ["ramená"];
@@ -104,6 +109,7 @@ const LEG_GROUPS = [
 /** "core"/brucho nie je vlastná kategória dňa — doplnkovo sa smie objaviť len v legs/lower a fullbody. */
 const CORE_GROUPS = ["brucho"];
 
+// i18n-ignore-end
 export const DAY_CATEGORY_MUSCLE_GROUPS: Record<DayCategory, string[]> = {
   chest: CHEST_GROUPS,
   back: BACK_GROUPS,

@@ -1,0 +1,31 @@
+{
+  "notConfigured": "AI chat zatím není nastavený. Zkus to prosím později.",
+  "loadFailed": "Tvá data se nepodařilo načíst. Zkus to prosím znovu.",
+  "dailyLimit": "Dosáhl/a jsi dnešního limitu AI zpráv ({limit}). Zkus to znovu zítra, nebo napiš přímo trenérovi.",
+  "noReply": "Promiň, nepodařilo se mi odpovědět.",
+  "failed": "Při odpovědi AI nastala chyba. Zkus to prosím znovu.",
+  "healthEscalation": "Při bolesti, zranění nebo jiném zdravotním problému ti nedokážu poradit — to patří do rukou tvého trenéra, ne AI. Hned jsem mu o tom dal/a vědět ve zprávách, ozve se ti. Pokud jde o akutní stav, neváhej a vyhledej lékařskou pomoc.",
+  "crisis": "Děkuji, že jsi mi to napsal/a. Je to vážné a nechci, abys na to byl/a sám/sama. Pokud jsi v bezprostředním nebezpečí nebo myslíš na to, že si ublížíš, zavolej hned na 112 (nebo 155). Ozvi se i někomu blízkému nebo svému lékaři. Dal/a jsem o tom vědět i tvému trenérovi, ozve se ti osobně. AI asistent ti v této situaci nedokáže pomoct.",
+  "plan": {
+    "focusNotMet": "Cílové zaměření „{focus}“ se nepodařilo úplně naplnit ({pct} % cviků z cílené části těla{glutes}) — zkontroluj si rozložení cviků v konceptu a případně doplň ručně.",
+    "glutes": ", {count} cviků na hýždě",
+    "dayTooFew": "Den má po filtru jen {count} z {min} cviků — kandidátů pro tuto kategorii/vybavení nezbylo dost, zkontroluj ho v konceptu.",
+    "emptyLibrary": "Knihovna cviků je prázdná nebo pro zvolené vybavení nezbyl žádný cvik — zkus jinou úroveň vybavení.",
+    "emptyCategory": "Pro kategorii „{category}“ a zvolené vybavení nezbyl žádný cvik — zkus jinou úroveň vybavení.",
+    "noProposal": "AI nevrátila návrh plánu. Zkus to prosím znovu.",
+    "badShape": "AI vrátila návrh v neočekávaném tvaru. Zkus to prosím znovu.",
+    "dayFallback": "Tréninkový den",
+    "noUsable": "AI nevrátila použitelný plán (žádný navržený cvik nebyl z knihovny). Zkus to prosím znovu.",
+    "failed": "Při generování plánu nastala chyba. Zkus to prosím znovu.{suffix}",
+    "singleDayName": "{category} — {date}"
+  },
+  "summary": {
+    "notConfigured": "AI zatím není nastavené (chybí API klíč).",
+    "noRoster": "Zatím nemáš aktivní klienty s daty ke shrnutí.",
+    "noClientData": "Klient zatím nemá dost dat (žádné tréninky, měření ani makro cíl) na smysluplné shrnutí.",
+    "rosterLimit": "Dnešní limit {limit} shrnutí portfolia je vyčerpaný — zkus to zítra.",
+    "clientLimit": "Dnešní limit {limit} shrnutí pro tohoto klienta je vyčerpaný — zkus to zítra.",
+    "empty": "Shrnutí se nepodařilo vygenerovat.",
+    "failed": "Při generování shrnutí nastala chyba. Zkus to prosím znovu."
+  }
+}

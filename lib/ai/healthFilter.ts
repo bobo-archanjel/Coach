@@ -1,3 +1,4 @@
+// i18n-ignore-file: kľúčové slová a vzory (SK/CZ/EN) na rozpoznanie zdravotných tém; texty pre používateľa sú v messages/*/ai.json
 // FitPilot — AI blok, Krok 4: deterministický zdravotný pre-filter (Product
 // Principle #5 — "zdravotné hranice sú tvrdé pravidlo"). Beží PRED každým
 // volaním Claude, nie je to len systémový prompt — kľúčové slová sa kontrolujú
@@ -40,6 +41,8 @@ const HEALTH_PATTERNS: RegExp[] = [
   // bolesť (SK/CZ) — "bol"/"boli" samotné NIE (bol = bol som; boli = boli sme) — rieši accentBoli nižšie
   /\bbolest/, /\bbolav/, /\bbolel/, /\bboliev/, /\bbolim\b/, /\bboli (ma|me|mi|nas|ho|ju|to)\b/, /\bboli me\b/, /\bbolelo\b/,
   /\bpiche v\b/, /\bpichanie\b/, /\bpichlo\b/,
+  // čeština (feature/cestina) — tvary, ktoré slovenské kmene nepokryjú
+  /\botok/, /\bdusnost/, /\bnemuzu dychat\b/, /\bleky\b/, /\bhoreck/, /\bzvrac/, /\bkloub/, /\bpater\b/, /\bpatere\b/, /\bvykloub/, /\bnatazen/, /\bnatrzen/,
   // zranenie
   /\bzraneni/, /\bzranen/, /\bzranil/, /\bporanen/, /\buraz/, /\bnatiah/, /\bnatrhn/, /\bnatrh/, /\bvyvrkn/, /\bvykl(b|ub)/, /\bvyron/,
   /\bzlomen/, /\bpraskl/, /\bprask/, /\bopuch/, /\bopuchn/, /\bmodrin/, /\bkrvac/, /\bkrvaw/, /\bkrv(i|ou) (mi|z)\b/,
@@ -67,7 +70,7 @@ const HEALTH_PATTERNS: RegExp[] = [
 // "koleno boli" / "boli ma v kolene": "boli" bez diakritiky je nejednoznačné (boli sme), preto sa
 // berie ako "bolí" len v blízkosti časti tela.
 const BODY_PARTS =
-  "koleno|kolena|kolene|kolien|kolenom|chrbat|chrbta|chrbtu|rameno|ramena|ramene|zapastie|zapastia|zapasti|clenok|clenky|clenku|lakel|lakte|lakti|bedro|bedra|bedre|kycel|kycle|krk|krku|hlava|hlavu|hlave|brucho|bruchu|zub|zuby|noha|nohy|noge|ruka|ruky|ruke|sval|svaly|svale|lytko|lytka|lytku|stehno|stehna|stehne|pata|pate|palec|prst|prsty|rebro|rebra|hrud|hrudnik|sija|sije|zadok|zadku";
+  "koleno|kolena|kolene|kolien|kolenom|koleni|zada|zad|zadech|zapesti|kotnik|kotniku|loket|lokti|bricho|brichu|zebro|zebra|chrbat|chrbta|chrbtu|rameno|ramena|ramene|zapastie|zapastia|zapasti|clenok|clenky|clenku|lakel|lakte|lakti|bedro|bedra|bedre|kycel|kycle|krk|krku|hlava|hlavu|hlave|brucho|bruchu|zub|zuby|noha|nohy|noge|ruka|ruky|ruke|sval|svaly|svale|lytko|lytka|lytku|stehno|stehna|stehne|pata|pate|palec|prst|prsty|rebro|rebra|hrud|hrudnik|sija|sije|zadok|zadku";
 const BODY_BOLI = [
   new RegExp("\\b(?:" + BODY_PARTS + ")\\b(?:\\s+\\w+){0,2}\\s+boli\\b"),
   new RegExp("\\bboli\\b(?:\\s+\\w+){0,2}\\s+(?:v|na|pod|za|pri)?\\s*(?:" + BODY_PARTS + ")\\b"),
@@ -86,12 +89,13 @@ const SQUEEZED_HEALTH = ["bolest", "bolima", "bolimi", "bolime", "zranen", "zavr
 const CRISIS_PATTERNS: RegExp[] = [
   /\bsamovraz/, /\bsebavraz/, /\bsebevraz/, /\bsuicid/, /\bsebaposkod/,
   /\bzabit sa\b/, /\bzabijem sa\b/, /\bzabit se\b/, /\bzabiju se\b/, /\bchcem (sa )?zabit\b/,
+  /\bchci (se )?zabit\b/, /\bchci (zemrit|umrit)\b/, /\bnechci (uz )?zit\b/, /\bsebeposkoz/, /\bskoncit se zivotem\b/, /\bzivot nema smysl\b/,
   /\bchcem zomriet\b/, /\bchcem umriet\b/, /\bnechcem (uz )?zit\b/, /\bnechcem byt\b/, /\bnechcem sa (uz )?zobudit\b/,
   /\bskoncit (so zivotom|to cele|so vsetkym|s tym vsetkym)\b/, /\bskoncim (so zivotom|to)\b/, /\bmam dost zivota\b/, /\bzivot nema zmysel\b/, /\bnema zmysel zit\b/,
   /\bublizit si\b/, /\bublizim si\b/, /\bublizovat si\b/, /\bporezat sa\b/, /\brezem sa\b/, /\brezat sa\b/, /\bvziat si zivot\b/, /\bvezmem si zivot\b/,
   /\bkill (myself|me)\b/, /\bend my life\b/, /\bwant to die\b/, /\bwanna die\b/, /\bdon.?t want to (live|be alive)\b/, /\bself.?harm/, /\bhurt myself\b/, /\bsuicid/, /\bcut myself\b/,
 ];
-const SQUEEZED_CRISIS = ["sebavraz", "sebevraz", "samovraz", "suicid", "zabitsa", "zabijemsa", "chcemzomriet", "killmyself", "endmylife", "wanttodie", "selfharm", "ublizitsi", "sebaposkod"];
+const SQUEEZED_CRISIS = ["sebavraz", "sebevraz", "sebeposkoz", "chcizemrit", "samovraz", "suicid", "zabitsa", "zabijemsa", "chcemzomriet", "killmyself", "endmylife", "wanttodie", "selfharm", "ublizitsi", "sebaposkod"];
 
 /** True, ak text obsahuje náznak SEBAPOŠKODENIA / suicidálnych myšlienok — osobitná, prísnejšia vetva. */
 export function isCrisisText(text: string): boolean {
@@ -118,21 +122,14 @@ export function needsHealthEscalation(text: string): boolean {
   return SQUEEZED_HEALTH.some((s) => sq.includes(s));
 }
 
-/** Pevný text poslaný klientovi pri eskalácii — nikdy negenerovaný modelom. */
-export const HEALTH_ESCALATION_REPLY =
-  "Pri bolesti, zranení alebo inom zdravotnom probléme ti nedokážem poradiť — to patrí do rúk tvojho trénera, nie AI. " +
-  "Dal/a som mu o tom hneď vedieť v správach, ozve sa ti. Ak ide o akútny stav, neváhaj a vyhľadaj lekársku pomoc.";
 
-/**
- * Pevná odpoveď pri krízovej správe (sebapoškodenie/suicidálne myšlienky). Nikdy nejde
- * cez model. 112 je jednotné európske tiesňové číslo (funguje v SR aj ČR), 155 je
- * záchranná zdravotná služba v SR.
- */
-export const CRISIS_REPLY =
-  "Ďakujem, že si mi to napísal/a. Toto je vážne a nechcem, aby si v tom bol/a sám/sama. " +
-  "Ak si v bezprostrednom nebezpečenstve alebo myslíš na to, že si ublížiš, zavolaj hneď na 112 (v SR aj 155). " +
-  "Ozvi sa aj niekomu blízkemu alebo svojmu lekárovi. Dal/a som o tom vedieť aj tvojmu trénerovi, ozve sa ti osobne. " +
-  "AI asistent ti v tejto situácii nedokáže pomôcť.";
+/* Pevné odpovede klientovi pri eskalácii a kríze (nikdy negenerované modelom) sú
+   v messages/<jazyk>/ai.json → healthEscalation / crisis (vyberá ich lib/ai/chat.ts).
+   112 je jednotné európske tiesňové číslo (SR aj ČR), 155 záchranná zdravotná služba. */
+
+// i18n-ignore-start — upozornenia trénerovi idú do DB po slovensky s pevnými prefixmi
+// („⚠️ AI asistent upozorňuje:“ / „ℹ️ AI Kouč:“ — kontroluje ich 0036/0046); v jazyku
+// trénera sa zobrazia pri čítaní (lib/i18n/systemMessages.ts).
 
 /** Text vložený ako systémová správa do reálneho tréner↔klient vlákna (akútna téma — hard block). */
 export function buildEscalationNoticeForTrainer(clientMessage: string): string {
@@ -150,7 +147,7 @@ export function buildCrisisNoticeForTrainer(): string {
 
 // ---------------------------------------------------------------- výmena cviku
 const EXERCISE_SWAP_PATTERNS: RegExp[] = [
-  /\biny cvik\b/, /\bakyc? cvik\b/, /\bnamiesto\b/, /\bnahrad/, /\bzamen/, /\bvymen/, /\balternat/, /\bnavrhni cvik\b/, /\bnavrhnes\b/, /\bcvik namiesto\b/,
+  /\biny cvik\b/, /\bjiny cvik\b/, /\bjaky cvik\b/, /\bmisto\b/, /\bakyc? cvik\b/, /\bnamiesto\b/, /\bnahrad/, /\bzamen/, /\bvymen/, /\balternat/, /\bnavrhni cvik\b/, /\bnavrhnes\b/, /\bcvik namiesto\b/,
   /\bsubstitut/, /\binstead of\b/, /\breplace\b/, /\balternative\b/,
 ];
 
@@ -173,3 +170,4 @@ export function buildSoftExerciseNoticeForTrainer(clientMessage: string): string
   const trimmed = promptSafe(clientMessage, 300);
   return `ℹ️ AI Kouč: klient spomenul nepohodlie a poprosil o náhradu cviku: „${trimmed}“ — AI mu navrhla alternatívu z knižnice cvikov, over prosím že mu sedí.`;
 }
+// i18n-ignore-end

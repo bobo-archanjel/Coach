@@ -1,3 +1,4 @@
+// i18n-ignore-file: podklad pre AI model (interné dáta v prompte); jazyk odpovede určuje outputLanguageRule
 // FitPilot — deterministický tréningový kontext pre AI Kouča (QA 2026-09-23:
 // na "aký tréning mám dnes" odpovedal, že vidí len jedálniček — tréningové dáta
 // sa mu vôbec neposielali). Rovnaký princíp ako macroContext.ts: výber plánu,

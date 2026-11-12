@@ -8,13 +8,6 @@ import type { PlanGoal } from "./ai/planGenerator";
 
 export const PLAN_GOALS: PlanGoal[] = ["chudnutie", "hypertrofia", "sila", "kondicia"];
 
-export const PLAN_GOAL_LABEL_SK: Record<PlanGoal, string> = {
-  chudnutie: "Chudnutie",
-  hypertrofia: "Hypertrofia",
-  sila: "Sila",
-  kondicia: "Kondícia",
-};
-
 export function isPlanGoal(value: string | null | undefined): value is PlanGoal {
   return !!value && (PLAN_GOALS as string[]).includes(value);
 }

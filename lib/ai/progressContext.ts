@@ -1,3 +1,4 @@
+// i18n-ignore-file: podklad pre AI model (interné dáta v prompte); jazyk odpovede určuje outputLanguageRule v chat.ts
 // FitPilot — AI blok, feature/AIupgrade: objektívny kontext progresu pre AI
 // Kouča. Doteraz AI Kouč videl len ŠTRUKTÚRU aktuálneho plánu (trainingContext.ts)
 // a DNEŠNÉ makrá (macroContext.ts) — na otázky typu "ako mi to ide"/"som na

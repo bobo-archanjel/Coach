@@ -36,6 +36,8 @@ import skWorkout from "./sk/workout.json";
 import skClientBuilder from "./sk/clientBuilder.json";
 import skTraining from "./sk/training.json";
 import skPortal from "./sk/portal.json";
+import skPdf from "./sk/pdf.json";
+import skAi from "./sk/ai.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -69,6 +71,8 @@ import csWorkout from "./cs/workout.json";
 import csClientBuilder from "./cs/clientBuilder.json";
 import csTraining from "./cs/training.json";
 import csPortal from "./cs/portal.json";
+import csPdf from "./cs/pdf.json";
+import csAi from "./cs/ai.json";
 
 export const sk = {
   common: skCommon,
@@ -103,6 +107,8 @@ export const sk = {
   clientBuilder: skClientBuilder,
   training: skTraining,
   portal: skPortal,
+  pdf: skPdf,
+  ai: skAi,
 };
 
 export type Messages = typeof sk;
@@ -140,6 +146,8 @@ export const cs: Messages = {
   clientBuilder: csClientBuilder,
   training: csTraining,
   portal: csPortal,
+  pdf: csPdf,
+  ai: csAi,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };
