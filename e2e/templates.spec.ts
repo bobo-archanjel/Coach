@@ -114,17 +114,16 @@ test.describe("šablóny trénera (reálna DB, dizajn v6)", () => {
     await page.goto("/dashboard/sablony");
     const tabs = page.getByRole("navigation", { name: "Druh šablón" });
 
-    // záložka Tréningy, hľadanie (bez diakritiky), filter cieľa
+    // záložka Tréningy, hľadanie (bez diakritiky); cieľ šablóny sa už nezobrazuje ani nefiltruje
+    // (feature/design-fixes) — aj keď ho stará šablóna v DB má (goal: "sila" vyššie)
     await expect(tabs.getByRole("link", { name: /^Tréningy/ })).toHaveAttribute("aria-current", "page");
     await page.getByLabel("Hľadať šablónu podľa názvu").fill(`upper lower ${stamp}`);
     const card = page.locator("article", { hasText: workoutName });
     await expect(card).toHaveCount(1);
     await expect(card).toContainText("2 dni");
-    await expect(card).toContainText("Sila");
-    await page.getByRole("link", { name: "Kondícia" }).click();
-    await expect(page.locator("article", { hasText: workoutName })).toHaveCount(0);
-    await page.getByRole("link", { name: "Sila" }).click();
-    await expect(page.locator("article", { hasText: workoutName })).toHaveCount(1);
+    await expect(card).not.toContainText("Sila");
+    await expect(page.getByRole("link", { name: "Kondícia" })).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Cieľ" })).toHaveCount(0);
 
     // náhľad obsahu
     const sila = page.locator("article", { hasText: workoutName });

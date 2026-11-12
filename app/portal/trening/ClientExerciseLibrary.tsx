@@ -14,8 +14,7 @@ import {
   type LibraryEquipmentFilter,
 } from "@/lib/exerciseFilters";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import b from "./builder.module.css";
-import styles from "../portal.module.css";
+import b from "@/app/components/workoutBuilder.module.css";
 
 const PAGE_SIZE = 7;
 
@@ -46,14 +45,11 @@ const InfoIcon = () => (
 export function ClientExerciseLibrary({
   library,
   hasDay,
-  defaultOpen,
   onAdd,
   onDetail,
 }: {
   library: ExerciseOption[];
   hasDay: boolean;
-  /** na mobile je knižnica zbaliteľná — pri novom tréningu otvorená, pri úprave zbalená ako u trénera */
-  defaultOpen: boolean;
   /** pridá cvik do aktívneho dňa; vráti hlášku, ak sa nedá (napr. plný deň) */
   onAdd: (name: string, exerciseId: string | null) => string | null;
   onDetail: (exerciseId: string, name: string) => void;
@@ -64,7 +60,8 @@ export function ClientExerciseLibrary({
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);
-  const [open, setOpen] = useState(defaultOpen);
+  // Knižnica je zbalená, kým si ju klient sám neotvorí — karta „Vlastný cvik“ nad ňou je vždy viditeľná.
+  const [open, setOpen] = useState(false);
   const [customName, setCustomName] = useState("");
   const [page, setPage] = useState(0);
   // Hláška pri mieste kliku: bez dňa, prázdny názov, plný deň. Zmizne pri ďalšej akcii.
@@ -99,14 +96,9 @@ export function ClientExerciseLibrary({
   };
 
   return (
-    <div className={`${b.library} ${styles.trBuilderLib}`}>
-      <button type="button" className={b.libraryToggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className={b.libraryHead}>{t("title", { count: library.length })}</span>
-        <ChevronIcon className={`${b.libraryChevron} ${open ? b.libraryChevronOpen : ""}`} />
-      </button>
-      {!hasDay && <p className={b.libraryHint}>{t("hint")}</p>}
-
-      <div className={`${b.libraryBody} ${!open ? b.collapsed : ""}`}>
+    <div className={b.librarySection}>
+      <div className={b.library}>
+        <span className={b.libraryHead}>{t("customHeading")}</span>
         <form
           className={b.customExerciseForm}
           onSubmit={(e) => {
@@ -135,141 +127,152 @@ export function ClientExerciseLibrary({
           </button>
           {hint?.at === "custom" && <p className={b.formError}>{hint.text}</p>}
         </form>
+      </div>
 
-        <input
-          type="text"
-          placeholder={t("search")}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            // Nová fráza mení výsledky pod stránkovaním — späť na prvú stranu.
-            setPage(0);
-          }}
-          className={b.librarySearch}
-          aria-label={t("searchAria")}
-        />
+      <div className={b.library}>
+        <button type="button" className={b.libraryToggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <span className={b.libraryHead}>{t("title", { count: library.length })}</span>
+          <ChevronIcon className={`${b.libraryChevron} ${open ? b.libraryChevronOpen : ""}`} />
+        </button>
+        {!hasDay && <p className={b.libraryHint}>{t("hint")}</p>}
 
-        <div className={b.libraryFilterRow} role="group" aria-label={t("filterMuscle")}>
-          <button
-            type="button"
-            className={`${b.libraryFilterChip} ${muscleFilter === null ? b.libraryFilterChipActive : ""}`}
-            onClick={() => {
-              setMuscleFilter(null);
+        <div className={`${b.libraryBody} ${!open ? b.collapsed : ""}`}>
+
+          <input
+            type="text"
+            placeholder={t("search")}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // Nová fráza mení výsledky pod stránkovaním — späť na prvú stranu.
               setPage(0);
             }}
-          >
-            {t("allMuscles")}
-          </button>
-          {LIBRARY_MUSCLE_FILTERS.map((f) => (
+            className={b.librarySearch}
+            aria-label={t("searchAria")}
+          />
+
+          <div className={b.libraryFilterRow} role="group" aria-label={t("filterMuscle")}>
             <button
-              key={f}
               type="button"
-              className={`${b.libraryFilterChip} ${muscleFilter === f ? b.libraryFilterChipActive : ""}`}
+              className={`${b.libraryFilterChip} ${muscleFilter === null ? b.libraryFilterChipActive : ""}`}
               onClick={() => {
-                setMuscleFilter(muscleFilter === f ? null : f);
+                setMuscleFilter(null);
                 setPage(0);
               }}
             >
-              {tl(`muscle.${f}`)}
+              {t("allMuscles")}
             </button>
-          ))}
-        </div>
-        <div className={b.libraryFilterRow} role="group" aria-label={t("filterEquipment")}>
-          <button
-            type="button"
-            className={`${b.libraryFilterChip} ${equipmentFilter === null ? b.libraryFilterChipActive : ""}`}
-            onClick={() => {
-              setEquipmentFilter(null);
-              setPage(0);
-            }}
-          >
-            {t("anyEquipment")}
-          </button>
-          {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
+            {LIBRARY_MUSCLE_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`${b.libraryFilterChip} ${muscleFilter === f ? b.libraryFilterChipActive : ""}`}
+                onClick={() => {
+                  setMuscleFilter(muscleFilter === f ? null : f);
+                  setPage(0);
+                }}
+              >
+                {tl(`muscle.${f}`)}
+              </button>
+            ))}
+          </div>
+          <div className={b.libraryFilterRow} role="group" aria-label={t("filterEquipment")}>
             <button
-              key={f}
               type="button"
-              className={`${b.libraryFilterChip} ${equipmentFilter === f ? b.libraryFilterChipActive : ""}`}
+              className={`${b.libraryFilterChip} ${equipmentFilter === null ? b.libraryFilterChipActive : ""}`}
               onClick={() => {
-                setEquipmentFilter(equipmentFilter === f ? null : f);
+                setEquipmentFilter(null);
                 setPage(0);
               }}
             >
-              {tl(`equipment.${f}`)}
+              {t("anyEquipment")}
             </button>
-          ))}
-        </div>
+            {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`${b.libraryFilterChip} ${equipmentFilter === f ? b.libraryFilterChipActive : ""}`}
+                onClick={() => {
+                  setEquipmentFilter(equipmentFilter === f ? null : f);
+                  setPage(0);
+                }}
+              >
+                {tl(`equipment.${f}`)}
+              </button>
+            ))}
+          </div>
 
-        {hint?.at === "list" && (
-          <p className={b.formError} role="alert">
-            {hint.text}
-          </p>
-        )}
-        <div className={b.libraryList}>
-          {library.length === 0 ? (
-            <p className={b.libraryEmpty}>{t("loading")}</p>
-          ) : paged.length > 0 ? (
-            paged.map((ex) => {
-              const name = displayExerciseName(ex.name, ex.nameSk);
-              return (
-                <div key={ex.id} className={b.libraryItemRow}>
-                  <div className={b.libraryItemForm}>
+          {hint?.at === "list" && (
+            <p className={b.formError} role="alert">
+              {hint.text}
+            </p>
+          )}
+          <div className={b.libraryList}>
+            {library.length === 0 ? (
+              <p className={b.libraryEmpty}>{t("loading")}</p>
+            ) : paged.length > 0 ? (
+              paged.map((ex) => {
+                const name = displayExerciseName(ex.name, ex.nameSk);
+                return (
+                  <div key={ex.id} className={b.libraryItemRow}>
+                    <div className={b.libraryItemForm}>
+                      <button
+                        type="button"
+                        className={b.libraryItem}
+                        title={hasDay ? t("addToDay", { name }) : t("addDayFirst")}
+                        onClick={() => add("list", name, ex.id)}
+                      >
+                        <ExerciseThumb src={ex.imageUrl} alt="" size={28} />
+                        <span className={b.libraryItemName}>{name}</span>
+                        {ex.muscleGroup && (
+                          <span className={b.libraryItemMuscle} title={muscleGroupLabel(ex.muscleGroup, locale)}>
+                            {muscleGroupLabel(ex.muscleGroup, locale)}
+                          </span>
+                        )}
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      className={b.libraryItem}
-                      title={hasDay ? t("addToDay", { name }) : t("addDayFirst")}
-                      onClick={() => add("list", name, ex.id)}
+                      className={b.libraryItemInfo}
+                      onClick={() => onDetail(ex.id, name)}
+                      aria-label={t("exerciseDetail", { name })}
                     >
-                      <ExerciseThumb src={ex.imageUrl} alt="" size={28} />
-                      <span className={b.libraryItemName}>{name}</span>
-                      {ex.muscleGroup && (
-                        <span className={b.libraryItemMuscle} title={muscleGroupLabel(ex.muscleGroup, locale)}>
-                          {muscleGroupLabel(ex.muscleGroup, locale)}
-                        </span>
-                      )}
+                      <InfoIcon />
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    className={b.libraryItemInfo}
-                    onClick={() => onDetail(ex.id, name)}
-                    aria-label={`Detail cviku ${name}`}
-                  >
-                    <InfoIcon />
-                  </button>
-                </div>
-              );
-            })
-          ) : (
-            <p className={b.libraryEmpty}>{t("noMatch")}</p>
+                );
+              })
+            ) : (
+              <p className={b.libraryEmpty}>{t("noMatch")}</p>
+            )}
+          </div>
+
+          {pageCount > 1 && (
+            <div className={b.libraryPager}>
+              <button
+                type="button"
+                className={b.libraryPagerBtn}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={safePage === 0}
+                aria-label={t("prevPage")}
+              >
+                <ArrowIcon className={b.libraryPagerPrev} />
+              </button>
+              <span className={b.libraryPagerLabel}>
+                {safePage + 1} / {pageCount}
+              </span>
+              <button
+                type="button"
+                className={b.libraryPagerBtn}
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={safePage === pageCount - 1}
+                aria-label={t("nextPage")}
+              >
+                <ArrowIcon />
+              </button>
+            </div>
           )}
         </div>
-
-        {pageCount > 1 && (
-          <div className={b.libraryPager}>
-            <button
-              type="button"
-              className={b.libraryPagerBtn}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              aria-label={t("prevPage")}
-            >
-              <ArrowIcon className={b.libraryPagerPrev} />
-            </button>
-            <span className={b.libraryPagerLabel}>
-              {safePage + 1} / {pageCount}
-            </span>
-            <button
-              type="button"
-              className={b.libraryPagerBtn}
-              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-              disabled={safePage === pageCount - 1}
-              aria-label={t("nextPage")}
-            >
-              <ArrowIcon />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import {
   type LibraryMuscleFilter,
   type LibraryEquipmentFilter,
 } from "@/lib/exerciseFilters";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 
 const initialState: ActionState = { error: null };
 const PAGE_SIZE = 7;
@@ -44,8 +44,8 @@ export function ExerciseLibrary({
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);
-  // Na mobile defaultne zbalené (viď builderGrid poradie) — tréner vidí plátno prvé.
-  // Nad 760px CSS `.collapsed` pravidlo neplatí, takže tento stav tam vizuálne nič nemení.
+  // Knižnica je zbalená, kým si ju tréner sám neotvorí (na každej šírke, ako u klienta) —
+  // karta „Vlastný cvik“ nad ňou je vždy viditeľná.
   const [open, setOpen] = useState(false);
   const [libState, addToLibrary, libPending] = useActionState(addCustomExerciseAction, initialState);
   const [dayState, addToDay, dayPending] = useActionState(addCustomExerciseToDayAction, initialState);
@@ -83,22 +83,27 @@ export function ExerciseLibrary({
   const paged = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   return (
-    <div className={styles.library}>
-      <button
-        type="button"
-        className={styles.libraryToggle}
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
-        <span className={styles.libraryHead}>{t("library", { count: exercises.length })}</span>
-        <ChevronIcon className={`${styles.libraryChevron} ${open ? styles.libraryChevronOpen : ""}`} />
-      </button>
-      {!activeDayId && <p className={styles.libraryHint}>{t("libraryHint")}</p>}
-
-      <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
-        <form className={styles.customExerciseForm}>
-          <input name="name" type="text" placeholder={t("customName")} required disabled={customPending} className={styles.customExerciseInput} />
-          <input name="muscle_group" type="text" placeholder={t("customMuscle")} disabled={customPending} className={styles.customExerciseInput} />
+    <div className={styles.librarySection}>
+      <div className={styles.library}>
+        <span className={styles.libraryHead}>{t("customHeading")}</span>
+        <form className={`${styles.customExerciseForm} ${styles.customExerciseGrid}`}>
+          <input
+            name="name"
+            type="text"
+            placeholder={t("customName")}
+            required
+            disabled={customPending}
+            className={styles.customExerciseInput}
+            aria-label={t("customName")}
+          />
+          <input
+            name="muscle_group"
+            type="text"
+            placeholder={t("customMuscle")}
+            disabled={customPending}
+            className={styles.customExerciseInput}
+            aria-label={t("customMuscle")}
+          />
           <input type="hidden" name="plan_id" value={planId} readOnly />
           <input type="hidden" name="day_id" value={activeDayId ?? ""} readOnly />
           <button
@@ -116,107 +121,117 @@ export function ExerciseLibrary({
           >
             {dayPending ? t("adding") : t("addToWorkout")}
           </button>
-          {noDayHint === "custom" && !activeDayId && <p className={styles.formError}>{t("addDayFirstDot")}</p>}
-          {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
           <button type="submit" formAction={addToLibrary} className="btn btn-ghost btn-sm" disabled={customPending}>
             {libPending ? t("adding") : t("addToLibrary")}
           </button>
+          {noDayHint === "custom" && !activeDayId && <p className={styles.formError}>{t("addDayFirstDot")}</p>}
+          {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
           {libState.error && <p className={styles.formError}>{libState.error}</p>}
         </form>
+      </div>
 
-        <input
-          type="text"
-          placeholder={t("search")}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className={styles.librarySearch}
-        />
+      <div className={styles.library}>
+        <button type="button" className={styles.libraryToggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <span className={styles.libraryHead}>{t("library", { count: exercises.length })}</span>
+          <ChevronIcon className={`${styles.libraryChevron} ${open ? styles.libraryChevronOpen : ""}`} />
+        </button>
+        {!activeDayId && <p className={styles.libraryHint}>{t("libraryHint")}</p>}
 
-        <div className={styles.libraryFilterRow} role="group" aria-label={t("filterMuscle")}>
-          <button
-            type="button"
-            className={`${styles.libraryFilterChip} ${muscleFilter === null ? styles.libraryFilterChipActive : ""}`}
-            onClick={() => setMuscleFilter(null)}
-          >
-            {t("allMuscles")}
-          </button>
-          {LIBRARY_MUSCLE_FILTERS.map((f) => (
+        <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
+          <input
+            type="text"
+            placeholder={t("search")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className={styles.librarySearch}
+          />
+
+          <div className={styles.libraryFilterRow} role="group" aria-label={t("filterMuscle")}>
             <button
-              key={f}
               type="button"
-              className={`${styles.libraryFilterChip} ${muscleFilter === f ? styles.libraryFilterChipActive : ""}`}
-              onClick={() => setMuscleFilter(muscleFilter === f ? null : f)}
+              className={`${styles.libraryFilterChip} ${muscleFilter === null ? styles.libraryFilterChipActive : ""}`}
+              onClick={() => setMuscleFilter(null)}
             >
-              {tl(`muscle.${f}`)}
+              {t("allMuscles")}
             </button>
-          ))}
-        </div>
-        <div className={styles.libraryFilterRow} role="group" aria-label={t("filterEquipment")}>
-          <button
-            type="button"
-            className={`${styles.libraryFilterChip} ${equipmentFilter === null ? styles.libraryFilterChipActive : ""}`}
-            onClick={() => setEquipmentFilter(null)}
-          >
-            {t("anyEquipment")}
-          </button>
-          {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
+            {LIBRARY_MUSCLE_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`${styles.libraryFilterChip} ${muscleFilter === f ? styles.libraryFilterChipActive : ""}`}
+                onClick={() => setMuscleFilter(muscleFilter === f ? null : f)}
+              >
+                {tl(`muscle.${f}`)}
+              </button>
+            ))}
+          </div>
+          <div className={styles.libraryFilterRow} role="group" aria-label={t("filterEquipment")}>
             <button
-              key={f}
               type="button"
-              className={`${styles.libraryFilterChip} ${equipmentFilter === f ? styles.libraryFilterChipActive : ""}`}
-              onClick={() => setEquipmentFilter(equipmentFilter === f ? null : f)}
+              className={`${styles.libraryFilterChip} ${equipmentFilter === null ? styles.libraryFilterChipActive : ""}`}
+              onClick={() => setEquipmentFilter(null)}
             >
-              {tl(`equipment.${f}`)}
+              {t("anyEquipment")}
             </button>
-          ))}
-        </div>
+            {LIBRARY_EQUIPMENT_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`${styles.libraryFilterChip} ${equipmentFilter === f ? styles.libraryFilterChipActive : ""}`}
+                onClick={() => setEquipmentFilter(equipmentFilter === f ? null : f)}
+              >
+                {tl(`equipment.${f}`)}
+              </button>
+            ))}
+          </div>
 
-        {noDayHint === "list" && !activeDayId && (
-          <p className={styles.formError} role="alert">
-            {t("addDayFirstDot")}
-          </p>
-        )}
-        <div className={styles.libraryList}>
-          {paged.length > 0 ? (
-            paged.map((ex) => (
-              <LibraryItem
-                key={ex.id}
-                exercise={ex}
-                dayId={activeDayId}
-                planId={planId}
-                onNoDay={() => setNoDayHint("list")}
-              />
-            ))
-          ) : (
-            <p className={styles.libraryEmpty}>{t("noMatch")}</p>
+          {noDayHint === "list" && !activeDayId && (
+            <p className={styles.formError} role="alert">
+              {t("addDayFirstDot")}
+            </p>
+          )}
+          <div className={styles.libraryList}>
+            {paged.length > 0 ? (
+              paged.map((ex) => (
+                <LibraryItem
+                  key={ex.id}
+                  exercise={ex}
+                  dayId={activeDayId}
+                  planId={planId}
+                  onNoDay={() => setNoDayHint("list")}
+                />
+              ))
+            ) : (
+              <p className={styles.libraryEmpty}>{t("noMatch")}</p>
+            )}
+          </div>
+
+          {pageCount > 1 && (
+            <div className={styles.libraryPager}>
+              <button
+                type="button"
+                className={styles.libraryPagerBtn}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={safePage === 0}
+                aria-label={t("prevPage")}
+              >
+                <ArrowIcon className={styles.libraryPagerPrev} />
+              </button>
+              <span className={styles.libraryPagerLabel}>
+                {safePage + 1} / {pageCount}
+              </span>
+              <button
+                type="button"
+                className={styles.libraryPagerBtn}
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={safePage === pageCount - 1}
+                aria-label={t("nextPage")}
+              >
+                <ArrowIcon />
+              </button>
+            </div>
           )}
         </div>
-
-        {pageCount > 1 && (
-          <div className={styles.libraryPager}>
-            <button
-              type="button"
-              className={styles.libraryPagerBtn}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              aria-label={t("prevPage")}
-            >
-              <ArrowIcon className={styles.libraryPagerPrev} />
-            </button>
-            <span className={styles.libraryPagerLabel}>
-              {safePage + 1} / {pageCount}
-            </span>
-            <button
-              type="button"
-              className={styles.libraryPagerBtn}
-              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-              disabled={safePage === pageCount - 1}
-              aria-label={t("nextPage")}
-            >
-              <ArrowIcon />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

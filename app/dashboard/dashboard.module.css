@@ -636,7 +636,7 @@ select.addClientInputSm {
 /* Časové polia (Od/Do v AddAppointmentForm) — dva vedľa seba nerozlíšené time
    inputy pôsobili ako duplicita/chyba; viditeľný label nad každým to rieši
    bez zásahu do vzhľadu samotného inputu (rovnaký vzor ako .editField v
-   app/dashboard/treningy/[planId]/builder.module.css). */
+   app/components/workoutBuilder.module.css). */
 .timeField {
   display: flex;
   flex-direction: column;
@@ -1440,6 +1440,13 @@ select.addClientInputSm {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--steel-line);
+}
+/* Detail tréningového plánu — rovnako široký vycentrovaný stĺpec ako vlastný tréning
+   klienta v portáli (.v6Main 960 px − okraje), builder vyzerá u oboch rovnako
+   (feature/design-fixes, spoločný app/components/workoutBuilder.module.css). */
+.planPage {
+  max-width: 864px;
+  margin-inline: auto;
 }
 @media (max-width: 640px) {
   .templateGrid {
@@ -2413,6 +2420,30 @@ select.addClientInputSm {
 }
 .appointmentBody {
   min-width: 0;
+}
+/* Na počítači je deň vlastná karta — termíny v nej bez ďalšieho rámika (nie karta
+   v karte), viac termínov oddelí tenká čiara. Na mobile má karta dňa rámik zrušený
+   (.cardFlatMobile), tam ostáva termín vlastnou kartou. */
+@media (min-width: 761px) {
+  .appointmentList {
+    gap: 0;
+  }
+  .appointmentRow {
+    padding: 12px 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .appointmentRow:first-child {
+    padding-top: 2px;
+  }
+  .appointmentRow:last-child {
+    padding-bottom: 0;
+  }
+  .appointmentRow + .appointmentRow {
+    border-top: 1px solid var(--hairline);
+  }
 }
 @media (max-width: 480px) {
   .appointmentRow {

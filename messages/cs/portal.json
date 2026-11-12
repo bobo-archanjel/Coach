@@ -69,6 +69,7 @@
     "cancel": "Zrušit",
     "remove": "Odebrat",
     "editGramsAria": "Upravit gramáž {name}",
-    "removeAria": "Odebrat {name}"
+    "removeAria": "Odebrat {name}",
+    "no": "Ne"
   }
 }

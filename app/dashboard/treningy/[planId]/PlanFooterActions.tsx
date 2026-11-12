@@ -3,11 +3,13 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { deletePlanAction } from "../actions";
+import { WorkoutTemplateSave } from "../../sablony/WorkoutTemplateControls";
 import styles from "../../dashboard.module.css";
 
 /**
- * Spodok detailu plánu: "Stiahnuť PDF" + "Zmazať" (len publikovaný plán — koncept
- * má "Zmazať koncept" hore v PublishActions). Zmazanie je dvojkrokové: otázka na
+ * Spodok detailu plánu: "Stiahnuť PDF" + "Uložiť ako šablónu" v jednom riadku, pod nimi
+ * "Zmazať" (len publikovaný plán — koncept má "Zmazať koncept" hore v PublishActions;
+ * hotový, celý odcvičený plán sa nemaže: `canDelete={false}`). Zmazanie je dvojkrokové: otázka na
  * celú šírku mriežky, pod ňou Áno | Zrušiť (Esc = zrušiť). Odcvičené tréningy
  * zmazanie prežijú (plan_snapshot, 0048) — ak nejaké sú, otázka to povie.
  */
@@ -16,11 +18,13 @@ export function PlanFooterActions({
   planName,
   published,
   hasCompleted,
+  canDelete = true,
 }: {
   planId: string;
   planName: string;
   published: boolean;
   hasCompleted: boolean;
+  canDelete?: boolean;
 }) {
   const t = useTranslations("plans.builder");
   const [confirming, setConfirming] = useState(false);
@@ -64,15 +68,26 @@ export function PlanFooterActions({
   }
 
   return (
-    <div className={styles.templateGrid}>
-      <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-        {t("downloadPdf")}
-      </a>
-      {published && (
-        <button type="button" className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`} onClick={() => setConfirming(true)}>
-          {t("delete")}
-        </button>
-      )}
-    </div>
+    <WorkoutTemplateSave
+      planId={planId}
+      defaultName={planName}
+      leading={
+        <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
+          {t("downloadPdf")}
+        </a>
+      }
+      trailing={
+        published &&
+        canDelete && (
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`}
+            onClick={() => setConfirming(true)}
+          >
+            {t("delete")}
+          </button>
+        )
+      }
+    />
   );
 }

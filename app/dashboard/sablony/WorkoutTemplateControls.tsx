@@ -1,69 +1,50 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { saveWorkoutTemplateAction, type ActionState } from "./actions";
-import { PLAN_GOALS } from "@/lib/planGoals";
 import styles from "../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
 
 /**
- * "Uložiť ako šablónu" na detaile tréningového plánu — cieľ + uloženie v 2-stĺpcovej
- * mriežke (templateGrid) pod publikovaním. Šablóna sa ukladá pod názvom plánu;
- * iný názov = premenovať plán ceruzkou pri nadpise (PlanTitle). Jedálniček má
- * vlastné tlačidlo v MealPlanFooterActions. `withGoal={false}` (uzamknutý, celý odcvičený plán) —
- * bez výberu cieľa, šablóna sa uloží bez neho; na jeho miesto v mriežke ide
- * `leading` (tam "Stiahnuť PDF" v spodných akciách plánu).
+ * "Uložiť ako šablónu" na detaile tréningového plánu — v spodných akciách vedľa
+ * "Stiahnuť PDF" (PlanFooterActions), v 2-stĺpcovej mriežke (templateGrid). Šablóna
+ * sa ukladá pod názvom plánu; iný názov = premenovať plán ceruzkou pri nadpise
+ * (PlanTitle). Cieľ šablóny sa už nevyberá (feature/design-fixes). Jedálniček má
+ * vlastné tlačidlo v MealPlanFooterActions. `leading` / `trailing` = ďalšie tlačidlá
+ * v tej istej mriežke (PDF pred, Zmazať za).
  */
-export function WorkoutTemplateTop({
+export function WorkoutTemplateSave({
   planId,
   defaultName,
-  withGoal = true,
   leading,
+  trailing,
 }: {
   planId: string;
   defaultName: string;
-  withGoal?: boolean;
   leading?: ReactNode;
+  trailing?: ReactNode;
 }) {
   const t = useTranslations("templates.save");
-  const tl = useTranslations("labels");
   const [state, formAction, pending] = useActionState(saveWorkoutTemplateAction, initialState);
   const [, startTransition] = useTransition();
-  const [goal, setGoal] = useState("");
 
   const save = () => {
     const fd = new FormData();
     fd.set("plan_id", planId);
     fd.set("name", defaultName);
-    fd.set("goal", goal);
     startTransition(() => formAction(fd));
   };
 
   return (
     <div className={styles.templateGrid}>
-      {!withGoal && leading}
-      {withGoal && (
-        <select
-          aria-label={t("goal")}
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          disabled={pending}
-          className={styles.addClientInput}
-        >
-          <option value="">{t("noGoal")}</option>
-          {PLAN_GOALS.map((g) => (
-            <option key={g} value={g}>
-              {tl(`planGoal.${g}`)}
-            </option>
-          ))}
-        </select>
-      )}
+      {leading}
       <button type="button" className="btn btn-ghost btn-sm" disabled={pending} onClick={save}>
         {pending ? t("saving") : t("save")}
       </button>
+      {trailing}
       {!pending && state.error && (
         <span className={`${styles.noWorkouts} ${styles.templateStatus}`}>{state.error}</span>
       )}

@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { deleteDayAction } from "../actions";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 
 /**
  * "Zmazať deň" vedľa "+ deň" — zmaže práve zvolený deň. Dvojkrokové inline

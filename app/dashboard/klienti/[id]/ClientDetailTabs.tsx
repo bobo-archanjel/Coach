@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import styles from "../../dashboard.module.css";
 
@@ -20,6 +21,7 @@ export interface ClientDetailSection {
  * takže obnovenie stránky ostane na tej istej záložke.
  */
 export function ClientDetailTabs({ sections, initialId }: { sections: ClientDetailSection[]; initialId?: string }) {
+  const t = useTranslations("clientDetail");
   const baseId = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [activeId, setActiveIdState] = useState(
@@ -52,7 +54,7 @@ export function ClientDetailTabs({ sections, initialId }: { sections: ClientDeta
 
   return (
     <div className={styles.clientDetail}>
-      <div className={styles.clientTabs} role="tablist" aria-label="Sekcie klienta" onKeyDown={onKeyDown}>
+      <div className={styles.clientTabs} role="tablist" aria-label={t("tabsAria")} onKeyDown={onKeyDown}>
         {sections.map((s, i) => {
           const selected = s.id === active?.id;
           return (

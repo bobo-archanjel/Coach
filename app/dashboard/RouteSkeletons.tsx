@@ -1,5 +1,5 @@
 import styles from "./dashboard.module.css";
-import builderStyles from "./treningy/[planId]/builder.module.css";
+import builderStyles from "@/app/components/workoutBuilder.module.css";
 
 /**
  * Skeleton TVAROM podľa cieľovej stránky (pokračovanie feature/navod) — predtým
@@ -168,26 +168,26 @@ function KlientDetailSkeleton() {
   );
 }
 
-/** /dashboard/treningy/[planId] — späť + hlavička + builder (260px knižnica / plátno). */
+/** /dashboard/treningy/[planId] — hlavička + builder v stĺpci ako u klienta (späť = potiahnutie)
+    (cviky dňa hore, knižnica pod nimi; app/components/workoutBuilder.module.css). */
 function PlanBuilderSkeleton() {
   return (
-    <div className={styles.skeletonWrap}>
-      <B className={styles.skeletonBackLink} />
+    <div className={`${styles.skeletonWrap} ${styles.planPage}`}>
       <div className={styles.skeletonDetailHead}>
         <B className={styles.skeletonDetailTitle} />
         <B className={styles.skeletonLineShort} />
       </div>
       <div className={builderStyles.builderGrid}>
         <div className={styles.skeletonCardBlock}>
+          <B className={styles.skeletonCardTitle} />
+          <B className={styles.skeletonLine} />
+          <B className={styles.skeletonCardTitle} />
+          <B className={styles.skeletonLine} />
+        </div>
+        <div className={styles.skeletonCardBlock}>
           {[0, 1, 2, 3, 4].map((i) => (
             <B key={i} className={styles.skeletonLine} />
           ))}
-        </div>
-        <div className={styles.skeletonCardBlock}>
-          <B className={styles.skeletonCardTitle} />
-          <B className={styles.skeletonLine} />
-          <B className={styles.skeletonCardTitle} />
-          <B className={styles.skeletonLine} />
         </div>
       </div>
     </div>

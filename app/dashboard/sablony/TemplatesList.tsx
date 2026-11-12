@@ -8,7 +8,6 @@ import styles from "./templates.module.css";
 export interface TemplateItem {
   id: string;
   name: string;
-  goal: string | null;
   /** náhľad: dni šablóny s položkami (cviky / potraviny s gramážou) */
   days: { name: string; items: string[] }[];
 }

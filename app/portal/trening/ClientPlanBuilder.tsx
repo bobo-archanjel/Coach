@@ -1,16 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalExercise, PortalPlan, PortalTemplate } from "@/lib/portal/types";
 import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
-import b from "./builder.module.css";
+import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
 import { EmptyDayCard } from "@/app/components/EmptyDayCard";
+import { useActiveTabInView } from "@/app/components/useActiveTabInView";
+import { BuilderDialog } from "@/app/components/BuilderDialog";
+import dlg from "@/app/components/builderDialog.module.css";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -18,7 +21,7 @@ const ExerciseDetailModal = dynamic(() =>
 
 /* Builder vlastného tréningu klienta — plne klientský draft, uloží sa jedným
    ťukom na "Uložiť". Vzhľad aj ovládanie sú rovnaké ako trénerov builder
-   (builder.module.css, dashboard/treningy/[planId]): pilulky dní s "+ deň" /
+   (spoločný app/components/workoutBuilder.module.css, dashboard/treningy/[planId]): pilulky dní s "+ deň" /
    "Premenovať" / "Duplikovať" / "Zmazať deň", karty cvikov so šípkami poradia, ceruzkou a košom, knižnica
    cvikov s vlastným cvikom navrchu. Používa sa aj na úpravu existujúceho
    vlastného plánu (initial). */
@@ -108,14 +111,13 @@ export function ClientPlanBuilder({
   onSaved: () => void;
 }) {
   const t = useTranslations("clientBuilder");
-  const prefilled = initial !== null || template !== null;
   const [name, setName] = useState(initial?.name ?? template?.name ?? "");
-  // Nový prázdny tréning začína bez dní (ako u trénera) s otvoreným "+ deň" — prvý
-  // krok je pomenovať deň, nie prepisovať predvyplnený "Deň 1".
   const [days, setDays] = useState<BDay[]>(() => toDraftDays(initial?.days ?? template?.days ?? []));
   // "" = ešte nevybraný → activeDay spadne na prvý deň (nižšie).
   const [activeKey, setActiveKey] = useState<string>("");
-  const [addingDay, setAddingDay] = useState(!prefilled);
+  // Nový prázdny tréning začína bez dní (ako u trénera) — „+ deň“ v dráhe otvorí okno
+  // s názvom dňa (nie predvyplnený "Deň 1"). Okno sa samo neotvára, prvé je pole s názvom tréningu.
+  const [addingDay, setAddingDay] = useState(false);
   const [dayName, setDayName] = useState("");
   const [dayError, setDayError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -141,6 +143,8 @@ export function ClientPlanBuilder({
   // activeKey init sa vyhodnotí len raz — ak je prázdny, spadni na prvý deň.
   const activeDay = days.find((d) => d.key === activeKey) ?? days[0] ?? null;
   const realActiveKey = activeDay?.key ?? "";
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useActiveTabInView(tabsRef, realActiveKey);
 
   // Prepnutie dňa zahodí rozpracované potvrdenie zmazania (u trénera key na DeleteDayControl).
   const selectDay = (key: string) => {
@@ -188,6 +192,11 @@ export function ClientPlanBuilder({
     setDayError(null);
     setAddingDay(false);
     if (error === t("addDayRequired")) setError(null);
+  };
+  const closeAddDay = () => {
+    setAddingDay(false);
+    setDayName("");
+    setDayError(null);
   };
   const removeDay = (key: string) => {
     setDays((prev) => prev.filter((d) => d.key !== key));
@@ -293,23 +302,16 @@ export function ClientPlanBuilder({
             // Hláška o chýbajúcom názve nemá visieť, keď ho klient už dopĺňa (QA 2026-09-23).
             if (error === t("planNameRequired")) setError(null);
           }}
-          placeholder="napr. white monster plan"
+          placeholder={t("namePlaceholder")}
           maxLength={60}
           className={styles.trNameInput}
         />
       </label>
 
       <div className={`${b.builderGrid} ${styles.trBuilderGrid}`}>
-        <ClientExerciseLibrary
-          library={library}
-          hasDay={activeDay !== null}
-          defaultOpen={!prefilled}
-          onAdd={addExercise}
-          onDetail={openDetail}
-        />
-
         <div className={`${b.canvas} ${styles.trBuilderCanvas}`}>
-          <div className={b.dayTabs}>
+          {/* Výber dňa = prepínač (dráha), nie tlačidlá; počet cvikov je len vizuálny (aria-hidden) */}
+          <div ref={tabsRef} className={b.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
             {days.map((d) => (
               <button
                 key={d.key}
@@ -317,152 +319,162 @@ export function ClientPlanBuilder({
                 className={`${b.dayTab} ${d.key === realActiveKey ? b.dayTabActive : ""}`}
                 onClick={() => selectDay(d.key)}
                 aria-current={d.key === realActiveKey ? "true" : undefined}
+                title={d.name}
               >
-                {d.name}
+                <span className={b.dayTabName}>{d.name}</span>
+                <span className={b.dayTabCount} aria-hidden="true">
+                  {d.exercises.length}
+                </span>
               </button>
             ))}
+            <button
+              type="button"
+              className={b.addDayTab}
+              onClick={() => {
+                setAddingDay(true);
+                setRenameValue(null);
+              }}
+            >
+              {t("addDay")}
+            </button>
+          </div>
 
-            {addingDay ? (
+          {addingDay && (
+            <BuilderDialog title={t("newDayTitle")} closeLabel={t("close")} onClose={closeAddDay}>
               <form
-                className={`${b.addDayForm} ${styles.trAddDayForm}`}
+                className={dlg.form}
                 onSubmit={(e) => {
                   e.preventDefault();
                   addDay();
                 }}
               >
                 {/* deň plánu = jeden tréning (napr. "Deň 1 — Push") */}
-                <label htmlFor="client-day-name" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
+                <div className={dlg.field}>
+                  <label htmlFor="client-day-name" className={dlg.label}>
+                    {t("dayName")}
+                  </label>
+                  <input
+                    id="client-day-name"
+                    type="text"
+                    value={dayName}
+                    onChange={(e) => {
+                      setDayName(e.target.value);
+                      if (dayError) setDayError(null);
+                    }}
+                    placeholder={t("dayPlaceholder", { n: days.length + 1 })}
+                    maxLength={60}
+                    autoFocus
+                    className={dlg.input}
+                  />
+                </div>
+                {dayError && (
+                  <p className={dlg.error} role="alert">
+                    {dayError}
+                  </p>
+                )}
+                <div className={dlg.actions}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={closeAddDay}>
+                    {t("cancel")}
+                  </button>
+                  <button type="submit" className="btn btn-primary btn-sm">
+                    {t("add")}
+                  </button>
+                </div>
+              </form>
+            </BuilderDialog>
+          )}
+
+          {activeDay &&
+            (renaming ? (
+              <form
+                className={`${b.addDayForm} ${styles.trAddDayForm}`}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  renameDay(activeDay.key);
+                }}
+              >
+                <label htmlFor="client-day-rename" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
                   {t("dayName")}
                 </label>
                 <input
-                  id="client-day-name"
+                  id="client-day-rename"
                   type="text"
-                  value={dayName}
+                  value={renameValue ?? ""}
                   onChange={(e) => {
-                    setDayName(e.target.value);
-                    if (dayError) setDayError(null);
+                    setRenameValue(e.target.value);
+                    if (renameError) setRenameError(null);
                   }}
-                  placeholder={t("dayPlaceholder", { n: days.length + 1 })}
                   maxLength={60}
-                  // Pri novom tréningu je formulár otvorený hneď — focus by preskočil názov tréningu.
-                  autoFocus={days.length > 0}
+                  autoFocus
                   className={b.addDayInput}
                 />
                 <button type="submit" className="btn btn-primary btn-sm">
-                  {t("add")}
+                  {t("done")}
                 </button>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
                   onClick={() => {
-                    setAddingDay(false);
-                    setDayName("");
-                    setDayError(null);
+                    setRenameValue(null);
+                    setRenameError(null);
                   }}
                 >
                   {t("cancel")}
                 </button>
-                {dayError && <p className={b.formError}>{dayError}</p>}
+                {renameError && <p className={b.formError}>{renameError}</p>}
               </form>
             ) : (
-              <button
-                type="button"
-                className={b.addDayTab}
-                onClick={() => {
-                  setAddingDay(true);
-                  setRenameValue(null);
-                }}
-              >
-                {t("addDay")}
-              </button>
-            )}
-
-            {activeDay &&
-              (renaming ? (
-                <form
-                  className={`${b.addDayForm} ${styles.trAddDayForm}`}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    renameDay(activeDay.key);
-                  }}
-                >
-                  <label htmlFor="client-day-rename" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
-                    {t("dayName")}
-                  </label>
-                  <input
-                    id="client-day-rename"
-                    type="text"
-                    value={renameValue ?? ""}
-                    onChange={(e) => {
-                      setRenameValue(e.target.value);
-                      if (renameError) setRenameError(null);
-                    }}
-                    maxLength={60}
-                    autoFocus
-                    className={b.addDayInput}
-                  />
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    {t("done")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      setRenameValue(null);
-                      setRenameError(null);
-                    }}
-                  >
-                    {t("cancel")}
-                  </button>
-                  {renameError && <p className={b.formError}>{renameError}</p>}
-                </form>
-              ) : confirmDelete ? (
-                <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
-                  <p id="delete-day-question" className={b.deleteDayQuestion}>
-                    {t("deleteDayConfirm", { name: activeDay.name, count: activeDay.exercises.length })}
-                  </p>
-                  <div className={b.deleteDayActions}>
-                    <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
-                      {t("yesDeleteDay")}
-                    </button>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
-                      {t("cancel")}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // akcie aktívneho dňa vždy spolu v jednom riadku pod pilulkami dní
+              // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
+              <div className={b.dayHead}>
                 <div className={b.dayActionsRow}>
-                  <button
-                    type="button"
-                    className={b.dayActionTab}
-                    onClick={() => {
-                      setRenameValue(activeDay.name);
-                      setRenameError(null);
-                      setAddingDay(false);
-                    }}
-                  >
-                    {t("rename")}
-                  </button>
-                  <button
-                    type="button"
-                    className={b.dayActionTab}
-                    onClick={() => duplicateDay(activeDay.key)}
-                    disabled={days.length >= MAX_DAYS}
-                    title={
-                      days.length >= MAX_DAYS
-                        ? t("maxDays", { max: MAX_DAYS })
-                        : t("duplicateTitle")
-                    }
-                  >
-                    {t("duplicate")}
-                  </button>
-                  <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
-                    {t("deleteDay")}
-                  </button>
+                  {confirmDelete ? (
+                    <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
+                      <p id="delete-day-question" className={b.deleteDayQuestion}>
+                        {t("deleteDayConfirm", { name: activeDay.name, count: activeDay.exercises.length })}
+                      </p>
+                      <div className={b.deleteDayActions}>
+                        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
+                          {t("yesDeleteDay")}
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
+                          {t("cancel")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className={b.dayActionTab}
+                        onClick={() => {
+                          setRenameValue(activeDay.name);
+                          setRenameError(null);
+                          setAddingDay(false);
+                        }}
+                      >
+                        {t("rename")}
+                      </button>
+                      <button
+                        type="button"
+                        className={b.dayActionTab}
+                        onClick={() => duplicateDay(activeDay.key)}
+                        disabled={days.length >= MAX_DAYS}
+                        title={
+                          days.length >= MAX_DAYS
+                            ? t("maxDays", { max: MAX_DAYS })
+                            : t("duplicateTitle")
+                        }
+                      >
+                        {t("duplicate")}
+                      </button>
+                      <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
+                        {t("deleteDay")}
+                      </button>
+                    </>
+                  )}
                 </div>
-              ))}
-          </div>
+              </div>
+            ))}
 
           <div className={b.dayPanel}>
             {activeDay ? (
@@ -495,7 +507,7 @@ export function ClientPlanBuilder({
                         {ex.sets || "3"}× {ex.reps || "10"}
                         {ex.loadKg.trim() ? ` @ ${ex.loadKg} kg` : ""}
                       </span>
-                      {ex.restSeconds.trim() && <span className={b.exerciseMeta}>pauza {ex.restSeconds}s</span>}
+                      {ex.restSeconds.trim() && <span className={b.exerciseMeta}>{t("restValue", { seconds: ex.restSeconds })}</span>}
                       <div className={b.rowActions}>
                         <div className={b.reorderBtns}>
                           <button
@@ -540,6 +552,14 @@ export function ClientPlanBuilder({
             )}
           </div>
         </div>
+
+        {/* Až za plátnom aj v DOM — poradie pre klávesnicu/čítačku = vizuálne */}
+        <ClientExerciseLibrary
+          library={library}
+          hasDay={activeDay !== null}
+          onAdd={addExercise}
+          onDetail={openDetail}
+        />
       </div>
 
       {error && (
@@ -587,7 +607,7 @@ function ExerciseEditForm({
           <input name="sets" type="number" inputMode="numeric" min={1} max={20} defaultValue={ex.sets} required />
         </label>
         <label className={`${b.editField} ${b.editFieldReps}`}>
-          <span className={b.editFieldLabel}>Opakovania</span>
+          <span className={b.editFieldLabel}>{t("reps")}</span>
           <input name="reps" type="text" maxLength={20} defaultValue={ex.reps} placeholder="10 / 8-12 / 30 s" required />
         </label>
         <label className={`${b.editField} ${b.editFieldLoad}`}>
@@ -595,7 +615,7 @@ function ExerciseEditForm({
           <input name="load_kg" type="number" inputMode="decimal" step="0.5" min={0} defaultValue={ex.loadKg} placeholder="—" />
         </label>
         <label className={`${b.editField} ${b.editFieldRest}`}>
-          <span className={b.editFieldLabel}>Pauza (s)</span>
+          <span className={b.editFieldLabel}>{t("rest")}</span>
           <input name="rest_seconds" type="number" inputMode="numeric" min={0} defaultValue={ex.restSeconds} placeholder="—" />
         </label>
       </div>

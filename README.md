@@ -75,6 +75,15 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-12** — **Builder tréningu u trénera ako u klienta + úpravy dizajnu** (`feature/design-fixes`, bez migrácie).
+  - **Spoločný vzhľad:** trénerov aj klientov builder tréningu používajú jeden štýl (`app/components/workoutBuilder.module.css`). Na počítači je to vycentrovaný stĺpec ako v portáli: cviky dňa ako karty, pod nimi karta **Vlastný cvik** (vždy viditeľná; u trénera aj „Partia“ a „+ Pridať do knižnice“) a **Knižnica cvikov** zbalená, kým ju používateľ neotvorí.
+  - **Dni ako prepínač:** dni sú v jednej dráhe (vybraný deň = biely čip, pri každom počet cvikov), nie ako tlačidlá. Na počítači sú v rovnomernej mriežke, na mobile v jednom riadku, ktorý sa posúva do strany. Pod dráhou sú len akcie Premenovať · Duplikovať · Zmazať deň.
+  - **„+ deň“ otvorí okno** v strede obrazovky (`BuilderDialog`; na mobile v strede plochy nad klávesnicou). Tréner sa po pridaní prepne na nový deň.
+  - **Späť potiahnutím:** detail plánu nemá odkaz „Späť na tréningy“. Na mobile sa späť ide potiahnutím zľava doprava (`SwipeBack`), na počítači bočným menu.
+  - **Šablóny bez cieľa:** zmizol výber cieľa na detaile plánu aj filter a odznak cieľa v Šablónach (stĺpec `plan_templates.goal` ostáva, už sa nenastavuje). „Uložiť ako šablónu“ je dole vedľa „Stiahnuť PDF“.
+  - **Kalendár:** termíny v karte dňa sú na počítači bez vnútorného rámika (oddeľuje ich tenká čiara).
+  - **Preklady:** doplnené texty bez diakritiky, ktoré kontrola prekladu prehliadla (Opakovania, Tempo, Pauza, Detail cviku, Nie, Hotovo, popis sekcií klienta).
+
 - **2026-11-12** — **Čeština ako druhý jazyk** (`feature/cestina`, **migrácia 0059**).
   - **Prepínač jazyka:** tréner v Nastaveniach a klient v Profile majú kartu „Jazyk“ s výberom Slovenčina / Čeština. Na úvodnej stránke je tlačidlo SK/CZ vedľa ikony svetlý/tmavý režim. `/prihlasenie` preberá zvolený jazyk.
   - **Kde sa jazyk ukladá:** do cookie `fp-locale` (platí hneď, aj bez prihlásenia) a do účtu (`profiles.locale`, RPC `set_my_locale`). Po prihlásení na novom zariadení sa jazyk prevezme z účtu. Kým nie je výber, rozhoduje prehliadač (`Accept-Language: cs` → čeština), inak slovenčina.

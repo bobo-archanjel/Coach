@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 import { deleteMealTemplateAction, deleteWorkoutTemplateAction } from "./actions";
 import { ApplyTemplateDialog } from "./ApplyTemplateDialog";
 import type { TemplateItem } from "./TemplatesList";
-import { isPlanGoal } from "@/lib/planGoals";
 import styles from "./templates.module.css";
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -29,7 +28,6 @@ export function TemplateCard({
   clients: { id: string; full_name: string }[];
 }) {
   const t = useTranslations("templates");
-  const tl = useTranslations("labels");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -49,7 +47,6 @@ export function TemplateCard({
         <h3 className={styles.cardName}>{item.name}</h3>
         <p className={styles.cardMeta}>
           {t("days", { count: dayCount })}
-          {isPlanGoal(item.goal) && <span className={styles.goalChip}>{tl(`planGoal.${item.goal}`)}</span>}
         </p>
       </div>
 

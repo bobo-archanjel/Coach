@@ -55,6 +55,8 @@
     "addDayFirst": "Najprv pridaj tréningový deň",
     "noMatch": "Žiadny cvik nezodpovedá hľadaniu.",
     "prevPage": "Predchádzajúca strana",
-    "nextPage": "Ďalšia strana"
+    "nextPage": "Ďalšia strana",
+    "exerciseDetail": "Detail cviku {name}",
+    "customHeading": "Vlastný cvik"
   }
 }

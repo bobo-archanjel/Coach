@@ -3277,12 +3277,6 @@
 .trBuilderCanvas.trBuilderCanvas {
   order: 1;
 }
-.trBuilderLib.trBuilderLib {
-  order: 2;
-  position: static;
-  max-height: none;
-  overflow: visible;
-}
 
 /* ======================================================================
    Strava
