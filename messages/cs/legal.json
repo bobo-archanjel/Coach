@@ -1,0 +1,16 @@
+{
+  "eyebrow": "Právní",
+  "back": "← Zpět na úvod",
+  "privacy": {
+    "title": "Ochrana soukromí",
+    "description": "Jak FitPilot zpracovává osobní údaje trenérů a klientů — GDPR, cookies, doba uchovávání, práva subjektu údajů."
+  },
+  "terms": {
+    "title": "Obchodní podmínky",
+    "description": "Smluvní podmínky používání FitPilot — předplatné, odpovědnost, AI funkce, ukončení smlouvy."
+  },
+  "cookies": {
+    "title": "Zásady cookies",
+    "description": "Jaké cookies aplikace FitPilot používá — jen technické a pro zapamatování nastavení (jazyk, vzhled). Žádná cookie lišta."
+  }
+}

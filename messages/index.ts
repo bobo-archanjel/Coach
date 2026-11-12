@@ -39,6 +39,7 @@ import skPortal from "./sk/portal.json";
 import skPdf from "./sk/pdf.json";
 import skAi from "./sk/ai.json";
 import skSystem from "./sk/system.json";
+import skLegal from "./sk/legal.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -75,6 +76,7 @@ import csPortal from "./cs/portal.json";
 import csPdf from "./cs/pdf.json";
 import csAi from "./cs/ai.json";
 import csSystem from "./cs/system.json";
+import csLegal from "./cs/legal.json";
 
 export const sk = {
   common: skCommon,
@@ -112,6 +114,7 @@ export const sk = {
   pdf: skPdf,
   ai: skAi,
   system: skSystem,
+  legal: skLegal,
 };
 
 export type Messages = typeof sk;
@@ -152,6 +155,7 @@ export const cs: Messages = {
   pdf: csPdf,
   ai: csAi,
   system: csSystem,
+  legal: csLegal,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };
