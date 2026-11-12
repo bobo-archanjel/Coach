@@ -82,7 +82,7 @@ export default async function PlanDetailPage({
       if (data && data.length > 0) previewLibrary = data as ExerciseLibraryRow[];
     }
     return (
-      <>
+      <div className={styles.planPage}>
         <Link href="/dashboard/treningy" className={styles.backLink}>
           <BackIcon />
           Späť na tréningy
@@ -106,7 +106,7 @@ export default async function PlanDetailPage({
         <div className={styles.planFooterActions}>
           <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted />
         </div>
-      </>
+      </div>
     );
   }
   // i18n-ignore-end
@@ -161,7 +161,7 @@ export default async function PlanDetailPage({
   const [t, locale] = await Promise.all([getTranslations("plans.builder"), getLocale()]);
 
   return (
-    <>
+    <div className={styles.planPage}>
       <Link href="/dashboard/treningy" className={styles.backLink}>
         <BackIcon />
         {t("back")}
@@ -253,6 +253,6 @@ export default async function PlanDetailPage({
           />
         )}
       </div>
-    </>
+    </div>
   );
 }

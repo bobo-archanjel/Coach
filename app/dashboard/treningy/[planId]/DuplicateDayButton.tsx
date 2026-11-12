@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { duplicateDayAction } from "../actions";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 
 /**
  * "Duplikovať" medzi "+ deň" a "Zmazať deň" (rovnako ako v jedálničku) — kópia práve

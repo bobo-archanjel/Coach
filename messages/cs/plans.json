@@ -146,6 +146,12 @@
     "editsText": "Klient už z tohoto plánu cvičil. Úpravy se projeví jen v dalších trénincích — odcvičené tréninky zůstávají uložené přesně tak, jak je klient zapsal.",
     "completedLogs": "Odcvičené tréninky",
     "workoutFallback": "Trénink",
-    "completedOn": "Dokončený – {date}"
+    "completedOn": "Dokončený – {date}",
+    "reps": "Opakování",
+    "tempo": "Tempo",
+    "rest": "Pauza (s)",
+    "tempoValue": "tempo {value}",
+    "restValue": "pauza {seconds} s",
+    "exerciseDetail": "Detail cviku {name}"
   }
 }

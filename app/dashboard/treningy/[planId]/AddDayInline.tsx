@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addDayAction, type ActionState } from "../actions";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 
 const initialState: ActionState = { error: null };
 
@@ -32,7 +32,11 @@ export function AddDayInline({ planId, nextDayNumber }: { planId: string; nextDa
     <form action={formAction} className={styles.addDayForm}>
       <input type="hidden" name="plan_id" value={planId} readOnly />
       <input type="hidden" name="day_number" value={nextDayNumber} readOnly />
+      <label htmlFor="trainer-day-name" className={styles.addDayLabel}>
+        {t("dayName")}
+      </label>
       <input
+        id="trainer-day-name"
         name="name"
         type="text"
         placeholder={t("dayPlaceholder", { n: nextDayNumber })}

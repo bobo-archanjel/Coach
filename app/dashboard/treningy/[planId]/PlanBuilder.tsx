@@ -10,7 +10,7 @@ import { DuplicateDayButton } from "./DuplicateDayButton";
 import { RenameDayForm } from "./RenameDayForm";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 import { EmptyDayCard } from "@/app/components/EmptyDayCard";
 
 interface Day {

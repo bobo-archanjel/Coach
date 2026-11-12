@@ -14,7 +14,7 @@ import {
   type LibraryEquipmentFilter,
 } from "@/lib/exerciseFilters";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import b from "./builder.module.css";
+import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
 
 const PAGE_SIZE = 7;
@@ -233,7 +233,7 @@ export function ClientExerciseLibrary({
                     type="button"
                     className={b.libraryItemInfo}
                     onClick={() => onDetail(ex.id, name)}
-                    aria-label={`Detail cviku ${name}`}
+                    aria-label={t("exerciseDetail", { name })}
                   >
                     <InfoIcon />
                   </button>

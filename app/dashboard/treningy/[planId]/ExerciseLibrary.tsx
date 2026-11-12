@@ -13,7 +13,7 @@ import {
   type LibraryMuscleFilter,
   type LibraryEquipmentFilter,
 } from "@/lib/exerciseFilters";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 
 const initialState: ActionState = { error: null };
 const PAGE_SIZE = 7;
@@ -44,9 +44,19 @@ export function ExerciseLibrary({
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<LibraryMuscleFilter | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<LibraryEquipmentFilter | null>(null);
-  // Na mobile defaultne zbalené (viď builderGrid poradie) — tréner vidí plátno prvé.
-  // Nad 760px CSS `.collapsed` pravidlo neplatí, takže tento stav tam vizuálne nič nemení.
-  const [open, setOpen] = useState(false);
+  // null = „auto“ (CSS .libraryAuto): na počítači otvorená, na mobile zbalená pod cvikmi
+  // dňa. Po ťuknutí na hlavičku platí ručná voľba na každej šírke (ako u klienta).
+  const [open, setOpen] = useState<boolean | null>(null);
+  // len pre aria-expanded v režime „auto“ — vizuál rieši CSS bez blikania pri načítaní
+  const [wideScreen, setWideScreen] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 761px)");
+    const sync = () => setWideScreen(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const isOpen = open ?? wideScreen;
   const [libState, addToLibrary, libPending] = useActionState(addCustomExerciseAction, initialState);
   const [dayState, addToDay, dayPending] = useActionState(addCustomExerciseToDayAction, initialState);
   const customPending = libPending || dayPending;
@@ -83,22 +93,32 @@ export function ExerciseLibrary({
   const paged = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   return (
-    <div className={styles.library}>
-      <button
-        type="button"
-        className={styles.libraryToggle}
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
+    <div className={`${styles.library} ${open === null ? styles.libraryAuto : ""}`}>
+      <button type="button" className={styles.libraryToggle} onClick={() => setOpen(!isOpen)} aria-expanded={isOpen}>
         <span className={styles.libraryHead}>{t("library", { count: exercises.length })}</span>
         <ChevronIcon className={`${styles.libraryChevron} ${open ? styles.libraryChevronOpen : ""}`} />
       </button>
       {!activeDayId && <p className={styles.libraryHint}>{t("libraryHint")}</p>}
 
-      <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
-        <form className={styles.customExerciseForm}>
-          <input name="name" type="text" placeholder={t("customName")} required disabled={customPending} className={styles.customExerciseInput} />
-          <input name="muscle_group" type="text" placeholder={t("customMuscle")} disabled={customPending} className={styles.customExerciseInput} />
+      <div className={`${styles.libraryBody} ${open === false ? styles.collapsed : ""}`}>
+        <form className={`${styles.customExerciseForm} ${styles.customExerciseGrid}`}>
+          <input
+            name="name"
+            type="text"
+            placeholder={t("customName")}
+            required
+            disabled={customPending}
+            className={styles.customExerciseInput}
+            aria-label={t("customName")}
+          />
+          <input
+            name="muscle_group"
+            type="text"
+            placeholder={t("customMuscle")}
+            disabled={customPending}
+            className={styles.customExerciseInput}
+            aria-label={t("customMuscle")}
+          />
           <input type="hidden" name="plan_id" value={planId} readOnly />
           <input type="hidden" name="day_id" value={activeDayId ?? ""} readOnly />
           <button
@@ -116,11 +136,11 @@ export function ExerciseLibrary({
           >
             {dayPending ? t("adding") : t("addToWorkout")}
           </button>
-          {noDayHint === "custom" && !activeDayId && <p className={styles.formError}>{t("addDayFirstDot")}</p>}
-          {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
           <button type="submit" formAction={addToLibrary} className="btn btn-ghost btn-sm" disabled={customPending}>
             {libPending ? t("adding") : t("addToLibrary")}
           </button>
+          {noDayHint === "custom" && !activeDayId && <p className={styles.formError}>{t("addDayFirstDot")}</p>}
+          {dayState.error && <p className={styles.formError}>{dayState.error}</p>}
           {libState.error && <p className={styles.formError}>{libState.error}</p>}
         </form>
 

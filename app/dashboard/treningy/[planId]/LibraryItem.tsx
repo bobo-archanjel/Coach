@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 import { addExerciseToDayAction, getExerciseDetailAction, type ActionState } from "../actions";
 import { displayExerciseName, type ExerciseDetail, type ExerciseLibraryRow } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
-import styles from "./builder.module.css";
+import styles from "@/app/components/workoutBuilder.module.css";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -80,7 +80,7 @@ export function LibraryItem({
           )}
         </button>
       </form>
-      <button type="button" className={styles.libraryItemInfo} onClick={openDetail} aria-label={`Detail cviku ${name}`}>
+      <button type="button" className={styles.libraryItemInfo} onClick={openDetail} aria-label={t("exerciseDetail", { name })}>
         <InfoIcon />
       </button>
       {showDetail && (

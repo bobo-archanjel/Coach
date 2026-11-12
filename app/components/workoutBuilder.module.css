@@ -1,7 +1,8 @@
-/* Builder vlastného tréningu klienta (ClientPlanBuilder / ClientExerciseLibrary), dizajn v6.
-   Rovnaké názvy tried ako trénerov app/dashboard/treningy/[planId]/builder.module.css,
-   ale portál je úzky stĺpec, preto vždy jeden stĺpec: plátno (dni + cviky) hore,
-   knižnica pod ním a dá sa zbaliť na každej šírke.
+/* Builder tréningu v dizajne v6 — spoločný pre trénera (app/dashboard/treningy/[planId])
+   aj klienta (app/portal/trening: ClientPlanBuilder / ClientExerciseLibrary), nech vyzerajú
+   rovnako (feature/design-fixes). Vždy jeden stĺpec: plátno (dni + cviky) hore, knižnica
+   cvikov pod ním ako zbaliteľná karta. Trénerove prvky navyše (partia vlastného cviku,
+   „Pridať do knižnice“, tempo, premenovanie dňa) sú na konci súboru.
    Tokeny (--surface, --accent…) z koreňa .root (app/v6design/styles/tokens.module.css). */
 
 .builderGrid {
@@ -291,6 +292,7 @@
 .editFieldSets,
 .editFieldReps,
 .editFieldLoad,
+.editFieldTempo,
 .editFieldRest {
   width: auto;
 }
@@ -462,7 +464,7 @@
   color: var(--paper);
   background: var(--fill);
 }
-/* Filter podľa partie/vybavenia (feature/AIupgrade) — viď pôvodný builder.module.css. */
+/* Filter podľa partie/vybavenia (feature/AIupgrade) — taxonómia v lib/exerciseFilters.ts. */
 .libraryFilterRow {
   display: flex;
   flex-wrap: wrap;
@@ -573,6 +575,47 @@
     font-size: 12.5px;
   }
   .dayActionsRow > :not(button) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ======================================================================
+   Trénerov builder — prvky, ktoré klient nemá
+   ====================================================================== */
+/* „Premenovať“ / „+ deň“: formulár na celý riadok pod pilulkami, popis nad poľom */
+.renameDayForm {
+  flex-basis: 100%;
+}
+.addDayLabel {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--paper-faint);
+}
+/* Chyba pri cviku (napr. odstránenie zlyhalo) — pod kartou na celú šírku */
+.exerciseRow .formError {
+  grid-column: 1 / -1;
+}
+/* Knižnica bez voľby používateľa („auto“): na počítači otvorená (hlavný nástroj
+   trénera), na mobile zbalená pod cvikmi dňa. Ťuk na hlavičku prepne na ručný stav. */
+@media (max-width: 760px) {
+  .libraryAuto .libraryBody {
+    display: none;
+  }
+}
+@media (min-width: 761px) {
+  .libraryAuto .libraryChevron {
+    transform: rotate(180deg);
+  }
+}
+/* Vlastný cvik trénera: názov + partia, „do tréningu“ + „do knižnice“ — na počítači 2 × 2 */
+@media (min-width: 761px) {
+  .customExerciseGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .customExerciseGrid .formError {
     grid-column: 1 / -1;
   }
 }

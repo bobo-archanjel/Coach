@@ -8,7 +8,7 @@ import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from ".
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
-import b from "./builder.module.css";
+import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
 import { EmptyDayCard } from "@/app/components/EmptyDayCard";
 
@@ -18,7 +18,7 @@ const ExerciseDetailModal = dynamic(() =>
 
 /* Builder vlastného tréningu klienta — plne klientský draft, uloží sa jedným
    ťukom na "Uložiť". Vzhľad aj ovládanie sú rovnaké ako trénerov builder
-   (builder.module.css, dashboard/treningy/[planId]): pilulky dní s "+ deň" /
+   (spoločný app/components/workoutBuilder.module.css, dashboard/treningy/[planId]): pilulky dní s "+ deň" /
    "Premenovať" / "Duplikovať" / "Zmazať deň", karty cvikov so šípkami poradia, ceruzkou a košom, knižnica
    cvikov s vlastným cvikom navrchu. Používa sa aj na úpravu existujúceho
    vlastného plánu (initial). */
@@ -293,7 +293,7 @@ export function ClientPlanBuilder({
             // Hláška o chýbajúcom názve nemá visieť, keď ho klient už dopĺňa (QA 2026-09-23).
             if (error === t("planNameRequired")) setError(null);
           }}
-          placeholder="napr. white monster plan"
+          placeholder={t("namePlaceholder")}
           maxLength={60}
           className={styles.trNameInput}
         />
@@ -495,7 +495,7 @@ export function ClientPlanBuilder({
                         {ex.sets || "3"}× {ex.reps || "10"}
                         {ex.loadKg.trim() ? ` @ ${ex.loadKg} kg` : ""}
                       </span>
-                      {ex.restSeconds.trim() && <span className={b.exerciseMeta}>pauza {ex.restSeconds}s</span>}
+                      {ex.restSeconds.trim() && <span className={b.exerciseMeta}>{t("restValue", { seconds: ex.restSeconds })}</span>}
                       <div className={b.rowActions}>
                         <div className={b.reorderBtns}>
                           <button
@@ -587,7 +587,7 @@ function ExerciseEditForm({
           <input name="sets" type="number" inputMode="numeric" min={1} max={20} defaultValue={ex.sets} required />
         </label>
         <label className={`${b.editField} ${b.editFieldReps}`}>
-          <span className={b.editFieldLabel}>Opakovania</span>
+          <span className={b.editFieldLabel}>{t("reps")}</span>
           <input name="reps" type="text" maxLength={20} defaultValue={ex.reps} placeholder="10 / 8-12 / 30 s" required />
         </label>
         <label className={`${b.editField} ${b.editFieldLoad}`}>
@@ -595,7 +595,7 @@ function ExerciseEditForm({
           <input name="load_kg" type="number" inputMode="decimal" step="0.5" min={0} defaultValue={ex.loadKg} placeholder="—" />
         </label>
         <label className={`${b.editField} ${b.editFieldRest}`}>
-          <span className={b.editFieldLabel}>Pauza (s)</span>
+          <span className={b.editFieldLabel}>{t("rest")}</span>
           <input name="rest_seconds" type="number" inputMode="numeric" min={0} defaultValue={ex.restSeconds} placeholder="—" />
         </label>
       </div>
