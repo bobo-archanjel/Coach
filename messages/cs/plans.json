@@ -5,7 +5,7 @@
   "aiGenerator": "AI generátor plánu",
   "draft": "Koncept",
   "done": "Hotovo",
-  "days": "{days} dní",
+  "days": "{count, plural, one {# den} few {# dny} other {# dní}}",
   "emptyTitle": "Zatím žádné plány",
   "emptyText": "Vytvoř první plán výše.",
   "library": "Knihovna cviků ({count})",
@@ -153,5 +153,6 @@
     "close": "Zavřít",
     "renameDayTitle": "Přejmenovat den"
   },
-  "active": "Aktivní"
+  "active": "Aktivní",
+  "daysDone": "{done}/{count, plural, one {# den} few {# dny} other {# dní}}"
 }

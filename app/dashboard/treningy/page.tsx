@@ -120,7 +120,9 @@ export default async function TreningyPage() {
                     )
                   )}
                   <span className={styles.clientSince}>
-                    {t("days", { days: done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount })}
+                    {done && done.completedDays > 0
+                      ? t("daysDone", { done: done.completedDays, count: dayCount })
+                      : t("days", { count: dayCount })}
                   </span>
                 </span>
               </Link>
