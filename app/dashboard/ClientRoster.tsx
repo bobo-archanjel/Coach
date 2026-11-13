@@ -83,7 +83,15 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
             const cardContent = (
               <>
                 <div>
-                  <div className={styles.clientName}>{client.fullName}</div>
+                  {client.pending ? (
+                    <div className={styles.clientName}>{client.fullName}</div>
+                  ) : (
+                    // Celá karta je klikateľná cez neviditeľný prekryv odkazu (::after) — odkaz na
+                    // chat (odznak správ) tak nemusí byť vnorený v odkaze na detail (neplatné HTML).
+                    <Link href={`/dashboard/klienti/${client.id}`} className={`${styles.clientName} ${styles.clientCardLink}`}>
+                      {client.fullName}
+                    </Link>
+                  )}
                   {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
                 </div>
                 <span className={`${styles.clientMeta} ${styles.rosterMeta}`}>
@@ -92,9 +100,14 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                   ) : (
                     <>
                       {client.unread > 0 && (
-                        <span className={styles.unreadPill} title={t("unreadTitle", { count: client.unread })}>
+                        // odznak správ → rovno vlákno s klientom v Správach (ako vo zvončeku)
+                        <Link
+                          href={`/dashboard/spravy?client=${encodeURIComponent(client.id)}`}
+                          className={`${styles.unreadPill} ${styles.unreadPillLink}`}
+                          title={t("unreadTitle", { count: client.unread })}
+                        >
                           {t("unreadPill", { count: client.unread })}
-                        </span>
+                        </Link>
                       )}
                       {client.pendingDeletion ? (
                         <span className={styles.deletionChip}>{t("deletesOn", { date: client.deletionLabel ?? "" })}</span>
@@ -122,9 +135,9 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                 {cardContent}
               </div>
             ) : (
-              <Link key={client.id} href={`/dashboard/klienti/${client.id}`} className={cardClassName}>
+              <div key={client.id} className={`${cardClassName} ${styles.clientCardStretched}`}>
                 {cardContent}
-              </Link>
+              </div>
             );
           })}
         </div>
