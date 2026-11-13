@@ -21,6 +21,14 @@
       "title": "Zprávy",
       "body": "Přímá komunikace s klienty — jednotlivě, nebo hromadně celé skupině najednou."
     },
+    "navKalendar": {
+      "title": "Kalendář",
+      "body": "Termíny s klienty na jednom místě — den předem ti je připomene zvoneček."
+    },
+    "navSablony": {
+      "title": "Šablony",
+      "body": "Osvědčený trénink či jídelníček si ulož jako šablonu a dalšímu klientovi ho přiřaď na pár kliknutí."
+    },
     "navNastavenia": {
       "title": "Nastavení",
       "body": "Klikni na svou ikonu — v Nastavení je profil, odhlášení i tento průvodce, kdyby sis ho chtěl projít znovu."

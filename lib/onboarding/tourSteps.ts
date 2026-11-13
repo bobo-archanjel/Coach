@@ -22,6 +22,8 @@ export const TRAINER_TOUR_STEPS: TourStepDef[] = [
   { target: '[data-tour="nav-treningy"]', key: "navTreningy" },
   { target: '[data-tour="nav-vyziva"]', key: "navVyziva" },
   { target: '[data-tour="nav-spravy"]', key: "navSpravy" },
+  { target: '[data-tour="nav-kalendar"]', key: "navKalendar" },
+  { target: '[data-tour="nav-sablony"]', key: "navSablony" },
   { target: '[data-tour="nav-nastavenia"]', key: "navNastavenia" },
 ];
 
