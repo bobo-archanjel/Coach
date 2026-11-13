@@ -10,7 +10,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  *
  * Testy sledujú WebSocket. Odber musí server potvrdiť (system / postgres_changes / ok) a
  * vložená správa musí prísť ako udalosť `postgres_changes`. Zvonček sa pritom zmení bez
- * akejkoľvek akcie na stránke.
+ * akejkoľvek akcie na stránke a s ním aj ostatné odznaky (app/components/liveUnread.ts):
+ * „Správy“ v menu trénera, „N správ“ v zozname klientov a bodka pri „Chat“ v portáli.
  * Dočasné správy sa na konci zmažú (service role).
  *   E2E_TRAINER_EMAIL, E2E_TRAINER_PASSWORD, E2E_CLIENT_EMAIL, E2E_CLIENT_PASSWORD
  */
@@ -98,6 +99,12 @@ async function bellCount(page: Page): Promise<number> {
   return Number(/,\s*(\d+)/.exec(label)?.[1] ?? 0);
 }
 
+/** Číslo v odznaku (0, keď odznak nie je). */
+async function badgeNumber(badge: ReturnType<Page["locator"]>): Promise<number> {
+  if ((await badge.count()) === 0) return 0;
+  return Number(/\d+/.exec((await badge.first().textContent()) ?? "")?.[0] ?? 0);
+}
+
 test.describe("Realtime: nové správy bez obnovenia stránky (reálna DB)", () => {
   test.skip(!hasEnv, "chýbajú E2E_* / Supabase env premenné");
   test.describe.configure({ mode: "serial" });
@@ -126,32 +133,47 @@ test.describe("Realtime: nové správy bez obnovenia stránky (reálna DB)", () 
     if (messageIds.length) await admin.from("messages").delete().in("id", messageIds);
   });
 
-  test("zvonček trénera pribudne pri novej správe od klienta", async ({ page }, testInfo) => {
+  test("zvonček, „Správy“ v menu aj odznak v zozname klientov pribudnú pri novej správe od klienta", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     const watch = watchRealtime(page, "bell-messages-");
-    await login(page, env.trainerEmail!, env.trainerPassword!, /\/dashboard/);
+    await login(page, env.trainerEmail!, env.trainerPassword!, /\/dashboard$/); // prihlásenie vedie na zoznam klientov
     await expectSubscribed(watch);
     await page.waitForLoadState("networkidle");
-    const before = await bellCount(page);
+    const navBadge = page.getByRole("navigation").first().locator("a[href='/dashboard/spravy'] [aria-label]");
+    const rosterPill = page.locator(`a[href="/dashboard/spravy?client=${qaClientId}"]`);
+    const before = { bell: await bellCount(page), nav: await badgeNumber(navBadge), pill: await badgeNumber(rosterPill) };
 
     const body = `E2E realtime zvonček trénera ${stamp}`;
     await insertMessage("client", body);
     await expect.poll(() => watch.received, { timeout: 10_000 }).toContain(body);
-    await expect.poll(() => bellCount(page), { timeout: 10_000 }).toBe(before + 1);
+    await expect.poll(() => bellCount(page), { timeout: 10_000 }).toBe(before.bell + 1);
+    await expect.poll(() => badgeNumber(navBadge), { timeout: 5_000 }).toBe(before.nav + 1);
+    await expect.poll(() => badgeNumber(rosterPill), { timeout: 5_000 }).toBe(before.pill + 1);
+    expect(page.url()).toMatch(/\/dashboard$/); // bez navigácie a obnovenia
   });
 
-  test("zvonček klienta pribudne pri novej správe od trénera", async ({ page }, testInfo) => {
+  test("zvonček aj bodka pri „Chat“ u klienta pribudnú pri novej správe od trénera", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
+    // QA klient bez neprečítaných správ od trénera — bodka musí naozaj pribudnúť, nie svietiť už predtým
+    await admin
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("client_id", qaClientId)
+      .in("sender", ["trainer", "system"])
+      .is("read_at", null);
     const watch = watchRealtime(page, "portal-bell-messages-");
     await login(page, env.clientEmail!, env.clientPassword!, /\/portal/);
     await expectSubscribed(watch);
     await page.waitForLoadState("networkidle");
+    const chatDot = page.getByRole("navigation").first().locator("a[href='/portal/chat'] [class*=v6NavDot]");
+    await expect(chatDot).toHaveCount(0);
     const before = await bellCount(page);
 
     const body = `E2E realtime zvonček klienta ${stamp}`;
     await insertMessage("trainer", body);
     await expect.poll(() => watch.received, { timeout: 10_000 }).toContain(body);
     await expect.poll(() => bellCount(page), { timeout: 10_000 }).toBe(before + 1);
+    await expect(chatDot).toHaveCount(1, { timeout: 5_000 });
   });
 
   test("otvorený chat trénera dostane správu cez Realtime", async ({ page }, testInfo) => {

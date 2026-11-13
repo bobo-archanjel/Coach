@@ -12,6 +12,7 @@ import { intlLocale } from "@/lib/i18n/locales";
 import { useMemo, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { EmptyState } from "../components/EmptyState";
+import { useLiveUnread } from "../components/liveUnread";
 import styles from "./dashboard.module.css";
 
 const ClientsIcon = () => (
@@ -52,6 +53,8 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
   const t = useTranslations("clients");
   const locale = useLocale();
   const [query, setQuery] = useState("");
+  // „N správ“: čísla zo servera, kým zvonček nenačíta novšie — potom naživo (nová správa, prečítané)
+  const liveByClient = useLiveUnread(items)?.byClient ?? null;
 
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
@@ -77,6 +80,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
       {filtered.length > 0 ? (
         <div className={styles.roster}>
           {filtered.map((client) => {
+            const unread = liveByClient ? (liveByClient.get(client.id) ?? 0) : client.unread;
             const cardClassName = `${styles.clientCard} ${
               client.pendingDeletion ? styles.clientCardPendingDeletion : client.ended ? styles.clientCardEnded : ""
             } ${client.pending ? styles.clientCardPending : ""}`;
@@ -99,14 +103,14 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                     <span className={styles.statusChip}>{t("adding")}</span>
                   ) : (
                     <>
-                      {client.unread > 0 && (
+                      {unread > 0 && (
                         // odznak správ → rovno vlákno s klientom v Správach (ako vo zvončeku)
                         <Link
                           href={`/dashboard/spravy?client=${encodeURIComponent(client.id)}`}
                           className={`${styles.unreadPill} ${styles.unreadPillLink}`}
-                          title={t("unreadTitle", { count: client.unread })}
+                          title={t("unreadTitle", { count: unread })}
                         >
-                          {t("unreadPill", { count: client.unread })}
+                          {t("unreadPill", { count: unread })}
                         </Link>
                       )}
                       {client.pendingDeletion ? (
