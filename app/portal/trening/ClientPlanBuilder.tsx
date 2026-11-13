@@ -1,5 +1,6 @@
 "use client";
 
+import { SwipeBack } from "@/app/components/SwipeBack";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
@@ -50,11 +51,6 @@ type BEx = {
 };
 type BDay = { key: string; id: string | null; name: string; exercises: BEx[] };
 
-const BackIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 const EditIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
     <path d="M9.5 1.5 12.5 4.5 4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -282,300 +278,299 @@ export function ClientPlanBuilder({
   };
 
   return (
-    <section aria-label={initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
-      <div className={styles.trBuilderTop}>
-        <button type="button" className={styles.trBackBtn} onClick={onCancel} disabled={pending}>
-          <BackIcon /> {t("back")}
-        </button>
-        <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending}>
-          {pending ? t("saving") : t("save")}
-        </button>
-      </div>
+    // Späť (zatvoriť builder bez uloženia): potiahnutie zľava doprava na mobile, späť v
+    // prehliadači alebo „Tréning“ v menu (TrainingSection, ?tvorba) — tlačidlo „Späť“ tu nie je.
+    <SwipeBack onBack={onCancel}>
+      <section aria-label={initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
+        <div className={styles.trBuilderTop}>
+          <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending}>
+            {pending ? t("saving") : t("save")}
+          </button>
+        </div>
 
-      <label className={styles.trNameField}>
-        <span className={styles.panelLabel}>{t("planName")}</span>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            // Hláška o chýbajúcom názve nemá visieť, keď ho klient už dopĺňa (QA 2026-09-23).
-            if (error === t("planNameRequired")) setError(null);
-          }}
-          placeholder={t("namePlaceholder")}
-          maxLength={60}
-          className={styles.trNameInput}
-        />
-      </label>
+        <label className={styles.trNameField}>
+          <span className={styles.panelLabel}>{t("planName")}</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              // Hláška o chýbajúcom názve nemá visieť, keď ho klient už dopĺňa (QA 2026-09-23).
+              if (error === t("planNameRequired")) setError(null);
+            }}
+            placeholder={t("namePlaceholder")}
+            maxLength={60}
+            className={styles.trNameInput}
+          />
+        </label>
 
-      <div className={`${b.builderGrid} ${styles.trBuilderGrid}`}>
-        <div className={`${b.canvas} ${styles.trBuilderCanvas}`}>
-          {/* Výber dňa = prepínač (dráha), nie tlačidlá; počet cvikov je len vizuálny (aria-hidden) */}
-          <div ref={tabsRef} className={b.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
-            {days.map((d) => (
+        <div className={`${b.builderGrid} ${styles.trBuilderGrid}`}>
+          <div className={`${b.canvas} ${styles.trBuilderCanvas}`}>
+            {/* Výber dňa = prepínač (dráha), nie tlačidlá; počet cvikov je len vizuálny (aria-hidden) */}
+            <div ref={tabsRef} className={b.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
+              {days.map((d) => (
+                <button
+                  key={d.key}
+                  type="button"
+                  className={`${b.dayTab} ${d.key === realActiveKey ? b.dayTabActive : ""}`}
+                  onClick={() => selectDay(d.key)}
+                  aria-current={d.key === realActiveKey ? "true" : undefined}
+                  title={d.name}
+                >
+                  <span className={b.dayTabName}>{d.name}</span>
+                  <span className={b.dayTabCount} aria-hidden="true">
+                    {d.exercises.length}
+                  </span>
+                </button>
+              ))}
               <button
-                key={d.key}
                 type="button"
-                className={`${b.dayTab} ${d.key === realActiveKey ? b.dayTabActive : ""}`}
-                onClick={() => selectDay(d.key)}
-                aria-current={d.key === realActiveKey ? "true" : undefined}
-                title={d.name}
-              >
-                <span className={b.dayTabName}>{d.name}</span>
-                <span className={b.dayTabCount} aria-hidden="true">
-                  {d.exercises.length}
-                </span>
-              </button>
-            ))}
-            <button
-              type="button"
-              className={b.addDayTab}
-              onClick={() => {
-                setAddingDay(true);
-                setRenameValue(null);
-              }}
-            >
-              {t("addDay")}
-            </button>
-          </div>
-
-          {addingDay && (
-            <BuilderDialog title={t("newDayTitle")} closeLabel={t("close")} onClose={closeAddDay}>
-              <form
-                className={dlg.form}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  addDay();
+                className={b.addDayTab}
+                onClick={() => {
+                  setAddingDay(true);
+                  setRenameValue(null);
                 }}
               >
-                {/* deň plánu = jeden tréning (napr. "Deň 1 — Push") */}
-                <div className={dlg.field}>
-                  <label htmlFor="client-day-name" className={dlg.label}>
+                {t("addDay")}
+              </button>
+            </div>
+
+            {addingDay && (
+              <BuilderDialog title={t("newDayTitle")} closeLabel={t("close")} onClose={closeAddDay}>
+                <form
+                  className={dlg.form}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    addDay();
+                  }}
+                >
+                  {/* deň plánu = jeden tréning (napr. "Deň 1 — Push") */}
+                  <div className={dlg.field}>
+                    <label htmlFor="client-day-name" className={dlg.label}>
+                      {t("dayName")}
+                    </label>
+                    <input
+                      id="client-day-name"
+                      type="text"
+                      value={dayName}
+                      onChange={(e) => {
+                        setDayName(e.target.value);
+                        if (dayError) setDayError(null);
+                      }}
+                      placeholder={t("dayPlaceholder", { n: days.length + 1 })}
+                      maxLength={60}
+                      autoFocus
+                      className={dlg.input}
+                    />
+                  </div>
+                  {dayError && (
+                    <p className={dlg.error} role="alert">
+                      {dayError}
+                    </p>
+                  )}
+                  <div className={dlg.actions}>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={closeAddDay}>
+                      {t("cancel")}
+                    </button>
+                    <button type="submit" className="btn btn-primary btn-sm">
+                      {t("add")}
+                    </button>
+                  </div>
+                </form>
+              </BuilderDialog>
+            )}
+
+            {activeDay &&
+              (renaming ? (
+                <form
+                  className={`${b.addDayForm} ${styles.trAddDayForm}`}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    renameDay(activeDay.key);
+                  }}
+                >
+                  <label htmlFor="client-day-rename" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
                     {t("dayName")}
                   </label>
                   <input
-                    id="client-day-name"
+                    id="client-day-rename"
                     type="text"
-                    value={dayName}
+                    value={renameValue ?? ""}
                     onChange={(e) => {
-                      setDayName(e.target.value);
-                      if (dayError) setDayError(null);
+                      setRenameValue(e.target.value);
+                      if (renameError) setRenameError(null);
                     }}
-                    placeholder={t("dayPlaceholder", { n: days.length + 1 })}
                     maxLength={60}
                     autoFocus
-                    className={dlg.input}
+                    className={b.addDayInput}
                   />
-                </div>
-                {dayError && (
-                  <p className={dlg.error} role="alert">
-                    {dayError}
-                  </p>
-                )}
-                <div className={dlg.actions}>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={closeAddDay}>
+                  <button type="submit" className="btn btn-primary btn-sm">
+                    {t("done")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setRenameValue(null);
+                      setRenameError(null);
+                    }}
+                  >
                     {t("cancel")}
                   </button>
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    {t("add")}
-                  </button>
-                </div>
-              </form>
-            </BuilderDialog>
-          )}
-
-          {activeDay &&
-            (renaming ? (
-              <form
-                className={`${b.addDayForm} ${styles.trAddDayForm}`}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  renameDay(activeDay.key);
-                }}
-              >
-                <label htmlFor="client-day-rename" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
-                  {t("dayName")}
-                </label>
-                <input
-                  id="client-day-rename"
-                  type="text"
-                  value={renameValue ?? ""}
-                  onChange={(e) => {
-                    setRenameValue(e.target.value);
-                    if (renameError) setRenameError(null);
-                  }}
-                  maxLength={60}
-                  autoFocus
-                  className={b.addDayInput}
-                />
-                <button type="submit" className="btn btn-primary btn-sm">
-                  {t("done")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => {
-                    setRenameValue(null);
-                    setRenameError(null);
-                  }}
-                >
-                  {t("cancel")}
-                </button>
-                {renameError && <p className={b.formError}>{renameError}</p>}
-              </form>
-            ) : (
-              // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
-              <div className={b.dayHead}>
-                <div className={b.dayActionsRow}>
-                  {confirmDelete ? (
-                    <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
-                      <p id="delete-day-question" className={b.deleteDayQuestion}>
-                        {t("deleteDayConfirm", { name: activeDay.name, count: activeDay.exercises.length })}
-                      </p>
-                      <div className={b.deleteDayActions}>
-                        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
-                          {t("yesDeleteDay")}
-                        </button>
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
-                          {t("cancel")}
-                        </button>
+                  {renameError && <p className={b.formError}>{renameError}</p>}
+                </form>
+              ) : (
+                // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
+                <div className={b.dayHead}>
+                  <div className={b.dayActionsRow}>
+                    {confirmDelete ? (
+                      <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
+                        <p id="delete-day-question" className={b.deleteDayQuestion}>
+                          {t("deleteDayConfirm", { name: activeDay.name, count: activeDay.exercises.length })}
+                        </p>
+                        <div className={b.deleteDayActions}>
+                          <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
+                            {t("yesDeleteDay")}
+                          </button>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
+                            {t("cancel")}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className={b.dayActionTab}
-                        onClick={() => {
-                          setRenameValue(activeDay.name);
-                          setRenameError(null);
-                          setAddingDay(false);
-                        }}
-                      >
-                        {t("rename")}
-                      </button>
-                      <button
-                        type="button"
-                        className={b.dayActionTab}
-                        onClick={() => duplicateDay(activeDay.key)}
-                        disabled={days.length >= MAX_DAYS}
-                        title={
-                          days.length >= MAX_DAYS
-                            ? t("maxDays", { max: MAX_DAYS })
-                            : t("duplicateTitle")
-                        }
-                      >
-                        {t("duplicate")}
-                      </button>
-                      <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
-                        {t("deleteDay")}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-
-          <div className={b.dayPanel}>
-            {activeDay ? (
-              activeDay.exercises.length > 0 ? (
-                activeDay.exercises.map((ex, i) =>
-                  editKey === ex.key ? (
-                    <ExerciseEditForm
-                      key={ex.key}
-                      ex={ex}
-                      onApply={(patch) => {
-                        patchExercise(activeDay.key, ex.key, patch);
-                        setEditKey(null);
-                      }}
-                      onCancel={() => setEditKey(null)}
-                    />
-                  ) : (
-                    <div key={ex.key} className={b.exerciseRow}>
-                      {ex.exerciseId ? (
-                        <button type="button" className={b.exerciseNameBtn} onClick={() => openDetail(ex.exerciseId!, ex.name)}>
-                          <ExerciseThumb src={library.find((l) => l.id === ex.exerciseId)?.imageUrl ?? null} alt="" size={26} />
-                          <span className={b.exerciseName}>{ex.name}</span>
-                        </button>
-                      ) : (
-                        <div className={b.exerciseNameStatic}>
-                          <ExerciseThumb src={null} alt="" size={26} />
-                          <span className={b.exerciseName}>{ex.name}</span>
-                        </div>
-                      )}
-                      <span className={b.exerciseSummary}>
-                        {ex.sets || "3"}× {ex.reps || "10"}
-                        {ex.loadKg.trim() ? ` @ ${ex.loadKg} kg` : ""}
-                      </span>
-                      {ex.restSeconds.trim() && <span className={b.exerciseMeta}>{t("restValue", { seconds: ex.restSeconds })}</span>}
-                      <div className={b.rowActions}>
-                        <div className={b.reorderBtns}>
-                          <button
-                            type="button"
-                            className={b.iconBtn}
-                            onClick={() => moveExercise(activeDay.key, ex.key, "up")}
-                            disabled={i === 0}
-                            aria-label={t("moveUp")}
-                          >
-                            <ChevronIcon />
-                          </button>
-                          <button
-                            type="button"
-                            className={`${b.iconBtn} ${b.reorderDown}`}
-                            onClick={() => moveExercise(activeDay.key, ex.key, "down")}
-                            disabled={i === activeDay.exercises.length - 1}
-                            aria-label={t("moveDown")}
-                          >
-                            <ChevronIcon />
-                          </button>
-                        </div>
-                        <button type="button" className={b.iconBtn} onClick={() => setEditKey(ex.key)} aria-label={t("editExercise")}>
-                          <EditIcon />
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className={b.dayActionTab}
+                          onClick={() => {
+                            setRenameValue(activeDay.name);
+                            setRenameError(null);
+                            setAddingDay(false);
+                          }}
+                        >
+                          {t("rename")}
                         </button>
                         <button
                           type="button"
-                          className={`${b.iconBtn} btn-danger`}
-                          onClick={() => removeExercise(activeDay.key, ex.key)}
-                          aria-label={t("removeExercise")}
+                          className={b.dayActionTab}
+                          onClick={() => duplicateDay(activeDay.key)}
+                          disabled={days.length >= MAX_DAYS}
+                          title={
+                            days.length >= MAX_DAYS
+                              ? t("maxDays", { max: MAX_DAYS })
+                              : t("duplicateTitle")
+                          }
                         >
-                          <TrashIcon />
+                          {t("duplicate")}
                         </button>
+                        <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
+                          {t("deleteDay")}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+            <div className={b.dayPanel}>
+              {activeDay ? (
+                activeDay.exercises.length > 0 ? (
+                  activeDay.exercises.map((ex, i) =>
+                    editKey === ex.key ? (
+                      <ExerciseEditForm
+                        key={ex.key}
+                        ex={ex}
+                        onApply={(patch) => {
+                          patchExercise(activeDay.key, ex.key, patch);
+                          setEditKey(null);
+                        }}
+                        onCancel={() => setEditKey(null)}
+                      />
+                    ) : (
+                      <div key={ex.key} className={b.exerciseRow}>
+                        {ex.exerciseId ? (
+                          <button type="button" className={b.exerciseNameBtn} onClick={() => openDetail(ex.exerciseId!, ex.name)}>
+                            <ExerciseThumb src={library.find((l) => l.id === ex.exerciseId)?.imageUrl ?? null} alt="" size={26} />
+                            <span className={b.exerciseName}>{ex.name}</span>
+                          </button>
+                        ) : (
+                          <div className={b.exerciseNameStatic}>
+                            <ExerciseThumb src={null} alt="" size={26} />
+                            <span className={b.exerciseName}>{ex.name}</span>
+                          </div>
+                        )}
+                        <span className={b.exerciseSummary}>
+                          {ex.sets || "3"}× {ex.reps || "10"}
+                          {ex.loadKg.trim() ? ` @ ${ex.loadKg} kg` : ""}
+                        </span>
+                        {ex.restSeconds.trim() && <span className={b.exerciseMeta}>{t("restValue", { seconds: ex.restSeconds })}</span>}
+                        <div className={b.rowActions}>
+                          <div className={b.reorderBtns}>
+                            <button
+                              type="button"
+                              className={b.iconBtn}
+                              onClick={() => moveExercise(activeDay.key, ex.key, "up")}
+                              disabled={i === 0}
+                              aria-label={t("moveUp")}
+                            >
+                              <ChevronIcon />
+                            </button>
+                            <button
+                              type="button"
+                              className={`${b.iconBtn} ${b.reorderDown}`}
+                              onClick={() => moveExercise(activeDay.key, ex.key, "down")}
+                              disabled={i === activeDay.exercises.length - 1}
+                              aria-label={t("moveDown")}
+                            >
+                              <ChevronIcon />
+                            </button>
+                          </div>
+                          <button type="button" className={b.iconBtn} onClick={() => setEditKey(ex.key)} aria-label={t("editExercise")}>
+                            <EditIcon />
+                          </button>
+                          <button
+                            type="button"
+                            className={`${b.iconBtn} btn-danger`}
+                            onClick={() => removeExercise(activeDay.key, ex.key)}
+                            aria-label={t("removeExercise")}
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ),
+                    ),
+                  )
+                ) : (
+                  <EmptyDayCard title={t("noExercises")} tip={{ title: t("howToAdd"), text: t("howToAddText") }} />
                 )
-              ) : (
-                <EmptyDayCard title={t("noExercises")} tip={{ title: t("howToAdd"), text: t("howToAddText") }} />
-              )
-            ) : (
-              <EmptyDayCard title={t("noDays")} text={t("noDaysText")} />
-            )}
+              ) : null}
+            </div>
           </div>
+
+          {/* Až za plátnom aj v DOM — poradie pre klávesnicu/čítačku = vizuálne */}
+          <ClientExerciseLibrary
+            library={library}
+            hasDay={activeDay !== null}
+            onAdd={addExercise}
+            onDetail={openDetail}
+          />
         </div>
 
-        {/* Až za plátnom aj v DOM — poradie pre klávesnicu/čítačku = vizuálne */}
-        <ClientExerciseLibrary
-          library={library}
-          hasDay={activeDay !== null}
-          onAdd={addExercise}
-          onDetail={openDetail}
-        />
-      </div>
+        {error && (
+          <p className={styles.trError} role="alert">
+            {error}
+          </p>
+        )}
 
-      {error && (
-        <p className={styles.trError} role="alert">
-          {error}
-        </p>
-      )}
+        <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
+          {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}
+        </button>
 
-      <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
-        {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}
-      </button>
-
-      {detailFor && (
-        <ExerciseDetailModal detail={detail} fallbackName={detailFor.name} onClose={() => setDetailFor(null)} />
-      )}
-    </section>
+        {detailFor && (
+          <ExerciseDetailModal detail={detail} fallbackName={detailFor.name} onClose={() => setDetailFor(null)} />
+        )}
+      </section>
+    </SwipeBack>
   );
 }
 

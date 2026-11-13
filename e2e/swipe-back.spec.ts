@@ -105,3 +105,40 @@ test.describe("detail jedálnička (reálna DB)", () => {
     }
   });
 });
+
+test.describe("klient: vlastný tréning (?preview=ok)", () => {
+  test("bez tlačidla „Späť“ — builder zavrie späť v prehliadači, potiahnutie (mobil) aj „Tréning“ v menu", async ({ page }, testInfo) => {
+    await page.goto("/portal/trening?preview=ok");
+    const open = page.getByRole("button", { name: "Vlastný tréning" });
+    const builder = page.getByRole("region", { name: "Nový vlastný tréning" });
+
+    // otvorenie = záznam v histórii (?tvorba=1), tlačidlo „Späť“ v builderi nie je
+    await open.click();
+    await expect(builder).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("tvorba")).toBe("1");
+    await expect(builder.getByRole("button", { name: "Späť", exact: true })).toHaveCount(0);
+    await expect(builder.getByRole("button", { name: "Uložiť", exact: true })).toBeVisible();
+
+    // späť v prehliadači → zoznam tréningov
+    await page.goBack();
+    await expect(builder).toHaveCount(0);
+    await expect(open).toBeVisible();
+    expect(new URL(page.url()).searchParams.has("tvorba")).toBe(false);
+
+    await open.click();
+    await expect(builder).toBeVisible();
+    if (testInfo.project.name === "mobile") {
+      // potiahnutie zľava doprava cez builder → zoznam, ?tvorba zmizne
+      await swipe(page, "[aria-label='Nový vlastný tréning']", 30, 300);
+      await expect(builder).toHaveCount(0, { timeout: 15_000 });
+      await expect(open).toBeVisible();
+    } else {
+      // počítač: „Tréning“ v bočnom menu (tá istá stránka, bez ?tvorba) — v náhľade bez
+      // session vedie na /portal/trening bez dát, overí sa len zatvorenie buildera
+      await page.getByRole("navigation").getByRole("link", { name: "Tréning", exact: true }).first().click();
+      await page.waitForURL((url) => url.pathname === "/portal/trening" && !url.searchParams.has("tvorba"));
+      await expect(builder).toHaveCount(0, { timeout: 15_000 });
+    }
+    expect(new URL(page.url()).searchParams.has("tvorba")).toBe(false);
+  });
+});

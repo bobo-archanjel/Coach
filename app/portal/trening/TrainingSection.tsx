@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import type { ExerciseOption, PortalPlan, PortalTemplate, PortalTrainingData } from "@/lib/portal/types";
@@ -18,6 +18,16 @@ import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
 import styles from "../portal.module.css";
+
+/** ?tvorba=1 = otvorený builder vlastného tréningu (záznam v histórii — späť ho zavrie). */
+const BUILDER_PARAM = "tvorba";
+
+function urlWithBuilder(open: boolean): string {
+  const url = new URL(window.location.href);
+  if (open) url.searchParams.set(BUILDER_PARAM, "1");
+  else url.searchParams.delete(BUILDER_PARAM);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
 
 // Builder (432 riadkov aj s pickrom cvikov) potrebuje len klient, ktorý si
 // naozaj stavia vlastný tréning — väčšina návštev /portal/trening len prezerá
@@ -105,6 +115,11 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setFromTemplate(template);
     setError(null);
     setMode("build");
+    // Záznam v histórii (bez načítania stránky): späť v prehliadači, potiahnutie na mobile
+    // (SwipeBack) aj „Tréning“ v menu builder zavrú — tlačidlo „Späť“ v ňom už nie je.
+    if (!new URLSearchParams(window.location.search).has(BUILDER_PARAM)) {
+      window.history.pushState(null, "", urlWithBuilder(true));
+    }
     // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
     // otvorenie buildera v rámci tej istej návštevy /portal/trening).
     if (library.length === 0) {
@@ -113,15 +128,34 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       });
     }
   };
-  const closeBuilder = () => {
+  const closeBuilder = useCallback(() => {
     setMode("list");
     setEditing(null);
     setFromTemplate(null);
+  }, []);
+  /** Odchod z buildera (potiahnutie späť, uloženie): krok späť v histórii — ?tvorba zmizne
+      a efekt nižšie builder zavrie; bez záznamu (napr. po obnovení stránky) rovno zavrie. */
+  const leaveBuilder = () => {
+    if (new URLSearchParams(window.location.search).has(BUILDER_PARAM)) window.history.back();
+    else closeBuilder();
   };
+  // ?tvorba zmizlo (späť v prehliadači / potiahnutie / „Tréning“ v menu) → zatvoriť builder.
+  const hasBuilderParam = searchParams.has(BUILDER_PARAM);
+  const hadBuilderParam = useRef(hasBuilderParam);
+  useEffect(() => {
+    if (hadBuilderParam.current && !hasBuilderParam) closeBuilder();
+    hadBuilderParam.current = hasBuilderParam;
+  }, [hasBuilderParam, closeBuilder]);
+  // ?tvorba po obnovení stránky (builder je zatvorený) — z adresy preč, nech späť nevedie nikam.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has(BUILDER_PARAM)) {
+      window.history.replaceState(null, "", urlWithBuilder(false));
+    }
+  }, []);
   // Uloženie aj zmazanie revalidujú /portal — čerstvý zoznam prichádza v odpovedi
   // akcie; router.refresh() navyše by celú stránku vykreslil zo servera druhýkrát.
   const onSaved = () => {
-    closeBuilder();
+    leaveBuilder();
   };
 
   useEffect(() => {
@@ -233,7 +267,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         library={library}
         initial={editing}
         template={fromTemplate}
-        onCancel={closeBuilder}
+        onCancel={leaveBuilder}
         onSaved={onSaved}
       />
     );
