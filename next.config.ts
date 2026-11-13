@@ -53,6 +53,12 @@ const nextConfig: NextConfig = {
   // Hlavička X-Powered-By: Next.js zbytočne prezrádza technológiu (usmerňuje útočníka
   // na známe zraniteľnosti konkrétneho frameworku) — nič nerobí, tak preč.
   poweredByHeader: false,
+  // PDF exporty čítajú fonty a logo z disku cez readFileSync(path.join(process.cwd(), ...)) —
+  // dynamicky poskladanú cestu Vercel pri pribaľovaní serverless funkcie nevidí, takže na
+  // produkcii súbory chýbali a export padal (lokálne fungoval, disk tam je celý).
+  outputFileTracingIncludes: {
+    "/api/export/**": ["./assets/fonts/*.ttf", "./public/brand/logo-mark.png"],
+  },
   // Sekcia „Výživa“ sa premenovala na „Jedálničky“ — staré odkazy (záložky, notifikácie,
   // e-maily) nech trvalo vedú na novú adresu vrátane podstránok (klient, jedálniček).
   async redirects() {

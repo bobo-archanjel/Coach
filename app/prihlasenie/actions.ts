@@ -232,3 +232,29 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
 
   return { error: null, redirectTo: role === "client" ? "/portal" : "/dashboard", needsConfirm: false };
 }
+
+/**
+ * Pred odoslaním "Zabudnuté heslo": jazyk e-mailu má byť ten, ktorý je práve zvolený na
+ * webe (prepínač SK/CZ), nie ten, s ktorým sa účet kedysi registroval. Šablóna Reset
+ * Password vyberá text podľa user_metadata.locale (docs/email-templates), tak ho tu
+ * zosúladíme s jazykom webu. Nič nevracia — neprezrádza, či účet s e-mailom existuje.
+ */
+export async function syncRecoveryLocaleAction(rawEmail: unknown): Promise<void> {
+  if (typeof rawEmail !== "string") return;
+  const email = rawEmail.trim().toLowerCase();
+  if (!email || email.length > MAX_INPUT_LENGTH) return;
+  const admin = tryCreateAdminClient();
+  if (!admin) return;
+
+  const [locale, { data: profile }] = await Promise.all([
+    getUserLocale(),
+    admin.from("profiles").select("id").eq("email", email).maybeSingle(),
+  ]);
+  if (!profile) return;
+
+  const { data: existing } = await admin.auth.admin.getUserById(profile.id);
+  const meta = existing.user?.user_metadata ?? {};
+  if (meta.locale === locale) return;
+  const { error } = await admin.auth.admin.updateUserById(profile.id, { user_metadata: { ...meta, locale } });
+  if (error) console.error("syncRecoveryLocaleAction:", error.message);
+}

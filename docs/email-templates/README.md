@@ -48,10 +48,12 @@ Obe šablóny aj predmety sú dvojjazyčné: každý text je v tvare
 
 - **registrácia** — `registerAction` posiela `locale` (jazyk, ktorý mal používateľ
   zvolený pri registrácii) v `options.data`, takže potvrdzovací e-mail príde v ňom,
-- **reset hesla** — jazyk sa do `user_metadata` zapíše pri každej zmene jazyka
-  (`setLocaleAction`: Nastavenia / Profil / prepínač na úvodnej stránke po prihlásení),
-- účty spred tejto zmeny `locale` v metadátach nemajú → dostanú **slovenský** e-mail,
-  kým si raz nezmenia jazyk.
+- **reset hesla** — tesne pred odoslaním `syncRecoveryLocaleAction` (app/prihlasenie/actions.ts)
+  prepíše `locale` účtu na jazyk, ktorý je práve zvolený na webe (prepínač SK/CZ) — e-mail
+  teda príde v jazyku stránky, z ktorej o reset požiadal, aj keď sa registroval v inom
+  (potrebuje `SUPABASE_SERVICE_ROLE_KEY`; bez neho príde v jazyku účtu),
+- jazyk účtu sa mení aj pri každej zmene jazyka prihláseného používateľa
+  (`setLocaleAction`: Nastavenia / Profil / prepínač na úvodnej stránke).
 
 **Po vložení do Supabase over oba jazyky:** zaregistruj testovací účet raz so
 slovenčinou a raz s češtinou (prepínač SK/CZ na úvodnej stránke pred registráciou)
