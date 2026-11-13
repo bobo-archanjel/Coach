@@ -467,6 +467,9 @@ a.bellItemMain:hover {
   /* kotva pre NavSkeletonOverlay (skeleton pri navigácii prekryje len obsah, nie menu) */
   position: relative;
   padding-block: clamp(28px, 5vw, 48px);
+  /* stĺpec mriežky .shell (1fr = minmax(auto, 1fr)) by sa inak natiahol na minimálnu šírku
+     obsahu — napr. dráha dní jedálnička (posúva sa do strany) rozťahovala stránku na mobile */
+  min-width: 0;
 }
 /* vonkajší obal overlay skeletonu — absolútne deti .content ignorujú jej padding-block,
    preto ho overlay nesie sám (drž v sync s .content) */

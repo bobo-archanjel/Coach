@@ -3255,6 +3255,12 @@
 /* ======================================================================
    Strava
    ====================================================================== */
+/* „Stiahnuť PDF“ pod jedálničkom v Strave */
+.mealPdfRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
 .kcalHero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
