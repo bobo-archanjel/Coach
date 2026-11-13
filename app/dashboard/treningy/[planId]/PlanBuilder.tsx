@@ -205,9 +205,7 @@ export function PlanBuilder({
             ) : (
               <EmptyDayCard title={t("noExercises")} tip={{ title: t("howToAdd"), text: t("howToAddText") }} />
             )
-          ) : (
-            <EmptyDayCard title={t("noDays")} text={t("noDaysText")} />
-          )}
+          ) : null}
         </div>
       </div>
 
