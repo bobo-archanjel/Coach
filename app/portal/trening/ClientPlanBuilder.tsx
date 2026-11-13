@@ -11,7 +11,6 @@ import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
 import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
-import { EmptyDayCard } from "@/app/components/EmptyDayCard";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 import { BuilderDialog } from "@/app/components/BuilderDialog";
 import dlg from "@/app/components/builderDialog.module.css";
@@ -540,9 +539,7 @@ export function ClientPlanBuilder({
                       </div>
                     ),
                   )
-                ) : (
-                  <EmptyDayCard title={t("noExercises")} tip={{ title: t("howToAdd"), text: t("howToAddText") }} />
-                )
+                ) : null
               ) : null}
             </div>
           </div>

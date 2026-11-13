@@ -75,6 +75,10 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-13** — **Builder tréningu: bez karty „Zatiaľ žiadne cviky“, karta „Pridať nový cvik“** (`feature/builder-polish`, bez migrácie).
+  - Tréner aj klient: deň bez cvikov je prázdny (bez karty s otáznikom „Ako pridať cvik“) — pod ním je rovno karta na pridanie cviku.
+  - Nadpis karty vlastného cviku je „Pridať nový cvik“ / „Přidat nový cvik“ (predtým „Vlastný cvik“).
+
 - **2026-11-13** — **Builder tréningu bez „Späť“ a bez karty „Zatiaľ žiadny deň“, Správy v menu za Jedálničkami** (`feature/builder-cleanup`, bez migrácie).
   - **Klient — vlastný tréning bez tlačidla „Späť“:** z buildera sa odchádza potiahnutím zľava doprava (mobil), späť v prehliadači alebo „Tréning“ v menu. Otvorenie buildera pridá do histórie `?tvorba=1` (pushState, bez načítania stránky), jeho zmiznutie builder zavrie (`TrainingSection`). „Uložiť“ ostáva vpravo hore.
   - **Tréner aj klient:** karta „Zatiaľ žiadny deň / Pridaj prvý deň…“ zrušená — klik na cvik bez dňa hlási chybu „Najprv pridaj tréningový deň“.
