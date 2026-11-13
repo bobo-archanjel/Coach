@@ -2421,6 +2421,24 @@ select.addClientInputSm {
 .appointmentBody {
   min-width: 0;
 }
+/* Upraviť / Zmazať pri termíne — kompaktnejšie než bežné .btn-sm (tie boli v riadku
+   termínu priveľké). Na mobile o niečo vyššie kvôli ťuknutiu prstom. */
+.appointmentActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.appointmentActions :global(.btn) {
+  padding: 6px 13px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+@media (max-width: 640px) {
+  .appointmentActions :global(.btn) {
+    padding: 8px 14px;
+    font-size: 13.5px;
+  }
+}
 /* Na počítači je deň vlastná karta — termíny v nej bez ďalšieho rámika (nie karta
    v karte), viac termínov oddelí tenká čiara. Na mobile má karta dňa rámik zrušený
    (.cardFlatMobile), tam ostáva termín vlastnou kartou. */

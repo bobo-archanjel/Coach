@@ -53,7 +53,7 @@ export function AppointmentRow({
         </span>
       </div>
       {confirming ? (
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className={styles.appointmentActions}>
           <button
             type="button"
             className="btn btn-primary btn-sm btn-danger"
@@ -67,7 +67,7 @@ export function AppointmentRow({
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className={styles.appointmentActions}>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
             {t("edit")}
           </button>
