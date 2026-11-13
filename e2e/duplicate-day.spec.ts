@@ -94,15 +94,17 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
     await expect(copyTab).toHaveAttribute("aria-current", "true", { timeout: 15_000 });
     for (const e of entries) await expect(page.getByText(e.exercise_name, { exact: true }).first()).toBeVisible();
 
-    // Premenovať: Esc zruší, Hotovo uloží; kým je formulár otvorený, Duplikovať/Zmazať deň nie sú
+    // Premenovať: okno (ako „+ deň“) — Esc zruší, Hotovo uloží
     await page.getByRole("button", { name: "Premenovať", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Duplikovať", exact: true })).toHaveCount(0);
+    const renameDialog = page.getByRole("dialog", { name: "Premenovať deň" });
+    await expect(renameDialog).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByLabel("Názov dňa")).toHaveCount(0);
+    await expect(renameDialog).toHaveCount(0);
     await page.getByRole("button", { name: "Premenovať", exact: true }).click();
-    await expect(page.getByLabel("Názov dňa")).toHaveValue("E2E Push (kópia)");
-    await page.getByLabel("Názov dňa").fill("E2E Push B");
-    await page.getByRole("button", { name: "Hotovo", exact: true }).click();
+    await expect(renameDialog.getByLabel("Názov dňa")).toHaveValue("E2E Push (kópia)");
+    await renameDialog.getByLabel("Názov dňa").fill("E2E Push B");
+    await renameDialog.getByRole("button", { name: "Hotovo", exact: true }).click();
+    await expect(renameDialog).toHaveCount(0, { timeout: 15_000 });
     await expect(page.getByRole("button", { name: "E2E Push B", exact: true })).toHaveAttribute("aria-current", "true", { timeout: 15_000 });
 
     const { data: days } = await trainer.api
@@ -143,9 +145,11 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
     await expect(builder.getByText("E2E Výpad", { exact: true })).toBeVisible();
 
     await builder.getByRole("button", { name: "Premenovať", exact: true }).click();
-    await expect(builder.getByLabel("Názov tréningu")).toHaveValue("E2E Nohy (kópia)");
-    await builder.getByLabel("Názov tréningu").fill("E2E Nohy B");
-    await builder.getByRole("button", { name: "Hotovo", exact: true }).click();
+    const renameDialog = page.getByRole("dialog", { name: "Premenovať deň" });
+    await expect(renameDialog.getByLabel("Názov tréningu")).toHaveValue("E2E Nohy (kópia)");
+    await renameDialog.getByLabel("Názov tréningu").fill("E2E Nohy B");
+    await renameDialog.getByRole("button", { name: "Hotovo", exact: true }).click();
+    await expect(renameDialog).toHaveCount(0);
     await expect(builder.getByRole("button", { name: "E2E Nohy B", exact: true })).toHaveAttribute("aria-current", "true");
 
     // nič sa neuložilo, kým klient neťukne „Uložiť“

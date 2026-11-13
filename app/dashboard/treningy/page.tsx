@@ -3,6 +3,7 @@ import { AppLink as Link } from "../../components/AppLink";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
+import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { CreatePlanForm } from "./CreatePlanForm";
 import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
 import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
@@ -40,7 +41,9 @@ export default async function TreningyPage() {
       // vždy vyzeral prázdny). `workout_days(id)` (nie `(count)`) — z tých istých
       // ID sa počíta aj počet dní aj odcvičenosť (getPlanCompletion) bez ďalšieho
       // dopytu na `workout_days`.
-      .select("id, name, created_at, published, clients!workout_plans_client_id_fkey(full_name), workout_days(id)")
+      .select(
+        "id, name, created_at, published, client_id, clients!workout_plans_client_id_fkey(full_name, active_plan_id), workout_days(id)",
+      )
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false })
       // Odcvičenosť plánov — jeden zdroj pravdy zdieľaný s detailom klienta
@@ -63,6 +66,17 @@ export default async function TreningyPage() {
     const sex = (Array.isArray(profile) ? profile[0]?.sex : profile?.sex) ?? null;
     return { id: c.id, full_name: c.full_name, sex };
   });
+
+  // Aktívny plán každého klienta (riadi jeho kartu Dnes, 0056) — rovnaké pravidlo ako detail
+  // klienta: clients.active_plan_id, ak je zverejnený, inak najnovší zverejnený. Zoznam je
+  // zoradený od najnovšieho, takže filtrovanie poradie zachová.
+  const activePlanByClient = new Map<string, string | null>();
+  for (const plan of plans ?? []) {
+    if (!plan.client_id || activePlanByClient.has(plan.client_id)) continue;
+    const pinned = (plan.clients as unknown as { active_plan_id: string | null } | null)?.active_plan_id ?? null;
+    const published = (plans ?? []).filter((p) => p.client_id === plan.client_id && p.published);
+    activePlanByClient.set(plan.client_id, resolveActivePlanId(pinned, published));
+  }
 
   const t = await getTranslations("plans");
   return (
@@ -91,19 +105,26 @@ export default async function TreningyPage() {
             return (
               <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
                 <div>
-                  <div className={styles.clientName}>
-                    {plan.name}
-                    {!plan.published && <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>{t("draft")}</span>}
-                  </div>
+                  <div className={styles.clientName}>{plan.name}</div>
                   <div className={styles.clientGoal}>{clientName}</div>
                 </div>
-                {done?.allDone ? (
-                  <span className={styles.planDoneBadge}>{t("done")}</span>
-                ) : (
+                {/* vpravo pod sebou: Hotovo · Koncept/Aktívny · počet dní (pevná šírka → štítky v línii) */}
+                <span className={`${styles.clientMeta} ${styles.planListMeta}`}>
+                  {done?.allDone && <span className={styles.planDoneBadge}>{t("done")}</span>}
+                  {!plan.published ? (
+                    <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>{t("draft")}</span>
+                  ) : (
+                    plan.client_id &&
+                    activePlanByClient.get(plan.client_id) === plan.id && (
+                      <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>{t("active")}</span>
+                    )
+                  )}
                   <span className={styles.clientSince}>
-                    {t("days", { days: done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount })}
+                    {done && done.completedDays > 0
+                      ? t("daysDone", { done: done.completedDays, count: dayCount })
+                      : t("days", { count: dayCount })}
                   </span>
-                )}
+                </span>
               </Link>
             );
           })}

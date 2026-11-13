@@ -61,27 +61,22 @@ export default async function JedalnickyPage() {
             return (
               <Link key={plan.id} href={`/dashboard/jedalnicky/jedalnicek/${plan.id}`} className={styles.clientCard}>
                 <div>
-                  <div className={styles.clientName}>
-                    {plan.name}
-                    {!plan.published ? (
-                      <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} style={{ marginLeft: 8 }}>
-                        {t("draft")}
-                      </span>
-                    ) : (
-                      activeByClient.get(plan.client_id) === plan.id && (
-                        <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`} style={{ marginLeft: 8 }}>
-                          {t("active")}
-                        </span>
-                      )
-                    )}
-                  </div>
+                  <div className={styles.clientName}>{plan.name}</div>
                   <div className={styles.clientGoal}>
                     {clientName}
                     {kcal != null && t("kcalPerDay", { kcal })}
                   </div>
                 </div>
-                <span className={styles.clientSince}>
-                  {t("days", { count: days.length })}
+                {/* vpravo pod sebou: Koncept/Aktívny · počet dní (pevná šírka → štítky v línii) */}
+                <span className={`${styles.clientMeta} ${styles.planListMeta}`}>
+                  {!plan.published ? (
+                    <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>{t("draft")}</span>
+                  ) : (
+                    activeByClient.get(plan.client_id) === plan.id && (
+                      <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>{t("active")}</span>
+                    )
+                  )}
+                  <span className={styles.clientSince}>{t("days", { count: days.length })}</span>
                 </span>
               </Link>
             );

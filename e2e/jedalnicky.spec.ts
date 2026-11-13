@@ -162,19 +162,19 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await login(page);
     await page.goto(`/dashboard/klienti/${qaClientId}`);
 
-    // záložky hore v poradí: Jedálničky hneď za Tréningami, prvá otvorená sú Tréningy;
+    // záložky hore v poradí: „Makro cieľ“ (predtým Jedálničky) hneď za Tréningami, prvá otvorená sú Tréningy;
     // obsah sekcie je pod radom záložiek
     const tablist = page.getByRole("tablist", { name: "Sekcie klienta" });
-    expect(await tablist.getByRole("tab").allTextContents()).toEqual(["Tréningy", "Jedálničky", "Analytika", "Info"]);
+    expect(await tablist.getByRole("tab").allTextContents()).toEqual(["Tréningy", "Makro cieľ", "Analytika", "Info"]);
     await expect(tablist.getByRole("tab", { name: "Tréningy" })).toHaveAttribute("aria-selected", "true");
     const tabsBox = await tablist.boundingBox();
     const panelBox = await page.getByRole("tabpanel").boundingBox();
     expect(panelBox!.y).toBeGreaterThanOrEqual(tabsBox!.y + tabsBox!.height);
-    await openSection(page, "Jedálničky");
-    await expect(page.getByRole("tabpanel", { name: "Jedálničky" })).toBeVisible();
+    await openSection(page, "Makro cieľ");
+    await expect(page.getByRole("tabpanel", { name: "Makro cieľ" })).toBeVisible();
 
     // vstupné údaje (editovateľné) a výsledok s uloženým kalorickým cieľom QA klienta
-    const panel = page.getByRole("tabpanel", { name: "Jedálničky" });
+    const panel = page.getByRole("tabpanel", { name: "Makro cieľ" });
     await expect(panel.getByRole("heading", { name: "Vstupné údaje" })).toBeVisible();
     for (const label of ["Pohlavie", "Vek (roky)", "Váha (kg)", "Výška (cm)", "Aktivita", "Cieľ", "Poznámka (vidíš len ty)"]) {
       await expect(panel.getByLabel(label)).toBeVisible();
@@ -207,7 +207,7 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     // stará adresa jedálničkov klienta → detail klienta s otvorenou záložkou Jedálničky
     await page.goto(`/dashboard/jedalnicky/${tempClientId}`);
     await page.waitForURL(new RegExp(`/dashboard/klienti/${tempClientId}\\?sekcia=jedalnicky$`), { timeout: 30_000 });
-    const panel = page.getByRole("tabpanel", { name: "Jedálničky" });
+    const panel = page.getByRole("tabpanel", { name: "Makro cieľ" });
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("button", { name: "Uložiť makro cieľ" })).toBeVisible();
     await expect(panel.getByText("Klient zatiaľ nemá žiadny jedálniček.")).toBeVisible();
@@ -225,7 +225,7 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     expect(saved!.calories_target).toBeGreaterThan(1000);
     // obnovenie stránky ostane na záložke Jedálničky
     await page.reload();
-    await expect(page.getByRole("tab", { name: "Jedálničky" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tab", { name: "Makro cieľ" })).toHaveAttribute("aria-selected", "true");
 
     await page.getByRole("button", { name: "Vytvoriť jedálniček" }).click();
     await page.waitForURL(/\/dashboard\/jedalnicky\/jedalnicek\/[0-9a-f-]{36}$/, { timeout: 30_000 });
@@ -234,7 +234,7 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     expect(data).toEqual([{ published: false }]);
   });
 
-  test("Analytika → „Upraviť →“ pri makro cieli otvorí záložku Jedálničky", async ({ page }, testInfo) => {
+  test("Analytika → „Upraviť →“ pri makro cieli otvorí záložku Makro cieľ", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Stačí raz (desktop).");
     test.setTimeout(90_000);
     const { data: profile } = await trainer.api.from("nutrition_profiles").select("id").eq("client_id", qaClientId).maybeSingle();
@@ -243,8 +243,8 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await page.goto(`/dashboard/klienti/${qaClientId}`);
     await openSection(page, "Analytika");
     await page.getByRole("tabpanel").getByRole("link", { name: "Upraviť →" }).click();
-    await expect(page.getByRole("tab", { name: "Jedálničky" })).toHaveAttribute("aria-selected", "true", { timeout: 15_000 });
-    await expect(page.getByRole("tabpanel", { name: "Jedálničky" }).getByRole("heading", { name: "Vstupné údaje" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Makro cieľ" })).toHaveAttribute("aria-selected", "true", { timeout: 15_000 });
+    await expect(page.getByRole("tabpanel", { name: "Makro cieľ" }).getByRole("heading", { name: "Vstupné údaje" })).toBeVisible();
   });
 
   test("stránka Jedálničky: všetky jedálničky + Nový jedálniček pre viacerých klientov", async ({ page }, testInfo) => {

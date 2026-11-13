@@ -1,9 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { MealEntryRow } from "./MealEntryRow";
-import { AddMealDayInline } from "./AddMealDayInline";
+import { AddMealDayDialog } from "./AddMealDayDialog";
 import { MealDayActions } from "./MealDayActions";
 import { MacroChips } from "./MacroChips";
 import { MealPublishActions } from "./MealPlanControls";
@@ -16,6 +16,8 @@ import food from "@/app/components/food/food.module.css";
 import styles from "./builder.module.css";
 import dashStyles from "../../../dashboard.module.css";
 import { EmptyDayCard } from "@/app/components/EmptyDayCard";
+import { useActiveTabInView } from "@/app/components/useActiveTabInView";
+import wb from "@/app/components/workoutBuilder.module.css";
 
 /** Riadok knižnice potravín (page.tsx: globálna knižnica + vlastné potraviny trénera). */
 export interface LibraryFood {
@@ -92,6 +94,10 @@ export function MealPlanBuilder({
   const [libraryOptions, setLibraryOptions] = useState(() => library.map(toOption));
   const [expanded, setExpanded] = useState<ReadonlySet<MealSlot>>(() => new Set());
   const [addSlot, setAddSlot] = useState<MealSlot | null>(null);
+  // okno „+ deň“; dráha dní (mobil) posunie vybraný deň do záberu
+  const [addingDay, setAddingDay] = useState(false);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useActiveTabInView(tabsRef, activeDayId);
   const toggleSlot = (slot: MealSlot) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -255,32 +261,44 @@ export function MealPlanBuilder({
       </div>
 
       <div className={styles.canvas}>
-        <div className={styles.dayTabs}>
+        {/* Výber dňa = prepínač (dráha) ako v buildri tréningu; číslo = počet potravín dňa */}
+        <div ref={tabsRef} className={wb.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
           {draft.map((day) => (
             <button
               key={day.id}
               type="button"
-              className={`${styles.dayTab} ${day.id === activeDayId ? styles.dayTabActive : ""}`}
+              className={`${wb.dayTab} ${day.id === activeDayId ? wb.dayTabActive : ""}`}
               onClick={() => setActiveDayId(day.id)}
               aria-current={day.id === activeDayId ? "true" : undefined}
+              title={day.name}
             >
-              {day.name}
+              <span className={wb.dayTabName}>{day.name}</span>
+              <span className={wb.dayTabCount} aria-hidden="true">
+                {day.meals.length}
+              </span>
             </button>
           ))}
-          <AddMealDayInline nextDayNumber={draft.length + 1} onAdd={addDay} />
-          {activeDay && (
-            // key: po premenovaní/prepnutí dňa sa zavrie rozpracovaný formulár
-            <MealDayActions
-              key={`${activeDay.id}-${activeDay.name}`}
-              name={activeDay.name}
-              foodCount={activeDay.meals.length}
-              canDuplicate={draft.length < MAX_DAYS}
-              onDuplicate={() => duplicateDay(activeDay.id)}
-              onRename={(name) => editDay(activeDay.id, (d) => ({ ...d, name }))}
-              onDelete={() => edit((ds) => ds.filter((d) => d.id !== activeDay.id))}
-            />
-          )}
+          <button type="button" className={wb.addDayTab} onClick={() => setAddingDay(true)}>
+            {t("addDay")}
+          </button>
         </div>
+
+        {addingDay && (
+          <AddMealDayDialog nextDayNumber={draft.length + 1} onAdd={addDay} onClose={() => setAddingDay(false)} />
+        )}
+
+        {activeDay && (
+          // key: prepnutie/premenovanie dňa zahodí rozpracované potvrdenie zmazania
+          <MealDayActions
+            key={`${activeDay.id}-${activeDay.name}`}
+            name={activeDay.name}
+            foodCount={activeDay.meals.length}
+            canDuplicate={draft.length < MAX_DAYS}
+            onDuplicate={() => duplicateDay(activeDay.id)}
+            onRename={(name) => editDay(activeDay.id, (d) => ({ ...d, name }))}
+            onDelete={() => edit((ds) => ds.filter((d) => d.id !== activeDay.id))}
+          />
+        )}
 
         <div className={styles.dayPanel}>
           {activeDay ? (

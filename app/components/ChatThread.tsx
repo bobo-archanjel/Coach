@@ -8,6 +8,7 @@ import {
   memo,
   startTransition,
   useActionState,
+  useCallback,
   useEffect,
   useMemo,
   useOptimistic,
@@ -19,6 +20,7 @@ import {
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import styles from "./chat.module.css";
+import { announceChatSeen } from "./chatSeenEvent";
 import type { ExerciseDetail } from "@/lib/exercises";
 
 // Modal (obrázky + kroky cvičenia) len na klik — vlastný chunk, nenafukuje
@@ -485,16 +487,30 @@ export function ChatThread({
   });
   const hasOnSeen = Boolean(onSeen);
 
+  // Označ prečítané; po úspechu dá vedieť zvončeku (CHAT_SEEN_EVENT), nech upozornenie
+  // na neprečítanú správu hneď zmizne, nie až pri ďalšom pravidelnom načítaní.
+  const markSeen = useCallback(() => {
+    const fn = onSeenRef.current;
+    if (fn) void Promise.resolve(fn()).then(announceChatSeen, () => {});
+  }, []);
+
   // označ prečítané pri otvorení a pri návrate na kartu (nie na každý poll)
   useEffect(() => {
     if (!hasOnSeen) return;
-    const markSeen = () => {
-      const fn = onSeenRef.current;
-      if (fn) void Promise.resolve(fn()).catch(() => {});
-    };
     markSeen();
     return onReturnToPage(markSeen);
-  }, [hasOnSeen]);
+  }, [hasOnSeen, markSeen]);
+
+  // Nová správa od druhej strany počas otvoreného (viditeľného) vlákna → hneď prečítaná —
+  // inak by visela ako neprečítaná vo zvončeku aj v menu, hoci ju používateľ práve vidí.
+  // Spúšťa ju len nové id prichádzajúcej správy (nie každý poll), takže nevznikne slučka.
+  const lastIncomingId = [...messages].reverse().find((m) => m.sender !== mySide && m.sender !== "system")?.id ?? null;
+  const seenIncomingRef = useRef(lastIncomingId);
+  useEffect(() => {
+    if (!hasOnSeen || !lastIncomingId || lastIncomingId === seenIncomingRef.current) return;
+    seenIncomingRef.current = lastIncomingId;
+    if (document.visibilityState === "visible") markSeen();
+  }, [hasOnSeen, lastIncomingId, markSeen]);
 
   // Marker poslednej správy, ktorú má stránka aktuálne vykreslenú — aktualizuje sa
   // pri každej zmene `messages` (vrátane tej, čo príde cez router.refresh() nižšie).
@@ -561,9 +577,10 @@ export function ChatThread({
     // by realtime-js vrátil namiesto nového a subscribe() by nič neurobil.
     let removeChannel: (() => void) | null = null;
     if (realtimeTable) {
-      void import("@/lib/supabase/client").then(({ createClient }) => {
+      void import("@/lib/supabase/client").then(async ({ createRealtimeClient }) => {
         if (!alive) return;
-        const supabase = createClient();
+        const supabase = await createRealtimeClient();
+        if (!alive) return;
         const channel = supabase
           .channel(`chat-${realtimeTable}-${mySide}-${++channelSeq}`)
           .on(

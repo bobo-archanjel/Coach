@@ -198,26 +198,6 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.addDayForm {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-.addDayInput {
-  flex: 1 1 100%;
-  min-height: 48px;
-  padding: 11px 16px;
-  font-family: inherit;
-  font-size: 16px; /* iOS nezoomuje */
-  font-weight: 650;
-  background: var(--surface-solid);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  color: var(--paper);
-  box-shadow: var(--shadow-1);
-}
 
 /* ---------- cviky dňa ---------- */
 .dayPanel {
@@ -686,17 +666,6 @@
 /* ======================================================================
    Trénerov builder — prvky, ktoré klient nemá
    ====================================================================== */
-/* „Premenovať“ / „+ deň“: formulár na celý riadok pod pilulkami, popis nad poľom */
-.renameDayForm {
-  flex-basis: 100%;
-}
-.addDayLabel {
-  flex-basis: 100%;
-  font-size: 13px;
-  font-weight: 650;
-  letter-spacing: -0.005em;
-  color: var(--paper-faint);
-}
 /* Chyba pri cviku (napr. odstránenie zlyhalo) — pod kartou na celú šírku */
 .exerciseRow .formError {
   grid-column: 1 / -1;

@@ -5,7 +5,7 @@
   "aiGenerator": "AI generátor plánu",
   "draft": "Koncept",
   "done": "Hotovo",
-  "days": "{days} dní",
+  "days": "{count, plural, one {# deň} few {# dni} other {# dní}}",
   "emptyTitle": "Zatiaľ žiadne plány",
   "emptyText": "Vytvor prvý plán vyššie.",
   "library": "Knižnica cvikov ({count})",
@@ -150,6 +150,9 @@
     "customHeading": "Pridať nový cvik",
     "daysAria": "Tréningové dni",
     "newDayTitle": "Nový deň",
-    "close": "Zavrieť"
-  }
+    "close": "Zavrieť",
+    "renameDayTitle": "Premenovať deň"
+  },
+  "active": "Aktívny",
+  "daysDone": "{done}/{count, plural, one {# deň} few {# dni} other {# dní}}"
 }

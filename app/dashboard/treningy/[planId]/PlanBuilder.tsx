@@ -7,7 +7,7 @@ import { ExerciseRow } from "./ExerciseRow";
 import { AddDayDialog } from "./AddDayDialog";
 import { DeleteDayControl } from "./DeleteDayControl";
 import { DuplicateDayButton } from "./DuplicateDayButton";
-import { RenameDayForm } from "./RenameDayForm";
+import { RenameDayDialog } from "./RenameDayDialog";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "@/app/components/workoutBuilder.module.css";
@@ -148,42 +148,43 @@ export function PlanBuilder({
           />
         )}
 
-        {activeDay &&
-          (renaming ? (
-            <RenameDayForm
-              key={`rename-${activeDay.id}`}
-              planId={planId}
-              dayId={activeDay.id}
-              name={activeDay.name}
-              onClose={() => setRenaming(false)}
-            />
-          ) : (
-            // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
-            <div className={styles.dayHead}>
-              <div className={styles.dayActionsRow}>
-                <button type="button" className={styles.dayActionTab} onClick={() => setRenaming(true)}>
-                  {t("rename")}
-                </button>
-                <DuplicateDayButton
-                  key={`dup-${activeDay.id}`}
-                  planId={planId}
-                  dayId={activeDay.id}
-                  onDuplicated={(newDayId) => {
-                    if (localDaysRef.current.some((d) => d.id === newDayId)) setActiveDayId(newDayId);
-                    else pendingDayId.current = newDayId;
-                  }}
-                />
-                <DeleteDayControl
-                  key={activeDay.id}
-                  planId={planId}
-                  dayId={activeDay.id}
-                  dayName={activeDay.name}
-                  exerciseCount={activeDay.exercises.length}
-                  hasCompleted={completedDayIds.includes(activeDay.id)}
-                />
-              </div>
+        {activeDay && renaming && (
+          <RenameDayDialog
+            key={`rename-${activeDay.id}`}
+            planId={planId}
+            dayId={activeDay.id}
+            name={activeDay.name}
+            onClose={() => setRenaming(false)}
+          />
+        )}
+
+        {activeDay && (
+          // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní); „Premenovať“ otvorí okno
+          <div className={styles.dayHead}>
+            <div className={styles.dayActionsRow}>
+              <button type="button" className={styles.dayActionTab} onClick={() => setRenaming(true)}>
+                {t("rename")}
+              </button>
+              <DuplicateDayButton
+                key={`dup-${activeDay.id}`}
+                planId={planId}
+                dayId={activeDay.id}
+                onDuplicated={(newDayId) => {
+                  if (localDaysRef.current.some((d) => d.id === newDayId)) setActiveDayId(newDayId);
+                  else pendingDayId.current = newDayId;
+                }}
+              />
+              <DeleteDayControl
+                key={activeDay.id}
+                planId={planId}
+                dayId={activeDay.id}
+                dayName={activeDay.name}
+                exerciseCount={activeDay.exercises.length}
+                hasCompleted={completedDayIds.includes(activeDay.id)}
+              />
             </div>
-          ))}
+          </div>
+        )}
 
         <div className={styles.dayPanel}>
           {activeDay ? (

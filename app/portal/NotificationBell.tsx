@@ -11,6 +11,7 @@
 // na plné dáta), refresh pri fokuse/otvorení/zmene trasy/intervale, a okamžite
 // pri novej správe cez Supabase Realtime (RLS-scoped).
 
+import { CHAT_SEEN_EVENT } from "@/app/components/chatSeenEvent";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AppLink as Link } from "../components/AppLink";
@@ -84,8 +85,17 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
   const localDismissed = useRef(new Set<string>());
   const markReadPending = useRef(false);
 
+  // Načítanie „hneď“ (minAgeMs 0) počas iného, ešte bežiaceho načítania sa nezahodí — dobehne
+  // po ňom (napr. udalosť z chatu „prečítané“ príde, kým beží načítanie po zmene stránky,
+  // ktoré by vrátilo ešte starý počet).
+  const refreshAgain = useRef(false);
+  const refreshRef = useRef<(minAgeMs: number) => Promise<void>>(async () => {});
   const refresh = useCallback(async (minAgeMs: number) => {
-    if (inFlight.current || Date.now() - lastFetch.current < minAgeMs) return;
+    if (inFlight.current) {
+      if (minAgeMs === 0) refreshAgain.current = true;
+      return;
+    }
+    if (Date.now() - lastFetch.current < minAgeMs) return;
     inFlight.current = true;
     try {
       const res = await fetch("/api/portal/attention", { cache: "no-store" });
@@ -102,8 +112,15 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
     } finally {
       lastFetch.current = Date.now();
       inFlight.current = false;
+      if (refreshAgain.current) {
+        refreshAgain.current = false;
+        void refreshRef.current(0);
+      }
     }
   }, []);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
 
   // úvodné načítanie + fokus okna + pomalý interval + Realtime nová správa
   useEffect(() => {
@@ -114,14 +131,18 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
     document.addEventListener("visibilitychange", onFocus);
     window.addEventListener("focus", onFocus);
     const interval = window.setInterval(() => void refresh(60_000), POLL_MS);
+    // chat práve označil správy ako prečítané (ChatThread) → upozornenie hneď preč
+    const onChatSeen = () => void refresh(0);
+    window.addEventListener(CHAT_SEEN_EVENT, onChatSeen);
 
     // Len správy OD trénera/systému — vlastné odoslané správy klienta upozornenia nemenia.
     let alive = true;
     let debounce: number | undefined;
     let removeChannel: (() => void) | null = null;
-    void import("@/lib/supabase/client").then(({ createClient }) => {
+    void import("@/lib/supabase/client").then(async ({ createRealtimeClient }) => {
       if (!alive) return;
-      const supabase = createClient();
+      const supabase = await createRealtimeClient();
+      if (!alive) return;
       const channel = supabase
         .channel(`portal-bell-messages-${++channelSeq}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "sender=eq.trainer" }, () => {
@@ -136,6 +157,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
       alive = false;
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(CHAT_SEEN_EVENT, onChatSeen);
       window.clearInterval(interval);
       window.clearTimeout(debounce);
       removeChannel?.();

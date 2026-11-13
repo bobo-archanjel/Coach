@@ -75,6 +75,15 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-13** — **Názov dňa v okne, jedálniček s dráhou dní, zarovnané zoznamy a správy v reálnom čase** (`feature/aligmant-design`, bez migrácie).
+  - **Názov dňa v okne:** „Premenovať“ deň tréningu (tréner aj klient) otvorí okno ako „+ deň“ (`DayNameDialog` nad `BuilderDialog`; Enter uloží, Esc / ✕ / Zrušiť zavrú).
+  - **Jedálniček ako tréning:** dni v jednej dráhe (vybraný deň = biely čip, číslo = počet potravín, na mobile posúvateľný riadok), „+ deň“ aj „Premenovať“ v okne, akcie dňa pod dráhou.
+  - **Zoznam klientov:** odznak neprečítaných správ otvorí rovno chat s klientom (`/dashboard/spravy?client=`), zvyšok karty vedie na detail klienta.
+  - **Tréningy a Jedálničky:** štítky sú vpravo a na počítači zarovnané pod sebou — „Hotovo“ · „Koncept“ / „Aktívny“ · počet dní. Tréningy majú teraz aj štítok „Aktívny“. Počet dní sa skloňuje (1 deň / 3 dni / 5 dní).
+  - **Strava u klienta:** „Stiahnuť PDF“ je pod jedálničkom. **Detail klienta:** záložka Jedálničky sa volá „Makro cieľ“ / „Makro cíl“ (adresa `?sekcia=jedalnicky` ostáva).
+  - **Prečítaná správa:** po otvorení chatu (zo zvončeka, zo zoznamu klientov aj priamo) upozornenie hneď zmizne zo zvončeka, menu aj zoznamu klientov. Správa, ktorá príde počas otvoreného chatu, sa hneď označí ako prečítaná.
+  - **Správy v reálnom čase:** zvonček trénera aj klienta a otvorený chat dostanú novú správu do pár sekúnd bez obnovenia stránky. Realtime kanál sa predtým pripájal pred načítaním session (ako `anon`) a server odber odmietal; `createRealtimeClient()` (`lib/supabase/client.ts`) počká na token. Test `e2e/realtime.spec.ts` sleduje WebSocket.
+
 - **2026-11-13** — **Builder tréningu: bez karty „Zatiaľ žiadne cviky“, karta „Pridať nový cvik“** (`feature/builder-polish`, bez migrácie).
   - Tréner aj klient: deň bez cvikov je prázdny (bez karty s otáznikom „Ako pridať cvik“) — pod ním je rovno karta na pridanie cviku.
   - Nadpis karty vlastného cviku je „Pridať nový cvik“ / „Přidat nový cvik“ (predtým „Vlastný cvik“).
