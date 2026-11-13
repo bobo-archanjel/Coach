@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ogLocale } from "@/lib/i18n/locales";
@@ -78,6 +79,7 @@ export default async function RootLayout({
           {children}
         </NextIntlClientProvider>
         <KeyboardState />
+        <SpeedInsights />
         {/* Plausible (feature/security#2) — cookieless, žiadne osobné údaje, preto
             bez cookie banneru. Načíta sa len keď je nastavená doména (env), nech appka
             pred založením účtu na plausible.io neposiela requesty nikam navyše. */}
