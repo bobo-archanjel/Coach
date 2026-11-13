@@ -139,9 +139,10 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
     let alive = true;
     let debounce: number | undefined;
     let removeChannel: (() => void) | null = null;
-    void import("@/lib/supabase/client").then(({ createClient }) => {
+    void import("@/lib/supabase/client").then(async ({ createRealtimeClient }) => {
       if (!alive) return;
-      const supabase = createClient();
+      const supabase = await createRealtimeClient();
+      if (!alive) return;
       const channel = supabase
         .channel(`portal-bell-messages-${++channelSeq}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "sender=eq.trainer" }, () => {

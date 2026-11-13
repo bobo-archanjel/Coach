@@ -577,9 +577,10 @@ export function ChatThread({
     // by realtime-js vrátil namiesto nového a subscribe() by nič neurobil.
     let removeChannel: (() => void) | null = null;
     if (realtimeTable) {
-      void import("@/lib/supabase/client").then(({ createClient }) => {
+      void import("@/lib/supabase/client").then(async ({ createRealtimeClient }) => {
         if (!alive) return;
-        const supabase = createClient();
+        const supabase = await createRealtimeClient();
+        if (!alive) return;
         const channel = supabase
           .channel(`chat-${realtimeTable}-${mySide}-${++channelSeq}`)
           .on(
