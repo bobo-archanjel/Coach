@@ -104,7 +104,11 @@ export async function createPdfContext(locale: Locale = "sk"): Promise<PdfContex
     doc.embedFont(assetBytes("assets", "fonts", "Inter-SemiBold.ttf"), { subset: true }),
     doc.embedFont(assetBytes("assets", "fonts", "Inter-Bold.ttf"), { subset: true }),
     // značka loga (wordmark je raster so svetlým textom — na svetlom pozadí by zmizol)
-    doc.embedPng(assetBytes("public", "brand", "logo-mark.png")).catch(() => null),
+    // then(): readFileSync hádže synchrónne — bez neho by .catch chýbajúce logo nezachytil
+    // a padol by celý export namiesto PDF bez loga
+    Promise.resolve()
+      .then(() => doc.embedPng(assetBytes("public", "brand", "logo-mark.png")))
+      .catch(() => null),
   ]);
   return { locale, t, doc, regular, semibold, bold, logo };
 }

@@ -10,7 +10,7 @@ import { useLoadingMessage } from "../components/useLoadingMessage";
 import { TurnstileScript, useTurnstile } from "../components/Turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { checkPassword, type PasswordIssue } from "@/lib/passwordStrength";
-import { loginAction, registerAction, type LoginState, type RegisterState } from "./actions";
+import { loginAction, registerAction, syncRecoveryLocaleAction, type LoginState, type RegisterState } from "./actions";
 import styles from "./auth.module.css";
 
 const initialLoginState: LoginState = { error: null, redirectTo: null };
@@ -248,6 +248,8 @@ export function AuthView() {
     }
     setForgotInvalid(false);
     setForgotStatus("loading");
+    // e-mail v jazyku zvolenom na webe; zlyhanie nevadí — e-mail príde v jazyku účtu
+    await syncRecoveryLocaleAction(emailEl.value).catch(() => {});
     const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value, {
       redirectTo: `${window.location.origin}/prihlasenie/nove-heslo`,
     });
