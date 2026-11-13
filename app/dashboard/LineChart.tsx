@@ -106,6 +106,8 @@ export function LineChart({
         className={styles.chartSvg}
         onPointerMove={handleMove}
         onPointerLeave={() => setHoverIdx(null)}
+        // ťah prstom posúva ukazovateľ hodnoty — nie gesto „späť“ (SwipeBack)
+        data-no-swipe
         role="img"
         aria-label={t("lastValue", { value: last.value, unit })}
       >

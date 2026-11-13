@@ -128,7 +128,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   <div className={styles.clientName}>{client.full_name}</div>
                   {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
                 </div>
-                <span className={styles.clientMeta}>
+                <span className={`${styles.clientMeta} ${styles.rosterMeta}`}>
                   {pendingDeletion ? (
                     <span className={styles.deletionChip}>
                       Zmaže sa {purgeDateLabel(client.deletion_requested_at!)}

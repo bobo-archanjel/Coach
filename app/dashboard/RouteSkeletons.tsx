@@ -148,11 +148,10 @@ function NastaveniaSkeleton() {
   );
 }
 
-/** /dashboard/klienti/[id] — späť + hlavička + záložky sekcií hore + karty pod nimi. */
+/** /dashboard/klienti/[id] — hlavička + záložky sekcií hore + karty pod nimi (späť = potiahnutie). */
 function KlientDetailSkeleton() {
   return (
     <div className={styles.skeletonWrap}>
-      <B className={styles.skeletonBackLink} />
       <div className={styles.skeletonDetailHead}>
         <B className={styles.skeletonDetailTitle} />
         <B className={styles.skeletonLineShort} />
@@ -194,11 +193,10 @@ function PlanBuilderSkeleton() {
   );
 }
 
-/** /dashboard/jedalnicky/[clientId] a /dashboard/jedalnicky/jedalnicek/[planId] — späť + hlavička + karta so zoznamom. */
+/** /dashboard/jedalnicky/[clientId] a /dashboard/jedalnicky/jedalnicek/[planId] — hlavička + karta so zoznamom. */
 function JedalnicekDetailSkeleton() {
   return (
     <div className={styles.skeletonWrap}>
-      <B className={styles.skeletonBackLink} />
       <div className={styles.skeletonDetailHead}>
         <B className={styles.skeletonDetailTitle} />
         <B className={styles.skeletonLineShort} />

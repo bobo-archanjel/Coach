@@ -274,8 +274,10 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     const planId = page.url().split("/").pop()!;
     const { data: recipients } = await trainer.api.from("plan_recipients").select("client_id").eq("meal_plan_id", planId);
     expect(recipients).toHaveLength(1);
-    // späť na zoznam všetkých jedálničkov
-    await page.getByRole("link", { name: "Späť na jedálničky" }).click();
+    // späť na zoznam všetkých jedálničkov — na počítači bočným menu (odkaz „Späť na jedálničky“
+    // zrušený, na mobile sa ide späť potiahnutím; e2e/swipe-back.spec.ts)
+    await expect(page.getByRole("link", { name: "Späť na jedálničky" })).toHaveCount(0);
+    await page.getByRole("navigation").getByRole("link", { name: "Jedálničky", exact: true }).first().click();
     await page.waitForURL(/\/dashboard\/jedalnicky$/);
     await expect(page.getByRole("link", { name: new RegExp(`${prefix} pre dvoch`) })).toBeVisible();
     await trainer.api.from("meal_plans").delete().eq("id", planId);
