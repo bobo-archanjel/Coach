@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
 import { NavLinkPendingSignal } from "../components/NavigationProgress";
+import { useLiveUnread } from "../components/liveUnread";
 import { NotificationBell } from "./NotificationBell";
 import { revealInboxList } from "./spravy/ThreadSwipeBack";
 import styles from "./dashboard.module.css";
@@ -101,6 +102,8 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
   const pathname = usePathname();
   const t = useTranslations("nav");
   const settingsActive = pathname.startsWith("/dashboard/nastavenia");
+  // počet zo servera (layout), kým zvonček nenačíta novší — potom naživo (nová správa, prečítané)
+  const unread = useLiveUnread(unreadCount)?.total ?? unreadCount;
 
   return (
     <aside className={styles.sidebar}>
@@ -116,7 +119,7 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
       <nav className={styles.navList} aria-label={t("trainerLabel")}>
         {NAV_ITEMS.map(({ href, label, Icon, tour, match }) => {
           const active = match(pathname);
-          const showBadge = href === "/dashboard/spravy" && unreadCount > 0;
+          const showBadge = href === "/dashboard/spravy" && unread > 0;
           return (
             <Link
               key={href}
@@ -131,8 +134,8 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
               <Icon />
               {t(label)}
               {showBadge && (
-                <span className={styles.navBadge} aria-label={t("unreadBadge", { count: unreadCount })}>
-                  {unreadCount}
+                <span className={styles.navBadge} aria-label={t("unreadBadge", { count: unread })}>
+                  {unread}
                 </span>
               )}
               <NavLinkPendingSignal id={href} />

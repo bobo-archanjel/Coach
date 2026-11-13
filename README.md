@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-13** — **Odznaky správ naživo** (`feature/realtime-badges`, bez migrácie).
+  - Pri novej správe pribudne do pár sekúnd bez obnovenia stránky aj číslo pri „Správy“ v menu trénera, odznak „N správ“ pri klientovi v zozname klientov a bodka pri „Chat“ u klienta. Po prečítaní zmiznú spolu so zvončekom.
+  - Zvonček svoje živé počty zverejní (`app/components/liveUnread.ts`) a odznaky ich preberú — bez ďalšieho dopytu na server či Realtime kanála. Platí novšie číslo: po načítaní stránky čísla zo servera, živé až keď ho zvonček načíta po nich.
+  - Test: `e2e/realtime.spec.ts`.
+
 - **2026-11-13** — **Názov dňa v okne, jedálniček s dráhou dní, zarovnané zoznamy a správy v reálnom čase** (`feature/aligmant-design`, bez migrácie).
   - **Názov dňa v okne:** „Premenovať“ deň tréningu (tréner aj klient) otvorí okno ako „+ deň“ (`DayNameDialog` nad `BuilderDialog`; Enter uloží, Esc / ✕ / Zrušiť zavrú).
   - **Jedálniček ako tréning:** dni v jednej dráhe (vybraný deň = biely čip, číslo = počet potravín, na mobile posúvateľný riadok), „+ deň“ aj „Premenovať“ v okne, akcie dňa pod dráhou.

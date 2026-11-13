@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/app/components/LogoMark";
 import { NavLinkPendingSignal } from "@/app/components/NavigationProgress";
+import { useLiveUnread } from "@/app/components/liveUnread";
 import { NotificationBellSlot } from "./NotificationBell";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon } from "@/app/portal/icons";
 import s from "./portal.module.css";
@@ -40,6 +41,9 @@ export function PortalNav({
   const pathname = usePathname();
   const t = useTranslations("nav");
   const items = aiKoucVisible ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== `${BASE}/ai-kouc`);
+  // stav zo servera (layout), kým zvonček nenačíta novší — potom naživo (nová správa, prečítané)
+  const live = useLiveUnread(chatUnread);
+  const hasUnread = live ? live.total > 0 : chatUnread;
 
   // Otvorená mobilná klávesnica — visualViewport je spoľahlivejší signál než CSS
   // jednotky (rovnaká logika ako PortalNav); lišta by inak visela nad klávesnicou.
@@ -71,7 +75,7 @@ export function PortalNav({
       >
         {items.map(({ href, label, Icon, tour, match }) => {
           const active = match(pathname);
-          const showDot = href === `${BASE}/chat` && chatUnread && !active;
+          const showDot = href === `${BASE}/chat` && hasUnread && !active;
           return (
             <Link
               key={href}
