@@ -135,6 +135,39 @@ test.describe("reálna DB (QA tréner a klient)", () => {
     await page.waitForURL((url) => url.pathname === "/dashboard/spravy" && url.searchParams.get("client") === qaClientId);
     // správa je v otvorenom vlákne (aj v náhľade zoznamu vlákien — preto posledný výskyt)
     await expect(page.getByText(`E2E odznak ${stamp}`).last()).toBeVisible();
+
+    // prečítaná → upozornenie zmizne: odznak „Správy“ v menu aj položka vo zvončeku
+    const nav = page.getByRole("navigation").first();
+    await expect(nav.locator("a[href='/dashboard/spravy'] [aria-label]")).toHaveCount(0, { timeout: 15_000 });
+    await page.getByRole("button", { name: /^Upozornenia/ }).first().click();
+    const panel = page.getByRole("region", { name: "Upozornenia" });
+    await expect(panel.getByText("Načítavam…")).toHaveCount(0, { timeout: 15_000 });
+    await expect(panel.locator(`a[href*='spravy?client=${qaClientId}']`)).toHaveCount(0, { timeout: 15_000 });
+    await page.keyboard.press("Escape");
+    // a odznak v zozname klientov po návrate tiež
+    await nav.getByRole("link", { name: "Klienti", exact: true }).click();
+    await page.waitForURL(/\/dashboard$/);
+    await expect(page.locator(`a[href="/dashboard/spravy?client=${qaClientId}"]`)).toHaveCount(0);
+  });
+
+  test("správa, ktorá príde počas otvoreného chatu, sa hneď označí ako prečítaná", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
+    await login(page, env.trainerEmail!, env.trainerPassword!, /\/dashboard/);
+    await page.goto(`/dashboard/spravy?client=${qaClientId}`);
+    await expect(page.getByRole("textbox").last()).toBeVisible();
+    const { data: msg } = await admin
+      .from("messages")
+      .insert({ client_id: qaClientId, sender: "client", body: `E2E počas chatu ${stamp}` })
+      .select("id")
+      .single();
+    messageIds.push(msg!.id);
+    await expect(page.getByText(`E2E počas chatu ${stamp}`).last()).toBeVisible({ timeout: 30_000 });
+    await expect
+      .poll(async () => (await admin.from("messages").select("read_at").eq("id", msg!.id).single()).data?.read_at ?? null, {
+        timeout: 15_000,
+      })
+      .not.toBeNull();
+    await expect(page.getByRole("navigation").first().locator("a[href='/dashboard/spravy'] [aria-label]")).toHaveCount(0);
   });
 
   test("jedálniček: dráha dní, „+ deň“ a „Premenovať“ v okne", async ({ page }, testInfo) => {
