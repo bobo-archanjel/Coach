@@ -2,13 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import styles from "./builder.module.css";
+import { DayNameDialog } from "@/app/components/DayNameDialog";
+import wb from "@/app/components/workoutBuilder.module.css";
 
 /**
- * "Premenovať" + "Duplikovať" + "Zmazať deň" vedľa "+ deň" v riadku pilulek — rovnaký vzor ako
- * DeleteDayControl v tréningovom builderi. Premenovanie aj potvrdenie zmazania
- * zaberú celý riadok pod pilulkami; Esc = zrušiť. Zmeny sú lokálne, do DB idú cez
- * „Uložiť zmeny". Rodič ho kľúčuje podľa dňa, takže prepnutie dňa formulár zahodí.
+ * Akcie vybraného dňa jedálnička pod dráhou dní — rovnako ako v buildri tréningu
+ * (spoločný workoutBuilder.module.css): „Premenovať“ otvorí okno (DayNameDialog),
+ * „Duplikovať“, „Zmazať deň“ s potvrdením na celý riadok (Esc = zrušiť). Zmeny sú
+ * lokálne, do DB idú cez „Uložiť zmeny". Rodič ho kľúčuje podľa dňa, takže prepnutie
+ * dňa rozpracované potvrdenie zahodí.
  */
 export function MealDayActions({
   name,
@@ -28,11 +30,9 @@ export function MealDayActions({
 }) {
   const t = useTranslations("mealPlans.builder");
   const [mode, setMode] = useState<"idle" | "renaming" | "confirmingDelete">("idle");
-  const [value, setValue] = useState(name);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (mode === "idle") return;
+    if (mode !== "confirmingDelete") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setMode("idle");
     };
@@ -40,79 +40,61 @@ export function MealDayActions({
     return () => window.removeEventListener("keydown", onKey);
   }, [mode]);
 
-  if (mode === "renaming") {
-    return (
-      <form
-        className={`${styles.addDayForm} ${styles.renameDayForm}`}
-        onSubmit={(e) => {
-          e.preventDefault();
-          const trimmed = value.trim();
-          if (!trimmed) return setError(t("dayNameRequired"));
-          if (trimmed.length > 120) return setError(t("dayNameTooLong"));
-          onRename(trimmed);
-          setMode("idle");
-        }}
-      >
-        <input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          aria-label={t("dayName")}
-          className={styles.addDayInput}
-          autoFocus
-        />
-        <button type="submit" className="btn btn-primary btn-sm">
-          {t("done")}
-        </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("idle")}>
-          {t("cancel")}
-        </button>
-        {error && <p className={styles.formError}>{error}</p>}
-      </form>
-    );
-  }
-
-  if (mode === "confirmingDelete") {
-    return (
-      <div className={styles.deleteDayConfirm} role="alertdialog" aria-label={t("deleteDayAria", { name })}>
-        <p className={styles.deleteDayQuestion}>{t("deleteDayConfirm", { name, count: foodCount })}</p>
-        <div className={styles.deleteDayActions}>
-          <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={onDelete}>
-            {t("yesDeleteDay")}
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("idle")}>
-            {t("cancel")}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // akcie aktívneho dňa vždy spolu v jednom riadku pod pilulkami dní
   return (
-    <div className={styles.dayActionsRow}>
-      <button
-        type="button"
-        className={styles.renameDayTab}
-        onClick={() => {
-          setValue(name);
-          setError(null);
-          setMode("renaming");
-        }}
-      >
-        {t("rename")}
-      </button>
-      <button
-        type="button"
-        className={styles.renameDayTab}
-        onClick={onDuplicate}
-        disabled={!canDuplicate}
-        title={canDuplicate ? t("duplicateTitle") : t("maxDays")}
-      >
-        {t("duplicate")}
-      </button>
-      <button type="button" className={styles.deleteDayTab} onClick={() => setMode("confirmingDelete")}>
-        {t("deleteDay")}
-      </button>
+    <div className={wb.dayHead}>
+      {mode === "renaming" && (
+        <DayNameDialog
+          title={t("renameDayTitle")}
+          label={t("dayName")}
+          inputId="meal-day-rename"
+          initialValue={name}
+          maxLength={120}
+          submitLabel={t("done")}
+          cancelLabel={t("cancel")}
+          closeLabel={t("close")}
+          onSubmit={(next) => {
+            if (!next) return t("dayNameRequired");
+            if (next.length > 120) return t("dayNameTooLong");
+            onRename(next);
+            setMode("idle");
+            return null;
+          }}
+          onClose={() => setMode("idle")}
+        />
+      )}
+      <div className={wb.dayActionsRow}>
+        {mode === "confirmingDelete" ? (
+          <div className={wb.deleteDayConfirm} role="alertdialog" aria-label={t("deleteDayAria", { name })}>
+            <p className={wb.deleteDayQuestion}>{t("deleteDayConfirm", { name, count: foodCount })}</p>
+            <div className={wb.deleteDayActions}>
+              <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={onDelete}>
+                {t("yesDeleteDay")}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode("idle")}>
+                {t("cancel")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button type="button" className={wb.dayActionTab} onClick={() => setMode("renaming")}>
+              {t("rename")}
+            </button>
+            <button
+              type="button"
+              className={wb.dayActionTab}
+              onClick={onDuplicate}
+              disabled={!canDuplicate}
+              title={canDuplicate ? t("duplicateTitle") : t("maxDays")}
+            >
+              {t("duplicate")}
+            </button>
+            <button type="button" className={wb.deleteDayTab} onClick={() => setMode("confirmingDelete")}>
+              {t("deleteDay")}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

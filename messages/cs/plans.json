@@ -150,6 +150,8 @@
     "customHeading": "Přidat nový cvik",
     "daysAria": "Tréninkové dny",
     "newDayTitle": "Nový den",
-    "close": "Zavřít"
-  }
+    "close": "Zavřít",
+    "renameDayTitle": "Přejmenovat den"
+  },
+  "active": "Aktivní"
 }

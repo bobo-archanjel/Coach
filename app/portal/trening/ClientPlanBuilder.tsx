@@ -12,8 +12,7 @@ import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
 import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
-import { BuilderDialog } from "@/app/components/BuilderDialog";
-import dlg from "@/app/components/builderDialog.module.css";
+import { DayNameDialog } from "@/app/components/DayNameDialog";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -113,12 +112,9 @@ export function ClientPlanBuilder({
   // Nový prázdny tréning začína bez dní (ako u trénera) — „+ deň“ v dráhe otvorí okno
   // s názvom dňa (nie predvyplnený "Deň 1"). Okno sa samo neotvára, prvé je pole s názvom tréningu.
   const [addingDay, setAddingDay] = useState(false);
-  const [dayName, setDayName] = useState("");
-  const [dayError, setDayError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // „Premenovať“ aktívny deň (lokálne, do DB až „Uložiť“) — null = zatvorené
-  const [renameValue, setRenameValue] = useState<string | null>(null);
-  const [renameError, setRenameError] = useState<string | null>(null);
+  // okno „Premenovať“ aktívny deň (lokálne, do DB až „Uložiť“)
+  const [renaming, setRenaming] = useState(false);
   const [editKey, setEditKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -145,21 +141,18 @@ export function ClientPlanBuilder({
   const selectDay = (key: string) => {
     setActiveKey(key);
     setConfirmDelete(false);
-    setRenameValue(null);
+    setRenaming(false);
   };
 
-  // Esc = zrušiť potvrdenie zmazania dňa aj premenovanie.
-  const renaming = renameValue !== null;
+  // Esc = zrušiť potvrdenie zmazania dňa (okná „+ deň“ / „Premenovať“ zatvára Esc samo).
   useEffect(() => {
-    if (!confirmDelete && !renaming) return;
+    if (!confirmDelete) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setConfirmDelete(false);
-      setRenameValue(null);
+      if (e.key === "Escape") setConfirmDelete(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [confirmDelete, renaming]);
+  }, [confirmDelete]);
 
   const patchDay = (key: string, fn: (d: BDay) => BDay) =>
     setDays((prev) => prev.map((d) => (d.key === key ? fn(d) : d)));
@@ -170,42 +163,27 @@ export function ClientPlanBuilder({
       exercises: d.exercises.map((e) => (e.key === exKey ? { ...e, ...patch } : e)),
     }));
 
-  const addDay = () => {
-    const trimmed = dayName.trim();
-    if (!trimmed) {
-      setDayError(t("dayNameRequired"));
-      return;
-    }
-    if (days.length >= MAX_DAYS) {
-      setDayError(t("maxDays", { max: MAX_DAYS }));
-      return;
-    }
-    const d: BDay = { key: uid(), id: null, name: trimmed, exercises: [] };
+  /** „+ deň“ z okna; vráti chybu (okno ostane otvorené) alebo null. */
+  const addDay = (name: string): string | null => {
+    if (!name) return t("dayNameRequired");
+    if (days.length >= MAX_DAYS) return t("maxDays", { max: MAX_DAYS });
+    const d: BDay = { key: uid(), id: null, name, exercises: [] };
     setDays((prev) => [...prev, d]);
     selectDay(d.key);
-    setDayName("");
-    setDayError(null);
     setAddingDay(false);
     if (error === t("addDayRequired")) setError(null);
-  };
-  const closeAddDay = () => {
-    setAddingDay(false);
-    setDayName("");
-    setDayError(null);
+    return null;
   };
   const removeDay = (key: string) => {
     setDays((prev) => prev.filter((d) => d.key !== key));
     selectDay("");
   };
-  const renameDay = (key: string) => {
-    const trimmed = (renameValue ?? "").trim();
-    if (!trimmed) {
-      setRenameError(t("dayNameRequired"));
-      return;
-    }
-    patchDay(key, (d) => ({ ...d, name: trimmed }));
-    setRenameValue(null);
-    setRenameError(null);
+  /** „Premenovať“ z okna; vráti chybu (okno ostane otvorené) alebo null. */
+  const renameDay = (key: string, name: string): string | null => {
+    if (!name) return t("dayNameRequired");
+    patchDay(key, (d) => ({ ...d, name }));
+    setRenaming(false);
+    return null;
   };
   /** „Duplikovať“ (ako v jedálničku trénera): kópia dňa aj s cvikmi na koniec, prepne sa na ňu.
       Nový deň aj cviky bez id — server im pri „Uložiť“ pridelí nové (ako pri šablóne). */
@@ -327,7 +305,7 @@ export function ClientPlanBuilder({
                 className={b.addDayTab}
                 onClick={() => {
                   setAddingDay(true);
-                  setRenameValue(null);
+                  setRenaming(false);
                 }}
               >
                 {t("addDay")}
@@ -335,141 +313,88 @@ export function ClientPlanBuilder({
             </div>
 
             {addingDay && (
-              <BuilderDialog title={t("newDayTitle")} closeLabel={t("close")} onClose={closeAddDay}>
-                <form
-                  className={dlg.form}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    addDay();
-                  }}
-                >
-                  {/* deň plánu = jeden tréning (napr. "Deň 1 — Push") */}
-                  <div className={dlg.field}>
-                    <label htmlFor="client-day-name" className={dlg.label}>
-                      {t("dayName")}
-                    </label>
-                    <input
-                      id="client-day-name"
-                      type="text"
-                      value={dayName}
-                      onChange={(e) => {
-                        setDayName(e.target.value);
-                        if (dayError) setDayError(null);
-                      }}
-                      placeholder={t("dayPlaceholder", { n: days.length + 1 })}
-                      maxLength={60}
-                      autoFocus
-                      className={dlg.input}
-                    />
-                  </div>
-                  {dayError && (
-                    <p className={dlg.error} role="alert">
-                      {dayError}
-                    </p>
-                  )}
-                  <div className={dlg.actions}>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={closeAddDay}>
-                      {t("cancel")}
-                    </button>
-                    <button type="submit" className="btn btn-primary btn-sm">
-                      {t("add")}
-                    </button>
-                  </div>
-                </form>
-              </BuilderDialog>
+              // deň plánu = jeden tréning (napr. "Deň 1 — Push")
+              <DayNameDialog
+                title={t("newDayTitle")}
+                label={t("dayName")}
+                inputId="client-day-name"
+                placeholder={t("dayPlaceholder", { n: days.length + 1 })}
+                maxLength={60}
+                submitLabel={t("add")}
+                cancelLabel={t("cancel")}
+                closeLabel={t("close")}
+                onSubmit={addDay}
+                onClose={() => setAddingDay(false)}
+              />
             )}
 
-            {activeDay &&
-              (renaming ? (
-                <form
-                  className={`${b.addDayForm} ${styles.trAddDayForm}`}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    renameDay(activeDay.key);
-                  }}
-                >
-                  <label htmlFor="client-day-rename" className={`${styles.panelLabel} ${styles.trDayNameLabel}`}>
-                    {t("dayName")}
-                  </label>
-                  <input
-                    id="client-day-rename"
-                    type="text"
-                    value={renameValue ?? ""}
-                    onChange={(e) => {
-                      setRenameValue(e.target.value);
-                      if (renameError) setRenameError(null);
-                    }}
-                    maxLength={60}
-                    autoFocus
-                    className={b.addDayInput}
-                  />
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    {t("done")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      setRenameValue(null);
-                      setRenameError(null);
-                    }}
-                  >
-                    {t("cancel")}
-                  </button>
-                  {renameError && <p className={b.formError}>{renameError}</p>}
-                </form>
-              ) : (
-                // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
-                <div className={b.dayHead}>
-                  <div className={b.dayActionsRow}>
-                    {confirmDelete ? (
-                      <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
-                        <p id="delete-day-question" className={b.deleteDayQuestion}>
-                          {t("deleteDayConfirm", { name: activeDay.name, count: activeDay.exercises.length })}
-                        </p>
-                        <div className={b.deleteDayActions}>
-                          <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
-                            {t("yesDeleteDay")}
-                          </button>
-                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
-                            {t("cancel")}
-                          </button>
-                        </div>
+            {activeDay && renaming && (
+              <DayNameDialog
+                key={`rename-${activeDay.key}`}
+                title={t("renameDayTitle")}
+                label={t("dayName")}
+                inputId="client-day-rename"
+                initialValue={activeDay.name}
+                maxLength={60}
+                submitLabel={t("done")}
+                cancelLabel={t("cancel")}
+                closeLabel={t("close")}
+                onSubmit={(name) => renameDay(activeDay.key, name)}
+                onClose={() => setRenaming(false)}
+              />
+            )}
+
+            {activeDay && (
+              // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
+              <div className={b.dayHead}>
+                <div className={b.dayActionsRow}>
+                  {confirmDelete ? (
+                    <div className={b.deleteDayConfirm} role="alertdialog" aria-labelledby="delete-day-question">
+                      <p id="delete-day-question" className={b.deleteDayQuestion}>
+                        {t("deleteDayConfirm", { name: activeDay.name, count: activeDay.exercises.length })}
+                      </p>
+                      <div className={b.deleteDayActions}>
+                        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => removeDay(activeDay.key)}>
+                          {t("yesDeleteDay")}
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>
+                          {t("cancel")}
+                        </button>
                       </div>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className={b.dayActionTab}
-                          onClick={() => {
-                            setRenameValue(activeDay.name);
-                            setRenameError(null);
-                            setAddingDay(false);
-                          }}
-                        >
-                          {t("rename")}
-                        </button>
-                        <button
-                          type="button"
-                          className={b.dayActionTab}
-                          onClick={() => duplicateDay(activeDay.key)}
-                          disabled={days.length >= MAX_DAYS}
-                          title={
-                            days.length >= MAX_DAYS
-                              ? t("maxDays", { max: MAX_DAYS })
-                              : t("duplicateTitle")
-                          }
-                        >
-                          {t("duplicate")}
-                        </button>
-                        <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
-                          {t("deleteDay")}
-                        </button>
-                      </>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className={b.dayActionTab}
+                        onClick={() => {
+                          setRenaming(true);
+                          setAddingDay(false);
+                        }}
+                      >
+                        {t("rename")}
+                      </button>
+                      <button
+                        type="button"
+                        className={b.dayActionTab}
+                        onClick={() => duplicateDay(activeDay.key)}
+                        disabled={days.length >= MAX_DAYS}
+                        title={
+                          days.length >= MAX_DAYS
+                            ? t("maxDays", { max: MAX_DAYS })
+                            : t("duplicateTitle")
+                        }
+                      >
+                        {t("duplicate")}
+                      </button>
+                      <button type="button" className={b.deleteDayTab} onClick={() => setConfirmDelete(true)}>
+                        {t("deleteDay")}
+                      </button>
+                    </>
+                  )}
                 </div>
-              ))}
+              </div>
+            )}
 
             <div className={b.dayPanel}>
               {activeDay ? (
