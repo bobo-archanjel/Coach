@@ -1141,6 +1141,15 @@ select.addClientInputSm {
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
 }
+/* Zoznam klientov na počítači: dátum „od …“ má pevnú šírku (najdlhší „od 30. 12. 2026“
+   = 15 znakov) a je zarovnaný vpravo — stavové štítky („aktívny“, „N dní bez tréningu“)
+   tak končia v jednej línii pod sebou, nie posunuté podľa dĺžky dátumu. */
+@media (min-width: 761px) {
+  .rosterMeta > .clientSince {
+    min-width: 15ch;
+    text-align: right;
+  }
+}
 /* Plán, ktorý klient celý odcvičil — moss "splnený stav" (DESIGN.md: pravidlo
    jedného accentu). Zhodné s .publishBadge + .publishBadgeLive; jeden zdroj
    pravdy je lib/dashboard/planCompletion.ts, zdieľaný zoznamom Tréningy aj
