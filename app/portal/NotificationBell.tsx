@@ -12,6 +12,7 @@
 // pri novej správe cez Supabase Realtime (RLS-scoped).
 
 import { CHAT_SEEN_EVENT } from "@/app/components/chatSeenEvent";
+import { publishLiveUnread } from "@/app/components/liveUnread";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AppLink as Link } from "../components/AppLink";
@@ -204,6 +205,11 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
 
   const total = data ? portalAttentionTotal(data) : initialUnread;
   const items = data ? buildPortalAttentionItems(data, locale) : [];
+
+  // bodka pri „Chat“ v menu sa mení spolu so zvončekom
+  useEffect(() => {
+    if (data) publishLiveUnread(data.unread);
+  }, [data]);
 
   const dismiss = useCallback(
     (keys: string[], days: number | null) => {

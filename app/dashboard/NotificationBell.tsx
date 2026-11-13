@@ -14,6 +14,7 @@
 // a okamžite pri novej správe (Supabase Realtime, RLS-scoped, migrácia 0033).
 
 import { CHAT_SEEN_EVENT } from "@/app/components/chatSeenEvent";
+import { publishLiveUnread } from "@/app/components/liveUnread";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
@@ -191,6 +192,11 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
 
   const total = data ? attentionTotal(data) : initialUnread;
   const items = data ? buildAttentionItems(data, locale) : [];
+
+  // odznak „Správy“ v menu a „N správ“ v zozname klientov sa menia spolu so zvončekom
+  useEffect(() => {
+    if (data) publishLiveUnread(data.unread, data.unreadByClient);
+  }, [data]);
 
   // Skrytie/označenie je OPTIMISTICKÉ — upozornenie zmizne hneď, server sa dozvie na
   // pozadí. Ak zlyhá, dotiahne sa skutočný stav (upozornenie sa vráti), nič sa
