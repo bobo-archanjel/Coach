@@ -86,7 +86,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                   <div className={styles.clientName}>{client.fullName}</div>
                   {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
                 </div>
-                <span className={styles.clientMeta}>
+                <span className={`${styles.clientMeta} ${styles.rosterMeta}`}>
                   {client.pending ? (
                     <span className={styles.statusChip}>{t("adding")}</span>
                   ) : (

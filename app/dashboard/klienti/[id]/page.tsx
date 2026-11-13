@@ -1,3 +1,4 @@
+import { SwipeBack } from "@/app/components/SwipeBack";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/locales";
 import { AppLink as Link } from "../../../components/AppLink";
@@ -17,12 +18,6 @@ import { NutritionForm } from "./NutritionForm";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
-
-const BackIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path d="M9 3 4 7l5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 // DEV náhľad Progresu bez session (?preview=progress) — váha/sila/objem + rozšírená adherencia.
 function daysAgoIso(n: number): string {
@@ -72,11 +67,7 @@ export default async function ClientDetailPage({
   if ((preview === "progress" || preview === "progress_empty") && process.env.NODE_ENV === "development") {
     const empty = preview === "progress_empty";
     return (
-      <>
-        <Link href="/dashboard" className={styles.backLink}>
-          <BackIcon />
-          Späť na klientov
-        </Link>
+      <SwipeBack href="/dashboard">
         <div className={styles.detailHead}>
           <div>
             <h1>{empty ? "Nový Norbert" : "Ján Novák"}</h1>
@@ -125,7 +116,7 @@ export default async function ClientDetailPage({
             },
           ]}
         />
-      </>
+      </SwipeBack>
     );
   }
 
@@ -457,12 +448,8 @@ export default async function ClientDetailPage({
   ];
 
   return (
-    <>
-      <Link href="/dashboard" className={styles.backLink}>
-        <BackIcon />
-        {t("back")}
-      </Link>
-
+    // Späť na zoznam klientov: na mobile potiahnutím zľava doprava (SwipeBack), na počítači bočné menu.
+    <SwipeBack href="/dashboard">
       <div className={styles.detailHead}>
         <div>
           <h1>{client.full_name}</h1>
@@ -472,7 +459,7 @@ export default async function ClientDetailPage({
 
       {/* key: odkaz na inú ?sekcia= (napr. z Analytiky) prepne záložku aj bez reloadu */}
       <ClientDetailTabs key={sekcia ?? ""} sections={sections} initialId={sekcia} />
-    </>
+    </SwipeBack>
   );
 }
 

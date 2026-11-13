@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-13** — **Späť potiahnutím aj v jedálničku a pri klientovi, menšie tlačidlá v kalendári** (`feature/buttons-fixes`, bez migrácie).
+  - **Späť potiahnutím:** detail jedálnička a prehľad klienta už nemajú odkaz „Späť na jedálničky“ / „Späť na klientov“ — na mobile sa späť ide potiahnutím zľava doprava (`SwipeBack`, ako pri detaile tréningového plánu), na počítači bočným menu. Záložky klienta a grafy gesto nespúšťajú (`data-no-swipe`).
+  - **Kalendár:** tlačidlá Upraviť / Zmazať pri termíne sú menšie (počítač ~31 px, mobil ~36 px).
+  - **Zoznam klientov (počítač):** stavové štítky („aktívny“, „N dní bez tréningu“) sú zarovnané pod sebou — dátum „od …“ má pevnú šírku.
+
 - **2026-11-12** — **Builder tréningu u trénera ako u klienta + úpravy dizajnu** (`feature/design-fixes`, bez migrácie).
   - **Spoločný vzhľad:** trénerov aj klientov builder tréningu používajú jeden štýl (`app/components/workoutBuilder.module.css`). Na počítači je to vycentrovaný stĺpec ako v portáli: cviky dňa ako karty, pod nimi karta **Vlastný cvik** (vždy viditeľná; u trénera aj „Partia“ a „+ Pridať do knižnice“) a **Knižnica cvikov** zbalená, kým ju používateľ neotvorí.
   - **Dni ako prepínač:** dni sú v jednej dráhe (vybraný deň = biely čip, pri každom počet cvikov), nie ako tlačidlá. Na počítači sú v rovnomernej mriežke, na mobile v jednom riadku, ktorý sa posúva do strany. Pod dráhou sú len akcie Premenovať · Duplikovať · Zmazať deň.

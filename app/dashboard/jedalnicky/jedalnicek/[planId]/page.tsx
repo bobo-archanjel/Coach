@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { SwipeBack } from "@/app/components/SwipeBack";
 import { AppLink as Link } from "../../../../components/AppLink";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -10,14 +10,7 @@ import { PlanTitle } from "../../../treningy/[planId]/PlanTitle";
 import { renameMealPlanAction } from "../actions";
 import styles from "@/app/dashboard/dashboard.module.css";
 
-const BackIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-    <path d="M9 3 4 7l5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 export default async function MealPlanDetailPage({ params }: { params: Promise<{ planId: string }> }) {
-  const t = await getTranslations("mealPlans");
   const { planId } = await params;
   const supabase = await createClient();
   const {
@@ -63,12 +56,8 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   }
 
   return (
-    <>
-      <Link href="/dashboard/jedalnicky" className={styles.backLink}>
-        <BackIcon />
-        {t("back")}
-      </Link>
-
+    // Späť na zoznam jedálničkov: na mobile potiahnutím zľava doprava (SwipeBack), na počítači bočné menu.
+    <SwipeBack href="/dashboard/jedalnicky">
       {/* Rovnaké rozloženie ako detail tréningového plánu: názov s ceruzkou + stav vpravo,
           pod tým súmerná mriežka akcií konceptu, menej časté akcie dole za čiarou. */}
       <div className={styles.detailHead}>
@@ -100,6 +89,6 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
           visibleToClient={visibleToClient}
         />
       </div>
-    </>
+    </SwipeBack>
   );
 }

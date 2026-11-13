@@ -54,7 +54,7 @@ export function ClientDetailTabs({ sections, initialId }: { sections: ClientDeta
 
   return (
     <div className={styles.clientDetail}>
-      <div className={styles.clientTabs} role="tablist" aria-label={t("tabsAria")} onKeyDown={onKeyDown}>
+      <div className={styles.clientTabs} role="tablist" aria-label={t("tabsAria")} onKeyDown={onKeyDown} data-no-swipe>
         {sections.map((s, i) => {
           const selected = s.id === active?.id;
           return (
