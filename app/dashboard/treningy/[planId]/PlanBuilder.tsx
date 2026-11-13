@@ -11,7 +11,6 @@ import { RenameDayForm } from "./RenameDayForm";
 import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "@/app/components/workoutBuilder.module.css";
-import { EmptyDayCard } from "@/app/components/EmptyDayCard";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 
 interface Day {
@@ -202,9 +201,7 @@ export function PlanBuilder({
                   onMove={(direction) => moveExercise(activeDay.id, entry.entry_id, direction)}
                 />
               ))
-            ) : (
-              <EmptyDayCard title={t("noExercises")} tip={{ title: t("howToAdd"), text: t("howToAddText") }} />
-            )
+            ) : null
           ) : null}
         </div>
       </div>

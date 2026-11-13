@@ -62,7 +62,7 @@ test.describe("Builder: akcie dňa a prázdne stavy", () => {
     await expect(page.getByText(/Pridaj prvý deň/)).toHaveCount(0);
   });
 
-  test("klient: prázdne stavy v karte, návod za otáznikom, akcie dňa v jednom riadku", async ({ page }) => {
+  test("klient: deň bez cvikov bez prázdnej karty, karta „Pridať nový cvik“, akcie dňa v jednom riadku", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
     await expect(page.getByRole("button", { name: "+ deň" })).toBeVisible();
@@ -73,14 +73,13 @@ test.describe("Builder: akcie dňa a prázdne stavy", () => {
     await dayDialog.locator("#client-day-name").fill("Push");
     await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
     await expect(dayDialog).toHaveCount(0);
-    await expect(page.getByText("Zatiaľ žiadne cviky", { exact: true })).toBeVisible();
-    // pôvodný dlhý text už nie je voľne na stránke — je v okne za otáznikom
-    await expect(page.getByText(/Klikni na cvik v knižnici/)).toHaveCount(0);
-    await page.getByRole("button", { name: "Vysvetlivka: Ako pridať cvik" }).click();
-    const tip = page.getByRole("dialog", { name: "Ako pridať cvik" });
-    await expect(tip).toContainText("Klikni na cvik v knižnici");
-    await tip.getByRole("button", { name: "Zavrieť" }).click();
-    await expect(tip).toHaveCount(0);
+    // karta „Zatiaľ žiadne cviky“ s otáznikom zrušená (feature/builder-polish) — pod dňom je
+    // rovno karta na pridanie cviku
+    await expect(page.getByText("Zatiaľ žiadne cviky", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Vysvetlivka: Ako pridať cvik" })).toHaveCount(0);
+    // nadpis karty vlastného cviku je „Pridať nový cvik“ (predtým „Vlastný cvik“)
+    await expect(page.getByText("Pridať nový cvik", { exact: true })).toBeVisible();
+    await expect(page.getByText("Vlastný cvik", { exact: true })).toHaveCount(0);
 
     await expectOneRow([
       page.getByRole("button", { name: "Premenovať", exact: true }),

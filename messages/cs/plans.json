@@ -133,9 +133,6 @@
     "confirmSave": "Potvrdit a uložit",
     "deleteDraft": "Smazat koncept",
     "rename": "Přejmenovat",
-    "noExercises": "Zatím žádné cviky",
-    "howToAdd": "Jak přidat cvik",
-    "howToAddText": "Klikni na cvik v knihovně — přidá se sem s výchozími hodnotami, které si hned upravíš.",
     "doneBadge": "Hotovo",
     "lockedTitle": "Plán je uzamčený",
     "lockedText": "Klient tento plán celý odcvičil — plán je uzamčený. Dole si ho můžeš stáhnout jako PDF nebo uložit jako šablonu a z ní vytvořit nový.",
@@ -150,7 +147,7 @@
     "tempoValue": "tempo {value}",
     "restValue": "pauza {seconds} s",
     "exerciseDetail": "Detail cviku {name}",
-    "customHeading": "Vlastní cvik",
+    "customHeading": "Přidat nový cvik",
     "daysAria": "Tréninkové dny",
     "newDayTitle": "Nový den",
     "close": "Zavřít"
