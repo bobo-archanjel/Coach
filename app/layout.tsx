@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ogLocale } from "@/lib/i18n/locales";
 import { MESSAGES } from "@/messages";
 import { clientMessages } from "@/lib/i18n/clientMessages";
@@ -89,6 +90,7 @@ export default async function RootLayout({
             strategy="afterInteractive"
           />
         )}
+        <SpeedInsights />
       </body>
     </html>
   );
