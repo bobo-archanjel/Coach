@@ -85,11 +85,6 @@ export default async function StravaPage() {
       <section aria-label={t("mealPlan")}>
         <div className={s.sectionHead}>
           <h2 className={s.sectionTitle}>{mealPlanName ?? t("mealPlan")}</h2>
-          {mealPlanId && mealDays.length > 0 && (
-            <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
-              {t("downloadPdf")}
-            </a>
-          )}
         </div>
         {mealDays.length === 0 ? (
           <div className={s.panel}>
@@ -131,6 +126,14 @@ export default async function StravaPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+        {/* PDF až pod jedálničkom (nie v hlavičke sekcie) */}
+        {mealPlanId && mealDays.length > 0 && (
+          <div className={s.mealPdfRow}>
+            <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
+              {t("downloadPdf")}
+            </a>
           </div>
         )}
       </section>

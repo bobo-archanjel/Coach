@@ -3220,16 +3220,6 @@
   opacity: 0.6;
   cursor: progress;
 }
-/* Formulár nového dňa vo vlastnom tréningu: popis "Názov tréningu" na vlastnom riadku
-   nad poľom (pole + Pridať/Zrušiť pod ním). */
-.trAddDayForm {
-  flex-wrap: wrap;
-  width: 100%;
-}
-.trDayNameLabel {
-  flex-basis: 100%;
-  margin-bottom: 0;
-}
 .trNameField {
   display: grid;
   gap: 8px;
@@ -3265,6 +3255,12 @@
 /* ======================================================================
    Strava
    ====================================================================== */
+/* „Stiahnuť PDF“ pod jedálničkom v Strave */
+.mealPdfRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
 .kcalHero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

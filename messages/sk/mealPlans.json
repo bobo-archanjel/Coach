@@ -50,7 +50,11 @@
     "duplicateTitle": "Pridá kópiu tohto dňa aj s potravinami na koniec",
     "maxDays": "Jedálniček má už maximum dní",
     "duplicate": "Duplikovať",
-    "deleteDay": "Zmazať deň"
+    "deleteDay": "Zmazať deň",
+    "renameDayTitle": "Premenovať deň",
+    "newDayTitle": "Nový deň",
+    "close": "Zavrieť",
+    "daysAria": "Dni jedálnička"
   },
   "controls": {
     "draftBadge": "Koncept — klient ho ešte nevidí",
