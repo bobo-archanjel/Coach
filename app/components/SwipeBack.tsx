@@ -14,7 +14,18 @@ const ANIM_MS = 180;
 // (ťuknutie), prvky s vlastným vodorovným posúvaním (dráha dní) — [data-no-swipe].
 const NO_SWIPE = "form, textarea, input, select, button, a, [data-no-swipe], [role='dialog']";
 
-export function SwipeBack({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
+/** `href` = späť na túto adresu; `onBack` = vlastná akcia (napr. zatvoriť builder v portáli). */
+export function SwipeBack({
+  href,
+  onBack,
+  className,
+  children,
+}: {
+  href?: string;
+  onBack?: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
   const router = useRouter();
   const start = useRef<{ x: number; y: number; dragging: boolean } | null>(null);
   const [dx, setDx] = useState(0);
@@ -67,7 +78,14 @@ export function SwipeBack({ href, className, children }: { href: string; classNa
         setAnimating(true);
         if (dx >= MIN_DX) {
           setDx(window.innerWidth);
-          window.setTimeout(() => router.push(href), ANIM_MS);
+          window.setTimeout(() => {
+            if (onBack) {
+              onBack();
+              // obsah ostáva na stránke (napr. builder → zoznam v tom istom komponente) — späť na miesto
+              setAnimating(false);
+              setDx(0);
+            } else if (href) router.push(href);
+          }, ANIM_MS);
         } else {
           setDx(0);
         }

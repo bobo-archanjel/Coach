@@ -3196,28 +3196,12 @@
   align-items: center;
   gap: 8px;
 }
-/* builder — horná lišta, názov tréningu */
+/* builder — horná lišta (len „Uložiť“ vpravo; späť = potiahnutie / späť v prehliadači), názov tréningu */
 .trBuilderTop {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-}
-.trBackBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 44px;
-  padding: 8px 16px 8px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface-solid);
-  color: var(--paper);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow-1);
 }
 .trSaveBtn {
   min-height: 44px;

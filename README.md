@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-13** — **Builder tréningu bez „Späť“ a bez karty „Zatiaľ žiadny deň“, Správy v menu za Jedálničkami** (`feature/builder-cleanup`, bez migrácie).
+  - **Klient — vlastný tréning bez tlačidla „Späť“:** z buildera sa odchádza potiahnutím zľava doprava (mobil), späť v prehliadači alebo „Tréning“ v menu. Otvorenie buildera pridá do histórie `?tvorba=1` (pushState, bez načítania stránky), jeho zmiznutie builder zavrie (`TrainingSection`). „Uložiť“ ostáva vpravo hore.
+  - **Tréner aj klient:** karta „Zatiaľ žiadny deň / Pridaj prvý deň…“ zrušená — klik na cvik bez dňa hlási chybu „Najprv pridaj tréningový deň“.
+  - **Menu trénera:** Klienti, Tréningy, Jedálničky, **Správy**, Kalendár, Šablóny (aj spodná lišta na mobile).
+
 - **2026-11-13** — **Späť potiahnutím aj v jedálničku a pri klientovi, menšie tlačidlá v kalendári** (`feature/buttons-fixes`, bez migrácie).
   - **Späť potiahnutím:** detail jedálnička a prehľad klienta už nemajú odkaz „Späť na jedálničky“ / „Späť na klientov“ — na mobile sa späť ide potiahnutím zľava doprava (`SwipeBack`, ako pri detaile tréningového plánu), na počítači bočným menu. Záložky klienta a grafy gesto nespúšťajú (`data-no-swipe`).
   - **Kalendár:** tlačidlá Upraviť / Zmazať pri termíne sú menšie (počítač ~31 px, mobil ~36 px).

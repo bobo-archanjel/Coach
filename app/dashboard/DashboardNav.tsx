@@ -82,13 +82,14 @@ function TemplatesIcon() {
   );
 }
 
+// Poradie v menu (aj v spodnej lište na mobile): Správy hneď za Jedálničkami (feature/builder-cleanup).
 const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean }[] = [
   { href: "/dashboard", label: "clients", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "plans", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/jedalnicky", label: "mealPlans", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
+  { href: "/dashboard/spravy", label: "messages", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
   { href: "/dashboard/kalendar", label: "calendar", Icon: CalendarIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/kalendar") },
   { href: "/dashboard/sablony", label: "templates", Icon: TemplatesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/sablony") },
-  { href: "/dashboard/spravy", label: "messages", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
 ];
 
 /**
