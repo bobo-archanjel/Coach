@@ -6,6 +6,7 @@ import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
 import { tourStepsFor } from "@/lib/onboarding/tourSteps";
 import { OnboardingTour } from "../components/OnboardingTour";
+import { SectionGuide } from "../components/SectionGuide";
 import { NavigationProgressProvider } from "../components/NavigationProgress";
 import { DashboardNav } from "./DashboardNav";
 import { DashboardSkeletonOverlay } from "./DashboardSkeletonOverlay";
@@ -89,6 +90,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </main>
           <Suspense fallback={null}>
             <OnboardingTour steps={await tourStepsFor("trainer")} tourSeen={tourSeen} home="/dashboard" />
+            <SectionGuide role="trainer" />
           </Suspense>
         </div>
       </NavigationProgressProvider>

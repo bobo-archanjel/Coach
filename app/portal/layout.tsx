@@ -8,6 +8,7 @@ import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
 import { tourStepsFor } from "@/lib/onboarding/tourSteps";
 import { LogoMark } from "@/app/components/LogoMark";
 import { OnboardingTour } from "@/app/components/OnboardingTour";
+import { SectionGuide } from "@/app/components/SectionGuide";
 import { NavigationProgressProvider } from "@/app/components/NavigationProgress";
 import { loadPortalShell } from "@/app/portal/portalShell";
 import { PortalNav } from "./PortalNav";
@@ -74,6 +75,7 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
         <Suspense fallback={null}>
           <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} home="/portal" />
+          <SectionGuide role="client" />
         </Suspense>
       </NavigationProgressProvider>
     </div>
