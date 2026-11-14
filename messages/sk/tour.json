@@ -55,9 +55,313 @@
       "title": "Chat",
       "body": "Priamy rozhovor s trénerom, keď ho máš — správy aj systémové upozornenia na jednom mieste."
     },
+    "navAi": {
+      "title": "AI Kouč",
+      "body": "Pomocník, ktorý pozná tvoj plán aj zápisy a odpovie hneď, keď tréner práve nemôže."
+    },
     "navProfil": {
       "title": "Profil",
       "body": "Klikni na svoju ikonu — v Profile je kód pre trénera, prepojenie účtu aj tento návod, keby si si ho chcel prejsť znova."
+    }
+  },
+  "guides": {
+    "t-clients": {
+      "add": {
+        "title": "Nový klient",
+        "body": "Pridaj klienta kódom z jeho appky (Profil → Môj FitPilot kód), alebo mu vytvor záznam, aj keď účet ešte nemá."
+      },
+      "card": {
+        "title": "Karta klienta",
+        "body": "Ťuknutím otvoríš detail klienta. Štítok vpravo ukazuje, či trénuje, alebo koľko dní už vynechal."
+      },
+      "unread": {
+        "title": "Neprečítané správy",
+        "body": "Odznak ukazuje počet nových správ od klienta. Ťuknutím sa dostaneš rovno do chatu s ním."
+      },
+      "search": {
+        "title": "Hľadanie",
+        "body": "Klienta nájdeš podľa mena alebo cieľa, aj bez diakritiky."
+      },
+      "bell": {
+        "title": "Upozornenia",
+        "body": "Zvonček zbiera nové správy, blížiace sa termíny a klientov, ktorí meškajú s tréningom."
+      }
+    },
+    "t-client": {
+      "tabs": {
+        "title": "Všetko o klientovi",
+        "body": "Detail klienta je rozdelený do štyroch záložiek. Prepínaš medzi nimi tu."
+      },
+      "trainings": {
+        "title": "Tréningy",
+        "body": "Plány klienta a jeho posledné tréningy. Pri viacerých plánoch tu nastavíš, ktorý je aktívny — ten klient vidí na karte Dnes."
+      },
+      "nutrition": {
+        "title": "Makro cieľ",
+        "body": "Zadaj vstupné údaje a appka spočíta kalórie a makrá. Nájdeš tu aj klientove jedálničky."
+      },
+      "analytics": {
+        "title": "Analytika",
+        "body": "Ako klient plní tréningy a stravu, vývoj váhy a sily. Prehľad si stiahneš ako PDF, merania ako CSV."
+      },
+      "info": {
+        "title": "Info",
+        "body": "Pozývací kód, základné údaje a tvoje poznámky. Dole ukončíš spoluprácu."
+      }
+    },
+    "t-plans": {
+      "new": {
+        "title": "Nový plán",
+        "body": "Zadaj názov, vyber jedného či viacerých klientov a plán poskladaj ručne v builderi."
+      },
+      "ai": {
+        "title": "AI generátor",
+        "body": "Vyber cieľ, skúsenosť a vybavenie. AI navrhne celý plán z knižnice cvikov a ty ho len doladíš."
+      },
+      "list": {
+        "title": "Tvoje plány",
+        "body": "Koncept klient ešte nevidí, Aktívny práve cvičí a Hotovo znamená, že odcvičil všetky dni."
+      }
+    },
+    "t-plan": {
+      "days": {
+        "title": "Tréningové dni",
+        "body": "Medzi dňami prepínaš tu, číslo ukazuje počet cvikov. Nový deň pridáš cez „+ deň“."
+      },
+      "dayActions": {
+        "title": "Úprava dňa",
+        "body": "Vybraný deň premenuješ, duplikuješ alebo zmažeš."
+      },
+      "exercise": {
+        "title": "Cvik",
+        "body": "Pri cviku nastavíš série, opakovania, váhu, tempo a pauzu, zmeníš jeho poradie alebo ho odstrániš."
+      },
+      "addExercise": {
+        "title": "Pridať nový cvik",
+        "body": "Napíš názov a cvik pridaj do vybraného dňa. Cez „+ Pridať do knižnice“ si ho uložíš aj pre ďalšie plány."
+      },
+      "library": {
+        "title": "Knižnica cvikov",
+        "body": "Rozbaľ ju, vyhľadaj cvik alebo filtruj podľa partie a ťuknutím ho pridaj do vybraného dňa."
+      },
+      "publish": {
+        "title": "Zverejnenie",
+        "body": "Kým je plán koncept, klient ho nevidí. Po zverejnení sa mu ukáže v appke."
+      },
+      "footer": {
+        "title": "Šablóna a PDF",
+        "body": "Hotový plán si ulož ako šablónu pre ďalších klientov alebo ho stiahni ako PDF."
+      }
+    },
+    "t-mealplans": {
+      "new": {
+        "title": "Nový jedálniček",
+        "body": "Zadaj názov a vyber klientov. Jedlá potom poskladáš po dňoch."
+      },
+      "list": {
+        "title": "Tvoje jedálničky",
+        "body": "Koncept klient ešte nevidí, Aktívny má práve v sekcii Strava. Pri každom vidíš počet dní a kalórie na deň."
+      }
+    },
+    "t-mealplan": {
+      "days": {
+        "title": "Dni jedálnička",
+        "body": "Medzi dňami prepínaš tu, číslo ukazuje počet potravín. Nový deň pridáš cez „+ deň“, akcie dňa sú hneď pod dráhou."
+      },
+      "slots": {
+        "title": "Jedlá dňa",
+        "body": "Pri raňajkách, obede či večeri ťukni na + a vyber potravinu s gramážou. Gramáž neskôr zmeníš priamo v riadku."
+      },
+      "totals": {
+        "title": "Súčet dňa",
+        "body": "Kalórie a makrá dňa sa prepočítajú pri každej zmene."
+      },
+      "publish": {
+        "title": "Zverejnenie",
+        "body": "Koncept klient nevidí — pošleš mu ho cez „Uložiť a poslať“. Neskoršie úpravy potvrdíš tlačidlom „Uložiť zmeny“."
+      },
+      "footer": {
+        "title": "Šablóna a PDF",
+        "body": "Jedálniček si ulož ako šablónu alebo ho stiahni ako PDF."
+      }
+    },
+    "t-inbox": {
+      "list": {
+        "title": "Konverzácie",
+        "body": "Každý klient má vlastné vlákno. Číslo ukazuje neprečítané správy."
+      },
+      "bulk": {
+        "title": "Hromadná správa",
+        "body": "Jednu správu pošleš naraz viacerým klientom — každému príde do jeho vlákna."
+      }
+    },
+    "t-calendar": {
+      "new": {
+        "title": "Nový termín",
+        "body": "Vyber klienta (aj viacerých naraz), dátum a čas. Názov a poznámka sú voliteľné."
+      },
+      "list": {
+        "title": "Nadchádzajúce termíny",
+        "body": "Termíny sú zoradené po dňoch. Každý môžeš upraviť alebo zmazať."
+      },
+      "bell": {
+        "title": "Pripomienka",
+        "body": "Deň pred termínom ho zvonček pripomenie tebe aj klientovi."
+      }
+    },
+    "t-templates": {
+      "tabs": {
+        "title": "Druh šablón",
+        "body": "Prepni medzi šablónami tréningov a jedálničkov. Šablónu vytvoríš v builderi cez „Uložiť ako šablónu“."
+      },
+      "search": {
+        "title": "Hľadanie",
+        "body": "Šablónu nájdeš podľa názvu."
+      },
+      "card": {
+        "title": "Použitie šablóny",
+        "body": "„Použiť“ vytvorí zo šablóny koncept pre vybraných klientov, ktorý ešte upravíš. „Náhľad“ ukáže jej dni."
+      }
+    },
+    "t-settings": {
+      "guide": {
+        "title": "Návod",
+        "body": "Tohto sprievodcu si tu kedykoľvek spustíš znova."
+      }
+    },
+    "c-today": {
+      "hero": {
+        "title": "Tvoj tréning",
+        "body": "Tu vidíš ďalší tréning z aktívneho plánu. Tlačidlom „Začať tréning“ spustíš zapisovanie sérií."
+      },
+      "total": {
+        "title": "Môj prehľad",
+        "body": "Koľko tréningov máš za sebou a ako sa ti darí trénovať pravidelne."
+      },
+      "week": {
+        "title": "Týždeň",
+        "body": "Dni s tréningom sú vyznačené. Ťuknutím na deň si pozrieš, čo si odcvičil, šípkami prejdeš na iný týždeň."
+      },
+      "measure": {
+        "title": "Meranie",
+        "body": "Zapisuj si váhu a obvod pása. Podľa nich vidíš pokrok ty aj tvoj tréner."
+      },
+      "bell": {
+        "title": "Upozornenia",
+        "body": "Zvonček ti ohlási novú správu, nový plán či jedálniček a blížiaci sa termín."
+      }
+    },
+    "c-workout": {
+      "exercise": {
+        "title": "Zapisovanie sérií",
+        "body": "Ku každej sérii zapíš váhu a počet opakovaní. Ďalšiu sériu pridáš cez „Pridať sériu“."
+      },
+      "stopwatch": {
+        "title": "Stopky a časovač",
+        "body": "Odmeraj si tréning alebo pauzu medzi sériami."
+      },
+      "meta": {
+        "title": "Náročnosť a poznámka",
+        "body": "Na konci ohodnoť náročnosť tréningu a pripíš poznámku pre trénera."
+      },
+      "finish": {
+        "title": "Ukončenie",
+        "body": "Tréning ulož cez „Ukončiť tréning“. Zapísané hodnoty môžeš ešte nejaký čas upraviť."
+      }
+    },
+    "c-training": {
+      "own": {
+        "title": "Vlastný tréning",
+        "body": "Zostav si vlastný plán z knižnice cvikov — aj keď máš plán od trénera."
+      },
+      "plans": {
+        "title": "Tvoje plány",
+        "body": "Ťukni na plán: uvidíš jeho dni a cviky, spustíš tréning alebo plán nastavíš ako aktívny. Aktívny plán sa ukazuje na karte Dnes."
+      },
+      "templates": {
+        "title": "Moje šablóny",
+        "body": "Vlastný tréning si môžeš uložiť ako šablónu a neskôr z nej vytvoriť nový."
+      }
+    },
+    "c-builder": {
+      "name": {
+        "title": "Názov tréningu",
+        "body": "Pomenuj si tréning, aby si ho v zozname ľahko našiel."
+      },
+      "days": {
+        "title": "Tréningové dni",
+        "body": "Nový deň pridáš cez „+ deň“. Vybraný deň premenuješ, duplikuješ alebo zmažeš hneď pod dráhou."
+      },
+      "custom": {
+        "title": "Pridať nový cvik",
+        "body": "Napíš názov a cvik sa pridá do vybraného dňa."
+      },
+      "library": {
+        "title": "Knižnica cvikov",
+        "body": "Rozbaľ ju, vyhľadaj cvik alebo filtruj podľa partie a vybavenia. Ťuknutím na názov uvidíš ukážku cviku."
+      },
+      "save": {
+        "title": "Uloženie",
+        "body": "Zmeny ulož tu. Bez uloženia odídeš potiahnutím zľava doprava alebo cez menu."
+      }
+    },
+    "c-nutrition": {
+      "goal": {
+        "title": "Makro cieľ",
+        "body": "Tvoj denný cieľ kalórií a makier. Appka ho počíta z tvojich údajov, alebo ti ho nastaví tréner."
+      },
+      "plan": {
+        "title": "Jedálniček",
+        "body": "Jedálniček od trénera po dňoch, s gramážou a kalóriami každého jedla."
+      },
+      "pdf": {
+        "title": "Stiahnuť PDF",
+        "body": "Jedálniček si stiahni a maj ho poruke aj bez appky."
+      }
+    },
+    "c-diary": {
+      "totals": {
+        "title": "Dnešný príjem",
+        "body": "Kalórie a makrá sa sčítavajú za teba a porovnávajú s tvojím cieľom."
+      },
+      "nav": {
+        "title": "Iný deň",
+        "body": "Šípkami prejdeš na predošlé dni a jedlo doplníš aj spätne."
+      },
+      "slots": {
+        "title": "Pridanie jedla",
+        "body": "Pri raňajkách, obede či večeri ťukni na +, vyhľadaj potravinu alebo naskenuj čiarový kód a zadaj gramáž."
+      }
+    },
+    "c-chat": {
+      "composer": {
+        "title": "Správa trénerovi",
+        "body": "Napíš trénerovi, kedykoľvek niečo potrebuješ. Novú odpoveď ti ohlási zvonček aj bodka pri Chate."
+      }
+    },
+    "c-ai": {
+      "notice": {
+        "title": "Čo AI Kouč vie",
+        "body": "Pozná tvoj plán aj zápisy a poradí hneď. Je to pomocník, nie náhrada trénera ani lekára."
+      },
+      "composer": {
+        "title": "Pýtaj sa",
+        "body": "Spýtaj sa na techniku cviku, stravu či regeneráciu. Pri cvikoch ti ukáže aj ukážku."
+      }
+    },
+    "c-profile": {
+      "trainer": {
+        "title": "Prepojenie s trénerom",
+        "body": "Svoj FitPilot kód pošli trénerovi — pridá si ťa ním. Prepojenie tu neskôr aj zrušíš."
+      },
+      "appearance": {
+        "title": "Vzhľad a jazyk",
+        "body": "Prepni si svetlý alebo tmavý režim. O kartu nižšie zmeníš jazyk appky."
+      },
+      "guide": {
+        "title": "Návod",
+        "body": "Tohto sprievodcu si tu kedykoľvek spustíš znova."
+      }
     }
   }
 }

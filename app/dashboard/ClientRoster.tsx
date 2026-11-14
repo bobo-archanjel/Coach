@@ -65,7 +65,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
   return (
     <>
       {items.length > SEARCH_THRESHOLD && (
-        <div className={styles.rosterSearch}>
+        <div className={styles.rosterSearch} data-tour="clients-search">
           <input
             type="search"
             value={query}
@@ -108,6 +108,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                         <Link
                           href={`/dashboard/spravy?client=${encodeURIComponent(client.id)}`}
                           className={`${styles.unreadPill} ${styles.unreadPillLink}`}
+                          data-tour="clients-unread"
                           title={t("unreadTitle", { count: unread })}
                         >
                           {t("unreadPill", { count: unread })}
@@ -139,7 +140,7 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                 {cardContent}
               </div>
             ) : (
-              <div key={client.id} className={`${cardClassName} ${styles.clientCardStretched}`}>
+              <div key={client.id} className={`${cardClassName} ${styles.clientCardStretched}`} data-tour="clients-card">
                 {cardContent}
               </div>
             );

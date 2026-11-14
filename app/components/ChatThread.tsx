@@ -695,6 +695,7 @@ export function ChatThread({
         <form
           ref={composerRef}
           className={styles.composer}
+          data-tour="chat-composer"
           onSubmit={submit}
           // Celý composer je "pri poli": ťuknutie medzi tlačidlá (medzery v páse emoji,
           // okraj okolo poľa) klávesnicu nezatvára. KeyboardState tu fokus nezruší

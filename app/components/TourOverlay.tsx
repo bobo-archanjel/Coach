@@ -1,12 +1,13 @@
 "use client";
 
 // FitPilot — spoločné vykreslenie sprievodcu: zvýraznenie skutočného prvku stránky
-// (`data-tour`) + bublina s textom a krokmi. Používa ho úvodný sprievodca menu
-// (OnboardingTour) aj sprievodcovia sekcií (SectionGuide).
+// (`data-tour`) + bublina s textom. Používa ho plynulý sprievodca cez sekcie
+// (OnboardingTour) aj sprievodcovia hlbších okien (SectionGuide).
 //
-// Kroky, ktorých cieľ pri spustení na stránke nie je (napr. odznak správ, keď žiadna
-// neprišla), sa vynechajú — sprievodca nikdy neukáže prázdnu obrazovku. Bez jediného
-// cieľa sa hneď ukončí.
+//  - TourBubble: jeden krok, riadený zvonka (kto je ďalší krok, rozhoduje volajúci).
+//    `step = null` = čaká sa (prechod na inú stránku) — obrazovka ostáva stlmená.
+//  - TourOverlay: jednoduchý zoznam krokov na jednej stránke. Kroky, ktorých cieľ pri
+//    spustení na stránke nie je, sa vynechajú; bez jediného cieľa sa hneď ukončí.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -35,23 +36,33 @@ export function findTourTarget(selector: string): Element | null {
   return null;
 }
 
-export function TourOverlay({ steps, onFinish }: { steps: OverlayStep[]; onFinish: () => void }) {
+export function TourBubble({
+  step,
+  dots,
+  onBack,
+  onNext,
+  last,
+  onSkip,
+}: {
+  step: OverlayStep | null;
+  /** bodky postupu: počet a ktorá svieti (kroky jednej stránky, alebo sekcie plynulého sprievodcu) */
+  dots: { count: number; active: number };
+  /** bez `onBack` sa „Späť“ neukáže */
+  onBack?: () => void;
+  onNext: () => void;
+  /** posledný krok — „Dokončiť“ namiesto „Ďalej“ */
+  last: boolean;
+  onSkip: () => void;
+}) {
   const t = useTranslations("tour");
-  // kroky s viditeľným cieľom v čase spustenia (komponent sa pripája až na klientovi)
-  const [list] = useState(() => steps.filter((s) => findTourTarget(s.target)));
-  const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const [tipHeight, setTipHeight] = useState(190);
   const tipRef = useRef<HTMLDivElement>(null);
-  const step = list[index] as OverlayStep | undefined;
-
-  useEffect(() => {
-    if (list.length === 0) onFinish();
-  }, [list, onFinish]);
+  const target = step?.target ?? null;
 
   const measure = useCallback(() => {
-    if (!step) return;
-    const el = findTourTarget(step.target);
+    if (!target) return;
+    const el = findTourTarget(target);
     if (!el) return; // cieľ na chvíľu zmizol (prekreslenie) — ostáva posledná známa poloha
     const r = el.getBoundingClientRect();
     // orezané na obrazovku — rámik je vidieť aj pri cieli vyššom / širšom než okno
@@ -60,13 +71,13 @@ export function TourOverlay({ steps, onFinish }: { steps: OverlayStep[]; onFinis
     const bottom = Math.min(r.bottom + PAD, window.innerHeight - EDGE);
     const right = Math.min(r.right + PAD, window.innerWidth - EDGE);
     setRect({ top, left, width: Math.max(right - left, 0), height: Math.max(bottom - top, 0) });
-  }, [step]);
+  }, [target]);
 
   // Nový krok: cieľ do stredu obrazovky (vysoký cieľ od začiatku), potom meranie. Posun a
   // zmena veľkosti okna len premerajú — nikdy znova neposúvajú stránku.
   useEffect(() => {
-    if (!step) return;
-    const el = findTourTarget(step.target);
+    if (!target) return;
+    const el = findTourTarget(target);
     if (el) {
       const tall = el.getBoundingClientRect().height > window.innerHeight * 0.6;
       const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -81,41 +92,42 @@ export function TourOverlay({ steps, onFinish }: { steps: OverlayStep[]; onFinis
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [step, measure]);
+  }, [target, measure]);
 
+  // výška bubliny podľa textu kroku; `rect` v závislostiach — bublina sa vykreslí až po zmeraní cieľa
   useLayoutEffect(() => {
     const h = tipRef.current?.offsetHeight;
     if (h && h !== tipHeight) setTipHeight(h);
-  }, [step, tipHeight]);
+  }, [step, rect, tipHeight]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onFinish();
+      if (e.key === "Escape") onSkip();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onFinish]);
+  }, [onSkip]);
 
-  if (!step) return null;
-  const isLast = index === list.length - 1;
+  // čakanie na ďalšiu stránku: len stlmená obrazovka (kliky nikam neprepadnú)
+  if (!step || !rect) {
+    return <div className={`${styles.overlay} ${styles.veil}`} data-tour-overlay="" aria-hidden="true" />;
+  }
 
   // Bublina pod cieľom, ak je miesto, inak nad ním. Cieľ cez celú výšku okna (dlhý zoznam):
   // zvýrazní sa len jeho horná časť a bublina je pod ňou — nikdy cieľ neprekrýva.
   // Vodorovne od ľavého okraja cieľa, vždy celá v okne.
-  let tooltipStyle: React.CSSProperties = { opacity: 0 };
+  const width = Math.min(TOOLTIP_WIDTH, window.innerWidth - 32);
+  const need = tipHeight + TOOLTIP_GAP + 8;
+  const below = window.innerHeight - (rect.top + rect.height);
+  const left = Math.min(Math.max(rect.left, 16), window.innerWidth - width - 16);
   let spot = rect;
-  if (rect) {
-    const width = Math.min(TOOLTIP_WIDTH, window.innerWidth - 32);
-    const need = tipHeight + TOOLTIP_GAP + 8;
-    const below = window.innerHeight - (rect.top + rect.height);
-    const left = Math.min(Math.max(rect.left, 16), window.innerWidth - width - 16);
-    if (below >= need) tooltipStyle = { top: rect.top + rect.height + TOOLTIP_GAP, left, opacity: 1 };
-    else if (rect.top >= need) tooltipStyle = { bottom: window.innerHeight - rect.top + TOOLTIP_GAP, left, opacity: 1 };
-    else {
-      const height = Math.max(window.innerHeight - rect.top - need, 96);
-      spot = { ...rect, height };
-      tooltipStyle = { top: rect.top + height + TOOLTIP_GAP, left, opacity: 1 };
-    }
+  let tooltipStyle: React.CSSProperties;
+  if (below >= need) tooltipStyle = { top: rect.top + rect.height + TOOLTIP_GAP, left };
+  else if (rect.top >= need) tooltipStyle = { bottom: window.innerHeight - rect.top + TOOLTIP_GAP, left };
+  else {
+    const height = Math.max(window.innerHeight - rect.top - need, 96);
+    spot = { ...rect, height };
+    tooltipStyle = { top: rect.top + height + TOOLTIP_GAP, left };
   }
 
   return (
@@ -126,38 +138,56 @@ export function TourOverlay({ steps, onFinish }: { steps: OverlayStep[]; onFinis
       aria-label={t("label", { title: step.title })}
       data-tour-overlay=""
     >
-      {spot && (
-        <div
-          className={styles.spotlight}
-          style={{ top: spot.top, left: spot.left, width: spot.width, height: spot.height }}
-        />
-      )}
+      <div className={styles.spotlight} style={{ top: spot.top, left: spot.left, width: spot.width, height: spot.height }} />
       <div ref={tipRef} className={styles.tooltip} style={tooltipStyle}>
-        {list.length > 1 && (
+        {dots.count > 1 && (
           <div className={styles.dots} aria-hidden="true">
-            {list.map((s, i) => (
-              <span key={s.target} className={`${styles.dot} ${i === index ? styles.dotActive : ""}`} />
+            {Array.from({ length: dots.count }, (_, i) => (
+              <span key={i} className={`${styles.dot} ${i === dots.active ? styles.dotActive : ""}`} />
             ))}
           </div>
         )}
         <h3 className={styles.title}>{step.title}</h3>
         <p className={styles.body}>{step.body}</p>
         <div className={styles.actions}>
-          <button type="button" className={styles.skipBtn} onClick={onFinish}>
+          <button type="button" className={styles.skipBtn} onClick={onSkip}>
             {t("skip")}
           </button>
           <div className={styles.actionsRight}>
-            {index > 0 && (
-              <button type="button" className={styles.backBtn} onClick={() => setIndex((i) => i - 1)}>
+            {onBack && (
+              <button type="button" className={styles.backBtn} onClick={onBack}>
                 {t("back")}
               </button>
             )}
-            <button type="button" className={styles.nextBtn} onClick={() => (isLast ? onFinish() : setIndex((i) => i + 1))}>
-              {isLast ? t("finish") : t("next")}
+            <button type="button" className={styles.nextBtn} onClick={onNext}>
+              {last ? t("finish") : t("next")}
             </button>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export function TourOverlay({ steps, onFinish }: { steps: OverlayStep[]; onFinish: () => void }) {
+  // kroky s viditeľným cieľom v čase spustenia (komponent sa pripája až na klientovi)
+  const [list] = useState(() => steps.filter((s) => findTourTarget(s.target)));
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (list.length === 0) onFinish();
+  }, [list, onFinish]);
+
+  if (list.length === 0) return null;
+  const last = index === list.length - 1;
+  return (
+    <TourBubble
+      step={list[index]}
+      dots={{ count: list.length, active: index }}
+      onBack={index > 0 ? () => setIndex((i) => i - 1) : undefined}
+      onNext={() => (last ? onFinish() : setIndex((i) => i + 1))}
+      last={last}
+      onSkip={onFinish}
+    />
   );
 }

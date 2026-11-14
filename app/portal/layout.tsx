@@ -73,7 +73,7 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
         <Suspense fallback={null}>
-          <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} />
+          <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} home="/portal" />
         </Suspense>
       </NavigationProgressProvider>
     </div>

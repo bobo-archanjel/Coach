@@ -210,8 +210,8 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
 
   return (
     <section className={styles.diary} aria-label={t("section")}>
-      <div className={`${styles.panel} ${styles.diaryHero}`}>
-        <nav className={styles.diaryDateNav} aria-label={t("dayNav")}>
+      <div className={`${styles.panel} ${styles.diaryHero}`} data-tour="diary-totals">
+        <nav className={styles.diaryDateNav} aria-label={t("dayNav")} data-tour="diary-nav">
           {canGoBack ? (
             <Link href={diaryHref(prevDate, today)} className={styles.diaryDateArrow} aria-label={t("prevDay")}>
               ‹
@@ -265,7 +265,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
         </p>
       )}
 
-      <div className={`${food.slots} ${food.slotsCard}`}>
+      <div className={`${food.slots} ${food.slotsCard}`} data-tour="diary-slots">
         {groups.map((group) => (
           <MealSlotSection
             key={group.slot}

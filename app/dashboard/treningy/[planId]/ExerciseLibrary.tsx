@@ -84,7 +84,7 @@ export function ExerciseLibrary({
 
   return (
     <div className={styles.librarySection}>
-      <div className={styles.library}>
+      <div className={styles.library} data-tour="plan-add-exercise">
         <span className={styles.libraryHead}>{t("customHeading")}</span>
         <form className={`${styles.customExerciseForm} ${styles.customExerciseGrid}`}>
           <input
@@ -130,7 +130,7 @@ export function ExerciseLibrary({
         </form>
       </div>
 
-      <div className={styles.library}>
+      <div className={styles.library} data-tour="plan-library">
         <button type="button" className={styles.libraryToggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <span className={styles.libraryHead}>{t("library", { count: exercises.length })}</span>
           <ChevronIcon className={`${styles.libraryChevron} ${open ? styles.libraryChevronOpen : ""}`} />

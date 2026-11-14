@@ -39,6 +39,7 @@ export function TemplatesList({
   return (
     <>
       <input
+        data-tour="templates-search"
         className={styles.search}
         type="search"
         placeholder={kind === "workout" ? t("searchWorkout") : t("searchMeal")}

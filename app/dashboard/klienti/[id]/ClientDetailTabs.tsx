@@ -54,7 +54,7 @@ export function ClientDetailTabs({ sections, initialId }: { sections: ClientDeta
 
   return (
     <div className={styles.clientDetail}>
-      <div className={styles.clientTabs} role="tablist" aria-label={t("tabsAria")} onKeyDown={onKeyDown} data-no-swipe>
+      <div className={styles.clientTabs} role="tablist" aria-label={t("tabsAria")} onKeyDown={onKeyDown} data-no-swipe data-tour="client-tabs">
         {sections.map((s, i) => {
           const selected = s.id === active?.id;
           return (
@@ -71,6 +71,7 @@ export function ClientDetailTabs({ sections, initialId }: { sections: ClientDeta
               tabIndex={selected ? 0 : -1}
               className={`${styles.clientTab} ${selected ? styles.clientTabActive : ""}`}
               onClick={() => setActiveId(s.id)}
+              data-tour={`client-tab-${s.id}`}
             >
               {s.label}
             </button>

@@ -88,7 +88,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <DashboardSkeletonOverlay />
           </main>
           <Suspense fallback={null}>
-            <OnboardingTour steps={await tourStepsFor("trainer")} tourSeen={tourSeen} />
+            <OnboardingTour steps={await tourStepsFor("trainer")} tourSeen={tourSeen} home="/dashboard" />
           </Suspense>
         </div>
       </NavigationProgressProvider>

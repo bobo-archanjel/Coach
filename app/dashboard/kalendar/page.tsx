@@ -95,13 +95,13 @@ export default async function KalendarPage() {
         </h1>
       </div>
 
-      <div className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginBottom: 20 }}>
+      <div className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginBottom: 20 }} data-tour="calendar-new">
         <h3>{t("newAppointment")}</h3>
         <AddAppointmentForm clients={clients ?? []} />
       </div>
 
       {groups.length > 0 ? (
-        <div className={styles.cardStack}>
+        <div className={styles.cardStack} data-tour="calendar-list">
           {groups.map((group) => (
             <div key={group.key} className={`${styles.card} ${styles.cardFlatMobile}`}>
               <h3>{group.label}</h3>

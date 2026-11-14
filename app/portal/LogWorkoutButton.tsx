@@ -134,7 +134,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   };
 
   return (
-    <form ref={formRef} action={formAction} className={styles.logForm}>
+    <form ref={formRef} action={formAction} className={styles.logForm} data-tour="workout-form">
       <input type="hidden" name="day_id" value={dayId} readOnly />
       <input type="hidden" name="entries" value={JSON.stringify(entries)} readOnly />
       <input type="hidden" name="rpe" value={values.rpe} readOnly />
@@ -147,6 +147,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
         className={`btn btn-primary ${styles.startBtn}`}
         disabled={pending}
         onClick={askFinish}
+        data-tour="workout-finish"
       >
         {pending ? t("saving") : t("finish")}
       </button>

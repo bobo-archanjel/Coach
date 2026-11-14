@@ -281,6 +281,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
           type="button"
           className={plans.length > 0 ? styles.trBuildBtnGhost : styles.trBuildBtn}
           onClick={() => openBuilder(null)}
+          data-tour="training-own"
         >
           <PlusIcon /> {tr("ownWorkout")}
         </button>
@@ -295,7 +296,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       {/* Moje šablóny navrchu, ale zbalené — aj pri viacerých šablónach neodtlačia
           tréningy (od trénera) nižšie, kým ich klient sám nerozbalí. */}
       {templates.length > 0 && (
-        <div className={styles.trTplBox}>
+        <div className={styles.trTplBox} data-tour="training-templates">
           <button
             type="button"
             className={styles.trTplToggle}
@@ -370,7 +371,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
           </p>
         </div>
       ) : (
-        <ul className={styles.trPlanList}>
+        <ul className={styles.trPlanList} data-tour="training-plans">
           {plans.map((plan) => {
             const expanded = expandedId === plan.id;
             const selectedDay = expanded && selectedDayId ? (plan.days.find((d) => d.id === selectedDayId) ?? null) : null;

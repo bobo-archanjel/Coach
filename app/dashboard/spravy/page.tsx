@@ -140,7 +140,7 @@ export default async function SpravyPage({
           clients={(clients ?? []).map((c) => ({ id: c.id, full_name: c.full_name }))}
           inboxContent={
             <div className={styles.inboxGrid} data-has-selection={selectedClientId ? "true" : "false"}>
-              <div className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxList}`}>
+              <div className={`${styles.card} ${styles.cardFlatMobile} ${styles.inboxList}`} data-tour="inbox-list">
                 <div className={styles.roster}>
                   {threads.map((th) => {
                     const active = th.id === selectedClientId;

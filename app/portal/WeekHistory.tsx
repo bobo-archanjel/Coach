@@ -85,7 +85,7 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
   const hasHistory = week.days.some((d) => d.sessions.length > 0);
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-tour="today-week">
       <div className={styles.weekHead}>
         <p className={styles.panelLabel}>{week.isCurrentWeek ? t("thisWeek") : t("week")}</p>
         <div className={styles.weekPager}>

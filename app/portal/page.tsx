@@ -245,7 +245,7 @@ function Today({ data }: { data: PortalData }) {
       <section className={s.after} aria-label={t("overview")}>
         <h2 className={s.sectionTitle}>{t("myOverview")}</h2>
 
-        <div className={s.panel}>
+        <div className={s.panel} data-tour="today-total">
           <div className={s.panelHead}>
             <p className={s.panelLabel}>{t("doneTotal")}</p>
             <span className={s.panelIcon}>
@@ -270,7 +270,7 @@ function Today({ data }: { data: PortalData }) {
 
         <WeekHistory initial={week} />
 
-        <div className={s.panel}>
+        <div className={s.panel} data-tour="today-measure">
           <div className={s.panelHead}>
             <p className={s.panelLabel}>{t("measurement")}</p>
             <span className={s.panelIcon}>
@@ -292,7 +292,7 @@ function NextWorkout({ session }: { session: TodaySession }) {
   return (
     <>
         {/* ďalší tréning v poradí — terakotový pás s prstencom, pod ním akcia */}
-        <section className={s.hero} aria-label={complete ? t("planDone") : t("nextWorkout")}>
+        <section className={s.hero} aria-label={complete ? t("planDone") : t("nextWorkout")} data-tour="today-hero">
           <div className={s.heroBand}>
             <div className={s.heroText}>
               <p className={s.heroKicker}>
@@ -374,7 +374,7 @@ function EmptyPlan({ planName, canSwitch, hasTrainer }: { planName: string | nul
       ? t("noPlanTrainer")
       : t("noPlanOwn");
   return (
-    <section className={s.hero} aria-label={t("plan")}>
+    <section className={s.hero} aria-label={t("plan")} data-tour="today-hero">
       <div className={`${s.heroBand} ${s.heroBandEmpty}`}>
         <div className={s.heroText}>
           <p className={s.heroKicker}>{t("plan")}</p>

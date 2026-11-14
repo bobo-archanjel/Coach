@@ -109,7 +109,7 @@ export default async function NastaveniaPage() {
           <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>{t("billingHint")}</p>
         </div>
 
-        <div className={styles.card}>
+        <div className={styles.card} data-tour="settings-guide">
           <h3>{t("tour")}</h3>
           <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10, marginBottom: 14 }}>{t("tourHint")}</p>
           <Link href="/dashboard?tour=1" className="btn btn-ghost btn-sm">

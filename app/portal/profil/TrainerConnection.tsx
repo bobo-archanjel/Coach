@@ -89,7 +89,7 @@ export function TrainerConnection({
   };
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-tour="profile-trainer">
       {/* Kód len pre klienta bez trénera — spárovaného klienta by iný tréner aj tak
           odmietol (add_client_by_code → already_has_trainer), takže kód s výzvou
           "pošli ho trénerovi" len mätie (QA 2026-09-23). Po odpojení sa znova ukáže. */}
