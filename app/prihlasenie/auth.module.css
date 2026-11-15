@@ -9,6 +9,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
   align-items: center;
+  /* riadok len taký vysoký ako karta a v strede okna — panel značky (align-self: start)
+     potom začína pri hornom okraji karty na každej výške obrazovky */
+  align-content: center;
   gap: clamp(40px, 6vw, 96px);
   max-width: 1160px;
   margin: 0 auto;
@@ -21,6 +24,10 @@
   flex-direction: column;
   gap: 48px;
   min-width: 0;
+  /* hore pri karte formulára (logo na úrovni prepínača Prihlásenie / Registrácia), nie
+     vycentrované voči jej výške — vysoká karta ho inak stlačila nízko */
+  align-self: start;
+  padding-top: 40px;
 }
 .plateField {
   display: none;
