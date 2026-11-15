@@ -6,7 +6,7 @@ export default function TermsSk() {
   return (
     <>
       <h1>Obchodné podmienky</h1>
-      <p className={styles.updated}>Posledná aktualizácia: 22. september 2026</p>
+      <p className={styles.updated}>Posledná aktualizácia: 15. november 2026</p>
 
       <div className={styles.draftNotice}>
         <strong>Toto je pracovný návrh (draft).</strong> Nie je to právne záväzný text schválený
@@ -61,6 +61,15 @@ export default function TermsSk() {
       <h2>6. Trvanie a ukončenie</h2>
       <p>
         Používateľ môže appku prestať používať a požiadať o vymazanie účtu kedykoľvek priamo v appke.
+        Vymazanie sa vykoná po uplynutí 30 dní od žiadosti; dovtedy ho môže používateľ v appke zrušiť.
+        Po uplynutí lehoty sa údaje natrvalo vymažú.
+      </p>
+      <p>
+        Ak o vymazanie účtu požiada tréner, jeho klientov s vlastným účtom o tom appka upozorní.
+        Po vymazaní sa klienti od trénera odpoja a zverejnené tréningové plány a jedálničky, ktoré im
+        tréner pripravil, im zostanú v ich účte. Správy medzi trénerom a klientmi sa vymažú.
+      </p>
+      <p>
         Poskytovateľ si vyhradzuje právo pozastaviť alebo zrušiť účet v prípade porušenia týchto
         podmienok.
       </p>

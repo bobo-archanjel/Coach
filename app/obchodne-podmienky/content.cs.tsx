@@ -6,7 +6,7 @@ export default function TermsCs() {
   return (
     <>
       <h1>Obchodní podmínky</h1>
-      <p className={styles.updated}>Poslední aktualizace: 22. září 2026</p>
+      <p className={styles.updated}>Poslední aktualizace: 15. listopadu 2026</p>
 
       <div className={styles.draftNotice}>
         <strong>Toto je pracovní návrh (draft).</strong> Nejde o právně závazný text schválený právníkem.
@@ -60,6 +60,15 @@ export default function TermsCs() {
       <h2>6. Trvání a ukončení</h2>
       <p>
         Uživatel může aplikaci přestat používat a požádat o smazání účtu kdykoli přímo v aplikaci.
+        Smazání proběhne po uplynutí 30 dnů od žádosti; do té doby ho může uživatel v aplikaci zrušit.
+        Po uplynutí lhůty se údaje natrvalo smažou.
+      </p>
+      <p>
+        Pokud o smazání účtu požádá trenér, aplikace na to upozorní jeho klienty s vlastním účtem.
+        Po smazání se klienti od trenéra odpojí a zveřejněné tréninkové plány a jídelníčky, které jim
+        trenér připravil, jim zůstanou v jejich účtu. Zprávy mezi trenérem a klienty se smažou.
+      </p>
+      <p>
         Poskytovatel si vyhrazuje právo pozastavit nebo zrušit účet v případě porušení těchto podmínek.
       </p>
 
