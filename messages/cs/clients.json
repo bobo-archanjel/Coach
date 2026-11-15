@@ -5,7 +5,6 @@
   "onboardingTitle": "První kroky",
   "step1": "Přidej prvního klienta přes „+ Nový klient“",
   "step2": "Postav mu tréninkový plán — <link>otevřít Tréninky</link>",
-  "step3": "Pošli mu zvací kód, ať si aplikaci připojí (kód najdeš v detailu klienta)",
   "hideDigest": "Skrýt týdenní přehled",
   "digestTitle": "Týdenní přehled",
   "digestText": "{count, plural, one {# klient klesl} few {# klienti klesli} other {# klientů kleslo}} ze „{from}“ do „{to}“ tento týden.",
