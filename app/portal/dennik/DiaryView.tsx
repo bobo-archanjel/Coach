@@ -143,7 +143,7 @@ function buildGroups(entries: PortalDiaryEntry[], slotLabel: (slot: MealSlot) =>
  * zoznamom záznamov, obe akcie idú cez tento view, takže pridanie/odobratie
  * jedla sa v zozname aj v makro pruhoch prejaví okamžite.
  */
-export function DiaryView({ data }: { data: PortalDiaryData }) {
+export function DiaryView({ data, staples = [] }: { data: PortalDiaryData; staples?: PortalFoodOption[] }) {
   const t = useTranslations("portal.diary");
   const tl = useTranslations("labels");
   const locale = useLocale();
@@ -290,6 +290,7 @@ export function DiaryView({ data }: { data: PortalDiaryData }) {
         <FoodPickerSheet
           title={t("addTitle", { slot: tl(`mealSlot.${addSlot}`) })}
           note={isToday ? null : t("writingFor", { day: dayLabel(date, today, words, locale).toLowerCase() })}
+          staples={staples}
           pending={addPending}
           error={addState.error}
           onSubmit={(option, grams) => handleAdd(buildFormData(option, addSlot, grams), buildOptimisticEntry(option, addSlot, grams))}

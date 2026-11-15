@@ -2,6 +2,9 @@ import { SwipeBack } from "@/app/components/SwipeBack";
 import { AppLink as Link } from "../../../../components/AppLink";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { getUserLocale } from "@/lib/i18n/server";
+import { foodNameForLocale } from "@/lib/foodStaples";
+import type { FoodSource } from "@/lib/portal/types";
 import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
 import { listPlanRecipients } from "@/lib/planRecipients";
 import { MealPlanBuilder } from "./MealPlanBuilder";
@@ -23,7 +26,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
 
   // `plan`, `days` aj `foods` berú `planId`/nič z route parametra — nezávislé,
   // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
-  const [{ data: plan }, { data: days }, { data: foods }] = await Promise.all([
+  const [{ data: plan }, { data: days }, foodsRes] = await Promise.all([
     supabase
       .from("meal_plans")
       .select("id, name, client_id, published, created_at, clients(full_name)")
@@ -31,12 +34,38 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
       .maybeSingle(),
     supabase.from("meal_days").select("id, day_number, name, meals").eq("plan_id", planId).order("day_number"),
     // bez produktov uložených skenerom klientov (source='off', 0050) — knižnica by nimi rástla
-    supabase.from("foods").select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g").neq("source", "off").order("name"),
+    supabase
+      .from("foods")
+      .select("id, name, name_cs, source, kcal_100g, protein_100g, carbs_100g, fat_100g")
+      .neq("source", "off")
+      .order("name"),
   ]);
+
+  // Stĺpec name_cs vznikne až migráciou 0064; kým nie je spustená, select zlyhá (42703 / PGRST).
+  // Builder nesmie ostať bez knižnice, tak to isté skúsime len s `name`.
+  let foods: { id: string; name: string; name_cs?: string | null; source: FoodSource; kcal_100g: number; protein_100g: number; carbs_100g: number; fat_100g: number }[] | null = foodsRes.data;
+  if (foodsRes.error) {
+    ({ data: foods } = await supabase
+      .from("foods")
+      .select("id, name, source, kcal_100g, protein_100g, carbs_100g, fat_100g")
+      .neq("source", "off")
+      .order("name"));
+  }
 
   if (!plan) {
     notFound();
   }
+
+  const locale = await getUserLocale();
+  const library = (foods ?? []).map((f) => ({
+    id: f.id,
+    name: foodNameForLocale(f, locale),
+    source: f.source,
+    kcal_100g: f.kcal_100g,
+    protein_100g: f.protein_100g,
+    carbs_100g: f.carbs_100g,
+    fat_100g: f.fat_100g,
+  }));
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
   // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú jedálniček aj títo
@@ -77,7 +106,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
         planId={planId}
         published={plan.published}
         days={days ?? []}
-        library={foods ?? []}
+        library={library}
         recipientCount={recipients.length}
       />
 

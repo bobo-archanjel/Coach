@@ -1,9 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { scaleFoodMacros } from "@/lib/meals";
+import { ensureFoodIndex, getFoodIndexStatus, lookupFoodIndexBarcode, searchFoodIndex, subscribeFoodIndex } from "@/lib/foodIndex";
+import { filterByQuery } from "@/lib/foodIndexCore";
 import type { BarcodeLookupResult, BarcodePrefill, PortalFoodOption } from "@/lib/portal/types";
 import styles from "./food.module.css";
 import { BarcodeScanner } from "./BarcodeScanner";
@@ -12,7 +14,15 @@ import { FoodCreateForm } from "./FoodCreateForm";
 /** Ako dlho čakať po poslednom stlačení klávesy, kým sa spustí online vyhľadávanie
     (Open Food Facts) — nech nevoláme API pri každom písmene. */
 const SEARCH_DEBOUNCE_MS = 500;
+/** Online (OFF API) od 3 znakov; offline balík je zadarmo a okamžitý, hľadá už od 2. */
 const MIN_QUERY_LEN = 3;
+const MIN_OFFLINE_QUERY_LEN = 2;
+const STAPLES_SHOWN = 8;
+const OFFLINE_SHOWN = 30;
+const OFF_URL = "https://world.openfoodfacts.org";
+
+/** Kľúč na odstránenie duplicít medzi zdrojmi — kód produktu, inak id v DB, inak názov. */
+const dedupeKey = (o: PortalFoodOption) => o.barcode ?? o.foodId ?? o.name.toLowerCase();
 
 const ScanIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -49,8 +59,11 @@ const emptyPrefill = (barcode: string): BarcodePrefill => ({
  * Panel „Pridať jedlo“ — na mobile zdola, na počítači okno v strede. Zdieľajú ho denník
  * klienta (riadok jedla → „+“) aj builder jedálnička trénera.
  *
- * Zdroje: značky online (Open Food Facts, GET /api/foods/search) a skener čiarových kódov
- * (GET /api/potraviny/kod/[ean] — DB, inak OFF; nenájdený kód → „Založiť potravinu“).
+ * Hľadanie (zdroj „online“) skladá tri vrstvy: generické potraviny (`staples`, CIQUAL)
+ * → offline balík Open Food Facts v telefóne (lib/foodIndex.ts, okamžite, bez siete) →
+ * živé OFF (GET /api/foods/search, po pauze v písaní, len online) — bez duplicít podľa kódu.
+ * Skener čiarových kódov najprv skúsi offline balík (klient: bez siete), inak
+ * GET /api/potraviny/kod/[ean] (DB, inak OFF; nenájdený kód → „Založiť potravinu“).
  * S `library` (tréner) navyše záložky Knižnica a Nová potravina a každá vybraná potravina
  * musí mať riadok v `foods` (jedálniček ukladá makrá podľa food_id) — online produkt sa
  * preto pri výbere uloží cez tú istú route ako sken.
@@ -63,6 +76,7 @@ export function FoodPickerSheet({
   title,
   note = null,
   library,
+  staples = [],
   pending,
   error = null,
   onSubmit,
@@ -74,6 +88,8 @@ export function FoodPickerSheet({
   note?: string | null;
   /** knižnica potravín (tréner) — bez nej len značky online a skener (klient) */
   library?: PortalFoodOption[];
+  /** generické potraviny (CIQUAL) — v hľadaní idú pred produktmi z Open Food Facts */
+  staples?: PortalFoodOption[];
   pending?: boolean;
   error?: string | null;
   onSubmit: (food: PortalFoodOption, grams: number) => void;
@@ -86,6 +102,8 @@ export function FoodPickerSheet({
   const [source, setSource] = useState<Source>(withLibrary ? "library" : "online");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PortalFoodOption[]>([]);
+  /** pre aký dopyt sú `results` — pri ďalšom písaní nesmú ostať v zozname zo starého dopytu */
+  const [resultsQuery, setResultsQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchSeq = useRef(0);
@@ -94,18 +112,48 @@ export function FoodPickerSheet({
   const [attempted, setAttempted] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
 
+  // Offline balík OFF: načítať sa začne pri otvorení panela (nie pri každej stránke).
+  const indexStatus = useSyncExternalStore(subscribeFoodIndex, getFoodIndexStatus, () => "idle" as const);
+  useEffect(() => {
+    void ensureFoodIndex();
+  }, []);
+
   const libraryMatches = useMemo(() => {
     if (!library) return [];
-    const q = query.trim().toLowerCase();
-    return (q ? library.filter((f) => f.name.toLowerCase().includes(q)) : library).slice(0, 60);
+    return filterByQuery(library, query.trim(), (f) => f.name).slice(0, 60);
   }, [library, query]);
+
+  const trimmed = query.trim();
+  // Generické potraviny → offline OFF → živé OFF. indexStatus je v závislostiach, aby sa
+  // zoznam prepočítal, keď sa balík dočíta počas písania.
+  const stapleMatches = useMemo(
+    () => (trimmed.length >= MIN_OFFLINE_QUERY_LEN ? filterByQuery(staples, trimmed, (f) => f.name).slice(0, STAPLES_SHOWN) : []),
+    [staples, trimmed],
+  );
+  const offlineMatches = useMemo(
+    () => (trimmed.length >= MIN_OFFLINE_QUERY_LEN ? searchFoodIndex(trimmed, OFFLINE_SHOWN) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trimmed, indexStatus],
+  );
+  const merged = useMemo(() => {
+    const seen = new Set<string>();
+    const out: PortalFoodOption[] = [];
+    const live = resultsQuery === trimmed ? results : [];
+    for (const o of [...stapleMatches, ...offlineMatches, ...live]) {
+      const k = dedupeKey(o);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(o);
+    }
+    return out;
+  }, [stapleMatches, offlineMatches, results, resultsQuery, trimmed]);
 
   // Online vyhľadávanie — GET fetch, nie server action: nečaká vo fronte so zápisom
   // a ďalšie písanie predošlé hľadanie zruší (abort) namiesto čakania na jeho výsledok.
   useEffect(() => {
     if (source !== "online") return;
     const q = query.trim();
-    if (q.length < MIN_QUERY_LEN) {
+    if (q.length < MIN_QUERY_LEN || (typeof navigator !== "undefined" && navigator.onLine === false)) {
       setResults([]);
       setSearchError(null);
       setSearching(false);
@@ -127,6 +175,7 @@ export function FoodPickerSheet({
           setSearching(false);
           setSearchError(res.error);
           setResults(res.results ?? []);
+          setResultsQuery(q);
         });
     }, SEARCH_DEBOUNCE_MS);
     return () => {
@@ -144,6 +193,16 @@ export function FoodPickerSheet({
     setScanOpen(false);
     setPicked(null);
     setJustAdded(null);
+    // Klient: produkt z offline balíka ide rovno do výberu, bez siete. Tréner potrebuje riadok
+    // v `foods` (food_id), preto ide vždy cez route, ktorá produkt uloží.
+    if (!withLibrary) {
+      const hit = lookupFoodIndexBarcode(code);
+      if (hit) {
+        setLookup(null);
+        pick(hit, hit.servingGrams ?? 100);
+        return;
+      }
+    }
     setLookup({ kind: "loading", code });
     const seq = ++lookupSeq.current;
     fetch(`/api/potraviny/kod/${encodeURIComponent(code)}`)
@@ -246,7 +305,7 @@ export function FoodPickerSheet({
         Number(grams) > 0 ? Number(grams) : 0,
       )
     : null;
-  const shortQuery = query.trim().length < MIN_QUERY_LEN;
+  const shortQuery = trimmed.length < MIN_OFFLINE_QUERY_LEN;
   const resultRow = (option: PortalFoodOption, i: number) => (
     <li key={`${option.foodId ?? option.name}-${i}`}>
       <button type="button" className={styles.pick} onClick={() => choose(option)}>
@@ -404,17 +463,37 @@ export function FoodPickerSheet({
                     {libraryMatches.length === 0 && <li className={styles.empty}>{t("libraryEmpty")}</li>}
                   </ul>
                 ) : (
-                  // zoznam až pri hľadaní — dovtedy len pole a Skenovať, bez prázdneho rámika
-                  !shortQuery && (
-                    <ul className={styles.list}>
-                      {results.map(resultRow)}
-                      {searching && <li className={styles.empty}>{t("searching")}</li>}
-                      {!searching && !searchError && results.length === 0 && (
-                        <li className={styles.empty}>{t("onlineEmpty")}</li>
-                      )}
-                      {searchError && <li className={styles.empty}>{searchError}</li>}
-                    </ul>
-                  )
+                  <>
+                    {indexStatus === "loading" && (
+                      <p className={styles.meta} role="status">
+                        {t("indexLoading")}
+                      </p>
+                    )}
+                    {indexStatus === "error" && <p className={styles.meta}>{t("indexError")}</p>}
+                    {/* zoznam až pri hľadaní — dovtedy len pole a Skenovať, bez prázdneho rámika */}
+                    {!shortQuery && (
+                      <>
+                        <ul className={styles.list}>
+                          {merged.map(resultRow)}
+                          {searching && <li className={styles.empty}>{t("searching")}</li>}
+                          {!searching && merged.length === 0 && !searchError && indexStatus !== "loading" && (
+                            <li className={styles.empty}>{t("onlineEmpty")}</li>
+                          )}
+                          {/* chybu živého hľadania ukážeme, len keď nemáme čo iné ukázať */}
+                          {searchError && merged.length === 0 && <li className={styles.empty}>{searchError}</li>}
+                        </ul>
+                        <p className={styles.source}>
+                          {t.rich("offAttribution", {
+                            a: (chunks) => (
+                              <a href={OFF_URL} target="_blank" rel="noopener noreferrer">
+                                {chunks}
+                              </a>
+                            ),
+                          })}
+                        </p>
+                      </>
+                    )}
+                  </>
                 )}
               </>
             )}

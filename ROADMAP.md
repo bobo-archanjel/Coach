@@ -101,7 +101,7 @@ Odporúčaný postup pri branchovaní: `feature/<track>-<vec>` z čistého `dev`
 
 ~~**Fáza A — Cviky s obrázkami**~~ **HOTOVO 2026-09-01** (`feature/macro-exercise` → `dev`) — knižnica cvikov rozšírená z 10 na 876 (Free Exercise DB, Unlicense), obrázky ako externé URL (žiadne kopírovanie do Storage), kroky cvičenia, ~150 najbežnejších preložených do SK. Klik na cvik (knižnica aj po pridaní do dňa/plánu) otvorí detail s obrázkami — dashboard builder aj klientský portál. Migrácia `0011`, jednorazový import `scripts/import-exercises.mjs`.
 
-~~**Fáza B — Potraviny**~~ **HOTOVO 2026-09-01** (`features/macro-exercise/foodData` → `dev`) — knižnica potravín rozšírená z 10 na 83 surových/nespracovaných potravín (USDA FoodData Central) so SK názvami. Migrácia `0012`, import `scripts/import-foods.mjs`. **Otvorené:** ďalšie rozšírenie nad 83 položiek — zatiaľ nerozhodnuté, či a o koľko.
+~~**Fáza B — Potraviny**~~ **HOTOVO 2026-09-01** (`features/macro-exercise/foodData` → `dev`) — knižnica potravín rozšírená z 10 na 83 surových/nespracovaných potravín (USDA FoodData Central) so SK názvami. Migrácia `0012`, import `scripts/import-foods.mjs` (nahradené CIQUAL: `scripts/import-staples.mjs` + migrácia `0064`, USDA odstránené). **Otvorené:** ďalšie rozšírenie nad 83 položiek — zatiaľ nerozhodnuté, či a o koľko.
 
 ~~**Fáza C — Live vyhľadávanie značiek**~~ **HOTOVO 2026-09-01** — tretí tab "Značky (online)" v `/portal/dennik`, živé vyhľadávanie cez Open Food Facts (SK/CZ produkty uprednostnené), bez novej migrácie/kešovania. `lib/openFoodFacts.ts`.
 

@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "postinstall": "node scripts/copy-zxing-wasm.mjs"
+    "postinstall": "node scripts/copy-zxing-wasm.mjs",
+    "food-data": "node scripts/off-extract.mjs --out public/food-data --limit 100000 --bundle"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
@@ -33,6 +34,7 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@duckdb/node-api": "^2.0.0-r.1",
     "@eslint/eslintrc": "^3.2.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.0.0",

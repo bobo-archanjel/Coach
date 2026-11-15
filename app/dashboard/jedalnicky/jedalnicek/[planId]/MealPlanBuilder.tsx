@@ -9,7 +9,7 @@ import { MacroChips } from "./MacroChips";
 import { MealPublishActions } from "./MealPlanControls";
 import { saveMealPlanDaysAction, type MealEntry } from "../actions";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
-import type { PortalFoodOption } from "@/lib/portal/types";
+import type { FoodSource, PortalFoodOption } from "@/lib/portal/types";
 import { FoodPickerSheet } from "@/app/components/food/FoodPickerSheet";
 import { MealSlotSection } from "@/app/components/food/MealSlotSection";
 import food from "@/app/components/food/food.module.css";
@@ -23,6 +23,8 @@ import wb from "@/app/components/workoutBuilder.module.css";
 export interface LibraryFood {
   id: string;
   name: string;
+  /** "import" = generická potravina (CIQUAL) — v paneli sa hľadá spolu s Open Food Facts */
+  source?: FoodSource;
   kcal_100g: number;
   protein_100g: number;
   carbs_100g: number;
@@ -36,6 +38,7 @@ const toOption = (f: LibraryFood): PortalFoodOption => ({
   protein100g: Number(f.protein_100g),
   carbs100g: Number(f.carbs_100g),
   fat100g: Number(f.fat_100g),
+  source: f.source,
 });
 
 interface Day {
@@ -356,6 +359,7 @@ export function MealPlanBuilder({
         <FoodPickerSheet
           title={`${activeDay.name} · ${tl(`mealSlot.${addSlot}`)}`}
           library={libraryOptions}
+          staples={libraryOptions.filter((f) => f.source === "import")}
           onSubmit={(option, grams) => addFood(option, grams, addSlot)}
           onFoodCreated={(option) => setLibraryOptions((prev) => [...prev, option])}
           onClose={() => setAddSlot(null)}

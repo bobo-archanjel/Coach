@@ -1,4 +1,7 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { createClient } from "@/lib/supabase/server";
+import { loadStaples } from "@/lib/foodStaples";
+import { isLocale } from "@/lib/i18n/locales";
 import { getPortalFoodDiary } from "@/lib/portal/data";
 import { previewResult } from "@/app/portal/dennik/preview";
 import { DiaryView } from "@/app/portal/dennik/DiaryView";
@@ -35,6 +38,10 @@ export default async function DennikPage({
     );
   }
 
+  // generické potraviny (CIQUAL) pre panel „Pridať jedlo“ — klient nemá knižnicu trénera
+  const locale = await getLocale();
+  const staples = await loadStaples(await createClient(), isLocale(locale) ? locale : "sk");
+
   return (
     <>
       <header>
@@ -42,7 +49,7 @@ export default async function DennikPage({
         <p className={s.pageSub}>{t("sub")}</p>
       </header>
       {/* key: pri prepnutí dňa sa optimistický zoznam aj formulár začnú odznova (ako /portal) */}
-      <DiaryView key={result.data.date} data={result.data} />
+      <DiaryView key={result.data.date} data={result.data} staples={staples} />
     </>
   );
 }
