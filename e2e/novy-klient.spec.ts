@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+// súhlas s aktuálnymi podmienkami (0063) — inak dočasný účet skončí na bráne /prihlasenie/suhlas
+import { TERMS_VERSION } from "../lib/legal/terms";
 
 /**
  * Úplne nový klient bez plánu (reálna DB): karta Dnes ukáže prázdnu kartu plánu
@@ -25,7 +27,7 @@ test("nový klient bez plánu — Dnes s prázdnym plánom, prehľadom a týžd�
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: "Nový Klient", role: "client" },
+    user_metadata: { full_name: "Nový Klient", role: "client", terms_version: TERMS_VERSION },
   });
   if (error || !data.user) throw new Error(`Dočasný klient sa nevytvoril: ${error?.message}`);
   const uid = data.user.id;

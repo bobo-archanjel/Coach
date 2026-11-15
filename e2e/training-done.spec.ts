@@ -281,7 +281,7 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
   test("K9: neplatné hodnoty zablokujú ukončenie a sú označené", async ({ page }) => {
     await reps(page, "Drep s veľkou činkou", 1).fill("8,5");
     await kg(page, "Drep s veľkou činkou", 2).fill("-5");
-    await page.getByRole("button", { name: "Ukončiť tréning" }).click();
+    await finish(page);
 
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     const invalidMsg = page.getByText("Oprav označené hodnoty.");
@@ -294,7 +294,7 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await reps(page, "Drep s veľkou činkou", 1).fill("8");
     await kg(page, "Drep s veľkou činkou", 2).fill("60");
     await expect(invalidMsg).toHaveCount(0);
-    await page.getByRole("button", { name: "Ukončiť tréning" }).click();
+    await finish(page);
     await expect(page.getByRole("alertdialog")).toBeVisible();
   });
 

@@ -6,6 +6,7 @@ import { intlLocale } from "@/lib/i18n/locales";
 import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
 import { StickyMobileCta } from "./components/StickyMobileCta";
+import { SiteMenu } from "./components/SiteMenu";
 import { ThemeToggle } from "./v6design/ThemeToggle";
 import { LanguageToggle } from "./v6design/LanguageToggle";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "./v6design/theme";
@@ -135,8 +136,25 @@ export default async function LandingPage() {
               {t("nav.tryFree")}
               <ArrowIcon />
             </Link>
-            <LanguageToggle />
-            <ThemeToggle />
+            {/* jazyk a téma priamo v hlavičke len na počítači — na mobile sú v burgeri */}
+            <span className={styles.navToggles}>
+              <LanguageToggle />
+              <ThemeToggle />
+            </span>
+            <SiteMenu
+              items={[
+                { href: "#funkcie", label: t("nav.features") },
+                { href: "#ai", label: t("nav.ai") },
+                { href: "#cennik", label: t("nav.pricing") },
+                { href: "/prihlasenie", label: t("nav.login") },
+              ]}
+              labels={{
+                open: t("nav.menuOpen"),
+                close: t("nav.menuClose"),
+                label: t("nav.menuLabel"),
+                settings: t("nav.menuSettings"),
+              }}
+            />
           </nav>
         </div>
       </header>

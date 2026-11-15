@@ -67,16 +67,27 @@ body {
   color: var(--paper);
 }
 
-::-webkit-scrollbar {
+/* Posuvník celej stránky (počítač). */
+html::-webkit-scrollbar {
   width: 12px;
 }
-::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track {
   background: var(--ink);
 }
-::-webkit-scrollbar-thumb {
+html::-webkit-scrollbar-thumb {
   background: var(--ink-3);
   border: 3px solid var(--ink);
   border-radius: 8px;
+}
+
+/* Vnútorné posúvajúce sa rámčeky (chat, výber klientov, detail cviku, zvončeky, okná,
+   zoznamy…) bez viditeľného posuvníka — posúvajú sa ďalej prstom, kolieskom aj
+   klávesnicou. :where() = nulová špecificita, konkrétny rámček si ho môže vrátiť. */
+:where(body *) {
+  scrollbar-width: none;
+}
+:where(body *)::-webkit-scrollbar {
+  display: none;
 }
 
 a {

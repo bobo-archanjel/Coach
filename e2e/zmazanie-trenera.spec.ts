@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+// súhlas s aktuálnymi podmienkami (0063) — inak dočasný účet skončí na bráne /prihlasenie/suhlas
+import { TERMS_VERSION } from "../lib/legal/terms";
 
 /**
  * Tréner si zmaže účet (Nastavenia → „Zmazanie účtu“, migrácia 0062):
@@ -47,13 +49,13 @@ test.describe("zmazanie účtu trénera (reálna DB)", () => {
       email: trainerEmail,
       password: PASSWORD,
       email_confirm: true,
-      user_metadata: { full_name: "E2E Zmazaný Tréner", role: "trainer" },
+      user_metadata: { full_name: "E2E Zmazaný Tréner", role: "trainer", terms_version: TERMS_VERSION },
     });
     const c = await admin.auth.admin.createUser({
       email: clientEmail,
       password: PASSWORD,
       email_confirm: true,
-      user_metadata: { full_name: "E2E Klient Zmazania", role: "client" },
+      user_metadata: { full_name: "E2E Klient Zmazania", role: "client", terms_version: TERMS_VERSION },
     });
     if (t.error || c.error) throw new Error(`createUser: ${t.error?.message ?? c.error?.message}`);
     trainerId = t.data.user!.id;

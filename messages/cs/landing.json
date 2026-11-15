@@ -9,7 +9,11 @@
     "ai": "AI",
     "pricing": "Ceník",
     "login": "Přihlásit se",
-    "tryFree": "Vyzkoušet zdarma"
+    "tryFree": "Vyzkoušet zdarma",
+    "menuOpen": "Otevřít menu",
+    "menuClose": "Zavřít menu",
+    "menuLabel": "Menu",
+    "menuSettings": "Jazyk a vzhled"
   },
   "hero": {
     "title": "Tréninky, výživa i <accent>AI kouč.</accent><br></br>Na jednom místě.",

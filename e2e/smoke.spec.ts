@@ -129,11 +129,13 @@ test.describe("Auth guardy", () => {
 
   test("/dashboard/klienti/x bez session neukáže detail klienta", async ({ page }) => {
     const res = await page.goto("/dashboard/klienti/x");
-    // v deve DEV_OPEN → klient "x" neexistuje = notFound() (404); v produkcii redirect na login
-    const okStates =
-      res?.status() === 404 || /\/prihlasenie/.test(page.url());
-    expect(okStates, `status=${res?.status()} url=${page.url()}`).toBeTruthy();
-    await expect(page.getByRole("link", { name: /Späť na klientov/i })).toHaveCount(0);
+    // v deve DEV_OPEN → klient "x" neexistuje = notFound(); stránka sa načítava postupne
+    // (loading.tsx — kostra so stavom 200), takže 404 je obsah stránky, nie HTTP stav.
+    // V produkcii redirect na login.
+    if (!/\/prihlasenie/.test(page.url())) {
+      await expect(page.getByRole("heading", { name: "404" }), `status=${res?.status()}`).toBeVisible({ timeout: 15_000 });
+    }
+    await expect(page.getByRole("tablist")).toHaveCount(0); // záložky detailu klienta
   });
 });
 
@@ -269,19 +271,20 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(main.getByText("Včera", { exact: true })).toBeVisible();
     await expect(main.getByText("Dnes", { exact: true })).toBeVisible();
 
-    // composer + odoslanie (v preview zlyhá bez session → chyba, ale nesmie spadnúť)
+    // composer + odoslanie (v preview zlyhá bez session → chyba, ale nesmie spadnúť a
+    // neodoslaný text sa nestratí — ChatThread ho vráti do poľa)
     const input = page.getByLabel("Napísať správu");
     await input.fill("Skúsim dnes ľahšiu váhu.");
     await page.getByRole("button", { name: "Odoslať" }).click();
     await page.waitForTimeout(1200);
-    await expect(page.getByLabel("Napísať správu")).toHaveValue("");
+    await expect(page.getByLabel("Napísať správu")).toHaveValue("Skúsim dnes ľahšiu váhu.");
 
     expect(errs, errs.join("\n")).toEqual([]);
   });
 
   test("Chat: prázdny a chybový stav", async ({ page }) => {
     await page.goto("/portal/chat?preview=empty");
-    await expect(page.getByText(/Napíš Marekovi/i)).toBeVisible();
+    await expect(page.getByText("Napíš trénerovi", { exact: true })).toBeVisible();
     await page.goto("/portal/chat?preview=error");
     await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať chat/i })).toBeVisible();
   });

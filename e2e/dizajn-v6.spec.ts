@@ -87,8 +87,19 @@ test.describe("jeden dizajn po prihlásení", () => {
     const root = page.locator("[data-v6-root]");
     await expect(root).toHaveCount(1);
     await expect(root).toHaveAttribute("data-theme", "auto"); // bez voľby podľa zariadenia
-    const toggle = page.getByRole("banner").getByRole("button", { name: "Prepnúť svetlý / tmavý režim" });
-    await toggle.click();
+    // na mobile je prepínač v burgeri hlavičky (SiteMenu), na počítači priamo v hlavičke
+    const themeToggle = async () => {
+      const burger = page.getByRole("button", { name: "Otvoriť menu" });
+      if (await burger.isVisible()) {
+        // klik ešte pred hydratáciou nič neotvorí — opakovať, kým sa menu neukáže
+        await expect(async () => {
+          if (await burger.isVisible()) await burger.click();
+          await expect(page.getByRole("navigation", { name: "Menu" })).toBeVisible({ timeout: 1000 });
+        }).toPass({ timeout: 15_000 });
+      }
+      return page.getByRole("banner").getByRole("button", { name: "Prepnúť svetlý / tmavý režim" }).locator("visible=true");
+    };
+    await (await themeToggle()).click();
     await expect(root).toHaveAttribute("data-theme", "dark");
     await page.reload();
     await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
@@ -102,7 +113,7 @@ test.describe("jeden dizajn po prihlásení", () => {
     await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "dark");
 
     await page.goto("/");
-    await page.getByRole("banner").getByRole("button", { name: "Prepnúť svetlý / tmavý režim" }).click();
+    await (await themeToggle()).click();
     await expect(page.locator("[data-v6-root]")).toHaveAttribute("data-theme", "light");
   });
 });
