@@ -47,13 +47,25 @@ test.describe("Jazyk — verejné stránky", () => {
     await page.goto("/");
     await expect(htmlLang(page)).toHaveAttribute("lang", "sk");
 
-    const toggle = page.getByRole("button", { name: /^Zmeniť jazyk/ });
+    // na mobile je prepínač jazyka v burgeri hlavičky (SiteMenu), na počítači priamo v hlavičke
+    const languageToggle = async (name: RegExp, menu: string) => {
+      const burger = page.getByRole("button", { name: menu });
+      if (await burger.isVisible()) {
+        // klik ešte pred hydratáciou nič neotvorí — opakovať, kým sa menu neukáže
+        await expect(async () => {
+          if (await burger.isVisible()) await burger.click();
+          await expect(page.getByRole("navigation", { name: "Menu" })).toBeVisible({ timeout: 1000 });
+        }).toPass({ timeout: 15_000 });
+      }
+      return page.getByRole("button", { name }).locator("visible=true");
+    };
+    const toggle = await languageToggle(/^Zmeniť jazyk/, "Otvoriť menu");
     await expect(toggle).toHaveText("SK");
     await toggle.click();
     await page.getByRole("menuitemradio", { name: /Čeština/ }).click();
 
     await expect(htmlLang(page)).toHaveAttribute("lang", "cs");
-    await expect(page.getByRole("button", { name: /^Změnit jazyk/ })).toHaveText("CZ");
+    await expect(page.getByRole("button", { name: /^Změnit jazyk/ }).locator("visible=true")).toHaveText("CZ");
     expect((await context.cookies()).find((c) => c.name === "fp-locale")?.value).toBe("cs");
 
     await page.reload();
@@ -67,7 +79,7 @@ test.describe("Jazyk — verejné stránky", () => {
 
     // späť na slovenčinu tým istým prepínačom
     await page.goto("/");
-    await page.getByRole("button", { name: /^Změnit jazyk/ }).click();
+    await (await languageToggle(/^Změnit jazyk/, "Otevřít menu")).click();
     await page.getByRole("menuitemradio", { name: /Slovenčina/ }).click();
     await expect(htmlLang(page)).toHaveAttribute("lang", "sk");
   });

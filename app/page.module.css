@@ -100,8 +100,14 @@
 .navMobileHide {
   display: inline;
 }
+.navToggles {
+  display: flex;
+  align-items: center;
+  gap: inherit;
+}
 @media (max-width: 760px) {
-  .navMobileHide {
+  .navMobileHide,
+  .navToggles {
     display: none;
   }
 }

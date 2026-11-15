@@ -11,7 +11,6 @@ import { TurnstileScript, useTurnstile } from "../components/Turnstile";
 import { createClient } from "@/lib/supabase/client";
 import { checkPassword, type PasswordIssue } from "@/lib/passwordStrength";
 import { loginAction, registerAction, syncRecoveryLocaleAction, type LoginState, type RegisterState } from "./actions";
-import { AuthMobileMenu } from "./AuthMobileMenu";
 import styles from "./auth.module.css";
 
 const initialLoginState: LoginState = { error: null, redirectTo: null };
@@ -411,7 +410,6 @@ export function AuthView() {
   return (
     <div className={styles.shell}>
       <TurnstileScript />
-      <AuthMobileMenu />
       <aside className={styles.brandPanel}>
         <div className={styles.plateField} aria-hidden="true" />
         <div>
