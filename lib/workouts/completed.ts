@@ -212,26 +212,46 @@ export function formatDistance(m: number, locale: Locale = "sk"): string {
   return m >= 1000 ? `${(m / 1000).toLocaleString(intlLocale(locale), { maximumFractionDigits: 2 })} km` : `${m} m`;
 }
 
-/** Spodná hranica plánovaných opakovaní: "8-10" → 8, "12" → 12, "max" → null. */
-export function plannedRepsMin(reps: string | null): number | null {
-  const m = reps?.match(/\d+/);
-  return m ? Number(m[0]) : null;
+/** Rozsah plánovaných opakovaní: "8-10" → [8, 10], "12" → [12, 12], "max" / "45 s" → null. */
+export function plannedRepsRange(reps: string | null): [number, number] | null {
+  const s = reps?.trim() ?? "";
+  const range = s.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
+  if (range) {
+    const [lo, hi] = [Number(range[1]), Number(range[2])];
+    return lo <= hi ? [lo, hi] : [hi, lo];
+  }
+  return /^\d+$/.test(s) ? [Number(s), Number(s)] : null;
+}
+
+/** Ako dopadla jedna hodnota série oproti plánu: menej / presne (v rozsahu) / viac. */
+export type SetTone = "below" | "met" | "above";
+
+function toneOf(actual: number | null | undefined, min: number | null, max: number | null): SetTone | null {
+  if (actual == null || min == null || max == null) return null;
+  return actual < min ? "below" : actual > max ? "above" : "met";
 }
 
 /**
- * Ako séria dopadla oproti plánu — pre jemné zvýraznenie v detaile trénera.
- * below = menej opakovaní alebo nižšia váha než plán, above = viac (a nič menej),
- * met = presne podľa plánu; null keď niet s čím porovnať.
+ * Farba opakovaní a váhy série v detaile trénera, každá hodnota zvlášť: presne podľa plánu
+ * (opakovania v rozsahu „8-10“) = met, menej = below, viac = above; null keď niet s čím
+ * porovnať (séria navyše, opakovania „max“ / na čas, plán bez váhy, hodnota nezapísaná).
  */
-export function rowTone(row: CompareRow): "below" | "above" | "met" | null {
-  if (!row.planned || !row.actual) return null;
-  const cmp: number[] = [];
-  const reps = plannedRepsMin(row.planned.reps);
-  if (reps != null && row.actual.reps != null) cmp.push(Math.sign(row.actual.reps - reps));
-  if (row.planned.loadKg != null && row.actual.weight != null) cmp.push(Math.sign(row.actual.weight - row.planned.loadKg));
-  if (cmp.length === 0) return null;
-  if (cmp.some((c) => c < 0)) return "below";
-  if (cmp.some((c) => c > 0)) return "above";
+export function setTones(row: CompareRow): { reps: SetTone | null; weight: SetTone | null } {
+  if (!row.planned || !row.actual) return { reps: null, weight: null };
+  const range = plannedRepsRange(row.planned.reps);
+  const load = row.planned.loadKg;
+  return {
+    reps: toneOf(row.actual.reps, range?.[0] ?? null, range?.[1] ?? null),
+    weight: toneOf(row.actual.weight, load, load),
+  };
+}
+
+/** Celkový stav série (pre čítačku obrazovky): niečo menej = below, inak niečo viac = above, inak met. */
+export function rowTone(row: CompareRow): SetTone | null {
+  const tones = Object.values(setTones(row)).filter((t): t is SetTone => t !== null);
+  if (tones.length === 0) return null;
+  if (tones.includes("below")) return "below";
+  if (tones.includes("above")) return "above";
   return "met";
 }
 

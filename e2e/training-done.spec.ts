@@ -6,6 +6,7 @@ import {
   parseLoggedEntries,
   parsePlanSnapshot,
   rowTone,
+  setTones,
   snapshotToPlanEntries,
 } from "../lib/workouts/completed";
 import { parseReps, parseWeight, summarizeWorkoutForm } from "../lib/workouts/setInput";
@@ -64,6 +65,13 @@ test.describe("plán vs. realita — čistá logika", () => {
     expect(drep.rows).toHaveLength(4);
     expect(drep.rows[3].planned).toBeNull(); // 4. séria navyše
     expect(drep.rows.map(rowTone)).toEqual(["met", "above", "below", null]);
+    // každá hodnota zvlášť; rozsah „8-10“: 8 aj 10 = podľa plánu
+    expect(drep.rows.map(setTones)).toEqual([
+      { reps: "met", weight: "met" },
+      { reps: "met", weight: "above" },
+      { reps: "below", weight: "met" },
+      { reps: null, weight: null }, // séria navyše
+    ]);
     expect(rows[1].rows.every((r) => r.actual === null)).toBe(true);
     expect(rows[2].rows[0].actual).toMatchObject({ durationS: 600, distanceM: 4000 });
   });
@@ -101,6 +109,16 @@ test.describe("detail dokončeného tréningu — tréner (?preview=done)", () =
     await expect(rows.nth(1)).toContainText("8 op. × 60 kg");
     await expect(rows.nth(1)).toContainText("8 op. × 62.5 kg");
     await expect(rows.nth(3)).toContainText("navyše");
+    // farby oproti plánu (3 × 8 @ 60 kg): presne = zelená, menej = červená, viac = modrá
+    const tone = (row: number, text: string) => rows.nth(row).locator("[data-tone]").filter({ hasText: text });
+    await expect(tone(0, "8 op.")).toHaveAttribute("data-tone", "met");
+    await expect(tone(0, "60 kg")).toHaveAttribute("data-tone", "met");
+    await expect(tone(1, "62.5 kg")).toHaveAttribute("data-tone", "above");
+    await expect(tone(2, "6 op.")).toHaveAttribute("data-tone", "below");
+    await expect(rows.nth(3).locator("[data-tone]")).toHaveCount(0);
+    const color = (row: number, text: string) => tone(row, text).evaluate((el) => getComputedStyle(el).color);
+    const [met, above, below] = [await color(0, "8 op."), await color(1, "62.5 kg"), await color(2, "6 op.")];
+    expect(new Set([met, above, below]).size, "tri rôzne farby").toBe(3);
 
     const rdl = page.getByTestId("completed-exercise").filter({ hasText: "Rumunský mŕtvy ťah" });
     await expect(rdl.getByText(/Bolel ma spodný chrbát/)).toBeVisible();

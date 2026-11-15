@@ -173,14 +173,15 @@
   font-weight: 700;
   color: var(--paper);
 }
+/* Skutočná hodnota oproti plánu: presne = zelená, menej = červená, viac = modrá */
 .toneMet {
   color: var(--moss);
 }
-.toneAbove {
-  color: var(--moss);
-}
 .toneBelow {
-  color: var(--plate-yellow);
+  color: var(--error);
+}
+.toneAbove {
+  color: var(--info);
 }
 .rpe {
   font-weight: 500;
