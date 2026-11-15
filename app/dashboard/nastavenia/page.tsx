@@ -38,7 +38,7 @@ export default async function NastaveniaPage() {
     : [null, null];
 
   return (
-    <>
+    <div className={styles.settingsPage}>
       <div className={styles.pageHead}>
         <h1>{t("title")}</h1>
         <p>{t("subtitle")}</p>
@@ -132,6 +132,6 @@ export default async function NastaveniaPage() {
         {/* úplne dole — ako „Zmazanie dát“ v Profile klienta */}
         {user && <DeleteTrainerAccount requestedAt={deletionRequestedAt} />}
       </div>
-    </>
+    </div>
   );
 }

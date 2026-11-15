@@ -2116,10 +2116,14 @@ select.addClientInputSm {
 }
 
 /* ---------- nastavenia ---------- */
+/* Nastavenia ako Profil klienta: vycentrovaný stĺpec (nadpis aj karty), šírka ako detail plánu */
+.settingsPage {
+  max-width: 864px;
+  margin-inline: auto;
+}
 .settingsGrid {
   display: grid;
   gap: 16px;
-  max-width: 560px;
 }
 .comingSoon {
   font-size: 10.5px;
