@@ -175,7 +175,7 @@ export default async function ClientDetailPage({
       supabase
         .from("clients")
         .select(
-          "id, full_name, goal, invite_code, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by, active_plan_id",
+          "id, full_name, goal, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by, active_plan_id",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -405,10 +405,6 @@ export default async function ClientDetailPage({
             <div className={styles.infoRow}>
               <span className={styles.infoLabel}>{t("clientSince")}</span>
               <span className={styles.infoValue}>{memberSince}</span>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>{t("inviteCode")}</span>
-              <span className={styles.infoValue}>{client.invite_code}</span>
             </div>
             {(client.age || client.weight_kg || client.height_cm) && (
               <div className={styles.infoRow}>

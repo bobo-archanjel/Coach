@@ -40,7 +40,7 @@
     "hasAccountTitle": "Klient s účtem FitPilot",
     "hasAccountText": "Klient si najde svůj kód v aplikaci v <b>Profilu</b> a pošle ti ho. Zadej ho sem — hned se připojí a dostane potvrzení.",
     "noAccountTitle": "Klient bez účtu",
-    "noAccountText": "Vytvoříme mu záznam a vygenerujeme kód, který si klient uplatní při registraci.",
+    "noAccountText": "Vytvoříš mu záznam a můžeš mu hned připravovat plány. Záznam se s jeho pozdějším účtem v appce automaticky nespojí — až si appku nainstaluje, přidej ho přes „Má účet FitPilot“.",
     "code": "Kód klienta",
     "adding": "Přidávám…",
     "addClient": "Přidat klienta",
