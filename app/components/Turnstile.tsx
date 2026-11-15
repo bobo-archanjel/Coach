@@ -4,17 +4,23 @@
 // rovnaký Cloudflare projekt ako waitlist/index.html, len tam sa widget skenuje
 // z DOM automaticky (statická stránka, nikdy sa nezmountuje znova), kým tu sa
 // login/register formulár mountuje/unmountuje pri prepínaní tabov — potrebuje
-// explicitný `render()`/`remove()` viazaný na React lifecycle.
+// explicitný `render()`/`remove()` viazaný na kontajner formulára (callback ref).
 
 import Script from "next/script";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 declare global {
   interface Window {
     turnstile?: {
       render: (
         el: HTMLElement,
-        opts: { sitekey: string; theme?: "dark" | "light" | "auto"; callback?: (token: string) => void },
+        opts: {
+          sitekey: string;
+          theme?: "dark" | "light" | "auto";
+          callback?: (token: string) => void;
+          "expired-callback"?: () => void;
+          "timeout-callback"?: () => void;
+        },
       ) => string;
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
@@ -42,44 +48,77 @@ function pageTheme(el: HTMLElement): "dark" | "light" | "auto" {
   return t === "dark" || t === "light" ? t : "auto";
 }
 
+/**
+ * Widget je viazaný na SKUTOČNÝ kontajner (callback ref), nie na mount stránky. Formuláre
+ * prihlásenia, registrácie aj zabudnutého hesla sa pri prepínaní vymieňajú — pôvodná verzia
+ * vykreslila widget raz pri načítaní, takže po „Registrácia“ → „Prihlásenie“ (alebo návrate
+ * zo zabudnutého hesla) ostal pripnutý k už neexistujúcemu formuláru a miesto bolo prázdne,
+ * kým používateľ neobnovil stránku. Teraz: nový kontajner = nový widget, odpojený = zmazaný.
+ */
 export function useTurnstile() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const elRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const tokenRef = useRef("");
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    let poll: ReturnType<typeof setInterval> | null = null;
+  const stopPoll = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  }, []);
 
-    function tryRender() {
-      if (cancelled || !containerRef.current || widgetIdRef.current || !window.turnstile) return;
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: SITE_KEY,
-        theme: pageTheme(containerRef.current),
-        callback: (token) => {
-          tokenRef.current = token;
-        },
-      });
-      if (poll) {
-        clearInterval(poll);
-        poll = null;
+  const removeWidget = useCallback(() => {
+    stopPoll();
+    if (widgetIdRef.current && window.turnstile) {
+      try {
+        window.turnstile.remove(widgetIdRef.current);
+      } catch {
+        /* widget už neexistuje (kontajner zmizol z DOM) */
       }
     }
+    widgetIdRef.current = null;
+    tokenRef.current = "";
+  }, [stopPoll]);
 
-    tryRender();
-    // Skript (TurnstileScript) sa mohol pri mounte ešte len načítavať — krátky
-    // poll namiesto zložitého vlastného event/callback systému okolo neho.
-    if (!window.turnstile) poll = setInterval(tryRender, 200);
-
-    return () => {
-      cancelled = true;
-      if (poll) clearInterval(poll);
-      if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
-        widgetIdRef.current = null;
-      }
-    };
+  /** true = hotovo (vykreslené alebo niet kam), false = skript sa ešte načítava. */
+  const tryRender = useCallback((): boolean => {
+    const el = elRef.current;
+    if (!el || widgetIdRef.current) return true;
+    if (!window.turnstile) return false;
+    widgetIdRef.current = window.turnstile.render(el, {
+      sitekey: SITE_KEY,
+      theme: pageTheme(el),
+      callback: (token) => {
+        tokenRef.current = token;
+      },
+      // token po 300 s vyprší (widget sa sám obnoví) — starý sa už nesmie odoslať
+      "expired-callback": () => {
+        tokenRef.current = "";
+      },
+      // interaktívna výzva vypršala bez odpovede — nový widget namiesto „mŕtveho“
+      "timeout-callback": () => {
+        tokenRef.current = "";
+        if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
+      },
+    });
+    return true;
   }, []);
+
+  const containerRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      if (el === elRef.current) return;
+      removeWidget();
+      elRef.current = el;
+      if (!el || tryRender()) return;
+      // skript (TurnstileScript) sa ešte načítava — krátky poll, kým nie je window.turnstile
+      pollRef.current = setInterval(() => {
+        if (tryRender()) stopPoll();
+      }, 200);
+    },
+    [removeWidget, tryRender, stopPoll],
+  );
+
+  // odchod zo stránky
+  useEffect(() => () => removeWidget(), [removeWidget]);
 
   function getToken(): string {
     if (widgetIdRef.current && window.turnstile) {

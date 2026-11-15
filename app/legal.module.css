@@ -1,6 +1,6 @@
-/* feature/security#2 — zdieľaný štýl pre jednoduché "Read" stránky: 404,
-   ochrana súkromia, obchodné podmienky. Rovnaký vizuálny jazyk ako auth/landing
-   (tmavé pozadie z globals.css, Inter, bar-rule motív), žiadny nový systém. */
+/* Právne stránky (ochrana súkromia, obchodné podmienky, cookies) a 404 v dizajne v6 —
+   tokeny a téma z koreňa .root (app/v6design/styles/tokens.module.css), rovnaký jazyk ako
+   landing (sklenená hlavička) a prihlásenie (sklenená karta). Rám: app/components/LegalPage.tsx. */
 
 .page {
   min-height: 100dvh;
@@ -8,23 +8,46 @@
   flex-direction: column;
 }
 
+/* ---------- hlavička (sticky sklo, ako landing) ---------- */
 .header {
-  padding: 20px clamp(20px, 5vw, 48px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding-top: env(safe-area-inset-top);
+  background: color-mix(in srgb, var(--v6-bg) 58%, transparent);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border-bottom: 1px solid var(--hairline);
 }
-
+.headerInner {
+  max-width: 1180px;
+  min-height: 64px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-weight: 800;
-  font-size: 18px;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
   color: var(--paper);
   text-decoration: none;
 }
-
 .logoMark {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .main {
@@ -32,67 +55,65 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px clamp(20px, 5vw, 48px) 80px;
+  padding: clamp(20px, 4vw, 40px) clamp(16px, 4vw, 48px) 80px;
 }
 
+/* ---------- dokument v sklenenej karte ---------- */
 .card {
   width: 100%;
-  max-width: 720px;
-}
-
-/* 404 — vycentrovaný obsah, nie dlhý text ako právne stránky */
-.notFound {
-  margin: auto;
-  text-align: center;
-  max-width: 440px;
-}
-.notFound h1 {
-  font-size: clamp(2.4rem, 6vw, 3.4rem);
-  margin-bottom: 8px;
-}
-.notFound p {
-  color: var(--paper-dim);
-  margin-bottom: 28px;
+  max-width: 780px;
+  padding: clamp(24px, 4vw, 44px) clamp(20px, 4vw, 48px);
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 28px;
+  box-shadow: var(--card-shadow);
 }
 
 .eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--paper-faint);
-  margin-bottom: 18px;
+  color: var(--accent-text);
+  margin-bottom: 14px;
 }
 
 .updated {
   color: var(--paper-faint);
   font-size: 13px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .draftNotice {
-  background: var(--ink-3);
-  border: 1px solid var(--steel-line);
-  border-radius: var(--radius-m);
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
   padding: 14px 16px;
   font-size: 13px;
+  line-height: 1.55;
   color: var(--paper-dim);
-  margin-bottom: 36px;
+  margin-bottom: 32px;
 }
 .draftNotice strong {
   color: var(--plate-yellow);
 }
 
 .legal h1 {
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  margin-bottom: 4px;
+  font-size: clamp(1.9rem, 4.5vw, 2.6rem);
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--paper);
+  margin-bottom: 8px;
 }
 .legal h2 {
   font-size: 1.15rem;
-  margin: 32px 0 10px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  margin: 34px 0 10px;
   color: var(--paper);
 }
 .legal p,
@@ -100,6 +121,9 @@
   color: var(--paper-dim);
   line-height: 1.7;
   font-size: 15px;
+}
+.legal p + p {
+  margin-top: 10px;
 }
 .legal ul {
   list-style: disc;
@@ -110,32 +134,45 @@
   margin-bottom: 6px;
 }
 .legal li::marker {
-  color: var(--iron-red);
+  color: var(--accent);
 }
 .legal a {
-  color: var(--iron-red);
+  color: var(--accent-text);
+  font-weight: 600;
+  text-underline-offset: 3px;
 }
 
-/* Právne sprísnenie (2026-09-22) — tabuľky pre "účel/právny základ" (ochrana
-   súkromia) a "cookie/účel/platnosť" (cookie politika). */
+/* Tabuľky „účel / právny základ“ (ochrana súkromia) a „cookie / účel / platnosť“
+   (cookie politika) — na mobile sa posúvajú do strany v rámci karty, nie celá stránka. */
 .legal table {
+  display: block;
   width: 100%;
-  border-collapse: collapse;
+  overflow-x: auto;
+  border-collapse: separate;
+  border-spacing: 0;
   margin: 12px 0 20px;
   font-size: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
 }
 .legal th,
 .legal td {
   text-align: left;
   padding: 10px 12px;
-  border: 1px solid var(--steel-line);
   color: var(--paper-dim);
   vertical-align: top;
+  border-bottom: 1px solid var(--hairline);
+}
+.legal tr > * + * {
+  border-left: 1px solid var(--hairline);
+}
+.legal tr:last-child > td {
+  border-bottom: 0;
 }
 .legal th {
   color: var(--paper);
-  background: var(--ink-3);
-  font-weight: 600;
+  background: var(--fill);
+  font-weight: 650;
 }
 
 /* Nevyplnené polia (meno, adresa, e-mail, IČO...) — zvýraznené, nech sa pred
@@ -150,10 +187,36 @@
   align-items: center;
   gap: 6px;
   color: var(--paper-faint);
-  font-size: 13px;
+  font-size: 13.5px;
+  font-weight: 600;
   text-decoration: none;
   margin-top: 40px;
 }
-.backLink:hover {
+.legal .backLink {
+  color: var(--paper-faint);
+}
+.backLink:hover,
+.legal .backLink:hover {
   color: var(--paper);
+}
+
+/* ---------- 404 — vycentrovaný obsah, nie dlhý text ---------- */
+.notFound {
+  margin: auto;
+  text-align: center;
+  max-width: 440px;
+}
+.notFoundCode {
+  font-size: clamp(3.6rem, 12vw, 5.4rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  color: var(--accent-text);
+  margin-bottom: 12px;
+}
+.notFound p {
+  color: var(--paper-dim);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 28px;
 }

@@ -528,21 +528,30 @@
   font-size: 11.5px;
   font-weight: 600;
 }
+/* „i“ — náhľad cviku (obrázky, postup). Viditeľný okrúhly podklad vo farbe akcentu,
+   nie len tlmená ikonka — inak si ho ľudia nevšimli. */
 .libraryItemInfo {
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
-  background: transparent;
-  border: 0;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
   border-radius: 50%;
-  color: var(--paper-faint);
+  color: var(--accent-text);
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .libraryItemInfo:hover {
-  color: var(--paper);
-  background: var(--fill);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.libraryItemInfo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 /* Filter podľa partie/vybavenia (feature/AIupgrade) — taxonómia v lib/exerciseFilters.ts. */
 .libraryFilterRow {

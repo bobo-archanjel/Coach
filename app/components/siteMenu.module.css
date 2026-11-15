@@ -1,0 +1,78 @@
+/* Burger v hlavičke úvodnej stránky (SiteMenu) — len mobil; tvar ako ThemeToggle /
+   LanguageToggle, panel ako ich sklenené menu. Tokeny z koreňa .root (tokens.module.css). */
+.root {
+  display: none;
+  position: relative;
+  flex: none;
+}
+@media (max-width: 760px) {
+  .root {
+    display: block;
+  }
+}
+.burger {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
+  cursor: pointer;
+}
+.burger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.burgerIcon {
+  width: 20px;
+  height: 20px;
+}
+.panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  width: min(260px, calc(100vw - 28px));
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 22px;
+  /* plné pozadie — v sklenenej hlavičke (backdrop-filter) by rozmazanie panelu nefungovalo
+     a text stránky by presvital */
+  background: linear-gradient(var(--sheet-bg-strong), var(--sheet-bg-strong)), var(--v6-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.link {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--paper);
+  text-decoration: none;
+}
+.link:hover,
+.link:focus-visible {
+  background: var(--fill-strong);
+  outline: none;
+}
+.settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 10px 6px 4px 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+.toggles {
+  display: flex;
+  gap: 8px;
+}

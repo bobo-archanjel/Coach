@@ -1,8 +1,9 @@
 import { getLocale } from "next-intl/server";
-import { LegalPage, legalMetadata } from "../components/LegalPage";
+import { LegalPage, legalMetadata, legalViewport } from "../components/LegalPage";
 import TermsSk from "./content.sk";
 import TermsCs from "./content.cs";
 
+export const generateViewport = legalViewport;
 export const generateMetadata = () => legalMetadata("terms");
 
 /**

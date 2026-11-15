@@ -111,8 +111,12 @@ const nextConfig: NextConfig = {
     // frame-src (samotný widget je iframe — bez tejto direktívy by spadol pod
     // prísnejší default-src 'self' a nikdy by sa nezobrazil) a connect-src
     // (interná komunikácia widgetu so serverom Cloudflare).
+    // Vercel Speed Insights (app/layout.tsx): na produkcii sa skript načíta z vlastnej domény
+    // (/_vercel/speed-insights/script.js → 'self'), v `next dev` však debug skript z
+    // va.vercel-scripts.com — bez neho CSP chybou v konzole zhodila e2e testy, ktoré konzolu
+    // kontrolujú. Povolené len pri vývoji.
     const scriptSrc = isDev
-      ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://plausible.io https://challenges.cloudflare.com"
+      ? "'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://plausible.io https://challenges.cloudflare.com https://va.vercel-scripts.com"
       : "'self' 'unsafe-inline' 'wasm-unsafe-eval' https://plausible.io https://challenges.cloudflare.com";
     const csp = [
       "default-src 'self'",
