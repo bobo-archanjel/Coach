@@ -100,6 +100,15 @@
   :global(html[data-keyboard-open]) .v6Main {
     padding-bottom: 12px;
   }
+  /* Posun k prvku (scrollIntoView, Tab, kotvy) ho zastaví pod hlavičkou a NAD plávajúcou
+     lištou dole — inak napr. „Ukončiť tréning“ skončil schovaný pod menu a ťuk trafil lištu. */
+  :global(html):has(.v6Nav) {
+    scroll-padding-top: calc(72px + env(safe-area-inset-top));
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  :global(html[data-keyboard-open]):has(.v6Nav) {
+    scroll-padding-bottom: 12px;
+  }
 }
 
 /* ---------- spodná lišta: plávajúca sklenená pilulka ---------- */

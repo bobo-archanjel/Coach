@@ -49,6 +49,26 @@ function weightPlaceholder(kg: number | null, locale: Locale): string {
 const numToField = (n: number | null | undefined) =>
   n == null ? "" : n.toLocaleString("sk-SK", { maximumFractionDigits: 2, useGrouping: false });
 
+/**
+ * Séria predvyplnená hodnotami trénera — klient, ktorý odcvičí presne plán, nemusí nič
+ * vypĺňať. Opakovania len pri jednom čísle („10“); rozsah („8-10“), „max“ či čas („45 s“)
+ * ostanú prázdne s plánom ako placeholder — tam musí klient zapísať, koľko naozaj spravil.
+ */
+export function plannedSetRow(ex: PortalExercise): SetRow {
+  const reps = ex.plannedReps?.trim() ?? "";
+  return { reps: /^\d+$/.test(reps) ? reps : "", weight: numToField(ex.loadKg) };
+}
+
+/** Riadky sérií podľa plánu buildera, predvyplnené hodnotami trénera (nový tréning). */
+export function plannedFormValues(exercises: PortalExercise[]): WorkoutFormValues {
+  return {
+    rows: Object.fromEntries(exercises.map((ex, i) => [i, Array.from({ length: ex.plannedSets }, () => plannedSetRow(ex))])),
+    notes: {},
+    rpe: "",
+    sessionNote: "",
+  };
+}
+
 /** Prázdne riadky podľa plánu buildera (koľko sérií plánuje tréner). */
 export function emptyFormValues(exercises: PortalExercise[]): WorkoutFormValues {
   return {
@@ -122,7 +142,9 @@ export function WorkoutSetsFields({
     next[rowIdx] = { ...next[rowIdx], [field]: value };
     setRows({ ...rows, [exIdx]: next });
   };
-  const addRow = (exIdx: number) => setRows({ ...rows, [exIdx]: [...(rows[exIdx] ?? []), { reps: "", weight: "" }] });
+  // nová séria s hodnotami trénera (ako riadky na začiatku tréningu)
+  const addRow = (exIdx: number) =>
+    setRows({ ...rows, [exIdx]: [...(rows[exIdx] ?? []), plannedSetRow(exercises[exIdx])] });
   const removeRow = (exIdx: number, rowIdx: number) =>
     setRows({ ...rows, [exIdx]: (rows[exIdx] ?? []).filter((_, i) => i !== rowIdx) });
 
