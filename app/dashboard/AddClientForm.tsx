@@ -68,7 +68,7 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
   if (!open) {
     return (
       <div id="add-client" className={styles.addClientForm}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)} data-tour="clients-add">
           {t("newClient")}
         </button>
       </div>

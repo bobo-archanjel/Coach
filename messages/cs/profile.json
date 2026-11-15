@@ -7,7 +7,7 @@
   "personal": "Osobní údaje",
   "personalHint": "Věk, výšku, váhu, cíle a alergie z onboardingu si tu brzy doplníš — pak uvidíš i svůj pokrok v čase.",
   "tour": "Průvodce",
-  "tourHint": "Krátký průvodce aplikací, kterého jsi viděl při prvním přihlášení.",
+  "tourHint": "Průvodce tě provede všemi sekcemi appky a ukáže, co se ve které dá dělat.",
   "tourRestart": "Spustit průvodce znovu",
   "connection": {
     "shareText": "Přidej mě jako svého klienta ve FitPilot. Můj kód: {code}",

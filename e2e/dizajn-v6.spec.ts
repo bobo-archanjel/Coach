@@ -59,21 +59,25 @@ test.describe("jeden dizajn po prihlásení", () => {
 
   test("onboarding návod (?tour=1) prejde krokmi v novom dizajne a zavrie sa", async ({ page }) => {
     test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
-    for (const [path, first, last] of [
-      ["/dashboard/nastavenia?tour=1", "Klienti", "Nastavenia"],
-      ["/portal?preview=ok&tour=1", "Dnes", "Profil"],
-    ] as const) {
+    // sprievodca prechádza sekcie jednu po druhej — celý prechod trvá dlhšie než bežný test
+    test.setTimeout(180_000);
+    // trénerove sekcie bez prihlásenia DEV náhľad nemajú — trénera prejde e2e/sprievodca-sekcii.spec.ts
+    for (const [path, first, home] of [["/portal?preview=ok&tour=1", "Dnes", /\/portal\?preview=ok$/]] as const) {
       await page.goto(path);
       const tour = page.getByRole("dialog", { name: `Návod: ${first}` });
-      await expect(tour, path).toBeVisible();
+      await expect(tour, path).toBeVisible({ timeout: 15_000 });
       await expect(page.locator("[data-v6-root]").getByRole("dialog"), path).toHaveCount(1);
-      // prejsť všetky kroky až po posledný a dokončiť
-      while (!(await page.getByRole("dialog", { name: `Návod: ${last}` }).isVisible())) {
-        await page.getByRole("button", { name: "Ďalej" }).click();
+      // prejsť všetky kroky až po posledný a dokončiť (medzi sekciami je obrazovka chvíľu len stlmená)
+      const bubble = page.locator("[data-tour-overlay][role=dialog]");
+      const finish = bubble.getByRole("button", { name: "Dokončiť" });
+      while (!(await finish.isVisible())) {
+        await bubble.getByRole("button", { name: "Ďalej" }).click();
+        await expect(bubble, path).toBeVisible({ timeout: 15_000 });
       }
-      await page.getByRole("button", { name: "Dokončiť" }).click();
-      await expect(page.getByRole("dialog"), path).toHaveCount(0);
-      await expect(page, path).not.toHaveURL(/tour=1/);
+      await finish.click();
+      await expect(page.locator("[data-tour-overlay]"), path).toHaveCount(0);
+      // po dokončení späť na úvodnú sekciu, bez ?tour=1
+      await expect(page, path).toHaveURL(home);
     }
   });
 

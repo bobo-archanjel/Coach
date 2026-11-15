@@ -105,7 +105,7 @@ export function PlanBuilder({
     <div className={styles.builderGrid}>
       <div className={styles.canvas}>
         {/* Výber dňa = prepínač (dráha), nie tlačidlá; počet cvikov je len vizuálny (aria-hidden) */}
-        <div ref={tabsRef} className={styles.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
+        <div ref={tabsRef} className={styles.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe data-tour="plan-days">
           {localDays.map((day) => (
             <button
               key={day.id}
@@ -161,7 +161,7 @@ export function PlanBuilder({
         {activeDay && (
           // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní); „Premenovať“ otvorí okno
           <div className={styles.dayHead}>
-            <div className={styles.dayActionsRow}>
+            <div className={styles.dayActionsRow} data-tour="plan-day-actions">
               <button type="button" className={styles.dayActionTab} onClick={() => setRenaming(true)}>
                 {t("rename")}
               </button>

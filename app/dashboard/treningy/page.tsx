@@ -86,18 +86,18 @@ export default async function TreningyPage() {
         <p>{t("subtitle")}</p>
       </div>
 
-      <div className={styles.card} style={{ marginBottom: 20 }}>
+      <div className={styles.card} style={{ marginBottom: 20 }} data-tour="plans-new">
         <h3>{t("newPlan")}</h3>
         <CreatePlanForm clients={clientList} />
       </div>
 
-      <div className={styles.card} style={{ marginBottom: 20 }}>
+      <div className={styles.card} style={{ marginBottom: 20 }} data-tour="plans-ai">
         <h3>{t("aiGenerator")}</h3>
         <AiPlanGeneratorForm clients={clientList} />
       </div>
 
       {plans && plans.length > 0 ? (
-        <div className={styles.roster} style={{ marginBottom: 28 }}>
+        <div className={styles.roster} style={{ marginBottom: 28 }} data-tour="plans-list">
           {plans.map((plan) => {
             const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
             const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;

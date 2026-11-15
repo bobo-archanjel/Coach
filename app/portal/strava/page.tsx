@@ -46,7 +46,7 @@ export default async function StravaPage() {
         <p className={s.pageSub}>{t("sub")}</p>
       </header>
 
-      <div className={s.panel}>
+      <div className={s.panel} data-tour="nutrition-goal">
         <div className={s.panelHead}>
           <p className={s.panelLabel}>{t("macroGoal")}</p>
           <span className={s.panelIcon}>
@@ -82,7 +82,7 @@ export default async function StravaPage() {
         )}
       </div>
 
-      <section aria-label={t("mealPlan")}>
+      <section aria-label={t("mealPlan")} data-tour="nutrition-plan">
         <div className={s.sectionHead}>
           <h2 className={s.sectionTitle}>{mealPlanName ?? t("mealPlan")}</h2>
         </div>
@@ -130,7 +130,7 @@ export default async function StravaPage() {
         )}
         {/* PDF až pod jedálničkom (nie v hlavičke sekcie) */}
         {mealPlanId && mealDays.length > 0 && (
-          <div className={s.mealPdfRow}>
+          <div className={s.mealPdfRow} data-tour="nutrition-pdf">
             <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
               {t("downloadPdf")}
             </a>

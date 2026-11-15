@@ -129,7 +129,7 @@ export function WorkoutSetsFields({
   return (
     <>
       {exercises.map((ex, exIdx) => (
-        <div key={`${ex.idx}-${exIdx}`} className={styles.logExercise}>
+        <div key={`${ex.idx}-${exIdx}`} className={styles.logExercise} data-tour="workout-exercise">
           <p className={styles.logExerciseName}>{ex.name}</p>
           <div className={styles.logRows}>
             {(rows[exIdx] ?? []).map((row, rowIdx) => {
@@ -212,7 +212,7 @@ export function WorkoutSetsFields({
         </div>
       ))}
 
-      <div className={styles.logSessionMeta}>
+      <div className={styles.logSessionMeta} data-tour="workout-meta">
         <label className={styles.logRpeField}>
           <span>{t("rpe")}</span>
           <select value={rpe} onChange={(e) => onChange({ ...values, rpe: e.target.value })}>

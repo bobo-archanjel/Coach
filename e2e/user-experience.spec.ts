@@ -114,9 +114,13 @@ test.describe("Menu bez Nastavení / Profilu", () => {
     await expect(avatar).toHaveAttribute("href", "/portal/profil");
 
     // posledný krok sprievodcu zvýrazní práve viditeľnú ikonu
+    // sprievodca prechádza sekcie — medzi nimi je obrazovka chvíľu len stlmená (čaká na stránku)
+    test.setTimeout(120_000);
+    const bubble = page.locator("[data-tour-overlay][role=dialog]");
     await expect(page.getByRole("dialog", { name: "Návod: Dnes" })).toBeVisible();
     while (!(await page.getByRole("dialog", { name: "Návod: Profil" }).isVisible())) {
-      await page.getByRole("button", { name: "Ďalej" }).click();
+      await bubble.getByRole("button", { name: "Ďalej" }).click();
+      await expect(bubble).toBeVisible({ timeout: 15_000 });
     }
     const spotlight = page.locator('[class*="spotlight"]');
     await expect(spotlight).toBeVisible();
@@ -126,10 +130,16 @@ test.describe("Menu bez Nastavení / Profilu", () => {
   });
 
   test("tréner: sprievodca na poslednom kroku zvýrazní ikonu s iniciálou", async ({ page }) => {
-    await page.goto("/dashboard/klienti/x?preview=progress&tour=1");
-    await expect(page.getByRole("dialog", { name: "Návod: Klienti" })).toBeVisible();
+    // sprievodca prechádza skutočné sekcie — trénerove stránky bez prihlásenia DEV náhľad nemajú
+    test.skip(!hasEnv, "Chýbajú E2E_TRAINER_* údaje alebo Supabase env (aj service role).");
+    test.setTimeout(180_000);
+    await loginTrainer(page);
+    await page.goto("/dashboard?tour=1");
+    const bubble = page.locator("[data-tour-overlay][role=dialog]");
+    await expect(page.getByRole("dialog", { name: "Návod: Klienti" })).toBeVisible({ timeout: 15_000 });
     while (!(await page.getByRole("dialog", { name: "Návod: Nastavenia" }).isVisible())) {
-      await page.getByRole("button", { name: "Ďalej" }).click();
+      await bubble.getByRole("button", { name: "Ďalej" }).click();
+      await expect(bubble).toBeVisible({ timeout: 15_000 });
     }
     const avatar = page.getByRole("link", { name: /— Nastavenia$/ });
     const spotlight = page.locator('[class*="spotlight"]');

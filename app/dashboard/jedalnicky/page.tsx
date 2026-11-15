@@ -47,13 +47,13 @@ export default async function JedalnickyPage() {
         <p>{t("subtitle")}</p>
       </div>
 
-      <div className={styles.card} style={{ marginBottom: 20 }}>
+      <div className={styles.card} style={{ marginBottom: 20 }} data-tour="mealplans-new">
         <h3>{t("newMealPlan")}</h3>
         <CreateMealPlanForm clients={clients ?? []} />
       </div>
 
       {plans && plans.length > 0 ? (
-        <div className={styles.roster} style={{ marginBottom: 28 }}>
+        <div className={styles.roster} style={{ marginBottom: 28 }} data-tour="mealplans-list">
           {plans.map((plan) => {
             const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
             const days = (plan.meal_days as unknown as { meals: unknown }[] | null) ?? [];
