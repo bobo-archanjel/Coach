@@ -464,6 +464,45 @@
   margin-bottom: 14px;
 }
 
+/* ---------- súhlas s obchodnými podmienkami (/prihlasenie/suhlas) ---------- */
+.consentChanges {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--hairline);
+  background: var(--fill);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+.consentChangesTitle {
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.consentLinks {
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--paper-dim);
+}
+.consentError {
+  margin-bottom: 14px;
+  font-size: 13.5px;
+  color: var(--error);
+}
+.consentDecline {
+  margin-top: 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--paper-faint);
+  text-align: center;
+}
+.consentSignOut {
+  margin-top: 10px;
+  text-align: center;
+}
+
 @media (max-width: 880px) {
   .shell {
     display: flex;

@@ -75,6 +75,12 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-15** — **Súhlas s obchodnými podmienkami v účte + nová verzia podmienok** (`feature/obchodne-podmienky`, **migrácia 0063**).
+  - Súhlas sa ukladá v profile (`terms_accepted_at`, `terms_version`). Registrácia e-mailom ho overí aj na serveri. Účet bez súhlasu (napr. nový z Google) alebo so staršou verziou sa pred vstupom do appky dostane na `/prihlasenie/suhlas` („Súhlasím a pokračovať“, odkazy na podmienky a ochranu súkromia, odhlásenie); pri staršej verzii so súhrnom zmien.
+  - Existujúce účty migrácia označila ako súhlasiace s verziou 2026-09-22.
+  - **Obchodné podmienky 15. 11. 2026** — bod 6: zmazanie účtu 30 dní po žiadosti, pri zmazaní účtu trénera klientom ostanú zverejnené plány a jedálničky. Verzia `2026-11-15` → **každý používateľ pri najbližšom otvorení appky potvrdí novú verziu** (QA účty už potvrdili).
+  - Ako meniť podmienky (drobná vs. podstatná zmena): `lib/legal/terms.ts`. Test: `e2e/suhlas-podmienky.spec.ts`.
+
 - **2026-11-15** — **Opravy z testovania** (`feature/fixing`, **migrácie 0061 a 0062**).
   - **Nový klient:** prepnutie záložky „Má FitPilot účet“ / „Ešte nemá účet“ už nenechá rozpísaný kód v poli „Meno a priezvisko“. Nepoužiteľný „Pozývací kód“ zmizol z Info pri klientovi, z „Prvé kroky“ (krok 3) aj zo sprievodcu; vysvetlivka „Ešte nemá účet“ hovorí, že záznam sa s neskorším účtom klienta automaticky nespojí.
   - **Profil klienta:** panel „Môj účet“ (meno, e-mail, rola, Odhlásiť sa) pod výberom jazyka — odhlásenie už nie je úplne dole.

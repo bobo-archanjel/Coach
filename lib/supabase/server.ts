@@ -74,7 +74,16 @@ export const getUser = cache(async () => {
  */
 export const getProfile = cache(async (userId: string) => {
   const supabase = await createClient();
-  return supabase.from("profiles").select("role, full_name").eq("id", userId).maybeSingle();
+  // terms_version (0063) pre bránu súhlasu s podmienkami — pred migráciou stĺpec chýba,
+  // vtedy bez neho (terms_version undefined = brána sa nespúšťa), nech nespadne role guard.
+  const res = await supabase.from("profiles").select("role, full_name, terms_version").eq("id", userId).maybeSingle();
+  if (!res.error) return res;
+  return supabase
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", userId)
+    .maybeSingle()
+    .then((r) => ({ ...r, data: r.data ? { ...r.data, terms_version: undefined as string | null | undefined } : null }));
 });
 
 /**
