@@ -108,8 +108,11 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
         )}
       </div>
 
+      {/* key: dva rôzne formuláre na tom istom mieste — bez neho by React pri prepnutí
+          prerobil pole kódu (kontrolované) na „Meno a priezvisko“ (nekontrolované) a
+          rozpísaný kód by v ňom ostal. */}
       {mode === "code" ? (
-        <form action={codeAction}>
+        <form key="code" action={codeAction}>
           <div className={styles.addClientFields}>
             <input
               name="code"
@@ -148,6 +151,7 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
         </form>
       ) : (
         <form
+          key="manual"
           action={manualAction}
           onSubmit={(e) => {
             if (!onOptimisticAdd) return;

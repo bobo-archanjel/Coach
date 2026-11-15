@@ -6,6 +6,7 @@ import {
   parseLoggedEntries,
   parsePlanSnapshot,
   rowTone,
+  setTones,
   snapshotToPlanEntries,
 } from "../lib/workouts/completed";
 import { parseReps, parseWeight, summarizeWorkoutForm } from "../lib/workouts/setInput";
@@ -64,6 +65,13 @@ test.describe("plán vs. realita — čistá logika", () => {
     expect(drep.rows).toHaveLength(4);
     expect(drep.rows[3].planned).toBeNull(); // 4. séria navyše
     expect(drep.rows.map(rowTone)).toEqual(["met", "above", "below", null]);
+    // každá hodnota zvlášť; rozsah „8-10“: 8 aj 10 = podľa plánu
+    expect(drep.rows.map(setTones)).toEqual([
+      { reps: "met", weight: "met" },
+      { reps: "met", weight: "above" },
+      { reps: "below", weight: "met" },
+      { reps: null, weight: null }, // séria navyše
+    ]);
     expect(rows[1].rows.every((r) => r.actual === null)).toBe(true);
     expect(rows[2].rows[0].actual).toMatchObject({ durationS: 600, distanceM: 4000 });
   });
@@ -101,6 +109,16 @@ test.describe("detail dokončeného tréningu — tréner (?preview=done)", () =
     await expect(rows.nth(1)).toContainText("8 op. × 60 kg");
     await expect(rows.nth(1)).toContainText("8 op. × 62.5 kg");
     await expect(rows.nth(3)).toContainText("navyše");
+    // farby oproti plánu (3 × 8 @ 60 kg): presne = zelená, menej = červená, viac = modrá
+    const tone = (row: number, text: string) => rows.nth(row).locator("[data-tone]").filter({ hasText: text });
+    await expect(tone(0, "8 op.")).toHaveAttribute("data-tone", "met");
+    await expect(tone(0, "60 kg")).toHaveAttribute("data-tone", "met");
+    await expect(tone(1, "62.5 kg")).toHaveAttribute("data-tone", "above");
+    await expect(tone(2, "6 op.")).toHaveAttribute("data-tone", "below");
+    await expect(rows.nth(3).locator("[data-tone]")).toHaveCount(0);
+    const color = (row: number, text: string) => tone(row, text).evaluate((el) => getComputedStyle(el).color);
+    const [met, above, below] = [await color(0, "8 op."), await color(1, "62.5 kg"), await color(2, "6 op.")];
+    expect(new Set([met, above, below]).size, "tri rôzne farby").toBe(3);
 
     const rdl = page.getByTestId("completed-exercise").filter({ hasText: "Rumunský mŕtvy ťah" });
     await expect(rdl.getByText(/Bolel ma spodný chrbát/)).toBeVisible();
@@ -205,6 +223,13 @@ test.describe("zápis série — parsovanie a validácia (lib/workouts/setInput.
 test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
   const reps = (page: Page, ex: string, set: number) => page.getByLabel(`${ex}, séria ${set}, opakovania`);
   const kg = (page: Page, ex: string, set: number) => page.getByLabel(`${ex}, séria ${set}, váha v kg`);
+  /** „Ukončiť tréning“ — najprv do stredu obrazovky: čiastočne viditeľné tlačidlo by Playwright
+   *  neposunul a ťuk do jeho stredu by na mobile trafil plávajúcu lištu menu. */
+  const finish = async (page: Page) => {
+    const btn = page.getByRole("button", { name: "Ukončiť tréning" });
+    await btn.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await btn.click();
+  };
 
   test.beforeEach(async ({ page }) => {
     await page.goto("/portal?preview=ok");
@@ -225,10 +250,28 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await expect(page.getByText(/zabudnuté hodnoty môžeš opraviť ešte 24 hodín/)).toBeVisible();
   });
 
+  test("hodnoty trénera sú predvyplnené; opakovania na čas ostanú na klientovi", async ({ page }) => {
+    // 4 × 6 @ 90 kg → každá séria predvyplnená, klient pri odcvičení podľa plánu nič nepíše
+    for (const set of [1, 2, 3, 4]) {
+      await expect(reps(page, "Drep s veľkou činkou", set)).toHaveValue("6");
+      await expect(kg(page, "Drep s veľkou činkou", set)).toHaveValue("90");
+    }
+    await expect(reps(page, "Drep s veľkou činkou", 5)).toHaveCount(0);
+    // „45 s“ nie je počet opakovaní — prázdne, plán ako placeholder; vlastná váha bez kg
+    await expect(reps(page, "Plank s výdržou", 1)).toHaveValue("");
+    await expect(reps(page, "Plank s výdržou", 1)).toHaveAttribute("placeholder", "45 s");
+    await expect(kg(page, "Plank s výdržou", 1)).toHaveValue("");
+    // pridaná séria dostane tiež hodnoty trénera
+    await page.getByRole("button", { name: "Pridať sériu" }).first().click();
+    await expect(reps(page, "Drep s veľkou činkou", 5)).toHaveValue("6");
+    await expect(kg(page, "Drep s veľkou činkou", 5)).toHaveValue("90");
+  });
+
   test("K8: desatinná čiarka ostane „62,5“, placeholder ukazuje plánovanú váhu", async ({ page }) => {
     const field = kg(page, "Drep s veľkou činkou", 1);
     await expect(field).toHaveAttribute("placeholder", "90");
     await expect(field).toHaveAttribute("inputmode", "decimal");
+    await field.fill(""); // predvyplnené „90“ (hodnota trénera)
     await field.pressSequentially("62,5");
     await expect(field).toHaveValue("62,5");
     await page.getByRole("button", { name: "Ukončiť tréning" }).click();
@@ -255,15 +298,21 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await expect(page.getByRole("alertdialog")).toBeVisible();
   });
 
-  test("K17: ukončenie bez hodnôt a cviky bez zápisu majú varovanie", async ({ page }) => {
-    await page.getByRole("button", { name: "Ukončiť tréning" }).click();
-    await expect(page.getByRole("alertdialog")).toContainText("Nezapísal si žiadnu sériu");
+  test("K17: cviky bez zápisu majú varovanie (predvyplnené hodnoty trénera sa rátajú ako zápis)", async ({ page }) => {
+    // všetko okrem planku (45 s) je predvyplnené — chýba len plank
+    await finish(page);
+    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Plank s výdržou");
+    await expect(page.getByRole("alertdialog")).not.toContainText("Nezapísal si žiadnu sériu");
+    await expect(page.getByRole("alertdialog")).not.toContainText("Drep s veľkou činkou");
     await page.getByRole("button", { name: "Pokračovať v tréningu" }).click();
 
-    await reps(page, "Drep s veľkou činkou", 1).fill("6");
-    await page.getByRole("button", { name: "Ukončiť tréning" }).click();
-    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Rumunský mŕtvy ťah, Predkopávanie na stroji");
-    await expect(page.getByRole("alertdialog")).not.toContainText("Drep s veľkou činkou,");
+    // klient vymaže všetky série drepu → drep je tiež bez zápisu
+    for (const set of [1, 2, 3, 4]) {
+      await reps(page, "Drep s veľkou činkou", set).fill("");
+      await kg(page, "Drep s veľkou činkou", set).fill("");
+    }
+    await finish(page);
+    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Drep s veľkou činkou, Plank s výdržou");
   });
 
   test("K7: rozpísané hodnoty prežijú refresh aj prepnutie tabu", async ({ page }) => {

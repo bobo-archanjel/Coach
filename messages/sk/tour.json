@@ -106,7 +106,7 @@
       },
       "info": {
         "title": "Info",
-        "body": "Pozývací kód, základné údaje a tvoje poznámky. Dole ukončíš spoluprácu."
+        "body": "Základné údaje a tvoje poznámky. Dole ukončíš spoluprácu."
       }
     },
     "t-plans": {
@@ -357,6 +357,10 @@
       "appearance": {
         "title": "Vzhľad a jazyk",
         "body": "Prepni si svetlý alebo tmavý režim. O kartu nižšie zmeníš jazyk appky."
+      },
+      "account": {
+        "title": "Môj účet",
+        "body": "Tvoje meno a e-mail. Tu sa aj odhlásiš."
       },
       "guide": {
         "title": "Návod",

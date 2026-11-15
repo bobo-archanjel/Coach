@@ -100,6 +100,15 @@
   :global(html[data-keyboard-open]) .v6Main {
     padding-bottom: 12px;
   }
+  /* Posun k prvku (scrollIntoView, Tab, kotvy) ho zastaví pod hlavičkou a NAD plávajúcou
+     lištou dole — inak napr. „Ukončiť tréning“ skončil schovaný pod menu a ťuk trafil lištu. */
+  :global(html):has(.v6Nav) {
+    scroll-padding-top: calc(72px + env(safe-area-inset-top));
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  :global(html[data-keyboard-open]):has(.v6Nav) {
+    scroll-padding-bottom: 12px;
+  }
 }
 
 /* ---------- spodná lišta: plávajúca sklenená pilulka ---------- */
@@ -2530,10 +2539,36 @@
   font-size: 13px;
   margin-top: 10px;
 }
-.signOut {
-  display: flex;
-  justify-content: center;
-  margin-top: 6px;
+/* Účet v Profile klienta — rovnaké riadky ako Profil v Nastaveniach trénera (.infoRow) */
+.accountRows {
+  margin: 0;
+}
+.accountRow {
+  display: grid;
+  gap: 4px;
+  padding-block: 10px;
+  border-top: 1px solid var(--hairline);
+}
+.accountRow:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.accountRow dt {
+  color: var(--paper-faint);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.accountRow dd {
+  margin: 0;
+  color: var(--paper);
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+.accountSignOut {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
 }
 
 /* ======================================================================

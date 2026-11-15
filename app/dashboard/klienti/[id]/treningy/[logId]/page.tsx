@@ -11,6 +11,8 @@ import {
   parseLoggedEntries,
   parsePlanSnapshot,
   rowTone,
+  setTones,
+  type SetTone,
   type CompareExercise,
   type CompareRow,
   type PlanSnapshot,
@@ -102,15 +104,29 @@ function plannedCell(row: CompareRow, t: LogT): string {
   return row.planned.loadKg != null ? `${reps} × ${row.planned.loadKg} kg` : reps;
 }
 
-function actualCell(row: CompareRow, t: LogT, locale: Locale): string {
+/** Skutočné hodnoty série; opakovania a váha zafarbené podľa plánu (zelená presne, červená menej, modrá viac). */
+function ActualCell({ row, t, locale }: { row: CompareRow; t: LogT; locale: Locale }) {
   const a = row.actual;
-  if (!a) return t("notDone");
-  const parts: string[] = [];
-  if (a.reps != null) parts.push(t("repsShort", { reps: a.reps }));
-  if (a.weight != null) parts.push(`${a.weight} kg`);
-  if (a.durationS != null) parts.push(formatDuration(a.durationS));
-  if (a.distanceM != null) parts.push(formatDistance(a.distanceM, locale));
-  return parts.join(" × ") || "—";
+  if (!a) return <>{t("notDone")}</>;
+  const tones = setTones(row);
+  const parts: { text: string; tone: SetTone | null }[] = [];
+  if (a.reps != null) parts.push({ text: t("repsShort", { reps: a.reps }), tone: tones.reps });
+  if (a.weight != null) parts.push({ text: `${a.weight} kg`, tone: tones.weight });
+  if (a.durationS != null) parts.push({ text: formatDuration(a.durationS), tone: null });
+  if (a.distanceM != null) parts.push({ text: formatDistance(a.distanceM, locale), tone: null });
+  if (parts.length === 0) return <>—</>;
+  return (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {i > 0 && " × "}
+          <span className={p.tone ? styles[TONE_CLASS[p.tone]] : undefined} data-tone={p.tone ?? undefined}>
+            {p.text}
+          </span>
+        </span>
+      ))}
+    </>
+  );
 }
 
 // kľúče tried v completed.module.css (styles[TONE_CLASS[tone]])
@@ -263,8 +279,8 @@ export default async function CompletedWorkoutPage({
                         <span role="cell" className={styles.planned}>
                           {plannedCell(row, t)}
                         </span>
-                        <span role="cell" className={`${styles.actual} ${tone ? styles[TONE_CLASS[tone]] : ""}`}>
-                          {actualCell(row, t, locale)}
+                        <span role="cell" className={styles.actual}>
+                          <ActualCell row={row} t={t} locale={locale} />
                           {row.actual?.rpe != null && <span className={styles.rpe}> · RPE {row.actual.rpe}</span>}
                           {tone && tone !== "met" && (
                             <span className={styles.srOnly}>

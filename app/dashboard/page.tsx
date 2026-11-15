@@ -216,13 +216,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   }
 
   // Nezávislé dopyty — zoznam klientov nepotrebuje neprečítané správy (a naopak,
-  // RLS scopuje messages na klientov tohto trénera samo) — paralelne. `user_id`
-  // navyše oproti pôvodnému výberu — potrebné pre onboarding checklist (krok 3,
-  // "klient sa pripojil cez svoj kód").
+  // RLS scopuje messages na klientov tohto trénera samo) — paralelne.
   const [{ clients, lateStatus }, { data: unreadRows }, healthDigest, dismissed] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, full_name, goal, created_at, paired_at, ended_at, deletion_requested_at, user_id")
+      .select("id, full_name, goal, created_at, paired_at, ended_at, deletion_requested_at")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false })
       // Stav meškania potrebuje len ID klientov — zreťazený priamo na ich dopyt,
@@ -304,8 +302,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   // "zavrieť" stav (rozhodnuté vedome — jednoduchšie, nič na údržbu).
   const hasClient = (clients?.length ?? 0) > 0;
   const hasPlan = lateStatus.size > 0; // getLateStatusByClient vracia záznam len pre klienta s ≥1 priradeným plánom
-  const hasLinkedClient = (clients ?? []).some((c) => c.user_id != null);
-  const onboardingDone = hasClient && hasPlan && hasLinkedClient;
+  // (Krok „pošli klientovi pozývací kód“ zrušený — od 0032 sa klient pripája vlastným
+  // FitPilot kódom priamo v kroku 1, pozývací kód nemá kam zadať.)
+  const onboardingDone = hasClient && hasPlan;
 
   return (
     <>
@@ -333,12 +332,6 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                 {hasPlan ? "✓" : "2"}
               </span>
               <span>{t.rich("step2", { link: (chunks) => <Link href="/dashboard/treningy">{chunks}</Link> })}</span>
-            </li>
-            <li className={hasLinkedClient ? styles.onboardingDone : undefined}>
-              <span className={styles.onboardingCheck} aria-hidden="true">
-                {hasLinkedClient ? "✓" : "3"}
-              </span>
-              <span>{t("step3")}</span>
             </li>
           </ul>
         </DismissibleNotice>
