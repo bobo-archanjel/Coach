@@ -81,7 +81,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
         recipientCount={recipients.length}
       />
 
-      <div className={styles.planFooterActions}>
+      <div className={styles.planFooterActions} data-tour="meal-footer">
         <MealPlanFooterActions
           planId={planId}
           planName={plan.name}

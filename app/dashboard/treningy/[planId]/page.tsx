@@ -84,7 +84,7 @@ export default async function PlanDetailPage({
           </div>
           <PublishBadge published={livePreview} />
         </div>
-        <div className={styles.planActions}>
+        <div className={styles.planActions} data-tour="plan-publish">
           <PublishActions planId={planId} published={livePreview} />
         </div>
         <PlanBuilder
@@ -93,7 +93,7 @@ export default async function PlanDetailPage({
           library={previewLibrary}
           completedDayIds={["d2"]}
         />
-        <div className={styles.planFooterActions}>
+        <div className={styles.planFooterActions} data-tour="plan-footer">
           <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted />
         </div>
       </SwipeBack>
@@ -179,7 +179,7 @@ export default async function PlanDetailPage({
       {/* Publikovanie hore; „Uložiť ako šablónu“ je dole vedľa „Stiahnuť PDF“ (PlanFooterActions).
           Hotový plán publikovanie nemá. */}
       {!locked && (
-        <div className={styles.planActions}>
+        <div className={styles.planActions} data-tour="plan-publish">
           <PublishActions planId={planId} published={plan.published} recipientCount={recipients.length} />
         </div>
       )}
@@ -217,7 +217,7 @@ export default async function PlanDetailPage({
       )}
 
       {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
-      <div className={styles.planFooterActions}>
+      <div className={styles.planFooterActions} data-tour="plan-footer">
         {/* Hotový plán sa nemaže — ostáva ako záznam (PDF + šablóna, bez „Zmazať“). */}
         <PlanFooterActions
           planId={planId}

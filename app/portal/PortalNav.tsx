@@ -21,7 +21,7 @@ const NAV_ITEMS: { href: string; label: "today" | "training" | "nutrition" | "di
   { href: `${BASE}/dennik`, label: "diary", Icon: DiaryIcon, tour: "nav-dennik", match: (p: string) => p.startsWith(`${BASE}/dennik`) },
   { href: `${BASE}/chat`, label: "chat", Icon: ChatIcon, tour: "nav-chat", match: (p: string) => p.startsWith(`${BASE}/chat`) },
   // AI Kouč len pre klientov s prideleným trénerom — viď aiKoucVisible nižšie.
-  { href: `${BASE}/ai-kouc`, label: "aiCoach", Icon: AiIcon, tour: null, match: (p: string) => p.startsWith(`${BASE}/ai-kouc`) },
+  { href: `${BASE}/ai-kouc`, label: "aiCoach", Icon: AiIcon, tour: "nav-ai", match: (p: string) => p.startsWith(`${BASE}/ai-kouc`) },
 ];
 
 /**

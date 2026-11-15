@@ -21,11 +21,24 @@ export default defineConfig({
     // otvorí cez celú obrazovku a blokoval by kliky — testy štartujú s cookie
     // „návod videný“ (lib/onboarding/actions.ts). Samotný návod overuje e2e/dizajn-v6.spec.ts
     // cez ?tour=1. Odhlásenie cookie zmaže (signOutAction).
+    // Sprievodcovia sekcií (SectionGuide) sa pri prvej návšteve sekcie spúšťajú sami a tiež
+    // by blokovali kliky — cookie „fitpilot_guides_seen=all“ ich automatické spúšťanie vypne
+    // (app/api/onboarding/guides). Overuje ich e2e/sprievodca-sekcii.spec.ts.
     storageState: {
       cookies: [
         {
           name: "fitpilot_tour_seen",
           value: "1",
+          domain: "localhost",
+          path: "/",
+          expires: -1,
+          httpOnly: false,
+          secure: false,
+          sameSite: "Lax",
+        },
+        {
+          name: "fitpilot_guides_seen",
+          value: "all",
           domain: "localhost",
           path: "/",
           expires: -1,

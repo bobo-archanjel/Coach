@@ -128,7 +128,7 @@ export function ExerciseRow({
   }
 
   return (
-    <div className={styles.exerciseRow}>
+    <div className={styles.exerciseRow} data-tour="plan-exercise">
       {entry.exercise_id ? (
         <button type="button" className={styles.exerciseNameBtn} onClick={openDetail}>
           <ExerciseThumb src={libEntry?.image_url[0] ?? null} alt="" size={26} />

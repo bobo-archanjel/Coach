@@ -248,7 +248,7 @@ export function MealPlanBuilder({
     <>
       {/* Vždy v DOM (aj po zverejnení) — inak by revalidácia odmontovala potvrdenie
           „Zverejnené"; prázdny blok skryje .planActions:empty. */}
-      <div className={dashStyles.planActions}>
+      <div className={dashStyles.planActions} data-tour="meal-publish">
         <MealPublishActions
           planId={planId}
           published={published}
@@ -262,7 +262,7 @@ export function MealPlanBuilder({
 
       <div className={styles.canvas}>
         {/* Výber dňa = prepínač (dráha) ako v buildri tréningu; číslo = počet potravín dňa */}
-        <div ref={tabsRef} className={wb.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
+        <div ref={tabsRef} className={wb.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe data-tour="meal-days">
           {draft.map((day) => (
             <button
               key={day.id}
@@ -304,12 +304,12 @@ export function MealPlanBuilder({
           {activeDay ? (
             <>
               {dayTotal && activeDay.meals.length > 0 && (
-                <div className={styles.dayTotals}>
+                <div className={styles.dayTotals} data-tour="meal-totals">
                   <span>{t("kcalPerDay", { kcal: dayTotal.kcal })}</span>
                   <MacroChips proteinG={dayTotal.proteinG} carbsG={dayTotal.carbsG} fatG={dayTotal.fatG} size="lg" />
                 </div>
               )}
-              <div className={food.slots}>
+              <div className={food.slots} data-tour="meal-slots">
                 {MEAL_SLOT_ORDER.map((slot) => {
                   const entries = activeDay.meals.filter((m) => m.meal_slot === slot);
                   return (

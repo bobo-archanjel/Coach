@@ -9,6 +9,11 @@
   pointer-events: auto;
 }
 
+/* Čakanie na ďalšiu stránku plynulého sprievodcu — stlmenie bez zvýraznenia. */
+.veil {
+  background: rgba(9, 8, 8, 0.78);
+}
+
 /* Spotlight cez veľký box-shadow spread namiesto clip-path — jednoduchšie a
    spoľahlivo funguje aj s border-radius na cieli, žiadna ručná polygon matika. */
 .spotlight {

@@ -24,7 +24,7 @@ export function SpravyView({
     <>
       {/* hideOnThreadMobile: skryté len kým je otvorené vlákno (CSS :has na .inboxGrid) —
           v režime hromadnej správy .inboxGrid v DOM nie je, prepínač ostáva viditeľný. */}
-      <div className={`${styles.spravyModeToggle} ${styles.hideOnThreadMobile}`}>
+      <div className={`${styles.spravyModeToggle} ${styles.hideOnThreadMobile}`} data-tour="inbox-bulk">
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBulk((b) => !b)}>
           {bulk ? t("backToInbox") : t("bulk")}
         </button>

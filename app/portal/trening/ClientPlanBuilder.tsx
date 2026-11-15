@@ -260,12 +260,12 @@ export function ClientPlanBuilder({
     <SwipeBack onBack={onCancel}>
       <section aria-label={initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
         <div className={styles.trBuilderTop}>
-          <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending}>
+          <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="cbuilder-save">
             {pending ? t("saving") : t("save")}
           </button>
         </div>
 
-        <label className={styles.trNameField}>
+        <label className={styles.trNameField} data-tour="cbuilder-name">
           <span className={styles.panelLabel}>{t("planName")}</span>
           <input
             type="text"
@@ -284,7 +284,7 @@ export function ClientPlanBuilder({
         <div className={`${b.builderGrid} ${styles.trBuilderGrid}`}>
           <div className={`${b.canvas} ${styles.trBuilderCanvas}`}>
             {/* Výber dňa = prepínač (dráha), nie tlačidlá; počet cvikov je len vizuálny (aria-hidden) */}
-            <div ref={tabsRef} className={b.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe>
+            <div ref={tabsRef} className={b.dayTabs} role="group" aria-label={t("daysAria")} data-no-swipe data-tour="cbuilder-days">
               {days.map((d) => (
                 <button
                   key={d.key}

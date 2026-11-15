@@ -69,7 +69,7 @@ export default async function AiKoucPage({ searchParams }: { searchParams: Promi
           </form>
         )}
       </div>
-      <p className={s.aiKoucNotice}>
+      <p className={s.aiKoucNotice} data-tour="ai-notice">
         {t("notice")}
       </p>
       <ChatThread

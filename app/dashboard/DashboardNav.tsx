@@ -89,8 +89,8 @@ const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "cal
   { href: "/dashboard/treningy", label: "plans", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/jedalnicky", label: "mealPlans", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
   { href: "/dashboard/spravy", label: "messages", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
-  { href: "/dashboard/kalendar", label: "calendar", Icon: CalendarIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/kalendar") },
-  { href: "/dashboard/sablony", label: "templates", Icon: TemplatesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/sablony") },
+  { href: "/dashboard/kalendar", label: "calendar", Icon: CalendarIcon, tour: "nav-kalendar", match: (p: string) => p.startsWith("/dashboard/kalendar") },
+  { href: "/dashboard/sablony", label: "templates", Icon: TemplatesIcon, tour: "nav-sablony", match: (p: string) => p.startsWith("/dashboard/sablony") },
 ];
 
 /**

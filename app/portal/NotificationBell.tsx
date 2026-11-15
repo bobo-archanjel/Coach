@@ -272,6 +272,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
         type="button"
         ref={buttonRef}
         className={`${styles.bellBtn} ${open ? styles.bellBtnOpen : ""}`}
+        data-tour="bell"
         aria-expanded={open}
         aria-controls="portal-attention-panel"
         aria-label={total > 0 ? t("ariaCount", { count: total }) : t("aria")}

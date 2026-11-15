@@ -97,7 +97,7 @@ export function ClientExerciseLibrary({
 
   return (
     <div className={b.librarySection}>
-      <div className={b.library}>
+      <div className={b.library} data-tour="cbuilder-custom">
         <span className={b.libraryHead}>{t("customHeading")}</span>
         <form
           className={b.customExerciseForm}
@@ -129,7 +129,7 @@ export function ClientExerciseLibrary({
         </form>
       </div>
 
-      <div className={b.library}>
+      <div className={b.library} data-tour="cbuilder-library">
         <button type="button" className={b.libraryToggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <span className={b.libraryHead}>{t("title", { count: library.length })}</span>
           <ChevronIcon className={`${b.libraryChevron} ${open ? b.libraryChevronOpen : ""}`} />

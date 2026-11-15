@@ -353,6 +353,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
       <button
         ref={fabRef}
         type="button"
+        data-tour="workout-stopwatch"
         className={`${styles.swFab} ${entrance ? styles.swFabIn : ""} ${fabAccent} ${open ? styles.swFabOpen : ""}`}
         aria-expanded={open}
         aria-label={

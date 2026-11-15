@@ -42,7 +42,7 @@ export function TemplateCard({
   }
 
   return (
-    <article className={styles.card}>
+    <article className={styles.card} data-tour="templates-card">
       <div className={styles.cardHead}>
         <h3 className={styles.cardName}>{item.name}</h3>
         <p className={styles.cardMeta}>

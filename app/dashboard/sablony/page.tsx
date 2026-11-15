@@ -86,7 +86,7 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
         </h1>
       </div>
 
-      <nav className={t.tabs} aria-label={tt("kinds")}>
+      <nav className={t.tabs} aria-label={tt("kinds")} data-tour="templates-tabs">
         {tab("workout", tt("tabWorkout"), workoutItems.length)}
         {tab("meal", tt("tabMeal"), mealItems.length)}
       </nav>

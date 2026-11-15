@@ -36,7 +36,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
       <div className={s.profileStack}>
         <TrainerConnection code={view.code} hasTrainer={view.hasTrainer} trainerName={view.trainerName} />
 
-        <div className={s.panel}>
+        <div className={s.panel} data-tour="profile-appearance">
           <p className={s.panelLabel}>{t("appearance")}</p>
           <ThemeSwitch initial={theme} />
           <p className={s.hint}>{t("appearanceHint")}</p>
@@ -62,7 +62,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
           </p>
         </div>
 
-        <div className={s.panel}>
+        <div className={s.panel} data-tour="profile-guide">
           <p className={s.panelLabel}>{t("tour")}</p>
           <p className={s.codeHint} style={{ marginTop: 0, marginBottom: 14 }}>
             {t("tourHint")}
