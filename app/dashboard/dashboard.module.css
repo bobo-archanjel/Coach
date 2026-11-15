@@ -1657,6 +1657,19 @@ select.addClientInputSm {
   padding: 20px 22px;
   box-shadow: var(--card-shadow);
 }
+/* Sekcia, ktorej obsah sú samé karty (detail klienta: tréningové plány, posledná aktivita,
+   jedálničky) — bez vlastného rámika aj na počítači, nadpis + karty priamo na pozadí. */
+.card.cardBare {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+/* bez rámika nadpis splýval s kartou nad ním — viac miesta medzi sekciami */
+.card.cardBare:not(:first-child) {
+  margin-top: 12px;
+}
 /* Karta, ktorej obsah sú samé ďalšie karty (šablóny, zoznam konverzácií) alebo chat — na mobile
    je jej rám zbytočná druhá vrstva, ktorá zužuje obsah (rovnako ako .dayPanel v
    editore tréningu). */

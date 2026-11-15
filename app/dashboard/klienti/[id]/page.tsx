@@ -255,7 +255,7 @@ export default async function ClientDetailPage({
       // samostatná karta "Aktivita" pôsobila ako duplicita tejto.
       content: (
         <div className={styles.cardStack}>
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(t("plansTitle"), plans && plans.length > 0 ? count(t("planCount", { count: plans.length })) : undefined)}
             {plans && plans.length > 0 ? (
               <div className={styles.roster}>
@@ -295,7 +295,7 @@ export default async function ClientDetailPage({
               </p>
             )}
           </div>
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(t("recentActivity"))}
             {logs.length > 0 ? (
               <div className={styles.roster}>
@@ -349,7 +349,7 @@ export default async function ClientDetailPage({
             profile={nutrition ? { ...nutrition, notes: nutritionNote?.notes ?? null } : null}
             defaults={{ age: client.age, weight_kg: client.weight_kg, height_cm: client.height_cm }}
           />
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(
               t("mealPlansTitle"),
               mealPlans && mealPlans.length > 0 ? count(t("mealPlanCount", { count: mealPlans.length })) : undefined,
