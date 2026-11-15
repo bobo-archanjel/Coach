@@ -75,6 +75,14 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-15** — **Právne stránky v6, burger na úvodnej stránke, Cloudflare na prihlásení, posuvníky** (`feature/pravne-stranky-v6`, bez migrácie).
+  - **Obchodné podmienky, ochrana súkromia, cookies a 404** v dizajne v6 (téma svetlá/tmavá/auto, sklenená hlavička s jazykom a témou, dokument v sklenenej karte). Texty bez zmeny.
+  - **Úvodná stránka na mobile:** v hlavičke logo, „Vyskúšať zadarmo“ a burger (Funkcie, AI, Cenník, Prihlásiť sa, jazyk a téma) — hlavička už nepreteká ani na iPhone SE. Na počítači bez zmeny.
+  - **Cloudflare (Turnstile) na prihlásení** už nezmizne po prepnutí Prihlásenie ↔ Registrácia ani po návrate zo „Zabudnuté heslo?“ (predtým bolo treba obnoviť stránku).
+  - **Bez posuvníkov** vo vnútorných rámčekoch (chat, výber klientov, detail cviku, zvončeky, okná…); posuvník celej stránky ostáva.
+  - **Knižnica cvikov:** výraznejšie tlačidlo „i“ pre náhľad cviku.
+  - **Testy:** CSP v `next dev` povoľuje skript Vercel Speed Insights; opravené zastarané kontroly v `smoke`, K9; dočasné testovacie účty so súhlasom s podmienkami.
+
 - **2026-11-15** — **Súhlas s obchodnými podmienkami v účte + nová verzia podmienok** (`feature/obchodne-podmienky`, **migrácia 0063**).
   - Súhlas sa ukladá v profile (`terms_accepted_at`, `terms_version`). Registrácia e-mailom ho overí aj na serveri. Účet bez súhlasu (napr. nový z Google) alebo so staršou verziou sa pred vstupom do appky dostane na `/prihlasenie/suhlas` („Súhlasím a pokračovať“, odkazy na podmienky a ochranu súkromia, odhlásenie); pri staršej verzii so súhrnom zmien.
   - Existujúce účty migrácia označila ako súhlasiace s verziou 2026-09-22.
