@@ -54,7 +54,7 @@ test.describe("súhlas s obchodnými podmienkami (reálna DB)", () => {
 
   /** Dočasný účet bez súhlasu — ako nový účet z Google (metadáta bez terms_version). */
   async function tempUser(role: "trainer" | "client") {
-    const email = `e2e.suhlas.${role}.${stamp}@fitpilot-testaccount.com`;
+    const email = `e2e.suhlas.${role}.${stamp}.${created.length}@fitpilot-testaccount.com`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,
