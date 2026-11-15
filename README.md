@@ -75,6 +75,15 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-15** — **Opravy z testovania** (`feature/fixing`, **migrácie 0061 a 0062**).
+  - **Nový klient:** prepnutie záložky „Má FitPilot účet“ / „Ešte nemá účet“ už nenechá rozpísaný kód v poli „Meno a priezvisko“. Nepoužiteľný „Pozývací kód“ zmizol z Info pri klientovi, z „Prvé kroky“ (krok 3) aj zo sprievodcu; vysvetlivka „Ešte nemá účet“ hovorí, že záznam sa s neskorším účtom klienta automaticky nespojí.
+  - **Profil klienta:** panel „Môj účet“ (meno, e-mail, rola, Odhlásiť sa) pod výberom jazyka — odhlásenie už nie je úplne dole.
+  - **Zápis tréningu:** série predvyplnené hodnotami trénera (opakovania pri jednom čísle, váha) — pri odcvičení podľa plánu netreba nič písať. Na mobile sa „Ukončiť tréning“ a polia pri posune už neschovajú pod spodnú lištu.
+  - **Detail odcvičeného tréningu (tréner):** opakovania aj váha každej série oproti plánu — zelená presne, červená menej, modrá viac.
+  - **Posledná aktivita pri klientovi:** bez tréningov z plánov, ktoré si klient vytvoril sám. Migrácia **0061** pridá vlastníka plánu do záznamu tréningu (bez nej filter funguje podľa viditeľnosti plánu).
+  - **Zmazanie účtu trénera:** úplne dole v Nastaveniach, 30-dňová lehota, dá sa zrušiť, klienti dostanú správu v chate. Po lehote sa zmaže celý účet; klienti s vlastným účtom sa odpoja a zverejnené plány aj jedálničky im ostanú. Potrebuje migráciu **0062** (bez nej žiadosť zlyhá s chybou).
+  - **Vzhľad:** Nastavenia trénera vycentrované a širšie ako Profil klienta; detail klienta — sekcie plánov, aktivity a jedálničkov bez vonkajšieho rámika; prihlásenie na počítači — text vľavo pri hornom okraji karty.
+
 - **2026-11-15** — **Sprievodca plynulo cez všetky sekcie + sprievodcovia hlbších okien** (`feature/sprievodca-sekcii`, **migrácia 0060**).
   - **Plynulý sprievodca:** prejde sekcie jednu po druhej — ukáže položku v menu, vysvetlí hlavné funkcie sekcie priamo na jej stránke a sám prejde na ďalšiu (klient: Dnes → Tréning → Strava → Denník → Chat → AI Kouč → Profil; tréner: Klienti → Tréningy → Jedálničky → Správy → Kalendár → Šablóny → Nastavenia). Na konci sa vráti na úvodnú sekciu. Spustí sa sám pri prvom prihlásení a znova cez „Spustiť návod znova“. Kroky bez obsahu (prázdny zoznam, žiadna správa) sa preskočia, „Späť“ ide aj cez hranicu sekcie.
   - **Hlbšie okná:** builder tréningu, builder jedálnička a detail klienta (tréner), vlastný tréning a zapisovanie tréningu (klient) sa vysvetlia raz pri prvom otvorení. Zoznam videných je v účte (`profiles.guides_seen`, RPC z migrácie 0060), „Spustiť návod znova“ ho vynuluje.
