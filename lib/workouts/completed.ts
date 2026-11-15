@@ -24,6 +24,11 @@ export interface PlanSnapshot {
   exercises: SnapshotExercise[];
   /** Záznam spred 0048 — snapshot doplnený z aktuálnej verzie plánu, nie z času tréningu. */
   backfilled: boolean;
+  /**
+   * Vlastník plánu v čase tréningu (0061): id trénera, `null` = vlastný tréning klienta,
+   * `undefined` = neznáme (záznam spred 0061, ktorého plán už neexistuje).
+   */
+  planTrainerId?: string | null;
 }
 
 /** Jedna zapísaná séria. Čas/vzdialenosť/RPE sú voliteľné (zatiaľ ich zapisujú len niektoré toky). */
@@ -91,7 +96,21 @@ export function parsePlanSnapshot(raw: unknown): PlanSnapshot | null {
     dayName: str(s.day_name),
     exercises,
     backfilled: s.backfilled === true,
+    ...("plan_trainer_id" in s ? { planTrainerId: str(s.plan_trainer_id) } : {}),
   };
+}
+
+/**
+ * Patrí odcvičený tréning do „Posledná aktivita“ trénera? Nie, ak je z plánu, ktorý si
+ * klient vytvoril sám. Vlastníka plánu nesie snapshot (0061); pri starších záznamoch
+ * rozhodne viditeľnosť dňa: deň stále existuje (`workoutDayId`), no tréner ho cez RLS
+ * nevidí (`dayVisible` false) → nie je to jeho plán. Zo zmazaného plánu bez vlastníka v
+ * snapshote sa to zistiť nedá — taký záznam sa ukáže.
+ */
+export function isTrainerPlanLog(log: { planSnapshot: unknown; workoutDayId: string | null; dayVisible: boolean }): boolean {
+  const owner = parsePlanSnapshot(log.planSnapshot)?.planTrainerId;
+  if (owner !== undefined) return owner !== null;
+  return !(log.workoutDayId && !log.dayVisible);
 }
 
 /** workout_logs.entries — nový tvar `{entryId, name, note?, sets}` aj starší `{exercise_name}`. */

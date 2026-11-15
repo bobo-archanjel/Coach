@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
-import { parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
+import { isTrainerPlanLog, parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
@@ -167,7 +167,7 @@ export default async function ClientDetailPage({
     { data: client },
     { plans, planCompletion },
     { data: nutrition },
-    { data: logs },
+    { data: allLogs },
     { data: privateNote },
     { data: mealPlans },
     { data: nutritionNote },
@@ -188,10 +188,11 @@ export default async function ClientDetailPage({
         .maybeSingle(),
       supabase
         .from("workout_logs")
-        .select("id, performed_on, status, completed_at, entries, plan_snapshot, workout_days(name)")
+        .select("id, performed_on, status, completed_at, entries, plan_snapshot, workout_day_id, workout_days(name)")
         .eq("client_id", id)
         .order("performed_on", { ascending: false })
-        .limit(8),
+        // rezerva — tréningy z vlastných plánov klienta sa nižšie vyradia, zobrazí sa 8
+        .limit(40),
       // Súkromná poznámka trénera (trainer_private_notes, 0036) — klient ju nevidí.
       // Tabuľka ešte nemusí existovať (pred migráciou) → data je vtedy null, stránka funguje.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "client").maybeSingle(),
@@ -227,6 +228,13 @@ export default async function ClientDetailPage({
     </div>
   );
   const count = (text: string) => <span className={styles.sectionMeta}>{text}</span>;
+
+  // Posledná aktivita: len tréningy z plánov trénera — vlastné tréningy klienta nie.
+  const logs = (allLogs ?? [])
+    .filter((log) =>
+      isTrainerPlanLog({ planSnapshot: log.plan_snapshot, workoutDayId: log.workout_day_id, dayVisible: log.workout_days != null }),
+    )
+    .slice(0, 8);
 
   // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
   const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
@@ -289,7 +297,7 @@ export default async function ClientDetailPage({
           </div>
           <div className={styles.card}>
             {cardHead(t("recentActivity"))}
-            {logs && logs.length > 0 ? (
+            {logs.length > 0 ? (
               <div className={styles.roster}>
                 {logs.map((log) => {
                   // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
