@@ -2530,10 +2530,36 @@
   font-size: 13px;
   margin-top: 10px;
 }
-.signOut {
-  display: flex;
-  justify-content: center;
-  margin-top: 6px;
+/* Účet v Profile klienta — rovnaké riadky ako Profil v Nastaveniach trénera (.infoRow) */
+.accountRows {
+  margin: 0;
+}
+.accountRow {
+  display: grid;
+  gap: 4px;
+  padding-block: 10px;
+  border-top: 1px solid var(--hairline);
+}
+.accountRow:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.accountRow dt {
+  color: var(--paper-faint);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.accountRow dd {
+  margin: 0;
+  color: var(--paper);
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+.accountSignOut {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
 }
 
 /* ======================================================================

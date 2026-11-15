@@ -25,6 +25,8 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
     getTranslations("language"),
   ]);
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
+  const fullName = (userData.user?.user_metadata?.full_name as string | undefined)?.trim() || "—";
+  const email = userData.user?.email ?? "—";
 
   return (
     <>
@@ -34,6 +36,28 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
       </header>
 
       <div className={s.profileStack}>
+        {/* Účet ako v Nastaveniach trénera: meno, e-mail, rola a odhlásenie hore, nie až na konci stránky */}
+        <div className={s.panel} data-tour="profile-account">
+          <p className={s.panelLabel}>{t("account")}</p>
+          <dl className={s.accountRows}>
+            <div className={s.accountRow}>
+              <dt>{t("name")}</dt>
+              <dd>{fullName}</dd>
+            </div>
+            <div className={s.accountRow}>
+              <dt>{t("email")}</dt>
+              <dd>{email}</dd>
+            </div>
+            <div className={s.accountRow}>
+              <dt>{t("role")}</dt>
+              <dd>{t("roleClient")}</dd>
+            </div>
+          </dl>
+          <div className={s.accountSignOut}>
+            <SignOutButton />
+          </div>
+        </div>
+
         <TrainerConnection code={view.code} hasTrainer={view.hasTrainer} trainerName={view.trainerName} />
 
         <div className={s.panel} data-tour="profile-appearance">
@@ -73,10 +97,6 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
         </div>
 
         <DeleteAccountSection requestedAt={view.deletionRequestedAt} requestedBy={view.deletionRequestedBy} />
-
-        <div className={s.signOut}>
-          <SignOutButton />
-        </div>
       </div>
     </>
   );

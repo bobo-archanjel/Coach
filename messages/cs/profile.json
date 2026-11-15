@@ -1,6 +1,11 @@
 {
   "title": "Profil",
   "subtitle": "Kód pro trenéra, stav propojení a nastavení účtu.",
+  "account": "Můj účet",
+  "name": "Jméno",
+  "email": "E-mail",
+  "role": "Role",
+  "roleClient": "Klient",
   "appearance": "Vzhled",
   "appearanceHint": "Auto přepíná světlý a tmavý motiv podle nastavení telefonu.",
   "password": "Heslo",
