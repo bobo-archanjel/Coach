@@ -26,6 +26,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { TERMS_VERSION } from "@/lib/legal/terms";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile, isHoneypotTripped } from "@/lib/turnstile";
 import { checkPassword } from "@/lib/passwordStrength";
@@ -177,6 +178,10 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
   if (!name || !email || !password) {
     return { error: t("fillRequired"), redirectTo: null, needsConfirm: false };
   }
+  // súhlas s podmienkami kontroluje aj server (nielen prehliadač) — zapíše sa s verziou (0063)
+  if (formData.get("terms") !== "on") {
+    return { error: (await getTranslations("auth"))("termsRequired"), redirectTo: null, needsConfirm: false };
+  }
   if (name.length > MAX_INPUT_LENGTH || email.length > MAX_INPUT_LENGTH || password.length > 1024) {
     return { error: REGISTER_GENERIC_ERROR, redirectTo: null, needsConfirm: false };
   }
@@ -201,7 +206,8 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
     email,
     password,
     // locale: jazyk profilu (0059, handle_new_user) aj potvrdzovacieho e-mailu (docs/email-templates)
-    options: { data: { full_name: name, role, locale: await getUserLocale() } },
+    // terms_version: súhlas s touto verziou podmienok (0063, handle_new_user ho zapíše do profilu)
+    options: { data: { full_name: name, role, locale: await getUserLocale(), terms_version: TERMS_VERSION } },
   });
   // E-mail už má účet: s potvrdzovaním e-mailu Supabase nevráti chybu, ale „falošného“
   // používateľa bez identít (ochrana pred zisťovaním účtov) — appka by ukázala „skontroluj

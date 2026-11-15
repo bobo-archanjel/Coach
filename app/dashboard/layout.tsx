@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
 import { tourStepsFor } from "@/lib/onboarding/tourSteps";
+import { needsTermsConsent } from "@/lib/legal/terms";
 import { OnboardingTour } from "../components/OnboardingTour";
 import { SectionGuide } from "../components/SectionGuide";
 import { NavigationProgressProvider } from "../components/NavigationProgress";
@@ -72,6 +73,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ]);
     if (profile?.role === "client") {
       redirect("/portal");
+    }
+    // bez súhlasu s aktuálnou verziou obchodných podmienok (0063) — najprv súhlas
+    if (profile && needsTermsConsent(profile.terms_version)) {
+      redirect("/prihlasenie/suhlas");
     }
     unreadCount = count ?? 0;
     tourSeen = dbTourSeen;

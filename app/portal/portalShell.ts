@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { needsTermsConsent } from "@/lib/legal/terms";
 import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 
 /**
@@ -49,6 +50,10 @@ export async function loadPortalShell(): Promise<PortalShell> {
 
   if (profile?.role === "trainer") {
     redirect("/dashboard");
+  }
+  // bez súhlasu s aktuálnou verziou obchodných podmienok (0063) — najprv súhlas
+  if (profile && needsTermsConsent(profile.terms_version)) {
+    redirect("/prihlasenie/suhlas");
   }
   return {
     // bez trénera Chat neukazuje vlákno — bodka by svietila pre správy, ktoré sa nedajú otvoriť
