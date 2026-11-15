@@ -5,6 +5,8 @@
   "cooperationPaused": "Trenér ukončil spolupráci. Tvoje tréninky, výživa i deník zůstávají uložené — spolupráci lze kdykoli obnovit.",
   "cooperationResumed": "Spolupráce s trenérem byla obnovena.",
   "addedAsClient": "{name} tě přidal/a jako svého klienta. Pokud si to nepřeješ, propojení zrušíš v Profilu.",
+  "trainerDeletionRequested": "{name} si za 30 dní smaže účet ve FitPilotu. Tréninkové plány a jídelníčky od něj ti zůstanou, zprávy s ním se smažou.",
+  "trainerDeletionCancelled": "{name} zrušil/-a smazání účtu — spolupráce pokračuje.",
   "trainerFallback": "Trenér",
   "aiHealthNotice": "⚠️ AI asistent upozorňuje: klient v AI chatu zmínil možnou bolest/zranění: „{quote}“ — doporučujeme ozvat se mu co nejdříve.",
   "aiCrisisNotice": "⚠️ AI asistent upozorňuje: klient v AI chatu naznačil možnou krizi (myšlenky na sebepoškození). Ozvi se mu prosím co nejdříve osobně a citlivě — obsah zprávy z důvodu soukromí neuvádíme.",

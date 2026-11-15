@@ -8,6 +8,7 @@ import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 import { SignOutButton } from "@/app/components/SignOutButton";
 import { ChangePasswordForm } from "@/app/components/ChangePasswordForm";
 import { LanguageSelect } from "@/app/components/LanguageSelect";
+import { DeleteTrainerAccount } from "./DeleteTrainerAccount";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
 
@@ -23,10 +24,21 @@ export default async function NastaveniaPage() {
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";
-  const aiUsage = user ? await getTrainerAiUsageSummary(supabase, user.id) : null;
+  const [aiUsage, deletionRequestedAt] = user
+    ? await Promise.all([
+        getTrainerAiUsageSummary(supabase, user.id),
+        // samostatný dopyt — pred migráciou 0062 stĺpec neexistuje, chyba = žiadna žiadosť
+        supabase
+          .from("profiles")
+          .select("deletion_requested_at")
+          .eq("id", user.id)
+          .maybeSingle()
+          .then(({ data, error }) => (error ? null : ((data?.deletion_requested_at as string | null) ?? null))),
+      ])
+    : [null, null];
 
   return (
-    <>
+    <div className={styles.settingsPage}>
       <div className={styles.pageHead}>
         <h1>{t("title")}</h1>
         <p>{t("subtitle")}</p>
@@ -116,7 +128,10 @@ export default async function NastaveniaPage() {
             {t("tourRestart")}
           </Link>
         </div>
+
+        {/* úplne dole — ako „Zmazanie dát“ v Profile klienta */}
+        {user && <DeleteTrainerAccount requestedAt={deletionRequestedAt} />}
       </div>
-    </>
+    </div>
   );
 }

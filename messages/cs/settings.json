@@ -22,5 +22,15 @@
   "billingHint": "Správa předplatného a platebních údajů tu bude brzy dostupná.",
   "tour": "Průvodce",
   "tourHint": "Průvodce tě provede všemi sekcemi appky a ukáže, co se ve které dá dělat.",
-  "tourRestart": "Spustit průvodce znovu"
+  "tourRestart": "Spustit průvodce znovu",
+  "deletion": {
+    "title": "Smazání účtu",
+    "hint": "Natrvalo smaže tvůj účet a všechna tvoje data. Klienti s vlastním účtem si ponechají zveřejněné tréninkové plány a jídelníčky.",
+    "request": "Požádat o smazání účtu",
+    "confirm": "Opravdu chceš smazat svůj účet? Za 30 dní se natrvalo smažou tvoje plány, šablony, termíny, poznámky, zprávy s klienty i klienti bez vlastního účtu. Klienti s účtem se odpojí a zveřejněné plány a jídelníčky jim zůstanou. Do té doby se to dá zrušit.",
+    "yes": "Ano, smazat účet",
+    "no": "Ne",
+    "pending": "Účet se natrvalo smaže {date} (za {days, plural, one {# den} few {# dny} other {# dní}}). Klienty jsme upozornili v chatu. Do té doby aplikaci normálně používáš a smazání můžeš zrušit.",
+    "cancel": "Zrušit smazání"
+  }
 }

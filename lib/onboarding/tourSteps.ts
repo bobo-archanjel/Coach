@@ -158,6 +158,7 @@ const CLIENT_SECTIONS: SectionDef[] = [
     steps: [
       ["profile-trainer", "guides.c-profile.trainer"],
       ["profile-appearance", "guides.c-profile.appearance"],
+      ["profile-account", "guides.c-profile.account"],
       ["profile-guide", "guides.c-profile.guide"],
     ],
   },

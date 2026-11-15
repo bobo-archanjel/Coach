@@ -13,7 +13,7 @@ import {
   markWorkoutStarted,
   saveWorkoutDraft,
 } from "./workoutSession";
-import { WorkoutSetsFields, buildEntriesPayload, emptyFormValues, type WorkoutFormValues } from "./WorkoutSetsFields";
+import { WorkoutSetsFields, buildEntriesPayload, plannedFormValues, type WorkoutFormValues } from "./WorkoutSetsFields";
 
 const initialState: ActionState = { error: null };
 
@@ -69,7 +69,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
     const draft = loadWorkoutDraft(dayId, signature);
     return draft
       ? { rows: draft.rows, notes: draft.notes, rpe: draft.rpe, sessionNote: draft.sessionNote }
-      : emptyFormValues(exercises);
+      : plannedFormValues(exercises); // hodnoty trénera — pri odcvičení podľa plánu netreba nič písať
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);

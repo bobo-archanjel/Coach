@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
-import { parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
+import { isTrainerPlanLog, parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
@@ -167,7 +167,7 @@ export default async function ClientDetailPage({
     { data: client },
     { plans, planCompletion },
     { data: nutrition },
-    { data: logs },
+    { data: allLogs },
     { data: privateNote },
     { data: mealPlans },
     { data: nutritionNote },
@@ -175,7 +175,7 @@ export default async function ClientDetailPage({
       supabase
         .from("clients")
         .select(
-          "id, full_name, goal, invite_code, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by, active_plan_id",
+          "id, full_name, goal, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by, active_plan_id",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -188,10 +188,11 @@ export default async function ClientDetailPage({
         .maybeSingle(),
       supabase
         .from("workout_logs")
-        .select("id, performed_on, status, completed_at, entries, plan_snapshot, workout_days(name)")
+        .select("id, performed_on, status, completed_at, entries, plan_snapshot, workout_day_id, workout_days(name)")
         .eq("client_id", id)
         .order("performed_on", { ascending: false })
-        .limit(8),
+        // rezerva — tréningy z vlastných plánov klienta sa nižšie vyradia, zobrazí sa 8
+        .limit(40),
       // Súkromná poznámka trénera (trainer_private_notes, 0036) — klient ju nevidí.
       // Tabuľka ešte nemusí existovať (pred migráciou) → data je vtedy null, stránka funguje.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "client").maybeSingle(),
@@ -228,6 +229,13 @@ export default async function ClientDetailPage({
   );
   const count = (text: string) => <span className={styles.sectionMeta}>{text}</span>;
 
+  // Posledná aktivita: len tréningy z plánov trénera — vlastné tréningy klienta nie.
+  const logs = (allLogs ?? [])
+    .filter((log) =>
+      isTrainerPlanLog({ planSnapshot: log.plan_snapshot, workoutDayId: log.workout_day_id, dayVisible: log.workout_days != null }),
+    )
+    .slice(0, 8);
+
   // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
   const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
   // Aktívny tréningový plán = ten na klientovej karte Dnes (zvolený, inak najnovší zverejnený).
@@ -247,7 +255,7 @@ export default async function ClientDetailPage({
       // samostatná karta "Aktivita" pôsobila ako duplicita tejto.
       content: (
         <div className={styles.cardStack}>
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(t("plansTitle"), plans && plans.length > 0 ? count(t("planCount", { count: plans.length })) : undefined)}
             {plans && plans.length > 0 ? (
               <div className={styles.roster}>
@@ -287,9 +295,9 @@ export default async function ClientDetailPage({
               </p>
             )}
           </div>
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(t("recentActivity"))}
-            {logs && logs.length > 0 ? (
+            {logs.length > 0 ? (
               <div className={styles.roster}>
                 {logs.map((log) => {
                   // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
@@ -341,7 +349,7 @@ export default async function ClientDetailPage({
             profile={nutrition ? { ...nutrition, notes: nutritionNote?.notes ?? null } : null}
             defaults={{ age: client.age, weight_kg: client.weight_kg, height_cm: client.height_cm }}
           />
-          <div className={styles.card}>
+          <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(
               t("mealPlansTitle"),
               mealPlans && mealPlans.length > 0 ? count(t("mealPlanCount", { count: mealPlans.length })) : undefined,
@@ -405,10 +413,6 @@ export default async function ClientDetailPage({
             <div className={styles.infoRow}>
               <span className={styles.infoLabel}>{t("clientSince")}</span>
               <span className={styles.infoValue}>{memberSince}</span>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>{t("inviteCode")}</span>
-              <span className={styles.infoValue}>{client.invite_code}</span>
             </div>
             {(client.age || client.weight_kg || client.height_cm) && (
               <div className={styles.infoRow}>

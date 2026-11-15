@@ -26,7 +26,6 @@
   "defaultMealPlanName": "Jídelníček {date}",
   "infoTitle": "Informace",
   "clientSince": "Klientem od",
-  "inviteCode": "Zvací kód",
   "ageWeightHeight": "Věk / váha / výška",
   "ageYears": "{age, plural, one {# rok} few {# roky} other {# let}}",
   "notes": "Poznámky",

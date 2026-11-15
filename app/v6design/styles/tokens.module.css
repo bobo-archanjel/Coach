@@ -67,6 +67,8 @@
   --steel-line: #e6ded6;
   --moss: #2f7d52;
   --error: #c42f3c;
+  /* informačná modrá (napr. „viac než plán“ v detaile tréningu) */
+  --info: #2563b8;
   --radius-s: 14px;
   --radius-m: 22px;
   /* sklenené ovládacie prvky: svetlá horná hrana + jemný tieň */
@@ -133,6 +135,7 @@
   --steel-line: #2f2825;
   --moss: #6fbf8f;
   --error: #ef5f6b;
+  --info: #6ea8f0;
   --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 18px 40px -16px rgba(0, 0, 0, 0.75);
 
@@ -189,6 +192,7 @@
     --steel-line: #2f2825;
     --moss: #6fbf8f;
     --error: #ef5f6b;
+    --info: #6ea8f0;
     --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.4);
     --shadow-2: 0 18px 40px -16px rgba(0, 0, 0, 0.75);
 

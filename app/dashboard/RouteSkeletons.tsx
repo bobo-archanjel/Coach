@@ -137,7 +137,7 @@ function SablonySkeleton() {
 /** /dashboard/nastavenia — mriežka menších kariet (profil, notifikácie, AI náklady, fakturácia, návod). */
 function NastaveniaSkeleton() {
   return (
-    <div className={styles.skeletonWrap}>
+    <div className={`${styles.skeletonWrap} ${styles.settingsPage}`}>
       <Head />
       <div className={styles.settingsGrid}>
         {[0, 1, 2, 3, 4].map((i) => (
