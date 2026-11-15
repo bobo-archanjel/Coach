@@ -17,9 +17,9 @@ const ExerciseDetailModal = dynamic(() =>
 const initialState: ActionState = { error: null };
 
 const InfoIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <circle cx="8" cy="8" r="6.3" stroke="currentColor" strokeWidth="1.4" />
-    <path d="M8 7.3v4M8 5.2v.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M8 7.2v4.3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+    <circle cx="8" cy="4.6" r="1.15" fill="currentColor" />
   </svg>
 );
 
