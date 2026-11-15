@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-15** — **Sprievodca plynulo cez všetky sekcie + sprievodcovia hlbších okien** (`feature/sprievodca-sekcii`, **migrácia 0060**).
+  - **Plynulý sprievodca:** prejde sekcie jednu po druhej — ukáže položku v menu, vysvetlí hlavné funkcie sekcie priamo na jej stránke a sám prejde na ďalšiu (klient: Dnes → Tréning → Strava → Denník → Chat → AI Kouč → Profil; tréner: Klienti → Tréningy → Jedálničky → Správy → Kalendár → Šablóny → Nastavenia). Na konci sa vráti na úvodnú sekciu. Spustí sa sám pri prvom prihlásení a znova cez „Spustiť návod znova“. Kroky bez obsahu (prázdny zoznam, žiadna správa) sa preskočia, „Späť“ ide aj cez hranicu sekcie.
+  - **Hlbšie okná:** builder tréningu, builder jedálnička a detail klienta (tréner), vlastný tréning a zapisovanie tréningu (klient) sa vysvetlia raz pri prvom otvorení. Zoznam videných je v účte (`profiles.guides_seen`, RPC z migrácie 0060), „Spustiť návod znova“ ho vynuluje.
+  - Kroky a texty: `lib/onboarding/tourSteps.ts`, `lib/onboarding/guides.ts`, `messages/{sk,cs}/tour.json`; prvky stránok majú atribúty `data-tour`. Test: `e2e/sprievodca-sekcii.spec.ts`.
+
 - **2026-11-13** — **Odznaky správ naživo** (`feature/realtime-badges`, bez migrácie).
   - Pri novej správe pribudne do pár sekúnd bez obnovenia stránky aj číslo pri „Správy“ v menu trénera, odznak „N správ“ pri klientovi v zozname klientov a bodka pri „Chat“ u klienta. Po prečítaní zmiznú spolu so zvončekom.
   - Zvonček svoje živé počty zverejní (`app/components/liveUnread.ts`) a odznaky ich preberú — bez ďalšieho dopytu na server či Realtime kanála. Platí novšie číslo: po načítaní stránky čísla zo servera, živé až keď ho zvonček načíta po nich.
