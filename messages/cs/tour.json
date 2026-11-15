@@ -350,10 +350,6 @@
       }
     },
     "c-profile": {
-      "account": {
-        "title": "Můj účet",
-        "body": "Tvoje jméno a e-mail. Tady se i odhlásíš."
-      },
       "trainer": {
         "title": "Propojení s trenérem",
         "body": "Svůj FitPilot kód pošli trenérovi — přidá si tě jím. Propojení tu později i zrušíš."
@@ -361,6 +357,10 @@
       "appearance": {
         "title": "Vzhled a jazyk",
         "body": "Přepni si světlý nebo tmavý režim. O kartu níž změníš jazyk appky."
+      },
+      "account": {
+        "title": "Můj účet",
+        "body": "Tvoje jméno a e-mail. Tady se i odhlásíš."
       },
       "guide": {
         "title": "Průvodce",

@@ -36,7 +36,21 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
       </header>
 
       <div className={s.profileStack}>
-        {/* Účet ako v Nastaveniach trénera: meno, e-mail, rola a odhlásenie hore, nie až na konci stránky */}
+        <TrainerConnection code={view.code} hasTrainer={view.hasTrainer} trainerName={view.trainerName} />
+
+        <div className={s.panel} data-tour="profile-appearance">
+          <p className={s.panelLabel}>{t("appearance")}</p>
+          <ThemeSwitch initial={theme} />
+          <p className={s.hint}>{t("appearanceHint")}</p>
+        </div>
+
+        <div className={s.panel}>
+          <p className={s.panelLabel}>{tl("title")}</p>
+          <LanguageSelect />
+          <p className={s.hint}>{tl("hint")}</p>
+        </div>
+
+        {/* Účet ako v Nastaveniach trénera (pod Vzhľadom a Jazykom): meno, e-mail, rola a odhlásenie — nie až na konci stránky */}
         <div className={s.panel} data-tour="profile-account">
           <p className={s.panelLabel}>{t("account")}</p>
           <dl className={s.accountRows}>
@@ -56,20 +70,6 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
           <div className={s.accountSignOut}>
             <SignOutButton />
           </div>
-        </div>
-
-        <TrainerConnection code={view.code} hasTrainer={view.hasTrainer} trainerName={view.trainerName} />
-
-        <div className={s.panel} data-tour="profile-appearance">
-          <p className={s.panelLabel}>{t("appearance")}</p>
-          <ThemeSwitch initial={theme} />
-          <p className={s.hint}>{t("appearanceHint")}</p>
-        </div>
-
-        <div className={s.panel}>
-          <p className={s.panelLabel}>{tl("title")}</p>
-          <LanguageSelect />
-          <p className={s.hint}>{tl("hint")}</p>
         </div>
 
         {userData.user?.email && (

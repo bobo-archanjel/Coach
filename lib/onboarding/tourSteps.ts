@@ -156,9 +156,9 @@ const CLIENT_SECTIONS: SectionDef[] = [
     path: "/portal/profil",
     nav: ["nav-profil", "client.navProfil"],
     steps: [
-      ["profile-account", "guides.c-profile.account"],
       ["profile-trainer", "guides.c-profile.trainer"],
       ["profile-appearance", "guides.c-profile.appearance"],
+      ["profile-account", "guides.c-profile.account"],
       ["profile-guide", "guides.c-profile.guide"],
     ],
   },
