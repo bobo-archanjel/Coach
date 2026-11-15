@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { LogoMark } from "./components/LogoMark";
+import { V6Frame } from "./components/LegalPage";
 import styles from "./legal.module.css";
 
 const ArrowIcon = () => (
@@ -10,34 +10,21 @@ const ArrowIcon = () => (
 );
 
 /**
- * Custom 404 (feature/security#2) — predtým Next default. Rovnaký vizuálny
- * jazyk ako landing/auth (tmavé pozadie, bar-rule, Inter), nie generická biela
- * stránka mimo brandu.
+ * Custom 404 (feature/security#2) v dizajne v6 — rovnaký rám ako právne stránky
+ * (hlavička s logom, jazykom a témou), nie generická stránka mimo brandu.
  */
 export default async function NotFound() {
   const t = await getTranslations("common");
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand}>
-          <LogoMark className={styles.logoMark} />
-          FitPilot
+    <V6Frame>
+      <div className={styles.notFound}>
+        <h1 className={styles.notFoundCode}>404</h1>
+        <p>{t("notFound")}</p>
+        <Link href="/" className="btn btn-primary">
+          {t("backHome")}
+          <ArrowIcon />
         </Link>
-      </header>
-      <main className={styles.main}>
-        <div className={styles.notFound}>
-          <div className="bar-rule red" style={{ margin: "0 auto 20px" }}>
-            <span className="plate" />
-            <span className="bar" />
-          </div>
-          <h1>404</h1>
-          <p>{t("notFound")}</p>
-          <Link href="/" className="btn btn-primary">
-            {t("backHome")}
-            <ArrowIcon />
-          </Link>
-        </div>
-      </main>
-    </div>
+      </div>
+    </V6Frame>
   );
 }
