@@ -107,6 +107,7 @@ const CLIENT_SECTIONS: SectionDef[] = [
       ["today-hero", "guides.c-today.hero"],
       ["today-measure", "guides.c-today.measure"],
       ["today-week", "guides.c-today.week"],
+      ["today-progress", "guides.c-today.progress"],
       ["bell", "guides.c-today.bell"],
     ],
   },

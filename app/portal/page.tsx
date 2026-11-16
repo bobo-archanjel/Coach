@@ -14,6 +14,7 @@ import { WorkoutStopwatch } from "@/app/portal/WorkoutStopwatch";
 import { WeekHistory } from "@/app/portal/WeekHistory";
 import { PlanSwitch } from "@/app/portal/PlanSwitchSheet";
 import { BodyMetricForm } from "@/app/portal/BodyMetricForm";
+import { ProgressCard } from "@/app/portal/ProgressCard";
 import { ProfileIcon, TrainingIcon } from "@/app/portal/icons";
 import { AlertIcon, Notice } from "./Notice";
 import s from "./portal.module.css";
@@ -240,7 +241,7 @@ function Today({ data }: { data: PortalData }) {
         />
       )}
 
-      {/* meranie a týždeň so sériami (sekcia „Môj prehľad“ odstránená, nový pokrok sa ešte navrhuje) */}
+      {/* meranie, týždeň so sériami a Progres (graf zo záznamov meraní) */}
       <section className={s.after} aria-label={t("overview")}>
         <div className={s.panel} data-tour="today-measure">
           <div className={s.panelHead}>
@@ -253,6 +254,8 @@ function Today({ data }: { data: PortalData }) {
         </div>
 
         <WeekHistory initial={week} footer={<StreakChips streaks={streaks} />} />
+
+        <ProgressCard history={bodyMetrics} />
       </section>
     </>
   );

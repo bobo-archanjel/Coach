@@ -238,6 +238,10 @@
         "title": "Týždeň",
         "body": "Dni s tréningom sú vyznačené. Ťuknutím na deň si pozrieš, čo si odcvičil, šípkami prejdeš na iný týždeň."
       },
+      "progress": {
+        "title": "Progres",
+        "body": "Graf tvojich meraní. Ťuknutím na „Váha“ prepneš na pás, pažu či stehno, ťuknutím do grafu uvidíš konkrétne meranie."
+      },
       "measure": {
         "title": "Meranie",
         "body": "Zapisuj si váhu a obvod pása. Podľa nich vidíš pokrok ty aj tvoj tréner."
