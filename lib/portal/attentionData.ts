@@ -80,6 +80,8 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
       .select("id, name")
       .eq("client_id", client.id)
       .eq("published", true)
+      // vlastný jedálniček (0067, trainer_id null) si klient vytvoril sám — nie je „nový“ pre neho
+      .not("trainer_id", "is", null)
       .gte("created_at", newPlanSinceIso)
       .order("created_at", { ascending: false })
       .limit(10),

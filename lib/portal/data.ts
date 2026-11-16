@@ -44,6 +44,10 @@ import type {
   PortalMealEntry,
   PortalMealGroup,
   PortalNutritionData,
+  PortalMealPlanOption,
+  PortalMealTemplate,
+  EditableMealDay,
+  MealPlanEntryData,
   PortalNutritionResult,
   PortalPlan,
   PortalResult,
@@ -54,7 +58,7 @@ import type {
   WeekDay,
   WeekView,
 } from "./types";
-import { dbErr } from "@/lib/dbError";
+import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
 import { editableUntil, isStillEditable, parseLoggedEntries } from "@/lib/workouts/completed";
 
@@ -800,6 +804,7 @@ export async function getExerciseLibrary(): Promise<ExerciseOption[]> {
 /** Tvar položky v meal_days.meals (JSONB), viď app/dashboard/jedalnicky/jedalnicek/actions.ts. */
 type MealEntryRow = {
   entry_id?: string;
+  food_id?: string | null;
   food_name?: string;
   meal_slot?: MealSlot;
   grams?: number;
@@ -812,10 +817,49 @@ type MealEntryRow = {
   fat_100g?: number;
 };
 
+type MealDayRow = { id: string; name: string; meals: unknown; day_number?: number };
+
+const mealRows = (meals: unknown) => (Array.isArray(meals) ? meals : []) as MealEntryRow[];
+
+/** Položka jedálnička pre builder klienta (úprava vlastného jedálnička / šablóny). */
+function toEditableEntry(e: MealEntryRow, i: number): MealPlanEntryData {
+  return {
+    entry_id: e.entry_id || `e${i}`,
+    food_id: e.food_id ?? null,
+    food_name: e.food_name ?? "",
+    meal_slot: e.meal_slot && MEAL_SLOT_ORDER.includes(e.meal_slot) ? e.meal_slot : "ine",
+    grams: Number(e.grams) || 0,
+    ...(isPortionUnit(e.portion_unit) && typeof e.portion_qty === "number"
+      ? { portion_unit: e.portion_unit, portion_qty: e.portion_qty, portion_base: e.portion_base === "ml" ? ("ml" as const) : ("g" as const) }
+      : {}),
+    kcal_100g: Number(e.kcal_100g) || 0,
+    protein_100g: Number(e.protein_100g) || 0,
+    carbs_100g: Number(e.carbs_100g) || 0,
+    fat_100g: Number(e.fat_100g) || 0,
+  };
+}
+
+const EMPTY_NUTRITION: PortalNutritionData = {
+  macroGoal: null,
+  mealPlanId: null,
+  mealPlanName: null,
+  mealDays: [],
+  plans: [],
+  activeSource: null,
+  editableDays: null,
+  templates: [],
+};
+
 /**
- * Makro cieľ (BMR/TDEE/makrá) a najnovší jedálniček klienta — pre kartu Strava.
+ * Makro cieľ (BMR/TDEE/makrá) a aktívny jedálniček klienta — pre kartu Strava.
  * Obe časti sú nezávislé (klient môže mať jedno bez druhého), preto jediný "no_plan"
  * stav nedáva zmysel — každá časť má vlastný empty-state priamo v UI.
+ *
+ * Aktívny jedálniček = clients.active_meal_plan_id (0067, volí ho klient), inak
+ * najnovší zverejnený — rovnako ako tréningový plán (resolveActivePlanId). Vlastné
+ * jedálničky klienta (trainer_id IS NULL) sú v zozname so zdrojom "client" a pri
+ * aktívnom vlastnom idú aj surové dni pre „Upraviť“. Klient bez riadku `clients`
+ * dostane prázdne dáta — riadok sa založí až uložením vlastného jedálnička.
  */
 export async function getPortalNutrition(): Promise<PortalNutritionResult> {
   const L = await portalLabels();
@@ -826,29 +870,52 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
     } = await getUser();
     if (!user) return { state: "error", message: await tErr("portal.sessionExpired") };
 
-    const { client, firstName, error: clientErr } = await getLinkedClient(user.id);
+    const { client, error: clientErr } = await getLinkedClient(user.id);
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
-    if (!client) return { state: "unlinked", firstName };
 
-    const [{ data: profile, error: profileErr }, { data: plan, error: planErr }] = await Promise.all([
+    // Šablóny patria používateľovi (meal_templates.trainer_id = vlastník), nie riadku clients.
+    const templatesQuery = supabase
+      .from("meal_templates")
+      .select("id, name, meal_template_days(day_number, name, meals)")
+      .eq("trainer_id", user.id)
+      .order("created_at", { ascending: false })
+      .order("day_number", { referencedTable: "meal_template_days", ascending: true });
+
+    if (!client) {
+      const { data: tplRows } = await templatesQuery;
+      return { state: "ok", data: { ...EMPTY_NUTRITION, templates: toMealTemplates(tplRows) } };
+    }
+
+    const [
+      { data: profile, error: profileErr },
+      { data: planRows, error: planErr },
+      { data: activeRow, error: activeErr },
+      { data: tplRows, error: tplErr },
+    ] = await Promise.all([
       supabase
         .from("nutrition_profiles")
         .select("bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
         .eq("client_id", client.id)
         .maybeSingle(),
-      // Dni jedálnička embedom (predtým ďalší round-trip až po pláne).
+      // Dni jedálničkov embedom (predtým ďalší round-trip až po pláne). Koncept vidí len
+      // tréner (0044) — klient len zverejnené, aj vlastné (tie majú published default true).
       supabase
         .from("meal_plans")
-        .select("id, name, meal_days(id, name, meals, day_number)")
+        .select("id, name, trainer_id, meal_days(id, name, meals, day_number)")
         .eq("client_id", client.id)
-        .eq("published", true) // koncept vidí len tréner (0044)
+        .eq("published", true)
         .order("created_at", { ascending: false })
-        .order("day_number", { referencedTable: "meal_days", ascending: true })
-        .limit(1)
-        .maybeSingle(),
+        .order("day_number", { referencedTable: "meal_days", ascending: true }),
+      // samostatne (nie v MY_CLIENT_COLUMNS) — pred migráciou 0067 stĺpec chýba a celý
+      // portál by inak padol; tu sa len vráti chyba a platí „najnovší“
+      supabase.from("clients").select("active_meal_plan_id").eq("id", client.id).maybeSingle(),
+      templatesQuery,
     ]);
     if (profileErr) return { state: "error", message: await dbErr(profileErr, "data") };
     if (planErr) return { state: "error", message: await dbErr(planErr, "data") };
+    if (activeErr && !isMissingColumn(activeErr)) console.error("getPortalNutrition active:", activeErr.message);
+    // Šablóny sú doplnok — ich chyba nezhodí sekciu Strava, len sa nezobrazia.
+    if (tplErr) console.error("getPortalNutrition templates:", tplErr.message);
 
     const macroGoal = profile
       ? {
@@ -861,17 +928,26 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
         }
       : null;
 
-    let mealPlanId: string | null = null;
-    let mealPlanName: string | null = null;
+    const planList = (planRows ?? []) as { id: string; name: string; trainer_id: string | null; meal_days: MealDayRow[] | null }[];
+    const activeChoice = activeErr ? null : ((activeRow as { active_meal_plan_id?: string | null } | null)?.active_meal_plan_id ?? null);
+    const activeId = resolveActivePlanId(activeChoice, planList);
+    const plan = planList.find((p) => p.id === activeId) ?? null;
+
+    const plans: PortalMealPlanOption[] = planList.map((p) => ({
+      id: p.id,
+      name: p.name,
+      source: p.trainer_id ? "trainer" : "client",
+      dayCount: (p.meal_days ?? []).length,
+    }));
+
     let mealDays: PortalMealDay[] = [];
+    let editableDays: EditableMealDay[] | null = null;
 
     if (plan) {
-      mealPlanId = plan.id;
-      mealPlanName = plan.name;
-      const dayRows = (plan.meal_days ?? []) as { id: string; name: string; meals: unknown }[];
+      const dayRows = plan.meal_days ?? [];
 
       mealDays = dayRows.map((d) => {
-        const entries = (Array.isArray(d.meals) ? d.meals : []) as MealEntryRow[];
+        const entries = mealRows(d.meals);
         const scaled = entries.map((e) => ({
           entry: e,
           macros: scaleFoodMacros(
@@ -905,13 +981,34 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
 
         return { id: d.id, name: d.name, groups, totalKcal };
       });
+
+      if (!plan.trainer_id) {
+        editableDays = dayRows.map((d) => ({ id: d.id, name: d.name, meals: mealRows(d.meals).map(toEditableEntry) }));
+      }
     }
 
-    const data: PortalNutritionData = { macroGoal, mealPlanId, mealPlanName, mealDays };
+    const data: PortalNutritionData = {
+      macroGoal,
+      mealPlanId: plan?.id ?? null,
+      mealPlanName: plan?.name ?? null,
+      mealDays,
+      plans,
+      activeSource: plan ? (plan.trainer_id ? "trainer" : "client") : null,
+      editableDays,
+      templates: toMealTemplates(tplRows),
+    };
     return { state: "ok", data };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }
+}
+
+function toMealTemplates(rows: unknown): PortalMealTemplate[] {
+  return ((rows ?? []) as { id: string; name: string; meal_template_days: { name: string; meals: unknown }[] | null }[]).map((t) => ({
+    id: t.id,
+    name: t.name,
+    days: (t.meal_template_days ?? []).map((d) => ({ id: null, name: d.name, meals: mealRows(d.meals).map(toEditableEntry) })),
+  }));
 }
 
 type FoodLogRow = {
