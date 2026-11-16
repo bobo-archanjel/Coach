@@ -109,6 +109,7 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
 
   // Najnovšie prvé — `history` zo servera je najstaršie prvé (rovnaký tvar ako graf).
   const recent = useMemo(() => [...optimisticHistory].reverse(), [optimisticHistory]);
+  const kg = (n: number) => n.toLocaleString(intlLocale(locale), { maximumFractionDigits: 1 });
 
   return (
     <>
@@ -171,7 +172,7 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
                 <div key={e.measuredOn} className={styles.metricHistoryRow}>
                   <div className={styles.metricHistoryMain}>
                     <span className={styles.metricHistoryDate}>{dateLabel(e.measuredOn, locale)}</span>
-                    <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${e.weightKg} kg` : "—"}</span>
+                    <span className={styles.metricHistoryWeight}>{e.weightKg != null ? `${kg(e.weightKg)} kg` : "—"}</span>
                   </div>
                   {extras && <p className={styles.metricHistoryExtra}>{extras}</p>}
                 </div>

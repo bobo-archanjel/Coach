@@ -105,9 +105,9 @@ const CLIENT_SECTIONS: SectionDef[] = [
     nav: ["nav-today", "client.navToday"],
     steps: [
       ["today-hero", "guides.c-today.hero"],
-      ["today-total", "guides.c-today.total"],
-      ["today-week", "guides.c-today.week"],
       ["today-measure", "guides.c-today.measure"],
+      ["today-week", "guides.c-today.week"],
+      ["today-progress", "guides.c-today.progress"],
       ["bell", "guides.c-today.bell"],
     ],
   },

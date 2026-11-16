@@ -5,7 +5,7 @@ import { TERMS_VERSION } from "../lib/legal/terms";
 
 /**
  * Úplne nový klient bez plánu (reálna DB): karta Dnes ukáže prázdnu kartu plánu
- * s „Vytvoriť plán“, pod ňou Môj prehľad, týždeň aj meranie — nie len oznam.
+ * s „Vytvoriť plán“, pod ňou týždeň a meranie — nie len oznam.
  * Dočasný účet vytvorí service role a po teste ho zmaže.
  */
 try {
@@ -39,8 +39,6 @@ test("nový klient bez plánu — Dnes s prázdnym plánom, prehľadom a týžd�
     await page.waitForURL(/\/portal$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "Zatiaľ nemáš tréningový plán" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Vytvoriť plán" })).toHaveAttribute("href", "/portal/trening");
-    await expect(page.getByRole("heading", { name: "Môj prehľad" })).toBeVisible();
-    await expect(page.getByText("Odcvičené spolu")).toBeVisible();
     await expect(page.getByText(/Tento týždeň/).first()).toBeVisible();
     await expect(page.getByText("Meranie", { exact: true })).toBeVisible();
   } finally {

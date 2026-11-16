@@ -234,13 +234,13 @@
         "title": "Tvoj tréning",
         "body": "Tu vidíš ďalší tréning z aktívneho plánu. Tlačidlom „Začať tréning“ spustíš zapisovanie sérií."
       },
-      "total": {
-        "title": "Môj prehľad",
-        "body": "Koľko tréningov máš za sebou a ako sa ti darí trénovať pravidelne."
-      },
       "week": {
         "title": "Týždeň",
         "body": "Dni s tréningom sú vyznačené. Ťuknutím na deň si pozrieš, čo si odcvičil, šípkami prejdeš na iný týždeň."
+      },
+      "progress": {
+        "title": "Progres",
+        "body": "Graf tvojich meraní. Ťuknutím na „Váha“ prepneš na pás, pažu či stehno, ťuknutím do grafu uvidíš konkrétne meranie."
       },
       "measure": {
         "title": "Meranie",
