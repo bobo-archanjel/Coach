@@ -101,6 +101,8 @@
   "cooperation": {
     "close": "Zavrieť upozornenie",
     "title": "Spolupráca s trénerom bola ukončená",
-    "text": "Tvoje tréningy, výživa, denník aj správy zostávajú uložené — spolupráca sa dá kedykoľvek obnoviť. Dovtedy môžeš aplikáciu používať aj samostatne."
+    "text": "Tvoje tréningy, výživa, denník aj správy zostávajú uložené — spolupráca sa dá kedykoľvek obnoviť. Dovtedy môžeš aplikáciu používať aj samostatne.",
+    "removedTitle": "Tréner ťa odstránil zo svojho portfólia",
+    "removedText": "Tvoje tréningové plány, jedálničky, makro cieľ aj zápisy ostali v appke a môžeš ju používať samostatne. S novým trénerom sa prepojíš kódom v Profile."
   }
 }

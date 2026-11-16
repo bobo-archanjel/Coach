@@ -44,11 +44,11 @@
       "body": "Všetky tvoje plány — aj vlastné, ak zatiaľ trénuješ bez trénera."
     },
     "navStrava": {
-      "title": "Strava",
+      "title": "Jedálniček",
       "body": "Makrá a jedálniček na jednom mieste — appka ti spočíta cieľ podľa tvojich údajov."
     },
     "navDennik": {
-      "title": "Denník",
+      "title": "Strava",
       "body": "Zapisuj si stravu počas dňa, appka priebežne sčíta makrá za teba."
     },
     "navChat": {
@@ -160,7 +160,7 @@
       },
       "list": {
         "title": "Tvoje jedálničky",
-        "body": "Koncept klient ešte nevidí, Aktívny má práve v sekcii Strava. Pri každom vidíš počet dní a kalórie na deň."
+        "body": "Koncept klient ešte nevidí, Aktívny má práve v sekcii Jedálniček. Pri každom vidíš počet dní a kalórie na deň."
       }
     },
     "t-mealplan": {
@@ -256,6 +256,10 @@
         "title": "Zapisovanie sérií",
         "body": "Ku každej sérii zapíš váhu a počet opakovaní. Ďalšiu sériu pridáš cez „Pridať sériu“."
       },
+      "addExercise": {
+        "title": "Iný cvik?",
+        "body": "Ak ti cvik z plánu nevyhovuje alebo chceš niečo navyše, pridaj si vlastný — stačí napísať názov. Tréner ho uvidí ako cvik mimo plánu."
+      },
       "stopwatch": {
         "title": "Stopky a časovač",
         "body": "Odmeraj si tréning alebo pauzu medzi sériami."
@@ -311,7 +315,7 @@
         "body": "Tvoj denný cieľ kalórií a makier. Appka ho počíta z tvojich údajov, alebo ti ho nastaví tréner."
       },
       "plan": {
-        "title": "Jedálniček",
+        "title": "Jedálniček od trénera",
         "body": "Jedálniček od trénera po dňoch, s gramážou a kalóriami každého jedla."
       },
       "pdf": {

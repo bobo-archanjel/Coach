@@ -175,7 +175,7 @@ export default async function ClientDetailPage({
       supabase
         .from("clients")
         .select(
-          "id, full_name, goal, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by, active_plan_id",
+          "id, full_name, goal, created_at, paired_at, age, weight_kg, height_cm, ended_at, deletion_requested_at, deletion_requested_by, active_plan_id, user_id",
         )
         .eq("id", id)
         .maybeSingle(),
@@ -444,6 +444,7 @@ export default async function ClientDetailPage({
               endedAt={client.ended_at}
               deletionRequestedAt={client.deletion_requested_at}
               deletionRequestedBy={client.deletion_requested_by}
+              hasAccount={client.user_id != null}
             />
           </div>
         </div>

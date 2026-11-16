@@ -153,6 +153,10 @@ test.describe("portál — dokončený tréning na karte Dnes (?preview=done)", 
     await expect(page.getByLabel("Drep s veľkou činkou, séria 1, váha v kg")).toHaveValue("92");
     await expect(page.getByLabel("Poznámka k cviku Rumunský mŕtvy ťah")).toHaveValue("Posledná séria ťažká na úchop");
     await expect(page.getByLabel("Náročnosť tréningu (RPE)")).toHaveValue("8");
+    // cvik pridaný počas tréningu (mimo plánu) ostane aj v úprave — inak by ho uloženie zmazalo
+    await expect(page.getByLabel("Tlaky s jednoručkami, séria 1, opakovania")).toHaveValue("10");
+    await expect(page.getByLabel("Tlaky s jednoručkami, séria 1, váha v kg")).toHaveValue("20");
+    await expect(page.getByRole("button", { name: "Odobrať cvik Tlaky s jednoručkami" })).toBeVisible();
     await page.getByRole("button", { name: "Zrušiť" }).click();
     await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
 
@@ -331,6 +335,55 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await page.goto("/portal/trening?preview=ok");
     await page.goto("/portal?preview=ok");
     await expect(kg(page, "Drep s veľkou činkou", 1)).toHaveValue("62,5");
+  });
+
+  test("pridanie cviku počas tréningu: ručne názov, série, odobratie, prežije refresh, ide do zápisu", async ({ page }) => {
+    const entries = async () =>
+      JSON.parse(await page.locator('input[name="entries"]').inputValue()) as { entryId: string | null; name: string; sets: unknown[] }[];
+    const added = "Tlaky s jednoručkami";
+
+    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    const nameField = page.getByLabel("Názov pridaného cviku");
+    await expect(nameField).toBeFocused();
+    // ručné pridanie, nie knižnica
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeDisabled();
+    await nameField.fill(added);
+    await nameField.press("Enter"); // Enter pridá cvik, neodošle tréning
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await expect(nameField).toHaveCount(0);
+
+    // 3 prázdne série, štítok „Pridaný“
+    await expect(page.locator("[data-added]")).toContainText(`${added} Pridaný`);
+    for (const set of [1, 2, 3]) await expect(reps(page, added, set)).toHaveValue("");
+    await expect(reps(page, added, 4)).toHaveCount(0);
+    await reps(page, added, 1).fill("10");
+    await kg(page, added, 1).fill("20");
+
+    // prežije refresh (koncept v localStorage)
+    await page.reload();
+    await expect(reps(page, added, 1)).toHaveValue("10");
+    await expect(kg(page, added, 1)).toHaveValue("20");
+    expect((await entries()).at(-1)).toEqual({ entryId: null, name: added, sets: [{ reps: 10, weight: 20 }] });
+
+    // druhý pridaný cvik bez zápisu → varovanie pri ukončení
+    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    await page.getByLabel("Názov pridaného cviku").fill("Kliky");
+    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+    await finish(page);
+    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Plank s výdržou, Kliky");
+    await page.getByRole("button", { name: "Pokračovať v tréningu" }).click();
+
+    // odobratie prvého pridaného: Kliky sa posunú a ostanú prázdne, Tlaky zmiznú aj zo zápisu
+    await reps(page, "Kliky", 1).fill("15");
+    await page.getByRole("button", { name: `Odobrať cvik ${added}` }).click();
+    await expect(reps(page, added, 1)).toHaveCount(0);
+    await expect(reps(page, "Kliky", 1)).toHaveValue("15");
+    const names = (await entries()).map((e) => e.name);
+    expect(names).not.toContain(added);
+    expect(names.at(-1)).toBe("Kliky");
+    // cviky plánu sa odobrať nedajú
+    await expect(page.getByRole("button", { name: /^Odobrať cvik Drep/ })).toHaveCount(0);
   });
 
   test("K20: „Skryť stopky“ skryje len stopky, tréning beží ďalej", async ({ page }) => {

@@ -155,6 +155,8 @@ export interface PortalDeletionNotice {
 /** Tréner ukončil spoluprácu (0015_client_cooperation_pause.sql) — banner na karte Dnes. */
 export interface PortalCooperationNotice {
   endedAt: string; // ISO timestamptz
+  /** tréner klienta odstránil z portfólia (0064) — klient už trénera nemá, spolupráca sa neobnoví */
+  removed: boolean;
 }
 
 export interface PortalData {

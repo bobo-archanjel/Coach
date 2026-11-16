@@ -70,6 +70,8 @@ export type WorkoutDraft = {
   notes: Record<number, string | undefined>;
   rpe: string;
   sessionNote: string;
+  /** cviky pridané počas tréningu (WorkoutSetsFields) */
+  added?: string[];
 };
 
 type DraftRecord = WorkoutDraft & { dayId: string; at: number };
@@ -97,6 +99,8 @@ export function loadWorkoutDraft(dayId: string, signature: string): WorkoutDraft
       notes: rec.notes && typeof rec.notes === "object" ? rec.notes : {},
       rpe: typeof rec.rpe === "string" ? rec.rpe : "",
       sessionNote: typeof rec.sessionNote === "string" ? rec.sessionNote : "",
+      // riadky sú viazané na index — pri poškodenom zozname radšej bez pridaných cvikov
+      added: Array.isArray(rec.added) && rec.added.every((n) => typeof n === "string") ? rec.added : [],
     };
   } catch {
     return null;

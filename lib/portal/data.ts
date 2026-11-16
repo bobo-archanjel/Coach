@@ -577,7 +577,7 @@ export async function getPortalData(): Promise<PortalResult> {
         client.ended_at &&
         !client.deletion_requested_at &&
         (!client.ended_notice_dismissed_at || client.ended_notice_dismissed_at < client.ended_at)
-          ? { endedAt: client.ended_at }
+          ? { endedAt: client.ended_at, removed: !client.trainer_id }
           : null,
       bodyMetrics: bodyMetrics ?? [],
       nextAppointment: nextAppt ? { title: nextAppt.title, startsAt: nextAppt.starts_at } : null,
