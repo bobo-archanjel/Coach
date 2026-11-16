@@ -4,7 +4,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { useCallback, useEffect, useState } from "react";
 import { getPortalWeekAction } from "./actions";
-import type { WeekDay, WeekView } from "@/lib/portal/types";
+import type { LoggedSetView, WeekDay, WeekView } from "@/lib/portal/types";
+import { formatDuration } from "@/lib/workouts/completed";
 import styles from "./portal.module.css";
 
 /* Pás „Tento týždeň" na karte Dnes — okrem aktuálneho týždňa sa dá listovať
@@ -59,9 +60,10 @@ function fullDate(iso: string, locale: Locale): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function setLabel(reps: number | null, weight: number | null, repsLabel: (n: number) => string): string {
-  const r = reps != null ? repsLabel(reps) : "—";
-  return weight != null ? `${r} × ${weight} kg` : r;
+function setLabel(s: LoggedSetView, repsLabel: (n: number) => string): string {
+  // cvik na čas: sekundy namiesto opakovaní
+  const r = s.reps != null ? repsLabel(s.reps) : s.durationS != null ? formatDuration(s.durationS) : "—";
+  return s.weight != null ? `${r} × ${s.weight} kg` : r;
 }
 
 export function WeekHistory({ initial }: { initial: WeekView }) {
@@ -202,7 +204,7 @@ function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) 
                       <p className={styles.whExName}>{ex.name}</p>
                       <ol className={styles.whSetList}>
                         {ex.sets.length > 0 ? (
-                          ex.sets.map((s, k) => <li key={k}>{setLabel(s.reps, s.weight, (n) => t("reps", { reps: n }))}</li>)
+                          ex.sets.map((s, k) => <li key={k}>{setLabel(s, (n) => t("reps", { reps: n }))}</li>)
                         ) : (
                           <li className={styles.whSetEmpty}>{t("noSets")}</li>
                         )}

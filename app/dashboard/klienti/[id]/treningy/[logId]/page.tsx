@@ -18,6 +18,7 @@ import {
   type PlanSnapshot,
   type SnapshotExercise,
 } from "@/lib/workouts/completed";
+import { timedSeconds } from "@/lib/workouts/timedReps";
 import { DuplicateWorkoutButton } from "./DuplicateWorkoutButton";
 import { InfoTip } from "@/app/components/InfoTip";
 import dashboardStyles from "@/app/dashboard/dashboard.module.css";
@@ -100,7 +101,12 @@ function plannedSummary(p: SnapshotExercise, t: LogT): string {
 
 function plannedCell(row: CompareRow, t: LogT): string {
   if (!row.planned) return t("extra");
-  const reps = row.planned.reps ? t("repsShort", { reps: row.planned.reps }) : "—";
+  // cvik na čas („60 s“) bez „op.“
+  const reps = row.planned.reps
+    ? timedSeconds(row.planned.reps) != null
+      ? row.planned.reps
+      : t("repsShort", { reps: row.planned.reps })
+    : "—";
   return row.planned.loadKg != null ? `${reps} × ${row.planned.loadKg} kg` : reps;
 }
 
@@ -112,7 +118,7 @@ function ActualCell({ row, t, locale }: { row: CompareRow; t: LogT; locale: Loca
   const parts: { text: string; tone: SetTone | null }[] = [];
   if (a.reps != null) parts.push({ text: t("repsShort", { reps: a.reps }), tone: tones.reps });
   if (a.weight != null) parts.push({ text: `${a.weight} kg`, tone: tones.weight });
-  if (a.durationS != null) parts.push({ text: formatDuration(a.durationS), tone: null });
+  if (a.durationS != null) parts.push({ text: formatDuration(a.durationS), tone: tones.duration });
   if (a.distanceM != null) parts.push({ text: formatDistance(a.distanceM, locale), tone: null });
   if (parts.length === 0) return <>—</>;
   return (

@@ -12,6 +12,7 @@ import {
   WEIGHT_MAX_KG,
   type SetDraftRow,
 } from "@/lib/workouts/setInput";
+import { timedSeconds } from "@/lib/workouts/timedReps";
 import styles from "./portal.module.css";
 
 /**
@@ -102,6 +103,9 @@ const numToField = (n: number | null | undefined) =>
  * ostanú prázdne s plánom ako placeholder — tam musí klient zapísať, koľko naozaj spravil.
  */
 export function plannedSetRow(ex: PortalExercise): SetRow {
+  // cvik na čas („60 s“): prvé pole sú sekundy, predvyplnené časom trénera
+  const secs = timedSeconds(ex.plannedReps);
+  if (secs != null) return { reps: String(secs), weight: numToField(ex.loadKg) };
   const reps = ex.plannedReps?.trim() ?? "";
   return { reps: /^\d+$/.test(reps) ? reps : "", weight: numToField(ex.loadKg) };
 }
@@ -145,7 +149,11 @@ export function formValuesFromLog(
   const fill = (i: number, match: LoggedExercise) => {
     used.add(match);
     if (match.sets.length > 0) {
-      base.rows[i] = match.sets.map((s) => ({ reps: numToField(s.reps), weight: numToField(s.weight) }));
+      const timed = i < exercises.length && timedSeconds(exercises[i].plannedReps) != null;
+      base.rows[i] = match.sets.map((s) => ({
+        reps: numToField(timed ? (s.durationS ?? s.reps) : s.reps),
+        weight: numToField(s.weight),
+      }));
     }
     if (match.note) notes[i] = match.note;
   };
@@ -170,12 +178,16 @@ export function formValuesFromLog(
 export function buildEntriesPayload(planExercises: PortalExercise[], values: WorkoutFormValues) {
   const exercises = formExercises(planExercises, values);
   const summary = summarizeWorkoutForm(exercises.length, values.rows);
-  const entries = exercises.map((ex, i) => ({
-    entryId: ex.entryId,
-    name: ex.name,
-    note: values.notes[i]?.trim() || undefined,
-    sets: summary.sets[i] ?? [],
-  }));
+  const entries = exercises.map((ex, i) => {
+    const sets = summary.sets[i] ?? [];
+    return {
+      entryId: ex.entryId,
+      name: ex.name,
+      note: values.notes[i]?.trim() || undefined,
+      // cvik na čas: číslo z prvého poľa sú sekundy (durationS), nie opakovania
+      sets: timedSeconds(ex.plannedReps) != null ? sets.map((s) => ({ reps: null, weight: s.weight, durationS: s.reps })) : sets,
+    };
+  });
   return { summary, entries };
 }
 
@@ -237,110 +249,113 @@ export function WorkoutSetsFields({
 
   return (
     <>
-      {exercises.map((ex, exIdx) => (
-        <div
-          key={`${ex.idx}-${exIdx}`}
-          className={styles.logExercise}
-          data-tour={exIdx < planExercises.length ? "workout-exercise" : undefined}
-          data-added={exIdx >= planExercises.length ? "" : undefined}
-        >
-          {exIdx < planExercises.length ? (
-            <p className={styles.logExerciseName}>{ex.name}</p>
-          ) : (
-            <div className={styles.logExerciseHead}>
-              <p className={styles.logExerciseName}>
-                {ex.name} <span className={styles.addedTag}>{t("addedTag")}</span>
-              </p>
-              <button
-                type="button"
-                className={styles.setRemove}
-                onClick={() => removeExercise(exIdx)}
-                aria-label={t("removeExercise", { name: ex.name })}
-              >
-                <CloseIcon />
-              </button>
-            </div>
-          )}
-          <div className={styles.logRows}>
-            {(rows[exIdx] ?? []).map((row, rowIdx) => {
-              const repsErr = parseReps(row.reps).error;
-              const weightErr = parseWeight(row.weight).error;
-              const rowErr = showInvalid ? (repsErr ?? weightErr) : null;
-              return (
-                <div key={rowIdx}>
-                  <div className={styles.setRow}>
-                    <span className={styles.setNum}>{rowIdx + 1}</span>
-                    <label className={`${styles.setField} ${showInvalid && repsErr ? styles.setFieldInvalid : ""}`}>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder={ex.plannedReps ?? t("repsPlaceholder")}
-                        aria-label={t("repsAria", { name: ex.name, n: rowIdx + 1 })}
-                        aria-invalid={showInvalid && repsErr ? true : undefined}
-                        value={row.reps}
-                        onChange={(e) => updateRow(exIdx, rowIdx, "reps", e.target.value)}
-                      />
-                      <span>op.</span>
-                    </label>
-                    <label className={`${styles.setField} ${showInvalid && weightErr ? styles.setFieldInvalid : ""}`}>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        autoComplete="off"
-                        placeholder={weightPlaceholder(ex.loadKg, locale)}
-                        aria-label={t("weightAria", { name: ex.name, n: rowIdx + 1 })}
-                        aria-invalid={showInvalid && weightErr ? true : undefined}
-                        value={row.weight}
-                        onChange={(e) => updateRow(exIdx, rowIdx, "weight", e.target.value)}
-                      />
-                      <span>kg</span>
-                    </label>
-                    <button
-                      type="button"
-                      className={styles.setRemove}
-                      onClick={() => removeRow(exIdx, rowIdx)}
-                      aria-label={t("removeSet")}
-                    >
-                      <RemoveIcon />
-                    </button>
+      {exercises.map((ex, exIdx) => {
+        const timed = timedSeconds(ex.plannedReps) != null;
+        return (
+          <div
+            key={`${ex.idx}-${exIdx}`}
+            className={styles.logExercise}
+            data-tour={exIdx < planExercises.length ? "workout-exercise" : undefined}
+            data-added={exIdx >= planExercises.length ? "" : undefined}
+          >
+            {exIdx < planExercises.length ? (
+              <p className={styles.logExerciseName}>{ex.name}</p>
+            ) : (
+              <div className={styles.logExerciseHead}>
+                <p className={styles.logExerciseName}>
+                  {ex.name} <span className={styles.addedTag}>{t("addedTag")}</span>
+                </p>
+                <button
+                  type="button"
+                  className={styles.setRemove}
+                  onClick={() => removeExercise(exIdx)}
+                  aria-label={t("removeExercise", { name: ex.name })}
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+            )}
+            <div className={styles.logRows}>
+              {(rows[exIdx] ?? []).map((row, rowIdx) => {
+                const repsErr = parseReps(row.reps).error;
+                const weightErr = parseWeight(row.weight).error;
+                const rowErr = showInvalid ? (repsErr ?? weightErr) : null;
+                return (
+                  <div key={rowIdx}>
+                    <div className={styles.setRow}>
+                      <span className={styles.setNum}>{rowIdx + 1}</span>
+                      <label className={`${styles.setField} ${showInvalid && repsErr ? styles.setFieldInvalid : ""}`}>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          placeholder={timed ? String(timedSeconds(ex.plannedReps)) : (ex.plannedReps ?? t("repsPlaceholder"))}
+                          aria-label={t(timed ? "secondsAria" : "repsAria", { name: ex.name, n: rowIdx + 1 })}
+                          aria-invalid={showInvalid && repsErr ? true : undefined}
+                          value={row.reps}
+                          onChange={(e) => updateRow(exIdx, rowIdx, "reps", e.target.value)}
+                        />
+                        <span>{timed ? "s" : "op."}</span>
+                      </label>
+                      <label className={`${styles.setField} ${showInvalid && weightErr ? styles.setFieldInvalid : ""}`}>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          autoComplete="off"
+                          placeholder={weightPlaceholder(ex.loadKg, locale)}
+                          aria-label={t("weightAria", { name: ex.name, n: rowIdx + 1 })}
+                          aria-invalid={showInvalid && weightErr ? true : undefined}
+                          value={row.weight}
+                          onChange={(e) => updateRow(exIdx, rowIdx, "weight", e.target.value)}
+                        />
+                        <span>kg</span>
+                      </label>
+                      <button
+                        type="button"
+                        className={styles.setRemove}
+                        onClick={() => removeRow(exIdx, rowIdx)}
+                        aria-label={t("removeSet")}
+                      >
+                        <RemoveIcon />
+                      </button>
+                    </div>
+                    {rowErr && (
+                      <p className={styles.setError}>
+                        {tl(`setInput.${rowErr}`, { max: rowErr === "repsMax" ? REPS_MAX : WEIGHT_MAX_KG })}
+                      </p>
+                    )}
                   </div>
-                  {rowErr && (
-                    <p className={styles.setError}>
-                      {tl(`setInput.${rowErr}`, { max: rowErr === "repsMax" ? REPS_MAX : WEIGHT_MAX_KG })}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className={styles.logExerciseActions}>
-            <button type="button" className={styles.addSetBtn} onClick={() => addRow(exIdx)}>
-              <PlusIcon /> {t("addSet")}
-            </button>
-            {notes[exIdx] === undefined && (
-              <button
-                type="button"
-                className={styles.addSetBtn}
-                onClick={() => onChange({ ...values, notes: { ...notes, [exIdx]: "" } })}
-              >
-                <PlusIcon /> {t("note")}
+                );
+              })}
+            </div>
+            <div className={styles.logExerciseActions}>
+              <button type="button" className={styles.addSetBtn} onClick={() => addRow(exIdx)}>
+                <PlusIcon /> {t("addSet")}
               </button>
+              {notes[exIdx] === undefined && (
+                <button
+                  type="button"
+                  className={styles.addSetBtn}
+                  onClick={() => onChange({ ...values, notes: { ...notes, [exIdx]: "" } })}
+                >
+                  <PlusIcon /> {t("note")}
+                </button>
+              )}
+            </div>
+            {notes[exIdx] !== undefined && (
+              <textarea
+                className={styles.logNoteInput}
+                rows={2}
+                maxLength={500}
+                placeholder={t("notePlaceholder")}
+                aria-label={t("noteAria", { name: ex.name })}
+                value={notes[exIdx]}
+                onChange={(e) => onChange({ ...values, notes: { ...notes, [exIdx]: e.target.value } })}
+              />
             )}
           </div>
-          {notes[exIdx] !== undefined && (
-            <textarea
-              className={styles.logNoteInput}
-              rows={2}
-              maxLength={500}
-              placeholder={t("notePlaceholder")}
-              aria-label={t("noteAria", { name: ex.name })}
-              value={notes[exIdx]}
-              onChange={(e) => onChange({ ...values, notes: { ...notes, [exIdx]: e.target.value } })}
-            />
-          )}
-        </div>
-      ))}
+        );
+      })}
 
       <div className={styles.addExercise} data-tour="workout-add-exercise">
         {adding ? (

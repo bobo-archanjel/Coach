@@ -8,6 +8,7 @@ import type { ExerciseOption, PortalExercise, PortalPlan, PortalTemplate } from 
 import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
+import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
 import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
@@ -523,10 +524,7 @@ function ExerciseEditForm({
           <span className={b.editFieldLabel}>{t("sets")}</span>
           <input name="sets" type="number" inputMode="numeric" min={1} max={20} defaultValue={ex.sets} required />
         </label>
-        <label className={`${b.editField} ${b.editFieldReps}`}>
-          <span className={b.editFieldLabel}>{t("reps")}</span>
-          <input name="reps" type="text" maxLength={20} defaultValue={ex.reps} placeholder="10 / 8-12 / 30 s" required />
-        </label>
+        <RepsOrTimeField defaultValue={ex.reps} className={b.editFieldReps} />
         <label className={`${b.editField} ${b.editFieldLoad}`}>
           <span className={b.editFieldLabel}>{t("load")}</span>
           <input name="load_kg" type="number" inputMode="decimal" step="0.5" min={0} defaultValue={ex.loadKg} placeholder="—" />

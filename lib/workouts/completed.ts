@@ -1,5 +1,6 @@
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { RELATIVE_DAY } from "@/lib/i18n/dates";
+import { timedSeconds } from "./timedReps";
 // Dokončený tréning: plán (workout_logs.plan_snapshot, 0048) vs. realita
 // (workout_logs.entries). Čistá logika bez next/supabase importov — zdieľaná medzi
 // detailom trénera, portálom a e2e testom (e2e/training-done.spec.ts).
@@ -255,13 +256,16 @@ function toneOf(actual: number | null | undefined, min: number | null, max: numb
  * (opakovania v rozsahu „8-10“) = met, menej = below, viac = above; null keď niet s čím
  * porovnať (séria navyše, opakovania „max“ / na čas, plán bez váhy, hodnota nezapísaná).
  */
-export function setTones(row: CompareRow): { reps: SetTone | null; weight: SetTone | null } {
-  if (!row.planned || !row.actual) return { reps: null, weight: null };
+export function setTones(row: CompareRow): { reps: SetTone | null; weight: SetTone | null; duration: SetTone | null } {
+  if (!row.planned || !row.actual) return { reps: null, weight: null, duration: null };
   const range = plannedRepsRange(row.planned.reps);
   const load = row.planned.loadKg;
+  // cvik na čas („60 s“, lib/workouts/timedReps.ts): odcvičené sekundy oproti plánu
+  const secs = timedSeconds(row.planned.reps);
   return {
     reps: toneOf(row.actual.reps, range?.[0] ?? null, range?.[1] ?? null),
     weight: toneOf(row.actual.weight, load, load),
+    duration: toneOf(row.actual.durationS, secs, secs),
   };
 }
 

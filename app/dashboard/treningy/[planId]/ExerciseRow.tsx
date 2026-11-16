@@ -12,6 +12,7 @@ import {
 } from "../actions";
 import type { ExerciseDetail, ExerciseLibraryRow } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
+import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
 import styles from "@/app/components/workoutBuilder.module.css";
 
 const ExerciseDetailModal = dynamic(() =>
@@ -97,10 +98,7 @@ export function ExerciseRow({
             <span className={styles.editFieldLabel}>{t("sets")}</span>
             <input name="sets" type="number" min={1} defaultValue={entry.sets} required />
           </label>
-          <label className={`${styles.editField} ${styles.editFieldReps}`}>
-            <span className={styles.editFieldLabel}>{t("reps")}</span>
-            <input name="reps" type="text" defaultValue={entry.reps} required />
-          </label>
+          <RepsOrTimeField defaultValue={entry.reps ?? ""} className={styles.editFieldReps} />
           <label className={`${styles.editField} ${styles.editFieldLoad}`}>
             <span className={styles.editFieldLabel}>{t("load")}</span>
             <input name="load_kg" type="number" step="0.5" defaultValue={entry.load_kg ?? ""} placeholder="—" />

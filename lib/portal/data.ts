@@ -222,8 +222,9 @@ function parseLoggedExercises(raw: unknown, L: PortalLabels): LoggedExerciseView
           const r = s as Record<string, unknown>;
           const reps = typeof r.reps === "number" && Number.isFinite(r.reps) ? r.reps : null;
           const weight = typeof r.weight === "number" && Number.isFinite(r.weight) ? r.weight : null;
-          if (reps === null && weight === null) return null;
-          return { reps, weight };
+          const durationS = typeof r.durationS === "number" && Number.isFinite(r.durationS) ? r.durationS : null;
+          if (reps === null && weight === null && durationS === null) return null;
+          return { reps, weight, ...(durationS !== null && { durationS }) };
         })
         .filter((s): s is LoggedSetView => s !== null);
       return { name, sets };

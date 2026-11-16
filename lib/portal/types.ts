@@ -19,6 +19,8 @@ export type StreakDayState = "done" | "rest";
 export interface LoggedSetView {
   reps: number | null;
   weight: number | null;
+  /** cvik na čas — odcvičené sekundy */
+  durationS?: number | null;
 }
 
 /** Jeden cvik s odcvičenými sériami — pohľad do histórie, bez väzieb na builder. */
