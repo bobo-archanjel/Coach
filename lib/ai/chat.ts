@@ -27,6 +27,7 @@ import { logAiUsage } from "./logUsage";
 import { getMacroContext } from "./macroContext";
 import { getTrainingContextBlock } from "./trainingContext";
 import { getProgressContextBlock } from "./progressContext";
+import { splitReplyMarkers, verifySwaps, type ExerciseSwapRef } from "./exerciseSwap";
 import { hasForeignScript, stripMarkdown } from "./plainText";
 import {
   needsHealthEscalation,
@@ -52,8 +53,9 @@ export interface ChatExerciseRef {
 
 export type SendChatResult =
   /** `escalated` na "ok" = mäkké FYI trénerovi (bežná výmena cviku kvôli nepohodliu), nie hard block.
-   *  `exercises` = cviky z odpovede, ktoré appka vie prepojiť na detail s fotkami (z plánu alebo z výsledkov search_exercises). */
-  | { status: "ok"; reply: string; escalated?: boolean; exercises?: ChatExerciseRef[] }
+   *  `exercises` = cviky z odpovede, ktoré appka vie prepojiť na detail s fotkami (z plánu alebo z výsledkov search_exercises).
+   *  `swaps` = overené návrhy výmeny cviku vo VLASTNOM pláne klienta (tlačidlo "Vymeniť v pláne", exerciseSwap.ts). */
+  | { status: "ok"; reply: string; escalated?: boolean; exercises?: ChatExerciseRef[]; swaps?: ExerciseSwapRef[] }
   /** hard block — akútna zdravotná téma bez žiadosti o náhradu cviku, žiadne volanie modelu. */
   | { status: "escalated"; reply: string }
   | { status: "rate_limited"; reply: string }
@@ -76,18 +78,10 @@ interface ChatMessageRow {
  * Model namiesto toho pošle PRESNÉ ID, appka ich len overí voči zoznamu, ktorý
  * sama poslala — nikdy neverí ID, ktoré by si model vymyslel mimo zoznamu.
  */
-const EXERCISE_MARKER = /\[CVIKY:\s*([a-zA-Z0-9,\s-]+)\]\s*$/;
-
-/** Vytiahne marker z konca odpovede, vráti čistý text (bez markeru) + skutočne overené ID. */
-function extractReferencedExercises(
-  rawReply: string,
-  knownExercises: Map<string, string>,
-): { text: string; exercises: ChatExerciseRef[] } {
-  const match = rawReply.match(EXERCISE_MARKER);
-  if (!match) return { text: rawReply, exercises: [] };
-
-  const text = rawReply.slice(0, match.index).trimEnd();
-  const ids = match[1].split(",").map((s) => s.trim());
+/** Overí ID z markera [CVIKY: ...] (odtrhnutého cez splitReplyMarkers) voči známym cvikom. */
+function resolveReferencedExercises(payload: string | null, knownExercises: Map<string, string>): ChatExerciseRef[] {
+  if (!payload) return [];
+  const ids = payload.split(",").map((s) => s.trim());
   const exercises: ChatExerciseRef[] = [];
   const seen = new Set<string>();
   for (const id of ids) {
@@ -97,7 +91,7 @@ function extractReferencedExercises(
       seen.add(id);
     }
   }
-  return { text, exercises };
+  return exercises;
 }
 
 /**
@@ -270,7 +264,11 @@ export async function sendAiChatMessage(
     // Marker overujeme proti plánu aj proti tomu, čo naozaj vrátili nástroje v tejto správe.
     for (const [id, name] of toolCtx.foundExercises) knownExercises.set(id, name);
     const rawReply = loop.text || t("noReply");
-    const { text: cleanedReply, exercises: referencedExercises } = extractReferencedExercises(rawReply, knownExercises);
+    // Markery [CVIKY] a [VYMENA] tvoria chvost odpovede; výmenu overujeme proti plánu klienta
+    // (len vlastný plán) a proti tomu, čo vrátil search_exercises v tejto správe.
+    const { text: cleanedReply, cviky, vymena } = splitReplyMarkers(rawReply);
+    const referencedExercises = resolveReferencedExercises(cviky, knownExercises);
+    const swaps = verifySwaps(vymena, training.days, toolCtx.foundExercises);
     const reply = stripMarkdown(cleanedReply);
 
     // Zápis spotreby a mäkké FYI trénerovi až po odoslaní odpovede klientovi (after) —
@@ -305,6 +303,7 @@ export async function sendAiChatMessage(
       reply,
       escalated: softEscalation,
       exercises: referencedExercises.length > 0 ? referencedExercises : undefined,
+      swaps: swaps.length > 0 ? swaps : undefined,
     };
   } catch (err) {
     console.error("sendAiChatMessage (Claude call):", err instanceof Error ? err.message : err);

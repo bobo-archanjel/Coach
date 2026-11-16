@@ -148,6 +148,8 @@
     "alreadyLogged": "Tento trénink už máš dnes zapsaný — tyto hodnoty se neuložily. Obnov stránku a podívej se na uložený záznam.",
     "cannotDelete": "Tento trénink nemůžeš smazat.",
     "cannotEdit": "Tento trénink nemůžeš upravit.",
+    "swapPlanChanged": "Plán se mezitím změnil — tento cvik už v něm není, výměna se neprovedla.",
+    "swapFailed": "Cvik se nepodařilo vyměnit. Zkus to prosím znovu.",
     "addNamedDay": "Přidej alespoň jeden den s názvem.",
     "replySaveFailed": "Odpověď se nepodařilo uložit. Zkus to prosím znovu.",
     "disconnectFailed": "Odpojení selhalo. Zkus to za chvíli znovu.",

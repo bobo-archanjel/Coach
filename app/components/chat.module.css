@@ -123,6 +123,46 @@
 .exerciseRefChip:hover {
   background: var(--fill-strong);
 }
+/* Tlačidlo "Vymeniť v pláne" pod odpoveďou AI Kouča (výmena cviku vo vlastnom pláne). */
+.swaps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+}
+.swapWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.swapBtn {
+  padding: 7px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--fill-strong);
+  color: var(--paper);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.swapBtn:hover:not(:disabled) {
+  background: var(--surface-solid);
+}
+.swapBtn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.swapDone {
+  opacity: 1 !important;
+}
+.swapError {
+  font-size: 12px;
+  color: var(--error);
+}
 /* správa len z 1–3 emoji — veľká, bez bubliny (isJumboEmoji v ChatThread.tsx).
    .row .bubble.jumbo prebíja .mine/.theirs .bubble špecifickosťou. */
 .row .bubble.jumbo {

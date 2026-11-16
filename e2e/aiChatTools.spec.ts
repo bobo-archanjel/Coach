@@ -6,6 +6,7 @@ import { runToolLoop, type CreateMessage } from "../lib/ai/chatLoop";
 import { loadOffIndexFromDisk, searchFoodsIn, formatFoodHits } from "../lib/ai/foodSearch";
 import { createChatToolRunner } from "../lib/ai/chatTools";
 import type { FoodCandidate } from "../lib/ai/foodContext";
+import { splitReplyMarkers, verifySwaps, applySwapToEntries, splitExerciseRefs, type PlanDayForSwap } from "../lib/ai/exerciseSwap";
 
 /**
  * AI Kouč s nástrojmi (feature/AIKoucAIJedlo): čisté testy bez siete a bez volania Anthropic API —
@@ -183,5 +184,75 @@ test.describe("createChatToolRunner", () => {
     expect(out.content).toContain("ex-1 :: Drep s činkou");
     expect(foundExercises.get("ex-1")).toBe("Drep s činkou");
     expect((await run("nope", {})).isError).toBe(true);
+  });
+});
+
+test.describe("výmena cviku — markery a overovanie", () => {
+  const days: PlanDayForSwap[] = [
+    { id: "day-1", name: "Nohy", own: true, exercises: [{ id: "ex-sq", name: "Drep" }, { id: "ex-lp", name: "Leg press" }] },
+    { id: "day-2", name: "Hrudník", own: true, exercises: [{ id: "ex-bp", name: "Bench press" }] },
+    { id: "day-t", name: "Tréner", own: false, exercises: [{ id: "ex-x", name: "X" }] },
+  ];
+  const found = new Map([["ex-new", "Goblet drep"], ["ex-new2", "Tlaky s jednoručkami"], ["ex-lp", "Leg press"]]);
+
+  test("splitReplyMarkers: oba markery v oboch poradiach, čistý text", () => {
+    const a = splitReplyMarkers("Skús toto.\n[CVIKY: ex-sq, ex-new]\n[VYMENA: day-1|ex-sq>ex-new]");
+    expect(a.text).toBe("Skús toto.");
+    expect(a.cviky).toBe(" ex-sq, ex-new");
+    expect(a.vymena).toBe(" day-1|ex-sq>ex-new");
+    const b = splitReplyMarkers("Text [VYMENA: day-1|ex-sq>ex-new] [CVIKY: ex-new]");
+    expect(b.text).toBe("Text");
+    expect(b.vymena).toContain("ex-new");
+    const c = splitReplyMarkers("Bez markerov [CVIKY: a] uprostred a ďalej");
+    expect(c).toEqual({ text: "Bez markerov [CVIKY: a] uprostred a ďalej", cviky: null, vymena: null });
+  });
+
+  test("verifySwaps: platná výmena prejde, názvy berie z plánu/nástroja", () => {
+    const r = verifySwaps(" day-1|ex-sq>ex-new; day-2|ex-bp>ex-new2", days, found);
+    expect(r).toEqual([
+      { dayId: "day-1", dayName: "Nohy", oldId: "ex-sq", oldName: "Drep", newId: "ex-new", newName: "Goblet drep" },
+      { dayId: "day-2", dayName: "Hrudník", oldId: "ex-bp", oldName: "Bench press", newId: "ex-new2", newName: "Tlaky s jednoručkami" },
+    ]);
+  });
+
+  test("verifySwaps: zahodí plán od trénera, cudzí deň, cvik mimo dňa, nový cvik mimo nástrojov, duplicity", () => {
+    expect(verifySwaps("day-t|ex-x>ex-new", days, found)).toEqual([]); // plán trénera
+    expect(verifySwaps("day-zzz|ex-sq>ex-new", days, found)).toEqual([]); // neznámy deň
+    expect(verifySwaps("day-1|ex-bp>ex-new", days, found)).toEqual([]); // starý cvik nie je v dni
+    expect(verifySwaps("day-1|ex-sq>ex-vymyslene", days, found)).toEqual([]); // nový nevrátil search_exercises
+    expect(verifySwaps("day-1|ex-sq>ex-sq", days, found)).toEqual([]); // ten istý cvik
+    expect(verifySwaps("day-1|ex-sq>ex-lp", days, found)).toEqual([]); // nový už v dni je
+    expect(verifySwaps("day-1|ex-sq>ex-new; day-1|ex-sq>ex-new2", days, found)).toHaveLength(1); // jedna na cvik
+    expect(verifySwaps("zle formatovane; |a>b; day-1|ex-sq", days, found)).toEqual([]);
+    expect(verifySwaps(null, days, found)).toEqual([]);
+  });
+
+  test("verifySwaps: najviac 3 výmeny", () => {
+    const many: PlanDayForSwap[] = [{ id: "d", name: "D", own: true, exercises: ["a", "b", "c", "e"].map((id) => ({ id, name: id })) }];
+    const f = new Map(["n1", "n2", "n3", "n4"].map((id) => [id, id] as [string, string]));
+    expect(verifySwaps("d|a>n1; d|b>n2; d|c>n3; d|e>n4", many, f)).toHaveLength(3);
+  });
+
+  test("applySwapToEntries: zachová sériu/záťaž/tempo, mení len id a názov; idempotentné", () => {
+    const entries = [
+      { entry_id: "e1", exercise_id: "ex-sq", exercise_name: "Drep", sets: 4, reps: "8", load_kg: 80, rest_seconds: 120, tempo: "pomaly" },
+      { entry_id: "e2", exercise_id: "ex-lp", exercise_name: "Leg press", sets: 3, reps: "12", load_kg: null, rest_seconds: null, tempo: null },
+    ];
+    const r = applySwapToEntries(entries, { oldId: "ex-sq", newId: "ex-new", newName: "Goblet drep" })!;
+    expect(r.changed).toBe(true);
+    expect(r.entries[0]).toEqual({ ...entries[0], exercise_id: "ex-new", exercise_name: "Goblet drep" });
+    expect(r.entries[1]).toEqual(entries[1]);
+    const again = applySwapToEntries(r.entries, { oldId: "ex-sq", newId: "ex-new", newName: "Goblet drep" })!;
+    expect(again.alreadyApplied).toBe(true);
+    expect(applySwapToEntries(entries, { oldId: "ex-gone", newId: "ex-new", newName: "x" })).toBeNull();
+    expect(applySwapToEntries(null, { oldId: "a", newId: "b", newName: "c" })).toBeNull();
+  });
+
+  test("splitExerciseRefs: rozdelí odkazy a výmeny, zahodí nevalidné", () => {
+    const sw = { dayId: "d", dayName: "D", oldId: "a", oldName: "A", newId: "b", newName: "B" };
+    const r = splitExerciseRefs([{ id: "x", name: "X" }, { swap: { ...sw, applied: true } }, { swap: { dayId: "d" } }, null, 5]);
+    expect(r.exerciseRefs).toEqual([{ id: "x", name: "X" }]);
+    expect(r.swaps).toEqual([{ ...sw, applied: true }]);
+    expect(splitExerciseRefs(null)).toEqual({});
   });
 });

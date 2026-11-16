@@ -6,6 +6,7 @@ import { tErr } from "@/lib/i18n/serverErrors";
 import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 import { getGlobalExerciseRows } from "@/lib/exerciseLibrary";
 import { stripMarkdown } from "@/lib/ai/plainText";
+import { splitExerciseRefs } from "@/lib/ai/exerciseSwap";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
@@ -1139,7 +1140,7 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
       body: m.role === "assistant" ? stripMarkdown(m.content) : m.content,
       createdAt: m.created_at,
       escalated: m.escalated ?? false,
-      exerciseRefs: (m.exercise_refs as { id: string; name: string }[] | null) ?? undefined,
+      ...splitExerciseRefs(m.exercise_refs),
     }));
 
     const data: PortalAiChatData = { messages };
