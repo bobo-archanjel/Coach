@@ -75,6 +75,10 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-16** — **Pridaný cvik počas tréningu: Opakovania / Čas** (`feature/pridany-cvik-na-cas`, bez migrácie).
+  - Pri „+ Pridať cvik“ si klient pod názvom vyberie **Opakovania** (predvolené) alebo **Čas** — cvik na čas má polia v sekundách a ukladá sa ako čas série (ako cvik na čas z plánu). Voľba prežije refresh, „Upraviť hodnoty“ ju zachová.
+  - **Mobil:** ťuk na „Pridať“ vo formulári nového cviku sa už nestratí v spodnom menu (menu sa pri ťuknutí vracalo spod klávesnice a prekrylo tlačidlo).
+
 - **2026-11-16** — **„Tempo“ → „Poznámka“ k cviku, aj vo vlastnom tréningu klienta** (priamo v `dev`, bez migrácie).
   - V úprave cviku je namiesto „Tempo“ pole **Poznámka** na celú šírku (do 200 znakov, napr. „pomaly dole, úzky úchop“). V dátach ostáva `tempo`, staré hodnoty („3-0-1“) sa zobrazia ako poznámka.
   - Pole má aj **vlastný tréning klienta** (predtým sa tempo pri uložení klientovho plánu stratilo).
