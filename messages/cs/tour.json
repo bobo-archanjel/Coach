@@ -234,9 +234,9 @@
         "title": "Tvůj trénink",
         "body": "Tady vidíš další trénink z aktivního plánu. Tlačítkem „Začít trénink“ spustíš zapisování sérií."
       },
-      "total": {
-        "title": "Můj přehled",
-        "body": "Kolik tréninků máš za sebou a jak se ti daří trénovat pravidelně."
+      "strength": {
+        "title": "Můj pokrok",
+        "body": "Tvá nová osobní maxima — když na cviku zvedneš víc než kdykoli předtím, objeví se tady."
       },
       "week": {
         "title": "Týden",
@@ -244,7 +244,7 @@
       },
       "measure": {
         "title": "Měření",
-        "body": "Zapisuj si váhu a obvod pasu. Podle nich vidíš pokrok ty i tvůj trenér."
+        "body": "Zapisuj si váhu a obvody. Graf ukáže, jak se tvá váha mění — vidí ho i tvůj trenér."
       },
       "bell": {
         "title": "Upozornění",

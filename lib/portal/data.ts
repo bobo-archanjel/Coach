@@ -7,7 +7,7 @@ import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/s
 import { getGlobalExerciseRows } from "@/lib/exerciseLibrary";
 import { stripMarkdown } from "@/lib/ai/plainText";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
-import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
+import { getBodyMetrics, getStrengthOverview } from "@/lib/dashboard/bodyMetrics";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
@@ -50,7 +50,6 @@ import type {
   PortalTemplate,
   PortalTrainingDay,
   PortalTrainingResult,
-  StreakDayState,
   TodaySession,
   WeekDay,
   WeekView,
@@ -66,7 +65,6 @@ const portalLabels = cache(async () => {
   return { locale, t, tl };
 });
 type PortalLabels = Awaited<ReturnType<typeof portalLabels>>;
-const HISTORY_DAYS = 12;
 /** Ako ďaleko dozadu sa dá listovať v páse „Tento týždeň" (≈ 1 rok). */
 const WEEK_HISTORY_FLOOR_DAYS = 371;
 
@@ -351,6 +349,7 @@ export async function getPortalData(): Promise<PortalResult> {
         .maybeSingle(),
       supabase.from("workout_logs").select("performed_on").eq("client_id", client.id).gte("performed_on", trainingSince),
       supabase.from("food_logs").select("eaten_on").eq("client_id", client.id).gte("eaten_on", foodSince),
+      getStrengthOverview(client.id),
     ]);
 
     // "Aktívny" plán = clients.active_plan_id (volí ho klient v Tréningu / na Dnes, alebo
@@ -523,7 +522,7 @@ export async function getPortalData(): Promise<PortalResult> {
       }
     }
 
-    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }] =
+    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }, strength] =
       await sideData;
 
     // Série sú len motivačná dekorácia — chyba ich dopytu (data = null) nesmie
@@ -533,18 +532,9 @@ export async function getPortalData(): Promise<PortalResult> {
       food: computeFoodStreak((streakFoodRows ?? []).map((r) => r.eaten_on as string), isoDate),
     };
 
-    // ---------- história (posledných 12 dní pred dneškom) ----------
-    // Naprieč všetkými plánmi (ako série), nie len `logs` aktuálneho plánu — inak
-    // "Odcvičené spolu" aj pás histórie spadli na 0 hneď po publikovaní nového plánu.
-    const allTrainingDates = (streakTrainRows ?? []).map((r) => r.performed_on as string);
-    const allLoggedDates = new Set(allTrainingDates);
-    const streakHistory: StreakDayState[] = [];
-    for (let i = HISTORY_DAYS; i >= 1; i--) {
-      const date = addDays(base, -i);
-      streakHistory.push(allLoggedDates.has(iso(date)) ? "done" : "rest");
-    }
-
-    const totalSessions = allTrainingDates.length;
+    // Počet za celú históriu (getStrengthOverview číta všetky tréningy kvôli maximám);
+    // pri jeho chybe aspoň tréningy z okna sérií (posledných 52 týždňov).
+    const totalSessions = strength?.totalSessions ?? (streakTrainRows ?? []).length;
 
     // ---------- odkaz trénera ----------
     let coachNote: CoachNote | null = null;
@@ -566,7 +556,7 @@ export async function getPortalData(): Promise<PortalResult> {
       hasTrainer: Boolean(client.trainer_id),
       week,
       totalSessions,
-      streakHistory,
+      strengthRecords: strength?.records ?? [],
       streaks,
       deletionNotice: client.deletion_requested_at
         ? { requestedBy: client.deletion_requested_by as "trainer" | "client", requestedAt: client.deletion_requested_at }

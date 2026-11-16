@@ -221,6 +221,61 @@ export async function getAllStrengthProgress(
   return { names, byExercise, prs };
 }
 
+/** Osobné maximum s prírastkom oproti predošlému maximu — panel „Sila“ na karte Dnes klienta. */
+export interface StrengthRecord extends StrengthPR {
+  /** o koľko kg prekonalo predošlé maximum na tom istom cviku */
+  gainKg: number;
+}
+
+/**
+ * Posledné osobné maximá (najnovšie prvé), z každého cviku len posledné. Maximum =
+ * tréning, ktorého najťažšia séria prekonala všetky predošlé tréningy s cvikom
+ * (striktne, ako latestIsNewPR) — prvý záznam cviku nie je maximum, nie je čo prekonať.
+ * Na rozdiel od trénerovho zoznamu PR nemusí ísť o posledný tréning: klient vidí aj
+ * maximum spred troch týždňov, kým ho neprekoná iné.
+ */
+export function recentStrengthRecords(byExercise: Record<string, StrengthPoint[]>, limit = 3): StrengthRecord[] {
+  const records: StrengthRecord[] = [];
+  for (const [exercise, points] of Object.entries(byExercise)) {
+    let max = points[0]?.bestWeightKg ?? 0;
+    let last: StrengthRecord | null = null;
+    for (const p of points.slice(1)) {
+      if (p.bestWeightKg <= max) continue;
+      last = {
+        exercise,
+        bestWeightKg: p.bestWeightKg,
+        reps: p.reps,
+        achievedOn: p.date,
+        gainKg: Math.round((p.bestWeightKg - max) * 100) / 100,
+      };
+      max = p.bestWeightKg;
+    }
+    if (last) records.push(last);
+  }
+  records.sort((a, b) => b.achievedOn.localeCompare(a.achievedOn) || b.gainKg - a.gainKg);
+  return records.slice(0, limit);
+}
+
+/**
+ * Karta Dnes klienta (sekcia „Môj pokrok“): posledné osobné maximá + počet všetkých
+ * odcvičených tréningov. Jeden dotaz na celú históriu workout_logs (RLS: klient číta
+ * len svoje). `null` len pri chybe načítania.
+ */
+export async function getStrengthOverview(
+  clientId: string,
+): Promise<{ records: StrengthRecord[]; totalSessions: number } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("workout_logs")
+    .select(STRENGTH_LOG_COLUMNS)
+    .eq("client_id", clientId)
+    .order("performed_on", { ascending: true });
+  if (error) return null;
+  const rows = (data ?? []) as StrengthLogRow[];
+  const byExercise = strengthSeriesFromRows(rows, await buildExerciseNameResolver(supabase, rows));
+  return { records: recentStrengthRecords(byExercise), totalSessions: rows.length };
+}
+
 /**
  * Nedávne osobné maximá naprieč viacerými klientmi (feature/analytika-v2, bod 3) —
  * pre widget "Posledné PR" na `/dashboard/analytika`. Jeden dotaz na workout_logs

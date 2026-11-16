@@ -1413,52 +1413,144 @@
   height: 17px;
 }
 
-.streakHead {
+/* ---------- Môj pokrok: sila (osobné maximá) ---------- */
+.recordsTitle {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  margin: 0 0 10px;
+}
+.records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.record {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 16px;
+  background: var(--fill);
+}
+.recordMain {
+  min-width: 0;
+}
+.recordName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.recordMeta {
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.recordGain {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+.strengthEmpty {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+
+/* ---------- Môj pokrok: váha nad formulárom merania (BodyMetricForm) ---------- */
+.weightSummary {
+  margin-bottom: 14px;
+}
+.weightHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.weightNow {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
 }
-.streakNum {
-  font-size: 2.6rem;
+.weightNum {
+  font-size: 2.2rem;
   font-weight: 780;
   color: var(--paper);
   letter-spacing: -0.05em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
-.streakUnit {
+.weightUnit {
   font-size: 14px;
+  font-weight: 650;
   color: var(--paper-dim);
-  font-weight: 600;
 }
-/* posledných 12 týždňov ako stĺpcový graf (hotovo / voľno / nič) */
-.bars {
+.weightDelta {
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
-  height: 70px;
-  margin-top: 18px;
+  gap: 1px;
+  text-align: right;
 }
-.bar {
-  flex: 1;
-  height: 16%;
-  border-radius: 999px;
-  background: var(--bar-off);
+.weightDeltaVal {
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
 }
-.barOn {
-  height: 100%;
-  background: var(--accent-grad);
-}
-.barRest {
-  height: 42%;
-}
-.barsLegend {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  font-size: 11px;
+.weightDeltaSince {
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--paper-faint);
+}
+.weightChart {
+  position: relative;
+  height: 64px;
+  margin-top: 14px;
+}
+.weightChart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.weightChartArea {
+  fill: var(--accent-soft);
+  stroke: none;
+}
+.weightChartLine {
+  fill: none;
+  stroke: var(--accent-text);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.weightChartDot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-text);
+  box-shadow: 0 0 0 3px var(--card-bg);
+  transform: translate(-50%, -50%);
 }
 
 .chip {
@@ -3823,17 +3915,8 @@
 }
 
 /* ---------- počítač: širší obsah vedľa bočného panelu — grafy na Dnes ----------
-   Stĺpce aktivity by sa na šírke ~900 px roztiahli (aktívny na guľu) a dni týždňa
-   na široké ovály: úzke stĺpce rozložené po šírke, dni ako zaoblené dlaždice. */
+   Dni týždňa by sa na šírke ~900 px roztiahli na široké ovály — zaoblené dlaždice. */
 @media (min-width: 880px) {
-  .bars {
-    justify-content: space-between;
-    gap: 0;
-    height: 84px;
-  }
-  .bar {
-    flex: 0 1 28px;
-  }
   .weekCell {
     border-radius: 24px;
     padding: 14px 4px 12px;

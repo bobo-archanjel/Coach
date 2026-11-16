@@ -3,7 +3,7 @@
 
 import type { MealSlot } from "@/lib/meals";
 import type { PortionUnit } from "@/lib/portions";
-import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
+import type { BodyMetricEntry, StrengthRecord } from "@/lib/dashboard/bodyMetrics";
 import type { PortalStreaks } from "./streak";
 
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
@@ -12,9 +12,6 @@ import type { PortalStreaks } from "./streak";
 // — len či sa v ten kalendárny deň odcvičilo (`done`), alebo nie (`none`);
 // `future` je deň, ktorý ešte len príde (relevantné pri prezeraní minulých týždňov).
 export type DayCellState = "done" | "today" | "future" | "none";
-
-/** Stav dňa v páse histórie — odcvičil / neodcvičil (bez väzby na rozvrh). */
-export type StreakDayState = "done" | "rest";
 
 /** Jedna skutočne odcvičená séria v histórii (workout_logs.entries). */
 export interface LoggedSetView {
@@ -176,10 +173,10 @@ export interface PortalData {
   /** má priradeného trénera — prázdna karta plánu: „plán je na ceste“ vs. „vytvor si vlastný“ */
   hasTrainer: boolean;
   week: WeekView;
-  /** koľko tréningov klient v tomto pláne odcvičil spolu (rotácia dní, nie fixný rozvrh) */
+  /** koľko tréningov klient odcvičil spolu (všetky plány, celá história) */
   totalSessions: number;
-  /** posledných 12 dní pred dneškom, najstarší prvý */
-  streakHistory: StreakDayState[];
+  /** posledné osobné maximá (najnovšie prvé, max. 3) — panel „Sila“ v sekcii Môj pokrok */
+  strengthRecords: StrengthRecord[];
   /** série (týždne tréningu, dni zápisu jedla) — pravidlá v lib/portal/streak.ts */
   streaks: PortalStreaks;
   /** null, kým nie je podaná žiadosť o zmazanie klienta (viď DeleteAccountSection na /portal/profil) */

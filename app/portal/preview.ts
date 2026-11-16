@@ -30,6 +30,8 @@ const PREVIEW_SESSION: TodaySession = {
   ],
 };
 
+const previewDaysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+
 const PREVIEW_DATA: PortalData = {
   clientFirstName: "Ján",
   today: "2026-08-28",
@@ -77,8 +79,12 @@ const PREVIEW_DATA: PortalData = {
       { label: "Ne", dayNum: 30, iso: "2026-08-30", state: "future", sessions: [] },
     ],
   },
-  totalSessions: 12,
-  streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
+  totalSessions: 42,
+  strengthRecords: [
+    { exercise: "Drep s veľkou činkou", bestWeightKg: 85, reps: 5, achievedOn: previewDaysAgo(4), gainKg: 5 },
+    { exercise: "Tlak na lavičke", bestWeightKg: 62.5, reps: 6, achievedOn: previewDaysAgo(7), gainKg: 2.5 },
+    { exercise: "Mŕtvy ťah", bestWeightKg: 110, reps: 3, achievedOn: previewDaysAgo(13), gainKg: 10 },
+  ],
   streaks: {
     training: { count: 5, atRisk: false, thisWeekDays: 1, needThisWeek: 1 },
     food: { count: 12, atRisk: false },
@@ -107,7 +113,7 @@ const NEW_CLIENT_DATA: PortalData = {
   session: null,
   planChoice: null,
   totalSessions: 0,
-  streakHistory: PREVIEW_DATA.streakHistory.map(() => "rest"),
+  strengthRecords: [],
   streaks: { training: { count: 0, atRisk: false, thisWeekDays: 0, needThisWeek: 1 }, food: { count: 0, atRisk: false } },
   week: {
     ...PREVIEW_DATA.week,

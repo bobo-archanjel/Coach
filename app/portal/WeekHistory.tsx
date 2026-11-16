@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { getPortalWeekAction } from "./actions";
 import type { LoggedSetView, WeekDay, WeekView } from "@/lib/portal/types";
 import { formatDuration } from "@/lib/workouts/completed";
@@ -66,7 +66,8 @@ function setLabel(s: LoggedSetView, repsLabel: (n: number) => string): string {
   return s.weight != null ? `${r} × ${s.weight} kg` : r;
 }
 
-export function WeekHistory({ initial }: { initial: WeekView }) {
+/** `footer` — počet tréningov a série pod týždňom (karta Dnes, StreakChips). */
+export function WeekHistory({ initial, footer }: { initial: WeekView; footer?: ReactNode }) {
   const t = useTranslations("today.week");
   const locale = useLocale();
   const [week, setWeek] = useState<WeekView>(initial);
@@ -158,6 +159,8 @@ export function WeekHistory({ initial }: { initial: WeekView }) {
         !hasHistory &&
         !loading && <p className={styles.weekNote}>{t("noneThisWeek")}</p>
       )}
+
+      {footer}
 
       {openDay && <SessionDialog day={openDay} onClose={() => setOpenIso(null)} />}
     </div>

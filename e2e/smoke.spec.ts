@@ -157,8 +157,8 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await start.click();
     await expect(page.getByRole("button", { name: /Ukončiť tréning/i })).toBeVisible();
 
-    // dozvuk + týždeň
-    await expect(page.getByText("Odcvičené spolu")).toBeVisible();
+    // Môj pokrok + týždeň
+    await expect(page.getByRole("heading", { name: "Nové osobné maximá" })).toBeVisible();
     await expect(page.getByText("Tento týždeň")).toBeVisible();
 
     // spodná navigácia — 5 položiek (Profil je pod ikonou s iniciálou, nie v menu)
@@ -211,11 +211,11 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByRole("button", { name: /Začať tréning/i })).toHaveCount(0);
   });
 
-  test("preview=no_plan — plán je na ceste, prehľad a týždeň ostávajú", async ({ page }) => {
+  test("preview=no_plan — plán je na ceste, pokrok a týždeň ostávajú", async ({ page }) => {
     await page.goto("/portal?preview=no_plan");
     await expect(page.getByText(/nepriradil aktívny tréningový plán/i)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Môj prehľad" })).toBeVisible();
-    await expect(page.getByText("Odcvičené spolu")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Môj pokrok" })).toBeVisible();
+    await expect(page.getByText(/Keď prekonáš svoje maximum/)).toBeVisible();
     await expect(page.getByText(/Tento týždeň/).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /Začať tréning/i })).toHaveCount(0);
   });

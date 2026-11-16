@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { PortalData, TodaySession } from "@/lib/portal/types";
+import type { StrengthRecord } from "@/lib/dashboard/bodyMetrics";
 import { previewResult } from "@/app/portal/preview";
 import { DoneWorkoutView } from "@/app/portal/DoneWorkoutView";
 import { LogWorkoutButton } from "@/app/portal/LogWorkoutButton";
@@ -89,13 +90,13 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-/** Série pod grafom (lib/portal/streak.ts — od MIN_VISIBLE_STREAK dní). */
-function StreakChips({ streaks }: { streaks: PortalStreaks }) {
+/** Pod týždňom: počet všetkých tréningov + série (lib/portal/streak.ts — od MIN_VISIBLE_STREAK dní). */
+function StreakChips({ streaks, total }: { streaks: PortalStreaks; total: number }) {
   const { training, food } = streaks;
   const t = useTranslations("today");
   const showTraining = training.count >= MIN_VISIBLE_STREAK;
   const showFood = food.count >= MIN_VISIBLE_STREAK;
-  if (!showTraining && !showFood) return null;
+  if (!showTraining && !showFood && total === 0) return null;
 
   const need = training.needThisWeek;
   let hint: string | null = null;
@@ -109,6 +110,7 @@ function StreakChips({ streaks }: { streaks: PortalStreaks }) {
   return (
     <>
       <div className={s.chipRow}>
+        {total > 0 && <span className={s.chip}>{t("totalTrainings", { count: total })}</span>}
         {showTraining && (
           <span className={s.chip}>
             {t("streakTraining", { count: training.count })}
@@ -158,7 +160,7 @@ function Today({ data }: { data: PortalData }) {
     session,
     week,
     totalSessions,
-    streakHistory,
+    strengthRecords,
     streaks,
     deletionNotice,
     cooperationEndedNotice,
@@ -242,33 +244,11 @@ function Today({ data }: { data: PortalData }) {
         />
       )}
 
-      <section className={s.after} aria-label={t("overview")}>
-        <h2 className={s.sectionTitle}>{t("myOverview")}</h2>
+      {/* Môj pokrok — sila (osobné maximá), váha (meranie s grafom), týždeň so sériami */}
+      <section className={s.after} aria-label={t("progress")}>
+        <h2 className={s.sectionTitle}>{t("myProgress")}</h2>
 
-        <div className={s.panel} data-tour="today-total">
-          <div className={s.panelHead}>
-            <p className={s.panelLabel}>{t("doneTotal")}</p>
-            <span className={s.panelIcon}>
-              <TrainingIcon />
-            </span>
-          </div>
-          <div className={s.streakHead}>
-            <span className={s.streakNum}>{totalSessions}</span>
-            <span className={s.streakUnit}>{t("trainings", { count: totalSessions })}</span>
-          </div>
-          <div className={s.bars} aria-hidden="true">
-            {streakHistory.map((state, i) => (
-              <span key={i} className={`${s.bar} ${state === "done" ? s.barOn : s.barRest}`} />
-            ))}
-          </div>
-          <div className={s.barsLegend} aria-hidden="true">
-            <span>{t("daysAgo", { count: streakHistory.length })}</span>
-            <span>{t("yesterday")}</span>
-          </div>
-          <StreakChips streaks={streaks} />
-        </div>
-
-        <WeekHistory initial={week} />
+        <StrengthPanel records={strengthRecords} />
 
         <div className={s.panel} data-tour="today-measure">
           <div className={s.panelHead}>
@@ -279,8 +259,61 @@ function Today({ data }: { data: PortalData }) {
           </div>
           <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
+
+        <WeekHistory initial={week} footer={<StreakChips streaks={streaks} total={totalSessions} />} />
       </section>
     </>
+  );
+}
+
+const UpArrow = () => (
+  <svg viewBox="0 0 12 12" width="11" height="11" fill="none" aria-hidden="true">
+    <path d="M6 10V2M6 2 2.5 5.5M6 2l3.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** Panel „Sila“ — posledné osobné maximá (lib/dashboard/bodyMetrics.ts → recentStrengthRecords). */
+function StrengthPanel({ records }: { records: StrengthRecord[] }) {
+  const t = useTranslations("today");
+  const locale = useLocale();
+  const kg = (n: number) => n.toLocaleString(intlLocale(locale), { maximumFractionDigits: 2 });
+  const day = (iso: string) =>
+    new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", timeZone: "UTC" });
+
+  return (
+    <div className={s.panel} data-tour="today-strength">
+      <div className={s.panelHead}>
+        <p className={s.panelLabel}>{t("strength")}</p>
+        <span className={s.panelIcon}>
+          <TrainingIcon />
+        </span>
+      </div>
+      {records.length > 0 ? (
+        <>
+          <h3 className={s.recordsTitle}>{t("newRecords")}</h3>
+          <ul className={s.records}>
+            {records.map((r) => (
+              <li key={r.exercise} className={s.record}>
+                <div className={s.recordMain}>
+                  <p className={s.recordName}>{r.exercise}</p>
+                  <p className={s.recordMeta}>
+                    {r.reps > 0 ? t("recordSet", { weight: kg(r.bestWeightKg), reps: r.reps }) : `${kg(r.bestWeightKg)} kg`}
+                    <span aria-hidden="true"> · </span>
+                    <time dateTime={r.achievedOn}>{day(r.achievedOn)}</time>
+                  </p>
+                </div>
+                <span className={s.recordGain} title={t("recordGainAria", { gain: kg(r.gainKg) })}>
+                  <UpArrow />
+                  {t("recordGain", { gain: kg(r.gainKg) })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className={s.strengthEmpty}>{t("strengthEmpty")}</p>
+      )}
+    </div>
   );
 }
 
