@@ -37,12 +37,13 @@ export async function generatePlanPdf(input: PlanReportInput, locale: Locale = "
   const ctx = await createPdfContext(locale);
   const t = (key: Parameters<typeof ctx.t>[0], values?: Record<string, string | number>) => ctx.t(key, values);
   const COLUMNS: TableColumn[] = [
-    { text: t("plan.exercise"), width: 200 },
-    { text: t("plan.sets"), width: 45, align: "right" },
-    { text: t("plan.reps"), width: 75, align: "right" },
-    { text: t("plan.load"), width: 60, align: "right" },
-    { text: t("plan.tempo"), width: 55, align: "right" },
-    { text: t("plan.rest"), width: 55, align: "right" },
+    { text: t("plan.exercise"), width: 170 },
+    { text: t("plan.sets"), width: 40, align: "right" },
+    { text: t("plan.reps"), width: 65, align: "right" },
+    { text: t("plan.load"), width: 55, align: "right" },
+    { text: t("plan.rest"), width: 50, align: "right" },
+    // poznámka k cviku (v dátach `tempo`) — posledná, najširšia po názve
+    { text: t("plan.note"), width: 110 },
   ];
   const w = new PdfWriter(ctx, t("plan.kind"));
 
@@ -77,8 +78,8 @@ export async function generatePlanPdf(input: PlanReportInput, locale: Locale = "
           String(ex.sets),
           ex.reps || "—",
           ex.loadKg != null ? `${ex.loadKg} kg` : "—",
-          ex.tempo || "—",
           restLabel(ex.restSeconds),
+          ex.tempo || "—",
         ],
       })),
       empty: t("plan.noExercises"),

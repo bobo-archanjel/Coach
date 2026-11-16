@@ -106,6 +106,7 @@ async function writeStored(version: string, json: string): Promise<void> {
 async function decodeBundle(buf: ArrayBuffer): Promise<string> {
   const bytes = new Uint8Array(buf);
   if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    // i18n-ignore — interná chyba (zachytí ju load(), UI ukáže indexError z food.json)
     if (typeof DecompressionStream === "undefined") throw new Error("DecompressionStream chýba");
     const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
     return await new Response(stream).text();

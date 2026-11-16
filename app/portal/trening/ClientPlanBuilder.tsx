@@ -8,6 +8,8 @@ import type { ExerciseOption, PortalExercise, PortalPlan, PortalTemplate } from 
 import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
+import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
+import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
 import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
@@ -46,6 +48,8 @@ type BEx = {
   reps: string;
   loadKg: string;
   restSeconds: string;
+  /** poznámka k cviku (v dátach `tempo`) */
+  note: string;
 };
 type BDay = { key: string; id: string | null; name: string; exercises: BEx[] };
 
@@ -67,7 +71,7 @@ const ChevronIcon = () => (
 
 // Rovnaké defaulty ako trénerov "Pridať do tréningu" (3×10, pauza 90 s).
 function newExercise(name: string, exerciseId: string | null): BEx {
-  return { key: uid(), exerciseId, name, sets: "3", reps: "10", loadKg: "", restSeconds: "90" };
+  return { key: uid(), exerciseId, name, sets: "3", reps: "10", loadKg: "", restSeconds: "90", note: "" };
 }
 
 /** Dni pre rozpracovaný tréning — z upravovaného plánu (dni s id → úprava) alebo
@@ -86,6 +90,7 @@ function toDraftDays(days: { id?: string; name: string; exercises: PortalExercis
       reps: e.plannedReps ?? "10",
       loadKg: e.loadKg != null ? String(e.loadKg) : "",
       restSeconds: e.restSeconds != null ? String(e.restSeconds) : "",
+      note: e.tempo ?? "",
     })),
   }));
 }
@@ -243,6 +248,7 @@ export function ClientPlanBuilder({
             reps: e.reps.trim() || "10",
             loadKg: e.loadKg.trim() === "" ? null : Number(e.loadKg),
             restSeconds: e.restSeconds.trim() === "" ? null : Number(e.restSeconds),
+            note: e.note.trim(),
           })),
       })),
     };
@@ -428,6 +434,7 @@ export function ClientPlanBuilder({
                           {ex.loadKg.trim() ? ` @ ${ex.loadKg} kg` : ""}
                         </span>
                         {ex.restSeconds.trim() && <span className={b.exerciseMeta}>{t("restValue", { seconds: ex.restSeconds })}</span>}
+                        {ex.note.trim() && <span className={b.exerciseNote}>„{ex.note.trim()}“</span>}
                         <div className={b.rowActions}>
                           <div className={b.reorderBtns}>
                             <button
@@ -503,7 +510,7 @@ function ExerciseEditForm({
   onCancel,
 }: {
   ex: BEx;
-  onApply: (patch: Pick<BEx, "sets" | "reps" | "loadKg" | "restSeconds">) => void;
+  onApply: (patch: Pick<BEx, "sets" | "reps" | "loadKg" | "restSeconds" | "note">) => void;
   onCancel: () => void;
 }) {
   const t = useTranslations("clientBuilder");
@@ -514,7 +521,7 @@ function ExerciseEditForm({
         e.preventDefault();
         const f = new FormData(e.currentTarget);
         const val = (k: string) => String(f.get(k) ?? "").trim();
-        onApply({ sets: val("sets"), reps: val("reps"), loadKg: val("load_kg"), restSeconds: val("rest_seconds") });
+        onApply({ sets: val("sets"), reps: val("reps"), loadKg: val("load_kg"), restSeconds: val("rest_seconds"), note: val("note") });
       }}
     >
       <span className={b.editName}>{ex.name}</span>
@@ -523,10 +530,7 @@ function ExerciseEditForm({
           <span className={b.editFieldLabel}>{t("sets")}</span>
           <input name="sets" type="number" inputMode="numeric" min={1} max={20} defaultValue={ex.sets} required />
         </label>
-        <label className={`${b.editField} ${b.editFieldReps}`}>
-          <span className={b.editFieldLabel}>{t("reps")}</span>
-          <input name="reps" type="text" maxLength={20} defaultValue={ex.reps} placeholder="10 / 8-12 / 30 s" required />
-        </label>
+        <RepsOrTimeField defaultValue={ex.reps} className={b.editFieldReps} />
         <label className={`${b.editField} ${b.editFieldLoad}`}>
           <span className={b.editFieldLabel}>{t("load")}</span>
           <input name="load_kg" type="number" inputMode="decimal" step="0.5" min={0} defaultValue={ex.loadKg} placeholder="—" />
@@ -534,6 +538,10 @@ function ExerciseEditForm({
         <label className={`${b.editField} ${b.editFieldRest}`}>
           <span className={b.editFieldLabel}>{t("rest")}</span>
           <input name="rest_seconds" type="number" inputMode="numeric" min={0} defaultValue={ex.restSeconds} placeholder="—" />
+        </label>
+        <label className={`${b.editField} ${b.editFieldNote}`}>
+          <span className={b.editFieldLabel}>{t("note")}</span>
+          <input name="note" type="text" maxLength={EXERCISE_NOTE_MAX} defaultValue={ex.note} placeholder={t("notePlaceholder")} />
         </label>
       </div>
       <div className={b.editActions}>

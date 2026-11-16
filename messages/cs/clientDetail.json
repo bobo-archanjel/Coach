@@ -10,7 +10,7 @@
   "draft": "Koncept",
   "active": "Aktivní",
   "noPlans": "Klient zatím nemá vytvořený tréninkový plán — přidej ho v sekci <link>Tréninky</link>.",
-  "recentActivity": "Poslední aktivita",
+  "recentActivity": "Poslední aktivita tréninků",
   "workoutFallback": "Trénink",
   "loggedExercises": "{count, plural, one {# cvik zapsán} few {# cviky zapsány} other {# cviků zapsáno}}",
   "noValues": "bez zapsaných hodnot",
@@ -103,7 +103,12 @@
     "cancelDeletion": "Zrušit smazání",
     "confirmDelete": "Opravdu smazat klienta {name}? Tréninky, jídelníček, deník i chat zůstanou 30 dní (dá se zrušit), pak se natrvalo odstraní.",
     "yesDelete": "Ano, smazat",
-    "requestDelete": "Požádat o smazání klienta"
+    "requestDelete": "Požádat o smazání klienta",
+    "removeTitle": "Odebrání z portfolia",
+    "removeHint": "{name} má vlastní účet FitPilot — jeho data může smazat jen on sám. Odebráním se od tebe odpojí; zveřejněné plány, jídelníčky, cíl maker i jeho zápisy mu zůstanou.",
+    "remove": "Odebrat z portfolia",
+    "confirmRemove": "Opravdu odebrat klienta {name} z portfolia? Hned se od tebe odpojí a smažou se tvoje koncepty, poznámky, termíny a zprávy s ním. Zveřejněné plány a jídelníčky mu zůstanou v jeho účtu. Zpět ho přidáš jen jeho novým kódem.",
+    "yesRemove": "Ano, odebrat"
   },
   "charts": {
     "empty": "Zatím žádná data pro graf.",
@@ -144,7 +149,7 @@
   },
   "log": {
     "bodyweight": "vlastní váha",
-    "tempo": "tempo {tempo}",
+    "tempo": "„{tempo}“",
     "rest": "pauza {seconds} s",
     "extra": "navíc",
     "repsShort": "{reps} opak.",

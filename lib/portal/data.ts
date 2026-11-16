@@ -222,8 +222,9 @@ function parseLoggedExercises(raw: unknown, L: PortalLabels): LoggedExerciseView
           const r = s as Record<string, unknown>;
           const reps = typeof r.reps === "number" && Number.isFinite(r.reps) ? r.reps : null;
           const weight = typeof r.weight === "number" && Number.isFinite(r.weight) ? r.weight : null;
-          if (reps === null && weight === null) return null;
-          return { reps, weight };
+          const durationS = typeof r.durationS === "number" && Number.isFinite(r.durationS) ? r.durationS : null;
+          if (reps === null && weight === null && durationS === null) return null;
+          return { reps, weight, ...(durationS !== null && { durationS }) };
         })
         .filter((s): s is LoggedSetView => s !== null);
       return { name, sets };
@@ -577,7 +578,7 @@ export async function getPortalData(): Promise<PortalResult> {
         client.ended_at &&
         !client.deletion_requested_at &&
         (!client.ended_notice_dismissed_at || client.ended_notice_dismissed_at < client.ended_at)
-          ? { endedAt: client.ended_at }
+          ? { endedAt: client.ended_at, removed: !client.trainer_id }
           : null,
       bodyMetrics: bodyMetrics ?? [],
       nextAppointment: nextAppt ? { title: nextAppt.title, startsAt: nextAppt.starts_at } : null,

@@ -21,7 +21,7 @@ const PREVIEW_SESSION: TodaySession = {
   dayId: "preview-day-c",
   loggedExercises: null,
   exercises: [
-    { idx: "1", name: "Drep s veľkou činkou", scheme: "4 × 6", load: "90 kg", rest: "150 s", tempo: "3-0-1", entryId: "p1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 90, restSeconds: 150 },
+    { idx: "1", name: "Drep s veľkou činkou", scheme: "4 × 6", load: "90 kg", rest: "150 s", tempo: "3 s dole, kolená von", entryId: "p1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 90, restSeconds: 150 },
     { idx: "2", name: "Rumunský mŕtvy ťah", scheme: "3 × 8", load: "100 kg", rest: "2 min", entryId: "p2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 100, restSeconds: 120 },
     { idx: "3", name: "Predkopávanie na stroji", scheme: "3 × 12", load: "45 kg", rest: "75 s", entryId: "p3", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: 45, restSeconds: 75 },
     { idx: "4", name: "Zakopávanie v ľahu", scheme: "3 × 12", load: "35 kg", rest: "75 s", entryId: "p4", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: 35, restSeconds: 75 },
@@ -168,6 +168,8 @@ export function previewResult(kind: string): PortalResult | null {
             loggedExercises: [
               { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
               { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
+              // cvik pridaný počas tréningu (mimo plánu)
+              { entryId: null, name: "Tlaky s jednoručkami", sets: [{ reps: 10, weight: 20 }] },
             ],
             completedAt: new Date().toISOString(),
             logId: "preview-log",
@@ -198,7 +200,7 @@ export function previewResult(kind: string): PortalResult | null {
         state: "ok",
         data: {
           ...PREVIEW_DATA,
-          cooperationEndedNotice: { endedAt: new Date(Date.now() - 2 * 86_400_000).toISOString() },
+          cooperationEndedNotice: { endedAt: new Date(Date.now() - 2 * 86_400_000).toISOString(), removed: false },
         },
       };
     default:

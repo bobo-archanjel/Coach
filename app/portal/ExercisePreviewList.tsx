@@ -47,20 +47,18 @@ export function ExercisePreviewList({ exercises }: { exercises: PortalExercise[]
                 <span className={styles.exBody}>
                   <span className={styles.exName}>{ex.name}</span>
                   <span className={styles.exMeta}>
-                    {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
-                      .filter(Boolean)
-                      .join(" · ")}
+                    {[ex.scheme, ex.rest && `pauza ${ex.rest}`].filter(Boolean).join(" · ")}
                   </span>
+                  {ex.tempo && <span className={styles.exNote}>„{ex.tempo}“</span>}
                 </span>
               </button>
             ) : (
               <span className={styles.exBody}>
                 <span className={styles.exName}>{ex.name}</span>
                 <span className={styles.exMeta}>
-                  {[ex.scheme, ex.rest && `pauza ${ex.rest}`, ex.tempo && `tempo ${ex.tempo}`]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {[ex.scheme, ex.rest && `pauza ${ex.rest}`].filter(Boolean).join(" · ")}
                 </span>
+                {ex.tempo && <span className={styles.exNote}>„{ex.tempo}“</span>}
               </span>
             )}
             {ex.load && <span className={styles.exLoad}>{ex.load}</span>}

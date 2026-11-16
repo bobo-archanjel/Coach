@@ -70,5 +70,11 @@
     "zaciatocnik": "Začiatočník",
     "stredne_pokrocily": "Stredne pokročilý",
     "pokrocily": "Pokročilý"
+  },
+  "repsMode": {
+    "reps": "Opakovania",
+    "time": "Čas",
+    "aria": "Meranie cviku: opakovania alebo čas",
+    "timeAria": "Čas série v sekundách"
   }
 }

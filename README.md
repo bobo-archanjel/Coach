@@ -75,6 +75,23 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-16** — **„Tempo“ → „Poznámka“ k cviku, aj vo vlastnom tréningu klienta** (priamo v `dev`, bez migrácie).
+  - V úprave cviku je namiesto „Tempo“ pole **Poznámka** na celú šírku (do 200 znakov, napr. „pomaly dole, úzky úchop“). V dátach ostáva `tempo`, staré hodnoty („3-0-1“) sa zobrazia ako poznámka.
+  - Pole má aj **vlastný tréning klienta** (predtým sa tempo pri uložení klientovho plánu stratilo).
+  - Poznámka sa zobrazí pod cvikom v builderi, v sekcii Tréning, **pri zapisovaní tréningu** pod názvom cviku, v detaile tréningu u trénera a v PDF (stĺpec Poznámka).
+
+- **2026-11-16** — **Cvik na čas v builderi** (priamo v `dev`, bez migrácie).
+  - V úprave cviku (tréner aj vlastný tréning klienta) prepínač **Opakovania / Čas** — pre statické holdy, plank… (napr. 3 série po 60 s). Čas sa uloží ako „60 s“ v opakovaniach; **Pauza (s)** ostáva samostatná.
+  - Klient pri tréningu zapisuje **sekundy** (predvyplnené časom trénera), ukladajú sa ako čas série; karta Dnes a týždeň ukazujú „60 s“, tréner v detaile tréningu vidí čas zafarbený oproti plánu.
+  - **Testy:** `e2e/cvik-na-cas.spec.ts`, cvik na čas v `training-done`.
+
+- **2026-11-16** — **Odstránenie klienta z portfólia, pridanie cviku počas tréningu, premenovanie sekcií** (`feature/premenovanie-sekcii`, **migrácia 0064**).
+  - **Tréner už nezmaže klienta s vlastným účtom** (mazalo to aj klientove vlastné dáta) — v Info je „Odstrániť z portfólia“: klient sa hneď odpojí, zverejnené plány, jedálničky, makro cieľ a merania mu ostanú, trénerove koncepty, poznámky, správy a termíny sa zmažú. Klient na karte Dnes vidí upozornenie. Klient bez účtu sa maže ako doteraz (30 dní). DB to vynucuje (`request_client_deletion` → `client_has_account`, `purge_deleted_clients`).
+  - **Klient si počas tréningu ručne pridá cvik** („+ Pridať cvik“, len názov, nie knižnica) — 3 prázdne série, štítok „Pridaný“, dá sa odobrať, prežije refresh; tréner ho vidí ako cvik mimo plánu. „Upraviť hodnoty“ zachová aj cviky mimo plánu.
+  - **Premenovanie:** u trénera „Posledná aktivita tréningov“; u klienta „Strava“ → „Jedálniček“ a „Denník“ → „Strava“ (adresy bez zmeny).
+  - **Sprievodca sekcií** čaká na obsah od začiatku kroku (na pomalej stránke nepreskočí kroky).
+  - **Testy:** `e2e/odstranenie-klienta.spec.ts`, pridanie cviku v `training-done`.
+
 - **2026-11-15** — **Právne stránky v6, burger na úvodnej stránke, Cloudflare na prihlásení, posuvníky** (`feature/pravne-stranky-v6`, bez migrácie).
   - **Obchodné podmienky, ochrana súkromia, cookies a 404** v dizajne v6 (téma svetlá/tmavá/auto, sklenená hlavička s jazykom a témou, dokument v sklenenej karte). Texty bez zmeny.
   - **Úvodná stránka na mobile:** v hlavičke logo, „Vyskúšať zadarmo“ a burger (Funkcie, AI, Cenník, Prihlásiť sa, jazyk a téma) — hlavička už nepreteká ani na iPhone SE. Na počítači bez zmeny.

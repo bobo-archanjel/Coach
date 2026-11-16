@@ -19,6 +19,8 @@ export type StreakDayState = "done" | "rest";
 export interface LoggedSetView {
   reps: number | null;
   weight: number | null;
+  /** cvik na čas — odcvičené sekundy */
+  durationS?: number | null;
 }
 
 /** Jeden cvik s odcvičenými sériami — pohľad do histórie, bez väzieb na builder. */
@@ -155,6 +157,8 @@ export interface PortalDeletionNotice {
 /** Tréner ukončil spoluprácu (0015_client_cooperation_pause.sql) — banner na karte Dnes. */
 export interface PortalCooperationNotice {
   endedAt: string; // ISO timestamptz
+  /** tréner klienta odstránil z portfólia (0064) — klient už trénera nemá, spolupráca sa neobnoví */
+  removed: boolean;
 }
 
 export interface PortalData {

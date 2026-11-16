@@ -13,7 +13,7 @@ const CloseIcon = () => (
 
 /* Banner "spolupráca ukončená" (0020) — X zavrie natrvalo (dismiss_cooperation_notice),
    kým sa spolupráca znova neukončí. Skryje sa hneď po kliku, server si to dobehne na pozadí. */
-export function CooperationNotice() {
+export function CooperationNotice({ removed = false }: { removed?: boolean }) {
   const t = useTranslations("today.cooperation");
   const [dismissed, setDismissed] = useState(false);
   const [, startTransition] = useTransition();
@@ -35,9 +35,10 @@ export function CooperationNotice() {
       >
         <CloseIcon />
       </button>
-      <p className={styles.cooperationNoticeTitle}>{t("title")}</p>
+      {/* removed: tréner klienta odstránil z portfólia (0064) — nie pozastavenie, neobnoví sa */}
+      <p className={styles.cooperationNoticeTitle}>{removed ? t("removedTitle") : t("title")}</p>
       <p className={styles.cooperationNoticeText}>
-        {t("text")}
+        {removed ? t("removedText") : t("text")}
       </p>
     </div>
   );

@@ -21,6 +21,7 @@ import { getDayForEdit, isPlanLocked } from "@/lib/dashboard/planCompletion";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { getTranslations } from "next-intl/server";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
+import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 
 export interface ActionState {
   error: string | null;
@@ -400,7 +401,8 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
   const sets = Number(formData.get("sets"));
   const reps = (formData.get("reps") as string | null)?.trim() ?? "";
   const loadRaw = (formData.get("load_kg") as string | null)?.trim();
-  const tempo = (formData.get("tempo") as string | null)?.trim() || null;
+  // „tempo“ = poznámka k cviku (lib/workouts/exerciseNote.ts)
+  const tempo = (formData.get("tempo") as string | null)?.trim().slice(0, EXERCISE_NOTE_MAX) || null;
   const restRaw = (formData.get("rest_seconds") as string | null)?.trim();
 
   if (!dayId || !planId || !entryId) return { error: await tErr("plans.missingEntryId") };

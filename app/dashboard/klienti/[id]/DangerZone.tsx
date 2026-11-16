@@ -2,9 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   cancelClientDeletionAction,
   endClientCooperationAction,
+  removeClientFromPortfolioAction,
   requestClientDeletionAction,
   resumeClientCooperationAction,
 } from "../actions";
@@ -23,13 +25,17 @@ export function DangerZone({
   endedAt,
   deletionRequestedAt,
   deletionRequestedBy,
+  hasAccount,
 }: {
   clientId: string;
   firstName: string;
   endedAt: string | null;
   deletionRequestedAt: string | null;
   deletionRequestedBy: "trainer" | "client" | null;
+  /** klient s vlastným FitPilot účtom — tréner ho nemaže, len odstráni z portfólia (0064) */
+  hasAccount: boolean;
 }) {
+  const router = useRouter();
   const t = useTranslations("clientDetail.danger");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +50,13 @@ export function DangerZone({
       const res = await requestClientDeletionAction(clientId);
       if (res.error) setError(res.error);
       else setConfirming(false);
+    });
+  };
+  const remove = () => {
+    startTransition(async () => {
+      const res = await removeClientFromPortfolioAction(clientId);
+      if (res.error) setError(res.error);
+      else router.push("/dashboard"); // klient už nie je v portfóliu — detail by bol 404
     });
   };
 
@@ -112,6 +125,35 @@ export function DangerZone({
         </div>
       )}
 
+      {/* Klient s vlastným účtom: jeho dáta zmaže len on sám (Profil). Tréner ho odstráni
+          z portfólia — klientovi ostanú plány, jedálničky aj vlastné dáta (0064). Prebiehajúcu
+          žiadosť KLIENTA o zmazanie ukáže sekcia nižšie. */}
+      {hasAccount && !deletionRequestedAt ? (
+        <div className={styles.dangerSection}>
+          <h3>{t("removeTitle")}</h3>
+          {confirming ? (
+            <>
+              <p className={styles.dangerText}>{t("confirmRemove", { name: firstName })}</p>
+              <div className={styles.dangerActions}>
+                <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={remove} disabled={pending}>
+                  {t("yesRemove")}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
+                  {t("no")}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className={styles.dangerText}>{t("removeHint", { name: firstName })}</p>
+              <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
+                {t("remove")}
+              </button>
+            </>
+          )}
+          {error && <p className={styles.dangerError}>{error}</p>}
+        </div>
+      ) : (
       <div className={styles.dangerSection}>
         <h3>{t("deleteTitle")}</h3>
         {deletionRequestedAt ? (
@@ -151,6 +193,7 @@ export function DangerZone({
         )}
         {error && <p className={styles.dangerError}>{error}</p>}
       </div>
+      )}
     </>
   );
 }

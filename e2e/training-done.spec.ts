@@ -10,6 +10,7 @@ import {
   snapshotToPlanEntries,
 } from "../lib/workouts/completed";
 import { parseReps, parseWeight, summarizeWorkoutForm } from "../lib/workouts/setInput";
+import { timedReps, timedSeconds } from "../lib/workouts/timedReps";
 
 /**
  * Dokončený tréning je len na čítanie (feature/training-done, migrácia 0048).
@@ -67,13 +68,33 @@ test.describe("plán vs. realita — čistá logika", () => {
     expect(drep.rows.map(rowTone)).toEqual(["met", "above", "below", null]);
     // každá hodnota zvlášť; rozsah „8-10“: 8 aj 10 = podľa plánu
     expect(drep.rows.map(setTones)).toEqual([
-      { reps: "met", weight: "met" },
-      { reps: "met", weight: "above" },
-      { reps: "below", weight: "met" },
-      { reps: null, weight: null }, // séria navyše
+      { reps: "met", weight: "met", duration: null },
+      { reps: "met", weight: "above", duration: null },
+      { reps: "below", weight: "met", duration: null },
+      { reps: null, weight: null, duration: null }, // séria navyše
     ]);
     expect(rows[1].rows.every((r) => r.actual === null)).toBe(true);
     expect(rows[2].rows[0].actual).toMatchObject({ durationS: 600, distanceM: 4000 });
+  });
+
+  test("cvik na čas: „60 s“ v pláne, sekundy porovnané s plánom", () => {
+    expect(timedReps(60)).toBe("60 s");
+    for (const [raw, secs] of [["60 s", 60], ["60s", 60], ["45 sek", 45], ["90 S", 90], ["8-10", null], ["10", null], ["max", null], ["0 s", null], ["", null]] as const) {
+      expect(timedSeconds(raw), raw).toBe(secs);
+    }
+    const snap = parsePlanSnapshot({
+      plan_id: "p",
+      plan_name: "P",
+      day_id: "d",
+      day_name: "D",
+      exercises: [{ entry_id: "h", exercise_id: null, exercise_name: "Hold", sets: 3, reps: "60 s", load_kg: null, tempo: null, rest_seconds: 60 }],
+    });
+    const [hold] = comparePlanWithActual(
+      snap,
+      parseLoggedEntries([{ entryId: "h", name: "Hold", sets: [{ reps: null, weight: null, durationS: 60 }, { reps: null, weight: null, durationS: 45 }, { reps: null, weight: null, durationS: 75 }] }]),
+    );
+    expect(hold.rows.map((r) => setTones(r).duration)).toEqual(["met", "below", "above"]);
+    expect(hold.rows.map(rowTone)).toEqual(["met", "below", "above"]);
   });
 
   test("starší záznam bez entryId sa spáruje podľa názvu; reps ako číslo sa zachová", () => {
@@ -103,7 +124,7 @@ test.describe("detail dokončeného tréningu — tréner (?preview=done)", () =
     await expect(page.getByTestId("workout-status")).toHaveText(/Dokončený – 24\. 9\. 2026/);
 
     const drep = page.getByTestId("completed-exercise").filter({ hasText: "Drep s činkou" });
-    await expect(drep.getByText("Plán: 3 × 8 · 60 kg · tempo 3-0-1 · pauza 120 s")).toBeVisible();
+    await expect(drep.getByText("Plán: 3 × 8 · 60 kg · „3-0-1“ · pauza 120 s")).toBeVisible();
     const rows = drep.getByTestId("set-row");
     await expect(rows).toHaveCount(4);
     await expect(rows.nth(1)).toContainText("8 op. × 60 kg");
@@ -153,6 +174,10 @@ test.describe("portál — dokončený tréning na karte Dnes (?preview=done)", 
     await expect(page.getByLabel("Drep s veľkou činkou, séria 1, váha v kg")).toHaveValue("92");
     await expect(page.getByLabel("Poznámka k cviku Rumunský mŕtvy ťah")).toHaveValue("Posledná séria ťažká na úchop");
     await expect(page.getByLabel("Náročnosť tréningu (RPE)")).toHaveValue("8");
+    // cvik pridaný počas tréningu (mimo plánu) ostane aj v úprave — inak by ho uloženie zmazalo
+    await expect(page.getByLabel("Tlaky s jednoručkami, séria 1, opakovania")).toHaveValue("10");
+    await expect(page.getByLabel("Tlaky s jednoručkami, séria 1, váha v kg")).toHaveValue("20");
+    await expect(page.getByRole("button", { name: "Odobrať cvik Tlaky s jednoručkami" })).toBeVisible();
     await page.getByRole("button", { name: "Zrušiť" }).click();
     await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
 
@@ -223,6 +248,7 @@ test.describe("zápis série — parsovanie a validácia (lib/workouts/setInput.
 test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
   const reps = (page: Page, ex: string, set: number) => page.getByLabel(`${ex}, séria ${set}, opakovania`);
   const kg = (page: Page, ex: string, set: number) => page.getByLabel(`${ex}, séria ${set}, váha v kg`);
+  const secs = (page: Page, ex: string, set: number) => page.getByLabel(`${ex}, séria ${set}, čas v sekundách`);
   /** „Ukončiť tréning“ — najprv do stredu obrazovky: čiastočne viditeľné tlačidlo by Playwright
    *  neposunul a ťuk do jeho stredu by na mobile trafil plávajúcu lištu menu. */
   const finish = async (page: Page) => {
@@ -250,19 +276,29 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await expect(page.getByText(/zabudnuté hodnoty môžeš opraviť ešte 24 hodín/)).toBeVisible();
   });
 
-  test("hodnoty trénera sú predvyplnené; opakovania na čas ostanú na klientovi", async ({ page }) => {
+  test("hodnoty trénera sú predvyplnené; cvik na čas má sekundy", async ({ page }) => {
     // 4 × 6 @ 90 kg → každá séria predvyplnená, klient pri odcvičení podľa plánu nič nepíše
     for (const set of [1, 2, 3, 4]) {
       await expect(reps(page, "Drep s veľkou činkou", set)).toHaveValue("6");
       await expect(kg(page, "Drep s veľkou činkou", set)).toHaveValue("90");
     }
     await expect(reps(page, "Drep s veľkou činkou", 5)).toHaveCount(0);
-    // „45 s“ nie je počet opakovaní — prázdne, plán ako placeholder; vlastná váha bez kg
-    await expect(reps(page, "Plank s výdržou", 1)).toHaveValue("");
-    await expect(reps(page, "Plank s výdržou", 1)).toHaveAttribute("placeholder", "45 s");
+    // „45 s“ = cvik na čas: pole sekúnd predvyplnené 45, nie opakovania; vlastná váha bez kg
+    await expect(reps(page, "Plank s výdržou", 1)).toHaveCount(0);
+    await expect(secs(page, "Plank s výdržou", 1)).toHaveValue("45");
     await expect(kg(page, "Plank s výdržou", 1)).toHaveValue("");
-    // pridaná séria dostane tiež hodnoty trénera
-    await page.getByRole("button", { name: "Pridať sériu" }).first().click();
+    await secs(page, "Plank s výdržou", 2).fill("40");
+    const entries = JSON.parse(await page.locator('input[name="entries"]').inputValue()) as { name: string; sets: unknown[] }[];
+    expect(entries.find((e) => e.name === "Plank s výdržou")?.sets).toEqual([
+      { reps: null, weight: null, durationS: 45 },
+      { reps: null, weight: null, durationS: 40 },
+      { reps: null, weight: null, durationS: 45 },
+    ]);
+    // pridaná séria dostane tiež hodnoty trénera (tlačidlo do stredu — na mobile ho inak
+    // po vyplnení planku dole prekrýva plávajúce menu)
+    const addSet = page.getByRole("button", { name: "Pridať sériu" }).first();
+    await addSet.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await addSet.click();
     await expect(reps(page, "Drep s veľkou činkou", 5)).toHaveValue("6");
     await expect(kg(page, "Drep s veľkou činkou", 5)).toHaveValue("90");
   });
@@ -299,11 +335,10 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
   });
 
   test("K17: cviky bez zápisu majú varovanie (predvyplnené hodnoty trénera sa rátajú ako zápis)", async ({ page }) => {
-    // všetko okrem planku (45 s) je predvyplnené — chýba len plank
+    // všetko je predvyplnené (aj plank na čas) — nič nechýba
     await finish(page);
-    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Plank s výdržou");
+    await expect(page.getByRole("alertdialog")).not.toContainText("Bez zápisu");
     await expect(page.getByRole("alertdialog")).not.toContainText("Nezapísal si žiadnu sériu");
-    await expect(page.getByRole("alertdialog")).not.toContainText("Drep s veľkou činkou");
     await page.getByRole("button", { name: "Pokračovať v tréningu" }).click();
 
     // klient vymaže všetky série drepu → drep je tiež bez zápisu
@@ -312,7 +347,7 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
       await kg(page, "Drep s veľkou činkou", set).fill("");
     }
     await finish(page);
-    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Drep s veľkou činkou, Plank s výdržou");
+    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Drep s veľkou činkou");
   });
 
   test("K7: rozpísané hodnoty prežijú refresh aj prepnutie tabu", async ({ page }) => {
@@ -331,6 +366,55 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await page.goto("/portal/trening?preview=ok");
     await page.goto("/portal?preview=ok");
     await expect(kg(page, "Drep s veľkou činkou", 1)).toHaveValue("62,5");
+  });
+
+  test("pridanie cviku počas tréningu: ručne názov, série, odobratie, prežije refresh, ide do zápisu", async ({ page }) => {
+    const entries = async () =>
+      JSON.parse(await page.locator('input[name="entries"]').inputValue()) as { entryId: string | null; name: string; sets: unknown[] }[];
+    const added = "Tlaky s jednoručkami";
+
+    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    const nameField = page.getByLabel("Názov pridaného cviku");
+    await expect(nameField).toBeFocused();
+    // ručné pridanie, nie knižnica
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeDisabled();
+    await nameField.fill(added);
+    await nameField.press("Enter"); // Enter pridá cvik, neodošle tréning
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await expect(nameField).toHaveCount(0);
+
+    // 3 prázdne série, štítok „Pridaný“
+    await expect(page.locator("[data-added]")).toContainText(`${added} Pridaný`);
+    for (const set of [1, 2, 3]) await expect(reps(page, added, set)).toHaveValue("");
+    await expect(reps(page, added, 4)).toHaveCount(0);
+    await reps(page, added, 1).fill("10");
+    await kg(page, added, 1).fill("20");
+
+    // prežije refresh (koncept v localStorage)
+    await page.reload();
+    await expect(reps(page, added, 1)).toHaveValue("10");
+    await expect(kg(page, added, 1)).toHaveValue("20");
+    expect((await entries()).at(-1)).toEqual({ entryId: null, name: added, sets: [{ reps: 10, weight: 20 }] });
+
+    // druhý pridaný cvik bez zápisu → varovanie pri ukončení
+    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    await page.getByLabel("Názov pridaného cviku").fill("Kliky");
+    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+    await finish(page);
+    await expect(page.getByRole("alertdialog")).toContainText("Bez zápisu: Kliky");
+    await page.getByRole("button", { name: "Pokračovať v tréningu" }).click();
+
+    // odobratie prvého pridaného: Kliky sa posunú a ostanú prázdne, Tlaky zmiznú aj zo zápisu
+    await reps(page, "Kliky", 1).fill("15");
+    await page.getByRole("button", { name: `Odobrať cvik ${added}` }).click();
+    await expect(reps(page, added, 1)).toHaveCount(0);
+    await expect(reps(page, "Kliky", 1)).toHaveValue("15");
+    const names = (await entries()).map((e) => e.name);
+    expect(names).not.toContain(added);
+    expect(names.at(-1)).toBe("Kliky");
+    // cviky plánu sa odobrať nedajú
+    await expect(page.getByRole("button", { name: /^Odobrať cvik Drep/ })).toHaveCount(0);
   });
 
   test("K20: „Skryť stopky“ skryje len stopky, tréning beží ďalej", async ({ page }) => {

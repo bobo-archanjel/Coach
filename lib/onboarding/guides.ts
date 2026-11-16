@@ -90,6 +90,7 @@ export const GUIDES: GuideDef[] = [
     root: at("workout-form"),
     steps: [
       step("exercise", "workout-exercise"),
+      maybe("addExercise", "workout-add-exercise"),
       maybe("stopwatch", "workout-stopwatch"),
       maybe("meta", "workout-meta"),
       step("finish", "workout-finish"),
