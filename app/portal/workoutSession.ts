@@ -71,7 +71,7 @@ export type WorkoutDraft = {
   rpe: string;
   sessionNote: string;
   /** cviky pridané počas tréningu (WorkoutSetsFields) */
-  added?: string[];
+  added?: { name: string; timed?: boolean }[];
 };
 
 type DraftRecord = WorkoutDraft & { dayId: string; at: number };
@@ -99,12 +99,26 @@ export function loadWorkoutDraft(dayId: string, signature: string): WorkoutDraft
       notes: rec.notes && typeof rec.notes === "object" ? rec.notes : {},
       rpe: typeof rec.rpe === "string" ? rec.rpe : "",
       sessionNote: typeof rec.sessionNote === "string" ? rec.sessionNote : "",
-      // riadky sú viazané na index — pri poškodenom zozname radšej bez pridaných cvikov
-      added: Array.isArray(rec.added) && rec.added.every((n) => typeof n === "string") ? rec.added : [],
+      added: parseAdded(rec.added),
     };
   } catch {
     return null;
   }
+}
+
+/** Pridané cviky z konceptu: { name, timed } alebo staršie len názvy. Riadky sú viazané na
+ *  index — pri poškodenom zozname radšej bez pridaných cvikov. */
+function parseAdded(raw: unknown): { name: string; timed?: boolean }[] {
+  if (!Array.isArray(raw)) return [];
+  const out: { name: string; timed?: boolean }[] = [];
+  for (const a of raw) {
+    if (typeof a === "string") out.push({ name: a });
+    else if (a && typeof a === "object" && typeof (a as { name?: unknown }).name === "string") {
+      const { name, timed } = a as { name: string; timed?: unknown };
+      out.push(timed === true ? { name, timed: true } : { name });
+    } else return [];
+  }
+  return out;
 }
 
 export function clearWorkoutDraft(): void {

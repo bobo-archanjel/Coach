@@ -39,5 +39,6 @@
   "addExerciseConfirm": "Přidat",
   "addedTag": "Přidaný",
   "removeExercise": "Odebrat cvik {name}",
-  "secondsAria": "{name}, série {n}, čas v sekundách"
+  "secondsAria": "{name}, série {n}, čas v sekundách",
+  "secondsPlaceholder": "sek."
 }
