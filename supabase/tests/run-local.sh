@@ -34,7 +34,7 @@ P="psql $H -d sec -q"
 $P >/dev/null 2>&1 <<'SQL'
 create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
 create schema auth;
-create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb default '{}'::jsonb);
+create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb default '{}'::jsonb, created_at timestamptz default now());
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('app.uid', true), '')::uuid $$;
 grant usage on schema public, auth to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;

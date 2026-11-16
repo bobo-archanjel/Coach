@@ -437,6 +437,35 @@ select pg_temp.chk('H4: neplatný jazyk je zamietnutý',
 select pg_temp.chk('H4: anon nevolá set_my_locale',
   pg_temp.try(null, $s$select public.set_my_locale('cs')$s$, 'anon') like 'ERR:%');
 
+-- ============================================================ H5) história súhlasov s podmienkami (0065)
+\set TA '''ffffffff-0000-0000-0000-00000000000f'''
+insert into auth.users (id, email, raw_user_meta_data)
+  values (:TA, 'terms@x.sk', '{"role":"trainer","full_name":"Suhlas","terms_version":"2026-09-22"}');
+select pg_temp.chk('H5: registrácia so súhlasom zapíše záznam do histórie (signup)',
+  (select count(*) from public.terms_acceptances where user_id = :TA and version = '2026-09-22' and source = 'signup' and email = 'terms@x.sk') = 1);
+select pg_temp.try(:TA, $s$select public.accept_terms('2026-11-15')$s$) as ta_accept \gset
+select pg_temp.chk('H5: súhlas s novou verziou pridá záznam a starý ostane',
+  :'ta_accept' = 'OK'
+  and (select count(*) from public.terms_acceptances where user_id = :TA) = 2
+  and (select terms_version from public.profiles where id = :TA) = '2026-11-15', :'ta_accept');
+select pg_temp.try(:TA, $s$select public.accept_terms('2026-11-15')$s$) as ta_again \gset
+select pg_temp.chk('H5: opakovaný súhlas s tou istou verziou nepridá duplicitu',
+  :'ta_again' = 'OK' and (select count(*) from public.terms_acceptances where user_id = :TA) = 2, :'ta_again');
+select pg_temp.chk('H5: Google účet bez súhlasu nemá záznam v histórii',
+  (select count(*) from public.terms_acceptances where user_id = :C) = 0);
+select pg_temp.chk('H5: prihlásený používateľ nečíta históriu súhlasov (ani svoju)',
+  pg_temp.try(:TA, 'select * from public.terms_acceptances') like 'ERR:%');
+select pg_temp.chk('H5: prihlásený používateľ si históriu nezapíše ani nezmaže priamo',
+  pg_temp.try(:TA, format($f$insert into public.terms_acceptances (user_id, version, source) values (%L, '2099-01-01', 'gate')$f$, :TA)) like 'ERR:%'
+  and pg_temp.try(:TA, format('delete from public.terms_acceptances where user_id = %L', :TA)) like 'ERR:%'
+  and (select count(*) from public.terms_acceptances where user_id = :TA) = 2);
+select pg_temp.chk('H5: anon nečíta históriu súhlasov',
+  pg_temp.try(null, 'select * from public.terms_acceptances', 'anon') like 'ERR:%');
+delete from auth.users where id = :TA;
+select pg_temp.chk('H5: po zmazaní účtu záznamy ostanú a majú account_deleted_at',
+  (select count(*) from public.terms_acceptances where user_id = :TA and account_deleted_at is not null) = 2
+  and not exists (select 1 from public.profiles where id = :TA));
+
 -- ============================================================ výsledok
 \echo
 \echo ===== VÝSLEDKY =====
