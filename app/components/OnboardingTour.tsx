@@ -24,8 +24,8 @@ import { findTourTarget, TourBubble } from "./TourOverlay";
 const CHECK_MS = 150;
 /** koľko kontrol sa čaká na chýbajúci prvok na už načítanej stránke (voliteľný krok) */
 const MISSING_TRIES = 3;
-/** najdlhšie čakanie na obsah sekcie od príchodu na jej stránku — potom sa chýbajúce kroky preskočia */
-const LOAD_MS = 2500;
+/** najdlhšie čakanie na obsah sekcie pri kroku — potom sa chýbajúci krok preskočí */
+const LOAD_MS = 4000;
 
 export function OnboardingTour({ steps, tourSeen, home }: { steps: TourStep[]; tourSeen: boolean; home: string }) {
   const router = useRouter();
@@ -42,8 +42,7 @@ export function OnboardingTour({ steps, tourSeen, home }: { steps: TourStep[]; t
   /** predošlé zobrazené kroky — „Späť“ sa vracia len na krok, ktorý používateľ videl */
   const [history, setHistory] = useState<number[]>([]);
   const finishing = useRef(false);
-  /** kedy sprievodca prišiel na stránku sekcie (položku menu číta používateľ, obsah sa zatiaľ načíta) */
-  const arrivedAt = useRef(new Map<string, number>());
+
   const pushed = useRef<string | null>(null);
 
   const hrefFor = useCallback((path: string) => (preview ? `${path}?preview=${encodeURIComponent(preview)}` : path), [preview]);
@@ -58,7 +57,6 @@ export function OnboardingTour({ steps, tourSeen, home }: { steps: TourStep[]; t
   useEffect(() => {
     if (forceReplay || !tourSeen) {
       finishing.current = false;
-      arrivedAt.current.clear();
       setHistory([]);
       setIndex(0);
       setShown(null);
@@ -117,14 +115,15 @@ export function OnboardingTour({ steps, tourSeen, home }: { steps: TourStep[]; t
       const href = hrefFor(step.path);
       if (pushed.current !== href) {
         pushed.current = href;
-        arrivedAt.current.delete(step.path);
         router.push(href);
       }
       return;
     }
     pushed.current = null;
-    if (!arrivedAt.current.has(step.path)) arrivedAt.current.set(step.path, Date.now());
-    const arrived = arrivedAt.current.get(step.path)!;
+    // Čas čakania sa počíta od TOHTO kroku, nie od príchodu na stránku — kým používateľ
+    // číta krok s položkou menu, pomalá stránka (Nastavenia) sa ešte načítava; s časom od
+    // príchodu by sa ďalší krok preskočil skôr, než sa obsah objavil.
+    const started = Date.now();
     let tries = 0;
     const check = () => {
       if (findTourTarget(step.target)) {
@@ -135,7 +134,7 @@ export function OnboardingTour({ steps, tourSeen, home }: { steps: TourStep[]; t
       // obsah sekcie je načítaný, keď je vidieť aspoň jeden jej prvok — alebo po LOAD_MS
       // (sekcia v stave, kde žiadny z nich nie je, napr. Správy bez klientov)
       const loaded =
-        steps.some((s) => s.path === step.path && !s.nav && findTourTarget(s.target)) || Date.now() - arrived > LOAD_MS;
+        steps.some((s) => s.path === step.path && !s.nav && findTourTarget(s.target)) || Date.now() - started > LOAD_MS;
       if (loaded && tries >= MISSING_TRIES) {
         skip();
         return true;
