@@ -26,11 +26,6 @@
   "trainer": "Tréner",
   "nextAppointment": "Najbližší termín: <b>{title}</b> — {when}",
   "overview": "Prehľad",
-  "myOverview": "Môj prehľad",
-  "doneTotal": "Odcvičené spolu",
-  "trainings": "{count, plural, one {tréning} few {tréningy} other {tréningov}}",
-  "daysAgo": "pred {count} dňami",
-  "yesterday": "včera",
   "measurement": "Meranie",
   "planDone": "Tréningový plán hotový",
   "nextWorkout": "Ďalší tréning",
@@ -85,6 +80,21 @@
     "save": "Uložiť meranie",
     "cancel": "Zrušiť",
     "add": "+ Zapísať meranie"
+  },
+  "progress": {
+    "title": "Progres",
+    "pickAria": "Zobrazené: {metric}. Vybrať inú hodnotu",
+    "sheetTitle": "Čo chceš sledovať",
+    "sheetHint": "Graf ukáže všetky tvoje merania vybranej hodnoty. Obvody pridáš pri zápise merania cez „+ Aj obvody“.",
+    "close": "Zavrieť",
+    "count": "{count, plural, one {# meranie} few {# merania} other {# meraní}}",
+    "none": "zatiaľ bez merania",
+    "since": "od {date}",
+    "noChange": "bez zmeny",
+    "empty": "Zatiaľ nemáš žiadne meranie. Zapíš si váhu v Meraní vyššie a tu uvidíš, ako sa mení.",
+    "noneFor": "{metric}: zatiaľ bez merania.",
+    "single": "Graf sa ukáže od druhého merania.",
+    "chartAria": "Graf: {metric}, {count, plural, one {# meranie} few {# merania} other {# meraní}}. Šípkami vyberieš meranie."
   },
   "planSwitch": {
     "days": "{count, plural, =0 {Zatiaľ bez dní} one {Plán na # deň} few {Plán na # dni} other {Plán na # dní}}",

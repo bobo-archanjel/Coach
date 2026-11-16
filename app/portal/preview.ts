@@ -77,8 +77,6 @@ const PREVIEW_DATA: PortalData = {
       { label: "Ne", dayNum: 30, iso: "2026-08-30", state: "future", sessions: [] },
     ],
   },
-  totalSessions: 12,
-  streakHistory: ["rest", "done", "rest", "done", "rest", "rest", "done", "rest", "done", "rest", "done", "rest"],
   streaks: {
     training: { count: 5, atRisk: false, thisWeekDays: 1, needThisWeek: 1 },
     food: { count: 12, atRisk: false },
@@ -89,11 +87,11 @@ const PREVIEW_DATA: PortalData = {
   planChoice: PREVIEW_PLAN_CHOICE,
   bodyMetrics: [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
     measuredOn: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10),
-    weightKg: 88 - i * 1.1,
-    waistCm: i === 6 || i === 0 ? 88 - i * 0.5 : null,
-    chestCm: i === 6 ? 102 : null,
+    weightKg: [88, 87.2, 86.9, 85.6, 84.8, 85.1, 83.9][i],
+    waistCm: 88 - i * 0.5,
+    chestCm: i === 6 ? 102 : i === 3 ? 103 : null,
     hipsCm: i === 6 ? 98 : null,
-    armCm: null,
+    armCm: i % 2 === 0 ? 34 + i * 0.25 : null,
     thighCm: null,
     note: null,
   })),
@@ -106,8 +104,6 @@ const NEW_CLIENT_DATA: PortalData = {
   nextAppointment: null,
   session: null,
   planChoice: null,
-  totalSessions: 0,
-  streakHistory: PREVIEW_DATA.streakHistory.map(() => "rest"),
   streaks: { training: { count: 0, atRisk: false, thisWeekDays: 0, needThisWeek: 1 }, food: { count: 0, atRisk: false } },
   week: {
     ...PREVIEW_DATA.week,

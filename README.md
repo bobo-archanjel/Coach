@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-16** — **Karta Dnes: „Progres“ namiesto „Môj prehľad“** (`feature/moj-pokrok`, bez migrácie).
+  - Sekcia „Môj prehľad“ (panel „Odcvičené spolu“) odstránená; série ostali pod „Tento týždeň“. Poradie pod tréningom: **Meranie → Tento týždeň → Progres**.
+  - **Progres:** graf zo záznamov meraní — posledná hodnota, zmena od prvého merania (neutrálne, bez farby), mriežka a os. Ťuk / potiahnutie po grafe (aj šípky) vyberie konkrétne meranie.
+  - Predvolene váha; tlačidlo „Váha ▾“ otvorí okno **Čo chceš sledovať** — pás, hrudník, boky, paža, stehno (s poslednou hodnotou a počtom meraní, bez merania nedostupné).
+  - Sprievodca Dnes: krok „Progres“. Test `e2e/progres.spec.ts`.
 - **2026-11-16** — **Pridaný cvik počas tréningu: Opakovania / Čas** (`feature/pridany-cvik-na-cas`, bez migrácie).
   - Pri „+ Pridať cvik“ si klient pod názvom vyberie **Opakovania** (predvolené) alebo **Čas** — cvik na čas má polia v sekundách a ukladá sa ako čas série (ako cvik na čas z plánu). Voľba prežije refresh, „Upraviť hodnoty“ ju zachová.
   - **Mobil:** ťuk na „Pridať“ vo formulári nového cviku sa už nestratí v spodnom menu (menu sa pri ťuknutí vracalo spod klávesnice a prekrylo tlačidlo).

@@ -14,6 +14,7 @@ import { WorkoutStopwatch } from "@/app/portal/WorkoutStopwatch";
 import { WeekHistory } from "@/app/portal/WeekHistory";
 import { PlanSwitch } from "@/app/portal/PlanSwitchSheet";
 import { BodyMetricForm } from "@/app/portal/BodyMetricForm";
+import { ProgressCard } from "@/app/portal/ProgressCard";
 import { ProfileIcon, TrainingIcon } from "@/app/portal/icons";
 import { AlertIcon, Notice } from "./Notice";
 import s from "./portal.module.css";
@@ -89,7 +90,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-/** Série pod grafom (lib/portal/streak.ts — od MIN_VISIBLE_STREAK dní). */
+/** Série pod týždňom (lib/portal/streak.ts — od MIN_VISIBLE_STREAK dní). */
 function StreakChips({ streaks }: { streaks: PortalStreaks }) {
   const { training, food } = streaks;
   const t = useTranslations("today");
@@ -157,8 +158,6 @@ function Today({ data }: { data: PortalData }) {
     coachNote,
     session,
     week,
-    totalSessions,
-    streakHistory,
     streaks,
     deletionNotice,
     cooperationEndedNotice,
@@ -242,34 +241,8 @@ function Today({ data }: { data: PortalData }) {
         />
       )}
 
+      {/* meranie, týždeň so sériami a Progres (graf zo záznamov meraní) */}
       <section className={s.after} aria-label={t("overview")}>
-        <h2 className={s.sectionTitle}>{t("myOverview")}</h2>
-
-        <div className={s.panel} data-tour="today-total">
-          <div className={s.panelHead}>
-            <p className={s.panelLabel}>{t("doneTotal")}</p>
-            <span className={s.panelIcon}>
-              <TrainingIcon />
-            </span>
-          </div>
-          <div className={s.streakHead}>
-            <span className={s.streakNum}>{totalSessions}</span>
-            <span className={s.streakUnit}>{t("trainings", { count: totalSessions })}</span>
-          </div>
-          <div className={s.bars} aria-hidden="true">
-            {streakHistory.map((state, i) => (
-              <span key={i} className={`${s.bar} ${state === "done" ? s.barOn : s.barRest}`} />
-            ))}
-          </div>
-          <div className={s.barsLegend} aria-hidden="true">
-            <span>{t("daysAgo", { count: streakHistory.length })}</span>
-            <span>{t("yesterday")}</span>
-          </div>
-          <StreakChips streaks={streaks} />
-        </div>
-
-        <WeekHistory initial={week} />
-
         <div className={s.panel} data-tour="today-measure">
           <div className={s.panelHead}>
             <p className={s.panelLabel}>{t("measurement")}</p>
@@ -279,6 +252,10 @@ function Today({ data }: { data: PortalData }) {
           </div>
           <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
+
+        <WeekHistory initial={week} footer={<StreakChips streaks={streaks} />} />
+
+        <ProgressCard history={bodyMetrics} />
       </section>
     </>
   );

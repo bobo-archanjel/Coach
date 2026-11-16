@@ -13,9 +13,6 @@ import type { PortalStreaks } from "./streak";
 // `future` je deň, ktorý ešte len príde (relevantné pri prezeraní minulých týždňov).
 export type DayCellState = "done" | "today" | "future" | "none";
 
-/** Stav dňa v páse histórie — odcvičil / neodcvičil (bez väzby na rozvrh). */
-export type StreakDayState = "done" | "rest";
-
 /** Jedna skutočne odcvičená séria v histórii (workout_logs.entries). */
 export interface LoggedSetView {
   reps: number | null;
@@ -176,10 +173,6 @@ export interface PortalData {
   /** má priradeného trénera — prázdna karta plánu: „plán je na ceste“ vs. „vytvor si vlastný“ */
   hasTrainer: boolean;
   week: WeekView;
-  /** koľko tréningov klient v tomto pláne odcvičil spolu (rotácia dní, nie fixný rozvrh) */
-  totalSessions: number;
-  /** posledných 12 dní pred dneškom, najstarší prvý */
-  streakHistory: StreakDayState[];
   /** série (týždne tréningu, dni zápisu jedla) — pravidlá v lib/portal/streak.ts */
   streaks: PortalStreaks;
   /** null, kým nie je podaná žiadosť o zmazanie klienta (viď DeleteAccountSection na /portal/profil) */
