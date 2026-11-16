@@ -10,7 +10,7 @@
   "draft": "Koncept",
   "active": "Aktivní",
   "noPlans": "Klient zatím nemá vytvořený tréninkový plán — přidej ho v sekci <link>Tréninky</link>.",
-  "recentActivity": "Poslední aktivita",
+  "recentActivity": "Poslední aktivita tréninků",
   "workoutFallback": "Trénink",
   "loggedExercises": "{count, plural, one {# cvik zapsán} few {# cviky zapsány} other {# cviků zapsáno}}",
   "noValues": "bez zapsaných hodnot",

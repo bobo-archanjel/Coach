@@ -44,11 +44,11 @@
       "body": "Všechny tvé plány — i vlastní, pokud zatím trénuješ bez trenéra."
     },
     "navStrava": {
-      "title": "Strava",
+      "title": "Jídelníček",
       "body": "Makra a jídelníček na jednom místě — aplikace ti spočítá cíl podle tvých údajů."
     },
     "navDennik": {
-      "title": "Deník",
+      "title": "Strava",
       "body": "Zapisuj si stravu během dne, aplikace průběžně sečte makra za tebe."
     },
     "navChat": {
@@ -160,7 +160,7 @@
       },
       "list": {
         "title": "Tvoje jídelníčky",
-        "body": "Koncept klient ještě nevidí, Aktivní má právě v sekci Strava. U každého vidíš počet dní a kalorie na den."
+        "body": "Koncept klient ještě nevidí, Aktivní má právě v sekci Jídelníček. U každého vidíš počet dní a kalorie na den."
       }
     },
     "t-mealplan": {
@@ -311,7 +311,7 @@
         "body": "Tvůj denní cíl kalorií a maker. Appka ho počítá z tvých údajů, nebo ti ho nastaví trenér."
       },
       "plan": {
-        "title": "Jídelníček",
+        "title": "Jídelníček od trenéra",
         "body": "Jídelníček od trenéra po dnech, s gramáží a kaloriemi každého jídla."
       },
       "pdf": {

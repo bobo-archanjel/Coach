@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { isTrainerPlanLog } from "../lib/workouts/completed";
 
 /**
- * Detail klienta → Tréningy → „Posledná aktivita“: len tréningy z plánov trénera, vlastné
+ * Detail klienta → Tréningy → „Posledná aktivita tréningov“: len tréningy z plánov trénera, vlastné
  * tréningy klienta nie (feature/fixing).
  *  - vlastník plánu zo snapshotu (0061), pri starších záznamoch viditeľnosť dňa cez RLS,
  *  - reálna DB: dočasný vlastný plán klienta a plán trénera so záznamom „in_progress“
@@ -125,7 +125,7 @@ test.describe("posledná aktivita — reálna DB", () => {
     await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
     await page.goto(`/dashboard/klienti/${qaClientId}`);
     const panel = page.getByRole("tabpanel");
-    await expect(panel.getByText("Posledná aktivita")).toBeVisible();
+    await expect(panel.getByText("Posledná aktivita tréningov")).toBeVisible();
     // podľa odkazu na záznam — názov dňa z vlastného plánu tréner aj tak nevidí (RLS)
     const [ownLogId, trainerLogId] = logIds;
     await expect(panel.locator(`a[href="/dashboard/klienti/${qaClientId}/treningy/${trainerLogId}"]`)).toContainText(

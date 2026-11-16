@@ -230,12 +230,13 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
   });
 
   test("spodná navigácia vedie na všetky taby bez pádu", async ({ page }) => {
-    // Tréning + Strava sú dostavané (getPortalTraining/getPortalNutrition) — lokálne
+    // Tréning + Jedálniček sú dostavané (getPortalTraining/getPortalNutrition) — lokálne
     // bez DB ukážu Notice (error/no_plan), ale nesmú spadnúť. Chat je ComingSoon.
+    // Názvy v menu: „Jedálniček“ = /portal/strava, „Strava“ = /portal/dennik (adresy ostali).
     for (const [label, url] of [
       ["Tréning", /\/portal\/trening/],
-      ["Strava", /\/portal\/strava/],
-      ["Denník", /\/portal\/dennik/],
+      ["Jedálniček", /\/portal\/strava/],
+      ["Strava", /\/portal\/dennik/],
       ["Chat", /\/portal\/chat/],
     ] as const) {
       await page.goto("/portal?preview=ok");
@@ -289,7 +290,7 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať chat/i })).toBeVisible();
   });
 
-  test("Denník: príjem vs cieľ, jedlá dňa, pridávanie jedla", async ({ page }) => {
+  test("Strava (denník jedla): príjem vs cieľ, jedlá dňa, pridávanie jedla", async ({ page }) => {
     const errs: string[] = [];
     page.on("pageerror", (e) => errs.push(e.message));
     await page.goto("/portal/dennik?preview=ok");
@@ -312,7 +313,7 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await page.getByRole("button", { name: "Pridať jedlo: Obed" }).click();
     const sheet = page.getByRole("dialog", { name: /Pridať jedlo · Obed/ });
     await expect(sheet).toBeVisible();
-    await expect(sheet.getByLabel("Hľadať značkový produkt online")).toBeVisible();
+    await expect(sheet.getByLabel("Hľadať potravinu alebo značkový produkt")).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Skenovať" })).toBeVisible();
     await sheet.getByRole("button", { name: "Zavrieť" }).click();
     await expect(sheet).toBeHidden();
@@ -320,9 +321,9 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     expect(errs, errs.join("\n")).toEqual([]);
   });
 
-  test("Denník: chyba a neprepojený stav", async ({ page }) => {
+  test("Strava (denník jedla): chyba a neprepojený stav", async ({ page }) => {
     await page.goto("/portal/dennik?preview=error");
-    await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať denník/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Nepodarilo sa načítať stravu/i })).toBeVisible();
     await page.goto("/portal/dennik?preview=unlinked");
     await expect(page.getByText(/nie je prepojený s trénerom/i)).toBeVisible();
   });

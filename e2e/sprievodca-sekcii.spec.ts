@@ -167,7 +167,7 @@ test.describe("plynulý sprievodca (DEV náhľad klienta)", () => {
     for (const [path, navTitle] of [
       ["/portal", "Dnes"],
       ["/portal/trening", "Tréning"],
-      ["/portal/dennik", "Denník"],
+      ["/portal/dennik", "Strava"],
       ["/portal/profil", "Profil"],
     ]) {
       expect(shown.find((s) => s.path === path)?.title, `${path}: prvý krok je položka menu`).toBe(navTitle);
@@ -348,8 +348,8 @@ test.describe("reálna DB (QA tréner a klient)", () => {
     for (const [path, titles] of [
       ["/portal", ["Dnes", "Tvoj tréning", "Môj prehľad", "Týždeň", "Meranie", "Upozornenia"]],
       ["/portal/trening", ["Tréning", "Vlastný tréning"]],
-      ["/portal/strava", ["Strava", "Makro cieľ", "Jedálniček"]],
-      ["/portal/dennik", ["Denník", "Dnešný príjem", "Iný deň", "Pridanie jedla"]],
+      ["/portal/strava", ["Jedálniček", "Makro cieľ"]],
+      ["/portal/dennik", ["Strava", "Dnešný príjem", "Iný deň", "Pridanie jedla"]],
       ["/portal/chat", ["Chat", "Správa trénerovi"]],
       ["/portal/ai-kouc", ["AI Kouč", "Pýtaj sa"]],
       ["/portal/profil", ["Profil", "Prepojenie s trénerom", "Vzhľad a jazyk", "Návod"]],
