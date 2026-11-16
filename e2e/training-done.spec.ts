@@ -178,6 +178,9 @@ test.describe("portál — dokončený tréning na karte Dnes (?preview=done)", 
     await expect(page.getByLabel("Tlaky s jednoručkami, séria 1, opakovania")).toHaveValue("10");
     await expect(page.getByLabel("Tlaky s jednoručkami, séria 1, váha v kg")).toHaveValue("20");
     await expect(page.getByRole("button", { name: "Odobrať cvik Tlaky s jednoručkami" })).toBeVisible();
+    // pridaný cvik na čas ostane na čas (sekundy, nie opakovania)
+    await expect(page.getByLabel("Bočný plank, séria 1, čas v sekundách")).toHaveValue("40");
+    await expect(page.getByLabel("Bočný plank, séria 1, opakovania")).toHaveCount(0);
     await page.getByRole("button", { name: "Zrušiť" }).click();
     await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
 
@@ -415,6 +418,44 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     expect(names.at(-1)).toBe("Kliky");
     // cviky plánu sa odobrať nedajú
     await expect(page.getByRole("button", { name: /^Odobrať cvik Drep/ })).toHaveCount(0);
+  });
+
+  test("pridanie cviku na čas: voľba Čas → sekundy, uloží sa ako čas, prežije refresh", async ({ page }) => {
+    const entries = async () =>
+      JSON.parse(await page.locator('input[name="entries"]').inputValue()) as { name: string; sets: unknown[] }[];
+    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    // predvolene opakovania
+    await expect(page.getByRole("radio", { name: "Opakovania" })).toHaveAttribute("aria-checked", "true");
+    await page.getByLabel("Názov pridaného cviku").fill("Bočný plank");
+    await page.getByRole("radio", { name: "Čas" }).click();
+    await expect(page.getByRole("radio", { name: "Čas" })).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+
+    await expect(page.getByLabel("Bočný plank, séria 1, opakovania")).toHaveCount(0);
+    const s1 = page.getByLabel("Bočný plank, séria 1, čas v sekundách");
+    await expect(s1).toHaveValue("");
+    await expect(s1).toHaveAttribute("placeholder", "sek.");
+    await s1.fill("30");
+    await page.getByLabel("Bočný plank, séria 2, čas v sekundách").fill("25");
+    expect((await entries()).at(-1)).toEqual({
+      entryId: null,
+      name: "Bočný plank",
+      sets: [
+        { reps: null, weight: null, durationS: 30 },
+        { reps: null, weight: null, durationS: 25 },
+      ],
+    });
+
+    // prežije refresh — stále na čas
+    await page.reload();
+    await expect(page.getByLabel("Bočný plank, séria 1, čas v sekundách")).toHaveValue("30");
+
+    // ďalší pridaný cvik je zas predvolene na opakovania
+    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    await expect(page.getByRole("radio", { name: "Opakovania" })).toHaveAttribute("aria-checked", "true");
+    await page.getByLabel("Názov pridaného cviku").fill("Kliky");
+    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+    await expect(page.getByLabel("Kliky, séria 1, opakovania")).toBeVisible();
   });
 
   test("K20: „Skryť stopky“ skryje len stopky, tréning beží ďalej", async ({ page }) => {

@@ -170,6 +170,8 @@ export function previewResult(kind: string): PortalResult | null {
               { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
               // cvik pridaný počas tréningu (mimo plánu)
               { entryId: null, name: "Tlaky s jednoručkami", sets: [{ reps: 10, weight: 20 }] },
+              // pridaný cvik na čas
+              { entryId: null, name: "Bočný plank", sets: [{ reps: null, weight: null, durationS: 40 }] },
             ],
             completedAt: new Date().toISOString(),
             logId: "preview-log",

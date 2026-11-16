@@ -1066,6 +1066,30 @@
 .addExerciseForm .logNoteInput {
   margin-top: 0;
 }
+/* Opakovania / Čas pri pridávanom cviku (ako RepsOrTimeField v builderi) */
+.modeToggle {
+  display: inline-flex;
+  justify-self: start;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+}
+.modeToggle button {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-faint);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.modeToggle button.modeOn {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
 .addExerciseActions {
   display: flex;
   justify-content: flex-end;
