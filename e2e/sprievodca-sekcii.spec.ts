@@ -346,7 +346,7 @@ test.describe("reálna DB (QA tréner a klient)", () => {
     await page.goto("/portal?tour=1");
     const shown = await walk(page, "klient");
     for (const [path, titles] of [
-      ["/portal", ["Dnes", "Tvoj tréning", "Môj pokrok", "Meranie", "Týždeň", "Upozornenia"]],
+      ["/portal", ["Dnes", "Tvoj tréning", "Meranie", "Týždeň", "Upozornenia"]],
       ["/portal/trening", ["Tréning", "Vlastný tréning"]],
       ["/portal/strava", ["Jedálniček", "Makro cieľ"]],
       ["/portal/dennik", ["Strava", "Dnešný príjem", "Iný deň", "Pridanie jedla"]],

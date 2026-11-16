@@ -109,16 +109,10 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
 
   // Najnovšie prvé — `history` zo servera je najstaršie prvé (rovnaký tvar ako graf).
   const recent = useMemo(() => [...optimisticHistory].reverse(), [optimisticHistory]);
-  const weights = useMemo(
-    () => optimisticHistory.filter((e): e is BodyMetricEntry & { weightKg: number } => e.weightKg != null),
-    [optimisticHistory],
-  );
   const kg = (n: number) => n.toLocaleString(intlLocale(locale), { maximumFractionDigits: 1 });
 
   return (
     <>
-      {weights.length > 0 && <WeightSummary weights={weights} locale={locale} kg={kg} />}
-
       {open ? (
         <form onSubmit={handleSubmit} className={styles.addPanel}>
           <span className={styles.addPanelLabel}>{t("newMeasurement")}</span>
@@ -188,90 +182,5 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
         </div>
       )}
     </>
-  );
-}
-
-type WeightPoint = BodyMetricEntry & { weightKg: number };
-
-const DAY_MS = 86_400_000;
-const CHART_POINTS = 12;
-const CHART_W = 300;
-const CHART_H = 64;
-const CHART_PAD = 5;
-
-const isoMs = (iso: string) => new Date(`${iso}T12:00:00Z`).getTime();
-
-/**
- * Súhrn váhy nad formulárom: aktuálna váha, zmena od merania spred ~30 dní (alebo od
- * prvého, keď také staré nie je) a malý graf posledných meraní. Zmena je zámerne
- * neutrálna (bez zelenej/červenej) — nevieme, či klient chudne alebo naberá.
- * Z optimistickej histórie, takže sa prekreslí hneď po zápise.
- */
-function WeightSummary({ weights, locale, kg }: { weights: WeightPoint[]; locale: Locale; kg: (n: number) => string }) {
-  const t = useTranslations("today.metric");
-  const latest = weights[weights.length - 1];
-  const cutoff = isoMs(latest.measuredOn) - 30 * DAY_MS;
-  const older = weights.filter((w) => isoMs(w.measuredOn) <= cutoff);
-  const baseline = weights.length > 1 ? (older[older.length - 1] ?? weights[0]) : null;
-  const delta = baseline ? Math.round((latest.weightKg - baseline.weightKg) * 10) / 10 : 0;
-  const shortDate = (iso: string) =>
-    new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", timeZone: "UTC" });
-
-  const series = weights.slice(-CHART_POINTS);
-  let chart: { line: string; area: string; last: [number, number] } | null = null;
-  if (series.length > 1) {
-    const t0 = isoMs(series[0].measuredOn);
-    const span = Math.max(isoMs(series[series.length - 1].measuredOn) - t0, 1);
-    const vals = series.map((w) => w.weightKg);
-    const min = Math.min(...vals);
-    const range = Math.max(Math.max(...vals) - min, 1); // pri malých výkyvoch nech čiara nelieta po celej výške
-    const pts = series.map((w): [number, number] => [
-      CHART_PAD + ((isoMs(w.measuredOn) - t0) / span) * (CHART_W - 2 * CHART_PAD),
-      CHART_PAD + (1 - (w.weightKg - min) / range) * (CHART_H - 2 * CHART_PAD),
-    ]);
-    const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
-    chart = {
-      line,
-      area: `${line} L${pts[pts.length - 1][0].toFixed(1)} ${CHART_H} L${pts[0][0].toFixed(1)} ${CHART_H} Z`,
-      last: pts[pts.length - 1],
-    };
-  }
-
-  return (
-    <div className={styles.weightSummary}>
-      <div className={styles.weightHead}>
-        <p className={styles.weightNow}>
-          <span className={styles.weightNum}>{kg(latest.weightKg)}</span>
-          <span className={styles.weightUnit}>kg</span>
-        </p>
-        {baseline && (
-          <p className={styles.weightDelta}>
-            <span className={styles.weightDeltaVal}>
-              {delta === 0 ? t("noChange") : `${delta > 0 ? "↑" : "↓"} ${kg(Math.abs(delta))} kg`}
-            </span>
-            <span className={styles.weightDeltaSince}>{t("since", { date: shortDate(baseline.measuredOn) })}</span>
-          </p>
-        )}
-      </div>
-      {chart && (
-        // SVG sa naťahuje na šírku karty (preserveAspectRatio none, čiara bez škálovania
-        // hrúbky) — bod je preto HTML prvok, v SVG by sa na počítači rozťahal na elipsu.
-        <div
-          className={styles.weightChart}
-          role="img"
-          aria-label={t("chartAria", { from: kg(series[0].weightKg), to: kg(latest.weightKg) })}
-        >
-          <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="none" aria-hidden="true">
-            <path d={chart.area} className={styles.weightChartArea} />
-            <path d={chart.line} className={styles.weightChartLine} />
-          </svg>
-          <span
-            className={styles.weightChartDot}
-            style={{ left: `${(chart.last[0] / CHART_W) * 100}%`, top: `${(chart.last[1] / CHART_H) * 100}%` }}
-            aria-hidden="true"
-          />
-        </div>
-      )}
-    </div>
   );
 }

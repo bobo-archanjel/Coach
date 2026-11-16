@@ -234,17 +234,13 @@
         "title": "Tvoj tréning",
         "body": "Tu vidíš ďalší tréning z aktívneho plánu. Tlačidlom „Začať tréning“ spustíš zapisovanie sérií."
       },
-      "strength": {
-        "title": "Môj pokrok",
-        "body": "Tvoje nové osobné maximá — keď na cviku zdvihneš viac ako kedykoľvek predtým, objaví sa tu."
-      },
       "week": {
         "title": "Týždeň",
         "body": "Dni s tréningom sú vyznačené. Ťuknutím na deň si pozrieš, čo si odcvičil, šípkami prejdeš na iný týždeň."
       },
       "measure": {
         "title": "Meranie",
-        "body": "Zapisuj si váhu a obvody. Graf ukáže, ako sa tvoja váha mení — vidí ho aj tvoj tréner."
+        "body": "Zapisuj si váhu a obvod pása. Podľa nich vidíš pokrok ty aj tvoj tréner."
       },
       "bell": {
         "title": "Upozornenia",

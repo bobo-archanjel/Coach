@@ -7,7 +7,7 @@ import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/s
 import { getGlobalExerciseRows } from "@/lib/exerciseLibrary";
 import { stripMarkdown } from "@/lib/ai/plainText";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
-import { getBodyMetrics, getStrengthOverview } from "@/lib/dashboard/bodyMetrics";
+import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
@@ -349,7 +349,6 @@ export async function getPortalData(): Promise<PortalResult> {
         .maybeSingle(),
       supabase.from("workout_logs").select("performed_on").eq("client_id", client.id).gte("performed_on", trainingSince),
       supabase.from("food_logs").select("eaten_on").eq("client_id", client.id).gte("eaten_on", foodSince),
-      getStrengthOverview(client.id),
     ]);
 
     // "Aktívny" plán = clients.active_plan_id (volí ho klient v Tréningu / na Dnes, alebo
@@ -522,7 +521,7 @@ export async function getPortalData(): Promise<PortalResult> {
       }
     }
 
-    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }, strength] =
+    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }] =
       await sideData;
 
     // Série sú len motivačná dekorácia — chyba ich dopytu (data = null) nesmie
@@ -532,9 +531,6 @@ export async function getPortalData(): Promise<PortalResult> {
       food: computeFoodStreak((streakFoodRows ?? []).map((r) => r.eaten_on as string), isoDate),
     };
 
-    // Počet za celú históriu (getStrengthOverview číta všetky tréningy kvôli maximám);
-    // pri jeho chybe aspoň tréningy z okna sérií (posledných 52 týždňov).
-    const totalSessions = strength?.totalSessions ?? (streakTrainRows ?? []).length;
 
     // ---------- odkaz trénera ----------
     let coachNote: CoachNote | null = null;
@@ -555,8 +551,6 @@ export async function getPortalData(): Promise<PortalResult> {
       session,
       hasTrainer: Boolean(client.trainer_id),
       week,
-      totalSessions,
-      strengthRecords: strength?.records ?? [],
       streaks,
       deletionNotice: client.deletion_requested_at
         ? { requestedBy: client.deletion_requested_by as "trainer" | "client", requestedAt: client.deletion_requested_at }
