@@ -84,6 +84,8 @@ export interface PortalExercise {
   exerciseId: string | null;
   loadKg: number | null;
   restSeconds: number | null;
+  /** cvik na čas bez plánovaného času — klient si ho pridal počas tréningu s voľbou „Čas“ */
+  timed?: boolean;
 }
 
 /** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B).

@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
 import {
@@ -29,9 +29,17 @@ export interface WorkoutFormValues {
   notes: Record<number, string | undefined>;
   rpe: string;
   sessionNote: string;
-  /** cviky, ktoré si klient pridal počas tréningu (ručne, len názov) — za cvikmi plánu,
-   *  takže ich riadky/poznámky majú indexy exercises.length + i */
-  added?: string[];
+  /** cviky, ktoré si klient pridal počas tréningu (ručne, názov + opakovania/čas) — za
+   *  cvikmi plánu, takže ich riadky/poznámky majú indexy exercises.length + i */
+  added?: AddedExercise[];
+}
+
+/** Cvik pridaný počas tréningu; `timed` = meria sa čas (sekundy), nie opakovania. */
+export type AddedExercise = { name: string; timed?: boolean };
+
+/** Cvik na čas: z plánu („60 s“) alebo pridaný počas tréningu s voľbou „Čas“. */
+export function isTimedExercise(ex: PortalExercise): boolean {
+  return ex.timed === true || timedSeconds(ex.plannedReps) != null;
 }
 
 /** Koľko prázdnych sérií dostane cvik pridaný počas tréningu. */
@@ -39,10 +47,11 @@ const ADDED_SETS = 3;
 export const ADDED_NAME_MAX = 80;
 
 /** Cvik pridaný klientom počas tréningu — bez plánu (entryId null = „mimo plánu“ u trénera). */
-export function addedExercise(name: string, i: number): PortalExercise {
+export function addedExercise({ name, timed }: AddedExercise, i: number): PortalExercise {
   return {
     idx: `added-${i}`,
     name,
+    timed: timed === true,
     scheme: "",
     load: "",
     rest: "",
@@ -146,10 +155,9 @@ export function formValuesFromLog(
   const base = emptyFormValues(exercises);
   const notes: Record<number, string | undefined> = {};
   const used = new Set<LoggedExercise>();
-  const fill = (i: number, match: LoggedExercise) => {
+  const fill = (i: number, match: LoggedExercise, timed: boolean) => {
     used.add(match);
     if (match.sets.length > 0) {
-      const timed = i < exercises.length && timedSeconds(exercises[i].plannedReps) != null;
       base.rows[i] = match.sets.map((s) => ({
         reps: numToField(timed ? (s.durationS ?? s.reps) : s.reps),
         weight: numToField(s.weight),
@@ -162,14 +170,16 @@ export function formValuesFromLog(
       (ex.entryId && logged.find((l) => !used.has(l) && l.entryId === ex.entryId)) ||
       logged.find((l) => !used.has(l) && l.name.toLowerCase() === ex.name.toLowerCase()) ||
       null;
-    if (match) fill(i, match);
+    if (match) fill(i, match, isTimedExercise(ex));
   });
-  // zapísané cviky mimo plánu (pridané počas tréningu) — inak by ich uloženie úpravy zmazalo
-  const added: string[] = [];
+  // zapísané cviky mimo plánu (pridané počas tréningu) — inak by ich uloženie úpravy zmazalo;
+  // na čas, keď má každá séria len sekundy
+  const added: AddedExercise[] = [];
   for (const l of logged) {
     if (used.has(l)) continue;
-    fill(exercises.length + added.length, l);
-    added.push(l.name);
+    const timed = l.sets.length > 0 && l.sets.every((s) => s.reps == null && s.durationS != null);
+    fill(exercises.length + added.length, l, timed);
+    added.push(timed ? { name: l.name, timed } : { name: l.name });
   }
   return { rows: base.rows, notes, rpe: rpe != null ? String(rpe) : "", sessionNote: note ?? "", added };
 }
@@ -185,7 +195,7 @@ export function buildEntriesPayload(planExercises: PortalExercise[], values: Wor
       name: ex.name,
       note: values.notes[i]?.trim() || undefined,
       // cvik na čas: číslo z prvého poľa sú sekundy (durationS), nie opakovania
-      sets: timedSeconds(ex.plannedReps) != null ? sets.map((s) => ({ reps: null, weight: s.weight, durationS: s.reps })) : sets,
+      sets: isTimedExercise(ex) ? sets.map((s) => ({ reps: null, weight: s.weight, durationS: s.reps })) : sets,
     };
   });
   return { summary, entries };
@@ -212,6 +222,15 @@ export function WorkoutSetsFields({
   // ručné pridanie cviku počas tréningu (len názov, nie z knižnice)
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newTimed, setNewTimed] = useState(false);
+  // Ťuk na tlačidlo formulára nesmie zobrať fokus poľu názvu: na mobile by sa po blur
+  // vrátilo spodné menu (skryté pri klávesnici) a prekrylo tlačidlo — ťuk by skončil v menu.
+  const keepFocus = (e: MouseEvent) => e.preventDefault();
+  const closeAdd = () => {
+    setAdding(false);
+    setNewName("");
+    setNewTimed(false);
+  };
 
   const addExercise = () => {
     const name = newName.trim().slice(0, ADDED_NAME_MAX);
@@ -219,11 +238,10 @@ export function WorkoutSetsFields({
     const at = exercises.length;
     onChange({
       ...values,
-      added: [...added, name],
+      added: [...added, newTimed ? { name, timed: true } : { name }],
       rows: { ...rows, [at]: Array.from({ length: ADDED_SETS }, () => ({ reps: "", weight: "" })) },
     });
-    setNewName("");
-    setAdding(false);
+    closeAdd();
   };
   const removeExercise = (exIdx: number) => {
     const addedIdx = exIdx - planExercises.length;
@@ -250,7 +268,8 @@ export function WorkoutSetsFields({
   return (
     <>
       {exercises.map((ex, exIdx) => {
-        const timed = timedSeconds(ex.plannedReps) != null;
+        const timed = isTimedExercise(ex);
+        const plannedSecs = timedSeconds(ex.plannedReps);
         return (
           <div
             key={`${ex.idx}-${exIdx}`}
@@ -293,7 +312,7 @@ export function WorkoutSetsFields({
                           type="text"
                           inputMode="numeric"
                           autoComplete="off"
-                          placeholder={timed ? String(timedSeconds(ex.plannedReps)) : (ex.plannedReps ?? t("repsPlaceholder"))}
+                          placeholder={timed ? (plannedSecs != null ? String(plannedSecs) : t("secondsPlaceholder")) : (ex.plannedReps ?? t("repsPlaceholder"))}
                           aria-label={t(timed ? "secondsAria" : "repsAria", { name: ex.name, n: rowIdx + 1 })}
                           aria-invalid={showInvalid && repsErr ? true : undefined}
                           value={row.reps}
@@ -380,23 +399,37 @@ export function WorkoutSetsFields({
                   e.preventDefault();
                   addExercise();
                 } else if (e.key === "Escape") {
-                  setAdding(false);
-                  setNewName("");
+                  closeAdd();
                 }
               }}
             />
+            {/* meria sa opakovaniami, alebo časom (statický hold, plank…) */}
+            <div className={styles.modeToggle} role="radiogroup" aria-label={tl("repsMode.aria")}>
+              {([false, true] as const).map((timedOpt) => (
+                <button
+                  key={String(timedOpt)}
+                  type="button"
+                  role="radio"
+                  aria-checked={newTimed === timedOpt}
+                  className={newTimed === timedOpt ? styles.modeOn : undefined}
+                  onMouseDown={keepFocus}
+                  onClick={() => setNewTimed(timedOpt)}
+                >
+                  {tl(timedOpt ? "repsMode.time" : "repsMode.reps")}
+                </button>
+              ))}
+            </div>
             <div className={styles.addExerciseActions}>
-              <button
-                type="button"
-                className={styles.swBtnGhost}
-                onClick={() => {
-                  setAdding(false);
-                  setNewName("");
-                }}
-              >
+              <button type="button" className={styles.swBtnGhost} onMouseDown={keepFocus} onClick={closeAdd}>
                 {t("cancel")}
               </button>
-              <button type="button" className={styles.swBtnPrimary} onClick={addExercise} disabled={!newName.trim()}>
+              <button
+                type="button"
+                className={styles.swBtnPrimary}
+                onMouseDown={keepFocus}
+                onClick={addExercise}
+                disabled={!newName.trim()}
+              >
                 {t("addExerciseConfirm")}
               </button>
             </div>
