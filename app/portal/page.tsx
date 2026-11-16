@@ -191,7 +191,7 @@ function Today({ data }: { data: PortalData }) {
         </div>
       )}
 
-      {!deletionNotice && cooperationEndedNotice && <CooperationNotice />}
+      {!deletionNotice && cooperationEndedNotice && <CooperationNotice removed={cooperationEndedNotice.removed} />}
 
       <header className={s.hello}>
         <p className={s.helloDate}>{dateLabel}</p>

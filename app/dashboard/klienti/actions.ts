@@ -167,6 +167,19 @@ export async function requestClientDeletionAction(clientId: string): Promise<Act
   return ok;
 }
 
+/**
+ * Klient s vlastným účtom: tréner ho odstráni z portfólia (0064) — klient sa odpojí,
+ * zverejnené plány, jedálničky, makro cieľ, merania aj jeho vlastné dáta mu ostanú;
+ * zmažú sa trénerove koncepty, poznámky, správy a termíny k nemu. Hneď, bez lehoty.
+ */
+export async function removeClientFromPortfolioAction(clientId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_client_from_portfolio", { p_client_id: clientId });
+  if (error) return { error: await dbErr(error, "actions") };
+  revalidatePath("/dashboard");
+  return ok;
+}
+
 /** GDPR — zrušenie žiadosti o zmazanie počas grace period. */
 export async function cancelClientDeletionAction(clientId: string): Promise<ActionState> {
   const supabase = await createClient();

@@ -103,7 +103,12 @@
     "cancelDeletion": "Zrušiť zmazanie",
     "confirmDelete": "Naozaj zmazať klienta {name}? Tréningy, jedálniček, denník aj chat zostanú 30 dní (dá sa zrušiť), potom sa natrvalo odstránia.",
     "yesDelete": "Áno, zmazať",
-    "requestDelete": "Požiadať o zmazanie klienta"
+    "requestDelete": "Požiadať o zmazanie klienta",
+    "removeTitle": "Odstránenie z portfólia",
+    "removeHint": "{name} má vlastný FitPilot účet — jeho dáta môže zmazať len on sám. Odstránením sa od teba odpojí; zverejnené plány, jedálničky, makro cieľ aj jeho zápisy mu ostanú.",
+    "remove": "Odstrániť z portfólia",
+    "confirmRemove": "Naozaj odstrániť klienta {name} z portfólia? Hneď sa od teba odpojí a zmažú sa tvoje koncepty, poznámky, termíny a správy s ním. Zverejnené plány a jedálničky mu ostanú v jeho účte. Späť ho pridáš len jeho novým kódom.",
+    "yesRemove": "Áno, odstrániť"
   },
   "charts": {
     "empty": "Zatiaľ žiadne dáta na graf.",

@@ -198,7 +198,7 @@ export function previewResult(kind: string): PortalResult | null {
         state: "ok",
         data: {
           ...PREVIEW_DATA,
-          cooperationEndedNotice: { endedAt: new Date(Date.now() - 2 * 86_400_000).toISOString() },
+          cooperationEndedNotice: { endedAt: new Date(Date.now() - 2 * 86_400_000).toISOString(), removed: false },
         },
       };
     default:
