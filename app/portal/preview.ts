@@ -168,6 +168,8 @@ export function previewResult(kind: string): PortalResult | null {
             loggedExercises: [
               { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
               { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
+              // cvik pridaný počas tréningu (mimo plánu)
+              { entryId: null, name: "Tlaky s jednoručkami", sets: [{ reps: 10, weight: 20 }] },
             ],
             completedAt: new Date().toISOString(),
             logId: "preview-log",

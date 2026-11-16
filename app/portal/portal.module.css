@@ -995,6 +995,66 @@
   display: grid;
   gap: 7px;
 }
+/* cvik pridaný počas tréningu: názov + štítok „Pridaný“ + odobratie */
+.logExerciseHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.logExerciseHead .logExerciseName {
+  margin: 6px 0 0;
+}
+.addedTag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 10.5px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+.addExercise {
+  display: grid;
+}
+.addExerciseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px dashed var(--fill-strong);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.addExerciseBtn:hover {
+  background: var(--fill);
+  border-color: var(--accent);
+}
+.addExerciseForm {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--fill);
+}
+.addExerciseForm .logNoteInput {
+  margin-top: 0;
+}
+.addExerciseActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .setRow {
   display: grid;
   grid-template-columns: 22px 1fr 1fr 32px;

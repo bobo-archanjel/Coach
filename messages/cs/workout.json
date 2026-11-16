@@ -32,5 +32,11 @@
   "locked": "Dokončený. Zapsané hodnoty už nejde měnit.",
   "editDeadline": "Hodnoty můžeš upravit do {deadline}.",
   "cancel": "Zrušit",
-  "saveChanges": "Uložit změny"
+  "saveChanges": "Uložit změny",
+  "addExercise": "Přidat cvik",
+  "addExercisePlaceholder": "Název cviku, např. Tlaky s jednoručkami",
+  "addExerciseAria": "Název přidaného cviku",
+  "addExerciseConfirm": "Přidat",
+  "addedTag": "Přidaný",
+  "removeExercise": "Odebrat cvik {name}"
 }

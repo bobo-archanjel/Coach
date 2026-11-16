@@ -256,6 +256,10 @@
         "title": "Zapisovanie sérií",
         "body": "Ku každej sérii zapíš váhu a počet opakovaní. Ďalšiu sériu pridáš cez „Pridať sériu“."
       },
+      "addExercise": {
+        "title": "Iný cvik?",
+        "body": "Ak ti cvik z plánu nevyhovuje alebo chceš niečo navyše, pridaj si vlastný — stačí napísať názov. Tréner ho uvidí ako cvik mimo plánu."
+      },
       "stopwatch": {
         "title": "Stopky a časovač",
         "body": "Odmeraj si tréning alebo pauzu medzi sériami."

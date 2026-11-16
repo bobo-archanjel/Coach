@@ -13,7 +13,13 @@ import {
   markWorkoutStarted,
   saveWorkoutDraft,
 } from "./workoutSession";
-import { WorkoutSetsFields, buildEntriesPayload, plannedFormValues, type WorkoutFormValues } from "./WorkoutSetsFields";
+import {
+  WorkoutSetsFields,
+  buildEntriesPayload,
+  formExercises,
+  plannedFormValues,
+  type WorkoutFormValues,
+} from "./WorkoutSetsFields";
 
 const initialState: ActionState = { error: null };
 
@@ -68,7 +74,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   const [values, setValues] = useState<WorkoutFormValues>(() => {
     const draft = loadWorkoutDraft(dayId, signature);
     return draft
-      ? { rows: draft.rows, notes: draft.notes, rpe: draft.rpe, sessionNote: draft.sessionNote }
+      ? { rows: draft.rows, notes: draft.notes, rpe: draft.rpe, sessionNote: draft.sessionNote, added: draft.added }
       : plannedFormValues(exercises); // hodnoty trénera — pri odcvičení podľa plánu netreba nič písať
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -123,7 +129,8 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   }
 
   const { summary, entries } = buildEntriesPayload(exercises, values);
-  const emptyNames = summary.emptyExercises.map((i) => exercises[i]?.name).filter(Boolean);
+  const allExercises = formExercises(exercises, values);
+  const emptyNames = summary.emptyExercises.map((i) => allExercises[i]?.name).filter(Boolean);
 
   const askFinish = () => {
     if (summary.invalidCount > 0) {
