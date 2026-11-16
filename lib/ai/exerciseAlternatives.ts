@@ -147,3 +147,107 @@ export async function findExerciseAlternatives(
 
   return { matched, alternatives };
 }
+
+// ---------------------------------------------------------------- nástroj search_exercises
+// Hodnoty muscle_group (slovenské, z importu knižnice — scripts/import-exercises.mjs MUSCLE_SK)
+// a equipment (anglické, Free Exercise DB — migrácia 0031). Slúžia ako enum v definícii nástroja
+// pre model, aby filter vždy trafil reálnu hodnotu v DB.
+export const EXERCISE_MUSCLE_GROUPS = [
+  "brucho",
+  "abduktory (vonkajšie stehná)",
+  "adduktory (vnútorné stehná)",
+  "biceps",
+  "lýtka",
+  "hrudník",
+  "predlaktia",
+  "zadok",
+  "zadné stehná",
+  "chrbát (širák)",
+  "spodný chrbát",
+  "stredný chrbát",
+  "krk",
+  "stehná (kvadriceps)",
+  "ramená",
+  "trapézy",
+  "triceps",
+] as const;
+
+export const EXERCISE_EQUIPMENT = [
+  "body only",
+  "dumbbell",
+  "barbell",
+  "kettlebells",
+  "bands",
+  "e-z curl bar",
+  "medicine ball",
+  "exercise ball",
+  "foam roll",
+  "machine",
+  "cable",
+  "other",
+] as const;
+
+export const SEARCH_EXERCISES_MAX = 20;
+
+export interface ExerciseSearchHit extends ExerciseCandidate {
+  equipment: string | null;
+}
+
+/** Z voľného textu nechá len písmená/číslice — nič, čo by rozbilo PostgREST `or()` filter (čiarky, zátvorky, %, *). */
+function searchTokens(query: string): string[] {
+  return Array.from(
+    new Set(
+      query
+        .split(/[^\p{L}0-9]+/u)
+        .map((w) => w.trim().toLowerCase())
+        .filter((w) => w.length >= 2),
+    ),
+  ).slice(0, 6);
+}
+
+/**
+ * Hľadanie v CELEJ knižnici cvikov pod session klienta (RLS: globálne + cviky jeho trénera).
+ * Voľný text (SK/EN názov) + voliteľný filter partie/vybavenia. Bez textu a bez filtra sa
+ * nevráti nič (model by dostal náhodných 20 z ~900). Pri samotnom filtri sa výber premieša —
+ * abecedné prvé stránky by pri "náhrade cviku" ponúkali stále tie isté cviky.
+ */
+export async function searchExercises(
+  supabase: SupabaseClient,
+  params: { query?: string; muscleGroup?: string; equipment?: string; limit?: number },
+): Promise<ExerciseSearchHit[]> {
+  const limit = Math.min(Math.max(Math.floor(params.limit ?? 10), 1), SEARCH_EXERCISES_MAX);
+  const tokens = searchTokens(params.query ?? "");
+  const muscle = (EXERCISE_MUSCLE_GROUPS as readonly string[]).includes(params.muscleGroup ?? "") ? params.muscleGroup : undefined;
+  const equipment = (EXERCISE_EQUIPMENT as readonly string[]).includes(params.equipment ?? "") ? params.equipment : undefined;
+  if (tokens.length === 0 && !muscle && !equipment) return [];
+
+  type Row = { id: string; name: string; name_sk: string | null; muscle_group: string | null; equipment: string | null };
+  const run = async (mode: "and" | "or"): Promise<Row[]> => {
+    let q = supabase.from("exercises").select("id, name, name_sk, muscle_group, equipment");
+    if (muscle) q = q.eq("muscle_group", muscle);
+    if (equipment) q = q.eq("equipment", equipment);
+    if (tokens.length > 0) {
+      const perToken = (t: string) => `name.ilike.%${t}%,name_sk.ilike.%${t}%`;
+      // AND slov: každé slovo musí sedieť v názve (EN alebo SK) → viac .or() za sebou = AND
+      if (mode === "and") for (const t of tokens) q = q.or(perToken(t));
+      else q = q.or(tokens.map(perToken).join(","));
+    }
+    // bez textu berieme širší výber a miešame, s textom stačí abecedne
+    const { data, error } = await q.order("name", { ascending: true }).limit(tokens.length === 0 ? limit * 4 : limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Row[];
+  };
+
+  let rows = await run("and");
+  if (rows.length === 0 && tokens.length > 1) rows = await run("or");
+  if (tokens.length === 0) {
+    rows = [...rows].sort(() => Math.random() - 0.5).slice(0, limit);
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    nameSk: r.name_sk,
+    muscleGroup: r.muscle_group,
+    equipment: r.equipment,
+  }));
+}

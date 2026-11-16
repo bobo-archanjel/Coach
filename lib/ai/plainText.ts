@@ -15,3 +15,9 @@ export function stripMarkdown(text: string): string {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+/** Azbuka (alebo grécke písmo) v slovenskej/českej odpovedi = model "zablúdil" do iného
+ *  písma uprostred slova — appka takú odpoveď nechá zopakovať (lib/ai/chat.ts). */
+export function hasForeignScript(text: string): boolean {
+  return /[\u0370-\u03FF\u0400-\u04FF]/.test(text);
+}

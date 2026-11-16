@@ -14,6 +14,8 @@ import { baseUnitOf, type PortionFood } from "@/lib/portions";
 export interface FoodCandidate {
   id: string;
   name: string;
+  /** české meno (migrácia 0064) — null, keď chýba */
+  nameCs?: string | null;
   kcal100g: number;
   protein100g: number;
   carbs100g: number;
@@ -30,11 +32,11 @@ export interface FoodCandidate {
 export async function getFoodCandidates(supabase: SupabaseClient, trainerId: string): Promise<FoodCandidate[]> {
   const base = "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g";
   type Row = Record<string, unknown> & { id: string; name: string };
-  // unit_base / piece_g / serving_g / package_g vznikli až migráciou 0066 — kým nie je spustená,
+  // name_cs (0064) a unit_base / piece_g / serving_g / package_g (0066) — kým nie sú spustené,
   // select zlyhá, preto sa zopakuje bez nich (AI potom pozná len gramy).
   let rows: Row[] | null = null;
   let errMsg = "";
-  for (const cols of [`${base}, unit_base, piece_g, serving_g, package_g`, base]) {
+  for (const cols of [`${base}, name_cs, unit_base, piece_g, serving_g, package_g`, `${base}, unit_base, piece_g, serving_g, package_g`, base]) {
     const res = await supabase
       .from("foods")
       .select(cols)
@@ -56,6 +58,7 @@ export async function getFoodCandidates(supabase: SupabaseClient, trainerId: str
   return (rows ?? []).map((f) => ({
     id: f.id,
     name: f.name,
+    nameCs: typeof f.name_cs === "string" ? f.name_cs : null,
     kcal100g: Number(f.kcal_100g),
     protein100g: Number(f.protein_100g),
     carbs100g: Number(f.carbs_100g),

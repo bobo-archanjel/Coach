@@ -28,7 +28,7 @@ const BASE_COLUMNS =
   "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by";
 // package_g/unit_base pribudli v migrácii 0066 — kým nebeží, dopyty idú bez nich (BASE_COLUMNS)
 const FOOD_COLUMNS =
-  "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by, package_g, unit_base";
+  "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by, package_g, unit_base, off_synced_at";
 
 type FoodRow = {
   id: string;
@@ -45,6 +45,7 @@ type FoodRow = {
   unit_base: "g" | "ml";
   source: FoodSource;
   created_by: string | null;
+  off_synced_at?: string | null;
 };
 
 function toOption(row: FoodRow, barcode: string): PortalFoodOption {
@@ -102,6 +103,43 @@ function devOffFixture(request: NextRequest): { product: OffProduct | null } | u
   }
 }
 
+// OFF produkty uložené pred migráciou 0066 nemajú balenie ani ml (unit_base ostal default 'g').
+// Taký záznam si raz dotiahneme z OFF a doplníme — off_synced_at potom ukazuje za túto hranicu,
+// takže produkt, ktorý balenie naozaj nemá, sa už znova nepýta.
+const PORTION_SYNC_CUTOFF = Date.parse("2026-11-17T00:00:00Z");
+
+function needsPortionRefresh(row: FoodRow): boolean {
+  if (row.source !== "off" || row.package_g != null || row.unit_base === "ml") return false;
+  const synced = row.off_synced_at ? Date.parse(row.off_synced_at) : 0;
+  return !(synced >= PORTION_SYNC_CUTOFF);
+}
+
+/** null = nepodarilo sa (OFF nedostupný, limit, chýba service role) — volajúci vráti pôvodný záznam. */
+async function refreshPortionData(row: FoodRow, code: string): Promise<FoodRow | null> {
+  const admin = tryCreateAdminClient();
+  if (!admin || !allowWithinWindow("barcode:off", 15, 60_000)) return null;
+  try {
+    const product = await fetchOpenFoodFactsProduct(code);
+    if (!product) return null;
+    const mapped = mapOffProduct(product);
+    const patch = {
+      package_g: mapped.packageGrams,
+      unit_base: mapped.unitBase,
+      serving_g: row.serving_g ?? mapped.servingGrams,
+      off_synced_at: new Date().toISOString(),
+    };
+    const { error } = await admin.from("foods").update(patch).eq("id", row.id).eq("source", "off");
+    if (error) {
+      console.error("potraviny/kod doplnenie porcií:", error.message);
+      return null;
+    }
+    return { ...row, ...patch };
+  } catch (err) {
+    console.error("potraviny/kod doplnenie porcií OFF:", err);
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ ean: string }> }) {
   const {
     data: { user },
@@ -131,7 +169,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return reply({ status: "error", error: await tErr("api.lookupFailed") }, 500);
   }
   const best = pickBest((rows ?? []) as unknown as FoodRow[], user.id);
-  if (best) return reply({ status: "found", food: toOption(best, code) });
+  if (best) {
+    const refreshed = needsPortionRefresh(best) ? await refreshPortionData(best, code) : null;
+    return reply({ status: "found", food: toOption(refreshed ?? best, code) });
+  }
 
   // 2) Open Food Facts — limit na inštanciu (OFF ráta požiadavky na IP)
   if (!allowWithinWindow("barcode:off", 15, 60_000)) {
