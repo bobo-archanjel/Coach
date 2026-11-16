@@ -93,7 +93,14 @@
     "changed": "Jedálniček sa medzitým zmenil — obnov stránku a skús znova.",
     "maxDays": "Jedálniček môže mať najviac {max} dní.",
     "tooManyItems": "Deň „{name}“ má priveľa položiek.",
-    "invalidGrams": "Zadaj platnú gramáž (1–5000 g) v dni „{name}“."
+    "invalidGrams": "Zadaj platnú gramáž (1–5000 g) v dni „{name}“.",
+    "ownOnly": "Vlastný jedálniček môže vytvárať len klient.",
+    "cannotEdit": "Tento jedálniček nemôžeš upraviť — je od trénera.",
+    "cannotDelete": "Tento jedálniček nemôžeš zmazať — je od trénera.",
+    "needDay": "Pridaj aspoň jeden deň.",
+    "nameMax": "Názov môže mať najviac {max} znakov.",
+    "invalidFood": "Potravina „{name}“ má neplatné hodnoty.",
+    "notReady": "Vlastný jedálniček sa ešte zapína — skús to o chvíľu."
   },
   "calendar": {
     "titleTooLong": "Názov je príliš dlhý (max 200 znakov).",
@@ -117,7 +124,8 @@
     "mealCreateFailed": "Jedálniček sa nepodarilo vytvoriť.",
     "missingTemplate": "Chýba šablóna.",
     "draftFailed": "Koncept sa nepodarilo vytvoriť.",
-    "missingMealId": "Chýba ID jedálničku."
+    "missingMealId": "Chýba ID jedálničku.",
+    "onlyOwnMeal": "Šablónu sa dá uložiť len z tvojho vlastného jedálnička."
   },
   "analytics": {
     "noActiveClients": "Zatiaľ nemáš aktívnych klientov na zhrnutie.",

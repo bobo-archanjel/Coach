@@ -175,6 +175,41 @@ export async function saveMealPlanAsTemplate(
   return ok;
 }
 
+/**
+ * Vlastný jedálniček klienta (meal_plans.trainer_id IS NULL, 0067) ako šablóna klienta.
+ * meal_templates.trainer_id je vlastník (RLS trainer_id = auth.uid(), bez kontroly roly),
+ * rovnako ako tréningové šablóny klienta (saveOwnPlanAsTemplate). Názov = názov jedálnička.
+ */
+export async function saveOwnMealPlanAsTemplate(
+  supabase: SupabaseClient,
+  ownerId: string,
+  clientId: string,
+  planId: string,
+): Promise<TemplateResult> {
+  const [{ data: plan }, { data: days, error: daysErr }] = await Promise.all([
+    supabase.from("meal_plans").select("id, name").eq("id", planId).eq("client_id", clientId).is("trainer_id", null).maybeSingle(),
+    supabase.from("meal_days").select("day_number, name, meals").eq("plan_id", planId).order("day_number"),
+  ]);
+  if (!plan) return { error: await tErr("templates.onlyOwnMeal") };
+  if (daysErr) return { error: await dbErr(daysErr, "templates") };
+  if (!days || days.length === 0) return { error: await tErr("templates.mealNoDays") };
+
+  const { data: template, error: templateErr } = await supabase
+    .from("meal_templates")
+    .insert({ trainer_id: ownerId, name: cleanName(plan.name, await tErr("templates.defaultName")) })
+    .select("id")
+    .single();
+  if (templateErr || !template) return { error: templateErr?.message ?? await tErr("templates.createFailed") };
+
+  const rows = days.map((d) => ({ template_id: template.id, day_number: d.day_number, name: d.name, meals: d.meals }));
+  const { error: insertErr } = await supabase.from("meal_template_days").insert(rows);
+  if (insertErr) {
+    await supabase.from("meal_templates").delete().eq("id", template.id);
+    return { error: await dbErr(insertErr, "templates") };
+  }
+  return ok;
+}
+
 export async function applyMealTemplateToClient(
   supabase: SupabaseClient,
   trainerId: string,
