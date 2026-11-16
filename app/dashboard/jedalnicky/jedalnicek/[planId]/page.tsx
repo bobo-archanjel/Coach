@@ -7,6 +7,7 @@ import { foodNameForLocale } from "@/lib/foodStaples";
 import type { FoodSource } from "@/lib/portal/types";
 import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
 import { listPlanRecipients } from "@/lib/planRecipients";
+import { getActiveMealPlanIds } from "@/lib/dashboard/activeMealPlan";
 import { MealPlanBuilder } from "./MealPlanBuilder";
 import { MealPlanFooterActions, MealPublishBadge } from "./MealPlanControls";
 import { PlanTitle } from "../../../treningy/[planId]/PlanTitle";
@@ -92,9 +93,12 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú jedálniček aj títo
   const recipients = await listPlanRecipients(supabase, "meal", planId);
 
-  // Portál ukazuje najnovší zverejnený jedálniček — je to tento?
+  // Klient vidí zvolený jedálniček (0067), inak najnovší zverejnený — je to tento?
   let visibleToClient = false;
-  if (plan.published) {
+  const chosen = plan.published ? (await getActiveMealPlanIds(supabase, [plan.client_id])).get(plan.client_id) : null;
+  if (plan.published && chosen) {
+    visibleToClient = chosen === planId;
+  } else if (plan.published) {
     const { data: newerPublished } = await supabase
       .from("meal_plans")
       .select("id")

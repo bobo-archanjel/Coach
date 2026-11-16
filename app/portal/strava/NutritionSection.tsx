@@ -293,7 +293,7 @@ export function NutritionSection({
             <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
               {activeSource === "client" ? t("own") : t("fromTrainer")}
             </span>
-            <span className={styles.psName}>{mealPlanName}</span>
+            <h3 className={styles.psName}>{mealPlanName}</h3>
             {plans.length > 1 && (
               <button ref={changeRef} type="button" className={styles.psChange} onClick={() => setSwitchOpen(true)} aria-haspopup="dialog">
                 {t("change")}

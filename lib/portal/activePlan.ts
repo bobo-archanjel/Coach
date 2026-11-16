@@ -14,3 +14,16 @@ export function resolveActivePlanId(
   if (activePlanId && publishedNewestFirst.some((p) => p.id === activePlanId)) return activePlanId;
   return publishedNewestFirst[0]?.id ?? null;
 }
+
+/**
+ * Aktívny jedálniček z pohľadu trénera (0067). Tréner vidí len svoje jedálničky — keď si
+ * klient zvolil vlastný (trainer_id null, trénerovi skrytý), žiadny z trénerových nie je
+ * aktívny (null), namiesto mylného „najnovší“. Bez voľby platí najnovší zverejnený.
+ */
+export function resolveTrainerActiveMealPlanId(
+  activeMealPlanId: string | null | undefined,
+  trainerPublishedNewestFirst: readonly { id: string }[],
+): string | null {
+  if (!activeMealPlanId) return trainerPublishedNewestFirst[0]?.id ?? null;
+  return trainerPublishedNewestFirst.some((p) => p.id === activeMealPlanId) ? activeMealPlanId : null;
+}

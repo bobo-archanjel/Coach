@@ -309,14 +309,44 @@
         "body": "Změny ulož tady. Bez uložení odejdeš tažením zleva doprava nebo přes menu."
       }
     },
+    "c-meal-builder": {
+      "name": {
+        "title": "Název jídelníčku",
+        "body": "Pojmenuj si jídelníček, ať ho při přepínání snadno najdeš."
+      },
+      "days": {
+        "title": "Dny jídelníčku",
+        "body": "Nový den přidáš přes „+ den“. Vybraný den přejmenuješ, zduplikuješ nebo smažeš hned pod drahou."
+      },
+      "slots": {
+        "title": "Jídla dne",
+        "body": "Klepni na „+“ u jídla a vyhledej potravinu nebo naskenuj čárový kód. Množství zadáš v gramech, kusech či porcích."
+      },
+      "total": {
+        "title": "Součet dne",
+        "body": "Kalorie a makra celého dne oproti tvému cíli maker."
+      },
+      "save": {
+        "title": "Uložení",
+        "body": "Jídelníček ulož tady — hned se z něj stane tvůj aktivní. Bez uložení odejdeš přetažením zleva doprava nebo přes menu."
+      }
+    },
     "c-nutrition": {
       "goal": {
         "title": "Makro cíl",
         "body": "Tvůj denní cíl kalorií a maker. Appka ho počítá z tvých údajů, nebo ti ho nastaví trenér."
       },
+      "own": {
+        "title": "Vlastní jídelníček",
+        "body": "Sestav si jídelníček sám — po dnech a jídlech, s potravinami ze stejného vyhledávání jako ve Stravě."
+      },
+      "switch": {
+        "title": "Aktivní jídelníček",
+        "body": "Tady vidíš, jestli je jídelníček od trenéra, nebo vlastní. Když jich máš víc, přes „Změnit“ si vybereš, který se ukáže."
+      },
       "plan": {
-        "title": "Jídelníček od trenéra",
-        "body": "Jídelníček od trenéra po dnech, s gramáží a kaloriemi každého jídla."
+        "title": "Tvůj jídelníček",
+        "body": "Jídelníček po dnech, s gramáží a kaloriemi každého jídla."
       },
       "pdf": {
         "title": "Stáhnout PDF",

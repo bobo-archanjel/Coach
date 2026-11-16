@@ -125,6 +125,8 @@ const CLIENT_SECTIONS: SectionDef[] = [
     nav: ["nav-strava", "client.navStrava"],
     steps: [
       ["nutrition-goal", "guides.c-nutrition.goal"],
+      ["nutrition-own", "guides.c-nutrition.own"],
+      ["nutrition-switch", "guides.c-nutrition.switch"],
       ["nutrition-plan", "guides.c-nutrition.plan"],
       ["nutrition-pdf", "guides.c-nutrition.pdf"],
     ],
