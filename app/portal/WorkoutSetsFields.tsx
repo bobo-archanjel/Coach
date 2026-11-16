@@ -259,7 +259,11 @@ export function WorkoutSetsFields({
             data-added={exIdx >= planExercises.length ? "" : undefined}
           >
             {exIdx < planExercises.length ? (
-              <p className={styles.logExerciseName}>{ex.name}</p>
+              <>
+                <p className={styles.logExerciseName}>{ex.name}</p>
+                {/* poznámka k cviku z plánu (v dátach `tempo`) — počas tréningu po ruke */}
+                {ex.tempo && <p className={styles.logExerciseNote}>„{ex.tempo}“</p>}
+              </>
             ) : (
               <div className={styles.logExerciseHead}>
                 <p className={styles.logExerciseName}>

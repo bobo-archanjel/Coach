@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-16** — **„Tempo“ → „Poznámka“ k cviku, aj vo vlastnom tréningu klienta** (priamo v `dev`, bez migrácie).
+  - V úprave cviku je namiesto „Tempo“ pole **Poznámka** na celú šírku (do 200 znakov, napr. „pomaly dole, úzky úchop“). V dátach ostáva `tempo`, staré hodnoty („3-0-1“) sa zobrazia ako poznámka.
+  - Pole má aj **vlastný tréning klienta** (predtým sa tempo pri uložení klientovho plánu stratilo).
+  - Poznámka sa zobrazí pod cvikom v builderi, v sekcii Tréning, **pri zapisovaní tréningu** pod názvom cviku, v detaile tréningu u trénera a v PDF (stĺpec Poznámka).
+
 - **2026-11-16** — **Cvik na čas v builderi** (priamo v `dev`, bez migrácie).
   - V úprave cviku (tréner aj vlastný tréning klienta) prepínač **Opakovania / Čas** — pre statické holdy, plank… (napr. 3 série po 60 s). Čas sa uloží ako „60 s“ v opakovaniach; **Pauza (s)** ostáva samostatná.
   - Klient pri tréningu zapisuje **sekundy** (predvyplnené časom trénera), ukladajú sa ako čas série; karta Dnes a týždeň ukazujú „60 s“, tréner v detaile tréningu vidí čas zafarbený oproti plánu.

@@ -10,6 +10,7 @@ import { getExerciseLibrary } from "@/lib/portal/data";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
 import { deleteWorkoutTemplate, saveOwnPlanAsTemplate } from "@/lib/templates";
+import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 
 /* Vlastný tréning klienta — vytvorenie / úprava / zmazanie / prepnutie aktívneho.
    Klientské plány: workout_plans.trainer_id IS NULL (viď 0010_client_own_workouts.sql).
@@ -53,6 +54,8 @@ export interface DraftExercise {
   reps: string;
   loadKg: number | null;
   restSeconds: number | null;
+  /** poznámka k cviku (ukladá sa do `tempo`) */
+  note?: string;
 }
 export interface DraftDay {
   id: string | null; // null = nový deň
@@ -75,6 +78,7 @@ type CleanEntry = {
   reps: string;
   load_kg: number | null;
   rest_seconds: number | null;
+  tempo: string | null;
 };
 
 function clampInt(v: unknown, min: number, max: number, fallback: number): number {
@@ -112,6 +116,7 @@ function cleanEntries(raw: unknown): CleanEntry[] {
         reps: cleanText(x.reps, 20) || "10",
         load_kg: optionalNum(x.loadKg, 0, 1000),
         rest_seconds: rest === null ? null : Math.round(rest),
+        tempo: cleanText(x.note, EXERCISE_NOTE_MAX) || null,
       };
     })
     .filter((e): e is CleanEntry => e !== null);

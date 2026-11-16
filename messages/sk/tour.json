@@ -134,7 +134,7 @@
       },
       "exercise": {
         "title": "Cvik",
-        "body": "Pri cviku nastavíš série, opakovania, váhu, tempo a pauzu, zmeníš jeho poradie alebo ho odstrániš."
+        "body": "Pri cviku nastavíš série, opakovania alebo čas, váhu, pauzu a poznámku, zmeníš jeho poradie alebo ho odstrániš."
       },
       "addExercise": {
         "title": "Pridať nový cvik",

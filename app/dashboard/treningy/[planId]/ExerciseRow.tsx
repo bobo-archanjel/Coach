@@ -13,6 +13,7 @@ import {
 import type { ExerciseDetail, ExerciseLibraryRow } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
+import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import styles from "@/app/components/workoutBuilder.module.css";
 
 const ExerciseDetailModal = dynamic(() =>
@@ -103,13 +104,20 @@ export function ExerciseRow({
             <span className={styles.editFieldLabel}>{t("load")}</span>
             <input name="load_kg" type="number" step="0.5" defaultValue={entry.load_kg ?? ""} placeholder="—" />
           </label>
-          <label className={`${styles.editField} ${styles.editFieldTempo}`}>
-            <span className={styles.editFieldLabel}>{t("tempo")}</span>
-            <input name="tempo" type="text" defaultValue={entry.tempo ?? ""} placeholder="—" />
-          </label>
           <label className={`${styles.editField} ${styles.editFieldRest}`}>
             <span className={styles.editFieldLabel}>{t("rest")}</span>
             <input name="rest_seconds" type="number" defaultValue={entry.rest_seconds ?? ""} placeholder="—" />
+          </label>
+          {/* pole „tempo“ v dátach = poznámka k cviku (lib/workouts/exerciseNote.ts) */}
+          <label className={`${styles.editField} ${styles.editFieldNote}`}>
+            <span className={styles.editFieldLabel}>{t("note")}</span>
+            <input
+              name="tempo"
+              type="text"
+              maxLength={EXERCISE_NOTE_MAX}
+              defaultValue={entry.tempo ?? ""}
+              placeholder={t("notePlaceholder")}
+            />
           </label>
         </div>
         <div className={styles.editActions}>
@@ -142,16 +150,8 @@ export function ExerciseRow({
         {entry.sets}× {entry.reps}
         {entry.load_kg ? ` @ ${entry.load_kg} kg` : ""}
       </span>
-      {(entry.tempo || entry.rest_seconds) && (
-        <span className={styles.exerciseMeta}>
-          {[
-            entry.tempo ? t("tempoValue", { value: entry.tempo }) : null,
-            entry.rest_seconds ? t("restValue", { seconds: entry.rest_seconds }) : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
-      )}
+      {entry.rest_seconds ? <span className={styles.exerciseMeta}>{t("restValue", { seconds: entry.rest_seconds })}</span> : null}
+      {entry.tempo && <span className={styles.exerciseNote}>„{entry.tempo}“</span>}
       <div className={styles.rowActions}>
         {onMove && (
           <div className={styles.reorderBtns}>

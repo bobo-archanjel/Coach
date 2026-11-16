@@ -33,6 +33,8 @@
   "done": "Hotovo",
   "reps": "Opakovania",
   "rest": "Pauza (s)",
+  "note": "Poznámka",
+  "notePlaceholder": "napr. pomaly dole, úzky úchop",
   "restValue": "pauza {seconds} s",
   "namePlaceholder": "napr. white monster plan",
   "daysAria": "Tréningové dni",

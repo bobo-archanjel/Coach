@@ -124,7 +124,7 @@ test.describe("detail dokončeného tréningu — tréner (?preview=done)", () =
     await expect(page.getByTestId("workout-status")).toHaveText(/Dokončený – 24\. 9\. 2026/);
 
     const drep = page.getByTestId("completed-exercise").filter({ hasText: "Drep s činkou" });
-    await expect(drep.getByText("Plán: 3 × 8 · 60 kg · tempo 3-0-1 · pauza 120 s")).toBeVisible();
+    await expect(drep.getByText("Plán: 3 × 8 · 60 kg · „3-0-1“ · pauza 120 s")).toBeVisible();
     const rows = drep.getByTestId("set-row");
     await expect(rows).toHaveCount(4);
     await expect(rows.nth(1)).toContainText("8 op. × 60 kg");

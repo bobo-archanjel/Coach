@@ -964,6 +964,15 @@
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
+/* poznámka k cviku od trénera / z vlastného plánu (v dátach `tempo`) */
+.exNote {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--paper-dim);
+  overflow-wrap: anywhere;
+}
 .exLoad {
   justify-self: end;
   text-align: right;
@@ -990,6 +999,13 @@
   font-size: 14px;
   font-weight: 720;
   margin-bottom: 10px;
+}
+.logExerciseNote {
+  margin: -6px 0 10px;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--paper-dim);
+  overflow-wrap: anywhere;
 }
 .logRows {
   display: grid;

@@ -149,7 +149,7 @@
   },
   "log": {
     "bodyweight": "vlastná váha",
-    "tempo": "tempo {tempo}",
+    "tempo": "„{tempo}“",
     "rest": "pauza {seconds} s",
     "extra": "navyše",
     "repsShort": "{reps} op.",

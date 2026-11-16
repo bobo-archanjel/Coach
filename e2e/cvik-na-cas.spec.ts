@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
 /**
+ * Poznámka k cviku (pole „Tempo“ premenované, v dátach ostáva `tempo`) v oboch builderoch.
+ *
  * Cvik na čas (statické holdy, plank): v úprave cviku prepínač „Opakovania / Čas“.
  * Čas sa uloží do `reps` ako „60 s“ (lib/workouts/timedReps.ts); zápis tréningu so
  * sekundami pokrýva e2e/training-done.spec.ts. DEV náhľady bez session.
@@ -29,6 +31,35 @@ test.describe("cvik na čas v builderi", () => {
     // späť na opakovania — pôvodná hodnota ostala
     await form.getByRole("radio", { name: "Opakovania" }).click();
     await expect(reps).toHaveValue("8-10");
+  });
+
+  test("tréner: pole Poznámka (predtým Tempo) na celú šírku, ide do „tempo“", async ({ page }) => {
+    await page.goto("/dashboard/treningy/x?preview=builder");
+    await page.getByRole("button", { name: "Upraviť cvik" }).first().click();
+    const note = page.getByLabel("Poznámka", { exact: true });
+    await expect(note).toHaveAttribute("name", "tempo");
+    await expect(note).toHaveAttribute("placeholder", "napr. pomaly dole, úzky úchop");
+    await expect(note).toHaveAttribute("maxlength", "200");
+    await expect(page.getByText("Tempo", { exact: true })).toHaveCount(0);
+  });
+
+  test("klient: vlastný tréning — poznámka k cviku sa zobrazí pod cvikom", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    await page.getByRole("button", { name: "Vlastný tréning" }).click();
+    await page.getByRole("button", { name: "+ deň" }).click();
+    const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
+    await dayDialog.locator("#client-day-name").fill("Ruky");
+    await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
+    await page.getByLabel("Názov vlastného cviku").fill("Bicepsový zdvih");
+    await page.getByRole("button", { name: "+ Pridať do tréningu" }).click();
+
+    await page.getByRole("button", { name: "Upraviť cvik" }).first().click();
+    await page.getByLabel("Poznámka", { exact: true }).fill("pomaly dole");
+    await page.getByRole("button", { name: "Hotovo", exact: true }).click();
+    await expect(page.getByText("„pomaly dole“")).toBeVisible();
+
+    await page.getByRole("button", { name: "Upraviť cvik" }).first().click();
+    await expect(page.getByLabel("Poznámka", { exact: true })).toHaveValue("pomaly dole");
   });
 
   test("klient: vlastný tréning — cvik na čas „3× 60 s“, úprava ho otvorí v režime Čas", async ({ page }) => {
