@@ -3042,15 +3042,6 @@ select.addClientInputSm {
     box-shadow: none;
   }
 }
-/* to isté na každej šírke — zoznam, ktorého riadky sú samé karty (Odcvičené tréningy
-   v detaile plánu): rám okolo by bol druhá vrstva, na počítači rovnako ako na mobile. */
-.cardFlat {
-  background: none;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
-}
 
 /* ---------- ďalší príjemcovia konceptu (šablóna pre viacerých klientov, 0052) ---------- */
 .recipients {
