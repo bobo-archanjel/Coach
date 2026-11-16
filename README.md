@@ -75,6 +75,13 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-16** — **Odstránenie klienta z portfólia, pridanie cviku počas tréningu, premenovanie sekcií** (`feature/premenovanie-sekcii`, **migrácia 0064**).
+  - **Tréner už nezmaže klienta s vlastným účtom** (mazalo to aj klientove vlastné dáta) — v Info je „Odstrániť z portfólia“: klient sa hneď odpojí, zverejnené plány, jedálničky, makro cieľ a merania mu ostanú, trénerove koncepty, poznámky, správy a termíny sa zmažú. Klient na karte Dnes vidí upozornenie. Klient bez účtu sa maže ako doteraz (30 dní). DB to vynucuje (`request_client_deletion` → `client_has_account`, `purge_deleted_clients`).
+  - **Klient si počas tréningu ručne pridá cvik** („+ Pridať cvik“, len názov, nie knižnica) — 3 prázdne série, štítok „Pridaný“, dá sa odobrať, prežije refresh; tréner ho vidí ako cvik mimo plánu. „Upraviť hodnoty“ zachová aj cviky mimo plánu.
+  - **Premenovanie:** u trénera „Posledná aktivita tréningov“; u klienta „Strava“ → „Jedálniček“ a „Denník“ → „Strava“ (adresy bez zmeny).
+  - **Sprievodca sekcií** čaká na obsah od začiatku kroku (na pomalej stránke nepreskočí kroky).
+  - **Testy:** `e2e/odstranenie-klienta.spec.ts`, pridanie cviku v `training-done`.
+
 - **2026-11-15** — **Právne stránky v6, burger na úvodnej stránke, Cloudflare na prihlásení, posuvníky** (`feature/pravne-stranky-v6`, bez migrácie).
   - **Obchodné podmienky, ochrana súkromia, cookies a 404** v dizajne v6 (téma svetlá/tmavá/auto, sklenená hlavička s jazykom a témou, dokument v sklenenej karte). Texty bez zmeny.
   - **Úvodná stránka na mobile:** v hlavičke logo, „Vyskúšať zadarmo“ a burger (Funkcie, AI, Cenník, Prihlásiť sa, jazyk a téma) — hlavička už nepreteká ani na iPhone SE. Na počítači bez zmeny.
