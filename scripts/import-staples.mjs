@@ -13,9 +13,14 @@
 //   node scripts/import-staples.mjs --apply            # zapíše/aktualizuje riadky v DB (idempotentné)
 //   node scripts/import-staples.mjs --source <cesta>   # lokálny .zip s XML alebo priečinok s XML
 //
+// Jednotky porcií (migrácia 0066): každá položka má "unit" ("g" | "ml" — základná jednotka
+// hodnôt na 100) a "pieceG" (typická hmotnosť jedného kusu jedlej časti, null = kus nedáva zmysel).
+// Zapisujú sa do foods.unit_base a foods.piece_g. Pri "ml" sa hodnoty z CIQUAL (na 100 g) berú
+// ako na 100 ml (bez prepočtu hustoty).
+//
 // --apply vyžaduje v .env.local: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
-// PORADIE: najprv migrácia 0064_foods_ciqual_staples.sql (stĺpec name_cs + zmazanie USDA
-// riadkov), potom `node scripts/import-staples.mjs --apply`.
+// PORADIE: najprv migrácie 0064_foods_ciqual_staples.sql (stĺpec name_cs + zmazanie USDA
+// riadkov) a 0066_portion_units.sql (unit_base, piece_g), potom `node scripts/import-staples.mjs --apply`.
 //
 // Zdroj: XML tabuľka CIQUAL 2020 (verzia 2020-07-07; súbory alim_*, compo_*, const_* v ZIP-e).
 // Ak je ciqual.anses.fr nedostupný (údržba), skript skúsi archív web.archive.org. ZIP sa
@@ -233,13 +238,15 @@ function buildRow(entry, ciqualName, v) {
   };
 }
 
+const unitOf = (entry) => (entry.unit === "ml" ? "ml" : "g");
+
 function printTable(rows) {
   const pad = (s, n) => String(s).padEnd(n).slice(0, n);
   const num = (x) => (x == null ? "  -  " : String(x).padStart(5));
-  console.log(`\n${pad("kód", 6)} ${pad("názov (SK)", 40)} ${"kcal".padStart(5)} ${"B".padStart(5)} ${"S".padStart(5)} ${"T".padStart(5)} ${"vlk".padStart(5)} ${"cuk".padStart(5)} ${"soľ".padStart(5)}  poznámky`);
+  console.log(`\n${pad("kód", 6)} ${pad("názov (SK)", 40)} ${"jed".padStart(3)} ${"kus_g".padStart(5)} ${"kcal".padStart(5)} ${"B".padStart(5)} ${"S".padStart(5)} ${"T".padStart(5)} ${"vlk".padStart(5)} ${"cuk".padStart(5)} ${"soľ".padStart(5)}  poznámky`);
   for (const r of rows) {
     console.log(
-      `${pad(r.entry.ciqualCode ?? "ručne", 6)} ${pad(r.entry.nameSk, 40)} ${num(r.kcal_100g)} ${num(r.protein_100g)} ${num(r.carbs_100g)} ${num(r.fat_100g)} ${num(r.fiber_100g)} ${num(r.sugars_100g)} ${num(r.salt_100g)}  ${r.flags.join(" ")}`,
+      `${pad(r.entry.ciqualCode ?? "ručne", 6)} ${pad(r.entry.nameSk, 40)} ${unitOf(r.entry).padStart(3)} ${num(r.entry.pieceG ?? null)} ${num(r.kcal_100g)} ${num(r.protein_100g)} ${num(r.carbs_100g)} ${num(r.fat_100g)} ${num(r.fiber_100g)} ${num(r.sugars_100g)} ${num(r.salt_100g)}  ${r.flags.join(" ")}`,
     );
   }
 }
@@ -268,7 +275,10 @@ async function main() {
   const list = JSON.parse(readFileSync(path.join(__dirname, "staples-ciqual.json"), "utf8"));
   console.log(`Zoznam: ${list.length} potravín (scripts/staples-ciqual.json). Režim: ${APPLY ? "APPLY (zápis do DB)" : "DRY RUN"}`);
 
-  const dupes = list.map(externalIdOf).filter((c, i, a) => a.indexOf(c) !== i);
+  const badUnits = list.filter((e) => !["g", "ml"].includes(e.unit) || (e.pieceG != null && !(e.pieceG > 0 && e.pieceG <= 5000)));
+  if (badUnits.length) throw new Error(`Neplatné unit/pieceG: ${badUnits.map((e) => e.nameSk).join(", ")}`);
+
+  const dupes =list.map(externalIdOf).filter((c, i, a) => a.indexOf(c) !== i);
   if (dupes.length) throw new Error(`Duplicitné položky v zozname: ${[...new Set(dupes)].join(", ")}`);
 
   const texts = await loadCiqualXml();
@@ -342,6 +352,8 @@ async function main() {
         fiber_100g: r.fiber_100g,
         sugars_100g: r.sugars_100g,
         salt_100g: r.salt_100g,
+        unit_base: unitOf(r.entry),
+        piece_g: r.entry.pieceG ?? null,
       },
       { onConflict: "external_id" },
     );

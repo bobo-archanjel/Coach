@@ -14,7 +14,7 @@
 
 import { unstable_cache } from "next/cache";
 import type { PortalFoodOption } from "@/lib/portal/types";
-import { parseOffProductResponse, type OffProduct } from "@/lib/offProduct";
+import { detectUnitBase, mapOffProduct, parseOffProductResponse, type OffProduct } from "@/lib/offProduct";
 
 const SEARCH_URL = "https://search.openfoodfacts.org/search";
 // Identifikuje appku podľa OFF pravidiel (odporúčané, nie API kľúč) — s kontaktným
@@ -28,6 +28,11 @@ interface OffHit {
   brands?: string[] | string;
   countries_tags?: string[];
   nutriments?: Record<string, number | string | undefined>;
+  serving_size?: string;
+  serving_quantity?: number | string | null;
+  product_quantity?: number | string | null;
+  product_quantity_unit?: string | null;
+  quantity?: string | null;
 }
 
 const LOCAL_COUNTRIES = new Set(["en:slovakia", "en:czech-republic"]);
@@ -45,6 +50,8 @@ function toOption(hit: OffHit): PortalFoodOption | null {
   const kcal = Number(n["energy-kcal_100g"]);
   if (!Number.isFinite(kcal)) return null; // bez energetickej hodnoty nie je na čo logovať
   const brand = brandLabel(hit.brands);
+  // balenie/jednotka/porcia rovnakými pravidlami ako pri skene (lib/offProduct.ts)
+  const mapped = mapOffProduct({ ...hit, nutriments: n } as OffProduct);
   return {
     foodId: null,
     name: brand ? `${name} (${brand})` : name,
@@ -52,6 +59,9 @@ function toOption(hit: OffHit): PortalFoodOption | null {
     protein100g: Number(n["proteins_100g"]) || 0,
     carbs100g: Number(n["carbohydrates_100g"]) || 0,
     fat100g: Number(n["fat_100g"]) || 0,
+    servingGrams: mapped.servingGrams,
+    packageGrams: mapped.packageGrams,
+    unitBase: detectUnitBase(hit as OffProduct),
     // kód produktu — builder jedálnička si podľa neho produkt uloží (potrebuje food_id)
     barcode: hit.code && /^\d{8,13}$/.test(hit.code) ? hit.code : null,
   };
@@ -69,7 +79,7 @@ export async function searchOpenFoodFacts(query: string): Promise<PortalFoodOpti
   const params = new URLSearchParams({
     q: trimmed,
     page_size: "20",
-    fields: "code,product_name,brands,nutriments,countries_tags",
+    fields: "code,product_name,brands,nutriments,countries_tags,serving_size,serving_quantity,product_quantity,product_quantity_unit,quantity",
   });
 
   const res = await fetch(`${SEARCH_URL}?${params.toString()}`, {
@@ -96,7 +106,7 @@ export async function searchOpenFoodFacts(query: string): Promise<PortalFoodOpti
 
 const searchCached = unstable_cache(
   (normalized: string) => searchOpenFoodFacts(normalized),
-  ["open-food-facts-search-v2"], // v2: výsledky nesú aj čiarový kód
+  ["open-food-facts-search-v3"], // v3: výsledky nesú aj porciu, balenie a jednotku (v2: čiarový kód)
   { revalidate: 3600 },
 );
 
@@ -117,7 +127,7 @@ export async function searchOpenFoodFactsCached(query: string): Promise<PortalFo
 // OFF sa pýtame len pri prvom skene daného kódu — OFF má limit na IP a Vercel ju zdieľa.
 const PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 const PRODUCT_FIELDS =
-  "code,product_name,product_name_sk,product_name_cs,brands,nutriments,serving_size,serving_quantity";
+  "code,product_name,product_name_sk,product_name_cs,brands,nutriments,serving_size,serving_quantity,product_quantity,product_quantity_unit,quantity";
 
 /** Produkt z OFF, null = OFF ho nepozná. Výpadok/timeout (5 s) vyhodí výnimku. */
 export async function fetchOpenFoodFactsProduct(code: string): Promise<OffProduct | null> {

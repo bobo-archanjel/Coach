@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER, type MealSlot } from "@/lib/meals";
 import { dbErr } from "@/lib/dbError";
+import { isPortionUnit, portionGrams, type BaseUnit, type PortionFood, type PortionUnit } from "@/lib/portions";
 
 export interface ActionState {
   error: string | null;
@@ -21,6 +22,11 @@ export interface MealEntry {
   food_name: string;
   meal_slot: MealSlot;
   grams: number;
+  /** ako tréner množstvo zadal (0066, ks/porcia/balenie/ml/g) — `grams` ostáva zdroj pravdy pre makrá */
+  portion_unit?: PortionUnit;
+  portion_qty?: number;
+  /** základná jednotka potraviny v čase zápisu (g/ml) — pre zobrazenie „1 balenie (330 ml)“ */
+  portion_base?: BaseUnit;
   kcal_100g: number;
   protein_100g: number;
   carbs_100g: number;
@@ -163,12 +169,49 @@ export interface MealDayDraft {
   /** null = nový deň (ešte nie je v DB) */
   id: string | null;
   name: string;
-  meals: { entry_id: string; food_id: string; meal_slot: MealSlot; grams: number }[];
+  meals: {
+    entry_id: string;
+    food_id: string;
+    meal_slot: MealSlot;
+    grams: number;
+    /** voliteľné — bez nich ide len gramáž (staré klienty / pred migráciou 0066) */
+    portion_unit?: PortionUnit;
+    portion_qty?: number;
+  }[];
 }
 
 const MAX_DAYS = 31;
 const MAX_ENTRIES_PER_DAY = 100;
 const ENTRY_ID_RE = /^[A-Za-z0-9-]{1,64}$/;
+
+type FoodRow = {
+  id: string;
+  name: string;
+  kcal_100g: number;
+  protein_100g: number;
+  carbs_100g: number;
+  fat_100g: number;
+  serving_g?: number | null;
+  unit_base?: string | null;
+  piece_g?: number | null;
+  package_g?: number | null;
+};
+
+/** Potraviny podľa id aj s údajmi o porciách; pred migráciou 0066 (chýbajúce stĺpce) bez nich. */
+async function loadFoodsForSave(supabase: Awaited<ReturnType<typeof createClient>>, ids: string[]) {
+  if (ids.length === 0) return { data: [] as FoodRow[], error: null };
+  const base = "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, serving_g";
+  const full = await supabase.from("foods").select(`${base}, unit_base, piece_g, package_g`).in("id", ids);
+  const res = full.error ? await supabase.from("foods").select(base).in("id", ids) : full;
+  return { data: (res.data ?? []) as unknown as FoodRow[], error: res.error };
+}
+
+const portionFood = (f: FoodRow): PortionFood => ({
+  unitBase: f.unit_base === "ml" ? "ml" : "g",
+  pieceGrams: f.piece_g == null ? null : Number(f.piece_g),
+  servingGrams: f.serving_g == null ? null : Number(f.serving_g),
+  packageGrams: f.package_g == null ? null : Number(f.package_g),
+});
 
 /**
  * Uloží celý jedálniček naraz — builder drží úpravy lokálne a posiela ich až po
@@ -206,9 +249,7 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
   const [{ data: plan }, { data: existing }, { data: foods, error: foodsError }] = await Promise.all([
     supabase.from("meal_plans").select("client_id").eq("id", planId).eq("trainer_id", user.id).maybeSingle(),
     supabase.from("meal_days").select("id, meals").eq("plan_id", planId),
-    foodIds.length > 0
-      ? supabase.from("foods").select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g").in("id", foodIds)
-      : Promise.resolve({ data: [], error: null }),
+    loadFoodsForSave(supabase, foodIds),
   ]);
   if (!plan) return { error: await tErr("meals.notFound") };
   if (foodsError) return { error: await dbErr(foodsError, "actions") };
@@ -231,11 +272,28 @@ export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[
           ? { food_name: prev.food_name, kcal_100g: prev.kcal_100g, protein_100g: prev.protein_100g, carbs_100g: prev.carbs_100g, fat_100g: prev.fat_100g }
           : null;
       if (!snapshot) return { error: await tErr("meals.foodMissing") };
+      // Gramáž z množstva × jednotky prepočítame z hodnôt potraviny v DB, nie z prehliadača.
+      // Jednotka, ktorú potravina nemá (alebo chýbajú stĺpce pred 0066), portion zahodí a ostane
+      // klientova gramáž — uloženie jedálnička sa nesmie kvôli porciám pokaziť.
+      let grams = Math.round(m.grams * 10) / 10;
+      let portion: { portion_unit: PortionUnit; portion_qty: number; portion_base: BaseUnit } | null = null;
+      if (isPortionUnit(m.portion_unit) && Number.isFinite(m.portion_qty) && (m.portion_qty as number) > 0) {
+        const qty = Math.round((m.portion_qty as number) * 100) / 100;
+        const g = food ? portionGrams(m.portion_unit, qty, portionFood(food)) : null;
+        if (g !== null && g <= 5000) {
+          grams = g;
+          portion = { portion_unit: m.portion_unit, portion_qty: qty, portion_base: food?.unit_base === "ml" ? "ml" : "g" };
+        } else if (!food && prev && prev.food_id === m.food_id && prev.portion_unit === m.portion_unit && prev.portion_qty === qty) {
+          // potravina zmazaná z knižnice, položka nezmenená — zachovaj zadanie
+          portion = { portion_unit: m.portion_unit, portion_qty: qty, portion_base: prev.portion_base === "ml" ? "ml" : "g" };
+        }
+      }
       meals.push({
         entry_id: ENTRY_ID_RE.test(m.entry_id) ? m.entry_id : randomUUID(),
         food_id: m.food_id,
         meal_slot: m.meal_slot,
-        grams: Math.round(m.grams * 10) / 10,
+        grams,
+        ...(portion ?? {}),
         ...snapshot,
       });
     }

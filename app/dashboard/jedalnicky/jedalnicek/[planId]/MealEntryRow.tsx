@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { MealEntry } from "../actions";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, type MealSlot } from "@/lib/meals";
+import type { PortionUnit } from "@/lib/portions";
+import { usePortionLabel } from "@/app/components/food/usePortionLabel";
 import { MacroChips } from "./MacroChips";
 import styles from "./builder.module.css";
 
@@ -26,30 +28,52 @@ export function MealEntryRow({
   onRemove,
 }: {
   entry: MealEntry;
-  onUpdate: (patch: { meal_slot: MealSlot; grams: number }) => void;
+  onUpdate: (patch: { meal_slot: MealSlot; grams: number; portion_unit: PortionUnit; portion_qty: number }) => void;
   onRemove: () => void;
 }) {
   const t = useTranslations("mealPlans.builder");
   const tl = useTranslations("labels");
+  const tf = useTranslations("food");
+  const portionLabel = usePortionLabel();
+  // Položka v ks/porcii/balení sa upravuje v tej istej jednotke (hmotnosť jednotky = grams / qty;
+  // pri uložení ju server prepočíta znova z potraviny). ml sa upravuje ako gramy a ostáva ml.
+  const perUnit =
+    (entry.portion_unit === "piece" || entry.portion_unit === "serving" || entry.portion_unit === "package") &&
+    entry.portion_qty &&
+    entry.portion_qty > 0
+      ? entry.grams / entry.portion_qty
+      : null;
+  const editUnit: PortionUnit | null = perUnit ? (entry.portion_unit as PortionUnit) : entry.portion_unit === "ml" ? "ml" : null;
+  const initialValue = perUnit ? (entry.portion_qty as number) : entry.grams;
   const [editing, setEditing] = useState(false);
   const [slot, setSlot] = useState<MealSlot>(entry.meal_slot);
-  const [grams, setGrams] = useState(String(entry.grams));
+  const [grams, setGrams] = useState(String(initialValue));
   const [error, setError] = useState<string | null>(null);
 
   const startEdit = () => {
     setSlot(entry.meal_slot);
-    setGrams(String(entry.grams));
+    setGrams(String(initialValue));
     setError(null);
     setEditing(true);
   };
 
   const apply = () => {
-    const g = Number(grams.replace(",", "."));
-    if (!Number.isFinite(g) || g <= 0 || g > 5000) {
-      setError(t("gramsRange"));
+    const v = Number(grams.replace(",", "."));
+    const g = perUnit ? v * perUnit : v;
+    if (!Number.isFinite(v) || v <= 0 || !Number.isFinite(g) || g <= 0 || g > 5000) {
+      setError(t(perUnit ? "qtyRange" : "gramsRange"));
       return;
     }
-    onUpdate({ meal_slot: slot, grams: Math.round(g * 10) / 10 });
+    const rounded = Math.round(g * 10) / 10;
+    // vždy pošli jednotku: inak by `{...m, ...patch}` nechal starú (napr. g s pôvodným množstvom)
+    // a server by prepísal novú gramáž
+    onUpdate({
+      meal_slot: slot,
+      grams: rounded,
+      ...(perUnit
+        ? { portion_unit: editUnit as PortionUnit, portion_qty: Math.round(v * 100) / 100 }
+        : { portion_unit: editUnit === "ml" ? ("ml" as const) : ("g" as const), portion_qty: rounded }),
+    });
     setEditing(false);
   };
 
@@ -77,7 +101,7 @@ export function MealEntryRow({
             </select>
           </label>
           <label className={`${styles.editField} ${styles.editFieldGrams}`}>
-            <span className={styles.editFieldLabel}>{t("grams")}</span>
+            <span className={styles.editFieldLabel}>{editUnit ? t("quantity", { unit: tf(`unit.${editUnit}`) }) : t("grams")}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -104,7 +128,7 @@ export function MealEntryRow({
     <div className={styles.exerciseRow}>
       <span className={styles.exerciseName}>{entry.food_name}</span>
       <span className={styles.exerciseSummary}>
-        {entry.grams} g · {macros.kcal} kcal
+        {portionLabel({ grams: entry.grams, unit: entry.portion_unit, qty: entry.portion_qty, base: entry.portion_base })} · {macros.kcal} kcal
       </span>
       <MacroChips proteinG={macros.proteinG} carbsG={macros.carbsG} fatG={macros.fatG} />
       <div className={styles.rowActions}>

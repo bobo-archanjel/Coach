@@ -54,7 +54,9 @@
     "renameDayTitle": "Přejmenovat den",
     "newDayTitle": "Nový den",
     "close": "Zavřít",
-    "daysAria": "Dny jídelníčku"
+    "daysAria": "Dny jídelníčku",
+    "quantity": "Množství ({unit})",
+    "qtyRange": "Zadej množství, které dává 0,1–5000 g."
   },
   "controls": {
     "draftBadge": "Koncept — klient ho ještě nevidí",

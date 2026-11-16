@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { formatPortion } from "@/lib/portions";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { TemplatesList, type TemplateItem } from "./TemplatesList";
@@ -9,17 +10,19 @@ import t from "./templates.module.css";
 
 type Kind = "workout" | "meal";
 
+type MealEntryLite = { grams?: number; portion_unit?: string; portion_qty?: number; portion_base?: string };
+
 type DayRow = { day_number: number; name: string; exercises?: unknown; meals?: unknown };
 
 /** Dni šablóny → náhľad: názov dňa a položky (cviky / potraviny s gramážou). */
-function toDays(rows: DayRow[] | null, kind: Kind): TemplateItem["days"] {
+function toDays(rows: DayRow[] | null, kind: Kind, portionText: (e: MealEntryLite) => string): TemplateItem["days"] {
   return [...(rows ?? [])]
     .sort((a, b) => a.day_number - b.day_number)
     .map((d) => {
       const raw = (kind === "workout" ? d.exercises : d.meals) as unknown;
-      const entries = (Array.isArray(raw) ? raw : []) as { exercise_name?: string; food_name?: string; grams?: number }[];
+      const entries = (Array.isArray(raw) ? raw : []) as ({ exercise_name?: string; food_name?: string } & MealEntryLite)[];
       const items = entries
-        .map((e) => (kind === "workout" ? e.exercise_name : e.food_name ? `${e.food_name}${e.grams ? ` ${e.grams} g` : ""}` : null))
+        .map((e) => (kind === "workout" ? e.exercise_name : e.food_name ? `${e.food_name}${e.grams ? ` ${portionText(e)}` : ""}` : null))
         .filter((x): x is string => Boolean(x));
       return { name: d.name, items };
     });
@@ -33,6 +36,9 @@ function toDays(rows: DayRow[] | null, kind: Kind): TemplateItem["days"] {
  */
 export default async function SablonyPage({ searchParams }: { searchParams: Promise<{ typ?: string }> }) {
   const tt = await getTranslations("templates");
+  const tPortion = await getTranslations("food.portion");
+  const portionText = (e: MealEntryLite) =>
+    formatPortion((k, v) => tPortion(k, v), { grams: e.grams ?? 0, unit: e.portion_unit, qty: e.portion_qty, base: e.portion_base });
   const {
     data: { user },
   } = await getUser();
@@ -59,12 +65,12 @@ export default async function SablonyPage({ searchParams }: { searchParams: Prom
   const workoutItems: TemplateItem[] = (planTemplates ?? []).map((tpl) => ({
     id: tpl.id,
     name: tpl.name,
-    days: toDays(tpl.plan_template_days as DayRow[] | null, "workout"),
+    days: toDays(tpl.plan_template_days as DayRow[] | null, "workout", portionText),
   }));
   const mealItems: TemplateItem[] = (mealTemplates ?? []).map((tpl) => ({
     id: tpl.id,
     name: tpl.name,
-    days: toDays(tpl.meal_template_days as DayRow[] | null, "meal"),
+    days: toDays(tpl.meal_template_days as DayRow[] | null, "meal", portionText),
   }));
   const items = kind === "workout" ? workoutItems : mealItems;
 

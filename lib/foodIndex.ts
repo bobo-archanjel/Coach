@@ -190,6 +190,8 @@ export function indexedToOption(f: IndexedFood): PortalFoodOption {
     sugars100g: f.sugars,
     salt100g: f.salt,
     servingGrams: f.servingGrams,
+    packageGrams: f.packageGrams,
+    unitBase: f.unit,
     source: "off",
     barcode: f.code,
   };

@@ -133,7 +133,7 @@ test.describe("builder jedálnička: riadky jedál a panel Pridať jedlo (reáln
     await expect(sheet.getByRole("tab", { name: "Knižnica" })).toHaveAttribute("aria-selected", "true");
     await sheet.getByLabel("Hľadať potravinu v knižnici").fill("vajcia");
     await sheet.getByRole("button", { name: /Vajcia \(celé/ }).click();
-    await sheet.getByLabel("Gramáž v gramoch").fill("120");
+    await sheet.getByLabel("Množstvo", { exact: true }).fill("120");
     await sheet.getByRole("button", { name: "Pridať", exact: true }).click();
     await expect(sheet.getByText(/„Vajcia \(celé.*“ pridané\./)).toBeVisible();
     await sheet.getByRole("button", { name: "Zavrieť" }).click();
@@ -147,7 +147,8 @@ test.describe("builder jedálnička: riadky jedál a panel Pridať jedlo (reáln
     await scanner.getByRole("button", { name: "Hľadať" }).click();
     await expect(scanner).toBeHidden();
     await expect(sheet.getByText(`${offName} (FitPilot E2E)`)).toBeVisible();
-    await expect(sheet.getByLabel("Gramáž v gramoch")).toHaveValue("150");
+    await expect(sheet.getByLabel("Množstvo", { exact: true })).toHaveValue("1"); // porcia 150 g → 1 porcia
+    await expect(sheet.getByText("= 150 g")).toBeVisible();
     await sheet.getByRole("button", { name: "Pridať", exact: true }).click();
     await sheet.getByRole("button", { name: "Zavrieť" }).click();
 
@@ -161,7 +162,7 @@ test.describe("builder jedálnička: riadky jedál a panel Pridať jedlo (reáln
     await field("Sacharidy g").fill("4");
     await field("Tuky g").fill("4");
     await sheet.getByRole("button", { name: "Uložiť potravinu" }).click();
-    await expect(sheet.getByLabel("Gramáž v gramoch")).toHaveValue("100");
+    await expect(sheet.getByLabel("Množstvo", { exact: true })).toHaveValue("100");
     await sheet.getByRole("button", { name: "Pridať", exact: true }).click();
     await sheet.getByRole("button", { name: "Zavrieť" }).click();
 

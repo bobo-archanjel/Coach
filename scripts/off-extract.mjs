@@ -19,7 +19,22 @@
 //      pri 12 g B + 1 g S + 10 g T vypadnú).
 //   Čísla sa zaokrúhľujú na 1 desatinné miesto (soľ na 2), chýbajúce voliteľné hodnoty = null.
 //
-// Záznam: [kód, názov, značka, kcal, bielkoviny, sacharidy, tuky, vláknina, cukry, soľ, porcia_g]
+// Záznam: [kód, názov, značka, kcal, bielkoviny, sacharidy, tuky, vláknina, cukry, soľ, porcia_g,
+//          balenie_g, jednotka]
+//
+// Jednotky porcií (migrácia 0066):
+//   unit ("g" | "ml") = základná jednotka hodnôt na 100 a aj serving_g/package_g. OFF nemá
+//   samostatné pole "na 100 ml" (nutrition_data_per je len 100g|serving; nápoje majú hodnoty
+//   v *_100g aj keď sú v skutočnosti na 100 ml), preto sa odvodzuje z množstva balenia:
+//     1. product_quantity_unit = 'ml'                           -> ml
+//     2. product_quantity_unit chýba/iná a text "quantity" je v kvapalných jednotkách
+//        (ml, cl, dl, l) a neobsahuje g/kg                       -> ml
+//     3. inak, ak porcia (serving_size) je v ml a nie v g        -> ml
+//     4. inak                                                    -> g
+//   (Zmiešané "86 g (120 ml)" je g — prvé uvedené množstvo je hmotnosť.)
+//   package_g = veľkosť balenia v g/ml: product_quantity (OFF ho už vedie v g/ml); ak chýba,
+//   z textu quantity (kg->g, l->1000 ml, cl->10 ml, dl->100 ml). Len ak je 0 < x <= 5000 a
+//   jednotka balenia sedí s unit (balenie v g pri ml produkte a naopak sa zahodí) — inak null.
 //
 // === Regenerácia balíka (odporúčané raz týždenne / mesačne) ===
 //   npm run food-data
@@ -82,7 +97,8 @@ await c.run(`CREATE TABLE p AS SELECT * FROM (
     list_extract(string_split(brands, ','),1) AS brand,
     ${nut("energy-kcal")} AS kcal, ${nut("proteins")} AS prot, ${nut("carbohydrates")} AS carb, ${nut("fat")} AS fat,
     ${nut("fiber")} AS fiber, ${nut("sugars")} AS sugars, ${nut("salt")} AS salt,
-    try_cast(serving_quantity AS DOUBLE) AS serving,
+    try_cast(serving_quantity AS DOUBLE) AS serving, serving_size AS serving_txt,
+    try_cast(product_quantity AS DOUBLE) AS pq, lower(product_quantity_unit) AS pqu, quantity AS qty_txt,
     coalesce(unique_scans_n,0) AS scans, coalesce(popularity_key,0) AS pop, countries_tags
   FROM read_parquet('${URL_}')
   WHERE list_has_any(countries_tags, [${tagList}]) AND coalesce(obsolete,false)=false
@@ -117,11 +133,32 @@ const kept = all.filter((r) => {
 });
 console.log(`Filtre: vstup ${all.length}, názov ${drops.name.n ?? 0}, samé nuly ${drops.zero.n ?? 0}, Atwater ${drops.atwater.n ?? 0}, zostalo ${kept.length}`);
 for (const [k, a] of Object.entries(drops)) { console.log("-- vyradené (" + k + ") príklady:"); a.forEach((x) => console.log("   " + x)); }
-const recs = kept.map((r) => [r.code, r.name.trim(), (r.brand ?? "").trim() || null, r1(r.kcal), r1(r.prot), r1(r.carb), r1(r.fat), r1(r.fiber), r1(r.sugars), r.salt == null ? null : Math.round(Number(r.salt) * 100) / 100, r.serving ? Math.round(r.serving) : null]);
+const UNIT_MUL = { g: ["g", 1], kg: ["g", 1000], ml: ["ml", 1], cl: ["ml", 10], dl: ["ml", 100], l: ["ml", 1000] };
+/** "500 g", "1,5 l", "4 x 125 g" -> {u:"g"|"ml", v:číslo} (prvé množstvo, násobok x sa započíta); inak null. */
+const parseQty = (t) => {
+  const m = (t ?? "").toLowerCase().replace(",", ".").match(/(?:(d+)s*[x×]s*)?(d+(?:.d+)?)s*(kg|g|ml|cl|dl|l)/);
+  if (!m) return null;
+  const [u, mul] = UNIT_MUL[m[3]];
+  return { u, v: Number(m[2]) * mul * (m[1] ? Number(m[1]) : 1) };
+};
+const unitOf = (r) => {
+  const q = parseQty(r.qty_txt);
+  if (r.pqu === "ml") return "ml";
+  if (r.pqu === "g") return "g";
+  if (q) return q.u;
+  const sv = (r.serving_txt ?? "").toLowerCase();
+  return /ds*(ml|cl|dl|l)/.test(sv) && !/ds*(g|kg)/.test(sv) ? "ml" : "g";
+};
+const packageOf = (r, unit) => {
+  let v = r.pq != null && (r.pqu === unit || r.pqu == null) ? Number(r.pq) : null;
+  if (v == null) { const q = parseQty(r.qty_txt); if (q && q.u === unit) v = q.v; }
+  return v != null && v > 0 && v <= 5000 ? Math.round(v * 10) / 10 : null;
+};
+const recs = kept.map((r) => [r.code, r.name.trim(), (r.brand ?? "").trim() || null, r1(r.kcal), r1(r.prot), r1(r.carb), r1(r.fat), r1(r.fiber), r1(r.sugars), r.salt == null ? null : Math.round(Number(r.salt) * 100) / 100, r.serving ? Math.round(r.serving) : null, packageOf(r, unitOf(r)), unitOf(r)]);
 if (bundle) {
   const rows = limit ? recs.slice(0, limit) : recs;
   const d = new Date(); const v = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-  const cols = ["code", "name", "brand", "kcal", "protein", "carbs", "fat", "fiber", "sugars", "salt", "serving_g"];
+  const cols = ["code", "name", "brand", "kcal", "protein", "carbs", "fat", "fiber", "sugars", "salt", "serving_g", "package_g", "unit"];
   const file = `off-eu-${v}.json.gz`;
   for (const f of readdirSync(out)) if (/^off-eu-.*\.json\.gz$/.test(f)) unlinkSync(path.join(out, f));
   const gz = gzipSync(Buffer.from(JSON.stringify({ v, cols, rows })), { level: 9 });

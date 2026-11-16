@@ -7,6 +7,7 @@ import { createTranslator } from "next-intl";
 import skLabels from "@/messages/sk/labels.json";
 import csLabels from "@/messages/cs/labels.json";
 import { createPdfContext, MACRO_COLORS, PdfWriter, signed, type TableColumn, type TableRow } from "./document";
+import { formatPortion } from "@/lib/portions";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 
 /** Tvar položky v meal_days.meals (JSONB), viď MealEntry v app/dashboard/jedalnicky/jedalnicek/actions.ts. */
@@ -14,6 +15,10 @@ export interface MealPlanReportEntry {
   food_name?: string;
   meal_slot?: MealSlot;
   grams?: number;
+  /** 0066 — ako tréner množstvo zadal; chýba pri starších jedálničkoch */
+  portion_unit?: string;
+  portion_qty?: number;
+  portion_base?: string;
   kcal_100g?: number;
   protein_100g?: number;
   carbs_100g?: number;
@@ -73,8 +78,8 @@ export async function generateMealPlanPdf(input: MealPlanReportInput, locale: Lo
     namespace: "labels.mealSlot",
   });
   const COLUMNS: TableColumn[] = [
-    { text: t("meal.food"), width: 200 },
-    { text: t("meal.grams"), width: 60, align: "right" },
+    { text: t("meal.food"), width: 160 },
+    { text: t("meal.grams"), width: 100, align: "right" },
     { text: t("meal.kcal"), width: 50, align: "right" },
     { text: t("meal.p"), width: 45, align: "right" },
     { text: t("meal.c"), width: 45, align: "right" },
@@ -110,7 +115,7 @@ export async function generateMealPlanPdf(input: MealPlanReportInput, locale: Lo
       for (const e of items) {
         const m = macrosOf(e);
         rows.push({
-          cells: [e.food_name ?? t("meal.food"), `${num(e.grams)} g`, String(m.kcal), `${m.proteinG}`, `${m.carbsG}`, `${m.fatG}`],
+          cells: [e.food_name ?? t("meal.food"), formatPortion((k, v) => t(`meal.portion.${k}`, v), { grams: num(e.grams), unit: e.portion_unit, qty: e.portion_qty, base: e.portion_base }), String(m.kcal), `${m.proteinG}`, `${m.carbsG}`, `${m.fatG}`],
         });
       }
     }

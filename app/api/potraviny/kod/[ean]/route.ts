@@ -21,10 +21,14 @@ import {
   type OffProduct,
 } from "@/lib/offProduct";
 import { allowWithinWindow } from "@/lib/rateLimitMemory";
+import { isMissingColumn } from "@/lib/dbError";
 import type { BarcodeLookupResult, BarcodePrefill, FoodSource, PortalFoodOption } from "@/lib/portal/types";
 
-const FOOD_COLUMNS =
+const BASE_COLUMNS =
   "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by";
+// package_g/unit_base pribudli v migrácii 0066 — kým nebeží, dopyty idú bez nich (BASE_COLUMNS)
+const FOOD_COLUMNS =
+  "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by, package_g, unit_base";
 
 type FoodRow = {
   id: string;
@@ -37,6 +41,8 @@ type FoodRow = {
   sugars_100g: number | null;
   salt_100g: number | null;
   serving_g: number | null;
+  package_g: number | null;
+  unit_base: "g" | "ml";
   source: FoodSource;
   created_by: string | null;
 };
@@ -53,6 +59,8 @@ function toOption(row: FoodRow, barcode: string): PortalFoodOption {
     sugars100g: row.sugars_100g === null ? null : Number(row.sugars_100g),
     salt100g: row.salt_100g === null ? null : Number(row.salt_100g),
     servingGrams: row.serving_g === null ? null : Number(row.serving_g),
+    packageGrams: row.package_g == null ? null : Number(row.package_g),
+    unitBase: row.unit_base === "ml" ? "ml" : "g",
     source: row.source,
     barcode,
   };
@@ -115,12 +123,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   // 1) vlastná DB
   const supabase = await createClient();
-  const { data: rows, error } = await supabase.from("foods").select(FOOD_COLUMNS).eq("barcode", code).limit(10);
+  const lookup = (cols: string) => supabase.from("foods").select(cols).eq("barcode", code).limit(10);
+  let { data: rows, error } = await lookup(FOOD_COLUMNS);
+  if (isMissingColumn(error)) ({ data: rows, error } = await lookup(BASE_COLUMNS));
   if (error) {
     console.error("potraviny/kod DB:", error.message);
     return reply({ status: "error", error: await tErr("api.lookupFailed") }, 500);
   }
-  const best = pickBest((rows ?? []) as FoodRow[], user.id);
+  const best = pickBest((rows ?? []) as unknown as FoodRow[], user.id);
   if (best) return reply({ status: "found", food: toOption(best, code) });
 
   // 2) Open Food Facts — limit na inštanciu (OFF ráta požiadavky na IP)
@@ -147,7 +157,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!isCompleteFood(mapped)) return reply({ status: "not_found", food: prefill(code, mapped) });
 
   // 3) uložiť ako globálny 'off' záznam — service role (používatelia 'off' zapisovať nesmú, RLS 0050)
-  const row = {
+  const legacyRow = {
     name: foodDisplayName(mapped.name, mapped.brand).slice(0, 120),
     kcal_100g: mapped.kcal,
     protein_100g: mapped.protein,
@@ -163,19 +173,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     created_by: null,
     off_synced_at: new Date().toISOString(),
   };
+  const row = { ...legacyRow, package_g: mapped.packageGrams, unit_base: mapped.unitBase };
   const admin = tryCreateAdminClient();
   if (admin) {
-    const { data: saved, error: insertError } = await admin.from("foods").insert(row).select(FOOD_COLUMNS).single();
-    if (saved) return reply({ status: "found", food: toOption(saved as FoodRow, code) });
+    let { data: saved, error: insertError } = await admin.from("foods").insert(row).select(FOOD_COLUMNS).single();
+    const legacy = isMissingColumn(insertError);
+    if (legacy) {
+      ({ data: saved, error: insertError } = await admin.from("foods").insert(legacyRow).select(BASE_COLUMNS).single());
+    }
+    if (saved) {
+      const food = toOption(saved as unknown as FoodRow, code);
+      // pred migráciou sa balenie/ml neuložia, ale klient ich dostane z OFF hneď
+      return reply({ status: "found", food: legacy ? { ...food, packageGrams: mapped.packageGrams, unitBase: mapped.unitBase } : food });
+    }
     if (insertError?.code === "23505") {
       // súbežný sken toho istého kódu — záznam už medzitým vznikol
       const { data: existing } = await admin
         .from("foods")
-        .select(FOOD_COLUMNS)
+        .select(legacy ? BASE_COLUMNS : FOOD_COLUMNS)
         .eq("barcode", code)
         .in("source", ["import", "off"])
         .maybeSingle();
-      if (existing) return reply({ status: "found", food: toOption(existing as FoodRow, code) });
+      if (existing) return reply({ status: "found", food: toOption(existing as unknown as FoodRow, code) });
     }
     console.error("potraviny/kod uloženie:", insertError?.message);
   }
@@ -194,6 +213,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       sugars100g: mapped.sugars,
       salt100g: mapped.salt,
       servingGrams: mapped.servingGrams,
+      packageGrams: mapped.packageGrams,
+      unitBase: mapped.unitBase,
       source: "off",
       barcode: code,
     },

@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { scaleFoodMacros } from "@/lib/meals";
+import { baseUnitOf, defaultPortion, MAX_PORTION_GRAMS, portionGrams, portionOptions, type PortionUnit } from "@/lib/portions";
 import { ensureFoodIndex, getFoodIndexStatus, lookupFoodIndexBarcode, searchFoodIndex, subscribeFoodIndex } from "@/lib/foodIndex";
 import { filterByQuery } from "@/lib/foodIndexCore";
 import type { BarcodeLookupResult, BarcodePrefill, PortalFoodOption } from "@/lib/portal/types";
@@ -68,7 +69,8 @@ const emptyPrefill = (barcode: string): BarcodePrefill => ({
  * musí mať riadok v `foods` (jedálniček ukladá makrá podľa food_id) — online produkt sa
  * preto pri výbere uloží cez tú istú route ako sken.
  *
- * Vybraná potravina → gramáž → `onSubmit`. S `pending` (denník: server action) sa
+ * Vybraná potravina → množstvo × jednotka (g/ml, ks, porcia, balenie — len tie, ktoré
+ * potravina má; lib/portions.ts) → `onSubmit` s prepočítanými gramami. S `pending` (denník: server action) sa
  * potvrdenie ukáže po jej dobehnutí, bez neho (builder: lokálny koncept) hneď.
  * Po pridaní panel ostáva otvorený (celé jedlo naraz).
  */
@@ -92,7 +94,8 @@ export function FoodPickerSheet({
   staples?: PortalFoodOption[];
   pending?: boolean;
   error?: string | null;
-  onSubmit: (food: PortalFoodOption, grams: number) => void;
+  /** `grams` je prepočet z množstva × jednotky (zdroj pravdy pre makrá), `portion` to, ako to používateľ zadal */
+  onSubmit: (food: PortalFoodOption, grams: number, portion: { unit: PortionUnit; qty: number }) => void;
   /** nová vlastná potravina (formulár) — builder si ju pridá do knižnice */
   onFoodCreated?: (food: PortalFoodOption) => void;
   onClose: () => void;
@@ -108,7 +111,8 @@ export function FoodPickerSheet({
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchSeq = useRef(0);
   const [picked, setPicked] = useState<PortalFoodOption | null>(null);
-  const [grams, setGrams] = useState("100");
+  const [unit, setUnit] = useState<PortionUnit>("g");
+  const [qty, setQty] = useState("100");
   const [attempted, setAttempted] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
 
@@ -199,7 +203,7 @@ export function FoodPickerSheet({
       const hit = lookupFoodIndexBarcode(code);
       if (hit) {
         setLookup(null);
-        pick(hit, hit.servingGrams ?? 100);
+        pick(hit);
         return;
       }
     }
@@ -212,7 +216,7 @@ export function FoodPickerSheet({
         if (lookupSeq.current !== seq) return; // medzitým zrušené / nový sken
         if (res.status === "found") {
           setLookup(null);
-          pick(res.food, res.food.servingGrams ?? 100);
+          pick(res.food);
         } else if (res.status === "not_found") {
           setLookup({ kind: "not_found", prefill: res.food });
         } else {
@@ -226,10 +230,20 @@ export function FoodPickerSheet({
     setLookup(null);
   }
 
-  function pick(option: PortalFoodOption, defaultGrams = 100) {
+  function pick(option: PortalFoodOption) {
+    const d = defaultPortion(option);
     setPicked(option);
     setJustAdded(null);
-    setGrams(String(defaultGrams));
+    setUnit(d.unit);
+    setQty(String(d.qty));
+  }
+
+  /** Zmena jednotky: na g/ml necháme rovnaké množstvo v gramoch, na ks/porciu/balenie začíname od 1. */
+  function changeUnit(next: PortionUnit) {
+    if (!picked || next === unit) return;
+    const isBase = next === "g" || next === "ml";
+    setUnit(next);
+    setQty(isBase ? String(Math.round(grams ?? 100)) : "1");
   }
 
   /** Klik na výsledok. Tréner potrebuje potravinu v DB — online produkt sa uloží cez sken route. */
@@ -249,10 +263,9 @@ export function FoodPickerSheet({
 
   function submitPicked() {
     if (!picked) return;
-    const g = Number(grams);
-    const grams_ = Number.isFinite(g) ? g : 0;
+    if (grams === null) return;
     setAttempted(picked.name);
-    onSubmit(picked, grams_);
+    onSubmit(picked, grams, { unit, qty: qtyNum });
     if (pending === undefined) {
       // lokálny koncept (builder) — pridané hneď
       setJustAdded(picked.name);
@@ -299,10 +312,16 @@ export function FoodPickerSheet({
     };
   }, []);
 
+  // Množstvo smie byť desatinné (0,5 ks) — čiarka aj bodka.
+  const qtyNum = Number(qty.replace(",", "."));
+  const unitOptions = picked ? portionOptions(picked) : [];
+  const base = picked ? baseUnitOf(picked) : "g";
+  const rawGrams = picked ? portionGrams(unit, qtyNum, picked) : null;
+  const grams = rawGrams !== null && rawGrams <= MAX_PORTION_GRAMS ? rawGrams : null;
   const pickedPreview = picked
     ? scaleFoodMacros(
         { kcal_100g: picked.kcal100g, protein_100g: picked.protein100g, carbs_100g: picked.carbs100g, fat_100g: picked.fat100g },
-        Number(grams) > 0 ? Number(grams) : 0,
+        grams ?? 0,
       )
     : null;
   const shortQuery = trimmed.length < MIN_OFFLINE_QUERY_LEN;
@@ -310,7 +329,9 @@ export function FoodPickerSheet({
     <li key={`${option.foodId ?? option.name}-${i}`}>
       <button type="button" className={styles.pick} onClick={() => choose(option)}>
         <span className={styles.pickName}>{option.name}</span>
-        <span className={styles.pickMacro}>{t("per100Short", { kcal: Math.round(option.kcal100g) })}</span>
+        <span className={styles.pickMacro}>
+          {t("per100Short", { kcal: Math.round(option.kcal100g), unit: baseUnitOf(option) })}
+        </span>
       </button>
     </li>
   );
@@ -333,23 +354,59 @@ export function FoodPickerSheet({
           <>
             <div className={styles.gramRow}>
               <span className={styles.gramPicked}>{picked.name}</span>
-              <label className={styles.gramField}>
-                <input
-                  className={styles.gramInput}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={5000}
-                  value={grams}
-                  onChange={(e) => setGrams(e.target.value)}
-                  aria-label={t("grams")}
-                />
-                <span className={styles.gramUnit}>g</span>
-              </label>
-              <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={submitPicked}>
+              <button type="button" className="btn btn-primary btn-sm" disabled={pending || grams === null} onClick={submitPicked}>
                 {pending ? "…" : t("add")}
               </button>
             </div>
+            <div className={styles.qtyRow}>
+              <input
+                className={`${styles.gramInput} ${styles.qtyInput}`}
+                type="text"
+                inputMode="decimal"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                aria-label={t("quantity")}
+                data-testid="food-qty"
+              />
+              {unitOptions.length > 1 ? (
+                <div className={styles.unitSeg} role="group" aria-label={t("unitGroup")}>
+                  {unitOptions.map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      aria-pressed={unit === u}
+                      className={`${styles.unitBtn} ${unit === u ? styles.unitBtnActive : ""}`}
+                      onClick={() => changeUnit(u)}
+                    >
+                      {t(`unit.${u}`)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span className={styles.gramUnit}>{base}</span>
+              )}
+            </div>
+            {unit !== "g" && unit !== "ml" && (
+              <div className={styles.qtyChips} role="group" aria-label={t("quickQty")}>
+                {([0.5, 1, 2] as const).map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    className={`${styles.qtyChip} ${qtyNum === q ? styles.qtyChipActive : ""}`}
+                    onClick={() => setQty(String(q))}
+                  >
+                    {q === 0.5 ? "½" : q}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* prepočet má zmysel len pri ks/porcii/balení — pri g/ml by opakoval zadané číslo */}
+            {(grams === null || unit !== base) && (
+              <p className={styles.meta}>
+                {grams === null ? t("qtyInvalid", { max: MAX_PORTION_GRAMS, unit: base }) : t("total", { grams, unit: base })}
+              </p>
+            )}
             {pickedPreview && (
               <p className={styles.meta}>
                 {t("perPortion", {
@@ -363,12 +420,13 @@ export function FoodPickerSheet({
             {picked.barcode && (
               <p className={styles.meta}>
                 {t("per100", {
+                  unit: base,
                   kcal: Math.round(picked.kcal100g),
                   protein: picked.protein100g,
                   carbs: picked.carbs100g,
                   fat: picked.fat100g,
                 })}
-                {picked.servingGrams ? t("serving", { grams: picked.servingGrams }) : ""}
+                {picked.servingGrams ? t("serving", { grams: picked.servingGrams, unit: base }) : ""}
               </p>
             )}
             {picked.source === "off" && <p className={styles.source}>{t("sourceOff")}</p>}

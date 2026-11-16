@@ -4,10 +4,11 @@ import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { MEAL_SLOT_ORDER } from "@/lib/meals";
+import { isPortionUnit, MAX_PORTION_GRAMS, portionGrams, type PortionUnit } from "@/lib/portions";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
 import { getPortalWeek } from "@/lib/portal/data";
 import type { PortalWeekResult } from "@/lib/portal/types";
-import { dbErr } from "@/lib/dbError";
+import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isValidReps, isValidWeight } from "@/lib/workouts/setInput";
 import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
 
@@ -359,6 +360,38 @@ export async function updateWorkoutLogAction(input: {
   return ok;
 }
 
+type FoodForLog = {
+  name: string;
+  kcal_100g: number;
+  protein_100g: number;
+  carbs_100g: number;
+  fat_100g: number;
+  serving_g?: number | null;
+  unit_base?: string | null;
+  piece_g?: number | null;
+  package_g?: number | null;
+};
+
+/** Potravina pre zápis do denníka; údaje o porciách (0066) sa pred migráciou nedajú načítať — bez nich. */
+async function loadFoodForLog(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<FoodForLog | null> {
+  const base = "name, kcal_100g, protein_100g, carbs_100g, fat_100g, serving_g";
+  const full = await supabase.from("foods").select(`${base}, unit_base, piece_g, package_g`).eq("id", id).maybeSingle();
+  if (!full.error) return full.data as unknown as FoodForLog | null;
+  const plain = await supabase.from("foods").select(base).eq("id", id).maybeSingle();
+  return (plain.data as unknown as FoodForLog | null) ?? null;
+}
+
+/**
+ * Porcia z formulára (portion_unit + portion_qty). Neplatná / chýbajúca → null (ostanú len gramy).
+ * Ukladá sa len ako „ako to klient zadal“, makrá idú vždy z `grams`.
+ */
+function parsePortion(formData: FormData): { portion_unit: PortionUnit; portion_qty: number; portion_base: "g" | "ml" } | null {
+  const unit = formData.get("portion_unit");
+  const qty = Number(formData.get("portion_qty"));
+  if (!isPortionUnit(unit) || !Number.isFinite(qty) || qty <= 0 || qty > MAX_PORTION_GRAMS) return null;
+  return { portion_unit: unit, portion_qty: Math.round(qty * 100) / 100, portion_base: formData.get("portion_base") === "ml" ? "ml" : "g" };
+}
+
 /** Dnešný dátum (YYYY-MM-DD) v Europe/Bratislava — rovnako ako todayInTz v lib/portal/data.ts. */
 function todayBratislava(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bratislava" }).format(new Date());
@@ -376,7 +409,8 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
   const foodId = (formData.get("food_id") as string | null) || null;
   const name = ((formData.get("food_name") as string | null) ?? "").trim();
   const slot = (formData.get("meal_slot") as string | null) ?? "";
-  const grams = Number(formData.get("grams"));
+  let grams = Number(formData.get("grams"));
+  let portion = parsePortion(formData);
 
   if (!MEAL_SLOT_ORDER.includes(slot as (typeof MEAL_SLOT_ORDER)[number])) return { error: await tErr("client.chooseSlot") };
   if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: await tErr("client.gramsRange") };
@@ -409,19 +443,28 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
   let foodName = name;
 
   // Klient a potravina sa nepotrebujú navzájom — oba dopyty naraz (predtým za sebou).
-  const [clientId, { data: food }] = await Promise.all([
+  const [clientId, food] = await Promise.all([
     currentClientId(supabase),
-    foodId
-      ? supabase
-          .from("foods")
-          .select("name, kcal_100g, protein_100g, carbs_100g, fat_100g")
-          .eq("id", foodId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+    foodId ? loadFoodForLog(supabase, foodId) : Promise.resolve(null),
   ]);
   if (!clientId) return { error: await tErr("client.notLinkedTrainer") };
 
   if (food) {
+    // Množstvo × jednotku prepočítame z hodnôt potraviny v DB (klient neurčuje gramy pre ks/porciu);
+    // jednotka, ktorú potravina nemá, porciu zahodí a ostane zadaná gramáž.
+    if (portion) {
+      const g = portionGrams(portion.portion_unit, portion.portion_qty, {
+        unitBase: food.unit_base === "ml" ? "ml" : "g",
+        pieceGrams: food.piece_g == null ? null : Number(food.piece_g),
+        servingGrams: food.serving_g == null ? null : Number(food.serving_g),
+        packageGrams: food.package_g == null ? null : Number(food.package_g),
+      });
+      if (g !== null && g <= MAX_PORTION_GRAMS) {
+        grams = g;
+        portion.portion_base = food.unit_base === "ml" ? "ml" : "g";
+      }
+      else portion = null;
+    }
     macros = {
       kcal_100g: food.kcal_100g,
       protein_100g: food.protein_100g,
@@ -433,7 +476,7 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 
   if (!foodName) return { error: await tErr("client.missingFoodName") };
 
-  const { error } = await supabase.from("food_logs").insert({
+  const row = {
     client_id: clientId,
     eaten_on: eatenOn,
     meal_slot: slot,
@@ -441,7 +484,10 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
     food_name: foodName,
     grams,
     ...macros,
-  });
+  };
+  let { error } = await supabase.from("food_logs").insert(portion ? { ...row, ...portion } : row);
+  // stĺpce portion_* vznikli až v 0066 — pred ňou sa zapíše len gramáž, zápis sa nesmie pokaziť
+  if (error && portion && isMissingColumn(error)) ({ error } = await supabase.from("food_logs").insert(row));
 
   if (error) return { error: await dbErr(error, "actions") };
 
@@ -461,12 +507,13 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
   if (!id) return { error: await tErr("client.missingRecordId") };
   if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) return { error: await tErr("client.gramsRange") };
 
-  const { data, error } = await supabase
-    .from("food_logs")
-    .update({ grams })
-    .eq("id", id)
-    .select("id")
-    .maybeSingle();
+  // Bez platnej porcie (g, starý záznam) sa jednotka vynuluje — inak by „2 ks“ ostalo pri novej gramáži.
+  const portion = parsePortion(formData);
+  const update = (patch: Record<string, unknown>) =>
+    supabase.from("food_logs").update(patch).eq("id", id).select("id").maybeSingle();
+  let { data, error } = await update({ grams, ...(portion ?? { portion_unit: null, portion_qty: null, portion_base: null }) });
+  // stĺpce portion_* vznikli až v 0066
+  if (error && isMissingColumn(error)) ({ data, error } = await update({ grams }));
   if (error) return { error: await dbErr(error, "actions") };
   if (!data) return { error: await tErr("client.recordNotFound") };
 

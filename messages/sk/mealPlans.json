@@ -54,7 +54,9 @@
     "renameDayTitle": "Premenovať deň",
     "newDayTitle": "Nový deň",
     "close": "Zavrieť",
-    "daysAria": "Dni jedálnička"
+    "daysAria": "Dni jedálnička",
+    "quantity": "Množstvo ({unit})",
+    "qtyRange": "Zadaj množstvo, ktoré dáva 0,1–5000 g."
   },
   "controls": {
     "draftBadge": "Koncept — klient ho ešte nevidí",

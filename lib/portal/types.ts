@@ -2,6 +2,7 @@
 // (migrácia supabase/migrations/0002_workout_portal.sql). Viď DESIGN.md → Surfaces → Klientsky portál.
 
 import type { MealSlot } from "@/lib/meals";
+import type { PortionUnit } from "@/lib/portions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 import type { PortalStreaks } from "./streak";
 
@@ -295,6 +296,10 @@ export interface PortalMacroGoal {
 export interface PortalMealEntry {
   name: string;
   grams: number;
+  /** ako to tréner zadal (0066) — null/chýba = len gramy; zobrazenie: lib/portions.ts formatPortion */
+  portionUnit?: PortionUnit | null;
+  portionQty?: number | null;
+  portionBase?: "g" | "ml" | null;
   kcal: number;
   proteinG: number;
   carbsG: number;
@@ -342,6 +347,12 @@ export interface PortalFoodOption {
   barcode?: string | null;
   /** veľkosť porcie v g — predvyplnená gramáž po skene (inak 100 g) */
   servingGrams?: number | null;
+  /** základná jednotka na 100: g (predvolene) alebo ml — tekutiny (0066) */
+  unitBase?: "g" | "ml";
+  /** hmotnosť jedného kusu (ks) — null/chýba = potravina sa po kusoch nezadáva */
+  pieceGrams?: number | null;
+  /** hmotnosť celého balenia */
+  packageGrams?: number | null;
   fiber100g?: number | null;
   sugars100g?: number | null;
   salt100g?: number | null;
@@ -371,6 +382,10 @@ export interface PortalDiaryEntry {
   slot: MealSlot;
   name: string;
   grams: number;
+  /** ako to klient zadal (food_logs.portion_unit/qty, 0066) — null = len gramy */
+  portionUnit?: PortionUnit | null;
+  portionQty?: number | null;
+  portionBase?: "g" | "ml" | null;
   kcal: number;
   proteinG: number;
   carbsG: number;

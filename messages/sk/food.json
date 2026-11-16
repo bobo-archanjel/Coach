@@ -6,9 +6,9 @@
   "grams": "Gramáž v gramoch",
   "add": "Pridať",
   "perPortion": "≈ {kcal} kcal · {protein}g B · {carbs}g S · {fat}g T",
-  "per100": "Na 100 g: {kcal} kcal · {protein}g B · {carbs}g S · {fat}g T",
-  "serving": " · porcia {grams} g",
-  "per100Short": "{kcal} kcal / 100 g",
+  "per100": "Na 100 {unit}: {kcal} kcal · {protein}g B · {carbs}g S · {fat}g T",
+  "serving": " · porcia {grams} {unit}",
+  "per100Short": "{kcal} kcal / 100 {unit}",
   "sourceOff": "Zdroj: Open Food Facts",
   "otherFood": "← iné jedlo",
   "lookingUp": "Hľadám produkt…",
@@ -81,5 +81,24 @@
     "kcalMax": "Kalórie na 100 g môžu byť najviac 900.",
     "macrosMax": "Bielkoviny, sacharidy a tuky spolu nemôžu mať viac ako 100 g na 100 g.",
     "duplicate": "Potravinu s týmto kódom už máš uloženú — naskenuj ho znova."
-  }
+  },
+  "portion": {
+    "g": "{grams} g",
+    "ml": "{grams} ml",
+    "piece": "{qty, number} ks ({grams} {base})",
+    "serving": "{qty, plural, one {# porcia} few {# porcie} many {# porcie} other {# porcií}} ({grams} {base})",
+    "package": "{qty, plural, one {# balenie} few {# balenia} many {# balenia} other {# balení}} ({grams} {base})"
+  },
+  "unit": {
+    "g": "g",
+    "ml": "ml",
+    "piece": "ks",
+    "serving": "porcia",
+    "package": "balenie"
+  },
+  "quantity": "Množstvo",
+  "unitGroup": "Jednotka",
+  "quickQty": "Rýchle množstvo",
+  "total": "= {grams} {unit}",
+  "qtyInvalid": "Zadaj množstvo do {max} {unit}."
 }

@@ -5,6 +5,7 @@ import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import Link from "next/link";
 import { startTransition, useActionState, useOptimistic, useState } from "react";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
+import type { Portion } from "@/lib/portions";
 import type { PortalDiaryData, PortalDiaryEntry, PortalDiaryGroup, PortalFoodOption } from "@/lib/portal/types";
 import { addFoodLogAction, removeFoodLogAction, updateFoodLogAction, type ActionState } from "../actions";
 import { diaryMinDate, shiftDiaryDate } from "@/lib/portal/diaryDate";
@@ -52,7 +53,7 @@ function MacroBar({ label, value, goal }: { label: string; value: number; goal: 
 type DiaryAction =
   | { type: "add"; entry: PortalDiaryEntry }
   | { type: "remove"; id: string }
-  | { type: "grams"; id: string; grams: number };
+  | { type: "grams"; id: string; grams: number; portion: Portion | null };
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -67,6 +68,9 @@ function diaryReducer(entries: PortalDiaryEntry[], action: DiaryAction): PortalD
     return {
       ...e,
       grams: action.grams,
+      portionUnit: action.portion?.unit ?? null,
+      portionQty: action.portion?.qty ?? null,
+      portionBase: action.portion?.base ?? null,
       kcal: Math.round(e.kcal * k),
       proteinG: round1(e.proteinG * k),
       carbsG: round1(e.carbsG * k),
@@ -92,12 +96,15 @@ function diaryHref(date: string, today: string): string {
   return date === today ? "/portal/dennik" : `/portal/dennik?date=${date}`;
 }
 
-function buildFormData(option: PortalFoodOption, slot: MealSlot, grams: number): FormData {
+function buildFormData(option: PortalFoodOption, slot: MealSlot, grams: number, portion: Portion): FormData {
   const fd = new FormData();
   fd.set("meal_slot", slot);
   fd.set("food_id", option.foodId ?? "");
   fd.set("food_name", option.name);
   fd.set("grams", String(grams));
+  fd.set("portion_unit", portion.unit);
+  fd.set("portion_qty", String(portion.qty));
+  fd.set("portion_base", option.unitBase === "ml" ? "ml" : "g");
   fd.set("kcal_100g", String(option.kcal100g));
   fd.set("protein_100g", String(option.protein100g));
   fd.set("carbs_100g", String(option.carbs100g));
@@ -107,7 +114,7 @@ function buildFormData(option: PortalFoodOption, slot: MealSlot, grams: number):
 
 /** Rovnaký prepočet ako server (addFoodLogAction) — dočasný riadok pre optimistic UI,
     kým sa nepotvrdí skutočným ID z DB. */
-function buildOptimisticEntry(option: PortalFoodOption, slot: MealSlot, grams: number): PortalDiaryEntry {
+function buildOptimisticEntry(option: PortalFoodOption, slot: MealSlot, grams: number, portion: Portion): PortalDiaryEntry {
   const macros = scaleFoodMacros(
     { kcal_100g: option.kcal100g, protein_100g: option.protein100g, carbs_100g: option.carbs100g, fat_100g: option.fat100g },
     grams,
@@ -117,6 +124,9 @@ function buildOptimisticEntry(option: PortalFoodOption, slot: MealSlot, grams: n
     slot,
     name: option.name,
     grams,
+    portionUnit: portion.unit,
+    portionQty: portion.qty,
+    portionBase: option.unitBase === "ml" ? "ml" : "g",
     kcal: macros.kcal,
     proteinG: macros.proteinG,
     carbsG: macros.carbsG,
@@ -190,12 +200,16 @@ export function DiaryView({ data, staples = [] }: { data: PortalDiaryData; stapl
     });
   }
 
-  function handleUpdateGrams(id: string, grams: number) {
+  function handleUpdateGrams(id: string, grams: number, portion: Portion | null) {
     const fd = new FormData();
     fd.set("entry_id", id);
     fd.set("grams", String(grams));
+    // bez porcie (g / starý záznam) sa v DB jednotka vynuluje — gramy sú zdroj pravdy
+    fd.set("portion_unit", portion?.unit ?? "");
+    fd.set("portion_qty", portion ? String(portion.qty) : "");
+    fd.set("portion_base", portion?.base ?? "");
     startTransition(() => {
-      dispatchOptimistic({ type: "grams", id, grams });
+      dispatchOptimistic({ type: "grams", id, grams, portion });
       updateFormAction(fd);
     });
   }
@@ -293,7 +307,9 @@ export function DiaryView({ data, staples = [] }: { data: PortalDiaryData; stapl
           staples={staples}
           pending={addPending}
           error={addState.error}
-          onSubmit={(option, grams) => handleAdd(buildFormData(option, addSlot, grams), buildOptimisticEntry(option, addSlot, grams))}
+          onSubmit={(option, grams, portion) =>
+            handleAdd(buildFormData(option, addSlot, grams, portion), buildOptimisticEntry(option, addSlot, grams, portion))
+          }
           onClose={() => setAddSlot(null)}
         />
       )}

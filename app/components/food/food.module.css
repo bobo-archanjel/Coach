@@ -107,7 +107,7 @@
 }
 .gramRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
 }
@@ -559,4 +559,76 @@
   background: var(--surface-solid);
   color: var(--paper);
   box-shadow: var(--shadow-1);
+}
+
+/* množstvo × jednotka vo výbere potraviny: pole, prepínač jednotiek (ako .tabs, len menší)
+   a rýchle čipy ½ · 1 · 2 pre ks/porciu/balenie */
+.qtyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qtyInput {
+  width: 88px;
+  flex: none;
+  text-align: right;
+}
+.unitSeg {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 18px;
+  background: var(--fill-strong);
+}
+.unitBtn {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 15px;
+  background: transparent;
+  color: var(--paper-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.unitBtnActive {
+  background: var(--surface-solid);
+  color: var(--paper);
+  box-shadow: var(--shadow-1);
+}
+.qtyChips {
+  display: flex;
+  gap: 6px;
+}
+.qtyChip {
+  min-width: 48px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--paper);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.qtyChipActive {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+.unitBtn:focus-visible,
+.qtyChip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

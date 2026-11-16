@@ -9,6 +9,7 @@
 // fuzzy hľadania podľa textu správy (tá by pri jedle často zlyhala/bola zbytočná).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { baseUnitOf, type PortionFood } from "@/lib/portions";
 
 export interface FoodCandidate {
   id: string;
@@ -17,6 +18,8 @@ export interface FoodCandidate {
   protein100g: number;
   carbs100g: number;
   fat100g: number;
+  /** g/ml + ks/porcia/balenie — pred migráciou 0066 prázdne (len gramy). */
+  portion: PortionFood;
 }
 
 /**
@@ -25,29 +28,64 @@ export interface FoodCandidate {
  * a skeny všetkých používateľov by ho nafukovali.
  */
 export async function getFoodCandidates(supabase: SupabaseClient, trainerId: string): Promise<FoodCandidate[]> {
-  const { data, error } = await supabase
-    .from("foods")
-    .select("id, name, kcal_100g, protein_100g, carbs_100g, fat_100g")
-    .or(`trainer_id.is.null,trainer_id.eq.${trainerId}`)
-    .neq("source", "off")
-    .order("name", { ascending: true });
-  if (error) {
-    console.error("getFoodCandidates:", error.message);
+  const base = "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g";
+  type Row = Record<string, unknown> & { id: string; name: string };
+  // unit_base / piece_g / serving_g / package_g vznikli až migráciou 0066 — kým nie je spustená,
+  // select zlyhá, preto sa zopakuje bez nich (AI potom pozná len gramy).
+  let rows: Row[] | null = null;
+  let errMsg = "";
+  for (const cols of [`${base}, unit_base, piece_g, serving_g, package_g`, base]) {
+    const res = await supabase
+      .from("foods")
+      .select(cols)
+      .or(`trainer_id.is.null,trainer_id.eq.${trainerId}`)
+      .neq("source", "off")
+      .order("name", { ascending: true });
+    if (!res.error) {
+      rows = res.data as unknown as Row[] | null;
+      errMsg = "";
+      break;
+    }
+    errMsg = res.error.message;
+  }
+  if (errMsg) {
+    console.error("getFoodCandidates:", errMsg);
     return [];
   }
-  return (data ?? []).map((f) => ({
+  const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return (rows ?? []).map((f) => ({
     id: f.id,
     name: f.name,
-    kcal100g: f.kcal_100g,
-    protein100g: f.protein_100g,
-    carbs100g: f.carbs_100g,
-    fat100g: f.fat_100g,
+    kcal100g: Number(f.kcal_100g),
+    protein100g: Number(f.protein_100g),
+    carbs100g: Number(f.carbs_100g),
+    fat100g: Number(f.fat_100g),
+    portion: {
+      unitBase: f.unit_base === "ml" ? "ml" : "g",
+      pieceGrams: n(f.piece_g),
+      servingGrams: n(f.serving_g),
+      packageGrams: n(f.package_g),
+    },
   }));
 }
 
-/** Kompaktný textový zoznam pre systémový prompt — "Názov: kcal/B/S/T na 100 g". */
+/** Dostupné jednotky potraviny: „1 ks = 55 g“, „1 porcia = 30 g“, „1 balenie = 330 ml“ (len tie, ktoré potravina má). */
+export function formatPortionUnits(f: PortionFood): string {
+  const base = baseUnitOf(f);
+  const parts: string[] = [];
+  if (f.pieceGrams && f.pieceGrams > 0) parts.push(`1 ks = ${f.pieceGrams} ${base}`);
+  if (f.servingGrams && f.servingGrams > 0) parts.push(`1 porcia = ${f.servingGrams} ${base}`);
+  if (f.packageGrams && f.packageGrams > 0) parts.push(`1 balenie = ${f.packageGrams} ${base}`);
+  return parts.join("; ");
+}
+
+/** Kompaktný textový zoznam pre systémový prompt — "Názov: kcal/B/S/T na 100 g; 1 ks = 55 g". */
 export function formatFoodCandidates(foods: FoodCandidate[]): string {
   return foods
-    .map((f) => `- ${f.name}: ${f.kcal100g} kcal, ${f.protein100g} g B, ${f.carbs100g} g S, ${f.fat100g} g T (na 100 g)`)
+    .map((f) => {
+      const base = baseUnitOf(f.portion);
+      const units = formatPortionUnits(f.portion);
+      return `- ${f.name}: ${f.kcal100g} kcal, ${f.protein100g} g B, ${f.carbs100g} g S, ${f.fat100g} g T (na 100 ${base})${units ? `; ${units}` : ""}`;
+    })
     .join("\n");
 }

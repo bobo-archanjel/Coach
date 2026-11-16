@@ -38,7 +38,14 @@
     "noMeals": "Tento deň zatiaľ nemá žiadne jedlá.",
     "vsGoal": "Oproti cieľu {kcal} kcal",
     "shopping": "Nákupný zoznam",
-    "shoppingHint": "Súčet všetkých dní jedálnička, každý deň raz. Ak sa dni striedajú, nakupuj podľa toho, ktoré ti vychádzajú."
+    "shoppingHint": "Súčet všetkých dní jedálnička, každý deň raz. Ak sa dni striedajú, nakupuj podľa toho, ktoré ti vychádzajú.",
+    "portion": {
+      "g": "{grams} g",
+      "ml": "{grams} ml",
+      "piece": "{qty, number} ks ({grams} {base})",
+      "serving": "{qty, plural, one {# porcia} few {# porcie} many {# porcie} other {# porcií}} ({grams} {base})",
+      "package": "{qty, plural, one {# balenie} few {# balenia} many {# balenia} other {# balení}} ({grams} {base})"
+    }
   },
   "progress": {
     "kind": "Progres klienta",

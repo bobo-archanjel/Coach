@@ -8,6 +8,7 @@ import { MealDayActions } from "./MealDayActions";
 import { MacroChips } from "./MacroChips";
 import { MealPublishActions } from "./MealPlanControls";
 import { saveMealPlanDaysAction, type MealEntry } from "../actions";
+import type { PortionUnit } from "@/lib/portions";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import type { FoodSource, PortalFoodOption } from "@/lib/portal/types";
 import { FoodPickerSheet } from "@/app/components/food/FoodPickerSheet";
@@ -29,6 +30,11 @@ export interface LibraryFood {
   protein_100g: number;
   carbs_100g: number;
   fat_100g: number;
+  /** porcie (0066) — chýbajú pred spustením migrácie */
+  serving_g?: number | null;
+  unit_base?: "g" | "ml";
+  piece_g?: number | null;
+  package_g?: number | null;
 }
 
 const toOption = (f: LibraryFood): PortalFoodOption => ({
@@ -39,6 +45,10 @@ const toOption = (f: LibraryFood): PortalFoodOption => ({
   carbs100g: Number(f.carbs_100g),
   fat100g: Number(f.fat_100g),
   source: f.source,
+  servingGrams: f.serving_g ?? null,
+  unitBase: f.unit_base ?? "g",
+  pieceGrams: f.piece_g ?? null,
+  packageGrams: f.package_g ?? null,
 });
 
 interface Day {
@@ -193,7 +203,7 @@ export function MealPlanBuilder({
   };
 
   /** Potravina z panela do jedla `slot` aktívneho dňa (panel zaručí food_id). */
-  const addFood = (option: PortalFoodOption, grams: number, slot: MealSlot) => {
+  const addFood = (option: PortalFoodOption, grams: number, portion: { unit: PortionUnit; qty: number }, slot: MealSlot) => {
     if (!activeDayId || !option.foodId) return;
     const entry: MealEntry = {
       entry_id: localId(),
@@ -201,6 +211,9 @@ export function MealPlanBuilder({
       food_name: option.name,
       meal_slot: slot,
       grams,
+      portion_unit: portion.unit,
+      portion_qty: portion.qty,
+      portion_base: option.unitBase === "ml" ? "ml" : "g",
       kcal_100g: option.kcal100g,
       protein_100g: option.protein100g,
       carbs_100g: option.carbs100g,
@@ -221,7 +234,14 @@ export function MealPlanBuilder({
           draft.map((d) => ({
             id: d.id.startsWith(NEW_PREFIX) ? null : d.id,
             name: d.name,
-            meals: d.meals.map(({ entry_id, food_id, meal_slot, grams }) => ({ entry_id, food_id, meal_slot, grams })),
+            meals: d.meals.map(({ entry_id, food_id, meal_slot, grams, portion_unit, portion_qty }) => ({
+              entry_id,
+              food_id,
+              meal_slot,
+              grams,
+              portion_unit,
+              portion_qty,
+            })),
           })),
         );
         if (res.error) {
@@ -330,7 +350,7 @@ export function MealPlanBuilder({
                         <MealEntryRow
                           key={entry.entry_id}
                           entry={entry}
-                          onUpdate={(patch: { meal_slot: MealSlot; grams: number }) =>
+                          onUpdate={(patch) =>
                             editDay(activeDay.id, (d) => ({
                               ...d,
                               meals: d.meals.map((m) => (m.entry_id === entry.entry_id ? { ...m, ...patch } : m)),
@@ -360,7 +380,7 @@ export function MealPlanBuilder({
           title={`${activeDay.name} · ${tl(`mealSlot.${addSlot}`)}`}
           library={libraryOptions}
           staples={libraryOptions.filter((f) => f.source === "import")}
-          onSubmit={(option, grams) => addFood(option, grams, addSlot)}
+          onSubmit={(option, grams, portion) => addFood(option, grams, portion, addSlot)}
           onFoodCreated={(option) => setLibraryOptions((prev) => [...prev, option])}
           onClose={() => setAddSlot(null)}
         />

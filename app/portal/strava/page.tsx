@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { getPortalNutrition } from "@/lib/portal/data";
+import { formatPortion } from "@/lib/portions";
 import { FoodIcon, ProfileIcon } from "@/app/portal/icons";
 import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
@@ -15,10 +16,11 @@ const MACRO_TILES = [
 ] as const;
 
 export default async function StravaPage() {
-  const [result, tp, t] = await Promise.all([
+  const [result, tp, t, tPortion] = await Promise.all([
     getPortalNutrition(),
     getTranslations("portal"),
     getTranslations("portal.nutrition"),
+    getTranslations("food.portion"),
   ]);
 
   if (result.state === "error") {
@@ -114,7 +116,7 @@ export default async function StravaPage() {
                             <span>
                               <span className={s.mealName}>{entry.name}</span>
                               <span className={s.mealMeta}>
-                                {entry.grams} g · {entry.proteinG}g B · {entry.carbsG}g S · {entry.fatG}g T
+                                {formatPortion((k, v) => tPortion(k, v), { grams: entry.grams, unit: entry.portionUnit, qty: entry.portionQty, base: entry.portionBase })} · {entry.proteinG}g B · {entry.carbsG}g S · {entry.fatG}g T
                               </span>
                             </span>
                             <span className={s.mealKcal}>{entry.kcal} kcal</span>

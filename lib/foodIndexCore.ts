@@ -26,10 +26,18 @@ export interface IndexedFood {
   sugars: number | null;
   salt: number | null;
   servingGrams: number | null;
+  /** hmotnosť celého balenia (stĺpec package_g) */
+  packageGrams: number | null;
+  /** na 100 g alebo 100 ml (stĺpec unit) */
+  unit: "g" | "ml";
 }
 
-/** Hodnoty na 100 g v `nums` po 8 na riadok, v tomto poradí; chýbajúca = NaN. */
-const NUM_COLS = ["kcal", "protein", "carbs", "fat", "fiber", "sugars", "salt", "serving_g"] as const;
+/**
+ * Číselné hodnoty v `nums` po NUM_COLS.length na riadok, v tomto poradí; chýbajúca = NaN.
+ * Stĺpec `unit` ("g"/"ml") je text, preto sa kóduje ako 1 = ml, 0 = g. Stĺpce sa hľadajú podľa
+ * mena v `cols` — starší balík bez package_g / unit sa načíta (hodnoty ostanú prázdne / g).
+ */
+const NUM_COLS = ["kcal", "protein", "carbs", "fat", "fiber", "sugars", "salt", "serving_g", "package_g", "unit"] as const;
 
 /**
  * Index držíme ako paralelné polia (reťazce + jeden Float64Array), nie pole objektov ani
@@ -72,6 +80,7 @@ export function buildIndex(bundle: FoodBundle): FoodSearchIndex {
   const iBrand = col("brand");
   const iNums = NUM_COLS.map(col);
   const iKcal = iNums[0];
+  const iUnit = NUM_COLS.indexOf("unit");
 
   const n = bundle.rows.length;
   const codes: string[] = [];
@@ -95,7 +104,10 @@ export function buildIndex(bundle: FoodBundle): FoodSearchIndex {
     brands.push(brand);
     full.push(brand ? `${head} ${normalize(brand)}` : head);
     ends.push(head.length);
-    for (let j = 0; j < iNums.length; j++) nums[k * NUM_COLS.length + j] = iNums[j] >= 0 ? (num(r[iNums[j]]) ?? NaN) : NaN;
+    for (let j = 0; j < iNums.length; j++) {
+      const raw = iNums[j] >= 0 ? r[iNums[j]] : null;
+      nums[k * NUM_COLS.length + j] = j === iUnit ? (raw === "ml" ? 1 : 0) : (num(raw) ?? NaN);
+    }
     k++;
   }
   return { codes, names, brands, nums: nums.slice(0, k * NUM_COLS.length), full, nameEnd: Int32Array.from(ends) };
@@ -119,6 +131,8 @@ export function foodAt(index: FoodSearchIndex, i: number): IndexedFood {
     sugars: v(5),
     salt: v(6),
     servingGrams: v(7),
+    packageGrams: v(8),
+    unit: v(9) === 1 ? "ml" : "g",
   };
 }
 

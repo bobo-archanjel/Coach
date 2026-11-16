@@ -24,33 +24,50 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
     redirect("/prihlasenie");
   }
 
+  // Stĺpec name_cs vznikne až migráciou 0064 a unit_base/piece_g/package_g až 0066; kým nie
+  // sú spustené, select zlyhá (42703 / PGRST). Builder nesmie ostať bez knižnice, preto sa
+  // zopakuje postupne bez nových stĺpcov.
+  type FoodRow = {
+    id: string;
+    name: string;
+    name_cs?: string | null;
+    source: FoodSource;
+    kcal_100g: number;
+    protein_100g: number;
+    carbs_100g: number;
+    fat_100g: number;
+    serving_g?: number | null;
+    unit_base?: string | null;
+    piece_g?: number | null;
+    package_g?: number | null;
+  };
+  const loadFoods = async (): Promise<FoodRow[] | null> => {
+    const base = "id, name, source, kcal_100g, protein_100g, carbs_100g, fat_100g, serving_g";
+    let rows: FoodRow[] | null = null;
+    for (const cols of [`${base}, name_cs, unit_base, piece_g, package_g`, `${base}, name_cs`, base]) {
+      const res = await supabase
+        .from("foods")
+        .select(cols)
+        // bez produktov uložených skenerom klientov (source='off', 0050) — knižnica by nimi rástla
+        .neq("source", "off")
+        .order("name");
+      rows = res.data as unknown as FoodRow[] | null;
+      if (!res.error) break;
+    }
+    return rows;
+  };
+
   // `plan`, `days` aj `foods` berú `planId`/nič z route parametra — nezávislé,
   // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
-  const [{ data: plan }, { data: days }, foodsRes] = await Promise.all([
+  const [{ data: plan }, { data: days }, foods] = await Promise.all([
     supabase
       .from("meal_plans")
       .select("id, name, client_id, published, created_at, clients(full_name)")
       .eq("id", planId)
       .maybeSingle(),
     supabase.from("meal_days").select("id, day_number, name, meals").eq("plan_id", planId).order("day_number"),
-    // bez produktov uložených skenerom klientov (source='off', 0050) — knižnica by nimi rástla
-    supabase
-      .from("foods")
-      .select("id, name, name_cs, source, kcal_100g, protein_100g, carbs_100g, fat_100g")
-      .neq("source", "off")
-      .order("name"),
+    loadFoods(),
   ]);
-
-  // Stĺpec name_cs vznikne až migráciou 0064; kým nie je spustená, select zlyhá (42703 / PGRST).
-  // Builder nesmie ostať bez knižnice, tak to isté skúsime len s `name`.
-  let foods: { id: string; name: string; name_cs?: string | null; source: FoodSource; kcal_100g: number; protein_100g: number; carbs_100g: number; fat_100g: number }[] | null = foodsRes.data;
-  if (foodsRes.error) {
-    ({ data: foods } = await supabase
-      .from("foods")
-      .select("id, name, source, kcal_100g, protein_100g, carbs_100g, fat_100g")
-      .neq("source", "off")
-      .order("name"));
-  }
 
   if (!plan) {
     notFound();
@@ -65,6 +82,10 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
     protein_100g: f.protein_100g,
     carbs_100g: f.carbs_100g,
     fat_100g: f.fat_100g,
+    serving_g: f.serving_g ?? null,
+    unit_base: f.unit_base === "ml" ? ("ml" as const) : ("g" as const),
+    piece_g: f.piece_g ?? null,
+    package_g: f.package_g ?? null,
   }));
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";

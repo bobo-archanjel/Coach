@@ -50,3 +50,8 @@ export async function dbErr(err: DbErrorLike | null | undefined, context?: strin
       return tErr("db.generic");
   }
 }
+
+/** Neexistujúci stĺpec — kód beží skôr, než sa spustila migrácia (Postgres 42703 /
+ *  PostgREST PGRST204 zo schema cache). Volajúci vtedy zopakuje dopyt bez nových stĺpcov. */
+export const isMissingColumn = (e: { code?: string } | null | undefined) =>
+  e?.code === "42703" || e?.code === "PGRST204";

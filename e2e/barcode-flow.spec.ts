@@ -73,7 +73,8 @@ test.describe("skener v denníku (preview, API namockované)", () => {
     expect(requested).toEqual([`/api/potraviny/kod/${VALID_CODE}`]);
 
     await expect(page.getByText("Skyr vanilka (Rajo)")).toBeVisible();
-    await expect(page.getByLabel("Gramáž v gramoch")).toHaveValue("140");
+    await expect(page.getByLabel("Množstvo", { exact: true })).toHaveValue("1"); // porcia 140 g → 1 porcia
+    await expect(page.getByText("= 140 g")).toBeVisible();
     await expect(page.getByText(/porcia 140 g/)).toBeVisible();
     await expect(page.getByText("Zdroj: Open Food Facts")).toBeVisible();
     await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeVisible();
@@ -224,7 +225,8 @@ test.describe("celý tok: sken → Open Food Facts (mock) → denník (reálna D
     await expect(dialog).toBeHidden();
 
     await expect(page.getByText(displayName).first()).toBeVisible();
-    await expect(page.getByLabel("Gramáž v gramoch")).toHaveValue("140");
+    await expect(page.getByLabel("Množstvo", { exact: true })).toHaveValue("1");
+    await expect(page.getByText("= 140 g")).toBeVisible();
     await expect(page.getByText("Zdroj: Open Food Facts")).toBeVisible();
 
     // produkt sa uložil ako globálny 'off' záznam

@@ -3,6 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { PortalDiaryEntry } from "@/lib/portal/types";
+import type { Portion, PortionUnit } from "@/lib/portions";
+import { usePortionLabel } from "@/app/components/food/usePortionLabel";
 import styles from "../portal.module.css";
 
 const TrashIcon = () => (
@@ -42,19 +44,35 @@ export function DiaryRow({
 }: {
   entry: PortalDiaryEntry;
   onRemove: (id: string) => void;
-  onUpdateGrams: (id: string, grams: number) => void;
+  /** `portion` = nové množstvo v pôvodnej jednotke záznamu (ks/porcia/balenie/ml), inak len gramy */
+  onUpdateGrams: (id: string, grams: number, portion: Portion | null) => void;
 }) {
   const t = useTranslations("portal.diary");
+  const tf = useTranslations("food");
+  const portionLabel = usePortionLabel();
+  // Záznam v ks/porcii/balení sa upravuje v tej istej jednotke (hmotnosť jednotky = grams / qty);
+  // ml sa upravuje ako gramy a ostáva ml. Starý záznam / g: len gramy.
+  const perUnit =
+    (entry.portionUnit === "piece" || entry.portionUnit === "serving" || entry.portionUnit === "package") &&
+    entry.portionQty &&
+    entry.portionQty > 0
+      ? entry.grams / entry.portionQty
+      : null;
+  const editUnit: PortionUnit | null = perUnit ? (entry.portionUnit as PortionUnit) : entry.portionUnit === "ml" ? "ml" : null;
+  const initialValue = perUnit ? (entry.portionQty as number) : entry.grams;
+  const base = entry.portionBase === "ml" ? "ml" : "g";
   const [mode, setMode] = useState<"view" | "edit" | "confirmRemove">("view");
-  const [grams, setGrams] = useState(String(entry.grams));
+  const [grams, setGrams] = useState(String(initialValue));
   // Optimistický riadok ešte nemá skutočné ID z DB — úprava/odobratie počká.
   const pendingRow = entry.id.startsWith("optimistic-");
 
   function saveGrams() {
-    const g = Number(grams);
-    if (!Number.isFinite(g) || g <= 0 || g > 5000) return;
+    const v = Number(grams.replace(",", "."));
+    const g = perUnit ? Math.round(v * perUnit * 10) / 10 : v;
+    if (!Number.isFinite(v) || v <= 0 || !Number.isFinite(g) || g <= 0 || g > 5000) return;
     setMode("view");
-    if (g !== entry.grams) onUpdateGrams(entry.id, g);
+    if (v === initialValue) return;
+    onUpdateGrams(entry.id, g, perUnit ? { unit: editUnit as PortionUnit, qty: v, base } : editUnit === "ml" ? { unit: "ml", qty: g, base } : null);
   }
 
   // Úprava: názov na celý riadok, pole gramáže a tlačidlá pod ním — dlhý názov sa inak
@@ -67,10 +85,8 @@ export function DiaryRow({
           <span className={styles.gramField}>
             <input
               className={styles.gramInput}
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={5000}
+              type="text"
+              inputMode="decimal"
               value={grams}
               onChange={(e) => setGrams(e.target.value)}
               onKeyDown={(e) => {
@@ -80,7 +96,7 @@ export function DiaryRow({
               aria-label={t("gramsAria", { name: entry.name })}
               autoFocus
             />
-            <span className={styles.gramUnit}>g</span>
+            <span className={styles.gramUnit}>{editUnit ? tf(`unit.${editUnit}`) : "g"}</span>
           </span>
           <button type="button" className="btn btn-primary btn-sm" onClick={saveGrams}>
             {t("save")}
@@ -98,7 +114,7 @@ export function DiaryRow({
       <span>
         <span className={styles.diaryName}>{entry.name}</span>
         <span className={styles.diaryMeta}>
-          {entry.grams} g · {entry.proteinG}g B · {entry.carbsG}g S · {entry.fatG}g T
+          {portionLabel({ grams: entry.grams, unit: entry.portionUnit, qty: entry.portionQty, base: entry.portionBase })} · {entry.proteinG}g B · {entry.carbsG}g S · {entry.fatG}g T
         </span>
       </span>
       <span className={styles.diaryKcalCell}>{entry.kcal} kcal</span>
@@ -118,7 +134,7 @@ export function DiaryRow({
             className={styles.removeBtn}
             disabled={pendingRow}
             onClick={() => {
-              setGrams(String(entry.grams));
+              setGrams(String(initialValue));
               setMode("edit");
             }}
             aria-label={t("editGramsAria", { name: entry.name })}

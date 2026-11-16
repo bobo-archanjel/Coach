@@ -56,6 +56,7 @@ import type {
   WeekView,
 } from "./types";
 import { dbErr } from "@/lib/dbError";
+import { isPortionUnit } from "@/lib/portions";
 import { editableUntil, isStillEditable, parseLoggedEntries } from "@/lib/workouts/completed";
 
 const TZ = "Europe/Bratislava";
@@ -818,6 +819,9 @@ type MealEntryRow = {
   food_name?: string;
   meal_slot?: MealSlot;
   grams?: number;
+  portion_unit?: string | null;
+  portion_qty?: number | null;
+  portion_base?: string | null;
   kcal_100g?: number;
   protein_100g?: number;
   carbs_100g?: number;
@@ -902,6 +906,9 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
           const mealEntries: PortalMealEntry[] = items.map(({ entry, macros }) => ({
             name: entry.food_name ?? "Potravina",
             grams: entry.grams ?? 0,
+            portionUnit: isPortionUnit(entry.portion_unit) ? entry.portion_unit : null,
+            portionQty: typeof entry.portion_qty === "number" ? entry.portion_qty : null,
+            portionBase: entry.portion_base === "ml" ? ("ml" as const) : null,
             kcal: macros.kcal,
             proteinG: macros.proteinG,
             carbsG: macros.carbsG,
@@ -928,6 +935,10 @@ type FoodLogRow = {
   meal_slot: MealSlot;
   food_name: string;
   grams: number;
+  /** 0066 — chýba, kým migrácia nie je spustená */
+  portion_unit?: string | null;
+  portion_qty?: number | null;
+  portion_base?: string | null;
   kcal_100g: number;
   protein_100g: number;
   carbs_100g: number;
@@ -957,18 +968,21 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
     // Zobrazený deň — dnešok, alebo klientom zvolený deň v povolenom rozsahu (?date=).
     const isoDate = validDiaryDate(requestedDate, todayIso) ?? todayIso;
 
+    const loadLogs = async () => {
+      const cols = "id, meal_slot, food_name, grams, kcal_100g, protein_100g, carbs_100g, fat_100g";
+      const query = (select: string) =>
+        supabase.from("food_logs").select(select).eq("client_id", client.id).eq("eaten_on", isoDate).order("created_at", { ascending: true });
+      const res = await query(`${cols}, portion_unit, portion_qty, portion_base`);
+      // portion_* vznikne až migráciou 0066 — pred ňou denník načítame bez nich (len gramy)
+      return res.error ? await query(cols) : res;
+    };
     const [{ data: profile, error: profileErr }, { data: logRows, error: logErr }] = await Promise.all([
       supabase
         .from("nutrition_profiles")
         .select("bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
         .eq("client_id", client.id)
         .maybeSingle(),
-      supabase
-        .from("food_logs")
-        .select("id, meal_slot, food_name, grams, kcal_100g, protein_100g, carbs_100g, fat_100g")
-        .eq("client_id", client.id)
-        .eq("eaten_on", isoDate)
-        .order("created_at", { ascending: true }),
+      loadLogs(),
     ]);
 
     if (profileErr) return { state: "error", message: await dbErr(profileErr, "data") };
@@ -986,7 +1000,7 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
       : null;
 
     // ---------- dnešné záznamy → skupiny podľa jedla dňa + súčty ----------
-    const scaled = ((logRows ?? []) as FoodLogRow[]).map((r) => ({
+    const scaled = ((logRows ?? []) as unknown as FoodLogRow[]).map((r) => ({
       row: r,
       macros: scaleFoodMacros(
         {
@@ -1006,6 +1020,9 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
         slot,
         name: row.food_name,
         grams: row.grams,
+        portionUnit: isPortionUnit(row.portion_unit) ? row.portion_unit : null,
+        portionQty: row.portion_qty == null ? null : Number(row.portion_qty),
+        portionBase: row.portion_base === "ml" ? ("ml" as const) : null,
         kcal: macros.kcal,
         proteinG: macros.proteinG,
         carbsG: macros.carbsG,
