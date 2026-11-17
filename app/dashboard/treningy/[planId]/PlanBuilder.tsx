@@ -1,14 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
 import { AddDayDialog } from "./AddDayDialog";
 import { DeleteDayControl } from "./DeleteDayControl";
 import { DuplicateDayButton } from "./DuplicateDayButton";
 import { RenameDayDialog } from "./RenameDayDialog";
-import { moveExerciseEntryAction, type WorkoutExerciseEntry } from "../actions";
+import { moveExerciseEntryAction, toggleSupersetLinkAction, type WorkoutExerciseEntry } from "../actions";
+import { SupersetLink } from "@/app/components/SupersetLink";
+import { detachFromSuperset, isLinkedToNext, supersetPositions, toggleLinkWithNext } from "@/lib/workouts/superset";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import styles from "@/app/components/workoutBuilder.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
@@ -93,11 +95,26 @@ export function PlanBuilder({
         if (i < 0 || j < 0 || j >= d.exercises.length) return d;
         const exercises = [...d.exercises];
         [exercises[i], exercises[j]] = [exercises[j], exercises[i]];
-        return { ...d, exercises };
+        // rovnako ako server: presunutý cvik vypadne zo supersérie
+        return { ...d, exercises: detachFromSuperset(exercises, j) };
       }),
     );
     startReorder(async () => {
       await moveExerciseEntryAction({ planId, dayId, entryId, direction });
+    });
+  };
+
+  /** superséria: spojí cvik s nasledujúcim / rozdelí (optimisticky, server uloží) */
+  const toggleSuperset = (dayId: string, entryId: string) => {
+    setLocalDays((prev) =>
+      prev.map((d) => {
+        if (d.id !== dayId) return d;
+        const i = d.exercises.findIndex((e) => e.entry_id === entryId);
+        return i < 0 ? d : { ...d, exercises: toggleLinkWithNext(d.exercises, i) };
+      }),
+    );
+    startReorder(async () => {
+      await toggleSupersetLinkAction({ planId, dayId, entryId });
     });
   };
 
@@ -189,19 +206,38 @@ export function PlanBuilder({
         <div className={styles.dayPanel}>
           {activeDay ? (
             activeDay.exercises.length > 0 ? (
-              activeDay.exercises.map((entry, i) => (
-                <ExerciseRow
-                  key={entry.entry_id}
-                  entry={entry}
-                  dayId={activeDay.id}
-                  planId={planId}
-                  library={library}
-                  isFirst={i === 0}
-                  isLast={i === activeDay.exercises.length - 1}
-                  reorderPending={reorderPending}
-                  onMove={(direction) => moveExercise(activeDay.id, entry.entry_id, direction)}
-                />
-              ))
+              (() => {
+                const list = activeDay.exercises;
+                const positions = supersetPositions(list);
+                return list.map((entry, i) => {
+                  const linked = isLinkedToNext(list, i);
+                  const names = { a: entry.exercise_name, b: list[i + 1]?.exercise_name ?? "" };
+                  return (
+                    <Fragment key={entry.entry_id}>
+                      <ExerciseRow
+                        entry={entry}
+                        dayId={activeDay.id}
+                        planId={planId}
+                        library={library}
+                        isFirst={i === 0}
+                        isLast={i === list.length - 1}
+                        reorderPending={reorderPending}
+                        onMove={(direction) => moveExercise(activeDay.id, entry.entry_id, direction)}
+                        superset={positions[i]}
+                      />
+                      {i < list.length - 1 && (
+                        <SupersetLink
+                          linked={linked}
+                          label={linked ? t("ssUnlink") : t("ssLink")}
+                          ariaLabel={linked ? t("ssUnlinkAria", names) : t("ssLinkAria", names)}
+                          disabled={reorderPending}
+                          onToggle={() => toggleSuperset(activeDay.id, entry.entry_id)}
+                        />
+                      )}
+                    </Fragment>
+                  );
+                });
+              })()
             ) : null
           ) : null}
         </div>

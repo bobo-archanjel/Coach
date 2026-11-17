@@ -72,6 +72,8 @@ export type WorkoutDraft = {
   sessionNote: string;
   /** cviky pridané počas tréningu (WorkoutSetsFields) */
   added?: { name: string; timed?: boolean }[];
+  /** supersérie tohto tréningu (plán + spojenia klienta), po indexoch cvikov */
+  supersets?: (string | null)[];
 };
 
 type DraftRecord = WorkoutDraft & { dayId: string; at: number };
@@ -100,6 +102,9 @@ export function loadWorkoutDraft(dayId: string, signature: string): WorkoutDraft
       rpe: typeof rec.rpe === "string" ? rec.rpe : "",
       sessionNote: typeof rec.sessionNote === "string" ? rec.sessionNote : "",
       added: parseAdded(rec.added),
+      supersets: Array.isArray(rec.supersets)
+        ? rec.supersets.map((v) => (typeof v === "string" && v.length <= 16 ? v : null))
+        : undefined,
     };
   } catch {
     return null;

@@ -7,6 +7,8 @@ import { ProgressSummaryCard } from "./ProgressSummaryCard";
 import { getTranslations } from "next-intl/server";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionDownloadIcon } from "@/app/components/ActionIcons";
 
 /** Farba bodky v páse adherencie — 85–115 % cieľa = v poriadku, inak potrebuje pozornosť. */
 function adherenceToneKey(pct: number | null): "adherenceNone" | "adherenceGood" | "adherenceOff" {
@@ -72,11 +74,13 @@ export async function AnalyticsPanel({
 
   return (
     <div className={styles.cardStack}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <a href={`/api/export/progress/${clientId}/pdf`} className="btn btn-ghost btn-sm">
+      <div className={`${pa.grid} ${pa.narrow}`}>
+        <a href={`/api/export/progress/${clientId}/pdf`} className={`${pa.action} ${pa.small}`}>
+          <ActionDownloadIcon />
           {t("downloadPdf")}
         </a>
-        <a href={`/api/export/progress/${clientId}/csv`} className="btn btn-ghost btn-sm">
+        <a href={`/api/export/progress/${clientId}/csv`} className={`${pa.action} ${pa.small}`}>
+          <ActionDownloadIcon />
           {t("downloadCsv")}
         </a>
       </div>

@@ -18,6 +18,7 @@
   "preview": "Náhľad",
   "deleting": "Mažem…",
   "delete": "Zmazať",
+  "deleteConfirm": "Zmazať šablónu?",
   "no": "Nie",
   "noDays": "Šablóna nemá žiadne dni.",
   "apply": {

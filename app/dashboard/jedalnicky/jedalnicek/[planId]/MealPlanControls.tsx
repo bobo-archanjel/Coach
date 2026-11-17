@@ -6,6 +6,8 @@ import Link from "next/link";
 import { deleteMealPlanAction, publishMealPlanAction, type ActionState } from "../actions";
 import { saveMealTemplateAction } from "../../../sablony/actions";
 import styles from "../../../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionDownloadIcon, ActionTemplateIcon, ActionTrashIcon } from "@/app/components/ActionIcons";
 
 const initialState: ActionState = { error: null };
 
@@ -194,35 +196,44 @@ export function MealPlanFooterActions({
 
   if (del.confirming) {
     return (
-      <div className={styles.templateGrid} role="alertdialog" aria-labelledby="delete-meal-plan-question">
-        <p id="delete-meal-plan-question" className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>
-          {t("deleteConfirm", { name: planName })}
-          {visibleToClient ? t("deleteHides") : ""} {t("diaryStays")}
-        </p>
-        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={del.doDelete} disabled={del.pending}>
-          {del.pending ? t("deleting") : t("yesDelete")}
-        </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => del.setConfirming(false)} disabled={del.pending}>
-          {t("cancel")}
-        </button>
-        {del.error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{del.error}</p>}
+      <div className={styles.footActions}>
+        <div className={pa.confirm} role="alertdialog" aria-labelledby="delete-meal-plan-question">
+          <p id="delete-meal-plan-question" className={pa.confirmText}>
+            {t("deleteConfirm", { name: planName })}
+            {visibleToClient ? t("deleteHides") : ""} {t("diaryStays")}
+          </p>
+          <span className={pa.confirmBtns}>
+            <button type="button" className={pa.confirmNo} onClick={() => del.setConfirming(false)} disabled={del.pending}>
+              {t("cancel")}
+            </button>
+            <button type="button" className={pa.confirmYes} onClick={del.doDelete} disabled={del.pending}>
+              {del.pending ? t("deleting") : t("yesDelete")}
+            </button>
+          </span>
+        </div>
+        {del.error && <p className={styles.publishError}>{del.error}</p>}
       </div>
     );
   }
 
   return (
-    <div className={styles.templateGrid}>
-      <a href={`/api/export/meal-plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
-        {t("downloadPdf")}
-      </a>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={saveTemplate} disabled={templatePending}>
-        {templatePending ? t("saving") : t("saveTemplate")}
-      </button>
-      {published && (
-        <button type="button" className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`} onClick={() => del.setConfirming(true)}>
-          {t("delete")}
+    <div className={styles.footActions}>
+      <div className={pa.grid}>
+        <a href={`/api/export/meal-plan/${planId}/pdf`} className={pa.action}>
+          <ActionDownloadIcon />
+          {t("downloadPdf")}
+        </a>
+        <button type="button" className={pa.action} onClick={saveTemplate} disabled={templatePending}>
+          <ActionTemplateIcon />
+          {templatePending ? t("saving") : t("saveTemplate")}
         </button>
-      )}
+        {published && (
+          <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => del.setConfirming(true)}>
+            <ActionTrashIcon />
+            {t("delete")}
+          </button>
+        )}
+      </div>
       {!templatePending && templateState.error && (
         <span className={`${styles.noWorkouts} ${styles.templateStatus}`}>{templateState.error}</span>
       )}

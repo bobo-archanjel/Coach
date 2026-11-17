@@ -11,6 +11,7 @@ import type { PortalWeekResult } from "@/lib/portal/types";
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isValidReps, isValidWeight } from "@/lib/workouts/setInput";
 import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
+import { cleanSupersetId, normalizeSupersets } from "@/lib/workouts/superset";
 
 export interface ActionState {
   error: string | null;
@@ -175,7 +176,7 @@ type IncomingSet = {
   distanceM?: number;
   rpe?: number;
 };
-type IncomingExercise = { entryId: string | null; name: string; note?: string; sets: IncomingSet[] };
+type IncomingExercise = { entryId: string | null; name: string; note?: string; superset?: string | null; sets: IncomingSet[] };
 
 /** Voliteľné číslo: chýba/null → null, platné → číslo, čokoľvek iné → INVALID. */
 const INVALID = Symbol("invalid");
@@ -224,10 +225,13 @@ function sanitizeEntries(raw: unknown): IncomingExercise[] | null {
       entryId: typeof e.entryId === "string" ? e.entryId : null,
       name: name || "Cvik",
       ...(note && { note }),
+      superset: cleanSupersetId(e.superset),
       sets,
     });
   }
-  return out;
+  // superséria (plán aj spojená počas tréningu): vynechaný cvik bez sérií mohol nechať
+  // skupinu s jedným členom; null sa neukladá
+  return normalizeSupersets(out).map(({ superset, ...rest }) => (superset ? { ...rest, superset } : rest));
 }
 
 /**

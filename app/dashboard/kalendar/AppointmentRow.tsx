@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { deleteAppointmentAction, type AppointmentFormValues } from "./actions";
 import { AppointmentForm } from "./AddAppointmentForm";
 import styles from "../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionEditIcon, ActionTrashIcon } from "@/app/components/ActionIcons";
 
 export function AppointmentRow({
   id,
@@ -52,26 +54,32 @@ export function AppointmentRow({
           {note ? ` · ${note}` : ""}
         </span>
       </div>
+      {/* rovnaký vzhľad akcií ako pod plánmi (app/components/planActions.module.css) */}
       {confirming ? (
-        <div className={styles.appointmentActions}>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm btn-danger"
-            disabled={pending}
-            onClick={() => startTransition(() => deleteAppointmentAction(id))}
-          >
-            {pending ? t("deleting") : t("delete")}
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
-            {t("cancel")}
-          </button>
+        <div className={`${pa.confirm} ${styles.appointmentConfirm}`} role="alertdialog" aria-label={t("confirm", { title })}>
+          <span className={pa.confirmText}>{t("confirm", { title })}</span>
+          <span className={pa.confirmBtns}>
+            <button type="button" className={pa.confirmNo} onClick={() => setConfirming(false)} disabled={pending}>
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              className={pa.confirmYes}
+              disabled={pending}
+              onClick={() => startTransition(() => deleteAppointmentAction(id))}
+            >
+              {pending ? t("deleting") : t("delete")}
+            </button>
+          </span>
         </div>
       ) : (
         <div className={styles.appointmentActions}>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
+          <button type="button" className={`${pa.action} ${pa.small}`} onClick={() => setEditing(true)}>
+            <ActionEditIcon />
             {t("edit")}
           </button>
-          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
+          <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirming(true)}>
+            <ActionTrashIcon />
             {t("remove")}
           </button>
         </div>

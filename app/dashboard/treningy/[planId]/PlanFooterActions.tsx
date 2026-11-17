@@ -5,6 +5,8 @@ import { useEffect, useState, useTransition } from "react";
 import { deletePlanAction } from "../actions";
 import { WorkoutTemplateSave } from "../../sablony/WorkoutTemplateControls";
 import styles from "../../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionDownloadIcon, ActionTrashIcon } from "@/app/components/ActionIcons";
 
 /**
  * Spodok detailu plánu: "Stiahnuť PDF" + "Uložiť ako šablónu" v jednom riadku, pod nimi
@@ -51,18 +53,22 @@ export function PlanFooterActions({
 
   if (confirming) {
     return (
-      <div className={styles.templateGrid} role="alertdialog" aria-labelledby="delete-plan-question">
-        <p id="delete-plan-question" className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>
-          {t("deletePlanConfirm", { name: planName })}
-          {hasCompleted && t("deletePlanKeepsLogs")}
-        </p>
-        <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={pending}>
-          {pending ? t("deleting") : t("yesDelete")}
-        </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
-          {t("cancel")}
-        </button>
-        {error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{error}</p>}
+      <div className={styles.footActions}>
+        <div className={pa.confirm} role="alertdialog" aria-labelledby="delete-plan-question">
+          <p id="delete-plan-question" className={pa.confirmText}>
+            {t("deletePlanConfirm", { name: planName })}
+            {hasCompleted && t("deletePlanKeepsLogs")}
+          </p>
+          <span className={pa.confirmBtns}>
+            <button type="button" className={pa.confirmNo} onClick={() => setConfirming(false)} disabled={pending}>
+              {t("cancel")}
+            </button>
+            <button type="button" className={pa.confirmYes} onClick={doDelete} disabled={pending}>
+              {pending ? t("deleting") : t("yesDelete")}
+            </button>
+          </span>
+        </div>
+        {error && <p className={styles.publishError}>{error}</p>}
       </div>
     );
   }
@@ -72,18 +78,16 @@ export function PlanFooterActions({
       planId={planId}
       defaultName={planName}
       leading={
-        <a href={`/api/export/plan/${planId}/pdf`} className="btn btn-ghost btn-sm">
+        <a href={`/api/export/plan/${planId}/pdf`} className={pa.action}>
+          <ActionDownloadIcon />
           {t("downloadPdf")}
         </a>
       }
       trailing={
         published &&
         canDelete && (
-          <button
-            type="button"
-            className={`btn btn-ghost btn-sm btn-danger ${styles.dangerGhost}`}
-            onClick={() => setConfirming(true)}
-          >
+          <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => setConfirming(true)}>
+            <ActionTrashIcon />
             {t("delete")}
           </button>
         )

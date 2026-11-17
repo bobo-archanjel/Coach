@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { cancelOwnDeletionAction, requestOwnDeletionAction } from "../actions";
 import styles from "../portal.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionResumeIcon, ActionTrashIcon } from "@/app/components/ActionIcons";
 
 const GRACE_DAYS = 30;
 
@@ -49,31 +51,26 @@ export function DeleteAccountSection({
               ? t("byTrainer", { days: daysLeft(requestedAt) })
               : t("byYou", { days: daysLeft(requestedAt) })}
           </p>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={cancel} disabled={pending}>
+          <button type="button" className={`${pa.action} ${pa.small} ${pa.inline}`} onClick={cancel} disabled={pending}>
+            <ActionResumeIcon />
             {t("cancel")}
           </button>
         </>
       ) : confirming ? (
-        <>
-          <p className={styles.dzText}>
-            {t("confirm")}
-          </p>
-          <div className={styles.dzActions}>
-            <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={request} disabled={pending}>
-              {t("yes")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setConfirming(false)}
-              disabled={pending}
-            >
+        <div className={pa.confirm} role="alertdialog" aria-label={t("confirm")}>
+          <p className={pa.confirmText}>{t("confirm")}</p>
+          <span className={pa.confirmBtns}>
+            <button type="button" className={pa.confirmNo} onClick={() => setConfirming(false)} disabled={pending}>
               {t("no")}
             </button>
-          </div>
-        </>
+            <button type="button" className={pa.confirmYes} onClick={request} disabled={pending}>
+              {t("yes")}
+            </button>
+          </span>
+        </div>
       ) : (
-        <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
+        <button type="button" className={`${pa.action} ${pa.small} ${pa.inline} ${pa.danger}`} onClick={() => setConfirming(true)}>
+          <ActionTrashIcon />
           {t("request")}
         </button>
       )}

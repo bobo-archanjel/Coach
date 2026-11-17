@@ -2,6 +2,7 @@
 
 import type { Locale } from "@/lib/i18n/locales";
 import { createPdfContext, PdfWriter, type TableColumn } from "./document";
+import { supersetPositions } from "@/lib/workouts/superset";
 
 export interface PlanReportExercise {
   exerciseName: string;
@@ -10,6 +11,8 @@ export interface PlanReportExercise {
   loadKg: number | null;
   tempo: string | null;
   restSeconds: number | null;
+  /** superséria (lib/workouts/superset.ts) — v PDF štítok A1 / A2, pauza len po kole */
+  superset?: string | null;
 }
 
 export interface PlanReportDay {
@@ -72,16 +75,20 @@ export async function generatePlanPdf(input: PlanReportInput, locale: Locale = "
       title: day.name,
       aside: n > 0 ? t("plan.exerciseCount", { count: n }) : undefined,
       columns: COLUMNS,
-      rows: day.exercises.map((ex) => ({
-        cells: [
-          ex.exerciseName,
-          String(ex.sets),
-          ex.reps || "—",
-          ex.loadKg != null ? `${ex.loadKg} kg` : "—",
-          restLabel(ex.restSeconds),
-          ex.tempo || "—",
-        ],
-      })),
+      rows: day.exercises.map((ex, i) => {
+        const ss = supersetPositions(day.exercises)[i];
+        return {
+          cells: [
+            ss ? `${ss.letter}${ss.index} · ${ex.exerciseName}` : ex.exerciseName,
+            String(ex.sets),
+            ex.reps || "—",
+            ex.loadKg != null ? `${ex.loadKg} kg` : "—",
+            // superséria: medzi cvikmi bez pauzy, pauza až po kole
+            ss && !ss.last ? "—" : restLabel(ex.restSeconds),
+            ex.tempo || "—",
+          ],
+        };
+      }),
       empty: t("plan.noExercises"),
     });
   }

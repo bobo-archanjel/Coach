@@ -17,6 +17,7 @@ interface RawExercise {
   load_kg: number | null;
   tempo: string | null;
   rest_seconds: number | null;
+  superset?: string | null;
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ planId: string }> }) {
@@ -54,6 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
         loadKg: ex.load_kg,
         tempo: ex.tempo,
         restSeconds: ex.rest_seconds,
+        superset: ex.superset ?? null,
       })),
     })),
   }, await getUserLocale());

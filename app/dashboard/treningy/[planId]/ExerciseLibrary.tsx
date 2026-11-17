@@ -1,7 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState, useActionState } from "react";
+import { useEffect, useMemo, useState, useActionState, useRef } from "react";
+import { onFocusAddExercise, requestEntryEdit } from "@/app/components/pendingEntryEdit";
 import { addCustomExerciseAction, addCustomExerciseToDayAction, type ActionState } from "../actions";
 import { LibraryItem } from "./LibraryItem";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
@@ -49,6 +50,12 @@ export function ExerciseLibrary({
   const [open, setOpen] = useState(false);
   const [libState, addToLibrary, libPending] = useActionState(addCustomExerciseAction, initialState);
   const [dayState, addToDay, dayPending] = useActionState(addCustomExerciseToDayAction, initialState);
+  // vlastný cvik po pridaní hneď na úpravu; po jej uložení sa fokus vráti sem (ďalší cvik)
+  const searchRef = useRef<HTMLInputElement>(null);
+  const customRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (dayState.entryId) requestEntryEdit(dayState.entryId);
+  }, [dayState]);
   const customPending = libPending || dayPending;
   const [page, setPage] = useState(0);
   // Klik na „Pridať do tréningu" alebo na cvik v zozname bez vytvoreného dňa —
@@ -58,6 +65,15 @@ export function ExerciseLibrary({
   useEffect(() => {
     if (activeDayId) setNoDayHint(null);
   }, [activeDayId]);
+
+  useEffect(
+    () =>
+      onFocusAddExercise(() => {
+        // otvorená knižnica → hľadanie, inak názov vlastného cviku
+        (open ? searchRef.current : customRef.current)?.focus();
+      }),
+    [open],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -88,6 +104,7 @@ export function ExerciseLibrary({
         <span className={styles.libraryHead}>{t("customHeading")}</span>
         <form className={`${styles.customExerciseForm} ${styles.customExerciseGrid}`}>
           <input
+            ref={customRef}
             name="name"
             type="text"
             placeholder={t("customName")}
@@ -139,6 +156,7 @@ export function ExerciseLibrary({
 
         <div className={`${styles.libraryBody} ${!open ? styles.collapsed : ""}`}>
           <input
+            ref={searchRef}
             type="text"
             placeholder={t("search")}
             value={query}

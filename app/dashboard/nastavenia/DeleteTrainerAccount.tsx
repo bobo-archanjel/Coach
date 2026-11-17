@@ -9,6 +9,8 @@ import { useState, useTransition } from "react";
 import { intlLocale } from "@/lib/i18n/locales";
 import { cancelTrainerDeletionAction, requestTrainerDeletionAction } from "./actions";
 import styles from "../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionResumeIcon, ActionTrashIcon } from "@/app/components/ActionIcons";
 
 const GRACE_DAYS = 30;
 const DAY_MS = 24 * 3600_000;
@@ -44,31 +46,33 @@ export function DeleteTrainerAccount({ requestedAt }: { requestedAt: string | nu
           <p className={styles.dangerText} role="status">
             {t("pending", { days: pendingInfo.days, date: pendingInfo.date })}
           </p>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => run(cancelTrainerDeletionAction)} disabled={pending}>
+          <button
+            type="button"
+            className={`${pa.action} ${pa.small} ${pa.inline}`}
+            onClick={() => run(cancelTrainerDeletionAction)}
+            disabled={pending}
+          >
+            <ActionResumeIcon />
             {t("cancel")}
           </button>
         </>
       ) : confirming ? (
-        <>
-          <p className={styles.dangerText}>{t("confirm")}</p>
-          <div className={styles.dangerActions}>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm btn-danger"
-              onClick={() => run(requestTrainerDeletionAction)}
-              disabled={pending}
-            >
-              {t("yes")}
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
+        <div className={pa.confirm} role="alertdialog" aria-label={t("confirm")}>
+          <p className={pa.confirmText}>{t("confirm")}</p>
+          <span className={pa.confirmBtns}>
+            <button type="button" className={pa.confirmNo} onClick={() => setConfirming(false)} disabled={pending}>
               {t("no")}
             </button>
-          </div>
-        </>
+            <button type="button" className={pa.confirmYes} onClick={() => run(requestTrainerDeletionAction)} disabled={pending}>
+              {t("yes")}
+            </button>
+          </span>
+        </div>
       ) : (
         <>
           <p className={styles.dangerText}>{t("hint")}</p>
-          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
+          <button type="button" className={`${pa.action} ${pa.small} ${pa.inline} ${pa.danger}`} onClick={() => setConfirming(true)}>
+            <ActionTrashIcon />
             {t("request")}
           </button>
         </>

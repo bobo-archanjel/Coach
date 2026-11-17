@@ -8,6 +8,8 @@ import { createPortal } from "react-dom";
 import type { PlanSource, PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
 import { usePortionLabel } from "@/app/components/food/usePortionLabel";
 import { FoodIcon } from "@/app/portal/icons";
+import { ActionDownloadIcon, ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import pa from "@/app/components/planActions.module.css";
 import {
   chooseActiveMealPlanAction,
   deleteClientMealPlanAction,
@@ -54,6 +56,14 @@ const PlusIcon = () => (
 const ChevronIcon = ({ className }: { className?: string }) => (
   <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const ListIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="4.5" cy="6" r="1.4" fill="currentColor" />
+    <circle cx="4.5" cy="12" r="1.4" fill="currentColor" />
+    <circle cx="4.5" cy="18" r="1.4" fill="currentColor" />
   </svg>
 );
 const CloseIcon = () => (
@@ -258,28 +268,30 @@ export function NutritionSection({
                         {t("tplMeta", { days: tpl.days.length, foods: tpl.days.reduce((n, d) => n + d.meals.length, 0) })}
                       </span>
                     </span>
-                    <span className={styles.trTplActions}>
-                      {confirmTplDelete === tpl.id ? (
-                        <>
-                          <span className={styles.trConfirmText}>{t("deleteTemplate")}</span>
-                          <button type="button" className={styles.trDangerBtn} onClick={() => removeTemplate(tpl.id)} disabled={pending}>
-                            {t("delete")}
-                          </button>
-                          <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
+                    {confirmTplDelete === tpl.id ? (
+                      <div className={`${pa.confirm} ${pa.confirmWide}`}>
+                        <span className={pa.confirmText}>{t("deleteTemplate")}</span>
+                        <span className={pa.confirmBtns}>
+                          <button type="button" className={pa.confirmNo} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
                             {t("no")}
                           </button>
-                        </>
-                      ) : (
-                        <>
-                          <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(false, tpl)}>
-                            {t("use")}
-                          </button>
-                          <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(tpl.id)}>
+                          <button type="button" className={pa.confirmYes} onClick={() => removeTemplate(tpl.id)} disabled={pending}>
                             {t("delete")}
                           </button>
-                        </>
-                      )}
-                    </span>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className={pa.gridRow}>
+                        <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(false, tpl)}>
+                          <ActionUseIcon />
+                          {t("use")}
+                        </button>
+                        <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirmTplDelete(tpl.id)}>
+                          <ActionTrashIcon />
+                          {t("delete")}
+                        </button>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -287,28 +299,45 @@ export function NutritionSection({
           </div>
         )}
 
-        {/* aktívny jedálniček: zdroj a názov (nadpis dní nižšie); pri viacerých tlačidlo
-            „Jedálničky (počet)“ otvorí okno s výberom — Vlastné / Od trénera */}
-        {mealPlanId && (
-          <div className={styles.psRow} data-tour="nutrition-active">
-            <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
-              {activeSource === "client" ? t("own") : t("fromTrainer")}
+        {/* aktívny jedálniček (nadpis dní nižšie). Pri viacerých je celý riadok karta-výber
+            (ikona, „JEDÁLNIČKY · počet“, názov so štítkom, šípka) — ťuk kamkoľvek otvorí okno
+            s výberom Vlastné / Od trénera. Tlačidlo je šípka, jeho ::after pokryje celú kartu,
+            aby nadpis ostal nadpisom (h3 v <button> nie je platné). */}
+        {mealPlanId && plans.length > 1 ? (
+          <div className={styles.mpSelect} data-tour="nutrition-active">
+            <span className={styles.mpSelectIcon}>
+              <ListIcon />
             </span>
-            <h3 className={`${styles.psName} ${styles.mpName}`}>{mealPlanName}</h3>
-            {plans.length > 1 && (
-              <button
-                ref={plansBtnRef}
-                type="button"
-                className={`${styles.psChange} ${styles.mpOpen}`}
-                onClick={() => setPlansOpen(true)}
-                aria-haspopup="dialog"
-                data-tour="nutrition-switch"
-              >
-                {t("plansButton")}{" "}
-                <span className={styles.trTplCount}>{plans.length}</span>
-              </button>
-            )}
+            <span className={styles.mpSelectText}>
+              <span className={styles.mpSelectLabel}>{t("plansLabel", { count: plans.length })}</span>
+              <span className={styles.mpSelectTitle}>
+                <h3 className={styles.mpSelectName}>{mealPlanName}</h3>
+                <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
+                  {activeSource === "client" ? t("own") : t("fromTrainer")}
+                </span>
+              </span>
+            </span>
+            <button
+              ref={plansBtnRef}
+              type="button"
+              className={styles.mpSelectBtn}
+              onClick={() => setPlansOpen(true)}
+              aria-haspopup="dialog"
+              aria-label={t("plansButtonAria", { count: plans.length })}
+              data-tour="nutrition-switch"
+            >
+              <ChevronIcon />
+            </button>
           </div>
+        ) : (
+          mealPlanId && (
+            <div className={styles.psRow} data-tour="nutrition-active">
+              <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
+                {activeSource === "client" ? t("own") : t("fromTrainer")}
+              </span>
+              <h3 className={`${styles.psName} ${styles.mpName}`}>{mealPlanName}</h3>
+            </div>
+          )
         )}
 
         {mealDays.length === 0 ? (
@@ -355,46 +384,55 @@ export function NutritionSection({
           </div>
         )}
 
-        {/* vlastný jedálniček: úprava, šablóna, zmazanie */}
-        {isOwn && (
-          <div className={styles.trPlanActions} data-tour="nutrition-own-actions">
+        {/* akcie pod jedálničkom — jeden panel rovnako veľkých tlačidiel s ikonami (mriežka:
+            mobil 2 stĺpce, počítač v riadku). Od trénera: PDF + Uložiť ako šablónu (klient si
+            zaň platí — kópia mu ostane aj po zmene / zmazaní trénerom); vlastný navyše Upraviť
+            a Zmazať (s potvrdením na mieste mriežky). */}
+        {mealPlanId && (isOwn || mealDays.length > 0) && (
+          <div className={styles.mpActions} data-tour={isOwn ? "nutrition-own-actions" : "nutrition-plan-actions"}>
             {confirmDelete ? (
-              <>
-                <span className={styles.trConfirmText}>{t("deleteConfirm")}</span>
-                <button type="button" className={styles.trDangerBtn} onClick={removePlan} disabled={pending}>
-                  {t("delete")}
-                </button>
-                <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmDelete(false)} disabled={pending}>
-                  {t("no")}
-                </button>
-              </>
+              <div className={pa.confirm}>
+                <span className={pa.confirmText}>{t("deleteConfirm")}</span>
+                <span className={pa.confirmBtns}>
+                  <button type="button" className={pa.confirmNo} onClick={() => setConfirmDelete(false)} disabled={pending}>
+                    {t("no")}
+                  </button>
+                  <button type="button" className={pa.confirmYes} onClick={removePlan} disabled={pending}>
+                    {t("delete")}
+                  </button>
+                </span>
+              </div>
             ) : (
-              <>
-                <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(true)}>
-                  {t("edit")}
-                </button>
-                <button type="button" className={styles.trGhostBtn} onClick={saveTemplate} disabled={pending}>
+              <div className={pa.grid}>
+                {isOwn && (
+                  <button type="button" className={pa.action} onClick={() => openBuilder(true)}>
+                    <ActionEditIcon />
+                    {t("edit")}
+                  </button>
+                )}
+                <button type="button" className={pa.action} onClick={saveTemplate} disabled={pending}>
+                  <ActionTemplateIcon />
                   {t("saveTemplate")}
                 </button>
-                <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmDelete(true)}>
-                  {t("delete")}
-                </button>
-              </>
+                {mealDays.length > 0 && (
+                  <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className={pa.action} data-tour="nutrition-pdf">
+                    <ActionDownloadIcon />
+                    {t("downloadPdf")}
+                  </a>
+                )}
+                {isOwn && (
+                  <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => setConfirmDelete(true)}>
+                    <ActionTrashIcon />
+                    {t("delete")}
+                  </button>
+                )}
+              </div>
             )}
             {note && (
               <p className={`${styles.trTplNote} ${note.error ? styles.trTplNoteError : ""}`} role="status">
                 {note.text}
               </p>
             )}
-          </div>
-        )}
-
-        {/* PDF až pod jedálničkom (nie v hlavičke sekcie) */}
-        {mealPlanId && mealDays.length > 0 && (
-          <div className={styles.mealPdfRow} data-tour="nutrition-pdf">
-            <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
-              {t("downloadPdf")}
-            </a>
           </div>
         )}
       </section>

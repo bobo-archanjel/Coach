@@ -751,3 +751,64 @@
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* ---------- supersérie (lib/workouts/superset.ts) ----------
+   Členovia skupiny: terakotová linka vľavo a štítok A1 / A2 pred názvom; medzi kartami
+   prepínač reťaze „Spojiť do supersérie“ / „Rozdeliť“ (SupersetLink). */
+.ssMember {
+  box-shadow: inset 4px 0 0 var(--accent), var(--card-shadow, none);
+}
+.ssTag {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 7px;
+  margin-right: 8px;
+  border-radius: 8px;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.ssMeta {
+  color: var(--accent-text);
+}
+.ssLinkRow {
+  display: flex;
+  justify-content: center;
+  margin: -2px 0;
+}
+.ssLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px dashed var(--fill-strong, var(--hairline));
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--paper-faint);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.ssLink:hover {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.ssLinkOn {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.ssLink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

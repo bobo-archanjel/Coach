@@ -1,26 +1,52 @@
 import { test, expect } from "@playwright/test";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Reálne prihlásenie (nie ?preview=) — na rozdiel od smoke.spec.ts, ktorý beží
- * len proti preview stavom kvôli placeholder Supabase kľúču v CI. Tento súbor
- * beží len lokálne, kde .env.local má reálny dev Supabase projekt a tieto
- * dva seedované test účty (tréner s viacerými klientmi vrátane existujúceho
- * chat vlákna). Ak CI/iný stroj nemá tieto účty, tento súbor pred spustením
- * treba preskočiť (`--grep-invert`) alebo doplniť vlastné test dáta.
+ * Reálne prihlásenie (nie ?preview=) — QA tréner z env (E2E_TRAINER_*), ktorý má
+ * konverzáciu s QA klientom. Bez údajov sa súbor preskočí. Správa, ktorú test
+ * pošle, sa na konci zmaže (service role) — nič neostane v chate.
+ * Predtým test používal natvrdo cudzí účet a posielal správy jeho klientom.
  */
-const TRAINER = { email: "ahoj@gmail.com", password: "test12345" };
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  /* bez .env.local sa testy preskočia */
+}
+const env = {
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  serviceRole: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  email: process.env.E2E_TRAINER_EMAIL,
+  password: process.env.E2E_TRAINER_PASSWORD,
+};
+const hasEnv = Object.values(env).every(Boolean);
+const TEXT_PREFIX = "e2e test spravy-inbox";
+
+test.skip(!hasEnv, "Chýbajú E2E_TRAINER_* údaje alebo Supabase env (aj service role).");
+
+test.afterAll(async () => {
+  if (!hasEnv) return;
+  const admin = createClient(env.url!, env.serviceRole!, { auth: { persistSession: false, autoRefreshToken: false } });
+  await admin.from("messages").delete().like("body", `${TEXT_PREFIX} %`).eq("sender_id", await trainerId(admin));
+});
+
+async function trainerId(admin: SupabaseClient): Promise<string> {
+  const { data } = await admin.from("profiles").select("id").eq("email", env.email!).maybeSingle();
+  return (data as { id: string } | null)?.id ?? "00000000-0000-0000-0000-000000000000";
+}
 
 async function loginAsTrainer(page: import("@playwright/test").Page) {
   await page.goto("/prihlasenie");
-  await page.locator("#login-email").fill(TRAINER.email);
-  await page.locator("#login-password").fill(TRAINER.password);
+  await page.locator("#login-email").fill(env.email!);
+  await page.locator("#login-password").fill(env.password!);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/dashboard/, { timeout: 20000 });
+  // texty testu sú slovenské: prihlásenie nastaví jazyk z profilu (a jazyk.spec.ts ho
+  // tomuto účtu súbežne prepína na češtinu) — cookie má prednosť, preto sk natvrdo
+  await page.context().addCookies([{ name: "fp-locale", value: "sk", url: page.url() }]);
+  await page.reload();
 
-  // feature/navod: tento seedovaný účet má profiles.tour_completed_at ešte
-  // NULL (migrácia 0041 je novšia než seed dáta), takže reálne prihlásenie
-  // (na rozdiel od ?preview=, kde tourSeen je vždy true bez session) spustí
-  // onboarding tour overlay — ten by inak blokoval kliky na nasledujúce testy.
+  // ak účet ešte nemá dokončený sprievodca (profiles.tour_completed_at NULL),
+  // overlay by blokoval kliky — preskočiť
   const skipTour = page.getByRole("button", { name: "Preskočiť" });
   if (await skipTour.isVisible({ timeout: 3000 }).catch(() => false)) {
     await skipTour.click();
@@ -69,7 +95,7 @@ test.describe("Centrálna schránka správ /dashboard/spravy", () => {
     }
 
     const before = await page.locator("[class*='bubble']").count();
-    const text = `e2e test spravy-inbox ${Date.now()}`;
+    const text = `${TEXT_PREFIX} ${Date.now()}`;
     await page.locator("textarea[aria-label='Napísať správu']").fill(text);
     await page.locator("button[aria-label='Odoslať']").click();
     await expect

@@ -22,6 +22,8 @@ import { tErr } from "@/lib/i18n/serverErrors";
 import { getTranslations } from "next-intl/server";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
+import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
+import { detachFromSuperset, normalizeSupersets, toggleLinkWithNext } from "@/lib/workouts/superset";
 
 export interface ActionState {
   error: string | null;
@@ -29,6 +31,8 @@ export interface ActionState {
    *  vytvorí, ale nepresmerujeme rovno doň — najprv ukážeme trénerovi varovania. */
   planId?: string | null;
   warnings?: string[];
+  /** pridanie cviku do dňa: ID nového cviku — builder ho hneď otvorí na úpravu */
+  entryId?: string | null;
 }
 
 const ok: ActionState = { error: null };
@@ -67,6 +71,8 @@ export interface WorkoutExerciseEntry {
   load_kg: number | null;
   tempo: string | null;
   rest_seconds: number | null;
+  /** superséria — rovnaké id u cvikov po sebe (lib/workouts/superset.ts); chýba = samostatný */
+  superset?: string | null;
 }
 
 export async function createPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -301,7 +307,7 @@ export async function duplicateDayAction(planId: string, dayId: string): Promise
   return { error: null, dayId: data.id };
 }
 
-/** Klik na cvik v knižnici → pridá ho do aktívneho dňa s rozumnými defaultmi (rovno editovateľné). */
+/** Klik na cvik v knižnici → pridá ho do aktívneho dňa s hodnotami posledného cviku a vráti jeho ID (builder ho hneď otvorí na úpravu). */
 export async function addExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
 
@@ -322,20 +328,23 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   if (!exercise) return { error: await tErr("plans.exerciseNotFound") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
 
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  // hodnoty z posledného cviku dňa (pridať a vyplniť v jednom kroku — lib/workouts/nextEntryDefaults)
+  const last = current[current.length - 1];
+  const defaults = nextEntryDefaults(last ? { sets: last.sets, reps: last.reps, restSeconds: last.rest_seconds } : null);
   const newEntry: WorkoutExerciseEntry = {
     entry_id: randomUUID(),
     exercise_id: exerciseId,
     // Rovnaký názov, aký tréner vidí v knižnici (AI generátor aj ClientPlanBuilder
     // ukladajú tiež name_sk) — inak plán, portál aj analytika ukazovali anglicky.
     exercise_name: displayExerciseName(exercise.name, exercise.name_sk),
-    sets: 3,
-    reps: "10",
+    sets: defaults.sets,
+    reps: defaults.reps,
     load_kg: null,
     tempo: null,
-    rest_seconds: 90,
+    rest_seconds: defaults.restSeconds,
   };
 
-  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
   const { error } = await supabase
     .from("workout_days")
     .update({ exercises: [...current, newEntry] })
@@ -344,7 +353,7 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
-  return ok;
+  return { error: null, entryId: newEntry.entry_id };
 }
 
 /**
@@ -369,18 +378,20 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   if (locked) return { error: await tErr("planLocked") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
 
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const last = current[current.length - 1];
+  const defaults = nextEntryDefaults(last ? { sets: last.sets, reps: last.reps, restSeconds: last.rest_seconds } : null);
   const newEntry: WorkoutExerciseEntry = {
     entry_id: randomUUID(),
     exercise_id: null,
     exercise_name: name,
-    sets: 3,
-    reps: "10",
+    sets: defaults.sets,
+    reps: defaults.reps,
     load_kg: null,
     tempo: null,
-    rest_seconds: 90,
+    rest_seconds: defaults.restSeconds,
   };
 
-  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
   const { error } = await supabase
     .from("workout_days")
     .update({ exercises: [...current, newEntry] })
@@ -389,7 +400,7 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
-  return ok;
+  return { error: null, entryId: newEntry.entry_id };
 }
 
 export async function updateExerciseEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -462,8 +473,10 @@ export async function moveExerciseEntryAction(input: {
   const target = direction === "up" ? idx - 1 : idx + 1;
   if (target < 0 || target >= current.length) return ok; // už na kraji — nič nemeníme
 
-  const updated = [...current];
-  [updated[idx], updated[target]] = [updated[target], updated[idx]];
+  const swapped = [...current];
+  [swapped[idx], swapped[target]] = [swapped[target], swapped[idx]];
+  // presunutý cvik vypadne zo supersérie (skupina ostane súvislá)
+  const updated = detachFromSuperset(swapped, target);
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
   if (error) return { error: await dbErr(error, "actions") };
@@ -486,8 +499,35 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
   if (!day) return { error: await tErr("plans.dayNotFound") };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
-  const updated = current.filter((entry) => entry.entry_id !== entryId);
+  // supersériu, z ktorej ostal jeden cvik, zruší
+  const updated = normalizeSupersets(current.filter((entry) => entry.entry_id !== entryId));
 
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  if (error) return { error: await dbErr(error, "actions") };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+/**
+ * Superséria: spojí cvik s nasledujúcim (alebo spojenie zruší — rozdelí skupinu medzi
+ * nimi). Volá sa priamo z PlanBuilderu (tlačidlo reťaze medzi kartami), ktorý si zmenu
+ * ukáže optimisticky. lib/workouts/superset.ts.
+ */
+export async function toggleSupersetLinkAction(input: { planId: string; dayId: string; entryId: string }): Promise<ActionState> {
+  const { planId, dayId, entryId } = input;
+  if (!planId || !dayId || !entryId) return { error: await tErr("plans.missingEntryId") };
+
+  const supabase = await createClient();
+  const { day, locked } = await getDayForEdit(supabase, dayId);
+  if (locked) return { error: await tErr("planLocked") };
+  if (!day) return { error: await tErr("plans.dayNotFound") };
+
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const idx = current.findIndex((e) => e.entry_id === entryId);
+  if (idx < 0 || idx >= current.length - 1) return { error: await tErr("plans.exerciseNotFound") };
+
+  const updated = toggleLinkWithNext(current, idx);
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
   if (error) return { error: await dbErr(error, "actions") };
 

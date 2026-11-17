@@ -23,6 +23,7 @@ import { DuplicateWorkoutButton } from "./DuplicateWorkoutButton";
 import { InfoTip } from "@/app/components/InfoTip";
 import dashboardStyles from "@/app/dashboard/dashboard.module.css";
 import styles from "./completed.module.css";
+import { supersetPositions } from "@/lib/workouts/superset";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -186,6 +187,7 @@ export default async function CompletedWorkoutPage({
   const dateLabel = formatCompletedDate(view.completedAt ?? `${view.performedOn}T12:00:00Z`, locale);
   const title = view.snapshot?.dayName ?? t("workoutFallback");
 
+  const ssPositions = supersetPositions(view.exercises);
   return (
     <>
       <Link href={`/dashboard/klienti/${view.clientId}`} className={dashboardStyles.backLink}>
@@ -259,10 +261,16 @@ export default async function CompletedWorkoutPage({
         <p className={dashboardStyles.noWorkouts}>{t("noValues")}</p>
       ) : (
         <div className={styles.exerciseList}>
-          {view.exercises.map((ex) => (
+          {view.exercises.map((ex, exIdx) => (
             <section key={ex.key} className={styles.exercise} data-testid="completed-exercise">
               <header className={styles.exerciseHead}>
-                <h2 className={styles.exerciseName}>{ex.name}</h2>
+                <h2 className={styles.exerciseName}>
+                  {/* superséria, v ktorej klient cvik cvičil (plán alebo spojenie počas tréningu) */}
+                  {ssPositions[exIdx] && (
+                    <span className={styles.ssTag}>{`${ssPositions[exIdx]!.letter}${ssPositions[exIdx]!.index}`}</span>
+                  )}
+                  {ex.name}
+                </h2>
                 {ex.status === "skipped" && <span className={styles.chipMuted}>{t("skipped")}</span>}
                 {ex.status === "extra" && <span className={styles.chipMuted}>{t("outsidePlan")}</span>}
               </header>

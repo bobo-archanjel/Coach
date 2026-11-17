@@ -293,7 +293,7 @@ export async function chooseActiveMealPlanAction(planId: string): Promise<MealAc
   return ok;
 }
 
-/** „Uložiť ako šablónu“ pri vlastnom jedálničku (lib/templates.ts). */
+/** „Uložiť ako šablónu“ pri vlastnom aj zverejnenom trénerovom jedálničku (lib/templates.ts). */
 export async function saveOwnMealTemplateAction(planId: string): Promise<MealActionState> {
   const supabase = await createClient();
   const {

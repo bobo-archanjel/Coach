@@ -48,8 +48,8 @@ test.describe("vlastný jedálniček — náhľady", () => {
     await expect(active.getByRole("heading", { name: "Rekompozícia — jeseň" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Upraviť", exact: true })).toHaveCount(0);
 
-    // tlačidlo s počtom ukáže, že jedálničkov je viac
-    const open = active.getByRole("button", { name: "Jedálničky 2" });
+    // karta-výber s počtom ukáže, že jedálničkov je viac (ťuk na kartu otvorí okno)
+    const open = active.getByRole("button", { name: /^Jedálničky \(2\)/ });
     await open.click();
     const sheet = page.getByRole("dialog", { name: "Jedálničky" });
     const tabs = sheet.getByRole("radiogroup", { name: "Zobraziť jedálničky" });
@@ -72,9 +72,14 @@ test.describe("vlastný jedálniček — náhľady", () => {
     await expect(open).toBeFocused();
   });
 
-  test("okno: pri vlastnom aktívnom sa otvorí na Vlastné", async ({ page }) => {
+  test("okno: ťuk na názov v karte ho otvorí, pri vlastnom aktívnom na Vlastné", async ({ page }) => {
     await page.goto("/portal/strava?preview=own");
-    await page.getByRole("button", { name: "Jedálničky 2" }).click();
+    // celá karta je cieľ ťuku (tlačidlo ju prekrýva), nielen šípka
+    // (tlačidlo kartu prekrýva, preto klik na súradnice nadpisu — Playwright by na prekrytý prvok neklikol)
+    const title = page.locator('[data-tour="nutrition-active"]').getByRole("heading", { name: "Môj týždeň" });
+    await title.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+    const box = (await title.boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     const sheet = page.getByRole("dialog", { name: "Jedálničky" });
     await expect(sheet.getByRole("radio", { name: "Vlastné 1" })).toHaveAttribute("aria-checked", "true");
     await expect(sheet.getByRole("button", { name: /Môj týždeň/ })).toHaveAttribute("aria-current", "true");
@@ -82,7 +87,7 @@ test.describe("vlastný jedálniček — náhľady", () => {
 
   test("okno: prázdna skupina Vlastné má vysvetlenie", async ({ page }) => {
     await page.goto("/portal/strava?preview=trainers");
-    await page.getByRole("button", { name: "Jedálničky 2" }).click();
+    await page.getByRole("button", { name: /^Jedálničky \(2\)/ }).click();
     const sheet = page.getByRole("dialog", { name: "Jedálničky" });
     await expect(sheet.getByRole("radio", { name: "Od trénera 2" })).toHaveAttribute("aria-checked", "true");
     await expect(sheet.getByRole("button", { name: /Objemovka — zima/ })).toContainText("3 dni");
@@ -281,7 +286,7 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     await expect(active.getByRole("heading", { name: ownName })).toBeVisible();
     await expect(page.getByRole("button", { name: "Upraviť", exact: true })).toBeVisible();
 
-    await active.getByRole("button", { name: /^Jedálničky \d+$/ }).click();
+    await active.getByRole("button", { name: /^Jedálničky \(\d+\)/ }).click();
     const sheet = page.getByRole("dialog", { name: "Jedálničky" });
     await expect(sheet.getByRole("radio", { name: /^Vlastné/ })).toHaveAttribute("aria-checked", "true");
     await expect(sheet.getByRole("button", { name: new RegExp(ownName) })).toHaveAttribute("aria-current", "true");

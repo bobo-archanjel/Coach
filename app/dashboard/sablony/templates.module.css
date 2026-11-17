@@ -125,61 +125,7 @@
   font-size: 13px;
   font-weight: 600;
 }
-.cardActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.cardActions :global(.btn) {
-  padding: 8px 16px;
-  font-size: 13.5px;
-}
-.previewToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: none;
-  color: var(--paper-dim);
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 650;
-  cursor: pointer;
-}
-.previewToggle:hover {
-  background: var(--fill);
-  color: var(--paper);
-}
-.chevron {
-  transition: transform 0.18s ease;
-}
-.chevronOpen {
-  transform: rotate(90deg);
-}
-.deleteBtn {
-  margin-left: auto;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: none;
-  color: var(--danger);
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 650;
-  cursor: pointer;
-}
-.deleteBtn:hover {
-  background: var(--danger-soft);
-}
-.deleteConfirm {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
+/* akcie karty: app/components/planActions.module.css (gridCard) */
 /* ---------- náhľad obsahu ---------- */
 .preview {
   display: grid;
