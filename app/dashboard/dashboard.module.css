@@ -2031,11 +2031,6 @@ select.addClientInputSm {
   font-size: 13.5px;
   margin-bottom: 12px;
 }
-.dangerActions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 .dangerError {
   color: var(--accent-text);
   font-size: 12.5px;

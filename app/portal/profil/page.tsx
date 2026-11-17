@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { AppLink as Link } from "@/app/components/AppLink";
 import { ChangePasswordForm } from "@/app/components/ChangePasswordForm";
 import { SignOutButton } from "@/app/components/SignOutButton";
+import pa from "@/app/components/planActions.module.css";
+import { ActionResumeIcon } from "@/app/components/ActionIcons";
 import { DeleteAccountSection } from "@/app/portal/profil/DeleteAccountSection";
 import { TrainerConnection } from "@/app/portal/profil/TrainerConnection";
 import { loadProfilView } from "@/app/portal/profil/profilView";
@@ -91,7 +93,8 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
           <p className={s.codeHint} style={{ marginTop: 0, marginBottom: 14 }}>
             {t("tourHint")}
           </p>
-          <Link href="/portal?tour=1" className="btn btn-ghost btn-sm">
+          <Link href="/portal?tour=1" className={`${pa.action} ${pa.small} ${pa.inline}`}>
+            <ActionResumeIcon />
             {t("tourRestart")}
           </Link>
         </div>

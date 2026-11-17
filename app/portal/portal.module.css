@@ -2801,11 +2801,6 @@
   line-height: 1.5;
   margin-bottom: 12px;
 }
-.dzActions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 .dzError {
   color: var(--error);
   font-size: 13px;

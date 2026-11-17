@@ -6,6 +6,8 @@ import styles from "@/app/dashboard/dashboard.module.css";
 import { v6Theme } from "@/app/dashboard/dashTheme";
 import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 import { SignOutButton } from "@/app/components/SignOutButton";
+import pa from "@/app/components/planActions.module.css";
+import { ActionResumeIcon } from "@/app/components/ActionIcons";
 import { ChangePasswordForm } from "@/app/components/ChangePasswordForm";
 import { LanguageSelect } from "@/app/components/LanguageSelect";
 import { DeleteTrainerAccount } from "./DeleteTrainerAccount";
@@ -124,7 +126,8 @@ export default async function NastaveniaPage() {
         <div className={styles.card} data-tour="settings-guide">
           <h3>{t("tour")}</h3>
           <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10, marginBottom: 14 }}>{t("tourHint")}</p>
-          <Link href="/dashboard?tour=1" className="btn btn-ghost btn-sm">
+          <Link href="/dashboard?tour=1" className={`${pa.action} ${pa.small} ${pa.inline}`}>
+            <ActionResumeIcon />
             {t("tourRestart")}
           </Link>
         </div>
