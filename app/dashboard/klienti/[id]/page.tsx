@@ -17,7 +17,8 @@ import { CreateMealPlanButton } from "./CreateMealPlanButton";
 import { NutritionForm } from "./NutritionForm";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
-import { resolveActivePlanId } from "@/lib/portal/activePlan";
+import { resolveActivePlanId, resolveTrainerActiveMealPlanId } from "@/lib/portal/activePlan";
+import { getActiveMealPlanIds } from "@/lib/dashboard/activeMealPlan";
 
 // DEV náhľad Progresu bez session (?preview=progress) — váha/sila/objem + rozšírená adherencia.
 function daysAgoIso(n: number): string {
@@ -236,8 +237,12 @@ export default async function ClientDetailPage({
     )
     .slice(0, 8);
 
-  // Portál ukazuje najnovší ZVEREJNENÝ jedálniček = aktívny; staršie zverejnené sú archív.
-  const activeMealPlanId = mealPlans?.find((p) => p.published)?.id ?? null;
+  // Aktívny jedálniček = ten, ktorý klient vidí: zvolený (0067), inak najnovší ZVEREJNENÝ;
+  // keď si klient zvolil vlastný (trénerovi skrytý), žiadny trénerov nie je aktívny.
+  const activeMealPlanId = resolveTrainerActiveMealPlanId(
+    (await getActiveMealPlanIds(supabase, [id])).get(id),
+    (mealPlans ?? []).filter((p) => p.published),
+  );
   // Aktívny tréningový plán = ten na klientovej karte Dnes (zvolený, inak najnovší zverejnený).
   const activePlanId = resolveActivePlanId(client.active_plan_id, (plans ?? []).filter((p) => p.published));
   const shortDate = (iso: string) =>

@@ -61,7 +61,7 @@
   "controls": {
     "draftBadge": "Koncept — klient ho ešte nevidí",
     "publishedVisible": "Zverejnený — klient ho vidí",
-    "publishedNewer": "Zverejnený — klient vidí novší jedálniček",
+    "publishedNewer": "Zverejnený — klient má aktívny iný jedálniček",
     "sentToMany": "Poslané {count} klientom — jedálniček už vidia.",
     "sentOne": "Poslané — klient jedálniček už vidí.",
     "deleteDraftConfirm": "Zmazať tento koncept?",

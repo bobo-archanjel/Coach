@@ -312,12 +312,62 @@ export interface PortalMealDay {
   totalKcal: number;
 }
 
+/** Jedálniček v prepínači aktívneho (Strava) — zverejnený, od trénera alebo vlastný. */
+export interface PortalMealPlanOption {
+  id: string;
+  name: string;
+  source: PlanSource;
+  dayCount: number;
+}
+
+/**
+ * Položka jedálnička tak, ako je v `meal_days.meals` (JSONB) — tvar trénerovho
+ * `MealEntry` (app/dashboard/jedalnicky/jedalnicek/actions.ts). Vo vlastnom
+ * jedálničku klienta môže chýbať `food_id` (offline / online produkt bez riadku
+ * v `foods`, rovnako ako v denníku) — názov a makrá nesie snapshot.
+ */
+export interface MealPlanEntryData {
+  entry_id: string;
+  food_id: string | null;
+  food_name: string;
+  meal_slot: MealSlot;
+  grams: number;
+  portion_unit?: PortionUnit;
+  portion_qty?: number;
+  portion_base?: "g" | "ml";
+  kcal_100g: number;
+  protein_100g: number;
+  carbs_100g: number;
+  fat_100g: number;
+}
+
+/** Deň jedálnička pre builder klienta; `id` null = nový (zo šablóny / ešte neuložený). */
+export interface EditableMealDay {
+  id: string | null;
+  name: string;
+  meals: MealPlanEntryData[];
+}
+
+/** Vlastná šablóna jedálnička klienta (meal_templates, vlastník = klient). */
+export interface PortalMealTemplate {
+  id: string;
+  name: string;
+  days: EditableMealDay[];
+}
+
 export interface PortalNutritionData {
   macroGoal: PortalMacroGoal | null;
-  /** ID najnovšieho jedálnička — pre odkaz na PDF export (api/export/meal-plan). */
+  /** ID aktívneho jedálnička — pre odkaz na PDF export (api/export/meal-plan). */
   mealPlanId: string | null;
   mealPlanName: string | null;
   mealDays: PortalMealDay[];
+  /** zverejnené jedálničky klienta, najnovšie prvé — prepínač „Zmeniť“ */
+  plans: PortalMealPlanOption[];
+  /** od koho je aktívny jedálniček (null = žiadny) */
+  activeSource: PlanSource | null;
+  /** dni aktívneho jedálnička pre „Upraviť“ — len pri vlastnom (tréner ho upravuje sám) */
+  editableDays: EditableMealDay[] | null;
+  templates: PortalMealTemplate[];
 }
 
 export type PortalNutritionResult =

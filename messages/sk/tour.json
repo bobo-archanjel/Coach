@@ -309,14 +309,44 @@
         "body": "Zmeny ulož tu. Bez uloženia odídeš potiahnutím zľava doprava alebo cez menu."
       }
     },
+    "c-meal-builder": {
+      "name": {
+        "title": "Názov jedálnička",
+        "body": "Pomenuj si jedálniček, aby si ho pri prepínaní ľahko našiel."
+      },
+      "days": {
+        "title": "Dni jedálnička",
+        "body": "Nový deň pridáš cez „+ deň“. Vybraný deň premenuješ, duplikuješ alebo zmažeš hneď pod dráhou."
+      },
+      "slots": {
+        "title": "Jedlá dňa",
+        "body": "Ťukni na „+“ pri jedle a vyhľadaj potravinu alebo naskenuj čiarový kód. Množstvo zadáš v gramoch, kusoch či porciách."
+      },
+      "total": {
+        "title": "Súčet dňa",
+        "body": "Kalórie a makrá celého dňa oproti tvojmu makro cieľu."
+      },
+      "save": {
+        "title": "Uloženie",
+        "body": "Jedálniček ulož tu — hneď sa z neho stane tvoj aktívny. Bez uloženia odídeš potiahnutím zľava doprava alebo cez menu."
+      }
+    },
     "c-nutrition": {
       "goal": {
         "title": "Makro cieľ",
         "body": "Tvoj denný cieľ kalórií a makier. Appka ho počíta z tvojich údajov, alebo ti ho nastaví tréner."
       },
+      "own": {
+        "title": "Vlastný jedálniček",
+        "body": "Zostav si jedálniček sám — po dňoch a jedlách, s potravinami z rovnakého vyhľadávania ako v Strave."
+      },
+      "switch": {
+        "title": "Aktívny jedálniček",
+        "body": "Tu vidíš, či je jedálniček od trénera alebo vlastný. Keď ich máš viac, cez „Zmeniť“ si vyberieš, ktorý sa ukáže."
+      },
       "plan": {
-        "title": "Jedálniček od trénera",
-        "body": "Jedálniček od trénera po dňoch, s gramážou a kalóriami každého jedla."
+        "title": "Tvoj jedálniček",
+        "body": "Jedálniček po dňoch, s gramážou a kalóriami každého jedla."
       },
       "pdf": {
         "title": "Stiahnuť PDF",

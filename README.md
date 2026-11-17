@@ -75,6 +75,12 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-17** — **Vlastný jedálniček klienta** (`feature/vlastny-jedalnicek`, migrácia `0067_client_own_meal_plans.sql`).
+  - Sekcia Jedálniček: „+ Vlastný jedálniček“ — builder ako u trénera (dni, 6 jedál, „+“ otvorí panel potravín ako v Strave), súčet dňa oproti makro cieľu, `?tvorba=1` / potiahnutie späť. Nový vlastný jedálniček je hneď aktívny.
+  - Aktívny jedálniček so štítkom **Od trénera / Vlastný** a „Zmeniť“ (okno so zoznamom); nový jedálniček od trénera klientovu voľbu neprepíše (`clients.active_meal_plan_id`, RPC `set_active_meal_plan`).
+  - Pri vlastnom: Upraviť / Uložiť ako šablónu / Zmazať; **Moje šablóny** (Použiť / Zmazať).
+  - Tréner vlastný jedálniček klienta nevidí (RLS); „Aktívny“ u trénera podľa voľby klienta. Zvonček „Nový jedálniček“ len od trénera.
+  - Sprievodca sekcie a builder (`c-meal-builder`). Test `e2e/vlastny-jedalnicek.spec.ts`.
 - **2026-11-17** — **Hotfix: trénerove jedálničky po migrácii 0067** (`hotfix/jedalnicky-embed`).
   - Migrácia 0067 pridala `clients.active_meal_plan_id` → medzi `meal_plans` a `clients` sú dve prepojenia a embed `clients(full_name)` padal (PGRST201): tréner videl prázdny zoznam jedálničkov, nešiel builder ani PDF export jedálnička. Opravené upresnením `clients!meal_plans_client_id_fkey` (ako pri tréningových plánoch).
 - **2026-11-16** — **Karta Dnes: „Progres“ namiesto „Môj prehľad“** (`feature/moj-pokrok`, bez migrácie).
