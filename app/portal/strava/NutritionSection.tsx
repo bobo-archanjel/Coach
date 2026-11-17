@@ -56,6 +56,14 @@ const ChevronIcon = ({ className }: { className?: string }) => (
     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const ListIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="4.5" cy="6" r="1.4" fill="currentColor" />
+    <circle cx="4.5" cy="12" r="1.4" fill="currentColor" />
+    <circle cx="4.5" cy="18" r="1.4" fill="currentColor" />
+  </svg>
+);
 const CloseIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
     <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -299,13 +307,15 @@ export function NutritionSection({
               <button
                 ref={plansBtnRef}
                 type="button"
-                className={`${styles.psChange} ${styles.mpOpen}`}
+                className={styles.mpOpen}
                 onClick={() => setPlansOpen(true)}
                 aria-haspopup="dialog"
                 data-tour="nutrition-switch"
               >
+                <ListIcon />
                 {t("plansButton")}{" "}
-                <span className={styles.trTplCount}>{plans.length}</span>
+                <span className={styles.mpCount}>{plans.length}</span>
+                <ChevronIcon className={styles.mpChevron} />
               </button>
             )}
           </div>
