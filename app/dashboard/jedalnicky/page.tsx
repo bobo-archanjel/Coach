@@ -31,7 +31,7 @@ export default async function JedalnickyPage() {
     supabase
       .from("meal_plans")
       // meal_days(meals) kvôli priemerným kcal na deň (lib/meals.ts)
-      .select("id, name, created_at, published, client_id, clients(full_name), meal_days(meals)")
+      .select("id, name, created_at, published, client_id, clients!meal_plans_client_id_fkey(full_name), meal_days(meals)")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
