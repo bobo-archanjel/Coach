@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-17** — **Jedálniček: okno „Jedálničky“ s prepínačom Vlastné / Od trénera** (`feature/vyber-jedalnicka`, bez migrácie).
+  - Pri viacerých jedálničkoch tlačidlo **„Jedálničky (počet)“** pri aktívnom jedálničku (namiesto nenápadného „Zmeniť“). Okno má prepínač **Vlastné / Od trénera** (štýl ako Opakovania / Čas), otvorí sa na skupine aktívneho; ťuk na jedálniček ho nastaví ako aktívny. Prázdna skupina s vysvetlením.
+  - Riadok aktívneho jedálnička: štítok sa nezalamuje, dlhý názov sa zalomí. Náhľad `?preview=trainers`, testy v `e2e/vlastny-jedalnicek.spec.ts` (aj prepnutie proti reálnej DB).
 - **2026-11-17** — **Detail plánu: „Odcvičené tréningy“ bez vonkajšieho rámu aj na počítači** (`feature/odcvicene-bez-ramu`, bez migrácie).
   - Rovnako ako na mobile — sekcia používa existujúcu `.cardBare` (ako sekcie v detaile klienta); riadky tréningov ostávajú kartami.
 - **2026-11-17** — **Vlastný jedálniček klienta** (`feature/vlastny-jedalnicek`, migrácia `0067_client_own_meal_plans.sql`).
