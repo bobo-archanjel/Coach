@@ -17,7 +17,8 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import { ActionEditIcon, ActionTemplateIcon, ActionTrashIcon } from "../icons";
+import { ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import pa from "@/app/components/planActions.module.css";
 import styles from "../portal.module.css";
 
 /** ?tvorba=1 = otvorený builder vlastného tréningu (záznam v histórii — späť ho zavrie). */
@@ -321,39 +322,31 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                         {tr("tplMeta", { days: t.days.length, exercises: exCount })}
                       </span>
                     </span>
-                    <span className={styles.trTplActions}>
-                      {confirmTplDelete === t.id ? (
-                        <>
-                          <span className={styles.trConfirmText}>{tr("deleteTemplate")}</span>
-                          <button
-                            type="button"
-                            className={styles.trDangerBtn}
-                            onClick={() => removeTemplate(t.id)}
-                            disabled={pending}
-                          >
-                            {tr("delete")}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.trGhostBtn}
-                            onClick={() => setConfirmTplDelete(null)}
-                            disabled={pending}
-                          >
+                    {/* Nový tréning predvyplnený šablónou — uloží sa ako nový, šablóna ostane. */}
+                    {confirmTplDelete === t.id ? (
+                      <div className={`${pa.confirm} ${pa.confirmWide}`}>
+                        <span className={pa.confirmText}>{tr("deleteTemplate")}</span>
+                        <span className={pa.confirmBtns}>
+                          <button type="button" className={pa.confirmNo} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
                             {tr("no")}
                           </button>
-                        </>
-                      ) : (
-                        <>
-                          {/* Nový tréning predvyplnený šablónou — uloží sa ako nový, šablóna ostane. */}
-                          <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(null, t)}>
-                            {tr("use")}
-                          </button>
-                          <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(t.id)}>
+                          <button type="button" className={pa.confirmYes} onClick={() => removeTemplate(t.id)} disabled={pending}>
                             {tr("delete")}
                           </button>
-                        </>
-                      )}
-                    </span>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className={pa.gridRow}>
+                        <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(null, t)}>
+                          <ActionUseIcon />
+                          {tr("use")}
+                        </button>
+                        <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirmTplDelete(t.id)}>
+                          <ActionTrashIcon />
+                          {tr("delete")}
+                        </button>
+                      </div>
+                    )}
                   </li>
                 );
               })}
@@ -516,12 +509,12 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             po zmene / zmazaní trénerom) */}
                         <div className={styles.trPlanFoot}>
                           {plan.source === "client" && confirmDelete === plan.id ? (
-                            <div className={styles.mpConfirm}>
-                              <span className={styles.mpConfirmText}>{tr("deleteWorkout")}</span>
-                              <span className={styles.mpConfirmBtns}>
+                            <div className={pa.confirm}>
+                              <span className={pa.confirmText}>{tr("deleteWorkout")}</span>
+                              <span className={pa.confirmBtns}>
                                 <button
                                   type="button"
-                                  className={styles.trGhostBtn}
+                                  className={pa.confirmNo}
                                   onClick={() => setConfirmDelete(null)}
                                   disabled={pending}
                                 >
@@ -529,7 +522,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                 </button>
                                 <button
                                   type="button"
-                                  className={styles.trDangerBtn}
+                                  className={pa.confirmYes}
                                   onClick={() => removePlan(plan.id)}
                                   disabled={pending}
                                 >
@@ -538,16 +531,16 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               </span>
                             </div>
                           ) : (
-                            <div className={styles.mpActionGrid}>
+                            <div className={pa.grid}>
                               {plan.source === "client" && (
-                                <button type="button" className={styles.mpAction} onClick={() => openBuilder(plan)}>
+                                <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
                                   <ActionEditIcon />
                                   {tr("edit")}
                                 </button>
                               )}
                               <button
                                 type="button"
-                                className={styles.mpAction}
+                                className={pa.action}
                                 onClick={() => saveTemplate(plan.id)}
                                 disabled={pending}
                               >
@@ -557,7 +550,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               {plan.source === "client" && (
                                 <button
                                   type="button"
-                                  className={`${styles.mpAction} ${styles.mpActionDanger}`}
+                                  className={`${pa.action} ${pa.danger}`}
                                   onClick={() => setConfirmDelete(plan.id)}
                                 >
                                   <ActionTrashIcon />

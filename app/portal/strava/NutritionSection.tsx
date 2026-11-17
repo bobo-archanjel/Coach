@@ -7,7 +7,9 @@ import { useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { PlanSource, PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
 import { usePortionLabel } from "@/app/components/food/usePortionLabel";
-import { ActionDownloadIcon, ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, FoodIcon } from "@/app/portal/icons";
+import { FoodIcon } from "@/app/portal/icons";
+import { ActionDownloadIcon, ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import pa from "@/app/components/planActions.module.css";
 import {
   chooseActiveMealPlanAction,
   deleteClientMealPlanAction,
@@ -266,28 +268,30 @@ export function NutritionSection({
                         {t("tplMeta", { days: tpl.days.length, foods: tpl.days.reduce((n, d) => n + d.meals.length, 0) })}
                       </span>
                     </span>
-                    <span className={styles.trTplActions}>
-                      {confirmTplDelete === tpl.id ? (
-                        <>
-                          <span className={styles.trConfirmText}>{t("deleteTemplate")}</span>
-                          <button type="button" className={styles.trDangerBtn} onClick={() => removeTemplate(tpl.id)} disabled={pending}>
-                            {t("delete")}
-                          </button>
-                          <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
+                    {confirmTplDelete === tpl.id ? (
+                      <div className={`${pa.confirm} ${pa.confirmWide}`}>
+                        <span className={pa.confirmText}>{t("deleteTemplate")}</span>
+                        <span className={pa.confirmBtns}>
+                          <button type="button" className={pa.confirmNo} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
                             {t("no")}
                           </button>
-                        </>
-                      ) : (
-                        <>
-                          <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(false, tpl)}>
-                            {t("use")}
-                          </button>
-                          <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmTplDelete(tpl.id)}>
+                          <button type="button" className={pa.confirmYes} onClick={() => removeTemplate(tpl.id)} disabled={pending}>
                             {t("delete")}
                           </button>
-                        </>
-                      )}
-                    </span>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className={pa.gridRow}>
+                        <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(false, tpl)}>
+                          <ActionUseIcon />
+                          {t("use")}
+                        </button>
+                        <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirmTplDelete(tpl.id)}>
+                          <ActionTrashIcon />
+                          {t("delete")}
+                        </button>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -387,37 +391,37 @@ export function NutritionSection({
         {mealPlanId && (isOwn || mealDays.length > 0) && (
           <div className={styles.mpActions} data-tour={isOwn ? "nutrition-own-actions" : "nutrition-plan-actions"}>
             {confirmDelete ? (
-              <div className={styles.mpConfirm}>
-                <span className={styles.mpConfirmText}>{t("deleteConfirm")}</span>
-                <span className={styles.mpConfirmBtns}>
-                  <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmDelete(false)} disabled={pending}>
+              <div className={pa.confirm}>
+                <span className={pa.confirmText}>{t("deleteConfirm")}</span>
+                <span className={pa.confirmBtns}>
+                  <button type="button" className={pa.confirmNo} onClick={() => setConfirmDelete(false)} disabled={pending}>
                     {t("no")}
                   </button>
-                  <button type="button" className={styles.trDangerBtn} onClick={removePlan} disabled={pending}>
+                  <button type="button" className={pa.confirmYes} onClick={removePlan} disabled={pending}>
                     {t("delete")}
                   </button>
                 </span>
               </div>
             ) : (
-              <div className={styles.mpActionGrid}>
+              <div className={pa.grid}>
                 {isOwn && (
-                  <button type="button" className={styles.mpAction} onClick={() => openBuilder(true)}>
+                  <button type="button" className={pa.action} onClick={() => openBuilder(true)}>
                     <ActionEditIcon />
                     {t("edit")}
                   </button>
                 )}
-                <button type="button" className={styles.mpAction} onClick={saveTemplate} disabled={pending}>
+                <button type="button" className={pa.action} onClick={saveTemplate} disabled={pending}>
                   <ActionTemplateIcon />
                   {t("saveTemplate")}
                 </button>
                 {mealDays.length > 0 && (
-                  <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className={styles.mpAction} data-tour="nutrition-pdf">
+                  <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className={pa.action} data-tour="nutrition-pdf">
                     <ActionDownloadIcon />
                     {t("downloadPdf")}
                   </a>
                 )}
                 {isOwn && (
-                  <button type="button" className={`${styles.mpAction} ${styles.mpActionDanger}`} onClick={() => setConfirmDelete(true)}>
+                  <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => setConfirmDelete(true)}>
                     <ActionTrashIcon />
                     {t("delete")}
                   </button>

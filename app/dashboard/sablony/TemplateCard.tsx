@@ -6,12 +6,8 @@ import { deleteMealTemplateAction, deleteWorkoutTemplateAction } from "./actions
 import { ApplyTemplateDialog } from "./ApplyTemplateDialog";
 import type { TemplateItem } from "./TemplatesList";
 import styles from "./templates.module.css";
-
-const ChevronIcon = ({ className }: { className?: string }) => (
-  <svg className={className} width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-    <path d="M7 5l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+import pa from "@/app/components/planActions.module.css";
+import { ActionChevronIcon, ActionPreviewIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 
 /**
  * Karta šablóny (tréningová aj jedálničková). Krátka: názov, počet dní a cieľ,
@@ -50,35 +46,43 @@ export function TemplateCard({
         </p>
       </div>
 
-      <div className={styles.cardActions}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => setApplyOpen(true)}>
-          {t("use")}
-        </button>
-        <button
-          type="button"
-          className={styles.previewToggle}
-          aria-expanded={previewOpen}
-          aria-controls={`tpl-preview-${item.id}`}
-          onClick={() => setPreviewOpen((o) => !o)}
-        >
-          {t("preview")}
-          <ChevronIcon className={`${styles.chevron} ${previewOpen ? styles.chevronOpen : ""}`} />
-        </button>
-        {confirmingDelete ? (
-          <span className={styles.deleteConfirm}>
-            <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={handleDelete} disabled={deletePending}>
-              {deletePending ? t("deleting") : t("delete")}
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(false)} disabled={deletePending}>
+      {/* rovnaký vzhľad akcií ako pod plánmi v portáli (app/components/planActions.module.css):
+          hlavná „Použiť“ hore na celú šírku, pod ňou Náhľad a Zmazať; zmazanie potvrdí červený pruh */}
+      {confirmingDelete ? (
+        <div className={pa.confirm}>
+          <span className={pa.confirmText}>{t("deleteConfirm")}</span>
+          <span className={pa.confirmBtns}>
+            <button type="button" className={pa.confirmNo} onClick={() => setConfirmingDelete(false)} disabled={deletePending}>
               {t("no")}
             </button>
+            <button type="button" className={pa.confirmYes} onClick={handleDelete} disabled={deletePending}>
+              {deletePending ? t("deleting") : t("delete")}
+            </button>
           </span>
-        ) : (
-          <button type="button" className={styles.deleteBtn} onClick={() => setConfirmingDelete(true)}>
+        </div>
+      ) : (
+        <div className={pa.gridCard}>
+          <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => setApplyOpen(true)}>
+            <ActionUseIcon />
+            {t("use")}
+          </button>
+          <button
+            type="button"
+            className={`${pa.action} ${pa.small}`}
+            aria-expanded={previewOpen}
+            aria-controls={`tpl-preview-${item.id}`}
+            onClick={() => setPreviewOpen((o) => !o)}
+          >
+            <ActionPreviewIcon />
+            {t("preview")}
+            <ActionChevronIcon className={pa.chevron} />
+          </button>
+          <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirmingDelete(true)}>
+            <ActionTrashIcon />
             {t("delete")}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {previewOpen && (
         <ol id={`tpl-preview-${item.id}`} className={styles.preview}>
