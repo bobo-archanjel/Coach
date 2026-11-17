@@ -75,6 +75,8 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-17** — **Hotfix: trénerove jedálničky po migrácii 0067** (`hotfix/jedalnicky-embed`).
+  - Migrácia 0067 pridala `clients.active_meal_plan_id` → medzi `meal_plans` a `clients` sú dve prepojenia a embed `clients(full_name)` padal (PGRST201): tréner videl prázdny zoznam jedálničkov, nešiel builder ani PDF export jedálnička. Opravené upresnením `clients!meal_plans_client_id_fkey` (ako pri tréningových plánoch).
 - **2026-11-16** — **Karta Dnes: „Progres“ namiesto „Môj prehľad“** (`feature/moj-pokrok`, bez migrácie).
   - Sekcia „Môj prehľad“ (panel „Odcvičené spolu“) odstránená; série ostali pod „Tento týždeň“. Poradie pod tréningom: **Meranie → Tento týždeň → Progres**.
   - **Progres:** graf zo záznamov meraní — posledná hodnota, zmena od prvého merania (neutrálne, bez farby), mriežka a os. Ťuk / potiahnutie po grafe (aj šípky) vyberie konkrétne meranie.
