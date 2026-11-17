@@ -380,9 +380,10 @@ export function NutritionSection({
           </div>
         )}
 
-        {/* vlastný jedálniček: úprava, šablóna, zmazanie */}
-        {isOwn && (
-          <div className={styles.trPlanActions} data-tour="nutrition-own-actions">
+        {/* vlastný jedálniček: úprava, šablóna, zmazanie; od trénera len „Uložiť ako šablónu“
+            (klient si zaň platí — kópia mu ostane aj po zmene / zmazaní trénerom) */}
+        {(isOwn || (mealPlanId && mealDays.length > 0)) && (
+          <div className={styles.trPlanActions} data-tour={isOwn ? "nutrition-own-actions" : "nutrition-plan-actions"}>
             {confirmDelete ? (
               <>
                 <span className={styles.trConfirmText}>{t("deleteConfirm")}</span>
@@ -395,15 +396,19 @@ export function NutritionSection({
               </>
             ) : (
               <>
-                <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(true)}>
-                  {t("edit")}
-                </button>
+                {isOwn && (
+                  <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(true)}>
+                    {t("edit")}
+                  </button>
+                )}
                 <button type="button" className={styles.trGhostBtn} onClick={saveTemplate} disabled={pending}>
                   {t("saveTemplate")}
                 </button>
-                <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmDelete(true)}>
-                  {t("delete")}
-                </button>
+                {isOwn && (
+                  <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmDelete(true)}>
+                    {t("delete")}
+                  </button>
+                )}
               </>
             )}
             {note && (

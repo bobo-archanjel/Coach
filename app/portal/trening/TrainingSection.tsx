@@ -563,6 +563,29 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             )}
                           </div>
                         )}
+
+                        {/* tréning od trénera: klient si zaň platí — môže si ho odložiť ako šablónu
+                            (kópia, ostane mu aj po zmene / zmazaní trénerom) */}
+                        {plan.source === "trainer" && (
+                          <div className={styles.trPlanActions}>
+                            <button
+                              type="button"
+                              className={styles.trGhostBtn}
+                              onClick={() => saveTemplate(plan.id)}
+                              disabled={pending}
+                            >
+                              {tr("saveTemplate")}
+                            </button>
+                            {templateNote?.planId === plan.id && (
+                              <p
+                                className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
+                                role="status"
+                              >
+                                {templateNote.text}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

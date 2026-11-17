@@ -113,7 +113,7 @@
   },
   "templates": {
     "planNoDays": "Plán nemá žiadne dni na uloženie do šablóny.",
-    "onlyOwnWorkout": "Šablónu sa dá uložiť len z tvojho vlastného tréningu.",
+    "onlyOwnWorkout": "Tento tréning sa nedá uložiť ako šablóna.",
     "workoutNoDays": "Tréning nemá žiadne dni na uloženie do šablóny.",
     "defaultName": "Šablóna",
     "createFailed": "Šablónu sa nepodarilo vytvoriť.",
@@ -125,7 +125,7 @@
     "missingTemplate": "Chýba šablóna.",
     "draftFailed": "Koncept sa nepodarilo vytvoriť.",
     "missingMealId": "Chýba ID jedálničku.",
-    "onlyOwnMeal": "Šablónu sa dá uložiť len z tvojho vlastného jedálnička."
+    "onlyOwnMeal": "Tento jedálniček sa nedá uložiť ako šablóna."
   },
   "analytics": {
     "noActiveClients": "Zatiaľ nemáš aktívnych klientov na zhrnutie.",

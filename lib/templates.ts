@@ -52,7 +52,9 @@ export async function saveWorkoutPlanAsTemplate(
 }
 
 /**
- * Vlastný tréning klienta (workout_plans.trainer_id IS NULL) ako šablóna klienta.
+ * Tréning klienta ako šablóna klienta — vlastný (workout_plans.trainer_id IS NULL) aj
+ * ZVEREJNENÝ od trénera (klient si zaň platí, môže si ho odložiť a použiť neskôr; koncept
+ * trénera nie). Šablóna je kópia — ostane klientovi, aj keď tréner plán zmení či zmaže.
  * Rovnaké tabuľky ako trénerove: plan_templates.trainer_id je v skutočnosti vlastník
  * (RLS trainer_id = auth.uid(), bez kontroly roly) — šablóny klienta vidí len klient,
  * tréner nie (ani naopak), migrácia netreba. Šablóna dostane názov tréningu.
@@ -66,14 +68,13 @@ export async function saveOwnPlanAsTemplate(
   const [{ data: plan }, { data: days, error: daysErr }] = await Promise.all([
     supabase
       .from("workout_plans")
-      .select("id, name")
+      .select("id, name, trainer_id, published")
       .eq("id", planId)
       .eq("client_id", clientId)
-      .is("trainer_id", null)
       .maybeSingle(),
     supabase.from("workout_days").select("day_number, name, exercises").eq("plan_id", planId).order("day_number"),
   ]);
-  if (!plan) return { error: await tErr("templates.onlyOwnWorkout") };
+  if (!plan || (plan.trainer_id !== null && !plan.published)) return { error: await tErr("templates.onlyOwnWorkout") };
   if (daysErr) return { error: await dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: await tErr("templates.workoutNoDays") };
 
@@ -176,7 +177,8 @@ export async function saveMealPlanAsTemplate(
 }
 
 /**
- * Vlastný jedálniček klienta (meal_plans.trainer_id IS NULL, 0067) ako šablóna klienta.
+ * Jedálniček klienta ako šablóna klienta — vlastný (meal_plans.trainer_id IS NULL, 0067)
+ * aj zverejnený od trénera (kópia, ostane aj po zmene / zmazaní trénerom).
  * meal_templates.trainer_id je vlastník (RLS trainer_id = auth.uid(), bez kontroly roly),
  * rovnako ako tréningové šablóny klienta (saveOwnPlanAsTemplate). Názov = názov jedálnička.
  */
@@ -187,10 +189,10 @@ export async function saveOwnMealPlanAsTemplate(
   planId: string,
 ): Promise<TemplateResult> {
   const [{ data: plan }, { data: days, error: daysErr }] = await Promise.all([
-    supabase.from("meal_plans").select("id, name").eq("id", planId).eq("client_id", clientId).is("trainer_id", null).maybeSingle(),
+    supabase.from("meal_plans").select("id, name, trainer_id, published").eq("id", planId).eq("client_id", clientId).maybeSingle(),
     supabase.from("meal_days").select("day_number, name, meals").eq("plan_id", planId).order("day_number"),
   ]);
-  if (!plan) return { error: await tErr("templates.onlyOwnMeal") };
+  if (!plan || (plan.trainer_id !== null && !plan.published)) return { error: await tErr("templates.onlyOwnMeal") };
   if (daysErr) return { error: await dbErr(daysErr, "templates") };
   if (!days || days.length === 0) return { error: await tErr("templates.mealNoDays") };
 

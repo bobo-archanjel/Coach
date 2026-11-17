@@ -285,7 +285,7 @@ export async function deleteClientPlanAction(planId: string): Promise<ActionStat
   return ok;
 }
 
-/** "Uložiť ako šablónu" pri vlastnom tréningu — kópia jeho dní do šablón klienta (lib/templates.ts). */
+/** "Uložiť ako šablónu" pri vlastnom aj zverejnenom trénerovom tréningu — kópia jeho dní do šablón klienta (lib/templates.ts). */
 export async function saveOwnTemplateAction(planId: string): Promise<ActionState> {
   const supabase = await createClient();
   const {
