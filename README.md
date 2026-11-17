@@ -75,6 +75,8 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-17** — **Detail plánu: „Odcvičené tréningy“ bez vonkajšieho rámu aj na počítači** (`feature/odcvicene-bez-ramu`, bez migrácie).
+  - Rovnako ako na mobile — sekcia používa existujúcu `.cardBare` (ako sekcie v detaile klienta); riadky tréningov ostávajú kartami.
 - **2026-11-17** — **Vlastný jedálniček klienta** (`feature/vlastny-jedalnicek`, migrácia `0067_client_own_meal_plans.sql`).
   - Sekcia Jedálniček: „+ Vlastný jedálniček“ — builder ako u trénera (dni, 6 jedál, „+“ otvorí panel potravín ako v Strave), súčet dňa oproti makro cieľu, `?tvorba=1` / potiahnutie späť. Nový vlastný jedálniček je hneď aktívny.
   - Aktívny jedálniček so štítkom **Od trénera / Vlastný** a „Zmeniť“ (okno so zoznamom); nový jedálniček od trénera klientovu voľbu neprepíše (`clients.active_meal_plan_id`, RPC `set_active_meal_plan`).
