@@ -3029,7 +3029,15 @@
 .trHead .sectionTitle {
   margin: 0;
 }
-/* Jedálniček: akcie pod jedálničkom — rovnako veľké tlačidlá s ikonami v mriežke */
+/* Akcie pod plánom (Jedálniček aj Tréning) — rovnako veľké tlačidlá s ikonami v mriežke */
+/* Tréning: pätka rozbaleného plánu v karte (čiara oddelí dni od akcií) */
+.trPlanFoot {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
 .mpActions {
   display: grid;
   gap: 10px;
@@ -3039,6 +3047,21 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
+}
+/* mobil: 2 stĺpce; jediné tlačidlo na celú šírku; pri troch (vlastný tréning: Upraviť,
+   Šablóna, Zmazať) krátke vedľa seba a „Uložiť ako šablónu“ pod nimi na celú šírku —
+   inak by sa v karte zalomilo a Zmazať by viselo osamotene */
+@media (max-width: 560px) {
+  .mpActionGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mpActionGrid > :only-child {
+    grid-column: 1 / -1;
+  }
+  .mpActionGrid:has(> :nth-child(3):last-child) > :nth-child(2) {
+    grid-column: 1 / -1;
+    order: 3;
+  }
 }
 .mpAction {
   display: inline-flex;

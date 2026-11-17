@@ -17,6 +17,7 @@ import { ExercisePreviewList } from "../ExercisePreviewList";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
+import { ActionEditIcon, ActionTemplateIcon, ActionTrashIcon } from "../icons";
 import styles from "../portal.module.css";
 
 /** ?tvorba=1 = otvorený builder vlastného tréningu (záznam v histórii — späť ho zavrie). */
@@ -509,19 +510,15 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                           ))}
                         </ul>
 
-                        {plan.source === "client" && (
-                          <div className={styles.trPlanActions}>
-                            {confirmDelete === plan.id ? (
-                              <>
-                                <span className={styles.trConfirmText}>{tr("deleteWorkout")}</span>
-                                <button
-                                  type="button"
-                                  className={styles.trDangerBtn}
-                                  onClick={() => removePlan(plan.id)}
-                                  disabled={pending}
-                                >
-                                  {tr("delete")}
-                                </button>
+                        {/* akcie pod plánom — rovnaký panel ako pod jedálničkom (mriežka tlačidiel
+                            s ikonami): vlastný tréning Upraviť / Uložiť ako šablónu / Zmazať, od
+                            trénera len Uložiť ako šablónu (klient si zaň platí — kópia mu ostane aj
+                            po zmene / zmazaní trénerom) */}
+                        <div className={styles.trPlanFoot}>
+                          {plan.source === "client" && confirmDelete === plan.id ? (
+                            <div className={styles.mpConfirm}>
+                              <span className={styles.mpConfirmText}>{tr("deleteWorkout")}</span>
+                              <span className={styles.mpConfirmBtns}>
                                 <button
                                   type="button"
                                   className={styles.trGhostBtn}
@@ -530,62 +527,54 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                                 >
                                   {tr("no")}
                                 </button>
-                              </>
-                            ) : (
-                              <>
-                                <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(plan)}>
-                                  {tr("edit")}
-                                </button>
                                 <button
                                   type="button"
-                                  className={styles.trGhostBtn}
-                                  onClick={() => saveTemplate(plan.id)}
+                                  className={styles.trDangerBtn}
+                                  onClick={() => removePlan(plan.id)}
                                   disabled={pending}
-                                >
-                                  {tr("saveTemplate")}
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.trGhostBtn} btn-danger`}
-                                  onClick={() => setConfirmDelete(plan.id)}
                                 >
                                   {tr("delete")}
                                 </button>
-                              </>
-                            )}
-                            {templateNote?.planId === plan.id && (
-                              <p
-                                className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
-                                role="status"
+                              </span>
+                            </div>
+                          ) : (
+                            <div className={styles.mpActionGrid}>
+                              {plan.source === "client" && (
+                                <button type="button" className={styles.mpAction} onClick={() => openBuilder(plan)}>
+                                  <ActionEditIcon />
+                                  {tr("edit")}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className={styles.mpAction}
+                                onClick={() => saveTemplate(plan.id)}
+                                disabled={pending}
                               >
-                                {templateNote.text}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* tréning od trénera: klient si zaň platí — môže si ho odložiť ako šablónu
-                            (kópia, ostane mu aj po zmene / zmazaní trénerom) */}
-                        {plan.source === "trainer" && (
-                          <div className={styles.trPlanActions}>
-                            <button
-                              type="button"
-                              className={styles.trGhostBtn}
-                              onClick={() => saveTemplate(plan.id)}
-                              disabled={pending}
+                                <ActionTemplateIcon />
+                                {tr("saveTemplate")}
+                              </button>
+                              {plan.source === "client" && (
+                                <button
+                                  type="button"
+                                  className={`${styles.mpAction} ${styles.mpActionDanger}`}
+                                  onClick={() => setConfirmDelete(plan.id)}
+                                >
+                                  <ActionTrashIcon />
+                                  {tr("delete")}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {templateNote?.planId === plan.id && (
+                            <p
+                              className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
+                              role="status"
                             >
-                              {tr("saveTemplate")}
-                            </button>
-                            {templateNote?.planId === plan.id && (
-                              <p
-                                className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
-                                role="status"
-                              >
-                                {templateNote.text}
-                              </p>
-                            )}
-                          </div>
-                        )}
+                              {templateNote.text}
+                            </p>
+                          )}
+                        </div>
                       </>
                     )}
                   </div>

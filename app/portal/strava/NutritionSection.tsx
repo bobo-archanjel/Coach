@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { PlanSource, PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
 import { usePortionLabel } from "@/app/components/food/usePortionLabel";
-import { FoodIcon } from "@/app/portal/icons";
+import { ActionDownloadIcon, ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, FoodIcon } from "@/app/portal/icons";
 import {
   chooseActiveMealPlanAction,
   deleteClientMealPlanAction,
@@ -62,27 +62,6 @@ const ListIcon = () => (
     <circle cx="4.5" cy="6" r="1.4" fill="currentColor" />
     <circle cx="4.5" cy="12" r="1.4" fill="currentColor" />
     <circle cx="4.5" cy="18" r="1.4" fill="currentColor" />
-  </svg>
-);
-const PencilIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M4 20l1-4.2L15.6 5.2a1.5 1.5 0 0 1 2.1 0l1.1 1.1a1.5 1.5 0 0 1 0 2.1L8.2 19l-4.2 1Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-  </svg>
-);
-const TemplateIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" stroke="currentColor" strokeWidth="1.8" />
-  </svg>
-);
-const DownloadIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const TrashIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M4.5 7h15M10 7V5h4v2M6.5 7l.8 12h9.4l.8-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 const CloseIcon = () => (
@@ -423,23 +402,23 @@ export function NutritionSection({
               <div className={styles.mpActionGrid}>
                 {isOwn && (
                   <button type="button" className={styles.mpAction} onClick={() => openBuilder(true)}>
-                    <PencilIcon />
+                    <ActionEditIcon />
                     {t("edit")}
                   </button>
                 )}
                 <button type="button" className={styles.mpAction} onClick={saveTemplate} disabled={pending}>
-                  <TemplateIcon />
+                  <ActionTemplateIcon />
                   {t("saveTemplate")}
                 </button>
                 {mealDays.length > 0 && (
                   <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className={styles.mpAction} data-tour="nutrition-pdf">
-                    <DownloadIcon />
+                    <ActionDownloadIcon />
                     {t("downloadPdf")}
                   </a>
                 )}
                 {isOwn && (
                   <button type="button" className={`${styles.mpAction} ${styles.mpActionDanger}`} onClick={() => setConfirmDelete(true)}>
-                    <TrashIcon />
+                    <ActionTrashIcon />
                     {t("delete")}
                   </button>
                 )}
