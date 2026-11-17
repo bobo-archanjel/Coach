@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-17** — **Jednotný vzhľad akcií, šablóny z plánov od trénera, rýchle pridávanie cvikov a supersérie** (`feature/sablona-od-trenera`, bez migrácie).
+  - Jedálniček klienta: aktívny jedálniček ako karta-výber; „Uložiť ako šablónu“ aj pri tréningu a jedálničku od trénera.
+  - Akcie (Upraviť, Uložiť ako šablónu, PDF, Zmazať, Použiť…) ako mriežka dlaždíc s ikonami (`app/components/planActions.module.css`, `ActionIcons.tsx`) — pod plánmi a jedálničkami u klienta aj trénera, v šablónach, v detaile klienta, v kalendári, v Nastaveniach / Profile (Odhlásiť sa, Spustiť návod znova, Požiadať o zmazanie účtu). Mazanie potvrdzuje červený pruh Zrušiť / Áno.
+  - Pridať cvik a vyplniť v jednom kroku: pridaný cvik sa hneď otvorí na úpravu (kurzor v Sériách), hodnoty preberie z posledného cviku dňa; po uložení fokus späť na pridávanie (`lib/workouts/nextEntryDefaults.ts`).
+  - Supersérie: reťaz medzi cvikmi v builderi trénera aj klienta spojí cviky (štítky A1 / A2, bez pauzy medzi nimi, pauza po kole), zobrazenie v portáli, spojenie aj počas tréningu (ide do zápisu), v PDF aj v detaile odcvičeného tréningu. Uložené v jsonb (`superset`), `lib/workouts/superset.ts`. Testy `e2e/superseria.spec.ts`, `e2e/pridat-a-vyplnit.spec.ts`.
 - **2026-11-17** — **Jedálniček: okno „Jedálničky“ s prepínačom Vlastné / Od trénera** (`feature/vyber-jedalnicka`, bez migrácie).
   - Pri viacerých jedálničkoch tlačidlo **„Jedálničky (počet)“** pri aktívnom jedálničku (namiesto nenápadného „Zmeniť“). Okno má prepínač **Vlastné / Od trénera** (štýl ako Opakovania / Čas), otvorí sa na skupine aktívneho; ťuk na jedálniček ho nastaví ako aktívny. Prázdna skupina s vysvetlením.
   - Riadok aktívneho jedálnička: štítok sa nezalamuje, dlhý názov sa zalomí. Náhľad `?preview=trainers`, testy v `e2e/vlastny-jedalnicek.spec.ts` (aj prepnutie proti reálnej DB).
