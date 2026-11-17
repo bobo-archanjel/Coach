@@ -341,8 +341,8 @@
         "body": "Zostav si jedálniček sám — po dňoch a jedlách, s potravinami z rovnakého vyhľadávania ako v Strave."
       },
       "switch": {
-        "title": "Tvoje jedálničky",
-        "body": "Keď máš viac jedálničkov, sú tu všetky — od trénera aj vlastné. Ťuknutím vyberieš, ktorý je aktívny; jeho dni uvidíš nižšie."
+        "title": "Jedálničky",
+        "body": "Keď máš viac jedálničkov, tu ich otvoríš všetky. Prepínačom Vlastné / Od trénera ich roztriedíš a ťuknutím vyberieš, ktorý sa má ukazovať."
       },
       "plan": {
         "title": "Tvoj jedálniček",

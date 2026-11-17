@@ -48,9 +48,17 @@
       "kcalOfGoal": "{kcal} / {goal} kcal",
       "goalLine": "Cieľ: B {protein} g · S {carbs} g · T {fat} g"
     },
-    "myPlans": "Tvoje jedálničky",
     "activeBadge": "Aktívny",
-    "switchTo": "Prepnúť"
+    "switchTo": "Prepnúť",
+    "plansButton": "Jedálničky",
+    "sheetTitle": "Jedálničky",
+    "sheetHint": "Vyber jedálniček, ktorý sa má ukazovať. Prepínačom zobrazíš vlastné alebo od trénera.",
+    "close": "Zavrieť",
+    "tabsAria": "Zobraziť jedálničky",
+    "tabOwn": "Vlastné",
+    "tabTrainer": "Od trénera",
+    "emptyOwn": "Zatiaľ nemáš vlastný jedálniček — zostavíš si ho cez „+ Vlastný jedálniček“.",
+    "emptyTrainer": "Od trénera zatiaľ nemáš žiadny jedálniček."
   },
   "chat": {
     "loadFailed": "Nepodarilo sa načítať chat",

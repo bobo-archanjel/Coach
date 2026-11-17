@@ -41,33 +41,56 @@ async function addFood(page: Page, slot: string, query: string, pick: RegExp, qt
 test.describe("vlastný jedálniček — náhľady", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
-  test("od trénera: štítok, zoznam „Tvoje jedálničky“ s aktívnym, bez „Upraviť“", async ({ page }) => {
+  test("od trénera: štítok, okno „Jedálničky“ s prepínačom Vlastné / Od trénera", async ({ page }) => {
     await page.goto("/portal/strava?preview=ok");
     const active = page.locator('[data-tour="nutrition-active"]');
     await expect(active.getByText("Od trénera")).toBeVisible();
     await expect(active.getByRole("heading", { name: "Rekompozícia — jeseň" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Upraviť", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Zmeniť" })).toHaveCount(0);
 
-    // viac jedálničkov je vidno hneď — bez okna
-    const picker = page.locator('[data-tour="nutrition-switch"]');
-    await expect(picker.getByText("Tvoje jedálničky")).toBeVisible();
-    const list = picker.getByRole("list", { name: "Tvoje jedálničky" });
-    await expect(list.getByRole("button")).toHaveCount(2);
-    const trainerPlan = list.getByRole("button", { name: /Rekompozícia — jeseň/ });
+    // tlačidlo s počtom ukáže, že jedálničkov je viac
+    const open = active.getByRole("button", { name: "Jedálničky 2" });
+    await open.click();
+    const sheet = page.getByRole("dialog", { name: "Jedálničky" });
+    const tabs = sheet.getByRole("radiogroup", { name: "Zobraziť jedálničky" });
+    // otvorí sa na skupine aktívneho jedálnička
+    await expect(tabs.getByRole("radio", { name: "Od trénera 1" })).toHaveAttribute("aria-checked", "true");
+    const trainerPlan = sheet.getByRole("button", { name: /Rekompozícia — jeseň/ });
     await expect(trainerPlan).toHaveAttribute("aria-current", "true");
     await expect(trainerPlan).toContainText("Aktívny");
-    const ownPlan = list.getByRole("button", { name: /Môj týždeň/ });
-    await expect(ownPlan).not.toHaveAttribute("aria-current", "true");
-    await expect(ownPlan).toContainText("Vlastný");
+    await expect(sheet.getByRole("button", { name: /Môj týždeň/ })).toHaveCount(0);
+
+    await tabs.getByRole("radio", { name: "Vlastné 1" }).click();
+    await expect(tabs.getByRole("radio", { name: "Vlastné 1" })).toHaveAttribute("aria-checked", "true");
+    const ownPlan = sheet.getByRole("button", { name: /Môj týždeň/ });
     await expect(ownPlan).toContainText("2 dni");
     await expect(ownPlan).toContainText("Prepnúť");
-    // zoznam je nad dňami aktívneho jedálnička
-    const [pickerBox, activeBox] = [await picker.boundingBox(), await active.boundingBox()];
-    expect(pickerBox!.y).toBeLessThan(activeBox!.y);
+    await expect(sheet.getByRole("button", { name: /Rekompozícia — jeseň/ })).toHaveCount(0);
+
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await expect(open).toBeFocused();
   });
 
-  test("bez jedálnička: žiadny zoznam ani aktívny riadok", async ({ page }) => {
+  test("okno: pri vlastnom aktívnom sa otvorí na Vlastné", async ({ page }) => {
+    await page.goto("/portal/strava?preview=own");
+    await page.getByRole("button", { name: "Jedálničky 2" }).click();
+    const sheet = page.getByRole("dialog", { name: "Jedálničky" });
+    await expect(sheet.getByRole("radio", { name: "Vlastné 1" })).toHaveAttribute("aria-checked", "true");
+    await expect(sheet.getByRole("button", { name: /Môj týždeň/ })).toHaveAttribute("aria-current", "true");
+  });
+
+  test("okno: prázdna skupina Vlastné má vysvetlenie", async ({ page }) => {
+    await page.goto("/portal/strava?preview=trainers");
+    await page.getByRole("button", { name: "Jedálničky 2" }).click();
+    const sheet = page.getByRole("dialog", { name: "Jedálničky" });
+    await expect(sheet.getByRole("radio", { name: "Od trénera 2" })).toHaveAttribute("aria-checked", "true");
+    await expect(sheet.getByRole("button", { name: /Objemovka — zima/ })).toContainText("3 dni");
+    await sheet.getByRole("radio", { name: "Vlastné 0" }).click();
+    await expect(sheet.getByText(/Zatiaľ nemáš vlastný jedálniček/)).toBeVisible();
+  });
+
+  test("bez jedálnička: žiadne tlačidlo Jedálničky ani aktívny riadok", async ({ page }) => {
     await page.goto("/portal/strava?preview=empty");
     await expect(page.locator('[data-tour="nutrition-switch"]')).toHaveCount(0);
     await expect(page.locator('[data-tour="nutrition-active"]')).toHaveCount(0);
@@ -230,7 +253,7 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     const { data: gone } = await admin.from("meal_plans").select("id").eq("id", plan!.id);
     expect(gone).toEqual([]);
   });
-  test("prepnutie v zozname „Tvoje jedálničky“: z vlastného na trénerov", async ({ page }, testInfo) => {
+  test("prepnutie v okne „Jedálničky“: z vlastného na trénerov", async ({ page }, testInfo) => {
     test.skip(!migrated, "migrácia 0067 na tejto DB ešte nebežala");
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     const { data: c } = await admin.from("clients").select("trainer_id").eq("id", clientRowId).single();
@@ -254,15 +277,18 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     await page.waitForURL(/\/portal/, { timeout: 30_000 });
     await page.goto("/portal/strava");
 
-    const list = page.getByRole("list", { name: "Tvoje jedálničky" });
     const active = page.locator('[data-tour="nutrition-active"]');
-    await expect(list.getByRole("button", { name: new RegExp(ownName) })).toHaveAttribute("aria-current", "true");
     await expect(active.getByRole("heading", { name: ownName })).toBeVisible();
     await expect(page.getByRole("button", { name: "Upraviť", exact: true })).toBeVisible();
 
-    await list.getByRole("button", { name: new RegExp(trainerName) }).click();
+    await active.getByRole("button", { name: /^Jedálničky \d+$/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Jedálničky" });
+    await expect(sheet.getByRole("radio", { name: /^Vlastné/ })).toHaveAttribute("aria-checked", "true");
+    await expect(sheet.getByRole("button", { name: new RegExp(ownName) })).toHaveAttribute("aria-current", "true");
+    await sheet.getByRole("radio", { name: /^Od trénera/ }).click();
+    await sheet.getByRole("button", { name: new RegExp(trainerName) }).click();
+    await expect(sheet).toBeHidden({ timeout: 30_000 });
     await expect(active.getByRole("heading", { name: trainerName })).toBeVisible({ timeout: 30_000 });
-    await expect(list.getByRole("button", { name: new RegExp(trainerName) })).toHaveAttribute("aria-current", "true");
     await expect(page.getByText("Deň T", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Upraviť", exact: true })).toHaveCount(0);
     const { data: after } = await admin.from("clients").select("active_meal_plan_id").eq("id", clientRowId).single();

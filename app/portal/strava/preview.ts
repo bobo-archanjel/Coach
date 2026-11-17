@@ -1,7 +1,7 @@
 import type { EditableMealDay, MealPlanEntryData, PortalFoodOption, PortalMealDay, PortalNutritionData, PortalNutritionResult } from "@/lib/portal/types";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros } from "@/lib/meals";
 
-/* DEV náhľady sekcie Strava bez session (?preview=ok|own|empty|error): jedálniček od trénera
+/* DEV náhľady sekcie Strava bez session (?preview=ok|own|trainers|empty|error): jedálniček od trénera
    aj vlastný, šablóna, potraviny pre panel buildera. Vymyslené dáta. */
 
 const SLOT_LABEL: Record<string, string> = {
@@ -94,6 +94,18 @@ export function previewResult(kind: string): PortalNutritionResult | null {
     return {
       state: "ok",
       data: { ...BASE, mealPlanId: "meal-own", mealPlanName: "Môj týždeň", mealDays: toDays(OWN_DAYS), activeSource: "client", editableDays: OWN_DAYS },
+    };
+  if (kind === "trainers")
+    // dva jedálničky od trénera, žiadny vlastný — v okne „Jedálničky“ je skupina Vlastné prázdna
+    return {
+      state: "ok",
+      data: {
+        ...BASE,
+        plans: [
+          { id: "meal-trainer-2", name: "Objemovka — zima", source: "trainer", dayCount: 3 },
+          { id: "meal-trainer", name: "Rekompozícia — jeseň", source: "trainer", dayCount: TRAINER_DAYS.length },
+        ],
+      },
     };
   if (kind === "empty")
     return {
