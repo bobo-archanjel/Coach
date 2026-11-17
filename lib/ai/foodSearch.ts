@@ -10,7 +10,15 @@ import path from "node:path";
 import { gunzip } from "node:zlib";
 import { promisify } from "node:util";
 import type { Locale } from "@/lib/i18n/locales";
-import { buildIndex, filterByQuery, foodAt, searchIndex, type FoodBundle, type FoodSearchIndex } from "@/lib/foodIndexCore";
+import {
+  buildIndex,
+  filterByQuery,
+  foodAt,
+  searchIndex,
+  type FoodBundle,
+  type FoodSearchIndex,
+  type IndexedFood,
+} from "@/lib/foodIndexCore";
 import { baseUnitOf, type PortionFood } from "@/lib/portions";
 import { formatPortionUnits, type FoodCandidate } from "./foodContext";
 import { promptSafe } from "./promptSafety";
@@ -34,6 +42,10 @@ export interface FoodSearchHit {
   unit: "g" | "ml";
   /** „1 ks = 55 g; 1 balenie = 150 g“ (len jednotky, ktoré potravina má) */
   portions: string;
+  /** strojovo: veľkosti ks/porcie/balenia — generátor jedálničkov z nich počíta gramáž (lib/portions.ts) */
+  portion: PortionFood;
+  /** len OFF: celý riadok z balíka (názov, značka, vláknina… pre založenie riadku vo `foods`) */
+  offFood?: IndexedFood;
 }
 
 // ---------------------------------------------------------------- OFF balík (server)
@@ -83,6 +95,7 @@ function libraryHit(f: FoodCandidate, locale: Locale): FoodSearchHit {
     fat100: f.fat100g,
     unit: baseUnitOf(f.portion),
     portions: formatPortionUnits(f.portion),
+    portion: f.portion,
   };
 }
 
@@ -122,6 +135,8 @@ export function searchFoodsIn(
         fat100: f.fat,
         unit: f.unit,
         portions: formatPortionUnits(portion),
+        portion,
+        offFood: f,
       });
     }
   }

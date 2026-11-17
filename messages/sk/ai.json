@@ -27,5 +27,22 @@
     "clientLimit": "Dnešný limit {limit} zhrnutí pre tohto klienta je vyčerpaný — skús to zajtra.",
     "empty": "Nepodarilo sa vygenerovať zhrnutie.",
     "failed": "Nastala chyba pri generovaní zhrnutia. Skús to prosím znova."
+  },
+  "meal": {
+    "notConfigured": "AI generátor zatiaľ nie je nastavený. Skús to prosím neskôr.",
+    "dailyLimit": "Dosiahol/a si dnešný limit AI generovania jedálničkov ({limit}). Skús to zajtra.",
+    "busy": "AI generátor je dnes preťažený. Skús to prosím neskôr.",
+    "invalid": "Skontroluj zadanie: počet dní 1–7, jedál denne 3–6.",
+    "noProfile": "Klient nemá nastavený makro cieľ. Najprv ho vypočítaj v detaile klienta (Jedálničky).",
+    "noProposal": "AI nevrátila návrh jedálnička. Skús to prosím znova.",
+    "noUsable": "AI nevrátila použiteľný jedálniček (žiadna potravina neprešla kontrolou). Skús to prosím znova.",
+    "failed": "Nastala chyba pri generovaní jedálnička. Skús to prosím znova.{suffix}",
+    "saveFailed": "Jedálniček sa nepodarilo uložiť. Skús to prosím znova.",
+    "planName": "AI jedálniček — {date}",
+    "dayName": "Deň {n}",
+    "warnDropped": "{count, plural, one {# položku} few {# položky} other {# položiek}} appka vyradila (neexistujúca potravina, nevhodná jednotka alebo potravina mimo diéty/vylúčených) — over si jedlá v koncepte.",
+    "warnDeviation": "Deň {day}: {kcal} kcal (cieľ {targetKcal}) a bielkoviny {protein} g (cieľ {targetProtein}) — mimo cieľa o viac ako 10 %, uprav ho v koncepte.",
+    "warnDays": "Vygenerovaných je len {count} z {requested} dní.",
+    "warnOff": "{count, plural, one {# značkový produkt} few {# značkové produkty} other {# značkových produktov}} sa nepodarilo uložiť do databázy — vynechané."
   }
 }

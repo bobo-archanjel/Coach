@@ -62,6 +62,8 @@ const nextConfig: NextConfig = {
     // (fs + zlib) pri hľadaní potravín. Server action beží v serverless funkcii stránky,
     // ktorá ju hostí — kľúč je preto route stránky, nie súbor akcie.
     "/portal/ai-kouc": ["./public/food-data/manifest.json", "./public/food-data/*.json.gz"],
+    // AI generátor jedálničkov (app/dashboard/jedalnicky/aiActions.ts) — rovnaký offline balík
+    "/dashboard/jedalnicky": ["./public/food-data/manifest.json", "./public/food-data/*.json.gz"],
   },
   // Sekcia „Výživa“ sa premenovala na „Jedálničky“ — staré odkazy (záložky, notifikácie,
   // e-maily) nech trvalo vedú na novú adresu vrátane podstránok (klient, jedálniček).

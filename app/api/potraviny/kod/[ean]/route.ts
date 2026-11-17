@@ -22,6 +22,7 @@ import {
 } from "@/lib/offProduct";
 import { allowWithinWindow } from "@/lib/rateLimitMemory";
 import { isMissingColumn } from "@/lib/dbError";
+import { insertOffFood } from "@/lib/offFoodStore";
 import type { BarcodeLookupResult, BarcodePrefill, FoodSource, PortalFoodOption } from "@/lib/portal/types";
 
 const BASE_COLUMNS =
@@ -197,47 +198,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const mapped = mapOffProduct(product);
   if (!isCompleteFood(mapped)) return reply({ status: "not_found", food: prefill(code, mapped) });
 
-  // 3) uložiť ako globálny 'off' záznam — service role (používatelia 'off' zapisovať nesmú, RLS 0050)
-  const legacyRow = {
-    name: foodDisplayName(mapped.name, mapped.brand).slice(0, 120),
-    kcal_100g: mapped.kcal,
-    protein_100g: mapped.protein,
-    carbs_100g: mapped.carbs,
-    fat_100g: mapped.fat,
-    fiber_100g: mapped.fiber,
-    sugars_100g: mapped.sugars,
-    salt_100g: mapped.salt,
-    serving_g: mapped.servingGrams,
-    barcode: code,
-    source: "off" as const,
-    trainer_id: null,
-    created_by: null,
-    off_synced_at: new Date().toISOString(),
-  };
-  const row = { ...legacyRow, package_g: mapped.packageGrams, unit_base: mapped.unitBase };
+  // 3) uložiť ako globálny 'off' záznam — service role (používatelia 'off' zapisovať nesmú, RLS 0050);
+  //    zápis zdieľa lib/offFoodStore.ts s AI generátorom jedálničkov
+  const row = { name: foodDisplayName(mapped.name, mapped.brand).slice(0, 120) };
   const admin = tryCreateAdminClient();
   if (admin) {
-    let { data: saved, error: insertError } = await admin.from("foods").insert(row).select(FOOD_COLUMNS).single();
-    const legacy = isMissingColumn(insertError);
-    if (legacy) {
-      ({ data: saved, error: insertError } = await admin.from("foods").insert(legacyRow).select(BASE_COLUMNS).single());
-    }
-    if (saved) {
-      const food = toOption(saved as unknown as FoodRow, code);
+    const res = await insertOffFood(admin, mapped, code);
+    if (res.status === "saved") {
+      const food = toOption(res.row as unknown as FoodRow, code);
       // pred migráciou sa balenie/ml neuložia, ale klient ich dostane z OFF hneď
-      return reply({ status: "found", food: legacy ? { ...food, packageGrams: mapped.packageGrams, unitBase: mapped.unitBase } : food });
+      return reply({ status: "found", food: res.legacy ? { ...food, packageGrams: mapped.packageGrams, unitBase: mapped.unitBase } : food });
     }
-    if (insertError?.code === "23505") {
-      // súbežný sken toho istého kódu — záznam už medzitým vznikol
-      const { data: existing } = await admin
-        .from("foods")
-        .select(legacy ? BASE_COLUMNS : FOOD_COLUMNS)
-        .eq("barcode", code)
-        .in("source", ["import", "off"])
-        .maybeSingle();
-      if (existing) return reply({ status: "found", food: toOption(existing as unknown as FoodRow, code) });
-    }
-    console.error("potraviny/kod uloženie:", insertError?.message);
+    if (res.status === "duplicate" && res.row) return reply({ status: "found", food: toOption(res.row as unknown as FoodRow, code) });
+    console.error("potraviny/kod uloženie:", res.status === "error" ? res.message : "duplicate");
   }
 
   // bez uloženia (chýba service role / chyba DB) — denník zapíše snapshot hodnôt
