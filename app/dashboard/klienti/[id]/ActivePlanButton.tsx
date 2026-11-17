@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { setClientActivePlanAction } from "../actions";
 import styles from "../../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionActivateIcon } from "@/app/components/ActionIcons";
 
 /**
  * „Nastaviť ako aktívny“ pri zverejnenom pláne v detaile klienta — plán sa klientovi
@@ -26,11 +28,12 @@ export function ActivePlanButton({ clientId, planId, planName }: { clientId: str
     <span className={styles.activePlanAction}>
       <button
         type="button"
-        className="btn btn-ghost btn-sm"
+        className={`${pa.action} ${pa.small} ${pa.inline}`}
         onClick={setActive}
         disabled={pending}
         aria-label={t("aria", { name: planName })}
       >
+        <ActionActivateIcon />
         {pending ? t("setting") : t("set")}
       </button>
       {error && (

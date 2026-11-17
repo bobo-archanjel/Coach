@@ -1384,6 +1384,12 @@ select.addClientInputSm {
 /* Akcie šablóny/PDF na detaile tréningového plánu — súmerná mriežka 2 rovnakých
    stĺpcov s rovnakou výškou tlačidiel aj polí (select/input/btn majú inak rôzne
    paddingy). Na desktope max. 480px, aby sa tlačidlá neťahali cez celý obsah. */
+/* spodné akcie plánu / jedálnička (PDF, šablóna, zmazať) — mriežka dlaždíc
+   app/components/planActions.module.css, pod ňou stavová hláška */
+.footActions {
+  display: grid;
+  gap: 10px;
+}
 .templateGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

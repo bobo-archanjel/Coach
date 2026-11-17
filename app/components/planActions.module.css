@@ -21,6 +21,19 @@
     order: 3;
   }
 }
+/* užšia mriežka (sekcia v detaile klienta, exporty) — tlačidlá sa neroztiahnu cez celú kartu */
+.narrow {
+  max-width: 520px;
+}
+@media (max-width: 560px) {
+  .narrow {
+    max-width: none;
+  }
+}
+/* tlačidlo v riadku zoznamu (Nastaviť ako aktívny) — šírka podľa obsahu */
+.inline {
+  display: inline-flex;
+}
 /* karta šablóny (tréner): hlavná akcia „Použiť“ hore na celú šírku, ostatné pod ňou */
 .gridCard {
   display: grid;

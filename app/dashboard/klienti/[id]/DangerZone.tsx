@@ -11,6 +11,8 @@ import {
   resumeClientCooperationAction,
 } from "../actions";
 import styles from "../../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionRemoveUserIcon, ActionResumeIcon, ActionTrashIcon } from "@/app/components/ActionIcons";
 
 const GRACE_DAYS = 30;
 
@@ -93,33 +95,32 @@ export function DangerZone({
               <p className={styles.dangerText}>
                 {t("coopEnded", { name: firstName })}
               </p>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={resumeCooperation} disabled={coopPending}>
-                {t("resume")}
-              </button>
-            </>
-          ) : confirmingEnd ? (
-            <>
-              <p className={styles.dangerText}>
-                {t("confirmEnd", { name: firstName })}
-              </p>
-              <div className={styles.dangerActions}>
-                <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={endCooperation} disabled={coopPending}>
-                  {t("yesEnd")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setConfirmingEnd(false)}
-                  disabled={coopPending}
-                >
-                  {t("no")}
+              <div className={`${pa.grid} ${pa.narrow}`}>
+                <button type="button" className={`${pa.action} ${pa.small}`} onClick={resumeCooperation} disabled={coopPending}>
+                  <ActionResumeIcon />
+                  {t("resume")}
                 </button>
               </div>
             </>
+          ) : confirmingEnd ? (
+            <div className={pa.confirm} role="alertdialog">
+              <p className={pa.confirmText}>{t("confirmEnd", { name: firstName })}</p>
+              <span className={pa.confirmBtns}>
+                <button type="button" className={pa.confirmNo} onClick={() => setConfirmingEnd(false)} disabled={coopPending}>
+                  {t("no")}
+                </button>
+                <button type="button" className={pa.confirmYes} onClick={endCooperation} disabled={coopPending}>
+                  {t("yesEnd")}
+                </button>
+              </span>
+            </div>
           ) : (
-            <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirmingEnd(true)}>
-              {t("end")}
-            </button>
+            <div className={`${pa.grid} ${pa.narrow}`}>
+              <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirmingEnd(true)}>
+                <ActionRemoveUserIcon />
+                {t("end")}
+              </button>
+            </div>
           )}
           {coopError && <p className={styles.dangerError}>{coopError}</p>}
         </div>
@@ -132,23 +133,26 @@ export function DangerZone({
         <div className={styles.dangerSection}>
           <h3>{t("removeTitle")}</h3>
           {confirming ? (
-            <>
-              <p className={styles.dangerText}>{t("confirmRemove", { name: firstName })}</p>
-              <div className={styles.dangerActions}>
-                <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={remove} disabled={pending}>
-                  {t("yesRemove")}
-                </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
+            <div className={pa.confirm} role="alertdialog">
+              <p className={pa.confirmText}>{t("confirmRemove", { name: firstName })}</p>
+              <span className={pa.confirmBtns}>
+                <button type="button" className={pa.confirmNo} onClick={() => setConfirming(false)} disabled={pending}>
                   {t("no")}
                 </button>
-              </div>
-            </>
+                <button type="button" className={pa.confirmYes} onClick={remove} disabled={pending}>
+                  {t("yesRemove")}
+                </button>
+              </span>
+            </div>
           ) : (
             <>
               <p className={styles.dangerText}>{t("removeHint", { name: firstName })}</p>
-              <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
-                {t("remove")}
-              </button>
+              <div className={`${pa.grid} ${pa.narrow}`}>
+                <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirming(true)}>
+                  <ActionRemoveUserIcon />
+                  {t("remove")}
+                </button>
+              </div>
             </>
           )}
           {error && <p className={styles.dangerError}>{error}</p>}
@@ -163,33 +167,32 @@ export function DangerZone({
                 ? t("requestedByClient", { name: firstName, days: daysLeft(deletionRequestedAt) })
                 : t("requestedByYou", { days: daysLeft(deletionRequestedAt) })}
             </p>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={cancel} disabled={pending}>
-              {t("cancelDeletion")}
-            </button>
-          </>
-        ) : confirming ? (
-          <>
-            <p className={styles.dangerText}>
-              {t("confirmDelete", { name: firstName })}
-            </p>
-            <div className={styles.dangerActions}>
-              <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={request} disabled={pending}>
-                {t("yesDelete")}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setConfirming(false)}
-                disabled={pending}
-              >
-                {t("no")}
+            <div className={`${pa.grid} ${pa.narrow}`}>
+              <button type="button" className={`${pa.action} ${pa.small}`} onClick={cancel} disabled={pending}>
+                <ActionResumeIcon />
+                {t("cancelDeletion")}
               </button>
             </div>
           </>
+        ) : confirming ? (
+          <div className={pa.confirm} role="alertdialog">
+              <p className={pa.confirmText}>{t("confirmDelete", { name: firstName })}</p>
+              <span className={pa.confirmBtns}>
+                <button type="button" className={pa.confirmNo} onClick={() => setConfirming(false)} disabled={pending}>
+                  {t("no")}
+                </button>
+                <button type="button" className={pa.confirmYes} onClick={request} disabled={pending}>
+                  {t("yesDelete")}
+                </button>
+              </span>
+            </div>
         ) : (
-          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)}>
-            {t("requestDelete")}
-          </button>
+          <div className={`${pa.grid} ${pa.narrow}`}>
+            <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirming(true)}>
+              <ActionTrashIcon />
+              {t("requestDelete")}
+            </button>
+          </div>
         )}
         {error && <p className={styles.dangerError}>{error}</p>}
       </div>

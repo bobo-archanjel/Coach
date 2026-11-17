@@ -5,6 +5,8 @@ import { useActionState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { saveWorkoutTemplateAction, type ActionState } from "./actions";
 import styles from "../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionTemplateIcon } from "@/app/components/ActionIcons";
 
 const initialState: ActionState = { error: null };
 
@@ -39,12 +41,15 @@ export function WorkoutTemplateSave({
   };
 
   return (
-    <div className={styles.templateGrid}>
-      {leading}
-      <button type="button" className="btn btn-ghost btn-sm" disabled={pending} onClick={save}>
-        {pending ? t("saving") : t("save")}
-      </button>
-      {trailing}
+    <div className={styles.footActions}>
+      <div className={pa.grid}>
+        {leading}
+        <button type="button" className={pa.action} disabled={pending} onClick={save}>
+          <ActionTemplateIcon />
+          {pending ? t("saving") : t("save")}
+        </button>
+        {trailing}
+      </div>
       {!pending && state.error && (
         <span className={`${styles.noWorkouts} ${styles.templateStatus}`}>{state.error}</span>
       )}

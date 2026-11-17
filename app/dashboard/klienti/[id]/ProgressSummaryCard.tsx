@@ -5,6 +5,8 @@ import { useActionState } from "react";
 import { generateProgressSummaryAction, type ProgressSummaryState } from "../actions";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "../../dashboard.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { ActionSparkIcon } from "@/app/components/ActionIcons";
 
 const initialState: ProgressSummaryState = { summary: null, error: null };
 
@@ -26,7 +28,8 @@ export function ProgressSummaryCard({ clientId }: { clientId: string }) {
 
       <form action={formAction}>
         <input type="hidden" name="client_id" value={clientId} />
-        <button type="submit" className="btn btn-ghost btn-sm" disabled={pending}>
+        <button type="submit" className={`${pa.action} ${pa.small} ${pa.inline}`} disabled={pending}>
+          <ActionSparkIcon />
           {pending ? t("generating") : t("generate")}
         </button>
       </form>
