@@ -3029,6 +3029,65 @@
 .trHead .sectionTitle {
   margin: 0;
 }
+/* Jedálniček: tlačidlo „Jedálničky (počet)“ a okno s výberom (MealPlansSheet) */
+/* riadok aktívneho jedálnička: štítok v jednom riadku, dlhý názov sa radšej zalomí */
+.psRow .trSrcChip {
+  flex: none;
+  white-space: nowrap;
+}
+.mpName {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.mpOpen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.mpTabs {
+  display: flex;
+  width: 100%;
+  margin: 2px 0 14px;
+  background: var(--fill);
+}
+.mpTabs button {
+  flex: 1;
+  padding: 8px 14px;
+}
+.mpTabCount {
+  margin-left: 2px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+.mpEmpty {
+  padding: 18px 4px 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+.mpActive,
+.mpSwitch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.mpActive {
+  color: var(--accent-text);
+}
+.mpActive svg {
+  width: 16px;
+  height: 16px;
+}
+.mpSwitch {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--paper);
+}
 /* builder vlastného jedálnička: makro cieľ pod súčtom dňa (ClientMealBuilder) */
 .mbGoalLine {
   flex-basis: 100%;

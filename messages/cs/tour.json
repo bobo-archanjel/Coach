@@ -341,8 +341,8 @@
         "body": "Sestav si jídelníček sám — po dnech a jídlech, s potravinami ze stejného vyhledávání jako ve Stravě."
       },
       "switch": {
-        "title": "Aktivní jídelníček",
-        "body": "Tady vidíš, jestli je jídelníček od trenéra, nebo vlastní. Když jich máš víc, přes „Změnit“ si vybereš, který se ukáže."
+        "title": "Jídelníčky",
+        "body": "Když máš víc jídelníčků, tady je otevřeš všechny. Přepínačem Vlastní / Od trenéra je roztřídíš a klepnutím vybereš, který se má ukazovat."
       },
       "plan": {
         "title": "Tvůj jídelníček",
