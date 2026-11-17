@@ -23,6 +23,7 @@ import { getTranslations } from "next-intl/server";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
+import { detachFromSuperset, normalizeSupersets, toggleLinkWithNext } from "@/lib/workouts/superset";
 
 export interface ActionState {
   error: string | null;
@@ -70,6 +71,8 @@ export interface WorkoutExerciseEntry {
   load_kg: number | null;
   tempo: string | null;
   rest_seconds: number | null;
+  /** superséria — rovnaké id u cvikov po sebe (lib/workouts/superset.ts); chýba = samostatný */
+  superset?: string | null;
 }
 
 export async function createPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -470,8 +473,10 @@ export async function moveExerciseEntryAction(input: {
   const target = direction === "up" ? idx - 1 : idx + 1;
   if (target < 0 || target >= current.length) return ok; // už na kraji — nič nemeníme
 
-  const updated = [...current];
-  [updated[idx], updated[target]] = [updated[target], updated[idx]];
+  const swapped = [...current];
+  [swapped[idx], swapped[target]] = [swapped[target], swapped[idx]];
+  // presunutý cvik vypadne zo supersérie (skupina ostane súvislá)
+  const updated = detachFromSuperset(swapped, target);
 
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
   if (error) return { error: await dbErr(error, "actions") };
@@ -494,8 +499,35 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
   if (!day) return { error: await tErr("plans.dayNotFound") };
 
   const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
-  const updated = current.filter((entry) => entry.entry_id !== entryId);
+  // supersériu, z ktorej ostal jeden cvik, zruší
+  const updated = normalizeSupersets(current.filter((entry) => entry.entry_id !== entryId));
 
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  if (error) return { error: await dbErr(error, "actions") };
+
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  return ok;
+}
+
+/**
+ * Superséria: spojí cvik s nasledujúcim (alebo spojenie zruší — rozdelí skupinu medzi
+ * nimi). Volá sa priamo z PlanBuilderu (tlačidlo reťaze medzi kartami), ktorý si zmenu
+ * ukáže optimisticky. lib/workouts/superset.ts.
+ */
+export async function toggleSupersetLinkAction(input: { planId: string; dayId: string; entryId: string }): Promise<ActionState> {
+  const { planId, dayId, entryId } = input;
+  if (!planId || !dayId || !entryId) return { error: await tErr("plans.missingEntryId") };
+
+  const supabase = await createClient();
+  const { day, locked } = await getDayForEdit(supabase, dayId);
+  if (locked) return { error: await tErr("planLocked") };
+  if (!day) return { error: await tErr("plans.dayNotFound") };
+
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const idx = current.findIndex((e) => e.entry_id === entryId);
+  if (idx < 0 || idx >= current.length - 1) return { error: await tErr("plans.exerciseNotFound") };
+
+  const updated = toggleLinkWithNext(current, idx);
   const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
   if (error) return { error: await dbErr(error, "actions") };
 

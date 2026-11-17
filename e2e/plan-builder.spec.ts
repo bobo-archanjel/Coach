@@ -30,7 +30,7 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
     // prepni na Deň 2 → panel ukáže jeho cviky (3)
     await page.getByRole("button", { name: /Deň 2 — Nohy/ }).click();
     await expect(page.getByRole("button", { name: /Deň 2 — Nohy/ })).toHaveAttribute("aria-current", "true");
-    await expect(page.getByRole("button", { name: /Drep s veľkou činkou/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Drep s veľkou činkou", exact: true })).toBeVisible();
     await expect(page.getByText("Výpady")).toBeVisible();
 
     expect(real(errs), real(errs).join("\n")).toEqual([]);

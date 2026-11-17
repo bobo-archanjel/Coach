@@ -234,3 +234,19 @@
 .backfillNote {
   border-radius: 18px;
 }
+
+/* superséria, v ktorej klient cvik cvičil (A1 / A2) */
+.ssTag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 21px;
+  padding: 0 6px;
+  margin-right: 8px;
+  border-radius: 7px;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: 2px;
+}

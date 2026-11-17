@@ -2,7 +2,7 @@
 
 import { SwipeBack } from "@/app/components/SwipeBack";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalExercise, PortalPlan, PortalTemplate } from "@/lib/portal/types";
 import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
@@ -17,6 +17,8 @@ import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 import { DayNameDialog } from "@/app/components/DayNameDialog";
 import { focusAddExercise } from "@/app/components/pendingEntryEdit";
 import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
+import { detachFromSuperset, isLinkedToNext, normalizeSupersets, supersetPositions, toggleLinkWithNext } from "@/lib/workouts/superset";
+import { SupersetLink } from "@/app/components/SupersetLink";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -52,6 +54,8 @@ type BEx = {
   restSeconds: string;
   /** poznámka k cviku (v dátach `tempo`) */
   note: string;
+  /** superséria — id skupiny (lib/workouts/superset.ts) */
+  superset: string | null;
 };
 type BDay = { key: string; id: string | null; name: string; exercises: BEx[] };
 
@@ -75,7 +79,7 @@ const ChevronIcon = () => (
 // (lib/workouts/nextEntryDefaults — pridať a vyplniť v jednom kroku).
 function newExercise(name: string, exerciseId: string | null, last?: BEx): BEx {
   const d = nextEntryDefaults(last ? { sets: last.sets, reps: last.reps, restSeconds: last.restSeconds } : null);
-  return { key: uid(), exerciseId, name, sets: String(d.sets), reps: d.reps, loadKg: "", restSeconds: String(d.restSeconds), note: "" };
+  return { key: uid(), exerciseId, name, sets: String(d.sets), reps: d.reps, loadKg: "", restSeconds: String(d.restSeconds), note: "", superset: null };
 }
 
 /** Dni pre rozpracovaný tréning — z upravovaného plánu (dni s id → úprava) alebo
@@ -95,6 +99,7 @@ function toDraftDays(days: { id?: string; name: string; exercises: PortalExercis
       loadKg: e.loadKg != null ? String(e.loadKg) : "",
       restSeconds: e.restSeconds != null ? String(e.restSeconds) : "",
       note: e.tempo ?? "",
+      superset: e.superset ?? null,
     })),
   }));
 }
@@ -222,7 +227,13 @@ export function ClientPlanBuilder({
     return null;
   };
   const removeExercise = (dayKey: string, exKey: string) =>
-    patchDay(dayKey, (d) => ({ ...d, exercises: d.exercises.filter((e) => e.key !== exKey) }));
+    patchDay(dayKey, (d) => ({ ...d, exercises: normalizeSupersets(d.exercises.filter((e) => e.key !== exKey)) }));
+  /** superséria: spojí cvik s nasledujúcim / rozdelí (lib/workouts/superset.ts) */
+  const toggleSuperset = (dayKey: string, exKey: string) =>
+    patchDay(dayKey, (d) => {
+      const i = d.exercises.findIndex((e) => e.key === exKey);
+      return i < 0 ? d : { ...d, exercises: toggleLinkWithNext(d.exercises, i) };
+    });
   const moveExercise = (dayKey: string, exKey: string, direction: "up" | "down") =>
     patchDay(dayKey, (d) => {
       const i = d.exercises.findIndex((e) => e.key === exKey);
@@ -230,7 +241,8 @@ export function ClientPlanBuilder({
       if (i < 0 || j < 0 || j >= d.exercises.length) return d;
       const exercises = [...d.exercises];
       [exercises[i], exercises[j]] = [exercises[j], exercises[i]];
-      return { ...d, exercises };
+      // presunutý cvik vypadne zo supersérie (ako u trénera)
+      return { ...d, exercises: detachFromSuperset(exercises, j) };
     });
 
   const save = () => {
@@ -259,6 +271,7 @@ export function ClientPlanBuilder({
             loadKg: e.loadKg.trim() === "" ? null : Number(e.loadKg),
             restSeconds: e.restSeconds.trim() === "" ? null : Number(e.restSeconds),
             note: e.note.trim(),
+            superset: e.superset,
           })),
       })),
     };
@@ -269,6 +282,8 @@ export function ClientPlanBuilder({
       else onSaved();
     });
   };
+
+  const positions = activeDay ? supersetPositions(activeDay.exercises) : [];
 
   return (
     // Späť (zatvoriť builder bez uloženia): potiahnutie zľava doprava na mobile, späť v
@@ -415,10 +430,14 @@ export function ClientPlanBuilder({
             <div className={b.dayPanel}>
               {activeDay ? (
                 activeDay.exercises.length > 0 ? (
-                  activeDay.exercises.map((ex, i) =>
-                    editKey === ex.key ? (
+                  activeDay.exercises.map((ex, i) => {
+                    const ss = positions[i];
+                    const linked = isLinkedToNext(activeDay.exercises, i);
+                    const next = activeDay.exercises[i + 1];
+                    return (
+                    <Fragment key={ex.key}>
+                    {editKey === ex.key ? (
                       <ExerciseEditForm
-                        key={ex.key}
                         ex={ex}
                         autoFocus={justAddedKey === ex.key}
                         onApply={(patch) => {
@@ -435,14 +454,16 @@ export function ClientPlanBuilder({
                         }}
                       />
                     ) : (
-                      <div key={ex.key} className={b.exerciseRow}>
+                      <div className={`${b.exerciseRow} ${ss ? b.ssMember : ""}`} data-superset={ss ? `${ss.letter}${ss.index}` : undefined}>
                         {ex.exerciseId ? (
                           <button type="button" className={b.exerciseNameBtn} onClick={() => openDetail(ex.exerciseId!, ex.name)}>
+                            {ss && <span className={b.ssTag}>{`${ss.letter}${ss.index}`}</span>}
                             <ExerciseThumb src={library.find((l) => l.id === ex.exerciseId)?.imageUrl ?? null} alt="" size={26} />
                             <span className={b.exerciseName}>{ex.name}</span>
                           </button>
                         ) : (
                           <div className={b.exerciseNameStatic}>
+                            {ss && <span className={b.ssTag}>{`${ss.letter}${ss.index}`}</span>}
                             <ExerciseThumb src={null} alt="" size={26} />
                             <span className={b.exerciseName}>{ex.name}</span>
                           </div>
@@ -451,7 +472,16 @@ export function ClientPlanBuilder({
                           {ex.sets || "3"}× {ex.reps || "10"}
                           {ex.loadKg.trim() ? ` @ ${ex.loadKg} kg` : ""}
                         </span>
-                        {ex.restSeconds.trim() && <span className={b.exerciseMeta}>{t("restValue", { seconds: ex.restSeconds })}</span>}
+                        {ss && !ss.last ? (
+                          // v supersérii bez pauzy medzi cvikmi — pauza až po kole
+                          <span className={`${b.exerciseMeta} ${b.ssMeta}`}>{t("ssNext", { next: `${ss.letter}${ss.index + 1}` })}</span>
+                        ) : ss ? (
+                          <span className={`${b.exerciseMeta} ${b.ssMeta}`}>
+                            {ex.restSeconds.trim() ? t("ssRoundRest", { seconds: ex.restSeconds }) : t("ssRoundNoRest")}
+                          </span>
+                        ) : (
+                          ex.restSeconds.trim() && <span className={b.exerciseMeta}>{t("restValue", { seconds: ex.restSeconds })}</span>
+                        )}
                         {ex.note.trim() && <span className={b.exerciseNote}>„{ex.note.trim()}“</span>}
                         <div className={b.rowActions}>
                           <div className={b.reorderBtns}>
@@ -487,8 +517,18 @@ export function ClientPlanBuilder({
                           </button>
                         </div>
                       </div>
-                    ),
-                  )
+                    )}
+                    {next && (
+                      <SupersetLink
+                        linked={linked}
+                        label={linked ? t("ssUnlink") : t("ssLink")}
+                        ariaLabel={linked ? t("ssUnlinkAria", { a: ex.name, b: next.name }) : t("ssLinkAria", { a: ex.name, b: next.name })}
+                        onToggle={() => toggleSuperset(activeDay.key, ex.key)}
+                      />
+                    )}
+                    </Fragment>
+                    );
+                  })
                 ) : null
               ) : null}
             </div>

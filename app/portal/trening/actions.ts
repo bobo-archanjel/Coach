@@ -11,6 +11,7 @@ import type { ExerciseOption } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
 import { deleteWorkoutTemplate, saveOwnPlanAsTemplate } from "@/lib/templates";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
+import { cleanSupersetId, normalizeSupersets } from "@/lib/workouts/superset";
 
 /* Vlastný tréning klienta — vytvorenie / úprava / zmazanie / prepnutie aktívneho.
    Klientské plány: workout_plans.trainer_id IS NULL (viď 0010_client_own_workouts.sql).
@@ -56,6 +57,8 @@ export interface DraftExercise {
   restSeconds: number | null;
   /** poznámka k cviku (ukladá sa do `tempo`) */
   note?: string;
+  /** superséria — id skupiny (lib/workouts/superset.ts) */
+  superset?: string | null;
 }
 export interface DraftDay {
   id: string | null; // null = nový deň
@@ -79,6 +82,7 @@ type CleanEntry = {
   load_kg: number | null;
   rest_seconds: number | null;
   tempo: string | null;
+  superset: string | null;
 };
 
 function clampInt(v: unknown, min: number, max: number, fallback: number): number {
@@ -100,7 +104,7 @@ function cleanText(v: unknown, max: number): string {
 
 function cleanEntries(raw: unknown): CleanEntry[] {
   if (!Array.isArray(raw)) return [];
-  return raw
+  const entries = raw
     .slice(0, MAX_EXERCISES)
     .map((e): CleanEntry | null => {
       if (!e || typeof e !== "object") return null;
@@ -117,9 +121,12 @@ function cleanEntries(raw: unknown): CleanEntry[] {
         load_kg: optionalNum(x.loadKg, 0, 1000),
         rest_seconds: rest === null ? null : Math.round(rest),
         tempo: cleanText(x.note, EXERCISE_NOTE_MAX) || null,
+        superset: cleanSupersetId(x.superset),
       };
     })
     .filter((e): e is CleanEntry => e !== null);
+  // vynechaný (prázdny) cvik mohol nechať supersériu s jedným členom
+  return normalizeSupersets(entries);
 }
 
 type CleanDay = { id: string | null; name: string; exercises: CleanEntry[] };

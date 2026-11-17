@@ -1,6 +1,7 @@
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { RELATIVE_DAY } from "@/lib/i18n/dates";
 import { timedSeconds } from "./timedReps";
+import { cleanSupersetId } from "@/lib/workouts/superset";
 // Dokončený tréning: plán (workout_logs.plan_snapshot, 0048) vs. realita
 // (workout_logs.entries). Čistá logika bez next/supabase importov — zdieľaná medzi
 // detailom trénera, portálom a e2e testom (e2e/training-done.spec.ts).
@@ -45,6 +46,8 @@ export interface LoggedEntry {
   entryId: string | null;
   name: string;
   note?: string | null;
+  /** superséria, v ktorej sa cvik cvičil (plán alebo spojenie počas tréningu) */
+  superset?: string | null;
   sets: LoggedSetValues[];
 }
 
@@ -64,6 +67,8 @@ export interface CompareExercise {
   status: CompareStatus;
   planned: SnapshotExercise | null;
   note: string | null;
+  /** superséria, v ktorej klient cvik cvičil (zo zápisu) */
+  superset: string | null;
   rows: CompareRow[];
 }
 
@@ -139,6 +144,7 @@ export function parseLoggedEntries(raw: unknown): LoggedEntry[] {
         entryId: str(x.entryId),
         name: str(x.name) ?? str(x.exercise_name) ?? "Cvik",
         note: str(x.note),
+        superset: cleanSupersetId(x.superset),
         sets,
       };
     })
@@ -174,6 +180,7 @@ export function comparePlanWithActual(snapshot: PlanSnapshot | null, entries: Lo
       status: actualSets.length > 0 ? "planned" : "skipped",
       planned: p,
       note: logged?.note ?? null,
+      superset: logged?.superset ?? null,
       rows: Array.from({ length: count }, (_, j) => ({
         index: j + 1,
         planned: j < p.sets ? { reps: p.reps, loadKg: p.loadKg } : null,
@@ -190,6 +197,7 @@ export function comparePlanWithActual(snapshot: PlanSnapshot | null, entries: Lo
       status: "extra",
       planned: null,
       note: e.note ?? null,
+      superset: e.superset ?? null,
       rows: e.sets.map((s, j) => ({ index: j + 1, planned: null, actual: s })),
     });
   });

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
+import { supersetPositions } from "@/lib/workouts/superset";
 import dynamic from "next/dynamic";
 import type { PortalExercise } from "@/lib/portal/types";
 import { getExerciseDetailAction } from "./actions";
@@ -35,35 +37,55 @@ export function ExercisePreviewList({ exercises }: { exercises: PortalExercise[]
   };
 
   const active = openIdx !== null ? exercises[openIdx] : null;
+  const t = useTranslations("training.preview");
+  const positions = supersetPositions(exercises);
 
   return (
     <>
       <ol className={styles.exList}>
-        {exercises.map((ex, i) => (
-          <li key={`${ex.idx}-${i}`} className={styles.exRow}>
-            <span className={styles.exIdx}>{ex.idx}</span>
-            {ex.exerciseId ? (
-              <button type="button" className={styles.exBodyBtn} onClick={() => open(ex, i)}>
-                <span className={styles.exBody}>
-                  <span className={styles.exName}>{ex.name}</span>
-                  <span className={styles.exMeta}>
-                    {[ex.scheme, ex.rest && `pauza ${ex.rest}`].filter(Boolean).join(" · ")}
-                  </span>
-                  {ex.tempo && <span className={styles.exNote}>„{ex.tempo}“</span>}
-                </span>
-              </button>
-            ) : (
-              <span className={styles.exBody}>
-                <span className={styles.exName}>{ex.name}</span>
-                <span className={styles.exMeta}>
-                  {[ex.scheme, ex.rest && `pauza ${ex.rest}`].filter(Boolean).join(" · ")}
-                </span>
-                {ex.tempo && <span className={styles.exNote}>„{ex.tempo}“</span>}
-              </span>
-            )}
-            {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
-          </li>
-        ))}
+        {exercises.map((ex, i) => {
+          const ss = positions[i];
+          // v supersérii medzi cvikmi bez pauzy — pauza až po kole (pauza posledného cviku)
+          const meta = [
+            ex.scheme,
+            ss && !ss.last
+              ? t("ssNext", { next: `${ss.letter}${ss.index + 1}` })
+              : ss
+                ? ex.rest
+                  ? t("ssRoundRest", { rest: ex.rest })
+                  : t("ssRoundNoRest")
+                : ex.rest && t("rest", { rest: ex.rest }),
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          const body = (
+            <span className={styles.exBody}>
+              <span className={styles.exName}>{ex.name}</span>
+              <span className={`${styles.exMeta} ${ss ? styles.exMetaSs : ""}`}>{meta}</span>
+              {ex.tempo && <span className={styles.exNote}>„{ex.tempo}“</span>}
+            </span>
+          );
+          return (
+            <Fragment key={`${ex.idx}-${i}`}>
+              {ss?.first && (
+                <li className={styles.exSsHead} aria-hidden="true">
+                  {t("ssHeader", { letter: ss.letter })}
+                </li>
+              )}
+              <li className={`${styles.exRow} ${ss ? styles.exRowSs : ""}`} data-superset={ss ? `${ss.letter}${ss.index}` : undefined}>
+                <span className={`${styles.exIdx} ${ss ? styles.exIdxSs : ""}`}>{ss ? `${ss.letter}${ss.index}` : ex.idx}</span>
+                {ex.exerciseId ? (
+                  <button type="button" className={styles.exBodyBtn} onClick={() => open(ex, i)}>
+                    {body}
+                  </button>
+                ) : (
+                  body
+                )}
+                {ex.load && <span className={styles.exLoad}>{ex.load}</span>}
+              </li>
+            </Fragment>
+          );
+        })}
       </ol>
       {active && (
         <ExerciseDetailModal detail={detail} fallbackName={active.name} onClose={() => setOpenIdx(null)} />

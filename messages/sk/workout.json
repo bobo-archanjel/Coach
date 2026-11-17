@@ -40,5 +40,10 @@
   "addedTag": "Pridaný",
   "removeExercise": "Odobrať cvik {name}",
   "secondsAria": "{name}, séria {n}, čas v sekundách",
-  "secondsPlaceholder": "sek."
+  "secondsPlaceholder": "sek.",
+  "ssHeader": "Superséria {letter} · {order}, potom pauza",
+  "ssLink": "Spojiť do supersérie",
+  "ssUnlink": "Superséria · rozdeliť",
+  "ssLinkAria": "Spojiť cviky {a} a {b} do supersérie",
+  "ssUnlinkAria": "Rozdeliť supersériu medzi cvikmi {a} a {b}"
 }

@@ -15,6 +15,7 @@ import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import { focusAddExercise, isPendingEdit, onEntryEditRequest, takePendingEdit } from "@/app/components/pendingEntryEdit";
+import type { SupersetPos } from "@/lib/workouts/superset";
 import styles from "@/app/components/workoutBuilder.module.css";
 
 const ExerciseDetailModal = dynamic(() =>
@@ -50,6 +51,7 @@ export function ExerciseRow({
   isLast = false,
   reorderPending = false,
   onMove,
+  superset = null,
 }: {
   entry: WorkoutExerciseEntry;
   dayId: string;
@@ -59,6 +61,8 @@ export function ExerciseRow({
   isLast?: boolean;
   reorderPending?: boolean;
   onMove?: (direction: "up" | "down") => void;
+  /** pozícia v supersérii (štítok A1, linka vľavo, pauza po kole) */
+  superset?: SupersetPos | null;
 }) {
   const t = useTranslations("plans.builder");
   // práve pridaný cvik sa otvorí rovno na úpravu (pridať a vyplniť v jednom kroku)
@@ -177,14 +181,16 @@ export function ExerciseRow({
   }
 
   return (
-    <div className={styles.exerciseRow} data-tour="plan-exercise">
+    <div className={`${styles.exerciseRow} ${superset ? styles.ssMember : ""}`} data-tour="plan-exercise" data-superset={superset ? `${superset.letter}${superset.index}` : undefined}>
       {entry.exercise_id ? (
         <button type="button" className={styles.exerciseNameBtn} onClick={openDetail}>
+          {superset && <span className={styles.ssTag}>{`${superset.letter}${superset.index}`}</span>}
           <ExerciseThumb src={libEntry?.image_url[0] ?? null} alt="" size={26} />
           <span className={styles.exerciseName}>{entry.exercise_name}</span>
         </button>
       ) : (
         <div className={styles.exerciseNameStatic}>
+          {superset && <span className={styles.ssTag}>{`${superset.letter}${superset.index}`}</span>}
           <ExerciseThumb src={null} alt="" size={26} />
           <span className={styles.exerciseName}>{entry.exercise_name}</span>
         </div>
@@ -193,7 +199,18 @@ export function ExerciseRow({
         {entry.sets}× {entry.reps}
         {entry.load_kg ? ` @ ${entry.load_kg} kg` : ""}
       </span>
-      {entry.rest_seconds ? <span className={styles.exerciseMeta}>{t("restValue", { seconds: entry.rest_seconds })}</span> : null}
+      {superset && !superset.last ? (
+        // v supersérii sa medzi cvikmi nepauzuje — pauza až po kole (pauza posledného cviku)
+        <span className={`${styles.exerciseMeta} ${styles.ssMeta}`}>
+          {t("ssNext", { next: `${superset.letter}${superset.index + 1}` })}
+        </span>
+      ) : superset ? (
+        <span className={`${styles.exerciseMeta} ${styles.ssMeta}`}>
+          {entry.rest_seconds ? t("ssRoundRest", { seconds: entry.rest_seconds }) : t("ssRoundNoRest")}
+        </span>
+      ) : entry.rest_seconds ? (
+        <span className={styles.exerciseMeta}>{t("restValue", { seconds: entry.rest_seconds })}</span>
+      ) : null}
       {entry.tempo && <span className={styles.exerciseNote}>„{entry.tempo}“</span>}
       <div className={styles.rowActions}>
         {onMove && (

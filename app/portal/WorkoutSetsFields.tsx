@@ -1,7 +1,9 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState, type MouseEvent } from "react";
+import { Fragment, useEffect, useState, type MouseEvent } from "react";
+import { SupersetLink } from "@/app/components/SupersetLink";
+import { normalizeSupersets, supersetPositions, toggleLinkWithNext } from "@/lib/workouts/superset";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
 import {
@@ -32,6 +34,18 @@ export interface WorkoutFormValues {
   /** cviky, ktoré si klient pridal počas tréningu (ručne, názov + opakovania/čas) — za
    *  cvikmi plánu, takže ich riadky/poznámky majú indexy exercises.length + i */
   added?: AddedExercise[];
+  /** supersérie tohto tréningu po indexoch cvikov (plán + spojenia klienta počas tréningu);
+   *  chýba = podľa plánu (lib/workouts/superset.ts) */
+  supersets?: (string | null)[];
+}
+
+/** Supersérie tréningu: klientove spojenia, inak z plánu (pridané cviky samostatne). */
+export function effectiveSupersets(exercises: PortalExercise[], values: WorkoutFormValues): (string | null)[] {
+  const raw =
+    values.supersets && values.supersets.length === exercises.length
+      ? values.supersets
+      : exercises.map((e) => e.superset ?? null);
+  return normalizeSupersets(raw.map((superset) => ({ superset }))).map((x) => x.superset ?? null);
 }
 
 /** Cvik pridaný počas tréningu; `timed` = meria sa čas (sekundy), nie opakovania. */
@@ -155,8 +169,12 @@ export function formValuesFromLog(
   const base = emptyFormValues(exercises);
   const notes: Record<number, string | undefined> = {};
   const used = new Set<LoggedExercise>();
+  // supersérie zo zápisu (spojenia počas tréningu); starší zápis bez nich → podľa plánu
+  const loggedHasSupersets = logged.some((l) => l.superset);
+  const supersets: (string | null)[] = [];
   const fill = (i: number, match: LoggedExercise, timed: boolean) => {
     used.add(match);
+    if (loggedHasSupersets) supersets[i] = match.superset ?? null;
     if (match.sets.length > 0) {
       base.rows[i] = match.sets.map((s) => ({
         reps: numToField(timed ? (s.durationS ?? s.reps) : s.reps),
@@ -181,19 +199,29 @@ export function formValuesFromLog(
     fill(exercises.length + added.length, l, timed);
     added.push(timed ? { name: l.name, timed } : { name: l.name });
   }
-  return { rows: base.rows, notes, rpe: rpe != null ? String(rpe) : "", sessionNote: note ?? "", added };
+  const all = exercises.length + added.length;
+  return {
+    rows: base.rows,
+    notes,
+    rpe: rpe != null ? String(rpe) : "",
+    sessionNote: note ?? "",
+    added,
+    ...(loggedHasSupersets && { supersets: Array.from({ length: all }, (_, i) => supersets[i] ?? null) }),
+  };
 }
 
 /** Série a poznámky na odoslanie (JSON pre finishWorkoutAction / updateWorkoutLogAction). */
 export function buildEntriesPayload(planExercises: PortalExercise[], values: WorkoutFormValues) {
   const exercises = formExercises(planExercises, values);
   const summary = summarizeWorkoutForm(exercises.length, values.rows);
+  const supersets = effectiveSupersets(exercises, values);
   const entries = exercises.map((ex, i) => {
     const sets = summary.sets[i] ?? [];
     return {
       entryId: ex.entryId,
       name: ex.name,
       note: values.notes[i]?.trim() || undefined,
+      superset: supersets[i] ?? undefined,
       // cvik na čas: číslo z prvého poľa sú sekundy (durationS), nie opakovania
       sets: isTimedExercise(ex) ? sets.map((s) => ({ reps: null, weight: s.weight, durationS: s.reps })) : sets,
     };
@@ -218,6 +246,8 @@ export function WorkoutSetsFields({
   const { rows, notes, rpe, sessionNote } = values;
   const added = values.added ?? [];
   const exercises = formExercises(planExercises, values);
+  const supersets = effectiveSupersets(exercises, values);
+  const ssPositions = supersetPositions(supersets.map((superset) => ({ superset })));
   const setRows = (next: Record<number, SetRow[]>) => onChange({ ...values, rows: next });
   // ručné pridanie cviku počas tréningu (len názov, nie z knižnice)
   const [adding, setAdding] = useState(false);
@@ -251,6 +281,7 @@ export function WorkoutSetsFields({
       ...values,
       added: [...added, newTimed ? { name, timed: true } : { name }],
       rows: { ...rows, [at]: Array.from({ length: ADDED_SETS }, () => ({ reps: "", weight: "" })) },
+      ...(values.supersets && { supersets: [...supersets, null] }),
     });
     closeAdd();
     setFocusExIdx(at);
@@ -263,8 +294,21 @@ export function WorkoutSetsFields({
       added: added.filter((_, i) => i !== addedIdx),
       rows: dropIndex(rows, exIdx),
       notes: dropIndex(notes, exIdx),
+      // odobraný člen supersérie — skupina s jedným cvikom zanikne
+      supersets: normalizeSupersets(supersets.filter((_, i) => i !== exIdx).map((superset) => ({ superset }))).map(
+        (x) => x.superset ?? null,
+      ),
     });
   };
+  /** spojenie počas tréningu: cvik + nasledujúci do supersérie / rozdelenie (plán sa nemení) */
+  const toggleSuperset = (exIdx: number) =>
+    onChange({
+      ...values,
+      supersets: toggleLinkWithNext(
+        supersets.map((superset) => ({ superset })),
+        exIdx,
+      ).map((x) => x.superset ?? null),
+    });
 
   const updateRow = (exIdx: number, rowIdx: number, field: keyof SetRow, value: string) => {
     const next = [...(rows[exIdx] ?? [])];
@@ -282,23 +326,39 @@ export function WorkoutSetsFields({
       {exercises.map((ex, exIdx) => {
         const timed = isTimedExercise(ex);
         const plannedSecs = timedSeconds(ex.plannedReps);
+        const ss = ssPositions[exIdx];
+        const next = exercises[exIdx + 1];
+        const linked = Boolean(supersets[exIdx]) && supersets[exIdx] === supersets[exIdx + 1];
         return (
+          <Fragment key={`${ex.idx}-${exIdx}`}>
+          {ss?.first && (
+            <p className={styles.logSsHead}>
+              {t("ssHeader", {
+                letter: ss.letter,
+                order: Array.from({ length: ss.size }, (_, k) => `${ss.letter}${k + 1}`).join(" → "),
+              })}
+            </p>
+          )}
           <div
-            key={`${ex.idx}-${exIdx}`}
-            className={styles.logExercise}
+            className={`${styles.logExercise} ${ss ? styles.logExerciseSs : ""}`}
+            data-superset={ss ? `${ss.letter}${ss.index}` : undefined}
             data-tour={exIdx < planExercises.length ? "workout-exercise" : undefined}
             data-added={exIdx >= planExercises.length ? "" : undefined}
             data-ex-idx={exIdx}
           >
             {exIdx < planExercises.length ? (
               <>
-                <p className={styles.logExerciseName}>{ex.name}</p>
+                <p className={styles.logExerciseName}>
+                  {ss && <span className={styles.logSsTag}>{`${ss.letter}${ss.index}`}</span>}
+                  {ex.name}
+                </p>
                 {/* poznámka k cviku z plánu (v dátach `tempo`) — počas tréningu po ruke */}
                 {ex.tempo && <p className={styles.logExerciseNote}>„{ex.tempo}“</p>}
               </>
             ) : (
               <div className={styles.logExerciseHead}>
                 <p className={styles.logExerciseName}>
+                  {ss && <span className={styles.logSsTag}>{`${ss.letter}${ss.index}`}</span>}
                   {ex.name} <span className={styles.addedTag}>{t("addedTag")}</span>
                 </p>
                 <button
@@ -390,6 +450,16 @@ export function WorkoutSetsFields({
               />
             )}
           </div>
+          {/* spojenie so susedným cvikom do supersérie len pre tento tréning (plán sa nemení) */}
+          {next && (
+            <SupersetLink
+              linked={linked}
+              label={linked ? t("ssUnlink") : t("ssLink")}
+              ariaLabel={linked ? t("ssUnlinkAria", { a: ex.name, b: next.name }) : t("ssLinkAria", { a: ex.name, b: next.name })}
+              onToggle={() => toggleSuperset(exIdx)}
+            />
+          )}
+          </Fragment>
         );
       })}
 

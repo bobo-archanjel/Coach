@@ -74,7 +74,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   const [values, setValues] = useState<WorkoutFormValues>(() => {
     const draft = loadWorkoutDraft(dayId, signature);
     return draft
-      ? { rows: draft.rows, notes: draft.notes, rpe: draft.rpe, sessionNote: draft.sessionNote, added: draft.added }
+      ? { rows: draft.rows, notes: draft.notes, rpe: draft.rpe, sessionNote: draft.sessionNote, added: draft.added, supersets: draft.supersets }
       : plannedFormValues(exercises); // hodnoty trénera — pri odcvičení podľa plánu netreba nič písať
   });
   const [confirmOpen, setConfirmOpen] = useState(false);

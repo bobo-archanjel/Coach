@@ -84,6 +84,8 @@ export interface PortalExercise {
   restSeconds: number | null;
   /** cvik na čas bez plánovaného času — klient si ho pridal počas tréningu s voľbou „Čas“ */
   timed?: boolean;
+  /** superséria — id skupiny (lib/workouts/superset.ts); null = samostatný cvik */
+  superset?: string | null;
 }
 
 /** Jedna skutočne odcvičená séria — vyplní klient pri "Ukončiť tréning" (Fáza B).
@@ -102,6 +104,8 @@ export interface LoggedExercise {
   name: string;
   /** poznámka klienta k cviku (0048) */
   note?: string | null;
+  /** superséria, v ktorej sa cvik cvičil (plán alebo spojenie počas tréningu) */
+  superset?: string | null;
   sets: LoggedSet[];
 }
 

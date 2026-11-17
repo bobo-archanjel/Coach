@@ -22,7 +22,9 @@ import styles from "@/app/dashboard/dashboard.module.css";
 // DEV náhľad buildera bez session (?preview=builder) — viac dní s rôzne dlhými
 // názvami (test lámania piluliek) + deň so 6 cvikmi (test šípok poradia na kraji).
 function previewEntry(i: number, name: string): WorkoutExerciseEntry {
-  return { entry_id: `p${i}`, exercise_id: `x${i}`, exercise_name: name, sets: 3, reps: "8-10", load_kg: i % 2 ? 40 : null, tempo: null, rest_seconds: 90 };
+  // Rozpažky + Francúzsky tlak (deň 1, cviky 3 a 4) = superséria A
+  const superset = i === 2 || i === 3 ? "sspreview" : null;
+  return { entry_id: `p${i}`, exercise_id: `x${i}`, exercise_name: name, sets: 3, reps: "8-10", load_kg: i % 2 ? 40 : null, tempo: null, rest_seconds: 90, superset };
 }
 const PREVIEW_DAYS = [
   { id: "d1", day_number: 1, name: "Deň 1 — Tlak (hrudník, ramená, triceps)", exercises: ["Bench press", "Tlaky nad hlavu", "Rozpažky s jednoručkami", "Francúzsky tlak", "Tlak na hrudník na stroji", "Kliky"].map((n, i) => previewEntry(i, n)) },

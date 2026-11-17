@@ -60,6 +60,7 @@ import type {
 } from "./types";
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
+import { cleanSupersetId } from "@/lib/workouts/superset";
 import { editableUntil, isStillEditable, parseLoggedEntries } from "@/lib/workouts/completed";
 
 const TZ = "Europe/Bratislava";
@@ -105,6 +106,7 @@ type ExerciseEntry = {
   load_kg?: number | null;
   tempo?: string | null;
   rest_seconds?: number | null;
+  superset?: string | null;
 };
 
 /** Aktuálny deň v zóne Europe/Bratislava, nezávislý od zóny servera. */
@@ -187,6 +189,7 @@ function toPortalExercise(entry: ExerciseEntry, position: number, L: PortalLabel
     exerciseId: entry.exercise_id ?? null,
     loadKg: entry.load_kg ?? null,
     restSeconds: entry.rest_seconds ?? null,
+    superset: cleanSupersetId(entry.superset),
   };
 }
 
