@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-17** — **Testy: schránka správ a jazyk** (`feature/sablona-od-trenera`, len testy).
+  - `e2e/spravy-inbox.spec.ts` sa už neprihlasuje cudzím účtom a neposiela správy jeho klientom — QA tréner z env (`E2E_TRAINER_*`), slovenčina cez cookie `fp-locale`, poslaná testovacia správa sa po teste zmaže.
+  - `e2e/jazyk.spec.ts`: menu portálu po česky overuje „Jídelníček“ (položka „Deník“ sa premenovala na „Strava“).
 - **2026-11-17** — **Jednotný vzhľad akcií, šablóny z plánov od trénera, rýchle pridávanie cvikov a supersérie** (`feature/sablona-od-trenera`, bez migrácie).
   - Jedálniček klienta: aktívny jedálniček ako karta-výber; „Uložiť ako šablónu“ aj pri tréningu a jedálničku od trénera.
   - Akcie (Upraviť, Uložiť ako šablónu, PDF, Zmazať, Použiť…) ako mriežka dlaždíc s ikonami (`app/components/planActions.module.css`, `ActionIcons.tsx`) — pod plánmi a jedálničkami u klienta aj trénera, v šablónach, v detaile klienta, v kalendári, v Nastaveniach / Profile (Odhlásiť sa, Spustiť návod znova, Požiadať o zmazanie účtu). Mazanie potvrdzuje červený pruh Zrušiť / Áno.
