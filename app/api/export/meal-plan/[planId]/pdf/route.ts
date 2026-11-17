@@ -24,7 +24,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
 
   const { data: plan } = await supabase
     .from("meal_plans")
-    .select("id, name, client_id, clients(full_name)")
+    .select("id, name, client_id, clients!meal_plans_client_id_fkey(full_name)")
     .eq("id", planId)
     .maybeSingle();
   if (!plan) return NextResponse.json({ error: await tErr("api.mealPlanNotFound") }, { status: 404 });
