@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
+import { getActiveMealPlanIds } from "@/lib/dashboard/activeMealPlan";
+import { resolveTrainerActiveMealPlanId } from "@/lib/portal/activePlan";
 import styles from "@/app/dashboard/dashboard.module.css";
 
 /**
@@ -34,10 +36,17 @@ export default async function JedalnickyPage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  // Portál ukazuje klientovi jeho najnovší ZVEREJNENÝ jedálniček (zoradené od najnovšieho).
-  const activeByClient = new Map<string, string>();
+  // Aktívny = ten, ktorý klient vidí: zvolený (0067), inak najnovší ZVEREJNENÝ. Keď si klient
+  // zvolil vlastný jedálniček (trénerovi skrytý), žiadny trénerov nie je aktívny.
+  const choice = await getActiveMealPlanIds(supabase, (clients ?? []).map((c) => c.id));
+  const publishedByClient = new Map<string, { id: string }[]>();
   for (const p of plans ?? []) {
-    if (p.published && !activeByClient.has(p.client_id)) activeByClient.set(p.client_id, p.id);
+    if (p.published) publishedByClient.set(p.client_id, [...(publishedByClient.get(p.client_id) ?? []), p]);
+  }
+  const activeByClient = new Map<string, string>();
+  for (const [clientId, list] of publishedByClient) {
+    const active = resolveTrainerActiveMealPlanId(choice.get(clientId), list);
+    if (active) activeByClient.set(clientId, active);
   }
 
   return (

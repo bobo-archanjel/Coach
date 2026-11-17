@@ -110,6 +110,21 @@ export const GUIDES: GuideDef[] = [
       step("save", "cbuilder-save"),
     ],
   },
+  {
+    // builder vlastného jedálnička (?tvorba=1) beží na adrese sekcie Jedálniček; jedlá
+    // dňa sú na stránke až s prvým dňom — dovtedy sa sprievodca nespustí
+    id: "c-meal-builder",
+    role: "client",
+    match: is("/portal/strava"),
+    root: at("mbuilder-days"),
+    steps: [
+      step("name", "mbuilder-name"),
+      step("days", "mbuilder-days"),
+      step("slots", "mbuilder-slots"),
+      maybe("total", "mbuilder-total"),
+      step("save", "mbuilder-save"),
+    ],
+  },
 ];
 
 export const GUIDE_IDS: ReadonlySet<string> = new Set(GUIDES.map((g) => g.id));

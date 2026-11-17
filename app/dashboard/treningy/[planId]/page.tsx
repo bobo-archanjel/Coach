@@ -197,7 +197,7 @@ export default async function PlanDetailPage({
       )}
 
       {completedLogs && completedLogs.length > 0 && (
-        <section className={`${styles.card} ${styles.cardFlatMobile}`} style={{ marginTop: 20 }}>
+        <section className={`${styles.card} ${styles.cardBare}`} style={{ marginTop: 20 }}>
           <h3>{t("completedLogs")}</h3>
           <div className={styles.roster}>
             {completedLogs.map((log) => (

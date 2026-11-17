@@ -3025,6 +3025,17 @@
   justify-content: space-between;
   gap: 12px;
 }
+/* Strava: nadpis „Jedálniček“ v riadku s „+ Vlastný jedálniček“ (NutritionSection) */
+.trHead .sectionTitle {
+  margin: 0;
+}
+/* builder vlastného jedálnička: makro cieľ pod súčtom dňa (ClientMealBuilder) */
+.mbGoalLine {
+  flex-basis: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
 .trHead .panelLabel {
   margin-bottom: 0;
   font-size: 19px;
