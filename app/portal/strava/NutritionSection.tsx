@@ -2,10 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import type { PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
+import { createPortal } from "react-dom";
+import type { PlanSource, PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
 import { usePortionLabel } from "@/app/components/food/usePortionLabel";
 import { FoodIcon } from "@/app/portal/icons";
 import {
@@ -82,14 +82,14 @@ export function NutritionSection({
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState(false);
   const [fromTemplate, setFromTemplate] = useState<PortalMealTemplate | null>(null);
-  const [switchOpen, setSwitchOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [plansOpen, setPlansOpen] = useState(false);
+  const plansBtnRef = useRef<HTMLButtonElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const changeRef = useRef<HTMLButtonElement>(null);
 
   // Generické potraviny (~2000) až pri otvorení buildera, raz za návštevu.
   const [staples, setStaples] = useState<PortalFoodOption[]>(initialStaples);
@@ -287,16 +287,25 @@ export function NutritionSection({
           </div>
         )}
 
-        {/* aktívny jedálniček: zdroj, názov a pri viacerých „Zmeniť“ */}
+        {/* aktívny jedálniček: zdroj a názov (nadpis dní nižšie); pri viacerých tlačidlo
+            „Jedálničky (počet)“ otvorí okno s výberom — Vlastné / Od trénera */}
         {mealPlanId && (
-          <div className={styles.psRow} data-tour="nutrition-switch">
+          <div className={styles.psRow} data-tour="nutrition-active">
             <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
               {activeSource === "client" ? t("own") : t("fromTrainer")}
             </span>
-            <h3 className={styles.psName}>{mealPlanName}</h3>
+            <h3 className={`${styles.psName} ${styles.mpName}`}>{mealPlanName}</h3>
             {plans.length > 1 && (
-              <button ref={changeRef} type="button" className={styles.psChange} onClick={() => setSwitchOpen(true)} aria-haspopup="dialog">
-                {t("change")}
+              <button
+                ref={plansBtnRef}
+                type="button"
+                className={`${styles.psChange} ${styles.mpOpen}`}
+                onClick={() => setPlansOpen(true)}
+                aria-haspopup="dialog"
+                data-tour="nutrition-switch"
+              >
+                {t("plansButton")}{" "}
+                <span className={styles.trTplCount}>{plans.length}</span>
               </button>
             )}
           </div>
@@ -390,13 +399,14 @@ export function NutritionSection({
         )}
       </section>
 
-      {switchOpen && mealPlanId && (
-        <MealPlanSheet
+      {plansOpen && mealPlanId && (
+        <MealPlansSheet
           plans={plans}
           activeId={mealPlanId}
+          activeSource={activeSource ?? "trainer"}
           onClose={() => {
-            setSwitchOpen(false);
-            changeRef.current?.focus();
+            setPlansOpen(false);
+            plansBtnRef.current?.focus();
           }}
         />
       )}
@@ -404,9 +414,25 @@ export function NutritionSection({
   );
 }
 
-/** Spodný panel „Aktívny jedálniček“ — vzhľad ako PlanSwitchSheet (tréning, karta Dnes). */
-function MealPlanSheet({ plans, activeId, onClose }: { plans: PortalMealPlanOption[]; activeId: string; onClose: () => void }) {
+/**
+ * Okno „Jedálničky“ — všetky zverejnené jedálničky klienta, prepínačom Vlastné / Od trénera
+ * (ako „Opakovania / Čas“ v tréningu, štýl .modeToggle). Otvorí sa na skupine aktívneho;
+ * ťuk na jedálniček ho nastaví ako aktívny (RPC 0067) a okno sa zavrie. Vzhľad okna ako
+ * výber plánu na karte Dnes (PlanSwitchSheet, ps*).
+ */
+function MealPlansSheet({
+  plans,
+  activeId,
+  activeSource,
+  onClose,
+}: {
+  plans: PortalMealPlanOption[];
+  activeId: string;
+  activeSource: PlanSource;
+  onClose: () => void;
+}) {
   const t = useTranslations("portal.nutrition");
+  const [tab, setTab] = useState<PlanSource>(activeSource);
   const [pending, startTransition] = useTransition();
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -415,6 +441,7 @@ function MealPlanSheet({ plans, activeId, onClose }: { plans: PortalMealPlanOpti
   useEffect(() => {
     onCloseRef.current = onClose;
   });
+  // Escape zavrie, stránka pod oknom sa neposúva, fokus na aktívny jedálniček.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCloseRef.current();
@@ -428,6 +455,9 @@ function MealPlanSheet({ plans, activeId, onClose }: { plans: PortalMealPlanOpti
       document.body.style.overflow = previousOverflow;
     };
   }, []);
+
+  const counts = { client: plans.filter((p) => p.source === "client").length, trainer: plans.filter((p) => p.source === "trainer").length };
+  const shown = plans.filter((p) => p.source === tab);
 
   const pick = (planId: string) => {
     if (planId === activeId) {
@@ -450,46 +480,72 @@ function MealPlanSheet({ plans, activeId, onClose }: { plans: PortalMealPlanOpti
   const sheet = (
     <div className={styles.psLayer}>
       <button type="button" className={styles.psScrim} aria-label={t("close")} tabIndex={-1} onClick={onClose} />
-      <div className={styles.psSheet} role="dialog" aria-modal="true" aria-labelledby="meal-switch-title">
+      <div className={styles.psSheet} role="dialog" aria-modal="true" aria-labelledby="meal-plans-title">
         <div className={styles.psHead}>
-          <h2 id="meal-switch-title" className={styles.psTitle}>
-            {t("switchTitle")}
+          <h2 id="meal-plans-title" className={styles.psTitle}>
+            {t("sheetTitle")}
           </h2>
           <button type="button" className={styles.psClose} onClick={onClose} aria-label={t("close")}>
             <CloseIcon />
           </button>
         </div>
-        <p className={styles.psHint}>{t("switchHint")}</p>
-        <ul className={styles.psList}>
-          {plans.map((plan) => {
-            const active = plan.id === activeId;
-            return (
-              <li key={plan.id}>
-                <button
-                  ref={active ? activeRef : undefined}
-                  type="button"
-                  className={`${styles.psItem} ${active ? styles.psItemOn : ""}`}
-                  onClick={() => pick(plan.id)}
-                  disabled={pending}
-                  aria-current={active ? "true" : undefined}
-                >
-                  <span className={styles.psItemText}>
-                    <span className={styles.psItemName}>{plan.name}</span>
-                    <span className={styles.psItemMeta}>
-                      <span className={styles.trSrcChip} data-src={plan.source}>
-                        {plan.source === "trainer" ? t("fromTrainer") : t("own")}
+        <p className={styles.psHint}>{t("sheetHint")}</p>
+
+        <div className={`${styles.modeToggle} ${styles.mpTabs}`} role="radiogroup" aria-label={t("tabsAria")}>
+          {(["client", "trainer"] as const).map((src) => (
+            <button
+              key={src}
+              type="button"
+              role="radio"
+              aria-checked={tab === src}
+              className={tab === src ? styles.modeOn : undefined}
+              onClick={() => setTab(src)}
+            >
+              {src === "client" ? t("tabOwn") : t("tabTrainer")}{" "}
+              <span className={styles.mpTabCount}>{counts[src]}</span>
+            </button>
+          ))}
+        </div>
+
+        {shown.length === 0 ? (
+          <p className={styles.mpEmpty}>{tab === "client" ? t("emptyOwn") : t("emptyTrainer")}</p>
+        ) : (
+          <ul className={styles.psList}>
+            {shown.map((plan) => {
+              const active = plan.id === activeId;
+              return (
+                <li key={plan.id}>
+                  <button
+                    ref={active ? activeRef : undefined}
+                    type="button"
+                    className={`${styles.psItem} ${active ? styles.psItemOn : ""}`}
+                    onClick={() => pick(plan.id)}
+                    disabled={pending}
+                    aria-current={active ? "true" : undefined}
+                  >
+                    <span className={styles.psItemText}>
+                      <span className={styles.psItemName}>{plan.name}</span>
+                      <span className={styles.psItemMeta}>
+                        <span className={styles.chip}>{t("days", { count: plan.dayCount })}</span>
                       </span>
-                      <span className={styles.chip}>{t("days", { count: plan.dayCount })}</span>
                     </span>
-                  </span>
-                  <span className={styles.psItemEnd} aria-hidden={!active && pickedId !== plan.id}>
-                    {active ? <CheckIcon /> : pending && pickedId === plan.id ? t("switching") : null}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                    <span className={active ? styles.mpActive : styles.mpSwitch}>
+                      {active ? (
+                        <>
+                          <CheckIcon /> {t("activeBadge")}
+                        </>
+                      ) : pending && pickedId === plan.id ? (
+                        t("switching")
+                      ) : (
+                        t("switchTo")
+                      )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
         {error && (
           <p className={styles.psError} role="alert">
             {error}
