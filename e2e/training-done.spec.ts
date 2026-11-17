@@ -387,8 +387,9 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await expect(nameField).toHaveCount(0);
 
-    // 3 prázdne série, štítok „Pridaný“
+    // 3 prázdne série, štítok „Pridaný“; kurzor rovno v prvej sérii (pridať a vyplniť v jednom kroku)
     await expect(page.locator("[data-added]")).toContainText(`${added} Pridaný`);
+    await expect(reps(page, added, 1)).toBeFocused();
     for (const set of [1, 2, 3]) await expect(reps(page, added, set)).toHaveValue("");
     await expect(reps(page, added, 4)).toHaveCount(0);
     await reps(page, added, 1).fill("10");

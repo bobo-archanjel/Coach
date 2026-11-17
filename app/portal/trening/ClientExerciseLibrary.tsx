@@ -2,7 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { muscleGroupLabel } from "@/lib/i18n/muscles";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { onFocusAddExercise } from "@/app/components/pendingEntryEdit";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { displayExerciseName } from "@/lib/exercises";
 import {
@@ -67,6 +68,11 @@ export function ClientExerciseLibrary({
   // Hláška pri mieste kliku: bez dňa, prázdny názov, plný deň. Zmizne pri ďalšej akcii.
   const [hint, setHint] = useState<{ at: "custom" | "list"; text: string } | null>(null);
 
+  // po „Hotovo“ pri práve pridanom cviku: fokus späť na pridávanie (otvorená knižnica → hľadanie)
+  const searchRef = useRef<HTMLInputElement>(null);
+  const customRef = useRef<HTMLInputElement>(null);
+  useEffect(() => onFocusAddExercise(() => (open ? searchRef.current : customRef.current)?.focus()), [open]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return library.filter((ex) => {
@@ -111,6 +117,7 @@ export function ClientExerciseLibrary({
           }}
         >
           <input
+            ref={customRef}
             type="text"
             value={customName}
             onChange={(e) => {
@@ -139,6 +146,7 @@ export function ClientExerciseLibrary({
         <div className={`${b.libraryBody} ${!open ? b.collapsed : ""}`}>
 
           <input
+            ref={searchRef}
             type="text"
             placeholder={t("search")}
             value={query}

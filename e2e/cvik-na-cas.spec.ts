@@ -53,7 +53,7 @@ test.describe("cvik na čas v builderi", () => {
     await page.getByLabel("Názov vlastného cviku").fill("Bicepsový zdvih");
     await page.getByRole("button", { name: "+ Pridať do tréningu" }).click();
 
-    await page.getByRole("button", { name: "Upraviť cvik" }).first().click();
+    // pridaný cvik sa rovno otvorí na úpravu
     await page.getByLabel("Poznámka", { exact: true }).fill("pomaly dole");
     await page.getByRole("button", { name: "Hotovo", exact: true }).click();
     await expect(page.getByText("„pomaly dole“")).toBeVisible();
@@ -72,7 +72,6 @@ test.describe("cvik na čas v builderi", () => {
     await page.getByLabel("Názov vlastného cviku").fill("Hollow hold");
     await page.getByRole("button", { name: "+ Pridať do tréningu" }).click();
 
-    await page.getByRole("button", { name: "Upraviť cvik" }).first().click();
     await page.getByRole("radio", { name: "Čas" }).click();
     await page.getByLabel("Čas série v sekundách").fill("60");
     await page.getByRole("button", { name: "Hotovo", exact: true }).click();

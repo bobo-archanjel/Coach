@@ -3,7 +3,8 @@
 import { useLocale } from "next-intl";
 import { muscleGroupLabel } from "@/lib/i18n/muscles";
 import { useTranslations } from "next-intl";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { requestEntryEdit } from "@/app/components/pendingEntryEdit";
 import dynamic from "next/dynamic";
 import { addExerciseToDayAction, getExerciseDetailAction, type ActionState } from "../actions";
 import { displayExerciseName, type ExerciseDetail, type ExerciseLibraryRow } from "@/lib/exercises";
@@ -37,7 +38,11 @@ export function LibraryItem({
 }) {
   const locale = useLocale();
   const t = useTranslations("plans.builder");
-  const [, formAction, pending] = useActionState(addExerciseToDayAction, initialState);
+  const [addState, formAction, pending] = useActionState(addExerciseToDayAction, initialState);
+  // pridaný cvik sa hneď otvorí na úpravu (pridať a vyplniť v jednom kroku)
+  useEffect(() => {
+    if (addState.entryId) requestEntryEdit(addState.entryId);
+  }, [addState]);
   const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
   const [showDetail, setShowDetail] = useState(false);
   const [, startTransition] = useTransition();

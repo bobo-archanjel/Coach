@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
 import {
@@ -232,6 +232,17 @@ export function WorkoutSetsFields({
     setNewTimed(false);
   };
 
+  // pridať a vyplniť v jednom kroku: po pridaní kurzor rovno do prvej série nového cviku
+  const [focusExIdx, setFocusExIdx] = useState<number | null>(null);
+  useEffect(() => {
+    if (focusExIdx === null) return;
+    const block = document.querySelector<HTMLElement>(`[data-ex-idx="${focusExIdx}"]`);
+    if (!block) return;
+    setFocusExIdx(null);
+    block.scrollIntoView({ block: "center", behavior: "smooth" });
+    block.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  }, [focusExIdx, exercises.length]);
+
   const addExercise = () => {
     const name = newName.trim().slice(0, ADDED_NAME_MAX);
     if (!name) return;
@@ -242,6 +253,7 @@ export function WorkoutSetsFields({
       rows: { ...rows, [at]: Array.from({ length: ADDED_SETS }, () => ({ reps: "", weight: "" })) },
     });
     closeAdd();
+    setFocusExIdx(at);
   };
   const removeExercise = (exIdx: number) => {
     const addedIdx = exIdx - planExercises.length;
@@ -276,6 +288,7 @@ export function WorkoutSetsFields({
             className={styles.logExercise}
             data-tour={exIdx < planExercises.length ? "workout-exercise" : undefined}
             data-added={exIdx >= planExercises.length ? "" : undefined}
+            data-ex-idx={exIdx}
           >
             {exIdx < planExercises.length ? (
               <>

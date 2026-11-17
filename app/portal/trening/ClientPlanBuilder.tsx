@@ -15,6 +15,8 @@ import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 import { DayNameDialog } from "@/app/components/DayNameDialog";
+import { focusAddExercise } from "@/app/components/pendingEntryEdit";
+import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
 
 const ExerciseDetailModal = dynamic(() =>
   import("@/app/components/ExerciseDetailModal").then((m) => m.ExerciseDetailModal),
@@ -69,9 +71,11 @@ const ChevronIcon = () => (
   </svg>
 );
 
-// Rovnaké defaulty ako trénerov "Pridať do tréningu" (3×10, pauza 90 s).
-function newExercise(name: string, exerciseId: string | null): BEx {
-  return { key: uid(), exerciseId, name, sets: "3", reps: "10", loadKg: "", restSeconds: "90", note: "" };
+// Rovnako ako trénerov builder: hodnoty z posledného cviku dňa, inak 3×10 a pauza 90 s
+// (lib/workouts/nextEntryDefaults — pridať a vyplniť v jednom kroku).
+function newExercise(name: string, exerciseId: string | null, last?: BEx): BEx {
+  const d = nextEntryDefaults(last ? { sets: last.sets, reps: last.reps, restSeconds: last.restSeconds } : null);
+  return { key: uid(), exerciseId, name, sets: String(d.sets), reps: d.reps, loadKg: "", restSeconds: String(d.restSeconds), note: "" };
 }
 
 /** Dni pre rozpracovaný tréning — z upravovaného plánu (dni s id → úprava) alebo
@@ -121,6 +125,8 @@ export function ClientPlanBuilder({
   // okno „Premenovať“ aktívny deň (lokálne, do DB až „Uložiť“)
   const [renaming, setRenaming] = useState(false);
   const [editKey, setEditKey] = useState<string | null>(null);
+  // práve pridaný cvik — formulár dostane fokus a po „Hotovo“ sa fokus vráti na pridávanie
+  const [justAddedKey, setJustAddedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [detailFor, setDetailFor] = useState<{ id: string; name: string } | null>(null);
@@ -208,7 +214,11 @@ export function ClientPlanBuilder({
   const addExercise = (exName: string, exerciseId: string | null): string | null => {
     if (!activeDay) return t("addDayFirst");
     if (activeDay.exercises.length >= MAX_EXERCISES) return t("maxExercises", { max: MAX_EXERCISES });
-    patchDay(activeDay.key, (d) => ({ ...d, exercises: [...d.exercises, newExercise(exName, exerciseId)] }));
+    const ex = newExercise(exName, exerciseId, activeDay.exercises[activeDay.exercises.length - 1]);
+    patchDay(activeDay.key, (d) => ({ ...d, exercises: [...d.exercises, ex] }));
+    // pridať a vyplniť v jednom kroku — nový cvik rovno na úpravu
+    setEditKey(ex.key);
+    setJustAddedKey(ex.key);
     return null;
   };
   const removeExercise = (dayKey: string, exKey: string) =>
@@ -410,11 +420,19 @@ export function ClientPlanBuilder({
                       <ExerciseEditForm
                         key={ex.key}
                         ex={ex}
+                        autoFocus={justAddedKey === ex.key}
                         onApply={(patch) => {
                           patchExercise(activeDay.key, ex.key, patch);
                           setEditKey(null);
+                          if (justAddedKey === ex.key) {
+                            setJustAddedKey(null);
+                            focusAddExercise();
+                          }
                         }}
-                        onCancel={() => setEditKey(null)}
+                        onCancel={() => {
+                          setEditKey(null);
+                          setJustAddedKey(null);
+                        }}
                       />
                     ) : (
                       <div key={ex.key} className={b.exerciseRow}>
@@ -506,16 +524,29 @@ export function ClientPlanBuilder({
 /** Úprava cviku — rovnaký formulár ako u trénera (ExerciseRow), mení len rozpracovaný tréning. */
 function ExerciseEditForm({
   ex,
+  autoFocus = false,
   onApply,
   onCancel,
 }: {
   ex: BEx;
+  /** práve pridaný cvik: formulár do záberu, fokus na Série */
+  autoFocus?: boolean;
   onApply: (patch: Pick<BEx, "sets" | "reps" | "loadKg" | "restSeconds" | "note">) => void;
   onCancel: () => void;
 }) {
   const t = useTranslations("clientBuilder");
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!autoFocus) return;
+    const form = formRef.current;
+    form?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const sets = form?.querySelector<HTMLInputElement>('input[name="sets"]');
+    sets?.focus({ preventScroll: true });
+    sets?.select();
+  }, [autoFocus]);
   return (
     <form
+      ref={formRef}
       className={b.editForm}
       onSubmit={(e) => {
         e.preventDefault();

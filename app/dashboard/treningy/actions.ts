@@ -22,6 +22,7 @@ import { tErr } from "@/lib/i18n/serverErrors";
 import { getTranslations } from "next-intl/server";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
+import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
 
 export interface ActionState {
   error: string | null;
@@ -29,6 +30,8 @@ export interface ActionState {
    *  vytvorí, ale nepresmerujeme rovno doň — najprv ukážeme trénerovi varovania. */
   planId?: string | null;
   warnings?: string[];
+  /** pridanie cviku do dňa: ID nového cviku — builder ho hneď otvorí na úpravu */
+  entryId?: string | null;
 }
 
 const ok: ActionState = { error: null };
@@ -301,7 +304,7 @@ export async function duplicateDayAction(planId: string, dayId: string): Promise
   return { error: null, dayId: data.id };
 }
 
-/** Klik na cvik v knižnici → pridá ho do aktívneho dňa s rozumnými defaultmi (rovno editovateľné). */
+/** Klik na cvik v knižnici → pridá ho do aktívneho dňa s hodnotami posledného cviku a vráti jeho ID (builder ho hneď otvorí na úpravu). */
 export async function addExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
 
@@ -322,20 +325,23 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   if (!exercise) return { error: await tErr("plans.exerciseNotFound") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
 
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  // hodnoty z posledného cviku dňa (pridať a vyplniť v jednom kroku — lib/workouts/nextEntryDefaults)
+  const last = current[current.length - 1];
+  const defaults = nextEntryDefaults(last ? { sets: last.sets, reps: last.reps, restSeconds: last.rest_seconds } : null);
   const newEntry: WorkoutExerciseEntry = {
     entry_id: randomUUID(),
     exercise_id: exerciseId,
     // Rovnaký názov, aký tréner vidí v knižnici (AI generátor aj ClientPlanBuilder
     // ukladajú tiež name_sk) — inak plán, portál aj analytika ukazovali anglicky.
     exercise_name: displayExerciseName(exercise.name, exercise.name_sk),
-    sets: 3,
-    reps: "10",
+    sets: defaults.sets,
+    reps: defaults.reps,
     load_kg: null,
     tempo: null,
-    rest_seconds: 90,
+    rest_seconds: defaults.restSeconds,
   };
 
-  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
   const { error } = await supabase
     .from("workout_days")
     .update({ exercises: [...current, newEntry] })
@@ -344,7 +350,7 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
-  return ok;
+  return { error: null, entryId: newEntry.entry_id };
 }
 
 /**
@@ -369,18 +375,20 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   if (locked) return { error: await tErr("planLocked") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
 
+  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
+  const last = current[current.length - 1];
+  const defaults = nextEntryDefaults(last ? { sets: last.sets, reps: last.reps, restSeconds: last.rest_seconds } : null);
   const newEntry: WorkoutExerciseEntry = {
     entry_id: randomUUID(),
     exercise_id: null,
     exercise_name: name,
-    sets: 3,
-    reps: "10",
+    sets: defaults.sets,
+    reps: defaults.reps,
     load_kg: null,
     tempo: null,
-    rest_seconds: 90,
+    rest_seconds: defaults.restSeconds,
   };
 
-  const current = (Array.isArray(day.exercises) ? day.exercises : []) as WorkoutExerciseEntry[];
   const { error } = await supabase
     .from("workout_days")
     .update({ exercises: [...current, newEntry] })
@@ -389,7 +397,7 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
-  return ok;
+  return { error: null, entryId: newEntry.entry_id };
 }
 
 export async function updateExerciseEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
