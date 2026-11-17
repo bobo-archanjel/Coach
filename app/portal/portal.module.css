@@ -3029,6 +3029,42 @@
 .trHead .sectionTitle {
   margin: 0;
 }
+/* Jedálniček: „Tvoje jedálničky“ — všetky jedálničky priamo v sekcii (MealPlanPicker) */
+.mpPicker {
+  display: grid;
+  gap: 10px;
+}
+.mpPickerHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.mpPickerHead .panelLabel {
+  margin-bottom: 0;
+}
+.mpActive,
+.mpSwitch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.mpActive {
+  color: var(--accent-text);
+}
+.mpActive svg {
+  width: 16px;
+  height: 16px;
+}
+.mpSwitch {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--paper);
+}
 /* builder vlastného jedálnička: makro cieľ pod súčtom dňa (ClientMealBuilder) */
 .mbGoalLine {
   flex-basis: 100%;

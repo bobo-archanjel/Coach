@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import type { PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
@@ -56,11 +55,6 @@ const ChevronIcon = ({ className }: { className?: string }) => (
     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-const CloseIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
-    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
     <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -82,14 +76,12 @@ export function NutritionSection({
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState(false);
   const [fromTemplate, setFromTemplate] = useState<PortalMealTemplate | null>(null);
-  const [switchOpen, setSwitchOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const changeRef = useRef<HTMLButtonElement>(null);
 
   // Generické potraviny (~2000) až pri otvorení buildera, raz za návštevu.
   const [staples, setStaples] = useState<PortalFoodOption[]>(initialStaples);
@@ -287,18 +279,17 @@ export function NutritionSection({
           </div>
         )}
 
-        {/* aktívny jedálniček: zdroj, názov a pri viacerých „Zmeniť“ */}
+        {/* viac jedálničkov: všetky na očiach, ťuk na iný ho spraví aktívnym (predtým len
+            v okne za „Zmeniť“, klient o ďalších jedálničkoch nevedel) */}
+        {mealPlanId && plans.length > 1 && <MealPlanPicker plans={plans} activeId={mealPlanId} />}
+
+        {/* aktívny jedálniček: zdroj a názov — nadpis dní nižšie */}
         {mealPlanId && (
-          <div className={styles.psRow} data-tour="nutrition-switch">
+          <div className={styles.psRow} data-tour="nutrition-active">
             <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
               {activeSource === "client" ? t("own") : t("fromTrainer")}
             </span>
             <h3 className={styles.psName}>{mealPlanName}</h3>
-            {plans.length > 1 && (
-              <button ref={changeRef} type="button" className={styles.psChange} onClick={() => setSwitchOpen(true)} aria-haspopup="dialog">
-                {t("change")}
-              </button>
-            )}
           </div>
         )}
 
@@ -389,115 +380,81 @@ export function NutritionSection({
           </div>
         )}
       </section>
-
-      {switchOpen && mealPlanId && (
-        <MealPlanSheet
-          plans={plans}
-          activeId={mealPlanId}
-          onClose={() => {
-            setSwitchOpen(false);
-            changeRef.current?.focus();
-          }}
-        />
-      )}
     </>
   );
 }
 
-/** Spodný panel „Aktívny jedálniček“ — vzhľad ako PlanSwitchSheet (tréning, karta Dnes). */
-function MealPlanSheet({ plans, activeId, onClose }: { plans: PortalMealPlanOption[]; activeId: string; onClose: () => void }) {
+/**
+ * „Tvoje jedálničky“ — zoznam všetkých zverejnených jedálničkov (od trénera aj vlastných)
+ * priamo v sekcii, aktívny zvýraznený; ťuk na iný ho nastaví ako aktívny (RPC 0067) a jeho
+ * dni sa ukážu nižšie. Štýl riadkov zhodný s výberom plánu na karte Dnes (ps*).
+ */
+function MealPlanPicker({ plans, activeId }: { plans: PortalMealPlanOption[]; activeId: string }) {
   const t = useTranslations("portal.nutrition");
   const [pending, startTransition] = useTransition();
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const activeRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
-    };
-    document.addEventListener("keydown", onKey);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    activeRef.current?.focus();
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
 
   const pick = (planId: string) => {
-    if (planId === activeId) {
-      onClose();
-      return;
-    }
+    if (planId === activeId || pending) return;
     setError(null);
     setPickedId(planId);
     startTransition(async () => {
       const res = await chooseActiveMealPlanAction(planId);
-      if (res.error) {
-        setError(res.error);
-        setPickedId(null);
-        return;
-      }
-      onClose();
+      if (res.error) setError(res.error);
+      setPickedId(null);
     });
   };
 
-  const sheet = (
-    <div className={styles.psLayer}>
-      <button type="button" className={styles.psScrim} aria-label={t("close")} tabIndex={-1} onClick={onClose} />
-      <div className={styles.psSheet} role="dialog" aria-modal="true" aria-labelledby="meal-switch-title">
-        <div className={styles.psHead}>
-          <h2 id="meal-switch-title" className={styles.psTitle}>
-            {t("switchTitle")}
-          </h2>
-          <button type="button" className={styles.psClose} onClick={onClose} aria-label={t("close")}>
-            <CloseIcon />
-          </button>
-        </div>
-        <p className={styles.psHint}>{t("switchHint")}</p>
-        <ul className={styles.psList}>
-          {plans.map((plan) => {
-            const active = plan.id === activeId;
-            return (
-              <li key={plan.id}>
-                <button
-                  ref={active ? activeRef : undefined}
-                  type="button"
-                  className={`${styles.psItem} ${active ? styles.psItemOn : ""}`}
-                  onClick={() => pick(plan.id)}
-                  disabled={pending}
-                  aria-current={active ? "true" : undefined}
-                >
-                  <span className={styles.psItemText}>
-                    <span className={styles.psItemName}>{plan.name}</span>
-                    <span className={styles.psItemMeta}>
-                      <span className={styles.trSrcChip} data-src={plan.source}>
-                        {plan.source === "trainer" ? t("fromTrainer") : t("own")}
-                      </span>
-                      <span className={styles.chip}>{t("days", { count: plan.dayCount })}</span>
+  return (
+    <div className={styles.mpPicker} data-tour="nutrition-switch">
+      <p className={styles.mpPickerHead}>
+        <span className={styles.panelLabel}>{t("myPlans")}</span>
+        <span className={styles.trTplCount}>{plans.length}</span>
+      </p>
+      <ul className={styles.psList} aria-label={t("myPlans")}>
+        {plans.map((plan) => {
+          const active = plan.id === activeId;
+          const switching = pending && pickedId === plan.id;
+          return (
+            <li key={plan.id}>
+              <button
+                type="button"
+                className={`${styles.psItem} ${active ? styles.psItemOn : ""}`}
+                onClick={() => pick(plan.id)}
+                disabled={pending && !active}
+                aria-current={active ? "true" : undefined}
+              >
+                <span className={styles.psItemText}>
+                  <span className={styles.psItemName}>{plan.name}</span>
+                  <span className={styles.psItemMeta}>
+                    <span className={styles.trSrcChip} data-src={plan.source}>
+                      {plan.source === "trainer" ? t("fromTrainer") : t("own")}
                     </span>
+                    <span className={styles.chip}>{t("days", { count: plan.dayCount })}</span>
                   </span>
-                  <span className={styles.psItemEnd} aria-hidden={!active && pickedId !== plan.id}>
-                    {active ? <CheckIcon /> : pending && pickedId === plan.id ? t("switching") : null}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        {error && (
-          <p className={styles.psError} role="alert">
-            {error}
-          </p>
-        )}
-      </div>
+                </span>
+                <span className={active ? styles.mpActive : styles.mpSwitch}>
+                  {active ? (
+                    <>
+                      <CheckIcon /> {t("activeBadge")}
+                    </>
+                  ) : switching ? (
+                    t("switching")
+                  ) : (
+                    t("switchTo")
+                  )}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {error && (
+        <p className={styles.psError} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
-
-  return createPortal(sheet, document.querySelector("[data-v6-root]") ?? document.body);
 }

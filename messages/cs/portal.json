@@ -21,10 +21,6 @@
     "planLabel": "Jídelníček",
     "fromTrainer": "Od trenéra",
     "own": "Vlastní",
-    "change": "Změnit",
-    "switchTitle": "Aktivní jídelníček",
-    "switchHint": "Vybraný jídelníček se ukáže tady. Můžeš ho kdykoli změnit.",
-    "close": "Zavřít",
     "switching": "Přepínám…",
     "days": "{count, plural, =0 {Zatím bez dnů} one {# den} few {# dny} other {# dnů}}",
     "edit": "Upravit",
@@ -51,7 +47,10 @@
       "newAria": "Nový vlastní jídelníček",
       "kcalOfGoal": "{kcal} / {goal} kcal",
       "goalLine": "Cíl: B {protein} g · S {carbs} g · T {fat} g"
-    }
+    },
+    "myPlans": "Tvé jídelníčky",
+    "activeBadge": "Aktivní",
+    "switchTo": "Přepnout"
   },
   "chat": {
     "loadFailed": "Chat se nepodařilo načíst",
