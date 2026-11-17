@@ -29,6 +29,7 @@
     "delete": "Zmazať termín",
     "cancel": "Zrušiť",
     "edit": "Upraviť",
-    "remove": "Zmazať"
+    "remove": "Zmazať",
+    "confirm": "Zmazať termín „{title}“?"
   }
 }
