@@ -50,7 +50,6 @@
     },
     "activeBadge": "Aktivní",
     "switchTo": "Přepnout",
-    "plansButton": "Jídelníčky",
     "sheetTitle": "Jídelníčky",
     "sheetHint": "Vyber jídelníček, který se má ukazovat. Přepínačem zobrazíš vlastní nebo od trenéra.",
     "close": "Zavřít",
@@ -58,7 +57,9 @@
     "tabOwn": "Vlastní",
     "tabTrainer": "Od trenéra",
     "emptyOwn": "Zatím nemáš vlastní jídelníček — sestavíš si ho přes „+ Vlastní jídelníček“.",
-    "emptyTrainer": "Od trenéra zatím nemáš žádný jídelníček."
+    "emptyTrainer": "Od trenéra zatím nemáš žádný jídelníček.",
+    "plansLabel": "Jídelníčky · {count}",
+    "plansButtonAria": "Jídelníčky ({count}) — vybrat jiný"
   },
   "chat": {
     "loadFailed": "Chat se nepodařilo načíst",

@@ -57,7 +57,7 @@ const ChevronIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 const ListIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     <circle cx="4.5" cy="6" r="1.4" fill="currentColor" />
     <circle cx="4.5" cy="12" r="1.4" fill="currentColor" />
@@ -295,30 +295,45 @@ export function NutritionSection({
           </div>
         )}
 
-        {/* aktívny jedálniček: zdroj a názov (nadpis dní nižšie); pri viacerých tlačidlo
-            „Jedálničky (počet)“ otvorí okno s výberom — Vlastné / Od trénera */}
-        {mealPlanId && (
-          <div className={styles.psRow} data-tour="nutrition-active">
-            <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
-              {activeSource === "client" ? t("own") : t("fromTrainer")}
+        {/* aktívny jedálniček (nadpis dní nižšie). Pri viacerých je celý riadok karta-výber
+            (ikona, „JEDÁLNIČKY · počet“, názov so štítkom, šípka) — ťuk kamkoľvek otvorí okno
+            s výberom Vlastné / Od trénera. Tlačidlo je šípka, jeho ::after pokryje celú kartu,
+            aby nadpis ostal nadpisom (h3 v <button> nie je platné). */}
+        {mealPlanId && plans.length > 1 ? (
+          <div className={styles.mpSelect} data-tour="nutrition-active">
+            <span className={styles.mpSelectIcon}>
+              <ListIcon />
             </span>
-            <h3 className={`${styles.psName} ${styles.mpName}`}>{mealPlanName}</h3>
-            {plans.length > 1 && (
-              <button
-                ref={plansBtnRef}
-                type="button"
-                className={styles.mpOpen}
-                onClick={() => setPlansOpen(true)}
-                aria-haspopup="dialog"
-                data-tour="nutrition-switch"
-              >
-                <ListIcon />
-                {t("plansButton")}{" "}
-                <span className={styles.mpCount}>{plans.length}</span>
-                <ChevronIcon className={styles.mpChevron} />
-              </button>
-            )}
+            <span className={styles.mpSelectText}>
+              <span className={styles.mpSelectLabel}>{t("plansLabel", { count: plans.length })}</span>
+              <span className={styles.mpSelectTitle}>
+                <h3 className={styles.mpSelectName}>{mealPlanName}</h3>
+                <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
+                  {activeSource === "client" ? t("own") : t("fromTrainer")}
+                </span>
+              </span>
+            </span>
+            <button
+              ref={plansBtnRef}
+              type="button"
+              className={styles.mpSelectBtn}
+              onClick={() => setPlansOpen(true)}
+              aria-haspopup="dialog"
+              aria-label={t("plansButtonAria", { count: plans.length })}
+              data-tour="nutrition-switch"
+            >
+              <ChevronIcon />
+            </button>
           </div>
+        ) : (
+          mealPlanId && (
+            <div className={styles.psRow} data-tour="nutrition-active">
+              <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
+                {activeSource === "client" ? t("own") : t("fromTrainer")}
+              </span>
+              <h3 className={`${styles.psName} ${styles.mpName}`}>{mealPlanName}</h3>
+            </div>
+          )
         )}
 
         {mealDays.length === 0 ? (

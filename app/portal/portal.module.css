@@ -3039,67 +3039,98 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
-/* tlačidlo musí vyzerať ako tlačidlo (nie ako text vedľa názvu): farebná výplň s rámom,
-   ikona zoznamu, plný odznak s počtom a šípka nadol ako pri výbere */
-.mpOpen {
-  flex: none;
-  display: inline-flex;
+/* karta-výber aktívneho jedálnička (pri viacerých): sklenená karta, farebná dlaždica s ikonou,
+   „JEDÁLNIČKY · počet“, názov so štítkom a šípka v krúžku (ako pri „Moje šablóny“); ťuk
+   kamkoľvek na kartu = tlačidlo so ::after cez celú kartu */
+.mpSelect {
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  margin-left: auto;
-  min-height: 42px;
-  padding: 8px 12px 8px 14px;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 999px;
-  background: var(--accent-soft);
+  gap: 14px;
+  padding: 12px 14px 12px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 24px;
+  background: var(--surface-solid);
   box-shadow: var(--shadow-1);
-  color: var(--accent-text);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 750;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
-.mpOpen:hover {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  border-color: var(--accent);
+.mpSelect:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: var(--card-shadow);
 }
-.mpOpen:active {
-  transform: translateY(1px);
+.mpSelect:active {
+  transform: scale(0.99);
 }
-.mpOpen:focus-visible {
+.mpSelect:has(.mpSelectBtn:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.mpCount {
-  display: inline-grid;
+.mpSelectIcon {
+  flex: none;
+  display: grid;
   place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
   background: var(--accent-grad);
   color: var(--on-accent);
-  font-size: 12px;
-  font-weight: 780;
-  font-variant-numeric: tabular-nums;
+  box-shadow: var(--accent-glow);
 }
-.mpChevron {
-  margin-left: -1px;
+.mpSelectText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
 }
-/* mobil: tlačidlo na vlastnom riadku na celú šírku — názov jedálnička má miesto a cieľ
-   na ťuk je veľký */
-@media (max-width: 560px) {
-  .psRow:has(.mpOpen) {
-    flex-wrap: wrap;
-    row-gap: 10px;
-  }
-  .mpOpen {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    margin-left: 0;
-  }
+.mpSelectLabel {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.mpSelectTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.mpSelectName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.mpSelectTitle .trSrcChip {
+  flex: none;
+  white-space: nowrap;
+}
+.mpSelectBtn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper-dim);
+  cursor: pointer;
+  outline: none;
+}
+.mpSelectBtn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+}
+.mpSelect:hover .mpSelectBtn {
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 .mpTabs {
   display: flex;
