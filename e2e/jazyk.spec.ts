@@ -201,7 +201,8 @@ test.describe("Jazyk — účty (reálna DB)", () => {
 
     await page.goto("/portal");
     await expect(htmlLang(page)).toHaveAttribute("lang", "cs");
-    await expect(page.getByRole("link", { name: /Deník/ }).first()).toBeAttached();
+    // menu portálu po česky („Strava“ je rovnaká v oboch jazykoch, Jídelníček nie)
+    await expect(page.getByRole("link", { name: /Jídelníček/ }).first()).toBeAttached();
 
     await page.goto("/portal/profil");
     await page.getByRole("combobox", { name: "Jazyk aplikace" }).selectOption("sk");
