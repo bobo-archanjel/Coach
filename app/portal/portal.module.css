@@ -3029,6 +3029,80 @@
 .trHead .sectionTitle {
   margin: 0;
 }
+/* Jedálniček: akcie pod jedálničkom — rovnako veľké tlačidlá s ikonami v mriežke */
+.mpActions {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+.mpActionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.mpAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 720;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.mpAction svg {
+  flex: none;
+  color: var(--accent-text);
+}
+.mpAction:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.mpAction:active {
+  transform: translateY(1px);
+}
+.mpAction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mpActionDanger,
+.mpActionDanger svg {
+  color: var(--error);
+}
+.mpActionDanger:hover {
+  border-color: color-mix(in srgb, var(--error) 45%, transparent);
+}
+.mpConfirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 12px 14px 12px 18px;
+  border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--error) 8%, var(--surface-solid));
+}
+.mpConfirmText {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--paper);
+}
+.mpConfirmBtns {
+  display: inline-flex;
+  gap: 8px;
+}
+
 /* Jedálniček: tlačidlo „Jedálničky (počet)“ a okno s výberom (MealPlansSheet) */
 /* riadok aktívneho jedálnička: štítok v jednom riadku, dlhý názov sa radšej zalomí */
 .psRow .trSrcChip {
@@ -3673,12 +3747,6 @@
 /* ======================================================================
    Strava
    ====================================================================== */
-/* „Stiahnuť PDF“ pod jedálničkom v Strave */
-.mealPdfRow {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-}
 .kcalHero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

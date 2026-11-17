@@ -64,6 +64,27 @@ const ListIcon = () => (
     <circle cx="4.5" cy="18" r="1.4" fill="currentColor" />
   </svg>
 );
+const PencilIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 20l1-4.2L15.6 5.2a1.5 1.5 0 0 1 2.1 0l1.1 1.1a1.5 1.5 0 0 1 0 2.1L8.2 19l-4.2 1Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+  </svg>
+);
+const TemplateIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" stroke="currentColor" strokeWidth="1.8" />
+  </svg>
+);
+const DownloadIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const TrashIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4.5 7h15M10 7V5h4v2M6.5 7l.8 12h9.4l.8-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 const CloseIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
     <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -380,51 +401,55 @@ export function NutritionSection({
           </div>
         )}
 
-        {/* vlastný jedálniček: úprava, šablóna, zmazanie; od trénera len „Uložiť ako šablónu“
-            (klient si zaň platí — kópia mu ostane aj po zmene / zmazaní trénerom) */}
-        {(isOwn || (mealPlanId && mealDays.length > 0)) && (
-          <div className={styles.trPlanActions} data-tour={isOwn ? "nutrition-own-actions" : "nutrition-plan-actions"}>
+        {/* akcie pod jedálničkom — jeden panel rovnako veľkých tlačidiel s ikonami (mriežka:
+            mobil 2 stĺpce, počítač v riadku). Od trénera: PDF + Uložiť ako šablónu (klient si
+            zaň platí — kópia mu ostane aj po zmene / zmazaní trénerom); vlastný navyše Upraviť
+            a Zmazať (s potvrdením na mieste mriežky). */}
+        {mealPlanId && (isOwn || mealDays.length > 0) && (
+          <div className={styles.mpActions} data-tour={isOwn ? "nutrition-own-actions" : "nutrition-plan-actions"}>
             {confirmDelete ? (
-              <>
-                <span className={styles.trConfirmText}>{t("deleteConfirm")}</span>
-                <button type="button" className={styles.trDangerBtn} onClick={removePlan} disabled={pending}>
-                  {t("delete")}
-                </button>
-                <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmDelete(false)} disabled={pending}>
-                  {t("no")}
-                </button>
-              </>
+              <div className={styles.mpConfirm}>
+                <span className={styles.mpConfirmText}>{t("deleteConfirm")}</span>
+                <span className={styles.mpConfirmBtns}>
+                  <button type="button" className={styles.trGhostBtn} onClick={() => setConfirmDelete(false)} disabled={pending}>
+                    {t("no")}
+                  </button>
+                  <button type="button" className={styles.trDangerBtn} onClick={removePlan} disabled={pending}>
+                    {t("delete")}
+                  </button>
+                </span>
+              </div>
             ) : (
-              <>
+              <div className={styles.mpActionGrid}>
                 {isOwn && (
-                  <button type="button" className={styles.trGhostBtn} onClick={() => openBuilder(true)}>
+                  <button type="button" className={styles.mpAction} onClick={() => openBuilder(true)}>
+                    <PencilIcon />
                     {t("edit")}
                   </button>
                 )}
-                <button type="button" className={styles.trGhostBtn} onClick={saveTemplate} disabled={pending}>
+                <button type="button" className={styles.mpAction} onClick={saveTemplate} disabled={pending}>
+                  <TemplateIcon />
                   {t("saveTemplate")}
                 </button>
+                {mealDays.length > 0 && (
+                  <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className={styles.mpAction} data-tour="nutrition-pdf">
+                    <DownloadIcon />
+                    {t("downloadPdf")}
+                  </a>
+                )}
                 {isOwn && (
-                  <button type="button" className={`${styles.trGhostBtn} btn-danger`} onClick={() => setConfirmDelete(true)}>
+                  <button type="button" className={`${styles.mpAction} ${styles.mpActionDanger}`} onClick={() => setConfirmDelete(true)}>
+                    <TrashIcon />
                     {t("delete")}
                   </button>
                 )}
-              </>
+              </div>
             )}
             {note && (
               <p className={`${styles.trTplNote} ${note.error ? styles.trTplNoteError : ""}`} role="status">
                 {note.text}
               </p>
             )}
-          </div>
-        )}
-
-        {/* PDF až pod jedálničkom (nie v hlavičke sekcie) */}
-        {mealPlanId && mealDays.length > 0 && (
-          <div className={styles.mealPdfRow} data-tour="nutrition-pdf">
-            <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className="btn btn-ghost btn-sm">
-              {t("downloadPdf")}
-            </a>
           </div>
         )}
       </section>
