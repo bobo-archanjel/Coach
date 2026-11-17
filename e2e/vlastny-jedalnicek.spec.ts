@@ -209,7 +209,9 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     await actions.getByRole("button", { name: "Zmazať", exact: true }).click();
     await expect(actions.getByText("Zmazať tento jedálniček?")).toBeVisible();
     await actions.getByRole("button", { name: "Zmazať", exact: true }).click();
-    await expect(page.getByText(planName)).toHaveCount(0, { timeout: 30_000 });
+    // názov ostáva len pri šablóne v „Moje šablóny“ — aktívny jedálniček už nie je on
+    await expect(row.getByText(planName)).toHaveCount(0, { timeout: 30_000 });
+    await expect(page.locator("#moje-sablony-jedalnicka").getByText(planName)).toBeVisible();
     const { data: gone } = await admin.from("meal_plans").select("id").eq("id", plan!.id);
     expect(gone).toEqual([]);
   });
