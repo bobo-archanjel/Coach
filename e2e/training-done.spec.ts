@@ -7,7 +7,6 @@ import {
   parsePlanSnapshot,
   rowTone,
   setTones,
-  snapshotToPlanEntries,
 } from "../lib/workouts/completed";
 import { parseReps, parseWeight, summarizeWorkoutForm } from "../lib/workouts/setInput";
 import { timedReps, timedSeconds } from "../lib/workouts/timedReps";
@@ -16,10 +15,11 @@ import { timedReps, timedSeconds } from "../lib/workouts/timedReps";
  * Dokončený tréning je len na čítanie (feature/training-done, migrácia 0048).
  *
  * 1. Čistá logika plán vs. realita (lib/workouts/completed.ts).
- * 2. UI cez DEV `?preview=` (bez session): detail trénera + karta Dnes v portáli.
+ * 2. UI cez DEV `?preview=` (bez session): karta Dnes v portáli (tréner: plán vs.
+ *    skutočnosť priamo v detaile plánu — e2e/hotovy-plan-prehlad, zamok-odcviceneho-dna).
  * 3. Celý tok proti reálnej Supabase DB — tréner vytvorí tréning → klient ho
- *    odcvičí a ukončí → tréner vidí presne tie hodnoty bez editácie → priame
- *    úpravy cez Supabase zlyhajú → "Duplikovať" vytvorí editovateľnú kópiu.
+ *    odcvičí a ukončí → tréner vidí v detaile plánu presne tie hodnoty bez editácie →
+ *    priame úpravy cez Supabase zlyhajú.
  *    Beží len s QA účtami v env (spárovaný tréner + klient) a so spustenou 0048:
  *      E2E_TRAINER_EMAIL, E2E_TRAINER_PASSWORD, E2E_CLIENT_EMAIL, E2E_CLIENT_PASSWORD
  *    Po sebe zmaže vytvorené plány; zamknuté záznamy tréningu v DB ostanú (tak má byť).
@@ -103,61 +103,9 @@ test.describe("plán vs. realita — čistá logika", () => {
     expect(rows.find((r) => r.name === "Plank")?.status).toBe("planned");
     expect(snapshot?.exercises[1].reps).toBe("30");
   });
-
-  test("duplikát plánu = plánované hodnoty s novými entry_id, bez výsledkov", () => {
-    let n = 0;
-    const entries = snapshotToPlanEntries(snapshot!, () => `new-${++n}`);
-    expect(entries).toEqual([
-      { entry_id: "new-1", exercise_id: "x1", exercise_name: "Drep", sets: 3, reps: "8-10", load_kg: 60, tempo: null, rest_seconds: 90 },
-      { entry_id: "new-2", exercise_id: null, exercise_name: "Plank", sets: 2, reps: "30", load_kg: null, tempo: null, rest_seconds: 60 },
-    ]);
-  });
 });
 
 // ---------------------------------------------------------------- 2. UI (preview)
-test.describe("detail dokončeného tréningu — tréner (?preview=done)", () => {
-  test("štítok Dokončený, plán vs. realita, žiadna editácia, akcia Duplikovať", async ({ page }) => {
-    const errs = collectErrors(page);
-    await page.goto("/dashboard/klienti/c1/treningy/l1?preview=done");
-
-    await expect(page.getByRole("heading", { name: "Deň A — Nohy" })).toBeVisible();
-    await expect(page.getByTestId("workout-status")).toHaveText(/Dokončený – 24\. 9\. 2026/);
-
-    const drep = page.getByTestId("completed-exercise").filter({ hasText: "Drep s činkou" });
-    await expect(drep.getByText("Plán: 3 × 8 · 60 kg · „3-0-1“ · pauza 120 s")).toBeVisible();
-    const rows = drep.getByTestId("set-row");
-    await expect(rows).toHaveCount(4);
-    await expect(rows.nth(1)).toContainText("8 op. × 60 kg");
-    await expect(rows.nth(1)).toContainText("8 op. × 62,5 kg");
-    await expect(rows.nth(3)).toContainText("navyše");
-    // farby oproti plánu (3 × 8 @ 60 kg): presne = zelená, menej = červená, viac = modrá
-    const tone = (row: number, text: string) => rows.nth(row).locator("[data-tone]").filter({ hasText: text });
-    await expect(tone(0, "8 op.")).toHaveAttribute("data-tone", "met");
-    await expect(tone(0, "60 kg")).toHaveAttribute("data-tone", "met");
-    await expect(tone(1, "62,5 kg")).toHaveAttribute("data-tone", "above");
-    await expect(tone(2, "6 op.")).toHaveAttribute("data-tone", "below");
-    await expect(rows.nth(3).locator("[data-tone]")).toHaveCount(0);
-    const color = (row: number, text: string) => tone(row, text).evaluate((el) => getComputedStyle(el).color);
-    const [met, above, below] = [await color(0, "8 op."), await color(1, "62,5 kg"), await color(2, "6 op.")];
-    expect(new Set([met, above, below]).size, "tri rôzne farby").toBe(3);
-
-    const rdl = page.getByTestId("completed-exercise").filter({ hasText: "Rumunský mŕtvy ťah" });
-    await expect(rdl.getByText(/Bolel ma spodný chrbát/)).toBeVisible();
-    await expect(rdl.getByTestId("set-row").nth(2)).toContainText("neodcvičené");
-
-    await expect(page.getByTestId("completed-exercise").filter({ hasText: "Lýtka v stoji" })).toContainText("Nezapísané");
-    await expect(page.getByTestId("completed-exercise").filter({ hasText: "Bicykel" })).toContainText("10:00 min × 4,2 km");
-    await expect(page.getByText("8/10")).toBeVisible();
-
-    // len na čítanie: žiadne vstupy, úpravy, mazanie ani presúvanie
-    await expect(page.locator("main input, main textarea, main select")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Upraviť|Uložiť|Zmazať|Odobrať|Posunúť|hore|dole/i })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Duplikovať ako nový tréning" })).toBeEnabled();
-
-    expect(real(errs), real(errs).join("\n")).toEqual([]);
-  });
-});
-
 test.describe("portál — dokončený tréning na karte Dnes (?preview=done)", () => {
   test("zapísané hodnoty + Upraviť hodnoty v 24 h okne (predvyplnený formulár, Zrušiť)", async ({ page }) => {
     const errs = collectErrors(page);
@@ -527,7 +475,7 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     }
   });
 
-  test("tréner → klient ukončí → tréner vidí hodnoty bez editácie → úpravy zlyhajú → Duplikovať", async ({
+  test("tréner → klient ukončí → tréner vidí hodnoty v detaile plánu bez editácie → úpravy zlyhajú", async ({
     page,
     browser,
     baseURL,
@@ -612,7 +560,8 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     expect(log?.edited_at).toBeTruthy();
     const logId = log!.id as string;
 
-    // --- 3. tréner zmení plán dňa (smie — ide o budúce tréningy) a pozrie detail
+    // --- 3. plán dňa sa neskôr zmení (priamo v DB — builder odcvičený deň už nemení) a tréner
+    //        pozrie detail plánu: odcvičený deň ukáže plán zo snapshotu, nie zmenený deň
     await trainer.api
       .from("workout_days")
       .update({
@@ -624,8 +573,8 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
 
     const trainerPage = await newPage(browser, baseURL);
     await uiSignIn(trainerPage, env.trainerEmail!, env.trainerPassword!, /\/dashboard/);
-    await trainerPage.goto(`/dashboard/klienti/${clientId}/treningy/${logId}`);
-    await expect(trainerPage.getByTestId("workout-status")).toHaveText(/Dokončený – \d+\. \d+\. \d{4}/);
+    await trainerPage.goto(`/dashboard/treningy/${plan!.id}`);
+    await expect(trainerPage.getByTestId("day-done")).toContainText(/Odcvičené \d+\. \d+\. \d{4}/);
     const ex = trainerPage.getByTestId("completed-exercise").filter({ hasText: "Drep E2E" });
     // plán zo snapshotu (60 kg), nie z neskôr upraveného dňa (80 kg)
     await expect(ex.getByText("Plán: 2 × 8 · 60 kg · pauza 90 s")).toBeVisible();
@@ -633,12 +582,11 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText("8 op. × 60 kg");
     await expect(rows.nth(1)).toContainText("8 op. × 62,5 kg");
-    await expect(trainerPage.getByTestId("workout-edited")).toContainText("Klient hodnoty dodatočne upravil");
+    await expect(trainerPage.getByTestId("day-done-edited")).toContainText("Klient hodnoty dodatočne upravil");
     await expect(ex.getByText("„Posledná séria ťažká“")).toBeVisible();
     await expect(trainerPage.getByText("„E2E tréning“")).toBeVisible();
     await expect(trainerPage.getByText("8/10")).toBeVisible();
-    await expect(trainerPage.locator("main input, main textarea, main select")).toHaveCount(0);
-    await expect(trainerPage.getByRole("button", { name: /Upraviť|Uložiť|Zmazať|Odobrať/i })).toHaveCount(0);
+    await expect(trainerPage.getByRole("button", { name: /^Upraviť|Uložiť$|Zmazať deň|Odobrať|Premenovať/i })).toHaveCount(0);
 
     // --- 4. priame úpravy cez Supabase (obídenie UI): klient nezmení plán/stav ani nezmaže,
     //        tréner nezmení ani nezmaže nič (hodnoty smie opraviť len klient v 24 h okne)
@@ -662,30 +610,6 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     expect((after!.plan_snapshot as { day_name?: string }).day_name).toBe(dayName);
     expect(after!.note).toBe("E2E tréning");
     expect(after!.status).toBe("completed");
-
-    // --- 5. Duplikovať ako nový tréning → editovateľná kópia bez výsledkov
-    await trainerPage.getByRole("button", { name: "Duplikovať ako nový tréning" }).click();
-    await trainerPage.waitForURL(/\/dashboard\/treningy\/[0-9a-f-]{36}$/, { timeout: 30_000 });
-    const newPlanId = trainerPage.url().split("/").pop()!;
-    createdPlanIds.push(newPlanId);
-    expect(newPlanId).not.toBe(plan!.id);
-    await expect(trainerPage.getByRole("heading", { name: `${dayName} (kópia)` })).toBeVisible();
-    await expect(trainerPage.getByText("Koncept — klient ho ešte nevidí")).toBeVisible();
-    // vlastný cvik (exercise_id null) je v builderi text, nie tlačidlo detailu
-    await expect(trainerPage.getByText("Drep E2E", { exact: true })).toBeVisible();
-    await expect(trainerPage.getByRole("button", { name: "Upraviť cvik" })).toBeVisible();
-
-    const { data: copyDays } = await trainer.api.from("workout_days").select("id, exercises").eq("plan_id", newPlanId);
-    expect(copyDays).toHaveLength(1);
-    const copyEx = (copyDays![0].exercises as { entry_id: string; load_kg: number; sets: number }[])[0];
-    expect(copyEx).toMatchObject({ load_kg: 60, sets: 2 });
-    expect(copyEx.entry_id).not.toBe(entryId);
-    // kópia je editovateľná (tréner ju smie meniť)
-    const { error: editErr } = await trainer.api
-      .from("workout_days")
-      .update({ name: `${dayName} upravený` })
-      .eq("id", copyDays![0].id);
-    expect(editErr).toBeNull();
 
     // pôvodný tréning nedotknutý
     const { data: orig } = await client.api.from("workout_logs").select("entries, status").eq("id", logId).single();

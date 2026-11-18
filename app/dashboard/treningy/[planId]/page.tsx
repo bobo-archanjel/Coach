@@ -189,7 +189,7 @@ export default async function PlanDetailPage({
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
   // Odcvičené dni (posledný záznam dňa; logy sú od najnovšieho) — v builderi zamknuté,
   // namiesto úprav plán vs. skutočnosť. Server to vynúti cez getDayForEdit (dayDone).
-  // Tréning zo zmazaného dňa sa tu neukáže — ostáva v detaile klienta (Posledná aktivita).
+  // Tréning zo zmazaného dňa sa tu neukáže (záznam ostáva v DB, napr. pre analytiku).
   const doneDays: Record<string, DoneDay> = {};
   for (const log of completedLogs ?? []) {
     const dayId = log.workout_day_id as string | null;

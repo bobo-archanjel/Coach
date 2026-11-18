@@ -1367,7 +1367,7 @@ select.addClientInputSm {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Posledná aktivita: riadok → detail dokončeného tréningu (plán vs. realita, 0048) ---------- */
+/* ---------- riadok-odkaz v zozname (detail klienta: jedálničky) ---------- */
 .logLinkRow {
   display: grid;
   grid-template-columns: 1fr auto;
