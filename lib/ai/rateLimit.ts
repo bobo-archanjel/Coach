@@ -143,6 +143,27 @@ export async function isPlanGenRateLimited(supabase: SupabaseClient, trainerId: 
 
 export const AI_PLAN_GEN_DAILY_LIMIT = planGenDailyLimit;
 
+/**
+ * True = tréner dnes už vyčerpal limit AI generovania jedálničkov — len prechodný fallback
+ * (bez service role / pred migráciou 0036); bežne to rieši atomická rezervácia nižšie
+ * (trénerov strop AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER). Jedno generovanie = 2–4 volania
+ * modelu s hľadaním, preto je limit nižší než pri plánoch cvikov.
+ */
+export async function isMealGenRateLimited(supabase: SupabaseClient, trainerId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("trainer_id", trainerId)
+    .eq("kind", "meal_gen")
+    .gte("created_at", startOfTodayInTz());
+
+  if (error) {
+    console.error("isMealGenRateLimited:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= envInt("AI_MEAL_GEN_DAILY_LIMIT_PER_TRAINER", 20);
+}
+
 // ============================================================================
 // feature/security — ATOMICKÁ rezervácia AI volania (migrácia 0036, reserve_ai_slot)
 // ============================================================================
@@ -207,6 +228,8 @@ async function legacyLimited(
       return isRosterSummaryRateLimited(supabase, p.trainerId);
     case "plan_gen":
       return isPlanGenRateLimited(supabase, p.trainerId);
+    case "meal_gen":
+      return isMealGenRateLimited(supabase, p.trainerId);
     default:
       return false;
   }

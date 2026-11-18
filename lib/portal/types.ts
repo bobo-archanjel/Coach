@@ -484,6 +484,8 @@ export interface PortalAiChatMessage {
   escalated?: boolean;
   /** Cviky, ktoré AI spomenula pri náhrade (migrácia 0057) — klik otvorí detail s fotkami. */
   exerciseRefs?: { id: string; name: string }[];
+  /** Overené návrhy výmeny cviku vo vlastnom pláne (tlačidlo "Vymeniť v pláne"). */
+  swaps?: { dayId: string; dayName: string; oldId: string; oldName: string; newId: string; newName: string }[];
 }
 
 export interface PortalAiChatData {

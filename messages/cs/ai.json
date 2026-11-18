@@ -27,5 +27,31 @@
     "clientLimit": "Dnešní limit {limit} shrnutí pro tohoto klienta je vyčerpaný — zkus to zítra.",
     "empty": "Shrnutí se nepodařilo vygenerovat.",
     "failed": "Při generování shrnutí nastala chyba. Zkus to prosím znovu."
+  },
+  "meal": {
+    "notConfigured": "AI generátor zatím není nastaven. Zkus to prosím později.",
+    "dailyLimit": "Dosáhl/a jsi dnešního limitu AI generování jídelníčků ({limit}). Zkus to zítra.",
+    "busy": "AI generátor je dnes přetížený. Zkus to prosím později.",
+    "invalid": "Zkontroluj zadání: počet dnů 1–7, jídel denně 3–6.",
+    "noProfile": "Klient nemá nastavený makro cíl. Nejdřív ho vypočítej v detailu klienta (Jídelníčky).",
+    "noProposal": "AI nevrátila návrh jídelníčku. Zkus to prosím znovu.",
+    "noUsable": "AI nevrátila použitelný jídelníček (žádná potravina neprošla kontrolou). Zkus to prosím znovu.",
+    "failed": "Při generování jídelníčku došlo k chybě. Zkus to prosím znovu.{suffix}",
+    "saveFailed": "Jídelníček se nepodařilo uložit. Zkus to prosím znovu.",
+    "planName": "AI jídelníček — {date}",
+    "dayName": "Den {n}",
+    "warnDropped": "{count, plural, one {# položku} few {# položky} other {# položek}} appka vyřadila (neexistující potravina, nevhodná jednotka nebo potravina mimo dietu/vyloučených) — zkontroluj jídla v konceptu.",
+    "warnDeviation": "Den {day}: {kcal} kcal (cíl {targetKcal}) a bílkoviny {protein} g (cíl {targetProtein}) — mimo cíl o více než 10 %, uprav ho v konceptu.",
+    "warnDays": "Vygenerováno je jen {count} z {requested} dnů.",
+    "warnOff": "{count, plural, one {# značkový produkt} few {# značkové produkty} other {# značkových produktů}} se nepodařilo uložit do databáze — vynecháno.",
+    "rulesFailed": "Nepodařilo se sestavit jídelníček, který splňuje pravidla (kcal ±5 %, bílkoviny −10 % až +15 %, tuky ≥ 18 % energie, rozložení jídel). Nic se neuložilo — zkus to prosím znovu.",
+    "warnFiber": "Dny {days}: vláknina je pod 25 g/den — zvaž celozrnné přílohy, luštěniny nebo víc zeleniny.",
+    "warnFruitVeg": "Dny {days}: ovoce a zelenina dohromady tvoří méně než 400 g/den.",
+    "warnProteinMeal": "Dny {days}: bílkoviny v některém hlavním jídle přesahují 60 g.",
+    "warnMacroSplit": "Dny {days}: sacharidy nebo tuky se liší od cíle klienta o více než 15 %.",
+    "warnFatShare": "Dny {days}: tuky jsou výrazně pod cílem klienta (nebo pod 20 % energie).",
+    "warnTargetLow": "Cíl klienta ({kcal} kcal) je pod bezpečným minimem ({min} kcal) — zkontroluj nastavení makro cíle.",
+    "warnDayCopied": "Den {day} je kopie dne {from} (režim meal prep) — nepodařilo se ho sestavit v rámci pravidel. Uprav ho ručně nebo vygeneruj znovu.",
+    "warnDaysMissing": "Tyto dny se nepodařilo sestavit v rámci pravidel (kcal ±5 %, bílkoviny, tuky, rozložení jídel, porce), proto v konceptu chybí: {days}. Doplň je ručně nebo vygeneruj znovu."
   }
 }

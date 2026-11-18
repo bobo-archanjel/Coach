@@ -7,6 +7,7 @@
 // AI hovorila o tom istom dni, aký klient vidí na karte Dnes.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PlanDayForSwap } from "./exerciseSwap";
 
 const TZ = "Europe/Bratislava";
 const RECENT_LOGS = 5;
@@ -47,6 +48,9 @@ export interface TrainingContextResult {
    *  nimi vie overiť/vyriešiť, ktorý cvik AI v odpovedi označila markerom
    *  [CVIKY: id,...] (viď lib/ai/chat.ts), aby k nemu priložila detail s fotkami. */
   exercises: { id: string; name: string }[];
+  /** dni aktuálneho plánu s ID a príznakom vlastného plánu — podklad na overenie výmeny
+   *  cviku (marker [VYMENA: ...], viď lib/ai/exerciseSwap.ts). Prázdne, keď plán nie je. */
+  days: PlanDayForSwap[];
 }
 
 /**
@@ -59,8 +63,8 @@ export async function getTrainingContextBlock(supabase: SupabaseClient, clientId
     // Aktívny plán klienta (clients.active_plan_id), inak najnovší zverejnený — ako karta
     // Dnes. Klient, najnovší plán s dňami (embed) a logy v jednom kole; samostatný
     // dopyt na aktívny plán len keď je iný než najnovší. Predtým 3-4 dopyty za sebou.
-    type PlanWithDays = { id: string; name: string; workout_days: { id: string; name: string; exercises: unknown }[] | null };
-    const planSelect = "id, name, workout_days(id, name, exercises, day_number)";
+    type PlanWithDays = { id: string; name: string; trainer_id: string | null; workout_days: { id: string; name: string; exercises: unknown }[] | null };
+    const planSelect = "id, name, trainer_id, workout_days(id, name, exercises, day_number)";
     const [{ data: client }, { data: newest }, { data: logRows }] = await Promise.all([
       supabase.from("clients").select("active_plan_id").eq("id", clientId).maybeSingle(),
       supabase
@@ -100,19 +104,32 @@ export async function getTrainingContextBlock(supabase: SupabaseClient, clientId
     // detail/fotky, nebolo by čo priložiť). Zoskupené podľa ID, nie podľa riadku,
     // aby sa rovnaký cvik vo viacerých dňoch neobjavil v zozname viackrát.
     const exerciseIndex = new Map<string, string>();
+    const swapDays: PlanDayForSwap[] = [];
+    // trainer_id null = plán si vytvoril klient sám (0010) → AI smie ponúknuť tlačidlo výmeny
+    const ownPlan = plan != null && plan.trainer_id === null;
 
     if (!plan || days.length === 0) {
       lines.push(
         "Tréning: klient nemá aktívny tréningový plán. Ak sa pýta, čo má cvičiť, povedz mu, nech si plán vytvorí v sekcii Tréning alebo sa opýta trénera — konkrétny plán mu nevymýšľaj.",
       );
     } else {
-      lines.push(`Aktívny tréningový plán klienta: „${plan.name}“ (${days.length} ${days.length === 1 ? "deň" : days.length <= 4 ? "dni" : "dní"}).`);
+      lines.push(
+        `Aktívny tréningový plán klienta: „${plan.name}“ (${days.length} ${days.length === 1 ? "deň" : days.length <= 4 ? "dni" : "dní"}). ` +
+          (ownPlan
+            ? "Je to jeho VLASTNÝ plán — výmenu cviku mu appka vie spraviť tlačidlom (marker [VYMENA], pri dni je dayId)."
+            : "Plán mu zostavil tréner — výmenu cviku len odporuč, marker [VYMENA] nepoužívaj, plán nemení."),
+      );
       for (const d of days) {
         const exercises = Array.isArray(d.exercises) ? (d.exercises as ExerciseEntry[]) : [];
-        lines.push(`- ${d.name}: ${exercises.length > 0 ? exercises.map(formatPlanned).join("; ") : "bez cvikov"}`);
+        lines.push(`- ${d.name}${ownPlan ? ` (dayId ${d.id})` : ""}: ${exercises.length > 0 ? exercises.map(formatPlanned).join("; ") : "bez cvikov"}`);
+        const dayExercises: { id: string; name: string }[] = [];
         for (const e of exercises) {
-          if (e.exercise_id && e.exercise_name) exerciseIndex.set(e.exercise_id, e.exercise_name.trim());
+          if (e.exercise_id && e.exercise_name) {
+            exerciseIndex.set(e.exercise_id, e.exercise_name.trim());
+            dayExercises.push({ id: e.exercise_id, name: e.exercise_name.trim() });
+          }
         }
+        swapDays.push({ id: d.id, name: d.name, own: ownPlan, exercises: dayExercises });
       }
 
       // Rotácia ako na karte Dnes: dnes odcvičený deň ostáva "dnešný", inak deň
@@ -147,12 +164,14 @@ export async function getTrainingContextBlock(supabase: SupabaseClient, clientId
     return {
       block: lines.join("\n"),
       exercises: [...exerciseIndex].map(([id, name]) => ({ id, name })),
+      days: swapDays,
     };
   } catch (err) {
     console.error("getTrainingContextBlock:", err instanceof Error ? err.message : err);
     return {
       block: "Tréningové dáta sa teraz nepodarilo načítať — ak sa klient pýta na tréning, povedz mu to a nič si nevymýšľaj.",
       exercises: [],
+      days: [],
     };
   }
 }
