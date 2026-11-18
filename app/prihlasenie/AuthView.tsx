@@ -115,7 +115,9 @@ export function AuthView() {
   async function handleOAuth(provider: "google", role?: "trainer" | "client") {
     setOauthPending(provider);
     const redirectTo = new URL("/auth/callback", window.location.origin);
+    // bez roly = záložka Prihlásenie → callback nový účet nezaloží (oauth_error=not_registered)
     if (role) redirectTo.searchParams.set("role", role);
+    else redirectTo.searchParams.set("mode", "login");
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: redirectTo.toString() },
@@ -129,10 +131,12 @@ export function AuthView() {
     if (hash === "#register-trener") setRegisterRole("trainer");
   }, []);
 
-  const [oauthError, setOauthError] = useState(false);
+  // "not_registered" = Google prihlásenie bez účtu (callback ho zmazal), inak všeobecná chyba
+  const [oauthError, setOauthError] = useState<"failed" | "not_registered" | null>(null);
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("oauth_error")) {
-      setOauthError(true);
+    const code = new URLSearchParams(window.location.search).get("oauth_error");
+    if (code) {
+      setOauthError(code === "not_registered" ? "not_registered" : "failed");
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, []);
@@ -500,7 +504,7 @@ export function AuthView() {
               {oauthError && (
                 <div className={`${styles.formStatus} ${styles.error}`} role="alert" style={{ marginBottom: 16 }}>
                   <ErrorIcon />
-                  {t("oauthFailed")}
+                  {oauthError === "not_registered" ? t("oauthNotRegistered") : t("oauthFailed")}
                 </div>
               )}
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUserLocale } from "@/lib/i18n/server";
 import { syncLocaleCookieFromProfile } from "@/lib/i18n/sync";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { isBrandNewOAuthAccount } from "@/lib/auth/oauthAccount";
 
 /**
  * Cieľ OAuth presmerovania (Google/Apple) — Supabase sem po úspešnom overení
@@ -13,11 +15,19 @@ import { syncLocaleCookieFromProfile } from "@/lib/i18n/sync";
  * DB trigger `handle_new_user` pri NOVOM účte vloží rolu `trainer` (default), ak chýba
  * metadata — OAuth signup žiadnu takú metadata nepošle, takže klienta, ktorý sa
  * zaregistroval cez Google/Apple, treba po vytvorení profilu dorobiť na `client`.
+ * Rolu nejde meniť priamym update profilu (od 0036 zakázané), ale cez RPC
+ * `claim_client_role` (0068) — len pre čerstvý účet bez klientov.
+ *
+ * `mode=login` posiela záložka Prihlásenie. Keď Google pri „prihlásení“ účet práve
+ * vytvoril (človek ešte nie je zaregistrovaný), účet sa hneď zmaže a prihlasovacia
+ * stránka ukáže „nie si zaregistrovaný“ — registrácia ide len cez záložku Registrácia
+ * (výber roly).
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const role = searchParams.get("role");
+  const isLoginMode = searchParams.get("mode") === "login";
   const providerError = searchParams.get("error_description") ?? searchParams.get("error");
 
   if (providerError || !code) {
@@ -31,19 +41,30 @@ export async function GET(request: Request) {
   }
 
   const user = data.user;
-  // "Nový účet" = vytvorený práve týmto requestom — detekcia cez created_at je jediný
-  // spoľahlivý signál bez vlastného stĺpca, keďže OAuth signup a prvé prihlásenie
-  // sú z pohľadu Supabase Auth ten istý endpoint (signInWithOAuth).
-  const isFreshSignup = Date.now() - new Date(user.created_at).getTime() < 60_000;
+  // "Nový účet" = vytvorený práve týmto requestom (created_at ≈ last_sign_in_at, pár
+  // sekúnd dozadu) — OAuth signup a prvé prihlásenie sú z pohľadu Supabase Auth ten
+  // istý endpoint (signInWithOAuth), vlastný stĺpec na to nemáme.
+  const isFreshSignup = isBrandNewOAuthAccount(user);
 
-  let finalRole: string = "trainer";
-  if (isFreshSignup && role === "client") {
-    await supabase.from("profiles").update({ role: "client" }).eq("id", user.id);
-    finalRole = "client";
-  } else {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    finalRole = profile?.role ?? "trainer";
+  if (isLoginMode && isFreshSignup) {
+    // Prihlásenie bez účtu: Google ho práve vytvoril → odhlásiť a zmazať (bez service
+    // role kľúča aspoň odhlásiť; prázdny trénerský účet potom ostane, zaloguje sa).
+    await supabase.auth.signOut();
+    const admin = tryCreateAdminClient();
+    const { error: deleteError } = admin
+      ? await admin.auth.admin.deleteUser(user.id)
+      : { error: new Error("chýba service role kľúč") };
+    if (deleteError) console.error("[auth/callback] zmazanie neregistrovaného účtu zlyhalo:", deleteError.message);
+    return NextResponse.redirect(`${origin}/prihlasenie?oauth_error=not_registered`);
   }
+
+  if (isFreshSignup && role === "client") {
+    const { error: roleError } = await supabase.rpc("claim_client_role");
+    if (roleError) console.error("[auth/callback] claim_client_role zlyhal:", roleError.message);
+  }
+  // Rola vždy z DB — ak by zmena zlyhala, nesmie appka tváriť, že je klient.
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const finalRole: string = profile?.role ?? "trainer";
 
   // Jazyk (feature/cestina): nový účet dostane jazyk, v ktorom sa registroval (cookie /
   // prehliadač); existujúci účet naopak nastaví cookie podľa profilu.
