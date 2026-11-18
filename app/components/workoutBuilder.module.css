@@ -848,18 +848,25 @@
   color: var(--paper-faint);
   font-size: 13px;
 }
-.dayDoneLink {
-  margin-left: auto;
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
+.dayDoneMeta {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  margin-top: 2px;
   font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--paper);
+}
+.dayDoneMetaLabel {
+  margin-right: 4px;
+  font-size: 12px;
   font-weight: 700;
-  text-decoration: none;
+  color: var(--paper-faint);
+}
+.dayDoneEdited {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--plate-yellow);
 }
 .srOnly {
   position: absolute;
