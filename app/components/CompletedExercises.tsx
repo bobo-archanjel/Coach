@@ -16,7 +16,7 @@ import styles from "./completedExercises.module.css";
 
 /*
  * Odcvičený tréning: plán vs. skutočnosť po sériách (lib/workouts/completed.ts —
- * comparePlanWithActual). Zdieľajú ho detail trénera (/dashboard/klienti/[id]/treningy/[logId])
+ * comparePlanWithActual). Zdieľajú ho builder trénera (odcvičený deň plánu)
  * aj portál klienta (Tréning → deň Hotovo, karta Dnes po odcvičení, náhľad dňa v Tento týždeň).
  * Bez "use client" — useTranslations funguje v server aj client komponentoch.
  *

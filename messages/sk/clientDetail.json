@@ -10,12 +10,6 @@
   "draft": "Koncept",
   "active": "Aktívny",
   "noPlans": "Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <link>Tréningy</link>.",
-  "recentActivity": "Posledná aktivita tréningov",
-  "workoutFallback": "Tréning",
-  "loggedExercises": "{count, plural, one {# cvik zapísaný} few {# cviky zapísané} other {# cvikov zapísaných}}",
-  "noValues": "bez zapísaných hodnôt",
-  "completed": "Dokončený",
-  "noLogs": "Klient zatiaľ neodklikol žiadny tréning.",
   "mealPlansTitle": "Jedálničky",
   "mealPlanCount": "{count, plural, one {# jedálniček} few {# jedálničky} other {# jedálničkov}}",
   "createdOn": "Vytvorený {date} · {count, plural, one {# deň} few {# dni} other {# dní}}",
@@ -148,19 +142,9 @@
     "generate": "Zhrnúť progres"
   },
   "log": {
-    "workoutFallback": "Tréning",
-    "back": "Späť na klienta",
-    "completed": "Dokončený – {date}",
-    "inProgress": "Prebieha",
-    "recordTitle": "Záznam tréningu",
-    "recordTip": "Toto je záznam toho, čo klient odcvičil — ty ho upraviť ani zmazať nemôžeš (klient môže opraviť zabudnuté hodnoty 24 hodín po ukončení). Ak chceš tréning zopakovať alebo zmeniť, vytvor si z neho novú kópiu.",
     "edited": "Klient hodnoty dodatočne upravil – {date} {time}.",
     "rpe": "Náročnosť (RPE)",
-    "clientNote": "Poznámka klienta",
-    "backfilled": "Tréning je starší než ukladanie plánu k záznamu — plán zobrazujeme podľa jeho aktuálnej verzie, nemusí presne zodpovedať tomu, čo mal klient v ten deň naplánované.",
-    "noValues": "Klient ukončil tréning bez zapísaných hodnôt.",
-    "duplicating": "Vytváram kópiu…",
-    "duplicate": "Duplikovať ako nový tréning"
+    "clientNote": "Poznámka klienta"
   },
   "tabsAria": "Sekcie klienta"
 }

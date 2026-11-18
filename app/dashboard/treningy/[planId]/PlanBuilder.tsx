@@ -13,9 +13,8 @@ import { SupersetLink } from "@/app/components/SupersetLink";
 import { detachFromSuperset, isLinkedToNext, supersetPositions, toggleLinkWithNext } from "@/lib/workouts/superset";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
 import { formatCompletedDate, type CompletedCompare } from "@/lib/workouts/completed";
-import type { Locale } from "@/lib/i18n/locales";
+import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
-import { AppLink as Link } from "@/app/components/AppLink";
 import styles from "@/app/components/workoutBuilder.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 
@@ -24,6 +23,11 @@ export interface DoneDay {
   logId: string;
   completedAt: string;
   compare: CompletedCompare;
+  /** celková náročnosť a poznámka klienta k tréningu (workout_logs.rpe / note) */
+  rpe: number | null;
+  note: string | null;
+  /** klient hodnoty dodatočne opravil (24 h okno, 0049) */
+  editedAt: string | null;
 }
 
 const CheckIcon = () => (
@@ -43,17 +47,19 @@ export function PlanBuilder({
   planId,
   days,
   library,
-  clientId,
   doneDays = {},
+  locked = false,
 }: {
   planId: string;
   days: Day[];
   library: ExerciseLibraryRow[];
-  clientId: string;
   /** dni, z ktorých klient už odcvičil tréning (workout_logs.workout_day_id) — zamknuté */
   doneDays?: Record<string, DoneDay>;
+  /** celý plán odcvičený (isPlanLocked) — len prehľad dní, bez „+ deň“ */
+  locked?: boolean;
 }) {
   const t = useTranslations("plans.builder");
+  const tl = useTranslations("clientDetail.log");
   const locale = useLocale() as Locale;
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
   // „Premenovať“ otvorený pre aktívny deň — prepnutie dňa ho zavrie
@@ -169,20 +175,22 @@ export function PlanBuilder({
               </span>
             </button>
           ))}
-          <button
-            type="button"
-            className={styles.addDayTab}
-            onClick={() => {
-              knownDayIds.current = new Set(localDays.map((d) => d.id));
-              setAdding(true);
-              setRenaming(false);
-            }}
-          >
-            {t("addDay")}
-          </button>
+          {!locked && (
+            <button
+              type="button"
+              className={styles.addDayTab}
+              onClick={() => {
+                knownDayIds.current = new Set(localDays.map((d) => d.id));
+                setAdding(true);
+                setRenaming(false);
+              }}
+            >
+              {t("addDay")}
+            </button>
+          )}
         </div>
 
-        {adding && (
+        {adding && !locked && (
           <AddDayDialog
             planId={planId}
             nextDayNumber={localDays.length + 1}
@@ -210,11 +218,34 @@ export function PlanBuilder({
               <span className={styles.dayDoneBadge}>
                 <CheckIcon /> {t("dayDone", { date: formatCompletedDate(activeDone.completedAt, locale) })}
               </span>
-              <span className={styles.dayDoneHint}>{t("dayDoneHint")}</span>
-              <Link href={`/dashboard/klienti/${clientId}/treningy/${activeDone.logId}`} className={styles.dayDoneLink}>
-                {t("dayDoneOpen")}
-              </Link>
+              {!locked && <span className={styles.dayDoneHint}>{t("dayDoneHint")}</span>}
             </div>
+            {(activeDone.rpe != null || activeDone.note || activeDone.editedAt) && (
+              <div className={styles.dayDoneMeta}>
+                {activeDone.rpe != null && (
+                  <p>
+                    <span className={styles.dayDoneMetaLabel}>{tl("rpe")}</span> {activeDone.rpe}/10
+                  </p>
+                )}
+                {activeDone.note && (
+                  <p>
+                    <span className={styles.dayDoneMetaLabel}>{tl("clientNote")}</span> „{activeDone.note}“
+                  </p>
+                )}
+                {activeDone.editedAt && (
+                  <p className={styles.dayDoneEdited} data-testid="day-done-edited">
+                    {tl("edited", {
+                      date: formatCompletedDate(activeDone.editedAt, locale),
+                      time: new Intl.DateTimeFormat(intlLocale(locale), {
+                        timeZone: "Europe/Bratislava",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      }).format(new Date(activeDone.editedAt)),
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 

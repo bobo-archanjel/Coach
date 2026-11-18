@@ -75,6 +75,10 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-18** — **Tréner: hotový plán ako prehľad dní, preč „Posledná aktivita“ a detail tréningu** (`feature/hotovy-plan-prehlad`, bez migrácie).
+  - Celý odcvičený plán už nie je zoznam tréningov na rozkliknutie: builder len na čítanie — dráha dní s fajkami, pri dni dátum, RPE, poznámka klienta, dodatočná úprava a plán vs. skutočnosť; bez „+ deň“ a úprav. RPE / poznámka / úprava aj pri čiastočne odcvičenom pláne. Náhľad `?preview=builder_done`.
+  - Z detailu plánu preč zoznam „Odcvičené tréningy“ a tlačidlo „Detail tréningu“; z detailu klienta karta „Posledná aktivita“; zmazaná stránka `/dashboard/klienti/[id]/treningy/[logId]` aj „Duplikovať ako nový tréning“. Tréning zo zmazaného dňa / plánu ostáva len v DB.
+  - Testy: `e2e/hotovy-plan-prehlad.spec.ts`, `e2e/training-done.spec.ts` (celý tok cez detail plánu); `e2e/posledna-aktivita.spec.ts` zmazaný.
 - **2026-11-18** — **Odcvičený tréning: plán vs. skutočnosť u klienta, zámok odcvičeného dňa, šablóny v záložke** (`feature/odcvicene-u-klienta`, `feature/zamok-odcviceneho-dna`, `feature/sablony-prepinac`, bez migrácie).
   - Klient: deň „Hotovo“ v Tréningu má prepínač **Odcvičené / Plán** (predtým ukazoval plán namiesto odcvičeného); karta Dnes po odcvičení a náhľad dňa v Tento týždeň majú tabuľku plán vs. skutočnosť s farbami ako u trénera. Zdieľaný komponent `app/components/CompletedExercises.tsx` (aj detail trénera), váha podľa jazyka (62,5 kg).
   - Odcvičený deň plánu je zamknutý — tréner aj klient (vlastný tréning): v builderi fajka v dráhe dní, pruh Odcvičené (tréner s odkazom na detail tréningu), plán vs. skutočnosť namiesto úprav, bez premenovania / kópie / zmazania a bez pridávania cvikov. Server to vynúti (`getDayForEdit.dayDone`, `saveClientPlanAction`). Zoznam „Odcvičené tréningy“ pod builderom už len pre zmazané dni.

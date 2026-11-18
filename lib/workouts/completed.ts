@@ -4,7 +4,7 @@ import { timedSeconds } from "./timedReps";
 import { cleanSupersetId } from "@/lib/workouts/superset";
 // Dokončený tréning: plán (workout_logs.plan_snapshot, 0048) vs. realita
 // (workout_logs.entries). Čistá logika bez next/supabase importov — zdieľaná medzi
-// detailom trénera, portálom a e2e testom (e2e/training-done.spec.ts).
+// builderom trénera, portálom a e2e testom (e2e/training-done.spec.ts).
 
 /** Plánovaný cvik tak, ako bol v `workout_days.exercises` v čase ukončenia tréningu. */
 export interface SnapshotExercise {
@@ -106,19 +106,6 @@ export function parsePlanSnapshot(raw: unknown): PlanSnapshot | null {
   };
 }
 
-/**
- * Patrí odcvičený tréning do „Posledná aktivita“ trénera? Nie, ak je z plánu, ktorý si
- * klient vytvoril sám. Vlastníka plánu nesie snapshot (0061); pri starších záznamoch
- * rozhodne viditeľnosť dňa: deň stále existuje (`workoutDayId`), no tréner ho cez RLS
- * nevidí (`dayVisible` false) → nie je to jeho plán. Zo zmazaného plánu bez vlastníka v
- * snapshote sa to zistiť nedá — taký záznam sa ukáže.
- */
-export function isTrainerPlanLog(log: { planSnapshot: unknown; workoutDayId: string | null; dayVisible: boolean }): boolean {
-  const owner = parsePlanSnapshot(log.planSnapshot)?.planTrainerId;
-  if (owner !== undefined) return owner !== null;
-  return !(log.workoutDayId && !log.dayVisible);
-}
-
 /** workout_logs.entries — nový tvar `{entryId, name, note?, sets}` aj starší `{exercise_name}`. */
 export function parseLoggedEntries(raw: unknown): LoggedEntry[] {
   if (!Array.isArray(raw)) return [];
@@ -215,20 +202,6 @@ export interface CompletedCompare {
 export function compareLog(planSnapshot: unknown, entries: unknown): CompletedCompare {
   const snapshot = parsePlanSnapshot(planSnapshot);
   return { exercises: comparePlanWithActual(snapshot, parseLoggedEntries(entries)), hasPlan: snapshot !== null };
-}
-
-/** Nový plán z dokončeného tréningu: plánované cviky so zachovanými hodnotami, bez výsledkov klienta. */
-export function snapshotToPlanEntries(snapshot: PlanSnapshot, newId: () => string) {
-  return snapshot.exercises.map((e) => ({
-    entry_id: newId(),
-    exercise_id: e.exerciseId,
-    exercise_name: e.name,
-    sets: e.sets,
-    reps: e.reps ?? "10",
-    load_kg: e.loadKg,
-    tempo: e.tempo,
-    rest_seconds: e.restSeconds,
-  }));
 }
 
 /** "24. 9. 2026" — dátum dokončenia v Europe/Bratislava. */

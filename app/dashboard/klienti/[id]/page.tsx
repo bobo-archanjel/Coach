@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
 import { getBodyMetrics, getAllStrengthProgress } from "@/lib/dashboard/bodyMetrics";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
-import { isTrainerPlanLog, parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
 import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
@@ -168,7 +167,6 @@ export default async function ClientDetailPage({
     { data: client },
     { plans, planCompletion },
     { data: nutrition },
-    { data: allLogs },
     { data: privateNote },
     { data: mealPlans },
     { data: nutritionNote },
@@ -187,13 +185,6 @@ export default async function ClientDetailPage({
         .select("sex, age, weight_kg, height_cm, activity_level, goal, bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
         .eq("client_id", id)
         .maybeSingle(),
-      supabase
-        .from("workout_logs")
-        .select("id, performed_on, status, completed_at, entries, plan_snapshot, workout_day_id, workout_days(name)")
-        .eq("client_id", id)
-        .order("performed_on", { ascending: false })
-        // rezerva — tréningy z vlastných plánov klienta sa nižšie vyradia, zobrazí sa 8
-        .limit(40),
       // Súkromná poznámka trénera (trainer_private_notes, 0036) — klient ju nevidí.
       // Tabuľka ešte nemusí existovať (pred migráciou) → data je vtedy null, stránka funguje.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "client").maybeSingle(),
@@ -229,13 +220,6 @@ export default async function ClientDetailPage({
     </div>
   );
   const count = (text: string) => <span className={styles.sectionMeta}>{text}</span>;
-
-  // Posledná aktivita: len tréningy z plánov trénera — vlastné tréningy klienta nie.
-  const logs = (allLogs ?? [])
-    .filter((log) =>
-      isTrainerPlanLog({ planSnapshot: log.plan_snapshot, workoutDayId: log.workout_day_id, dayVisible: log.workout_days != null }),
-    )
-    .slice(0, 8);
 
   // Aktívny jedálniček = ten, ktorý klient vidí: zvolený (0067), inak najnovší ZVEREJNENÝ;
   // keď si klient zvolil vlastný (trénerovi skrytý), žiadny trénerov nie je aktívny.
@@ -298,45 +282,6 @@ export default async function ClientDetailPage({
               <p className={styles.noWorkouts}>
                 {t.rich("noPlans", { link: (chunks) => <Link href="/dashboard/treningy">{chunks}</Link> })}
               </p>
-            )}
-          </div>
-          <div className={`${styles.card} ${styles.cardBare}`}>
-            {cardHead(t("recentActivity"))}
-            {logs.length > 0 ? (
-              <div className={styles.roster}>
-                {logs.map((log) => {
-                  // Názov dňa zo snapshotu (0048) — ostane aj keď tréner deň/plán neskôr zmaže.
-                  const dayName =
-                    parsePlanSnapshot(log.plan_snapshot)?.dayName ??
-                    (log.workout_days as unknown as { name: string } | null)?.name ??
-                    t("workoutFallback");
-                  const performedOn = new Date(`${log.performed_on}T12:00:00Z`).toLocaleDateString(dateLocale, {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "numeric",
-                    timeZone: "UTC",
-                  });
-                  const loggedCount = parseLoggedEntries(log.entries).filter((e) => e.sets.length > 0).length;
-                  return (
-                    <Link key={log.id} href={`/dashboard/klienti/${id}/treningy/${log.id}`} className={styles.logLinkRow}>
-                      <span>
-                        <span className={styles.clientName}>{dayName}</span>
-                        <span className={styles.logLinkMeta}>
-                          {loggedCount > 0
-                            ? t("loggedExercises", { count: loggedCount })
-                            : t("noValues")}
-                        </span>
-                      </span>
-                      <span className={styles.logLinkSide}>
-                        {log.status === "completed" && <span className={`${styles.statusChip} ${styles.active}`}>{t("completed")}</span>}
-                        <span className={styles.clientSince}>{performedOn}</span>
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={styles.noWorkouts}>{t("noLogs")}</p>
             )}
           </div>
         </div>

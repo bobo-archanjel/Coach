@@ -35,7 +35,11 @@ test.describe("zámok odcvičeného dňa — náhľad trénera", () => {
     await page.getByRole("button", { name: /Deň 3 — Ťah/ }).click();
     const bar = page.getByTestId("day-done");
     await expect(bar).toContainText("Odcvičené");
-    await expect(bar.getByRole("link", { name: "Detail tréningu" })).toBeVisible();
+    // detail tréningu netreba — RPE, poznámka aj dodatočná úprava sú priamo pri dni
+    await expect(page.getByRole("link", { name: "Detail tréningu" })).toHaveCount(0);
+    await expect(page.getByText("8/10")).toBeVisible();
+    await expect(page.getByText("„Zhyby v poslednej sérii už s gumou.“")).toBeVisible();
+    await expect(page.getByTestId("day-done-edited")).toContainText("Klient hodnoty dodatočne upravil");
     for (const name of ["Premenovať", "Duplikovať", "Zmazať deň"]) {
       await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);
     }
