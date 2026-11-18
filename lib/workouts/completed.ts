@@ -205,6 +205,18 @@ export function comparePlanWithActual(snapshot: PlanSnapshot | null, entries: Lo
   return result;
 }
 
+/** Porovnanie jedného záznamu pre zobrazenie (CompletedExercises); `hasPlan` false = bez plan_snapshot. */
+export interface CompletedCompare {
+  exercises: CompareExercise[];
+  hasPlan: boolean;
+}
+
+/** workout_logs.plan_snapshot + entries → plán vs. skutočnosť (portál klienta). */
+export function compareLog(planSnapshot: unknown, entries: unknown): CompletedCompare {
+  const snapshot = parsePlanSnapshot(planSnapshot);
+  return { exercises: comparePlanWithActual(snapshot, parseLoggedEntries(entries)), hasPlan: snapshot !== null };
+}
+
 /** Nový plán z dokončeného tréningu: plánované cviky so zachovanými hodnotami, bez výsledkov klienta. */
 export function snapshotToPlanEntries(snapshot: PlanSnapshot, newId: () => string) {
   return snapshot.exercises.map((e) => ({

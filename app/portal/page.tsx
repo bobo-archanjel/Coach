@@ -312,6 +312,7 @@ function NextWorkout({ session }: { session: TodaySession }) {
             {session.kind === "done" && session.dayId && (
               <DoneWorkoutView
                 loggedExercises={session.loggedExercises}
+                compare={session.compare}
                 completedAt={session.completedAt}
                 sessionRpe={session.sessionRpe}
                 sessionNote={session.sessionNote}

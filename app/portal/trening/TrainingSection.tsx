@@ -14,6 +14,7 @@ import {
   setActivePlanAction,
 } from "./actions";
 import { ExercisePreviewList } from "../ExercisePreviewList";
+import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
@@ -101,6 +102,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // Odcvičený deň otvorený v editore "Upraviť hodnoty" (id záznamu workout_logs).
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  // Odcvičený deň: posledný tréning (plán vs. skutočnosť) alebo plán dňa — prepínač.
+  const [dayView, setDayView] = useState<"done" | "plan">("done");
   const [error, setError] = useState<string | null>(null);
   // Potvrdenie po „Nastaviť ako aktívny“ (pri pláne, ktorý sa práve stal aktívnym).
   const [activeNote, setActiveNote] = useState<{ planId: string; text: string } | null>(null);
@@ -185,6 +188,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const selectDay = (dayId: string) => {
     setError(null);
     setEditingLogId(null);
+    setDayView("done");
     setSelectedDayId(dayId);
   };
 
@@ -439,6 +443,42 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               editableUntil={selectedDay.lastLog.editableUntil!}
                               onClose={() => setEditingLogId(null)}
                             />
+                          ) : selectedDay.lastLog ? (
+                            <>
+                              <div
+                                className={`${styles.modeToggle} ${styles.mpTabs}`}
+                                role="radiogroup"
+                                aria-label={tr("dayViewAria")}
+                              >
+                                {(["done", "plan"] as const).map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={dayView === v}
+                                    className={dayView === v ? styles.modeOn : undefined}
+                                    onClick={() => setDayView(v)}
+                                  >
+                                    {v === "done" ? tr("dayViewDone") : tr("dayViewPlan")}
+                                  </button>
+                                ))}
+                              </div>
+                              {dayView === "plan" ? (
+                                selectedDay.exercises.length > 0 ? (
+                                  <ExercisePreviewList exercises={selectedDay.exercises} />
+                                ) : (
+                                  <p className={styles.trEmptyDay}>{tr("noExercises")}</p>
+                                )
+                              ) : selectedDay.lastLog.compare.exercises.length > 0 ? (
+                                <CompletedExercises
+                                  exercises={selectedDay.lastLog.compare.exercises}
+                                  hasPlan={selectedDay.lastLog.compare.hasPlan}
+                                  flat
+                                />
+                              ) : (
+                                <p className={styles.trEmptyDay}>{tr("doneNoValues")}</p>
+                              )}
+                            </>
                           ) : selectedDay.exercises.length > 0 ? (
                             <ExercisePreviewList exercises={selectedDay.exercises} />
                           ) : (

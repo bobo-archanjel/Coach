@@ -1,5 +1,24 @@
 /* DEV náhľady sekcie Tréning (?preview=…). */
-import type { PortalTrainingData, PortalTrainingResult } from "@/lib/portal/types";
+import type { PortalExercise, PortalTrainingData, PortalTrainingResult } from "@/lib/portal/types";
+import { previewCompare } from "../previewCompare";
+
+const DAY_A: PortalExercise[] = [
+  { idx: "1", name: "Bench press", scheme: "4 × 6", load: "80 kg", rest: "150 s", tempo: "lopatky stiahnuté, 2 s dole", entryId: "e1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 80, restSeconds: 150 },
+  { idx: "2", name: "Tlaky nad hlavu", scheme: "3 × 8", load: "45 kg", rest: "120 s", entryId: "e2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 45, restSeconds: 120 },
+];
+const DAY_B: PortalExercise[] = [
+  { idx: "1", name: "Mŕtvy ťah", scheme: "3 × 5", load: "120 kg", rest: "180 s", entryId: "e3", plannedSets: 3, plannedReps: "5", exerciseId: null, loadKg: 120, restSeconds: 180, superset: "sstr" },
+  { idx: "2", name: "Zhyby", scheme: "4 × 8", load: "vlastná váha", rest: "90 s", entryId: "e4", plannedSets: 4, plannedReps: "8", exerciseId: null, loadKg: null, restSeconds: 90, superset: "sstr" },
+];
+// Deň B: klient vymazal 3. sériu mŕtveho ťahu, pri zhyboch spravil viac a jednu sériu vynechal
+const DAY_B_ENTRIES = [
+  { entryId: "e3", name: "Mŕtvy ťah", superset: "sstr", sets: [{ reps: 5, weight: 120 }, { reps: 4, weight: 120 }] },
+  { entryId: "e4", name: "Zhyby", superset: "sstr", sets: [{ reps: 8, weight: null }, { reps: 10, weight: null }, { reps: 7, weight: null }] },
+];
+// Deň A: 3 zo 4 sérií benchu (jedna s vyššou váhou, jedna s menej opakovaniami), tlaky nezapísané
+const DAY_A_ENTRIES = [
+  { entryId: "e1", name: "Bench press", sets: [{ reps: 6, weight: 80 }, { reps: 6, weight: 82.5 }, { reps: 5, weight: 80 }] },
+];
 
 const PREVIEW: PortalTrainingData = {
   activePlanId: "plan-trainer",
@@ -16,10 +35,7 @@ const PREVIEW: PortalTrainingData = {
           done: true,
           doneToday: true,
           lastLog: null, // doplní previewResult (čas relatívne k "teraz")
-          exercises: [
-            { idx: "1", name: "Bench press", scheme: "4 × 6", load: "80 kg", rest: "150 s", tempo: "lopatky stiahnuté, 2 s dole", entryId: "e1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 80, restSeconds: 150 },
-            { idx: "2", name: "Tlaky nad hlavu", scheme: "3 × 8", load: "45 kg", rest: "120 s", entryId: "e2", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 45, restSeconds: 120 },
-          ],
+          exercises: DAY_A,
         },
         {
           id: "d2",
@@ -31,14 +47,12 @@ const PREVIEW: PortalTrainingData = {
             id: "log-d2",
             completedAt: "2026-09-17T17:00:00Z",
             editableUntil: null,
-            entries: [{ entryId: "e3", name: "Mŕtvy ťah", sets: [{ reps: 5, weight: 120 }] }],
+            entries: DAY_B_ENTRIES,
             rpe: 8,
             note: null,
+            compare: previewCompare(DAY_B, DAY_B_ENTRIES),
           },
-          exercises: [
-            { idx: "1", name: "Mŕtvy ťah", scheme: "3 × 5", load: "120 kg", rest: "180 s", entryId: "e3", plannedSets: 3, plannedReps: "5", exerciseId: null, loadKg: 120, restSeconds: 180, superset: "sstr" },
-            { idx: "2", name: "Zhyby", scheme: "4 × 8", load: "vlastná váha", rest: "90 s", entryId: "e4", plannedSets: 4, plannedReps: "8", exerciseId: null, loadKg: null, restSeconds: 90, superset: "sstr" },
-          ],
+          exercises: DAY_B,
         },
       ],
     },
@@ -92,9 +106,10 @@ function withFreshLog(data: PortalTrainingData): PortalTrainingData {
                 id: "log-d1",
                 completedAt,
                 editableUntil: new Date(Date.parse(completedAt) + 24 * 60 * 60 * 1000).toISOString(),
-                entries: [{ entryId: "e1", name: "Bench press", sets: [{ reps: 6, weight: 80 }, { reps: 6, weight: 80 }] }],
+                entries: DAY_A_ENTRIES,
                 rpe: 7,
                 note: "Dobré",
+                compare: previewCompare(DAY_A, DAY_A_ENTRIES),
               },
             }
           : d,

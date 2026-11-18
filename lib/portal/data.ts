@@ -22,9 +22,7 @@ import type {
   ExerciseOption,
   LoggedExercise,
   PortalDayLog,
-  LoggedExerciseView,
   LoggedSessionView,
-  LoggedSetView,
   PlanSource,
   PortalAiChatData,
   PortalAiChatMessage,
@@ -61,7 +59,7 @@ import type {
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
 import { cleanSupersetId } from "@/lib/workouts/superset";
-import { editableUntil, isStillEditable, parseLoggedEntries } from "@/lib/workouts/completed";
+import { compareLog, editableUntil, isStillEditable, parseLoggedEntries } from "@/lib/workouts/completed";
 
 const TZ = "Europe/Bratislava";
 /** Jazyk a texty požiadavky (dni týždňa, mesiace, záložné názvy) — raz na request. */
@@ -86,6 +84,8 @@ type DayLogRow = {
   workout_day_id: string;
   performed_on: string;
   entries: unknown;
+  /** plán dňa v čase ukončenia (0048) — porovnanie plán vs. skutočnosť */
+  plan_snapshot?: unknown;
   completed_at: string | null;
   rpe: number | null;
   note: string | null;
@@ -208,37 +208,6 @@ function hasExercises(day: { exercises: unknown }): boolean {
 }
 
 /**
- * Prečíta workout_logs.entries do pohľadu histórie. Odolné voči obom tvarom, ktoré
- * v DB reálne existujú: nové logy `{entryId, name, sets}` (finishWorkoutAction) aj
- * staršie / seed logy bez zápisu (`[]`) alebo v snake tvare `{exercise_name}`.
- */
-function parseLoggedExercises(raw: unknown, L: PortalLabels): LoggedExerciseView[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((e): LoggedExerciseView | null => {
-      if (!e || typeof e !== "object") return null;
-      const x = e as Record<string, unknown>;
-      const rawName =
-        (typeof x.name === "string" && x.name) || (typeof x.exercise_name === "string" && x.exercise_name) || "";
-      const name = rawName.trim() || L.t("exercise");
-      const setsRaw = Array.isArray(x.sets) ? x.sets : [];
-      const sets = setsRaw
-        .map((s): LoggedSetView | null => {
-          if (!s || typeof s !== "object") return null;
-          const r = s as Record<string, unknown>;
-          const reps = typeof r.reps === "number" && Number.isFinite(r.reps) ? r.reps : null;
-          const weight = typeof r.weight === "number" && Number.isFinite(r.weight) ? r.weight : null;
-          const durationS = typeof r.durationS === "number" && Number.isFinite(r.durationS) ? r.durationS : null;
-          if (reps === null && weight === null && durationS === null) return null;
-          return { reps, weight, ...(durationS !== null && { durationS }) };
-        })
-        .filter((s): s is LoggedSetView => s !== null);
-      return { name, sets };
-    })
-    .filter((e): e is LoggedExerciseView => e !== null);
-}
-
-/**
  * Zostaví jeden týždeň pre pás „Tento týždeň" — Po–Ne, s odcvičenými tréningmi
  * v každom dni (na klik v UI, viď app/portal/WeekHistory.tsx). Počíta so **všetkými**
  * plánmi klienta (od trénera aj vlastnými), nie len s aktívnym. Žiadna migrácia —
@@ -258,7 +227,7 @@ async function buildWeekView(
   // workout_days až po logoch). Zmazaný deň (workout_day_id = null) → "Tréning".
   const { data: logRows } = await supabase
     .from("workout_logs")
-    .select("performed_on, entries, workout_days(name, workout_plans(name))")
+    .select("performed_on, entries, plan_snapshot, workout_days(name, workout_plans(name))")
     .eq("client_id", clientId)
     .gte("performed_on", startIso)
     .lte("performed_on", endIso)
@@ -271,7 +240,7 @@ async function buildWeekView(
     list.push({
       dayName: day?.name?.trim() || L.t("workout"),
       planName: day?.workout_plans?.name ?? null,
-      exercises: parseLoggedExercises(l.entries, L),
+      compare: compareLog(l.plan_snapshot, l.entries),
     });
     byDate.set(l.performed_on as string, list);
   }
@@ -366,7 +335,7 @@ export async function getPortalData(): Promise<PortalResult> {
     // a plný plán s dňami a logmi — zvolený aktívny, bez voľby rovno najnovší. Druhý
     // plný dopyt len keď zvolený aktívny medzičasom zmizol/nie je zverejnený.
     const planSelect =
-      "id, name, workout_days(id, day_number, name, exercises, workout_logs(id, workout_day_id, performed_on, entries, completed_at, rpe, note))";
+      "id, name, workout_days(id, day_number, name, exercises, workout_logs(id, workout_day_id, performed_on, entries, plan_snapshot, completed_at, rpe, note))";
     const fullPlanQuery = (planId: string | null) => {
       const q = supabase.from("workout_plans").select(planSelect).eq("client_id", client.id).eq("published", true);
       return (planId ? q.eq("id", planId) : q.order("created_at", { ascending: false }).limit(1))
@@ -509,6 +478,7 @@ export async function getPortalData(): Promise<PortalResult> {
           durationLabel: "",
           exercises: exList,
           loggedExercises,
+          compare: todaysLogForTarget ? compareLog(todaysLogForTarget.plan_snapshot, todaysLogForTarget.entries) : null,
           completedAt: (todaysLogForTarget?.completed_at as string | null | undefined) ?? null,
           logId: (todaysLogForTarget?.id as string | undefined) ?? null,
           editableUntil: editableUntil(todaysLogForTarget?.completed_at as string | null | undefined),
@@ -678,7 +648,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       supabase
         .from("workout_plans")
         .select(
-          "id, name, trainer_id, created_at, workout_days(id, plan_id, name, exercises, day_number, workout_logs(id, workout_day_id, performed_on, completed_at, entries, rpe, note))",
+          "id, name, trainer_id, created_at, workout_days(id, plan_id, name, exercises, day_number, workout_logs(id, workout_day_id, performed_on, completed_at, entries, plan_snapshot, rpe, note))",
         )
         .eq("client_id", client.id)
         .eq("published", true)
@@ -740,6 +710,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
           entries: parseLoggedEntries(r.entries),
           rpe: (r.rpe as number | null) ?? null,
           note: (r.note as string | null) ?? null,
+          compare: compareLog(r.plan_snapshot, r.entries),
         });
       }
 

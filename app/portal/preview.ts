@@ -1,5 +1,18 @@
 /* DEV náhľady karty Dnes (?preview=…). */
-import type { PortalData, PortalPlanChoice, PortalResult, TodaySession } from "@/lib/portal/types";
+import type { PortalData, PortalExercise, PortalPlanChoice, PortalResult, TodaySession } from "@/lib/portal/types";
+import { previewCompare } from "./previewCompare";
+
+/** Tento týždeň → pondelok: plán dňa a čo klient naozaj odcvičil (náhľad s porovnaním). */
+const WEEK_MON_PLAN: PortalExercise[] = [
+  { idx: "1", name: "Tlak na lavičke", scheme: "3 × 8", load: "70 kg", rest: "120 s", entryId: "w1", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 70, restSeconds: 120 },
+  { idx: "2", name: "Tlak nad hlavu", scheme: "3 × 10", load: "35 kg", rest: "90 s", entryId: "w2", plannedSets: 3, plannedReps: "10", exerciseId: null, loadKg: 35, restSeconds: 90 },
+  { idx: "3", name: "Bicepsový zdvih", scheme: "3 × 12", load: "14 kg", rest: "60 s", entryId: "w3", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: 14, restSeconds: 60 },
+];
+const WEEK_MON_ENTRIES = [
+  { entryId: "w1", name: "Tlak na lavičke", sets: [{ reps: 8, weight: 70 }, { reps: 8, weight: 70 }, { reps: 6, weight: 75 }] },
+  { entryId: "w2", name: "Tlak nad hlavu", sets: [{ reps: 10, weight: 35 }, { reps: 9, weight: 35 }, { reps: 8, weight: 35 }] },
+  { entryId: "w3", name: "Bicepsový zdvih", sets: [{ reps: 12, weight: 14 }, { reps: 11, weight: 14 }] },
+];
 
 /** Prepínač aktívneho plánu na Dnes (PlanSwitchSheet) — aktívny je prvý. */
 const PREVIEW_PLAN_CHOICE: PortalPlanChoice = {
@@ -30,6 +43,16 @@ const PREVIEW_SESSION: TodaySession = {
   ],
 };
 
+/** Karta Dnes po odcvičení (?preview=done): čo klient naozaj zapísal. */
+const PREVIEW_DONE_ENTRIES = [
+  { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
+  { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
+  // cvik pridaný počas tréningu (mimo plánu)
+  { entryId: null, name: "Tlaky s jednoručkami", sets: [{ reps: 10, weight: 20 }] },
+  // pridaný cvik na čas
+  { entryId: null, name: "Bočný plank", sets: [{ reps: null, weight: null, durationS: 40 }] },
+];
+
 const PREVIEW_DATA: PortalData = {
   clientFirstName: "Ján",
   today: "2026-08-28",
@@ -55,11 +78,7 @@ const PREVIEW_DATA: PortalData = {
           {
             dayName: "Deň A — Tlak",
             planName: "Silový 3× týždenne",
-            exercises: [
-              { name: "Tlak na lavičke", sets: [{ reps: 8, weight: 70 }, { reps: 8, weight: 70 }, { reps: 6, weight: 75 }] },
-              { name: "Tlak nad hlavu", sets: [{ reps: 10, weight: 35 }, { reps: 9, weight: 35 }, { reps: 8, weight: 35 }] },
-              { name: "Bicepsový zdvih", sets: [{ reps: 12, weight: 14 }, { reps: 11, weight: 14 }] },
-            ],
+            compare: previewCompare(WEEK_MON_PLAN, WEEK_MON_ENTRIES),
           },
         ],
       },
@@ -69,7 +88,7 @@ const PREVIEW_DATA: PortalData = {
         dayNum: 26,
         iso: "2026-08-26",
         state: "done",
-        sessions: [{ dayName: "Deň B — Ťah", planName: "Silový 3× týždenne", exercises: [] }],
+        sessions: [{ dayName: "Deň B — Ťah", planName: "Silový 3× týždenne", compare: previewCompare(null, []) }],
       },
       { label: "Št", dayNum: 27, iso: "2026-08-27", state: "none", sessions: [] },
       { label: "Pi", dayNum: 28, iso: "2026-08-28", state: "today", sessions: [] },
@@ -161,14 +180,8 @@ export function previewResult(kind: string): PortalResult | null {
             ...PREVIEW_SESSION,
             kind: "done",
             completedCount: PREVIEW_SESSION.exercises.length,
-            loggedExercises: [
-              { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
-              { entryId: "p2", name: "Rumunský mŕtvy ťah", note: "Posledná séria ťažká na úchop", sets: [{ reps: 8, weight: 100 }, { reps: 8, weight: 100 }, { reps: 7, weight: 100 }] },
-              // cvik pridaný počas tréningu (mimo plánu)
-              { entryId: null, name: "Tlaky s jednoručkami", sets: [{ reps: 10, weight: 20 }] },
-              // pridaný cvik na čas
-              { entryId: null, name: "Bočný plank", sets: [{ reps: null, weight: null, durationS: 40 }] },
-            ],
+            loggedExercises: PREVIEW_DONE_ENTRIES,
+            compare: previewCompare(PREVIEW_SESSION.exercises, PREVIEW_DONE_ENTRIES),
             completedAt: new Date().toISOString(),
             logId: "preview-log",
             editableUntil: new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString(),

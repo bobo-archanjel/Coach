@@ -1945,46 +1945,6 @@
   font-weight: 650;
   color: var(--accent-text);
 }
-.whExList {
-  display: grid;
-  gap: 8px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.whExRow {
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: var(--fill);
-}
-.whExName {
-  font-size: 13.5px;
-  font-weight: 720;
-  color: var(--paper);
-  margin-bottom: 8px;
-}
-.whSetList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--paper-dim);
-  font-variant-numeric: tabular-nums;
-}
-.whSetList li {
-  background: var(--surface-solid);
-  border-radius: 999px;
-  padding: 4px 10px;
-}
-.whSetList .whSetEmpty {
-  background: none;
-  padding: 3px 0;
-  color: var(--paper-faint);
-}
 .whNoEntries {
   display: flex;
   align-items: center;

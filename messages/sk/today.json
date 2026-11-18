@@ -58,7 +58,6 @@
     "dialog": "Tréning {date}",
     "sessions": "{count, plural, one {# tréning} few {# tréningy} other {# tréningov}}",
     "close": "Zavrieť",
-    "noSets": "bez zápisu sérií",
     "doneNoSets": "Tréning označený ako hotový — bez zápisu skutočných sérií.",
     "reps": "{reps} op."
   },

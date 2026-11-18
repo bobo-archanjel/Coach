@@ -4,13 +4,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { getPortalWeekAction } from "./actions";
-import type { LoggedSetView, WeekDay, WeekView } from "@/lib/portal/types";
-import { formatDuration } from "@/lib/workouts/completed";
+import type { WeekDay, WeekView } from "@/lib/portal/types";
+import { CompletedExercises } from "@/app/components/CompletedExercises";
 import styles from "./portal.module.css";
 
 /* Pás „Tento týždeň" na karte Dnes — okrem aktuálneho týždňa sa dá listovať
    dozadu (šípky), a ťuk na deň s odcvičeným tréningom otvorí náhľad toho, čo
-   klient v ten deň spravil (workout_logs.entries). Dáta: lib/portal/data.ts →
+   klient v ten deň spravil — plán vs. skutočnosť (CompletedExercises). Dáta: lib/portal/data.ts →
    buildWeekView; iné týždne cez server action getPortalWeekAction. */
 
 // Kľúče tried v portal.module.css (styles[...]).
@@ -58,12 +58,6 @@ function fullDate(iso: string, locale: Locale): string {
     timeZone: "UTC",
   });
   return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function setLabel(s: LoggedSetView, repsLabel: (n: number) => string): string {
-  // cvik na čas: sekundy namiesto opakovaní
-  const r = s.reps != null ? repsLabel(s.reps) : s.durationS != null ? formatDuration(s.durationS) : "—";
-  return s.weight != null ? `${r} × ${s.weight} kg` : r;
 }
 
 /** `footer` — počet tréningov a série pod týždňom (karta Dnes, StreakChips). */
@@ -200,21 +194,8 @@ function SessionDialog({ day, onClose }: { day: WeekDay; onClose: () => void }) 
                 {session.planName && <span className={styles.whPlan}>{session.planName}</span>}
               </div>
 
-              {session.exercises.length > 0 ? (
-                <ul className={styles.whExList}>
-                  {session.exercises.map((ex, ei) => (
-                    <li key={ei} className={styles.whExRow}>
-                      <p className={styles.whExName}>{ex.name}</p>
-                      <ol className={styles.whSetList}>
-                        {ex.sets.length > 0 ? (
-                          ex.sets.map((s, k) => <li key={k}>{setLabel(s, (n) => t("reps", { reps: n }))}</li>)
-                        ) : (
-                          <li className={styles.whSetEmpty}>{t("noSets")}</li>
-                        )}
-                      </ol>
-                    </li>
-                  ))}
-                </ul>
+              {session.compare.exercises.length > 0 ? (
+                <CompletedExercises exercises={session.compare.exercises} hasPlan={session.compare.hasPlan} flat />
               ) : (
                 <p className={styles.whNoEntries}>
                   <CheckIcon /> {t("doneNoSets")}

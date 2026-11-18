@@ -58,7 +58,6 @@
     "dialog": "Trénink {date}",
     "sessions": "{count, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
     "close": "Zavřít",
-    "noSets": "bez zápisu sérií",
     "doneNoSets": "Trénink označený jako hotový — bez zápisu skutečných sérií.",
     "reps": "{reps} opak."
   },
