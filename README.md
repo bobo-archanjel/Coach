@@ -75,6 +75,12 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-18** — **Google: rola klienta pri registrácii, chyba pri prihlásení bez účtu** (`feature/google-rola`, migrácia `0068`).
+  - Klient registrovaný cez Google ostával trénerom (callback menil rolu priamym update profilu, ktorý je od 0036 zakázaný). Teraz RPC `claim_client_role` (0068) — trainer → client len pre čerstvý účet bez klientov, hneď s vlastným klientskym riadkom a kódom. Callback berie rolu vždy z DB.
+  - Google na záložke Prihlásenie (`mode=login`) pri neexistujúcom účte: účet, ktorý Google práve vytvoril, sa zmaže (service role) a prihlásenie ukáže „Tento Google účet u nás ešte nie je zaregistrovaný…“ (SK/CZ). Detekcia nového účtu `lib/auth/oauthAccount.ts` (+ `e2e/oauthAccount.spec.ts`).
+  - DB regresný test H6 (`supabase/tests/security_regression.sql`). Dočasné riešenie do prerábky registrácie na predplatné pre trénerov.
+- **2026-11-16** — **História súhlasov s obchodnými podmienkami** (migrácia `0065`): každý súhlas v `terms_acceptances` (registrácia aj brána po prihlásení), záznamy prežijú zmazanie účtu, po 4 rokoch ich zmaže denný cron. Regresný test H5.
+
 - **2026-11-17** — **Testy: schránka správ a jazyk** (`feature/sablona-od-trenera`, len testy).
   - `e2e/spravy-inbox.spec.ts` sa už neprihlasuje cudzím účtom a neposiela správy jeho klientom — QA tréner z env (`E2E_TRAINER_*`), slovenčina cez cookie `fp-locale`, poslaná testovacia správa sa po teste zmaže.
   - `e2e/jazyk.spec.ts`: menu portálu po česky overuje „Jídelníček“ (položka „Deník“ sa premenovala na „Strava“).

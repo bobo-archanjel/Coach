@@ -466,6 +466,33 @@ select pg_temp.chk('H5: po zmazaní účtu záznamy ostanú a majú account_dele
   (select count(*) from public.terms_acceptances where user_id = :TA and account_deleted_at is not null) = 2
   and not exists (select 1 from public.profiles where id = :TA));
 
+-- ============================================================ H6) rola klienta po registrácii cez Google (0068)
+\set GN '''abababab-0000-0000-0000-0000000000ab'''
+\set GO '''cdcdcdcd-0000-0000-0000-0000000000cd'''
+-- OAuth registrácia bez metadát → trigger dá rolu trainer
+insert into auth.users (id, email) values (:GN, 'google-novy@x.sk');
+insert into auth.users (id, email, created_at) values (:GO, 'google-stary@x.sk', now() - interval '1 hour');
+select pg_temp.try(:GN, 'select public.claim_client_role()') as gn_claim \gset
+select pg_temp.chk('H6: čerstvý účet z Google sa prepne na klienta',
+  :'gn_claim' = 'OK' and (select role from public.profiles where id = :GN) = 'client', :'gn_claim');
+select pg_temp.chk('H6: a dostane vlastný klientsky riadok s kódom',
+  (select count(*) from public.clients where user_id = :GN and trainer_id is null and invite_code is not null) = 1);
+select pg_temp.try(:GN, 'select public.claim_client_role()') as gn_again \gset
+select pg_temp.chk('H6: opakované volanie klientom nič nepokazí (žiadny druhý riadok)',
+  :'gn_again' = 'OK' and (select count(*) from public.clients where user_id = :GN) = 1, :'gn_again');
+select pg_temp.try(:GO, 'select public.claim_client_role()') as go_claim \gset
+select pg_temp.chk('H6: starší trénerský účet sa na klienta neprepne',
+  :'go_claim' like 'ERR:%' and (select role from public.profiles where id = :GO) = 'trainer', :'go_claim');
+select pg_temp.try(:T2, 'select public.claim_client_role()') as t2_claim \gset
+select pg_temp.chk('H6: tréner s klientmi sa na klienta neprepne',
+  :'t2_claim' like 'ERR:%' and (select role from public.profiles where id = :T2) = 'trainer', :'t2_claim');
+select pg_temp.chk('H6: anon nevolá claim_client_role',
+  pg_temp.try(null, 'select public.claim_client_role()', 'anon') like 'ERR:%');
+select pg_temp.chk('H6: priamy update roly v profile ostáva zakázaný',
+  pg_temp.try(:GN, format('update public.profiles set role = ''trainer'' where id = %L', :GN)) like 'ERR:%');
+select pg_temp.chk('H6: … a rola sa nezmenila',
+  (select role from public.profiles where id = :GN) = 'client');
+
 -- ============================================================ výsledok
 \echo
 \echo ===== VÝSLEDKY =====
