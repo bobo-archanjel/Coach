@@ -12,6 +12,8 @@ import {
   isStillEditable,
 } from "@/lib/workouts/completed";
 import { LoggedWorkoutEditor } from "./LoggedWorkoutEditor";
+import { CompletedExercises } from "@/app/components/CompletedExercises";
+import type { CompletedCompare } from "@/lib/workouts/completed";
 import styles from "./portal.module.css";
 
 const LockIcon = () => (
@@ -44,7 +46,8 @@ function setLabel(s: LoggedSet, repsLabel: (n: number) => string, locale: Locale
 }
 
 /**
- * Dokončený tréning na karte Dnes — zapísané hodnoty. 24 h po ukončení ponúka
+ * Dokončený tréning na karte Dnes — zapísané hodnoty oproti plánu (CompletedExercises,
+ * farby ako u trénera; bez `compare` len zoznam sérií). 24 h po ukončení ponúka
  * nefarebné "Upraviť hodnoty" (0049: klient zabudol sériu / preklep), potom je
  * záznam zamknutý v DB a ostane len na čítanie.
  */
@@ -56,8 +59,10 @@ export function DoneWorkoutView({
   logId,
   editableUntil,
   exercises,
+  compare,
 }: {
   loggedExercises: LoggedExercise[] | null;
+  compare?: CompletedCompare | null;
   completedAt?: string | null;
   sessionRpe?: number | null;
   sessionNote?: string | null;
@@ -86,7 +91,9 @@ export function DoneWorkoutView({
 
   return (
     <>
-      {loggedExercises ? (
+      {loggedExercises && compare && compare.exercises.length > 0 ? (
+        <CompletedExercises exercises={compare.exercises} hasPlan={compare.hasPlan} flat />
+      ) : loggedExercises ? (
         <div className={styles.doneExercises}>
           {loggedExercises.map((ex, i) => (
             <div key={`${ex.entryId ?? "ex"}-${i}`} className={styles.doneExerciseRow}>

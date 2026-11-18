@@ -79,7 +79,6 @@
     "cancel": "Zrušit",
     "deleteDay": "Smazat den",
     "deleteDayConfirm": "Opravdu smazat den „{name}“{count, plural, =0 {} one { i s # cvikem} other { i s # cviky}}? Nejde to vrátit zpět.",
-    "deleteDayKeepsLogs": " Tréninky, které klient z tohoto dne už odcvičil, zůstanou uložené.",
     "deleting": "Mažu…",
     "yesDeleteDay": "Ano, smazat den",
     "duplicateFailed": "Den se nepodařilo zkopírovat.",
@@ -137,7 +136,7 @@
     "lockedTitle": "Plán je uzamčený",
     "lockedText": "Klient tento plán celý odcvičil — plán je uzamčený. Dole si ho můžeš stáhnout jako PDF nebo uložit jako šablonu a z ní vytvořit nový.",
     "editsTitle": "Úpravy plánu",
-    "editsText": "Klient už z tohoto plánu cvičil. Úpravy se projeví jen v dalších trénincích — odcvičené tréninky zůstávají uložené přesně tak, jak je klient zapsal.",
+    "editsText": "Klient už z tohoto plánu cvičil. Odcvičené dny jsou uzamčené — vidíš v nich, co klient opravdu udělal; ostatní dny můžeš dál upravovat.",
     "completedLogs": "Odcvičené tréninky",
     "workoutFallback": "Trénink",
     "completedOn": "Dokončený – {date}",
@@ -158,7 +157,12 @@
     "ssUnlinkAria": "Rozdělit supersérii mezi cviky {a} a {b}",
     "ssNext": "bez pauzy → {next}",
     "ssRoundRest": "pauza po kole {seconds} s",
-    "ssRoundNoRest": "konec kola"
+    "ssRoundNoRest": "konec kola",
+    "dayDoneShort": "Odcvičeno",
+    "dayDone": "Odcvičeno {date}",
+    "dayDoneHint": "Klient tento den už odcvičil — nejde upravit.",
+    "dayDoneOpen": "Detail tréninku",
+    "dayDoneNoValues": "Klient ukončil trénink bez zapsaných hodnot."
   },
   "active": "Aktivní",
   "daysDone": "{done}/{count, plural, one {# den} few {# dny} other {# dní}}"

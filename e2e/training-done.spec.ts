@@ -128,17 +128,17 @@ test.describe("detail dokončeného tréningu — tréner (?preview=done)", () =
     const rows = drep.getByTestId("set-row");
     await expect(rows).toHaveCount(4);
     await expect(rows.nth(1)).toContainText("8 op. × 60 kg");
-    await expect(rows.nth(1)).toContainText("8 op. × 62.5 kg");
+    await expect(rows.nth(1)).toContainText("8 op. × 62,5 kg");
     await expect(rows.nth(3)).toContainText("navyše");
     // farby oproti plánu (3 × 8 @ 60 kg): presne = zelená, menej = červená, viac = modrá
     const tone = (row: number, text: string) => rows.nth(row).locator("[data-tone]").filter({ hasText: text });
     await expect(tone(0, "8 op.")).toHaveAttribute("data-tone", "met");
     await expect(tone(0, "60 kg")).toHaveAttribute("data-tone", "met");
-    await expect(tone(1, "62.5 kg")).toHaveAttribute("data-tone", "above");
+    await expect(tone(1, "62,5 kg")).toHaveAttribute("data-tone", "above");
     await expect(tone(2, "6 op.")).toHaveAttribute("data-tone", "below");
     await expect(rows.nth(3).locator("[data-tone]")).toHaveCount(0);
     const color = (row: number, text: string) => tone(row, text).evaluate((el) => getComputedStyle(el).color);
-    const [met, above, below] = [await color(0, "8 op."), await color(1, "62.5 kg"), await color(2, "6 op.")];
+    const [met, above, below] = [await color(0, "8 op."), await color(1, "62,5 kg"), await color(2, "6 op.")];
     expect(new Set([met, above, below]).size, "tri rôzne farby").toBe(3);
 
     const rdl = page.getByTestId("completed-exercise").filter({ hasText: "Rumunský mŕtvy ťah" });
@@ -632,7 +632,7 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     const rows = ex.getByTestId("set-row");
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText("8 op. × 60 kg");
-    await expect(rows.nth(1)).toContainText("8 op. × 62.5 kg");
+    await expect(rows.nth(1)).toContainText("8 op. × 62,5 kg");
     await expect(trainerPage.getByTestId("workout-edited")).toContainText("Klient hodnoty dodatočne upravil");
     await expect(ex.getByText("„Posledná séria ťažká“")).toBeVisible();
     await expect(trainerPage.getByText("„E2E tréning“")).toBeVisible();

@@ -129,14 +129,15 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
     await expect(dialog).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Deň 1 — Tlak/ })).toBeVisible();
 
-    // Esc zruší; prepnutie dňa ukáže potvrdenie pre nový deň (odcvičený → info o záznamoch)
+    // Esc zruší; prepnutie dňa ukáže potvrdenie pre nový deň (odcvičený deň sa nemaže vôbec —
+    // e2e/zamok-odcviceneho-dna.spec.ts)
     await delDay.click();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await page.getByRole("button", { name: /Deň 2 — Nohy/ }).click();
     await page.getByRole("button", { name: "Zmazať deň", exact: true }).click();
     await expect(page.getByRole("alertdialog")).toContainText("„Deň 2 — Nohy a spodný chrbát“ aj s 3 cvikmi");
-    await expect(page.getByRole("alertdialog")).toContainText("ostanú uložené");
+    await expect(page.getByRole("alertdialog")).not.toContainText("ostanú uložené");
     await expect(page.getByRole("button", { name: "Áno, zmazať deň" })).toBeVisible();
   });
 });

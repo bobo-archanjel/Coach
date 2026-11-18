@@ -153,7 +153,8 @@ test.describe("šablóna z plánu od trénera — reálna DB (QA klient)", () =>
     const mDay = (mt![0].meal_template_days as { name: string; meals: { food_name: string; grams: number }[] }[])[0];
     expect(mDay.name).toBe("Pondelok");
     expect(mDay.meals[0]).toMatchObject({ food_name: "Ryža", grams: 200 });
-    // šablóna je hneď v „Moje šablóny“
+    // šablóna je hneď v záložke „Moje šablóny“
+    await page.getByRole("radio", { name: /Moje šablóny/ }).click();
     await expect(page.locator("#moje-sablony-jedalnicka").getByText(mealName)).toBeVisible();
   });
 });

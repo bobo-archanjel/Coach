@@ -14,6 +14,8 @@ import {
   setActivePlanAction,
 } from "./actions";
 import { ExercisePreviewList } from "../ExercisePreviewList";
+import { CompletedExercises } from "@/app/components/CompletedExercises";
+import { PlansTabs, type PlansTab } from "../PlansTabs";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
@@ -87,7 +89,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   // Výsledok "Uložiť ako šablónu" pri konkrétnom tréningu (potvrdenie alebo chyba).
   const [templateNote, setTemplateNote] = useState<{ planId: string; text: string; error: boolean } | null>(null);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
+  // Tréningové plány / Moje šablóny — prepínač v hlavičke sekcie
+  const [tab, setTab] = useState<PlansTab>("plans");
   // ?plan=<id> (odkaz z upozornenia „Nový tréningový plán“) rozbalí presne ten plán,
   // inak aktívny plán (karta Dnes)
   const searchParams = useSearchParams();
@@ -101,6 +104,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // Odcvičený deň otvorený v editore "Upraviť hodnoty" (id záznamu workout_logs).
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  // Odcvičený deň: posledný tréning (plán vs. skutočnosť) alebo plán dňa — prepínač.
+  const [dayView, setDayView] = useState<"done" | "plan">("done");
   const [error, setError] = useState<string | null>(null);
   // Potvrdenie po „Nastaviť ako aktívny“ (pri pláne, ktorý sa práve stal aktívnym).
   const [activeNote, setActiveNote] = useState<{ planId: string; text: string } | null>(null);
@@ -185,6 +190,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const selectDay = (dayId: string) => {
     setError(null);
     setEditingLogId(null);
+    setDayView("done");
     setSelectedDayId(dayId);
   };
 
@@ -226,8 +232,6 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         text: res.error ?? tr("templateSaved"),
         error: Boolean(res.error),
       });
-      // Novú šablónu hneď ukáž — inak by klient musel zbalený zoznam hore hľadať.
-      if (!res.error) setTemplatesOpen(true);
     });
   };
 
@@ -277,8 +281,20 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
   return (
     <section aria-label={tr("plans")} className={styles.trWrap}>
-      <div className={styles.trHead}>
-        <p className={styles.panelLabel}>{tr("plans")}</p>
+      <div className={`${styles.trHead} ${styles.trHeadTabs}`}>
+        <PlansTabs
+          value={tab}
+          onChange={(next) => {
+            setTab(next);
+            setConfirmTplDelete(null);
+          }}
+          plansLabel={tr("plans")}
+          templatesLabel={tr("myTemplates")}
+          plansCount={plans.length}
+          templatesCount={templates.length}
+          ariaLabel={tr("tabsAria")}
+          templatesTour="training-templates"
+        />
         <button
           type="button"
           className={plans.length > 0 ? styles.trBuildBtnGhost : styles.trBuildBtn}
@@ -295,22 +311,13 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         </p>
       )}
 
-      {/* Moje šablóny navrchu, ale zbalené — aj pri viacerých šablónach neodtlačia
-          tréningy (od trénera) nižšie, kým ich klient sám nerozbalí. */}
-      {templates.length > 0 && (
-        <div className={styles.trTplBox} data-tour="training-templates">
-          <button
-            type="button"
-            className={styles.trTplToggle}
-            onClick={() => setTemplatesOpen((o) => !o)}
-            aria-expanded={templatesOpen}
-            aria-controls="moje-sablony"
-          >
-            <span className={styles.trTplToggleLabel}>{tr("myTemplates")}</span>
-            <span className={styles.trTplCount}>{templates.length}</span>
-            <ChevronIcon className={`${styles.trChev} ${templatesOpen ? styles.trChevOpen : ""}`} />
-          </button>
-          {templatesOpen && (
+      {tab === "templates" ? (
+        templates.length === 0 ? (
+          <div className={styles.panel}>
+            <p className={styles.trEmptyBody}>{tr("templatesEmpty")}</p>
+          </div>
+        ) : (
+          <div className={styles.trTplBox}>
             <ul id="moje-sablony" className={styles.trTplList}>
               {templates.map((t) => {
                 const exCount = t.days.reduce((n, d) => n + d.exercises.length, 0);
@@ -351,13 +358,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                 );
               })}
             </ul>
-          )}
-        </div>
-      )}
-      {/* čiara oddelí šablóny od tréningov pod nimi — karty vyzerajú rovnako a splývali */}
-      {templates.length > 0 && <hr className={styles.trDivider} />}
-
-      {plans.length === 0 ? (
+          </div>
+        )
+      ) : plans.length === 0 ? (
         <div className={styles.panel}>
           <p className={styles.trEmptyLead}>{tr("emptyLead")}</p>
           <p className={styles.trEmptyBody}>
@@ -439,6 +442,42 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               editableUntil={selectedDay.lastLog.editableUntil!}
                               onClose={() => setEditingLogId(null)}
                             />
+                          ) : selectedDay.lastLog ? (
+                            <>
+                              <div
+                                className={`${styles.modeToggle} ${styles.mpTabs}`}
+                                role="radiogroup"
+                                aria-label={tr("dayViewAria")}
+                              >
+                                {(["done", "plan"] as const).map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={dayView === v}
+                                    className={dayView === v ? styles.modeOn : undefined}
+                                    onClick={() => setDayView(v)}
+                                  >
+                                    {v === "done" ? tr("dayViewDone") : tr("dayViewPlan")}
+                                  </button>
+                                ))}
+                              </div>
+                              {dayView === "plan" ? (
+                                selectedDay.exercises.length > 0 ? (
+                                  <ExercisePreviewList exercises={selectedDay.exercises} />
+                                ) : (
+                                  <p className={styles.trEmptyDay}>{tr("noExercises")}</p>
+                                )
+                              ) : selectedDay.lastLog.compare.exercises.length > 0 ? (
+                                <CompletedExercises
+                                  exercises={selectedDay.lastLog.compare.exercises}
+                                  hasPlan={selectedDay.lastLog.compare.hasPlan}
+                                  flat
+                                />
+                              ) : (
+                                <p className={styles.trEmptyDay}>{tr("doneNoValues")}</p>
+                              )}
+                            </>
                           ) : selectedDay.exercises.length > 0 ? (
                             <ExercisePreviewList exercises={selectedDay.exercises} />
                           ) : (
@@ -578,9 +617,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         </ul>
       )}
 
-      {plans.length > 1 && (
-        <p className={styles.trHint}>{tr("hint")}</p>
-      )}
+      {tab === "plans" && plans.length > 1 && <p className={styles.trHint}>{tr("hint")}</p>}
     </section>
   );
 }

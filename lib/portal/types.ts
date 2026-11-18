@@ -5,6 +5,7 @@ import type { MealSlot } from "@/lib/meals";
 import type { PortionUnit } from "@/lib/portions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 import type { PortalStreaks } from "./streak";
+import type { CompletedCompare } from "@/lib/workouts/completed";
 
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
 // si sám vyberá kedy cvičí, "ďalší tréning" je vždy nasledujúci nedokončený deň
@@ -13,27 +14,13 @@ import type { PortalStreaks } from "./streak";
 // `future` je deň, ktorý ešte len príde (relevantné pri prezeraní minulých týždňov).
 export type DayCellState = "done" | "today" | "future" | "none";
 
-/** Jedna skutočne odcvičená séria v histórii (workout_logs.entries). */
-export interface LoggedSetView {
-  reps: number | null;
-  weight: number | null;
-  /** cvik na čas — odcvičené sekundy */
-  durationS?: number | null;
-}
-
-/** Jeden cvik s odcvičenými sériami — pohľad do histórie, bez väzieb na builder. */
-export interface LoggedExerciseView {
-  name: string;
-  sets: LoggedSetView[];
-}
-
 /** Jeden odcvičený tréning v konkrétny deň (jeden riadok workout_logs). */
 export interface LoggedSessionView {
   /** názov dňa z workout_days, alebo "Tréning" ak deň medzitým zanikol */
   dayName: string;
   planName: string | null;
-  /** skutočné hodnoty; prázdne pri starších (Fáza A) záznamoch bez zápisu sérií */
-  exercises: LoggedExerciseView[];
+  /** plán vs. skutočnosť po sériách; prázdne pri starších (Fáza A) záznamoch bez zápisu sérií */
+  compare: CompletedCompare;
 }
 
 export interface WeekDay {
@@ -138,6 +125,8 @@ export interface TodaySession {
    * žiadne hodnoty (len odklikol) — vtedy sa použije `exercises` ako fallback.
    */
   loggedExercises: LoggedExercise[] | null;
+  /** `kind: "done"` — plán vs. skutočnosť po sériách (farby ako u trénera) */
+  compare?: CompletedCompare | null;
   /** `kind: "done"` — čas ukončenia (workout_logs.completed_at, 0048) */
   completedAt?: string | null;
   /** `kind: "done"` — id záznamu a do kedy ho klient smie opraviť (24 h, 0049) */
@@ -236,6 +225,8 @@ export interface PortalDayLog {
   entries: LoggedExercise[];
   rpe: number | null;
   note: string | null;
+  /** plán vs. skutočnosť po sériách (Tréning → deň Hotovo → Odcvičené) */
+  compare: CompletedCompare;
 }
 
 /** Zdroj plánu: od trénera, alebo si ho klient vytvoril sám. */

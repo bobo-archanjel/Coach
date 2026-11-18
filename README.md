@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-18** — **Odcvičený tréning: plán vs. skutočnosť u klienta, zámok odcvičeného dňa, šablóny v záložke** (`feature/odcvicene-u-klienta`, `feature/zamok-odcviceneho-dna`, `feature/sablony-prepinac`, bez migrácie).
+  - Klient: deň „Hotovo“ v Tréningu má prepínač **Odcvičené / Plán** (predtým ukazoval plán namiesto odcvičeného); karta Dnes po odcvičení a náhľad dňa v Tento týždeň majú tabuľku plán vs. skutočnosť s farbami ako u trénera. Zdieľaný komponent `app/components/CompletedExercises.tsx` (aj detail trénera), váha podľa jazyka (62,5 kg).
+  - Odcvičený deň plánu je zamknutý — tréner aj klient (vlastný tréning): v builderi fajka v dráhe dní, pruh Odcvičené (tréner s odkazom na detail tréningu), plán vs. skutočnosť namiesto úprav, bez premenovania / kópie / zmazania a bez pridávania cvikov. Server to vynúti (`getDayForEdit.dayDone`, `saveClientPlanAction`). Zoznam „Odcvičené tréningy“ pod builderom už len pre zmazané dni.
+  - Klient: „Moje šablóny“ ako záložka vedľa plánov (Tréningové plány / Moje šablóny, Jedálničky / Moje šablóny) namiesto zbalenej karty nad plánmi (`app/portal/PlansTabs.tsx`).
+  - Testy: `e2e/odcvicene-klient.spec.ts`, `e2e/zamok-odcviceneho-dna.spec.ts`, `e2e/sablony-prepinac.spec.ts`.
 - **2026-11-18** — **Google: rola klienta pri registrácii, chyba pri prihlásení bez účtu** (`feature/google-rola`, migrácia `0068`).
   - Klient registrovaný cez Google ostával trénerom (callback menil rolu priamym update profilu, ktorý je od 0036 zakázaný). Teraz RPC `claim_client_role` (0068) — trainer → client len pre čerstvý účet bez klientov, hneď s vlastným klientskym riadkom a kódom. Callback berie rolu vždy z DB.
   - Google na záložke Prihlásenie (`mode=login`) pri neexistujúcom účte: účet, ktorý Google práve vytvoril, sa zmaže (service role) a prihlásenie ukáže „Tento Google účet u nás ešte nie je zaregistrovaný…“ (SK/CZ). Detekcia nového účtu `lib/auth/oauthAccount.ts` (+ `e2e/oauthAccount.spec.ts`).

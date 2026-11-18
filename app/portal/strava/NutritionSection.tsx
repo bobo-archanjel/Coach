@@ -10,6 +10,7 @@ import { usePortionLabel } from "@/app/components/food/usePortionLabel";
 import { FoodIcon } from "@/app/portal/icons";
 import { ActionDownloadIcon, ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
+import { PlansTabs, type PlansTab } from "../PlansTabs";
 import {
   chooseActiveMealPlanAction,
   deleteClientMealPlanAction,
@@ -92,7 +93,8 @@ export function NutritionSection({
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState(false);
   const [fromTemplate, setFromTemplate] = useState<PortalMealTemplate | null>(null);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
+  // Jedálničky / Moje šablóny — prepínač v hlavičke sekcie
+  const [tab, setTab] = useState<PlansTab>("plans");
   const [plansOpen, setPlansOpen] = useState(false);
   const plansBtnRef = useRef<HTMLButtonElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -159,7 +161,6 @@ export function NutritionSection({
     startTransition(async () => {
       const res = await saveOwnMealTemplateAction(mealPlanId);
       setNote({ text: res.error ?? t("templateSaved"), error: Boolean(res.error) });
-      if (!res.error) setTemplatesOpen(true);
     });
   };
 
@@ -226,8 +227,21 @@ export function NutritionSection({
       </div>
 
       <section aria-label={t("mealPlan")} className={styles.trWrap} data-tour="nutrition-plan">
-        <div className={styles.trHead}>
-          <h2 className={styles.sectionTitle}>{t("mealPlan")}</h2>
+        <div className={`${styles.trHead} ${styles.trHeadTabs}`}>
+          <h2 className={styles.srOnly}>{t("mealPlan")}</h2>
+          <PlansTabs
+            value={tab}
+            onChange={(next) => {
+              setTab(next);
+              setConfirmTplDelete(null);
+            }}
+            plansLabel={t("tabPlans")}
+            templatesLabel={t("myTemplates")}
+            plansCount={plans.length}
+            templatesCount={templates.length}
+            ariaLabel={t("tabsSectionAria")}
+            templatesTour="nutrition-templates"
+          />
           <button
             type="button"
             className={plans.length > 0 ? styles.trBuildBtnGhost : styles.trBuildBtn}
@@ -244,21 +258,13 @@ export function NutritionSection({
           </p>
         )}
 
-        {/* Moje šablóny — zbalené, nech neodtlačia jedálniček nižšie */}
-        {templates.length > 0 && (
-          <div className={styles.trTplBox} data-tour="nutrition-templates">
-            <button
-              type="button"
-              className={styles.trTplToggle}
-              onClick={() => setTemplatesOpen((o) => !o)}
-              aria-expanded={templatesOpen}
-              aria-controls="moje-sablony-jedalnicka"
-            >
-              <span className={styles.trTplToggleLabel}>{t("myTemplates")}</span>
-              <span className={styles.trTplCount}>{templates.length}</span>
-              <ChevronIcon className={`${styles.trChev} ${templatesOpen ? styles.trChevOpen : ""}`} />
-            </button>
-            {templatesOpen && (
+        {tab === "templates" ? (
+          templates.length === 0 ? (
+            <div className={styles.panel}>
+              <p className={styles.trEmptyBody}>{t("templatesEmpty")}</p>
+            </div>
+          ) : (
+            <div className={styles.trTplBox}>
               <ul id="moje-sablony-jedalnicka" className={styles.trTplList}>
                 {templates.map((tpl) => (
                   <li key={tpl.id} className={styles.trTpl}>
@@ -295,145 +301,147 @@ export function NutritionSection({
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
-        )}
-
-        {/* aktívny jedálniček (nadpis dní nižšie). Pri viacerých je celý riadok karta-výber
-            (ikona, „JEDÁLNIČKY · počet“, názov so štítkom, šípka) — ťuk kamkoľvek otvorí okno
-            s výberom Vlastné / Od trénera. Tlačidlo je šípka, jeho ::after pokryje celú kartu,
-            aby nadpis ostal nadpisom (h3 v <button> nie je platné). */}
-        {mealPlanId && plans.length > 1 ? (
-          <div className={styles.mpSelect} data-tour="nutrition-active">
-            <span className={styles.mpSelectIcon}>
-              <ListIcon />
-            </span>
-            <span className={styles.mpSelectText}>
-              <span className={styles.mpSelectLabel}>{t("plansLabel", { count: plans.length })}</span>
-              <span className={styles.mpSelectTitle}>
-                <h3 className={styles.mpSelectName}>{mealPlanName}</h3>
-                <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
-                  {activeSource === "client" ? t("own") : t("fromTrainer")}
-                </span>
-              </span>
-            </span>
-            <button
-              ref={plansBtnRef}
-              type="button"
-              className={styles.mpSelectBtn}
-              onClick={() => setPlansOpen(true)}
-              aria-haspopup="dialog"
-              aria-label={t("plansButtonAria", { count: plans.length })}
-              data-tour="nutrition-switch"
-            >
-              <ChevronIcon />
-            </button>
-          </div>
-        ) : (
-          mealPlanId && (
-            <div className={styles.psRow} data-tour="nutrition-active">
-              <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
-                {activeSource === "client" ? t("own") : t("fromTrainer")}
-              </span>
-              <h3 className={`${styles.psName} ${styles.mpName}`}>{mealPlanName}</h3>
             </div>
           )
-        )}
-
-        {mealDays.length === 0 ? (
-          <div className={styles.panel}>
-            <div className={styles.sessionQuiet}>
-              <p>{mealPlanId ? t("noMeals") : t("noMealPlan")}</p>
-            </div>
-          </div>
         ) : (
-          <div className={styles.stack}>
-            {mealDays.map((day) => (
-              <div key={day.id} className={styles.panel}>
-                <div className={styles.mealDayHead}>
-                  <span className={styles.mealDayName}>{day.name}</span>
-                  <span className={styles.chip}>{day.totalKcal} kcal</span>
-                </div>
-                {day.groups.length === 0 ? (
-                  <div className={styles.sessionQuiet}>
-                    <p>{t("noMeals")}</p>
-                  </div>
-                ) : (
-                  day.groups.map((group) => (
-                    <div key={group.slotLabel}>
-                      <p className={styles.mealSlot}>{group.slotLabel}</p>
-                      <ol className={styles.mealList}>
-                        {group.entries.map((entry, i) => (
-                          <li key={i} className={styles.mealRow}>
-                            <span>
-                              <span className={styles.mealName}>{entry.name}</span>
-                              <span className={styles.mealMeta}>
-                                {portionLabel({ grams: entry.grams, unit: entry.portionUnit, qty: entry.portionQty, base: entry.portionBase })} ·{" "}
-                                {entry.proteinG}g B · {entry.carbsG}g S · {entry.fatG}g T
-                              </span>
-                            </span>
-                            <span className={styles.mealKcal}>{entry.kcal} kcal</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  ))
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* akcie pod jedálničkom — jeden panel rovnako veľkých tlačidiel s ikonami (mriežka:
-            mobil 2 stĺpce, počítač v riadku). Od trénera: PDF + Uložiť ako šablónu (klient si
-            zaň platí — kópia mu ostane aj po zmene / zmazaní trénerom); vlastný navyše Upraviť
-            a Zmazať (s potvrdením na mieste mriežky). */}
-        {mealPlanId && (isOwn || mealDays.length > 0) && (
-          <div className={styles.mpActions} data-tour={isOwn ? "nutrition-own-actions" : "nutrition-plan-actions"}>
-            {confirmDelete ? (
-              <div className={pa.confirm}>
-                <span className={pa.confirmText}>{t("deleteConfirm")}</span>
-                <span className={pa.confirmBtns}>
-                  <button type="button" className={pa.confirmNo} onClick={() => setConfirmDelete(false)} disabled={pending}>
-                    {t("no")}
-                  </button>
-                  <button type="button" className={pa.confirmYes} onClick={removePlan} disabled={pending}>
-                    {t("delete")}
-                  </button>
+          <>
+            {/* aktívny jedálniček (nadpis dní nižšie). Pri viacerých je celý riadok karta-výber
+                (ikona, „JEDÁLNIČKY · počet“, názov so štítkom, šípka) — ťuk kamkoľvek otvorí okno
+                s výberom Vlastné / Od trénera. Tlačidlo je šípka, jeho ::after pokryje celú kartu,
+                aby nadpis ostal nadpisom (h3 v <button> nie je platné). */}
+            {mealPlanId && plans.length > 1 ? (
+              <div className={styles.mpSelect} data-tour="nutrition-active">
+                <span className={styles.mpSelectIcon}>
+                  <ListIcon />
                 </span>
+                <span className={styles.mpSelectText}>
+                  <span className={styles.mpSelectLabel}>{t("plansLabel", { count: plans.length })}</span>
+                  <span className={styles.mpSelectTitle}>
+                    <h3 className={styles.mpSelectName}>{mealPlanName}</h3>
+                    <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
+                      {activeSource === "client" ? t("own") : t("fromTrainer")}
+                    </span>
+                  </span>
+                </span>
+                <button
+                  ref={plansBtnRef}
+                  type="button"
+                  className={styles.mpSelectBtn}
+                  onClick={() => setPlansOpen(true)}
+                  aria-haspopup="dialog"
+                  aria-label={t("plansButtonAria", { count: plans.length })}
+                  data-tour="nutrition-switch"
+                >
+                  <ChevronIcon />
+                </button>
               </div>
             ) : (
-              <div className={pa.grid}>
-                {isOwn && (
-                  <button type="button" className={pa.action} onClick={() => openBuilder(true)}>
-                    <ActionEditIcon />
-                    {t("edit")}
-                  </button>
+              mealPlanId && (
+                <div className={styles.psRow} data-tour="nutrition-active">
+                  <span className={styles.trSrcChip} data-src={activeSource ?? "trainer"}>
+                    {activeSource === "client" ? t("own") : t("fromTrainer")}
+                  </span>
+                  <h3 className={`${styles.psName} ${styles.mpName}`}>{mealPlanName}</h3>
+                </div>
+              )
+            )}
+
+            {mealDays.length === 0 ? (
+              <div className={styles.panel}>
+                <div className={styles.sessionQuiet}>
+                  <p>{mealPlanId ? t("noMeals") : t("noMealPlan")}</p>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.stack}>
+                {mealDays.map((day) => (
+                  <div key={day.id} className={styles.panel}>
+                    <div className={styles.mealDayHead}>
+                      <span className={styles.mealDayName}>{day.name}</span>
+                      <span className={styles.chip}>{day.totalKcal} kcal</span>
+                    </div>
+                    {day.groups.length === 0 ? (
+                      <div className={styles.sessionQuiet}>
+                        <p>{t("noMeals")}</p>
+                      </div>
+                    ) : (
+                      day.groups.map((group) => (
+                        <div key={group.slotLabel}>
+                          <p className={styles.mealSlot}>{group.slotLabel}</p>
+                          <ol className={styles.mealList}>
+                            {group.entries.map((entry, i) => (
+                              <li key={i} className={styles.mealRow}>
+                                <span>
+                                  <span className={styles.mealName}>{entry.name}</span>
+                                  <span className={styles.mealMeta}>
+                                    {portionLabel({ grams: entry.grams, unit: entry.portionUnit, qty: entry.portionQty, base: entry.portionBase })} ·{" "}
+                                    {entry.proteinG}g B · {entry.carbsG}g S · {entry.fatG}g T
+                                  </span>
+                                </span>
+                                <span className={styles.mealKcal}>{entry.kcal} kcal</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* akcie pod jedálničkom — jeden panel rovnako veľkých tlačidiel s ikonami (mriežka:
+                mobil 2 stĺpce, počítač v riadku). Od trénera: PDF + Uložiť ako šablónu (klient si
+                zaň platí — kópia mu ostane aj po zmene / zmazaní trénerom); vlastný navyše Upraviť
+                a Zmazať (s potvrdením na mieste mriežky). */}
+            {mealPlanId && (isOwn || mealDays.length > 0) && (
+              <div className={styles.mpActions} data-tour={isOwn ? "nutrition-own-actions" : "nutrition-plan-actions"}>
+                {confirmDelete ? (
+                  <div className={pa.confirm}>
+                    <span className={pa.confirmText}>{t("deleteConfirm")}</span>
+                    <span className={pa.confirmBtns}>
+                      <button type="button" className={pa.confirmNo} onClick={() => setConfirmDelete(false)} disabled={pending}>
+                        {t("no")}
+                      </button>
+                      <button type="button" className={pa.confirmYes} onClick={removePlan} disabled={pending}>
+                        {t("delete")}
+                      </button>
+                    </span>
+                  </div>
+                ) : (
+                  <div className={pa.grid}>
+                    {isOwn && (
+                      <button type="button" className={pa.action} onClick={() => openBuilder(true)}>
+                        <ActionEditIcon />
+                        {t("edit")}
+                      </button>
+                    )}
+                    <button type="button" className={pa.action} onClick={saveTemplate} disabled={pending}>
+                      <ActionTemplateIcon />
+                      {t("saveTemplate")}
+                    </button>
+                    {mealDays.length > 0 && (
+                      <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className={pa.action} data-tour="nutrition-pdf">
+                        <ActionDownloadIcon />
+                        {t("downloadPdf")}
+                      </a>
+                    )}
+                    {isOwn && (
+                      <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => setConfirmDelete(true)}>
+                        <ActionTrashIcon />
+                        {t("delete")}
+                      </button>
+                    )}
+                  </div>
                 )}
-                <button type="button" className={pa.action} onClick={saveTemplate} disabled={pending}>
-                  <ActionTemplateIcon />
-                  {t("saveTemplate")}
-                </button>
-                {mealDays.length > 0 && (
-                  <a href={`/api/export/meal-plan/${mealPlanId}/pdf`} className={pa.action} data-tour="nutrition-pdf">
-                    <ActionDownloadIcon />
-                    {t("downloadPdf")}
-                  </a>
-                )}
-                {isOwn && (
-                  <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => setConfirmDelete(true)}>
-                    <ActionTrashIcon />
-                    {t("delete")}
-                  </button>
+                {note && (
+                  <p className={`${styles.trTplNote} ${note.error ? styles.trTplNoteError : ""}`} role="status">
+                    {note.text}
+                  </p>
                 )}
               </div>
             )}
-            {note && (
-              <p className={`${styles.trTplNote} ${note.error ? styles.trTplNoteError : ""}`} role="status">
-                {note.text}
-              </p>
-            )}
-          </div>
+          </>
         )}
       </section>
 

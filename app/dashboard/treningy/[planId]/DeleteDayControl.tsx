@@ -16,14 +16,11 @@ export function DeleteDayControl({
   dayId,
   dayName,
   exerciseCount,
-  hasCompleted,
 }: {
   planId: string;
   dayId: string;
   dayName: string;
   exerciseCount: number;
-  /** klient už tento deň odcvičil — ukážeme, že jeho záznamy ostanú */
-  hasCompleted: boolean;
 }) {
   const t = useTranslations("plans.builder");
   const [confirming, setConfirming] = useState(false);
@@ -60,7 +57,6 @@ export function DeleteDayControl({
     <div className={styles.deleteDayConfirm} role="alertdialog" aria-labelledby={`delete-day-${dayId}`}>
       <p id={`delete-day-${dayId}`} className={styles.deleteDayQuestion}>
         {t("deleteDayConfirm", { name: dayName, count: exerciseCount })}
-        {hasCompleted && t("deleteDayKeepsLogs")}
       </p>
       <div className={styles.deleteDayActions}>
         <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={doDelete} disabled={pending}>

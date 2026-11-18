@@ -1,10 +1,13 @@
 "use client";
 
 import { SwipeBack } from "@/app/components/SwipeBack";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
-import type { ExerciseOption, PortalExercise, PortalPlan, PortalTemplate } from "@/lib/portal/types";
+import type { ExerciseOption, PortalDayLog, PortalExercise, PortalPlan, PortalTemplate } from "@/lib/portal/types";
+import { formatCompletedDate, type CompletedCompare } from "@/lib/workouts/completed";
+import type { Locale } from "@/lib/i18n/locales";
+import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
@@ -57,7 +60,20 @@ type BEx = {
   /** superséria — id skupiny (lib/workouts/superset.ts) */
   superset: string | null;
 };
-type BDay = { key: string; id: string | null; name: string; exercises: BEx[] };
+/** `done` = odcvičený deň uloženého plánu — zamknutý (bez úprav, premenovania, kópie, zmazania) */
+type BDay = {
+  key: string;
+  id: string | null;
+  name: string;
+  exercises: BEx[];
+  done?: { completedAt: string | null; compare: CompletedCompare } | null;
+};
+
+const CheckIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 const EditIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -84,11 +100,14 @@ function newExercise(name: string, exerciseId: string | null, last?: BEx): BEx {
 
 /** Dni pre rozpracovaný tréning — z upravovaného plánu (dni s id → úprava) alebo
     zo šablóny (bez id → úplne nový tréning, nové entry_id). */
-function toDraftDays(days: { id?: string; name: string; exercises: PortalExercise[] }[]): BDay[] {
+function toDraftDays(
+  days: { id?: string; name: string; exercises: PortalExercise[]; lastLog?: PortalDayLog | null }[],
+): BDay[] {
   return days.map((d) => ({
     key: uid(),
     id: d.id ?? null,
     name: d.name,
+    done: d.id && d.lastLog ? { completedAt: d.lastLog.completedAt, compare: d.lastLog.compare } : null,
     exercises: d.exercises.map((e) => ({
       key: uid(),
       entryId: d.id ? (e.entryId ?? undefined) : undefined,
@@ -119,6 +138,7 @@ export function ClientPlanBuilder({
   onSaved: () => void;
 }) {
   const t = useTranslations("clientBuilder");
+  const locale = useLocale() as Locale;
   const [name, setName] = useState(initial?.name ?? template?.name ?? "");
   const [days, setDays] = useState<BDay[]>(() => toDraftDays(initial?.days ?? template?.days ?? []));
   // "" = ešte nevybraný → activeDay spadne na prvý deň (nižšie).
@@ -150,6 +170,7 @@ export function ClientPlanBuilder({
   // activeKey init sa vyhodnotí len raz — ak je prázdny, spadni na prvý deň.
   const activeDay = days.find((d) => d.key === activeKey) ?? days[0] ?? null;
   const realActiveKey = activeDay?.key ?? "";
+  const activeDone = activeDay?.done ?? null;
   const tabsRef = useRef<HTMLDivElement>(null);
   useActiveTabInView(tabsRef, realActiveKey);
 
@@ -191,13 +212,14 @@ export function ClientPlanBuilder({
     return null;
   };
   const removeDay = (key: string) => {
-    setDays((prev) => prev.filter((d) => d.key !== key));
+    // odcvičený deň sa nemaže (server ho aj tak ponechá)
+    setDays((prev) => prev.filter((d) => d.key !== key || d.done));
     selectDay("");
   };
   /** „Premenovať“ z okna; vráti chybu (okno ostane otvorené) alebo null. */
   const renameDay = (key: string, name: string): string | null => {
     if (!name) return t("dayNameRequired");
-    patchDay(key, (d) => ({ ...d, name }));
+    patchDay(key, (d) => (d.done ? d : { ...d, name }));
     setRenaming(false);
     return null;
   };
@@ -205,7 +227,7 @@ export function ClientPlanBuilder({
       Nový deň aj cviky bez id — server im pri „Uložiť“ pridelí nové (ako pri šablóne). */
   const duplicateDay = (key: string) => {
     const src = days.find((d) => d.key === key);
-    if (!src || days.length >= MAX_DAYS) return;
+    if (!src || src.done || days.length >= MAX_DAYS) return;
     const copy: BDay = {
       key: uid(),
       id: null,
@@ -218,6 +240,7 @@ export function ClientPlanBuilder({
 
   const addExercise = (exName: string, exerciseId: string | null): string | null => {
     if (!activeDay) return t("addDayFirst");
+    if (activeDay.done) return t("dayDoneHint");
     if (activeDay.exercises.length >= MAX_EXERCISES) return t("maxExercises", { max: MAX_EXERCISES });
     const ex = newExercise(exName, exerciseId, activeDay.exercises[activeDay.exercises.length - 1]);
     patchDay(activeDay.key, (d) => ({ ...d, exercises: [...d.exercises, ex] }));
@@ -323,8 +346,15 @@ export function ClientPlanBuilder({
                   className={`${b.dayTab} ${d.key === realActiveKey ? b.dayTabActive : ""}`}
                   onClick={() => selectDay(d.key)}
                   aria-current={d.key === realActiveKey ? "true" : undefined}
-                  title={d.name}
+                  title={d.done ? `${d.name} · ${t("dayDoneShort")}` : d.name}
+                  data-done={d.done ? "true" : undefined}
                 >
+                  {d.done && (
+                    <span className={b.dayTabDone}>
+                      <CheckIcon />
+                      <span className={b.srOnly}>{t("dayDoneShort")}: </span>
+                    </span>
+                  )}
                   <span className={b.dayTabName}>{d.name}</span>
                   <span className={b.dayTabCount} aria-hidden="true">
                     {d.exercises.length}
@@ -359,7 +389,7 @@ export function ClientPlanBuilder({
               />
             )}
 
-            {activeDay && renaming && (
+            {activeDay && renaming && !activeDone && (
               <DayNameDialog
                 key={`rename-${activeDay.key}`}
                 title={t("renameDayTitle")}
@@ -375,7 +405,22 @@ export function ClientPlanBuilder({
               />
             )}
 
-            {activeDay && (
+            {activeDay && activeDone && (
+              // odcvičený deň: bez úprav, len kedy a čo klient naozaj odcvičil
+              <div className={b.dayHead}>
+                <div className={b.dayDoneBar} data-testid="day-done">
+                  <span className={b.dayDoneBadge}>
+                    <CheckIcon />{" "}
+                    {activeDone.completedAt
+                      ? t("dayDone", { date: formatCompletedDate(activeDone.completedAt, locale) })
+                      : t("dayDoneShort")}
+                  </span>
+                  <span className={b.dayDoneHint}>{t("dayDoneHint")}</span>
+                </div>
+              </div>
+            )}
+
+            {activeDay && !activeDone && (
               // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
               <div className={b.dayHead}>
                 <div className={b.dayActionsRow}>
@@ -428,7 +473,13 @@ export function ClientPlanBuilder({
             )}
 
             <div className={b.dayPanel}>
-              {activeDay ? (
+              {activeDay && activeDone ? (
+                activeDone.compare.exercises.length > 0 ? (
+                  <CompletedExercises exercises={activeDone.compare.exercises} hasPlan={activeDone.compare.hasPlan} />
+                ) : (
+                  <p className={b.libraryHint}>{t("dayDoneNoValues")}</p>
+                )
+              ) : activeDay ? (
                 activeDay.exercises.length > 0 ? (
                   activeDay.exercises.map((ex, i) => {
                     const ss = positions[i];
@@ -535,12 +586,10 @@ export function ClientPlanBuilder({
           </div>
 
           {/* Až za plátnom aj v DOM — poradie pre klávesnicu/čítačku = vizuálne */}
-          <ClientExerciseLibrary
-            library={library}
-            hasDay={activeDay !== null}
-            onAdd={addExercise}
-            onDetail={openDetail}
-          />
+          {/* odcvičený deň sa nemení — pridávanie cvikov netreba (ako u trénera) */}
+          {!activeDone && (
+            <ClientExerciseLibrary library={library} hasDay={activeDay !== null} onAdd={addExercise} onDetail={openDetail} />
+          )}
         </div>
 
         {error && (

@@ -38,6 +38,7 @@
     "createFailed": "Klienta sa nepodarilo pridať. Skús to prosím znova."
   },
   "planLocked": "Klient tento plán celý odcvičil — plán je uzamknutý a nedá sa upravovať.",
+  "dayLocked": "Tento deň je už odcvičený — odcvičený tréning sa nedá upravovať.",
   "plans": {
     "someSelectedNotYours": "Niektorý z vybraných klientov nepatrí tebe.",
     "recipientsFailed": "Ďalších klientov sa nepodarilo pridať: {details}",
