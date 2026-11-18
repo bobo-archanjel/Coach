@@ -227,7 +227,7 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
   // workout_days nemá unique (plan_id, day_number), prečíslovanie sa tak nebije.
   const [{ data: existing, error: exErr }, { data: currentDays, error: cdErr }] = await Promise.all([
     supabase.from("workout_plans").select("id, trainer_id, client_id").eq("id", planId).maybeSingle(),
-    supabase.from("workout_days").select("id").eq("plan_id", planId),
+    supabase.from("workout_days").select("id, workout_logs(count)").eq("plan_id", planId),
   ]);
   if (exErr) return { error: await dbErr(exErr, "actions") };
   if (!existing || existing.trainer_id !== null || existing.client_id !== clientId) {
@@ -236,8 +236,15 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
   if (cdErr) return { error: await dbErr(cdErr, "actions") };
 
   const currentIds = new Set((currentDays ?? []).map((d) => d.id));
+  // Odcvičené dni (aspoň jeden záznam) sú zamknuté: názov ani cviky sa nemenia a deň sa
+  // nemaže — builder ich ukazuje len na čítanie, server to vynúti aj pri inom koncepte.
+  const doneIds = new Set(
+    (currentDays ?? [])
+      .filter((d) => ((d.workout_logs as unknown as { count: number }[] | null)?.[0]?.count ?? 0) > 0)
+      .map((d) => d.id as string),
+  );
   const keptIds = new Set(cleaned.days.map((d) => d.id).filter((id): id is string => !!id && currentIds.has(id)));
-  const toDelete = [...currentIds].filter((id) => !keptIds.has(id));
+  const toDelete = [...currentIds].filter((id) => !keptIds.has(id) && !doneIds.has(id));
 
   const results = await Promise.all([
     supabase.from("workout_plans").update({ name: cleaned.name }).eq("id", planId),
@@ -245,7 +252,7 @@ export async function saveClientPlanAction(draftJson: string, planId?: string): 
       day.id && keptIds.has(day.id)
         ? supabase
             .from("workout_days")
-            .update({ name: day.name, day_number: i + 1, exercises: day.exercises })
+            .update(doneIds.has(day.id) ? { day_number: i + 1 } : { name: day.name, day_number: i + 1, exercises: day.exercises })
             .eq("id", day.id)
         : supabase.from("workout_days").insert({
             plan_id: planId,

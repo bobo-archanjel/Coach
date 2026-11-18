@@ -84,7 +84,8 @@ export async function isPlanLocked(
 }
 
 /**
- * Deň plánu na úpravu (jeho `exercises`) + či je plán uzamknutý — jedným dopytom.
+ * Deň plánu na úpravu (jeho `exercises`) + či je plán uzamknutý (`locked`) a či je
+ * tento deň už odcvičený (`dayDone` — taký deň sa nemení) — jedným dopytom.
  * Akcie buildera predtým robili isPlanLocked (3 dopyty) a potom ešte načítanie dňa,
  * všetko za sebou. Zámok sa počíta z plánu, ku ktorému deň naozaj patrí.
  * `day: null` = deň neexistuje / nie je trénerov (RLS).
@@ -92,16 +93,19 @@ export async function isPlanLocked(
 export async function getDayForEdit(
   supabase: Awaited<ReturnType<typeof createClient>>,
   dayId: string,
-): Promise<{ day: { plan_id: string; exercises: unknown } | null; locked: boolean }> {
+): Promise<{ day: { plan_id: string; exercises: unknown } | null; locked: boolean; dayDone: boolean }> {
   const { data } = await supabase
     .from("workout_days")
     .select("plan_id, exercises, workout_plans(workout_days(id, workout_logs(count)))")
     .eq("id", dayId)
     .maybeSingle();
-  if (!data) return { day: null, locked: false };
+  if (!data) return { day: null, locked: false, dayDone: false };
   const plan = data.workout_plans as unknown as { workout_days: DayLogCount[] | null } | null;
+  const self = plan?.workout_days?.find((d) => d.id === dayId);
   return {
     day: { plan_id: data.plan_id as string, exercises: data.exercises },
     locked: allDaysDone(plan?.workout_days),
+    // klient z tohto dňa už odcvičil tréning — deň je zamknutý (úpravy, premenovanie, zmazanie, kópia)
+    dayDone: (self?.workout_logs?.[0]?.count ?? 0) > 0,
   };
 }
