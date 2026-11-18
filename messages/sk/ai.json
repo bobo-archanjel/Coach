@@ -43,6 +43,15 @@
     "warnDropped": "{count, plural, one {# položku} few {# položky} other {# položiek}} appka vyradila (neexistujúca potravina, nevhodná jednotka alebo potravina mimo diéty/vylúčených) — over si jedlá v koncepte.",
     "warnDeviation": "Deň {day}: {kcal} kcal (cieľ {targetKcal}) a bielkoviny {protein} g (cieľ {targetProtein}) — mimo cieľa o viac ako 10 %, uprav ho v koncepte.",
     "warnDays": "Vygenerovaných je len {count} z {requested} dní.",
-    "warnOff": "{count, plural, one {# značkový produkt} few {# značkové produkty} other {# značkových produktov}} sa nepodarilo uložiť do databázy — vynechané."
+    "warnOff": "{count, plural, one {# značkový produkt} few {# značkové produkty} other {# značkových produktov}} sa nepodarilo uložiť do databázy — vynechané.",
+    "rulesFailed": "Nepodarilo sa zostaviť jedálniček, ktorý spĺňa pravidlá (kcal ±5 %, bielkoviny −10 % až +15 %, tuky ≥ 18 % energie, rozloženie jedál). Nič sa neuložilo — skús to prosím znova.",
+    "warnFiber": "Dni {days}: vláknina je pod 25 g/deň — zváž celozrnné prílohy, strukoviny alebo viac zeleniny.",
+    "warnFruitVeg": "Dni {days}: ovocie a zelenina spolu tvoria menej než 400 g/deň.",
+    "warnProteinMeal": "Dni {days}: bielkoviny v niektorom hlavnom jedle presahujú 60 g.",
+    "warnMacroSplit": "Dni {days}: sacharidy alebo tuky sa líšia od cieľa klienta o viac než 15 %.",
+    "warnFatShare": "Dni {days}: tuky sú výrazne pod cieľom klienta (alebo pod 20 % energie).",
+    "warnTargetLow": "Cieľ klienta ({kcal} kcal) je pod bezpečným minimom ({min} kcal) — over nastavenie makro cieľa.",
+    "warnDayCopied": "Deň {day} je kópia dňa {from} (režim meal prep) — nepodarilo sa ho zostaviť v rámci pravidiel. Uprav ho ručne alebo vygeneruj znova.",
+    "warnDaysMissing": "Tieto dni sa nepodarilo zostaviť v rámci pravidiel (kcal ±5 %, bielkoviny, tuky, rozloženie jedál, porcie), preto v koncepte chýbajú: {days}. Doplň ich ručne alebo vygeneruj znova."
   }
 }

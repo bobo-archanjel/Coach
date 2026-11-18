@@ -20,6 +20,8 @@ export interface FoodCandidate {
   protein100g: number;
   carbs100g: number;
   fat100g: number;
+  /** vláknina na 100 (g/ml) — null/chýba = neznáma */
+  fiber100g?: number | null;
   /** g/ml + ks/porcia/balenie — pred migráciou 0066 prázdne (len gramy). */
   portion: PortionFood;
 }
@@ -30,7 +32,7 @@ export interface FoodCandidate {
  * a skeny všetkých používateľov by ho nafukovali.
  */
 export async function getFoodCandidates(supabase: SupabaseClient, trainerId: string): Promise<FoodCandidate[]> {
-  const base = "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g";
+  const base = "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g";
   type Row = Record<string, unknown> & { id: string; name: string };
   // name_cs (0064) a unit_base / piece_g / serving_g / package_g (0066) — kým nie sú spustené,
   // select zlyhá, preto sa zopakuje bez nich (AI potom pozná len gramy).
@@ -63,6 +65,7 @@ export async function getFoodCandidates(supabase: SupabaseClient, trainerId: str
     protein100g: Number(f.protein_100g),
     carbs100g: Number(f.carbs_100g),
     fat100g: Number(f.fat_100g),
+    fiber100g: n(f.fiber_100g),
     portion: {
       unitBase: f.unit_base === "ml" ? "ml" : "g",
       pieceGrams: n(f.piece_g),

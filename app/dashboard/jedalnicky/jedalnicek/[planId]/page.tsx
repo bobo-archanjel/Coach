@@ -62,7 +62,7 @@ export default async function MealPlanDetailPage({ params }: { params: Promise<{
   const [{ data: plan }, { data: days }, foods] = await Promise.all([
     supabase
       .from("meal_plans")
-      .select("id, name, client_id, published, created_at, clients(full_name)")
+      .select("id, name, client_id, published, created_at, clients!meal_plans_client_id_fkey(full_name)")
       .eq("id", planId)
       .maybeSingle(),
     supabase.from("meal_days").select("id, day_number, name, meals").eq("plan_id", planId).order("day_number"),

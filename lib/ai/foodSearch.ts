@@ -38,10 +38,14 @@ export interface FoodSearchHit {
   protein100: number;
   carbs100: number;
   fat100: number;
+  /** vláknina na 100 (null = neznáma) */
+  fiber100?: number | null;
   /** na 100 g alebo 100 ml */
   unit: "g" | "ml";
   /** „1 ks = 55 g; 1 balenie = 150 g“ (len jednotky, ktoré potravina má) */
   portions: string;
+  /** slovenský názov z databázy (bez lokalizácie) — na klasifikáciu diéty a kategórií */
+  nameBase?: string;
   /** strojovo: veľkosti ks/porcie/balenia — generátor jedálničkov z nich počíta gramáž (lib/portions.ts) */
   portion: PortionFood;
   /** len OFF: celý riadok z balíka (názov, značka, vláknina… pre založenie riadku vo `foods`) */
@@ -89,10 +93,12 @@ function libraryHit(f: FoodCandidate, locale: Locale): FoodSearchHit {
     source: "kniznica",
     id: f.id,
     name: promptSafe(name, LIB_NAME_MAX),
+    nameBase: promptSafe(f.name, LIB_NAME_MAX),
     kcal100: f.kcal100g,
     protein100: f.protein100g,
     carbs100: f.carbs100g,
     fat100: f.fat100g,
+    fiber100: f.fiber100g ?? null,
     unit: baseUnitOf(f.portion),
     portions: formatPortionUnits(f.portion),
     portion: f.portion,
@@ -129,10 +135,12 @@ export function searchFoodsIn(
         source: "off",
         id: f.code,
         name: promptSafe(f.brand ? `${f.name} (${f.brand})` : f.name, 90),
+        nameBase: promptSafe(f.name, 90),
         kcal100: f.kcal,
         protein100: f.protein,
         carbs100: f.carbs,
         fat100: f.fat,
+        fiber100: f.fiber,
         unit: f.unit,
         portions: formatPortionUnits(portion),
         portion,

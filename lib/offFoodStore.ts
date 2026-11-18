@@ -73,13 +73,18 @@ export async function insertOffFood(admin: SupabaseClient, mapped: CompleteFood,
   return { status: "error", message: error?.message ?? "insert failed", legacy };
 }
 
-/** food_id pre OFF produkt: existujúci globálny záznam, inak ho založí. null = nepodarilo sa. */
-export async function ensureOffFoodId(admin: SupabaseClient, mapped: CompleteFood, code: string): Promise<string | null> {
+/** Riadok OFF produktu: existujúci globálny záznam, inak ho založí. null = nepodarilo sa. */
+export async function ensureOffFood(admin: SupabaseClient, mapped: CompleteFood, code: string): Promise<OffFoodRowData | null> {
   const existing = await findGlobalFoodByBarcode(admin, code);
-  if (existing) return existing.id;
+  if (existing) return existing;
   const res = await insertOffFood(admin, mapped, code);
-  if (res.status === "saved") return res.row.id;
-  if (res.status === "duplicate") return res.row?.id ?? null;
-  console.error("ensureOffFoodId:", res.message);
+  if (res.status === "saved") return res.row;
+  if (res.status === "duplicate") return res.row;
+  console.error("ensureOffFood:", res.message);
   return null;
+}
+
+/** food_id pre OFF produkt (viď ensureOffFood). */
+export async function ensureOffFoodId(admin: SupabaseClient, mapped: CompleteFood, code: string): Promise<string | null> {
+  return (await ensureOffFood(admin, mapped, code))?.id ?? null;
 }
