@@ -59,7 +59,10 @@
     "emptyOwn": "Zatiaľ nemáš vlastný jedálniček — zostavíš si ho cez „+ Vlastný jedálniček“.",
     "emptyTrainer": "Od trénera zatiaľ nemáš žiadny jedálniček.",
     "plansLabel": "Jedálničky · {count}",
-    "plansButtonAria": "Jedálničky ({count}) — vybrať iný"
+    "plansButtonAria": "Jedálničky ({count}) — vybrať iný",
+    "tabPlans": "Jedálničky",
+    "tabsSectionAria": "Jedálničky alebo moje šablóny",
+    "templatesEmpty": "Zatiaľ nemáš žiadnu šablónu. Jedálniček si ulož ako šablónu (tlačidlo pod jedálničkom) a neskôr z nej vytvoríš nový."
   },
   "chat": {
     "loadFailed": "Nepodarilo sa načítať chat",

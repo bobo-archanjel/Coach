@@ -59,7 +59,10 @@
     "emptyOwn": "Zatím nemáš vlastní jídelníček — sestavíš si ho přes „+ Vlastní jídelníček“.",
     "emptyTrainer": "Od trenéra zatím nemáš žádný jídelníček.",
     "plansLabel": "Jídelníčky · {count}",
-    "plansButtonAria": "Jídelníčky ({count}) — vybrat jiný"
+    "plansButtonAria": "Jídelníčky ({count}) — vybrat jiný",
+    "tabPlans": "Jídelníčky",
+    "tabsSectionAria": "Jídelníčky nebo moje šablony",
+    "templatesEmpty": "Zatím nemáš žádnou šablonu. Jídelníček si ulož jako šablonu (tlačítko pod jídelníčkem) a později z něj vytvoříš nový."
   },
   "chat": {
     "loadFailed": "Chat se nepodařilo načíst",

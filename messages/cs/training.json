@@ -1,6 +1,6 @@
 {
   "loading": "Načítám…",
-  "templateSaved": "Uloženo — najdeš ji nahoře v Moje šablony.",
+  "templateSaved": "Uloženo — najdeš ji v záložce Moje šablony.",
   "plans": "Tréninkové plány",
   "ownWorkout": "Vlastní trénink",
   "myTemplates": "Moje šablony",
@@ -69,5 +69,7 @@
   "dayViewAria": "Zobrazení dne",
   "dayViewDone": "Odcvičeno",
   "dayViewPlan": "Plán",
-  "doneNoValues": "Trénink jsi ukončil bez zapsaných hodnot."
+  "doneNoValues": "Trénink jsi ukončil bez zapsaných hodnot.",
+  "tabsAria": "Tréninkové plány nebo moje šablony",
+  "templatesEmpty": "Zatím nemáš žádnou šablonu. Trénink si ulož jako šablonu (tlačítko pod plánem) a později z ní vytvoříš nový."
 }

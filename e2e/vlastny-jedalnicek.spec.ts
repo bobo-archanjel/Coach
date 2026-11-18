@@ -146,7 +146,8 @@ test.describe("vlastný jedálniček — náhľady", () => {
 
   test("šablóna: Použiť otvorí nový jedálniček s jej obsahom", async ({ page }) => {
     await page.goto("/portal/strava?preview=ok");
-    await page.getByRole("button", { name: /Moje šablóny/ }).click();
+    // šablóny sú v záložke vedľa „Jedálničky“ (PlansTabs)
+    await page.getByRole("radio", { name: /Moje šablóny/ }).click();
     await page.getByRole("button", { name: "Použiť" }).click();
     await expect(page.getByLabel("Názov jedálnička")).toHaveValue("Rýchle raňajky");
     await expect(page.getByRole("group", { name: "Dni jedálnička" }).getByRole("button", { name: /Deň 1/ })).toContainText("2");
@@ -254,6 +255,7 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     await actions.getByRole("button", { name: "Zmazať", exact: true }).click();
     // názov ostáva len pri šablóne v „Moje šablóny“ — aktívny jedálniček už nie je on
     await expect(row.getByText(planName)).toHaveCount(0, { timeout: 30_000 });
+    await page.getByRole("radio", { name: /Moje šablóny/ }).click();
     await expect(page.locator("#moje-sablony-jedalnicka").getByText(planName)).toBeVisible();
     const { data: gone } = await admin.from("meal_plans").select("id").eq("id", plan!.id);
     expect(gone).toEqual([]);

@@ -47,7 +47,7 @@ test.describe("odcvičený tréning u klienta — náhľady", () => {
     const colors = [await color("Mŕtvy ťah", 0, "5 op."), await color("Mŕtvy ťah", 1, "4 op."), await color("Zhyby", 1, "10 op.")];
     expect(new Set(colors).size).toBe(3);
 
-    await page.getByRole("radio", { name: "Plán" }).click();
+    await page.getByRole("radio", { name: "Plán", exact: true }).click();
     await expect(page.getByTestId("completed-exercise")).toHaveCount(0);
     await expect(page.getByText("Mŕtvy ťah").first()).toBeVisible();
 

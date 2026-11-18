@@ -1,6 +1,6 @@
 {
   "loading": "Načítavam…",
-  "templateSaved": "Uložené — nájdeš ju hore v Moje šablóny.",
+  "templateSaved": "Uložené — nájdeš ju v záložke Moje šablóny.",
   "plans": "Tréningové plány",
   "ownWorkout": "Vlastný tréning",
   "myTemplates": "Moje šablóny",
@@ -69,5 +69,7 @@
   "dayViewAria": "Zobrazenie dňa",
   "dayViewDone": "Odcvičené",
   "dayViewPlan": "Plán",
-  "doneNoValues": "Tréning si ukončil bez zapísaných hodnôt."
+  "doneNoValues": "Tréning si ukončil bez zapísaných hodnôt.",
+  "tabsAria": "Tréningové plány alebo moje šablóny",
+  "templatesEmpty": "Zatiaľ nemáš žiadnu šablónu. Tréning si ulož ako šablónu (tlačidlo pod plánom) a neskôr z nej vytvoríš nový."
 }

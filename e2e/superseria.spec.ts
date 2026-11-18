@@ -73,7 +73,7 @@ test.describe("superséria — náhľady", () => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: /Deň B/ }).first().click();
     // deň B je odcvičený — otvorí sa na Odcvičené, plán je za prepínačom
-    await page.getByRole("radio", { name: "Plán" }).click();
+    await page.getByRole("radio", { name: "Plán", exact: true }).click();
     await expect(page.getByText(/Superséria A · cvič striedavo/)).toBeVisible();
     await expect(tag(page, "Mŕtvy ťah")).toContainText("bez pauzy → A2");
     await expect(tag(page, "Zhyby")).toContainText("pauza po kole 90 s");
