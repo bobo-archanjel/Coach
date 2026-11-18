@@ -12,5 +12,9 @@
   "send": "Odoslať",
   "emojiMood": "Nálada",
   "emojiFitness": "Fitness",
-  "emojiFood": "Jedlo"
+  "emojiFood": "Jedlo",
+  "swapButton": "Vymeniť v pláne: {old} → {new}",
+  "swapPending": "Vymieňam…",
+  "swapDone": "Vymenené ✓ {name}",
+  "swapFailed": "Cvik sa nepodarilo vymeniť. Skús to prosím znova."
 }

@@ -13,11 +13,18 @@ import { sendAiChatMessage } from "@/lib/ai/chat";
 import { needsHealthEscalation } from "@/lib/ai/healthFilter";
 import { classifyTopic } from "@/lib/ai/topicClassify";
 import { dbErr } from "@/lib/dbError";
+import { applySwapToEntries, splitExerciseRefs } from "@/lib/ai/exerciseSwap";
 
 export interface AiKoucActionState {
   error: string | null;
 }
 const ok: AiKoucActionState = { error: null };
+
+function packExerciseRefs(result: Awaited<ReturnType<typeof sendAiChatMessage>>): unknown[] | null {
+  if (result.status !== "ok") return null;
+  const refs: unknown[] = [...(result.exercises ?? []), ...(result.swaps ?? []).map((swap) => ({ swap }))];
+  return refs.length > 0 ? refs : null;
+}
 
 const HISTORY_FETCH_LIMIT = 40; // trocha viac než HISTORY_WINDOW v lib/ai/chat.ts, nech je z čoho orezávať
 
@@ -108,7 +115,9 @@ export async function sendAiKoucMessageAction(
     escalated: result.status === "escalated" || (result.status === "ok" && result.escalated === true),
     // Cviky, ktoré AI naozaj spomenula pri náhrade (lib/ai/chat.ts) — appka k nim
     // vie priložiť klikateľný detail s fotkami. null, keď žiadne (väčšina správ).
-    exercise_refs: result.status === "ok" && result.exercises && result.exercises.length > 0 ? result.exercises : null,
+    // Overené výmeny cviku (tlačidlo "Vymeniť v pláne") ležia v tom istom jsonb poli ako položky
+    // { swap: {...} } — bez ďalšieho stĺpca/migrácie; čítanie ich rozdelí (lib/portal/data.ts).
+    exercise_refs: packExerciseRefs(result),
   });
   if (insertAssistantErr) {
     console.error("sendAiKoucMessageAction (assistant insert):", insertAssistantErr.message);
@@ -144,4 +153,88 @@ export async function resetAiKoucConversationAction(): Promise<void> {
   if (error) console.error("resetAiKoucConversationAction:", error.message);
 
   revalidatePath("/portal/ai-kouc");
+}
+
+export interface ApplySwapState {
+  error: string | null;
+  /** true = výmena je v pláne (aj keď ju spravil predošlý klik) */
+  applied?: boolean;
+}
+
+/**
+ * Tlačidlo "Vymeniť v pláne" pod odpoveďou AI Kouča. Z klienta chodí len ID správy a poradie
+ * výmeny — samotná výmena (deň, cviky) sa vždy načíta zo správy uloženej na serveri a znova
+ * overí: správa patrí tomuto klientovi, deň je vo VLASTNOM pláne (trainer_id null), starý
+ * cvik v ňom ešte je, nový existuje v knižnici. Z cviku sa mení len exercise_id + názov,
+ * série/opakovania/záťaž/tempo/pauza ostávajú. Opakovaný klik je bezpečný (už vymenené = ok).
+ */
+export async function applyAiExerciseSwapAction(messageId: string, swapIndex: number): Promise<ApplySwapState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: await tErr("notSignedIn") };
+  if (typeof messageId !== "string" || !Number.isInteger(swapIndex) || swapIndex < 0) {
+    return { error: await tErr("client.swapFailed") };
+  }
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!client) return { error: await tErr("client.swapFailed") };
+
+  // správa + jej konverzácia (RLS ukáže len klientove; vlastníctvo overujeme aj explicitne)
+  const { data: msg } = await supabase
+    .from("ai_messages")
+    .select("id, role, exercise_refs, conversation_id, ai_conversations!inner(client_id)")
+    .eq("id", messageId)
+    .maybeSingle();
+  const convClient = (msg?.ai_conversations as unknown as { client_id: string } | null)?.client_id;
+  if (!msg || msg.role !== "assistant" || convClient !== client.id) return { error: await tErr("client.swapFailed") };
+
+  const swap = splitExerciseRefs(msg.exercise_refs).swaps?.[swapIndex];
+  if (!swap) return { error: await tErr("client.swapFailed") };
+
+  const { data: day } = await supabase
+    .from("workout_days")
+    .select("id, exercises, workout_plans!inner(client_id, trainer_id)")
+    .eq("id", swap.dayId)
+    .maybeSingle();
+  const plan = day?.workout_plans as unknown as { client_id: string; trainer_id: string | null } | null;
+  if (!day || !plan || plan.client_id !== client.id || plan.trainer_id !== null) {
+    return { error: await tErr("client.swapPlanChanged") };
+  }
+
+  const { data: exists } = await supabase.from("exercises").select("id").eq("id", swap.newId).maybeSingle();
+  if (!exists) return { error: await tErr("client.swapFailed") };
+
+  const result = applySwapToEntries(day.exercises, swap);
+  if (!result) return { error: await tErr("client.swapPlanChanged") };
+
+  if (result.changed) {
+    const { error } = await supabase.from("workout_days").update({ exercises: result.entries }).eq("id", swap.dayId);
+    if (error) return { error: await dbErr(error, "actions") };
+  }
+
+  // Poznačí výmenu ako vykonanú, aby tlačidlo po obnovení stránky ostalo vypnuté. Zápis robí
+  // service role (klient ai_messages upravovať nesmie, 0036) — best-effort, bez neho je
+  // opakovaný klik aj tak bezpečný (idempotentné).
+  const writer = tryCreateAdminClient();
+  if (writer) {
+    const marked = ((msg.exercise_refs as unknown[] | null) ?? []).map((item) => {
+      const w = (item as { swap?: Record<string, unknown> } | null)?.swap;
+      return w && w.dayId === swap.dayId && w.oldId === swap.oldId && w.newId === swap.newId
+        ? { swap: { ...w, applied: true } }
+        : item;
+    });
+    const { error } = await writer.from("ai_messages").update({ exercise_refs: marked }).eq("id", msg.id);
+    if (error) console.error("applyAiExerciseSwapAction (mark applied):", error.message);
+  }
+
+  revalidatePath("/portal", "layout");
+  return { error: null, applied: true };
 }

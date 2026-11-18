@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ChatThread } from "@/app/components/ChatThread";
 import { getPortalAiChat } from "@/lib/portal/data";
-import { sendAiKoucMessageAction, resetAiKoucConversationAction } from "@/app/portal/ai-kouc/actions";
+import { sendAiKoucMessageAction, resetAiKoucConversationAction, applyAiExerciseSwapAction } from "@/app/portal/ai-kouc/actions";
 import { getExerciseDetailAction } from "@/app/portal/trening/actions";
 import { PREVIEW } from "@/app/portal/ai-kouc/preview";
 import { AiIcon, ProfileIcon } from "@/app/portal/icons";
@@ -46,6 +46,7 @@ export default async function AiKoucPage({ searchParams }: { searchParams: Promi
     body: m.body,
     createdAt: m.createdAt,
     exerciseRefs: m.exerciseRefs,
+    swaps: m.swaps,
   }));
   const hasMessages = result.data.messages.length > 0;
 
@@ -83,6 +84,7 @@ export default async function AiKoucPage({ searchParams }: { searchParams: Promi
         // proaktívny check-in príde max. raz za pár dní — bez pollu (ako /portal/ai-kouc)
         pollMs={0}
         getExerciseDetail={getExerciseDetailAction}
+        applySwap={applyAiExerciseSwapAction}
       />
     </div>
   );

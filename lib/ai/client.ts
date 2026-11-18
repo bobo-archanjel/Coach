@@ -3,7 +3,7 @@
 // "AI volania idú výhradne cez server-side endpoint").
 //
 // Modely (viď návrh v ROADMAP.md / rozhovor pri zakladaní feature/AI):
-// - chat + progress summary: najlacnejší model (časté/jednoduché úlohy,
+// - chat (bežná otázka) + progress summary: najlacnejší model (časté/jednoduché úlohy,
 //   matematika makier sa počíta v kóde, nie modelom — viď lib/ai/chat.ts)
 // - generátor tréningových/jedálničkových plánov: kvalitnejší model
 //   (zriedkavé volanie, ale musí vybrať rozumnú kombináciu z stoviek cvikov)
@@ -12,6 +12,8 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export const AI_MODEL = {
   CHAT: "claude-haiku-4-5",
+  // AI Kouč pri návrhu tréningu / jedálnička na celý deň (lib/ai/chatRouting.ts) — kvalitnejší model, zriedkavé volanie
+  CHAT_COMPLEX: "claude-sonnet-5",
   PROGRESS_SUMMARY: "claude-haiku-4-5",
   PLAN_GENERATOR: "claude-sonnet-5",
   MEAL_GENERATOR: "claude-sonnet-5",

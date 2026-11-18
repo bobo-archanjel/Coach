@@ -22,13 +22,14 @@ import {
 } from "@/lib/offProduct";
 import { allowWithinWindow } from "@/lib/rateLimitMemory";
 import { isMissingColumn } from "@/lib/dbError";
+import { insertOffFood } from "@/lib/offFoodStore";
 import type { BarcodeLookupResult, BarcodePrefill, FoodSource, PortalFoodOption } from "@/lib/portal/types";
 
 const BASE_COLUMNS =
   "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by";
 // package_g/unit_base pribudli v migrácii 0066 — kým nebeží, dopyty idú bez nich (BASE_COLUMNS)
 const FOOD_COLUMNS =
-  "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by, package_g, unit_base";
+  "id, name, kcal_100g, protein_100g, carbs_100g, fat_100g, fiber_100g, sugars_100g, salt_100g, serving_g, source, created_by, package_g, unit_base, off_synced_at";
 
 type FoodRow = {
   id: string;
@@ -45,6 +46,7 @@ type FoodRow = {
   unit_base: "g" | "ml";
   source: FoodSource;
   created_by: string | null;
+  off_synced_at?: string | null;
 };
 
 function toOption(row: FoodRow, barcode: string): PortalFoodOption {
@@ -102,6 +104,43 @@ function devOffFixture(request: NextRequest): { product: OffProduct | null } | u
   }
 }
 
+// OFF produkty uložené pred migráciou 0066 nemajú balenie ani ml (unit_base ostal default 'g').
+// Taký záznam si raz dotiahneme z OFF a doplníme — off_synced_at potom ukazuje za túto hranicu,
+// takže produkt, ktorý balenie naozaj nemá, sa už znova nepýta.
+const PORTION_SYNC_CUTOFF = Date.parse("2026-11-17T00:00:00Z");
+
+function needsPortionRefresh(row: FoodRow): boolean {
+  if (row.source !== "off" || row.package_g != null || row.unit_base === "ml") return false;
+  const synced = row.off_synced_at ? Date.parse(row.off_synced_at) : 0;
+  return !(synced >= PORTION_SYNC_CUTOFF);
+}
+
+/** null = nepodarilo sa (OFF nedostupný, limit, chýba service role) — volajúci vráti pôvodný záznam. */
+async function refreshPortionData(row: FoodRow, code: string): Promise<FoodRow | null> {
+  const admin = tryCreateAdminClient();
+  if (!admin || !allowWithinWindow("barcode:off", 15, 60_000)) return null;
+  try {
+    const product = await fetchOpenFoodFactsProduct(code);
+    if (!product) return null;
+    const mapped = mapOffProduct(product);
+    const patch = {
+      package_g: mapped.packageGrams,
+      unit_base: mapped.unitBase,
+      serving_g: row.serving_g ?? mapped.servingGrams,
+      off_synced_at: new Date().toISOString(),
+    };
+    const { error } = await admin.from("foods").update(patch).eq("id", row.id).eq("source", "off");
+    if (error) {
+      console.error("potraviny/kod doplnenie porcií:", error.message);
+      return null;
+    }
+    return { ...row, ...patch };
+  } catch (err) {
+    console.error("potraviny/kod doplnenie porcií OFF:", err);
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ ean: string }> }) {
   const {
     data: { user },
@@ -131,7 +170,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return reply({ status: "error", error: await tErr("api.lookupFailed") }, 500);
   }
   const best = pickBest((rows ?? []) as unknown as FoodRow[], user.id);
-  if (best) return reply({ status: "found", food: toOption(best, code) });
+  if (best) {
+    const refreshed = needsPortionRefresh(best) ? await refreshPortionData(best, code) : null;
+    return reply({ status: "found", food: toOption(refreshed ?? best, code) });
+  }
 
   // 2) Open Food Facts — limit na inštanciu (OFF ráta požiadavky na IP)
   if (!allowWithinWindow("barcode:off", 15, 60_000)) {
@@ -156,47 +198,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const mapped = mapOffProduct(product);
   if (!isCompleteFood(mapped)) return reply({ status: "not_found", food: prefill(code, mapped) });
 
-  // 3) uložiť ako globálny 'off' záznam — service role (používatelia 'off' zapisovať nesmú, RLS 0050)
-  const legacyRow = {
-    name: foodDisplayName(mapped.name, mapped.brand).slice(0, 120),
-    kcal_100g: mapped.kcal,
-    protein_100g: mapped.protein,
-    carbs_100g: mapped.carbs,
-    fat_100g: mapped.fat,
-    fiber_100g: mapped.fiber,
-    sugars_100g: mapped.sugars,
-    salt_100g: mapped.salt,
-    serving_g: mapped.servingGrams,
-    barcode: code,
-    source: "off" as const,
-    trainer_id: null,
-    created_by: null,
-    off_synced_at: new Date().toISOString(),
-  };
-  const row = { ...legacyRow, package_g: mapped.packageGrams, unit_base: mapped.unitBase };
+  // 3) uložiť ako globálny 'off' záznam — service role (používatelia 'off' zapisovať nesmú, RLS 0050);
+  //    zápis zdieľa lib/offFoodStore.ts s AI generátorom jedálničkov
+  const row = { name: foodDisplayName(mapped.name, mapped.brand).slice(0, 120) };
   const admin = tryCreateAdminClient();
   if (admin) {
-    let { data: saved, error: insertError } = await admin.from("foods").insert(row).select(FOOD_COLUMNS).single();
-    const legacy = isMissingColumn(insertError);
-    if (legacy) {
-      ({ data: saved, error: insertError } = await admin.from("foods").insert(legacyRow).select(BASE_COLUMNS).single());
-    }
-    if (saved) {
-      const food = toOption(saved as unknown as FoodRow, code);
+    const res = await insertOffFood(admin, mapped, code);
+    if (res.status === "saved") {
+      const food = toOption(res.row as unknown as FoodRow, code);
       // pred migráciou sa balenie/ml neuložia, ale klient ich dostane z OFF hneď
-      return reply({ status: "found", food: legacy ? { ...food, packageGrams: mapped.packageGrams, unitBase: mapped.unitBase } : food });
+      return reply({ status: "found", food: res.legacy ? { ...food, packageGrams: mapped.packageGrams, unitBase: mapped.unitBase } : food });
     }
-    if (insertError?.code === "23505") {
-      // súbežný sken toho istého kódu — záznam už medzitým vznikol
-      const { data: existing } = await admin
-        .from("foods")
-        .select(legacy ? BASE_COLUMNS : FOOD_COLUMNS)
-        .eq("barcode", code)
-        .in("source", ["import", "off"])
-        .maybeSingle();
-      if (existing) return reply({ status: "found", food: toOption(existing as unknown as FoodRow, code) });
-    }
-    console.error("potraviny/kod uloženie:", insertError?.message);
+    if (res.status === "duplicate" && res.row) return reply({ status: "found", food: toOption(res.row as unknown as FoodRow, code) });
+    console.error("potraviny/kod uloženie:", res.status === "error" ? res.message : "duplicate");
   }
 
   // bez uloženia (chýba service role / chyba DB) — denník zapíše snapshot hodnôt

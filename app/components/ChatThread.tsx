@@ -14,6 +14,7 @@ import {
   useOptimistic,
   useRef,
   useState,
+  useTransition,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
@@ -40,7 +41,13 @@ export type ChatMessage = {
   createdAt: string; // ISO
   /** AI Kouč: cviky z odpovede s reálnym exercise_id — klik otvorí detail s fotkami. */
   exerciseRefs?: ChatExerciseRef[];
+  /** AI Kouč: overené výmeny cviku — pod správou tlačidlo "Vymeniť v pláne". */
+  swaps?: ChatSwap[];
 };
+
+/** Návrh AI Kouča vymeniť cvik vo VLASTNOM pláne klienta (overený serverom, lib/ai/exerciseSwap.ts). */
+export type ChatSwap = { dayId: string; dayName: string; oldId: string; oldName: string; newId: string; newName: string; applied?: boolean };
+export type ChatApplySwap = (messageId: string, swapIndex: number) => Promise<{ error: string | null }>;
 
 export type ChatSendState = { error: string | null };
 export type ChatSendAction = (prev: ChatSendState, formData: FormData) => Promise<ChatSendState>;
@@ -222,6 +229,39 @@ let channelSeq = 0;
 
 type Row = ChatMessage & { _pending?: boolean };
 
+/** Jedno tlačidlo "Vymeniť v pláne: A → B" — stavy: pripravené / prebieha / hotovo / chyba (s možnosťou skúsiť znova). */
+function SwapButton({ messageId, index, swap, apply }: { messageId: string; index: number; swap: ChatSwap; apply: ChatApplySwap }) {
+  const t = useTranslations("chat");
+  const [pending, startSwap] = useTransition();
+  const [done, setDone] = useState(swap.applied === true);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className={styles.swapWrap}>
+      <button
+        type="button"
+        className={`${styles.swapBtn} ${done ? styles.swapDone : ""}`}
+        disabled={pending || done}
+        aria-live="polite"
+        onClick={() => {
+          setError(null);
+          startSwap(async () => {
+            try {
+              const res = await apply(messageId, index);
+              if (res.error) setError(res.error);
+              else setDone(true);
+            } catch {
+              setError(t("swapFailed"));
+            }
+          });
+        }}
+      >
+        {done ? t("swapDone", { name: swap.newName }) : pending ? t("swapPending") : t("swapButton", { old: swap.oldName, new: swap.newName })}
+      </button>
+      {error && <span className={styles.swapError} role="alert">{error}</span>}
+    </div>
+  );
+}
+
 /**
  * Zoznam bublín. Samostatný `memo` komponent: písanie v poli mení len stav composera,
  * takže zoznam (až 300 správ) sa pri každom stlačení klávesu znova nevykresľuje.
@@ -233,12 +273,14 @@ const MessageList = memo(function MessageList({
   emptyTitle,
   emptyText,
   onOpenExercise,
+  onApplySwap,
 }: {
   rows: Row[];
   mySide: "trainer" | "client";
   emptyTitle: string;
   emptyText: string;
   onOpenExercise?: (ref: ChatExerciseRef) => void;
+  onApplySwap?: ChatApplySwap;
 }) {
   const locale = useLocale();
   const t = useTranslations("chat");
@@ -316,6 +358,13 @@ const MessageList = memo(function MessageList({
                 ))}
               </div>
             )}
+            {onApplySwap && m.swaps && m.swaps.length > 0 && (
+              <div className={styles.swaps}>
+                {m.swaps.map((sw, i) => (
+                  <SwapButton key={`${sw.dayId}-${sw.oldId}`} messageId={m.id} index={i} swap={sw} apply={onApplySwap} />
+                ))}
+              </div>
+            )}
           </div>
           {(endOfTurn || pendingRow) && (
             <span className={styles.meta}>{pendingRow ? "odosielam…" : timeOf(m.createdAt)}</span>
@@ -354,6 +403,7 @@ export function ChatThread({
   realtimeFilter,
   revealComposer = false,
   getExerciseDetail,
+  applySwap,
 }: {
   messages: ChatMessage[];
   mySide: "trainer" | "client";
@@ -401,6 +451,8 @@ export function ChatThread({
   /** AI Kouč: načíta detail cviku (obrázky/kroky) pre `ChatExerciseRef.id`. Bez tejto
       props sa chipy pod správou vôbec nevykreslia (napr. v trénerovom chate). */
   getExerciseDetail?: (exerciseId: string) => Promise<ExerciseDetail | null>;
+  /** AI Kouč: vykoná overenú výmenu cviku vo vlastnom pláne (tlačidlo pod odpoveďou). */
+  applySwap?: ChatApplySwap;
 }) {
   const t = useTranslations("chat");
   const router = useRouter();
@@ -679,6 +731,7 @@ export function ChatThread({
           mySide={mySide}
           emptyTitle={emptyTitle}
           emptyText={emptyText}
+          onApplySwap={applySwap}
           onOpenExercise={
             getExerciseDetail
               ? (ref) => {
