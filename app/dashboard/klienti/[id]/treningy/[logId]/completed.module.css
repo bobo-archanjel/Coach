@@ -1,4 +1,4 @@
-/* Detail dokončeného tréningu (0048) — plán vs. realita, len na čítanie. Mobile-first. */
+/* Detail dokončeného tréningu (0048) — hlavička a meta; cviky so sériami: app/components/CompletedExercises. */
 
 .head {
   display: flex;
@@ -100,111 +100,6 @@
   color: var(--paper-faint);
 }
 
-.exerciseList {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
-.exercise {
-  padding: 14px 16px;
-  background: var(--card-bg);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-m);
-  box-shadow: var(--card-shadow);
-}
-.exerciseHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-}
-.exerciseName {
-  font-size: 15px;
-  font-weight: 700;
-}
-.chipMuted {
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--steel-line);
-  background: var(--fill);
-  color: var(--paper-faint);
-  font-size: 11.5px;
-  font-weight: 600;
-}
-.plannedLine {
-  margin-top: 4px;
-  font-size: 12.5px;
-  color: var(--paper-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.setTable {
-  margin-top: 10px;
-  display: grid;
-  font-size: 13.5px;
-  font-variant-numeric: tabular-nums;
-}
-.setHeadRow,
-.setRow {
-  display: grid;
-  grid-template-columns: 44px 1fr 1.2fr;
-  gap: 8px;
-  padding: 7px 0;
-  align-items: baseline;
-}
-.setHeadRow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--paper-faint);
-  border-bottom: 1px solid var(--steel-line);
-}
-.setRow + .setRow {
-  border-top: 1px solid rgba(56, 53, 47, 0.6);
-}
-.setIndex {
-  color: var(--paper-faint);
-}
-.planned {
-  color: var(--paper-dim);
-}
-.actual {
-  font-weight: 700;
-  color: var(--paper);
-}
-/* Skutočná hodnota oproti plánu: presne = zelená, menej = červená, viac = modrá */
-.toneMet {
-  color: var(--moss);
-}
-.toneBelow {
-  color: var(--error);
-}
-.toneAbove {
-  color: var(--info);
-}
-.rpe {
-  font-weight: 500;
-  color: var(--paper-faint);
-}
-.exerciseNote {
-  margin-top: 10px;
-  padding-left: 10px;
-  border-left: 2px solid var(--steel-line);
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--paper-dim);
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 @media (min-width: 720px) {
   .metaLabel {
     display: inline-block;
@@ -214,16 +109,11 @@
   .title {
     font-size: 1.8rem;
   }
-  .setHeadRow,
-  .setRow {
-    grid-template-columns: 60px 1fr 1fr;
-  }
 }
 
 /* ======================================================================
    v6 — "liquid glass" vrstva nad kópiou pôvodného modulu.
    ====================================================================== */
-.exercise,
 .sessionMeta {
   border-radius: 22px;
 }
@@ -233,20 +123,4 @@
 }
 .backfillNote {
   border-radius: 18px;
-}
-
-/* superséria, v ktorej klient cvik cvičil (A1 / A2) */
-.ssTag {
-  display: inline-grid;
-  place-items: center;
-  min-width: 26px;
-  height: 21px;
-  padding: 0 6px;
-  margin-right: 8px;
-  border-radius: 7px;
-  background: var(--accent-grad);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 800;
-  vertical-align: 2px;
 }

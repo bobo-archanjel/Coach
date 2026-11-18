@@ -45,5 +45,22 @@
   "ssLink": "Spojiť do supersérie",
   "ssUnlink": "Superséria · rozdeliť",
   "ssLinkAria": "Spojiť cviky {a} a {b} do supersérie",
-  "ssUnlinkAria": "Rozdeliť supersériu medzi cvikmi {a} a {b}"
+  "ssUnlinkAria": "Rozdeliť supersériu medzi cvikmi {a} a {b}",
+  "compare": {
+    "set": "Séria",
+    "plan": "Plán",
+    "actual": "Odcvičené",
+    "extra": "navyše",
+    "notDone": "neodcvičené",
+    "skipped": "Nezapísané",
+    "outsidePlan": "Mimo plánu",
+    "planLine": "Plán: {summary}",
+    "setsOf": "Série — {name}",
+    "repsShort": "{reps} op.",
+    "bodyweight": "vlastná váha",
+    "tempo": "„{tempo}“",
+    "rest": "pauza {seconds} s",
+    "toneBelow": "pod plánom",
+    "toneAbove": "nad plán"
+  }
 }

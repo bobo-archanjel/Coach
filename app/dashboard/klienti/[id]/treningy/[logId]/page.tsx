@@ -1,29 +1,21 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { intlLocale, type Locale } from "@/lib/i18n/locales";
+import { intlLocale } from "@/lib/i18n/locales";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   comparePlanWithActual,
   formatCompletedDate,
-  formatDistance,
-  formatDuration,
   parseLoggedEntries,
   parsePlanSnapshot,
-  rowTone,
-  setTones,
-  type SetTone,
   type CompareExercise,
-  type CompareRow,
   type PlanSnapshot,
-  type SnapshotExercise,
 } from "@/lib/workouts/completed";
-import { timedSeconds } from "@/lib/workouts/timedReps";
+import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { DuplicateWorkoutButton } from "./DuplicateWorkoutButton";
 import { InfoTip } from "@/app/components/InfoTip";
 import dashboardStyles from "@/app/dashboard/dashboard.module.css";
 import styles from "./completed.module.css";
-import { supersetPositions } from "@/lib/workouts/superset";
 
 const BackIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -90,55 +82,6 @@ function previewView(clientId: string, logId: string): CompletedWorkoutView {
 }
 // i18n-ignore-end
 
-type LogT = Awaited<ReturnType<typeof getTranslations<"clientDetail.log">>>;
-
-function plannedSummary(p: SnapshotExercise, t: LogT): string {
-  const parts = [`${p.sets} × ${p.reps ?? "?"}`];
-  parts.push(p.loadKg != null ? `${p.loadKg} kg` : t("bodyweight"));
-  if (p.tempo) parts.push(t("tempo", { tempo: p.tempo }));
-  if (p.restSeconds != null) parts.push(t("rest", { seconds: p.restSeconds }));
-  return parts.join(" · ");
-}
-
-function plannedCell(row: CompareRow, t: LogT): string {
-  if (!row.planned) return t("extra");
-  // cvik na čas („60 s“) bez „op.“
-  const reps = row.planned.reps
-    ? timedSeconds(row.planned.reps) != null
-      ? row.planned.reps
-      : t("repsShort", { reps: row.planned.reps })
-    : "—";
-  return row.planned.loadKg != null ? `${reps} × ${row.planned.loadKg} kg` : reps;
-}
-
-/** Skutočné hodnoty série; opakovania a váha zafarbené podľa plánu (zelená presne, červená menej, modrá viac). */
-function ActualCell({ row, t, locale }: { row: CompareRow; t: LogT; locale: Locale }) {
-  const a = row.actual;
-  if (!a) return <>{t("notDone")}</>;
-  const tones = setTones(row);
-  const parts: { text: string; tone: SetTone | null }[] = [];
-  if (a.reps != null) parts.push({ text: t("repsShort", { reps: a.reps }), tone: tones.reps });
-  if (a.weight != null) parts.push({ text: `${a.weight} kg`, tone: tones.weight });
-  if (a.durationS != null) parts.push({ text: formatDuration(a.durationS), tone: tones.duration });
-  if (a.distanceM != null) parts.push({ text: formatDistance(a.distanceM, locale), tone: null });
-  if (parts.length === 0) return <>—</>;
-  return (
-    <>
-      {parts.map((p, i) => (
-        <span key={i}>
-          {i > 0 && " × "}
-          <span className={p.tone ? styles[TONE_CLASS[p.tone]] : undefined} data-tone={p.tone ?? undefined}>
-            {p.text}
-          </span>
-        </span>
-      ))}
-    </>
-  );
-}
-
-// kľúče tried v completed.module.css (styles[TONE_CLASS[tone]])
-const TONE_CLASS = { below: "toneBelow", above: "toneAbove", met: "toneMet" } as const;
-
 export default async function CompletedWorkoutPage({
   params,
   searchParams,
@@ -187,7 +130,6 @@ export default async function CompletedWorkoutPage({
   const dateLabel = formatCompletedDate(view.completedAt ?? `${view.performedOn}T12:00:00Z`, locale);
   const title = view.snapshot?.dayName ?? t("workoutFallback");
 
-  const ssPositions = supersetPositions(view.exercises);
   return (
     <>
       <Link href={`/dashboard/klienti/${view.clientId}`} className={dashboardStyles.backLink}>
@@ -260,59 +202,7 @@ export default async function CompletedWorkoutPage({
       {view.exercises.length === 0 ? (
         <p className={dashboardStyles.noWorkouts}>{t("noValues")}</p>
       ) : (
-        <div className={styles.exerciseList}>
-          {view.exercises.map((ex, exIdx) => (
-            <section key={ex.key} className={styles.exercise} data-testid="completed-exercise">
-              <header className={styles.exerciseHead}>
-                <h2 className={styles.exerciseName}>
-                  {/* superséria, v ktorej klient cvik cvičil (plán alebo spojenie počas tréningu) */}
-                  {ssPositions[exIdx] && (
-                    <span className={styles.ssTag}>{`${ssPositions[exIdx]!.letter}${ssPositions[exIdx]!.index}`}</span>
-                  )}
-                  {ex.name}
-                </h2>
-                {ex.status === "skipped" && <span className={styles.chipMuted}>{t("skipped")}</span>}
-                {ex.status === "extra" && <span className={styles.chipMuted}>{t("outsidePlan")}</span>}
-              </header>
-              {ex.planned && <p className={styles.plannedLine}>{t("planLine", { summary: plannedSummary(ex.planned, t) })}</p>}
-
-              {ex.rows.length > 0 && (
-                <div className={styles.setTable} role="table" aria-label={t("setsOf", { name: ex.name })}>
-                  <div className={styles.setHeadRow} role="row">
-                    <span role="columnheader">{t("set")}</span>
-                    <span role="columnheader">{t("plan")}</span>
-                    <span role="columnheader">{t("actual")}</span>
-                  </div>
-                  {ex.rows.map((row) => {
-                    const tone = rowTone(row);
-                    return (
-                      <div key={row.index} className={styles.setRow} role="row" data-testid="set-row">
-                        <span role="cell" className={styles.setIndex}>
-                          {row.index}.
-                        </span>
-                        <span role="cell" className={styles.planned}>
-                          {plannedCell(row, t)}
-                        </span>
-                        <span role="cell" className={styles.actual}>
-                          <ActualCell row={row} t={t} locale={locale} />
-                          {row.actual?.rpe != null && <span className={styles.rpe}> · RPE {row.actual.rpe}</span>}
-                          {tone && tone !== "met" && (
-                            <span className={styles.srOnly}>
-                              {" "}
-                              ({t(tone === "below" ? "toneBelow" : tone === "above" ? "toneAbove" : "toneMet")})
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {ex.note && <p className={styles.exerciseNote}>„{ex.note}“</p>}
-            </section>
-          ))}
-        </div>
+        <CompletedExercises exercises={view.exercises} hasPlan={view.snapshot !== null} headingLevel={2} />
       )}
     </>
   );

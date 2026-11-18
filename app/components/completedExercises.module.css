@@ -1,0 +1,166 @@
+/* Odcvičený tréning — plán vs. skutočnosť po sériách (CompletedExercises.tsx).
+   Tréner: cviky ako karty. Portál (`.flat`): vnútri karty, cviky oddelené čiarou. */
+
+.exerciseList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.exercise {
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 22px;
+  box-shadow: var(--card-shadow);
+}
+.exerciseHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.exerciseName {
+  font-size: 15px;
+  font-weight: 700;
+}
+.chipMuted {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--steel-line);
+  background: var(--fill);
+  color: var(--paper-faint);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.plannedLine {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.setTable {
+  margin-top: 10px;
+  display: grid;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+.setHeadRow,
+.setRow {
+  display: grid;
+  grid-template-columns: 44px 1fr 1.2fr;
+  gap: 8px;
+  padding: 7px 0;
+  align-items: baseline;
+}
+.noPlan .setHeadRow,
+.noPlan .setRow {
+  grid-template-columns: 44px 1fr;
+}
+.setHeadRow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  border-bottom: 1px solid var(--steel-line);
+}
+.setRow + .setRow {
+  border-top: 1px solid var(--hairline);
+}
+.setIndex {
+  color: var(--paper-faint);
+}
+.planned {
+  color: var(--paper-dim);
+}
+.actual {
+  font-weight: 700;
+  color: var(--paper);
+}
+.notDone {
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+/* Skutočná hodnota oproti plánu: presne = zelená, menej = červená, viac = modrá */
+.toneMet {
+  color: var(--moss);
+}
+.toneBelow {
+  color: var(--error);
+}
+.toneAbove {
+  color: var(--info);
+}
+.rpe {
+  font-weight: 500;
+  color: var(--paper-faint);
+}
+.exerciseNote {
+  margin-top: 10px;
+  padding-left: 10px;
+  border-left: 2px solid var(--steel-line);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+}
+
+/* superséria, v ktorej klient cvik cvičil (A1 / A2) */
+.ssTag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 21px;
+  padding: 0 6px;
+  margin-right: 8px;
+  border-radius: 7px;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* portál: bez rámu, vnútri karty */
+.flat {
+  gap: 0;
+  margin-top: 4px;
+}
+.flat .exercise {
+  padding: 12px 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.flat .exercise + .exercise {
+  border-top: 1px solid var(--hairline);
+}
+.flat .exercise:first-child {
+  padding-top: 4px;
+}
+
+@media (min-width: 720px) {
+  .setHeadRow,
+  .setRow {
+    grid-template-columns: 60px 1fr 1fr;
+  }
+  .noPlan .setHeadRow,
+  .noPlan .setRow {
+    grid-template-columns: 60px 1fr;
+  }
+}
+
+/* portál na počítači: tabuľka nie cez celú šírku karty (plán a skutočnosť blízko seba) */
+.flat .setTable {
+  max-width: 560px;
+}
