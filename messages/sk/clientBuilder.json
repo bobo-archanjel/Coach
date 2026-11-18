@@ -47,5 +47,9 @@
   "ssUnlinkAria": "Rozdeliť supersériu medzi cvikmi {a} a {b}",
   "ssNext": "bez pauzy → {next}",
   "ssRoundRest": "pauza po kole {seconds} s",
-  "ssRoundNoRest": "koniec kola"
+  "ssRoundNoRest": "koniec kola",
+  "dayDoneShort": "Odcvičené",
+  "dayDone": "Odcvičené {date}",
+  "dayDoneHint": "Tento deň je už odcvičený — nedá sa upraviť.",
+  "dayDoneNoValues": "Tréning bol ukončený bez zapísaných hodnôt."
 }

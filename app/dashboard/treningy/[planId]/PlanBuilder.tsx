@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import { ExerciseLibrary } from "./ExerciseLibrary";
 import { ExerciseRow } from "./ExerciseRow";
@@ -12,8 +12,25 @@ import { moveExerciseEntryAction, toggleSupersetLinkAction, type WorkoutExercise
 import { SupersetLink } from "@/app/components/SupersetLink";
 import { detachFromSuperset, isLinkedToNext, supersetPositions, toggleLinkWithNext } from "@/lib/workouts/superset";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
+import { formatCompletedDate, type CompletedCompare } from "@/lib/workouts/completed";
+import type { Locale } from "@/lib/i18n/locales";
+import { CompletedExercises } from "@/app/components/CompletedExercises";
+import { AppLink as Link } from "@/app/components/AppLink";
 import styles from "@/app/components/workoutBuilder.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
+
+/** Odcvičený deň (posledný záznam klienta) — v builderi zamknutý, ukáže plán vs. skutočnosť. */
+export interface DoneDay {
+  logId: string;
+  completedAt: string;
+  compare: CompletedCompare;
+}
+
+const CheckIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 interface Day {
   id: string;
@@ -26,15 +43,18 @@ export function PlanBuilder({
   planId,
   days,
   library,
-  completedDayIds = [],
+  clientId,
+  doneDays = {},
 }: {
   planId: string;
   days: Day[];
   library: ExerciseLibraryRow[];
-  /** dni, z ktorých klient už odcvičil tréning (plan_snapshot.day_id, 0048) */
-  completedDayIds?: string[];
+  clientId: string;
+  /** dni, z ktorých klient už odcvičil tréning (workout_logs.workout_day_id) — zamknuté */
+  doneDays?: Record<string, DoneDay>;
 }) {
   const t = useTranslations("plans.builder");
+  const locale = useLocale() as Locale;
   const [activeDayId, setActiveDayId] = useState<string | null>(days[0]?.id ?? null);
   // „Premenovať“ otvorený pre aktívny deň — prepnutie dňa ho zavrie
   const [renaming, setRenaming] = useState(false);
@@ -85,6 +105,7 @@ export function PlanBuilder({
   }, [localDays, activeDayId]);
 
   const activeDay = localDays.find((d) => d.id === activeDayId) ?? null;
+  const activeDone = activeDay ? doneDays[activeDay.id] : undefined;
 
   const moveExercise = (dayId: string, entryId: string, direction: "up" | "down") => {
     setLocalDays((prev) =>
@@ -133,8 +154,15 @@ export function PlanBuilder({
                 setRenaming(false);
               }}
               aria-current={day.id === activeDayId ? "true" : undefined}
-              title={day.name}
+              title={doneDays[day.id] ? `${day.name} · ${t("dayDoneShort")}` : day.name}
+              data-done={doneDays[day.id] ? "true" : undefined}
             >
+              {doneDays[day.id] && (
+                <span className={styles.dayTabDone}>
+                  <CheckIcon />
+                  <span className={styles.srOnly}>{t("dayDoneShort")}: </span>
+                </span>
+              )}
               <span className={styles.dayTabName}>{day.name}</span>
               <span className={styles.dayTabCount} aria-hidden="true">
                 {day.exercises.length}
@@ -165,7 +193,7 @@ export function PlanBuilder({
           />
         )}
 
-        {activeDay && renaming && (
+        {activeDay && renaming && !activeDone && (
           <RenameDayDialog
             key={`rename-${activeDay.id}`}
             planId={planId}
@@ -175,7 +203,22 @@ export function PlanBuilder({
           />
         )}
 
-        {activeDay && (
+        {activeDay && activeDone && (
+          // odcvičený deň: bez úprav — kedy ho klient odcvičil a odkaz na detail tréningu
+          <div className={styles.dayHead}>
+            <div className={styles.dayDoneBar} data-testid="day-done">
+              <span className={styles.dayDoneBadge}>
+                <CheckIcon /> {t("dayDone", { date: formatCompletedDate(activeDone.completedAt, locale) })}
+              </span>
+              <span className={styles.dayDoneHint}>{t("dayDoneHint")}</span>
+              <Link href={`/dashboard/klienti/${clientId}/treningy/${activeDone.logId}`} className={styles.dayDoneLink}>
+                {t("dayDoneOpen")}
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {activeDay && !activeDone && (
           // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní); „Premenovať“ otvorí okno
           <div className={styles.dayHead}>
             <div className={styles.dayActionsRow} data-tour="plan-day-actions">
@@ -197,14 +240,19 @@ export function PlanBuilder({
                 dayId={activeDay.id}
                 dayName={activeDay.name}
                 exerciseCount={activeDay.exercises.length}
-                hasCompleted={completedDayIds.includes(activeDay.id)}
               />
             </div>
           </div>
         )}
 
         <div className={styles.dayPanel}>
-          {activeDay ? (
+          {activeDay && activeDone ? (
+            activeDone.compare.exercises.length > 0 ? (
+              <CompletedExercises exercises={activeDone.compare.exercises} hasPlan={activeDone.compare.hasPlan} />
+            ) : (
+              <p className={styles.libraryHint}>{t("dayDoneNoValues")}</p>
+            )
+          ) : activeDay ? (
             activeDay.exercises.length > 0 ? (
               (() => {
                 const list = activeDay.exercises;
@@ -244,7 +292,8 @@ export function PlanBuilder({
       </div>
 
       {/* Až za plátnom aj v DOM (nielen cez CSS order) — poradie pre klávesnicu/čítačku = vizuálne */}
-      <ExerciseLibrary exercises={library} activeDayId={activeDay?.id ?? null} planId={planId} />
+      {/* odcvičený deň sa nemení — pridávanie cvikov (vlastný cvik aj knižnica) netreba */}
+      {!activeDone && <ExerciseLibrary exercises={library} activeDayId={activeDay?.id ?? null} planId={planId} />}
     </div>
   );
 }

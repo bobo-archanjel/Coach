@@ -4,7 +4,7 @@ import { AppLink as Link } from "../../../components/AppLink";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
-import { PlanBuilder } from "./PlanBuilder";
+import { PlanBuilder, type DoneDay } from "./PlanBuilder";
 import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
 import { listPlanRecipients } from "@/lib/planRecipients";
 import { PublishActions, PublishBadge } from "./PublishControl";
@@ -12,7 +12,7 @@ import { PlanTitle } from "./PlanTitle";
 import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
-import { formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
+import { compareLog, formatCompletedDate, parsePlanSnapshot } from "@/lib/workouts/completed";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { InfoTip } from "@/app/components/InfoTip";
@@ -32,6 +32,19 @@ const PREVIEW_DAYS = [
   { id: "d3", day_number: 3, name: "Deň 3 — Ťah (chrbát, biceps, zadné delty)", exercises: ["Zhyby", "Veslovanie v predklone", "Bicepsový zdvih"].map((n, i) => previewEntry(i + 20, n)) },
   { id: "d4", day_number: 4, name: "Deň 4 — Horná časť tela (silový mix) a core", exercises: ["Plank", "Mŕtvy ťah"].map((n, i) => previewEntry(i + 30, n)) },
 ];
+
+// deň 3 odcvičený (iné testy buildera upravujú dni 1 a 2): zhyby podľa plánu aj menej,
+// veslovanie bez 3. série, bicepsový zdvih nezapísaný
+const PREVIEW_DONE_DAYS: Record<string, DoneDay> = {
+  d3: {
+    logId: "preview-log",
+    completedAt: "2026-11-16T17:30:00Z",
+    compare: compareLog({ exercises: PREVIEW_DAYS[2].exercises }, [
+      { entryId: "p20", name: "Zhyby", sets: [{ reps: 10, weight: null }, { reps: 8, weight: null }, { reps: 7, weight: null }] },
+      { entryId: "p21", name: "Veslovanie v predklone", sets: [{ reps: 9, weight: 40 }, { reps: 8, weight: 42.5 }] },
+    ]),
+  },
+};
 
 const PREVIEW_LIBRARY = [
   { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [], equipment: "barbell" },
@@ -93,7 +106,8 @@ export default async function PlanDetailPage({
           planId={planId}
           days={preview === "builder_empty" ? [] : PREVIEW_DAYS}
           library={previewLibrary}
-          completedDayIds={["d2"]}
+          clientId="preview-client"
+          doneDays={PREVIEW_DONE_DAYS}
         />
         <div className={styles.planFooterActions} data-tour="plan-footer">
           <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted />
@@ -136,7 +150,7 @@ export default async function PlanDetailPage({
     // aby sa ukázali aj po zmazaní dňa. Zamknuté, každý má vlastný detail plán/realita.
     supabase
       .from("workout_logs")
-      .select("id, completed_at, performed_on, plan_snapshot")
+      .select("id, workout_day_id, completed_at, performed_on, plan_snapshot, entries")
       .eq("plan_snapshot->>plan_id", planId)
       .eq("status", "completed")
       .order("completed_at", { ascending: false })
@@ -148,6 +162,25 @@ export default async function PlanDetailPage({
   }
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
+  // Odcvičené dni (posledný záznam dňa; logy sú od najnovšieho) — v builderi zamknuté,
+  // namiesto úprav plán vs. skutočnosť. Server to vynúti cez getDayForEdit (dayDone).
+  const doneDays: Record<string, DoneDay> = {};
+  // Zoznam „Odcvičené tréningy“ pod builderom: odcvičené dni plánu ho už nepotrebujú (porovnanie
+  // aj odkaz na detail sú priamo v dni) — ostávajú len záznamy dní, ktoré v pláne už nie sú
+  // (zmazaný deň, 0048). Celý odcvičený plán builder nemá → zoznam všetkých.
+  const planDayIds = new Set((days ?? []).map((d) => d.id as string));
+  const listedLogs = (completedLogs ?? []).filter(
+    (log) => locked || !log.workout_day_id || !planDayIds.has(log.workout_day_id as string),
+  );
+  for (const log of completedLogs ?? []) {
+    const dayId = log.workout_day_id as string | null;
+    if (!dayId || doneDays[dayId]) continue;
+    doneDays[dayId] = {
+      logId: log.id as string,
+      completedAt: (log.completed_at as string | null) ?? `${log.performed_on}T12:00:00Z`,
+      compare: compareLog(log.plan_snapshot, log.entries),
+    };
+  }
   // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú plán aj títo
   const recipients = await listPlanRecipients(supabase, "workout", planId);
   const [t, locale] = await Promise.all([getTranslations("plans.builder"), getLocale()]);
@@ -192,17 +225,16 @@ export default async function PlanDetailPage({
           planId={planId}
           days={days ?? []}
           library={exercises}
-          completedDayIds={(completedLogs ?? [])
-            .map((l) => parsePlanSnapshot(l.plan_snapshot)?.dayId)
-            .filter((id): id is string => Boolean(id))}
+          clientId={plan.client_id}
+          doneDays={doneDays}
         />
       )}
 
-      {completedLogs && completedLogs.length > 0 && (
+      {listedLogs.length > 0 && (
         <section className={`${styles.card} ${styles.cardBare}`} style={{ marginTop: 20 }}>
           <h3>{t("completedLogs")}</h3>
           <div className={styles.roster}>
-            {completedLogs.map((log) => (
+            {listedLogs.map((log) => (
               <Link
                 key={log.id}
                 href={`/dashboard/klienti/${plan.client_id}/treningy/${log.id}`}
