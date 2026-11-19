@@ -1,13 +1,8 @@
 import { getTranslations } from "next-intl/server";
-import { AppLink as Link } from "../../components/AppLink";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
-import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { CreatePlanForm } from "./CreatePlanForm";
 import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
-import { AddCustomExerciseForm } from "./AddCustomExerciseForm";
-import { ExerciseLibraryList } from "./ExerciseLibraryList";
 import styles from "@/app/dashboard/dashboard.module.css";
 
 export default async function TreningyPage() {
@@ -22,61 +17,22 @@ export default async function TreningyPage() {
     redirect("/prihlasenie");
   }
 
-  const [{ data: clients }, { count: exerciseCount }, { plans, planCompletion }] = await Promise.all([
-    // `nutrition_profiles(sex)` — jediná FK z profilu späť na clients je client_id,
-    // takže embed je jednoznačný (na rozdiel od clients↔workout_plans). Sex sa
-    // vypĺňa len pri výpočte makier, takže pri mnohých klientoch bude null.
-    supabase
-      .from("clients")
-      .select("id, full_name, nutrition_profiles(sex)")
-      .eq("trainer_id", user.id)
-      .order("full_name"),
-    // Len počet pre hlavičku — celé riadky (~900, aj muscle_group) sa ťahajú až na
-    // požiadanie v ExerciseLibraryList (defaultne zbalené), nie pri každom načítaní.
-    supabase.from("exercises").select("id", { count: "exact", head: true }),
-    supabase
-      .from("workout_plans")
-      // Explicitná FK — viď poznámku v [planId]/page.tsx (clients.active_plan_id
-      // robí plain `clients(...)` embed nejednoznačným, celý zoznam plánov by inak
-      // vždy vyzeral prázdny). `workout_days(id)` (nie `(count)`) — z tých istých
-      // ID sa počíta aj počet dní aj odcvičenosť (getPlanCompletion) bez ďalšieho
-      // dopytu na `workout_days`.
-      .select(
-        "id, name, created_at, published, client_id, clients!workout_plans_client_id_fkey(full_name, active_plan_id), workout_days(id)",
-      )
-      .eq("trainer_id", user.id)
-      .order("created_at", { ascending: false })
-      // Odcvičenosť plánov — jeden zdroj pravdy zdieľaný s detailom klienta
-      // (lib/dashboard/planCompletion.ts). Potrebuje len ID dní plánov, preto je
-      // zreťazená priamo na tento dopyt (nečaká na klientov ani počet cvikov).
-      .then(async ({ data: plans }) => ({
-        plans,
-        planCompletion: await getPlanCompletion(
-          supabase,
-          (plans ?? []).map((p) => ({
-            id: p.id,
-            dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
-          })),
-        ),
-      })),
-  ]);
+  // Len vytvorenie plánu (ručne alebo AI). Plány klienta sú v jeho detaile (Tréningy),
+  // knižnica cvikov priamo v builderi plánu — zoznamy tu boli duplicita.
+  // `nutrition_profiles(sex)` — jediná FK z profilu späť na clients je client_id,
+  // takže embed je jednoznačný (na rozdiel od clients↔workout_plans). Sex sa
+  // vypĺňa len pri výpočte makier, takže pri mnohých klientoch bude null.
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, full_name, nutrition_profiles(sex)")
+    .eq("trainer_id", user.id)
+    .order("full_name");
 
   const clientList = (clients ?? []).map((c) => {
     const profile = c.nutrition_profiles as unknown as { sex: "muz" | "zena" } | { sex: "muz" | "zena" }[] | null;
     const sex = (Array.isArray(profile) ? profile[0]?.sex : profile?.sex) ?? null;
     return { id: c.id, full_name: c.full_name, sex };
   });
-
-  // Aktívny plán každého klienta (riadi jeho kartu Dnes, 0056) — rovnaké pravidlo ako detail
-  // klienta: clients.active_plan_id, ak je zverejnený, inak najnovší zverejnený. Zoznam je
-  // zoradený od najnovšieho, takže filtrovanie poradie zachová.
-  const activePlanByClient = new Map<string, string | null>();
-  for (const plan of plans ?? []) {
-    if (!plan.client_id || activePlanByClient.has(plan.client_id)) continue;
-    const pinned = (plan.clients as unknown as { active_plan_id: string | null } | null)?.active_plan_id ?? null;
-    const published = (plans ?? []).filter((p) => p.client_id === plan.client_id && p.published);
-    activePlanByClient.set(plan.client_id, resolveActivePlanId(pinned, published));
-  }
 
   const t = await getTranslations("plans");
   return (
@@ -91,56 +47,11 @@ export default async function TreningyPage() {
         <CreatePlanForm clients={clientList} />
       </div>
 
-      <div className={styles.card} style={{ marginBottom: 20 }} data-tour="plans-ai">
+      <div className={styles.card} data-tour="plans-ai">
         <h3>{t("aiGenerator")}</h3>
         <AiPlanGeneratorForm clients={clientList} />
       </div>
 
-      {plans && plans.length > 0 ? (
-        <div className={styles.roster} style={{ marginBottom: 28 }} data-tour="plans-list">
-          {plans.map((plan) => {
-            const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
-            const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
-            const done = planCompletion.get(plan.id);
-            return (
-              <Link key={plan.id} href={`/dashboard/treningy/${plan.id}`} className={styles.clientCard}>
-                <div>
-                  <div className={styles.clientName}>{plan.name}</div>
-                  <div className={styles.clientGoal}>{clientName}</div>
-                </div>
-                {/* vpravo pod sebou: Hotovo · Koncept/Aktívny · počet dní (pevná šírka → štítky v línii) */}
-                <span className={`${styles.clientMeta} ${styles.planListMeta}`}>
-                  {done?.allDone && <span className={styles.planDoneBadge}>{t("done")}</span>}
-                  {!plan.published ? (
-                    <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>{t("draft")}</span>
-                  ) : (
-                    plan.client_id &&
-                    activePlanByClient.get(plan.client_id) === plan.id && (
-                      <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>{t("active")}</span>
-                    )
-                  )}
-                  <span className={styles.clientSince}>
-                    {done && done.completedDays > 0
-                      ? t("daysDone", { done: done.completedDays, count: dayCount })
-                      : t("days", { count: dayCount })}
-                  </span>
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <div className={styles.emptyState} style={{ marginBottom: 28 }}>
-          <h2>{t("emptyTitle")}</h2>
-          <p>{t("emptyText")}</p>
-        </div>
-      )}
-
-      <div className={styles.card}>
-        <h3>{t("library", { count: exerciseCount ?? 0 })}</h3>
-        <AddCustomExerciseForm />
-        {(exerciseCount ?? 0) > 0 && <ExerciseLibraryList count={exerciseCount ?? 0} />}
-      </div>
     </>
   );
 }

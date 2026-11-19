@@ -1184,12 +1184,6 @@ select.addClientInputSm {
     min-width: 15ch;
     text-align: right;
   }
-  /* Zoznamy Tréningy / Jedálničky: rovnaký princíp — počet dní („12/12 dní“ najdlhší)
-     má pevnú šírku, štítky Hotovo · Koncept/Aktívny tak končia v jednej línii. */
-  .planListMeta > .clientSince {
-    min-width: 10ch;
-    text-align: right;
-  }
 }
 /* Plán, ktorý klient celý odcvičil — moss "splnený stav" (DESIGN.md: pravidlo
    jedného accentu). Zhodné s .publishBadge + .publishBadgeLive; jeden zdroj

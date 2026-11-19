@@ -19,7 +19,6 @@ import { dbErr } from "@/lib/dbError";
 import { getDayForEdit, isPlanLocked } from "@/lib/dashboard/planCompletion";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { getTranslations } from "next-intl/server";
-import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
 import { detachFromSuperset, normalizeSupersets, toggleLinkWithNext } from "@/lib/workouts/superset";
@@ -40,24 +39,6 @@ const ok: ActionState = { error: null };
 export async function getExerciseDetailAction(exerciseId: string): Promise<ExerciseDetail | null> {
   const supabase = await createClient();
   return fetchExerciseDetail(supabase, exerciseId);
-}
-
-export interface ExerciseListItem {
-  id: string;
-  name: string;
-  muscleGroup: string | null;
-}
-
-/**
- * Celá knižnica cvikov (~900 riadkov) pre zoznam na /dashboard/treningy — predtým
- * sa ťahala a vypisovala na stránke vždy, teraz na požiadanie (ExerciseLibraryList,
- * defaultne zbalené, len počet v hlavičke sa počíta priamo pri načítaní stránky).
- */
-export async function getExerciseLibraryListAction(): Promise<ExerciseListItem[]> {
-  const supabase = await createClient();
-  // rovnaká cache globálnej knižnice ako builder (lib/exerciseLibrary)
-  const rows = await getTrainerExerciseLibrary(supabase);
-  return rows.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group }));
 }
 
 export interface WorkoutExerciseEntry {

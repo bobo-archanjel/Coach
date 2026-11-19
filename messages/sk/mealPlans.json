@@ -2,12 +2,6 @@
   "title": "Jedálničky",
   "subtitle": "Zostav jedálniček klientovi — dni, jedlá a gramáže. Makro cieľ nastavíš v detaile klienta.",
   "newMealPlan": "Nový jedálniček",
-  "draft": "Koncept",
-  "active": "Aktívny",
-  "kcalPerDay": " · ≈ {kcal} kcal/deň",
-  "days": "{count, plural, one {# deň} few {# dni} other {# dní}}",
-  "emptyTitle": "Zatiaľ žiadne jedálničky",
-  "emptyText": "Vytvor prvý jedálniček vyššie.",
   "create": {
     "noClients": "Najprv pridaj klienta na stránke Klienti.",
     "formLabel": "Nový jedálniček",
