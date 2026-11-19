@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-19** — **Analytika bez CSV, Tréningy a Jedálničky bez zoznamov** (`feature/analytika-treningy-cistenie`, bez migrácie).
+  - Analytika klienta: export CSV meraní zrušený (tlačidlo, `/api/export/progress/[clientId]/csv`, `lib/csv.ts`), ostáva „Stiahnuť PDF“ — presunuté na spodok pod grafy.
+  - Stránky trénera Tréningy a Jedálničky: len „Nový plán / jedálniček“ a AI generátor — bez zoznamu všetkých plánov / jedálničkov (sú v detaile klienta) a bez knižnice cvikov (je v builderi plánu). Kroky sprievodcu k zoznamom odstránené.
 - **2026-11-18** — **Tréner: hotový plán ako prehľad dní, preč „Posledná aktivita“ a detail tréningu** (`feature/hotovy-plan-prehlad`, bez migrácie).
   - Celý odcvičený plán už nie je zoznam tréningov na rozkliknutie: builder len na čítanie — dráha dní s fajkami, pri dni dátum, RPE, poznámka klienta, dodatočná úprava a plán vs. skutočnosť; bez „+ deň“ a úprav. RPE / poznámka / úprava aj pri čiastočne odcvičenom pláne. Náhľad `?preview=builder_done`.
   - Z detailu plánu preč zoznam „Odcvičené tréningy“ a tlačidlo „Detail tréningu“; z detailu klienta karta „Posledná aktivita“; zmazaná stránka `/dashboard/klienti/[id]/treningy/[logId]` aj „Duplikovať ako nový tréning“. Tréning zo zmazaného dňa / plánu ostáva len v DB.
