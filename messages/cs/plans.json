@@ -3,12 +3,6 @@
   "subtitle": "Sestav klientovi plán — knihovna cviků, dny, série a opakování.",
   "newPlan": "Nový plán",
   "aiGenerator": "AI generátor plánu",
-  "draft": "Koncept",
-  "done": "Hotovo",
-  "days": "{count, plural, one {# den} few {# dny} other {# dní}}",
-  "emptyTitle": "Zatím žádné plány",
-  "emptyText": "Vytvoř první plán výše.",
-  "library": "Knihovna cviků ({count})",
   "create": {
     "noClients": "Nejdřív přidej klienta na stránce Klienti.",
     "formLabel": "Nový plán",
@@ -18,16 +12,6 @@
     "create": "Vytvořit plán",
     "multiHint": "Otevře se jeden koncept — po odeslání dostane každý klient vlastní kopii plánu.",
     "chooseClient": "Vyber alespoň jednoho klienta."
-  },
-  "customExercise": {
-    "name": "Název cviku",
-    "muscle": "Svalová partie (volitelné)",
-    "adding": "Přidávám…",
-    "add": "Přidat vlastní cvik"
-  },
-  "libraryList": {
-    "show": "Zobrazit knihovnu cviků ({count})",
-    "loading": "Načítám…"
   },
   "ai": {
     "msg1": "Přemýšlím nad plánem…",
@@ -159,7 +143,5 @@
     "dayDone": "Odcvičeno {date}",
     "dayDoneHint": "Klient tento den už odcvičil — nejde upravit.",
     "dayDoneNoValues": "Klient ukončil trénink bez zapsaných hodnot."
-  },
-  "active": "Aktivní",
-  "daysDone": "{done}/{count, plural, one {# den} few {# dny} other {# dní}}"
+  }
 }

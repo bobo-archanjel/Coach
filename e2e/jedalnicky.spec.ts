@@ -247,18 +247,14 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await expect(page.getByRole("tabpanel", { name: "Makro cieľ" }).getByRole("heading", { name: "Vstupné údaje" })).toBeVisible();
   });
 
-  test("stránka Jedálničky: všetky jedálničky + Nový jedálniček pre viacerých klientov", async ({ page }, testInfo) => {
+  test("stránka Jedálničky: bez zoznamu, Nový jedálniček pre viacerých klientov", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await login(page);
     await page.goto("/dashboard/jedalnicky");
     await expect(page.getByRole("heading", { name: "Jedálničky", level: 1 })).toBeVisible();
 
-    // zoznam všetkých jedálničkov (nie klientov) — s menom klienta a stavom
-    const rows = page.getByRole("link", { name: new RegExp(prefix) });
-    await expect(rows.filter({ hasText: `${prefix} koncept` })).toContainText("Koncept");
-    await expect(rows.filter({ hasText: `${prefix} aktívny` })).toContainText("Aktívny");
-    await expect(rows.filter({ hasText: `${prefix} aktívny` })).toContainText("≈ 400 kcal/deň");
-    await expect(rows.filter({ hasText: `${prefix} archív` })).not.toContainText("Aktívny");
+    // zoznam jedálničkov tu nie je (sú v detaile klienta) — len vytvorenie a AI generátor
+    await expect(page.getByRole("link", { name: new RegExp(prefix) })).toHaveCount(0);
 
     // zápis do DB len raz (desktop)
     if (testInfo.project.name !== "desktop") return;
@@ -274,12 +270,8 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     const planId = page.url().split("/").pop()!;
     const { data: recipients } = await trainer.api.from("plan_recipients").select("client_id").eq("meal_plan_id", planId);
     expect(recipients).toHaveLength(1);
-    // späť na zoznam všetkých jedálničkov — na počítači bočným menu (odkaz „Späť na jedálničky“
-    // zrušený, na mobile sa ide späť potiahnutím; e2e/swipe-back.spec.ts)
+    // odkaz „Späť na jedálničky“ zrušený (počítač: bočné menu, mobil: potiahnutie; e2e/swipe-back.spec.ts)
     await expect(page.getByRole("link", { name: "Späť na jedálničky" })).toHaveCount(0);
-    await page.getByRole("navigation").getByRole("link", { name: "Jedálničky", exact: true }).first().click();
-    await page.waitForURL(/\/dashboard\/jedalnicky$/);
-    await expect(page.getByRole("link", { name: new RegExp(`${prefix} pre dvoch`) })).toBeVisible();
     await trainer.api.from("meal_plans").delete().eq("id", planId);
   });
 

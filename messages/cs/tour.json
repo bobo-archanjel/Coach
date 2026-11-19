@@ -117,10 +117,6 @@
       "ai": {
         "title": "AI generátor",
         "body": "Vyber cíl, zkušenost a vybavení. AI navrhne celý plán z knihovny cviků a ty ho jen doladíš."
-      },
-      "list": {
-        "title": "Tvoje plány",
-        "body": "Koncept klient ještě nevidí, Aktivní právě cvičí a Hotovo znamená, že odcvičil všechny dny."
       }
     },
     "t-plan": {
@@ -157,10 +153,6 @@
       "new": {
         "title": "Nový jídelníček",
         "body": "Zadej název a vyber klienty. Jídla pak poskládáš po dnech."
-      },
-      "list": {
-        "title": "Tvoje jídelníčky",
-        "body": "Koncept klient ještě nevidí, Aktivní má právě v sekci Jídelníček. U každého vidíš počet dní a kalorie na den."
       }
     },
     "t-mealplan": {

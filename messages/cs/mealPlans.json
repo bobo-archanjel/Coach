@@ -2,12 +2,6 @@
   "title": "Jídelníčky",
   "subtitle": "Sestav klientovi jídelníček — dny, jídla a gramáže. Cíl maker nastavíš v detailu klienta.",
   "newMealPlan": "Nový jídelníček",
-  "draft": "Koncept",
-  "active": "Aktivní",
-  "kcalPerDay": " · ≈ {kcal} kcal/den",
-  "days": "{count, plural, one {# den} few {# dny} other {# dní}}",
-  "emptyTitle": "Zatím žádné jídelníčky",
-  "emptyText": "Vytvoř první jídelníček výše.",
   "create": {
     "noClients": "Nejdřív přidej klienta na stránce Klienti.",
     "formLabel": "Nový jídelníček",
