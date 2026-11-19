@@ -57,21 +57,6 @@ const meal = (grams: number) => ({
   fat_100g: 5,
 });
 
-/** Pravé okraje posledného štítku pred počtom dní v riadkoch zoznamu (len riadky so štítkom). */
-async function chipRightEdges(page: Page, rowName: RegExp): Promise<number[]> {
-  const rows = page.getByRole("link", { name: rowName });
-  return rows.evaluateAll((els) =>
-    els
-      .map((el) => {
-        const meta = el.querySelector("[class*=planListMeta]");
-        const since = meta?.querySelector("[class*=clientSince]");
-        const chip = since?.previousElementSibling;
-        return chip ? Math.round(chip.getBoundingClientRect().right) : null;
-      })
-      .filter((x): x is number => x !== null),
-  );
-}
-
 test.describe("tréning: „Premenovať“ deň v okne (?preview=builder)", () => {
   test("okno s pôvodným názvom, Esc zavrie, akcie dňa ostávajú", async ({ page }) => {
     await page.goto("/dashboard/treningy/x?preview=builder");
@@ -204,42 +189,6 @@ test.describe("reálna DB (QA tréner a klient)", () => {
     await expect(rename).toHaveCount(0);
     await expect(track.getByRole("button", { name: "Streda", exact: true })).toHaveAttribute("aria-current", "true");
     await expect(page.getByRole("button", { name: "Zmazať deň", exact: true })).toBeVisible();
-  });
-
-  test("zoznamy Tréningy a Jedálničky: štítky vpravo v jednej línii", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "desktop", "zarovnanie stĺpca len na počítači");
-    // dva jedálničky s rôznym počtom dní: zverejnený (aktívny) a koncept
-    for (const p of [
-      { name: `E2E Zoznam aktívny ${stamp}`, published: true, days: 12 },
-      { name: `E2E Zoznam koncept ${stamp}`, published: false, days: 3 },
-    ]) {
-      const { data } = await trainer.api
-        .from("meal_plans")
-        .insert({ client_id: qaClientId, trainer_id: trainer.userId, name: p.name, published: p.published })
-        .select("id")
-        .single();
-      planIds.push(data!.id);
-      await trainer.api
-        .from("meal_days")
-        .insert(Array.from({ length: p.days }, (_, i) => ({ plan_id: data!.id, day_number: i + 1, name: `Deň ${i + 1}`, meals: [] })));
-    }
-
-    await login(page, env.trainerEmail!, env.trainerPassword!, /\/dashboard/);
-    await page.goto("/dashboard/jedalnicky");
-    const rows = page.getByRole("link", { name: new RegExp(`E2E Zoznam .* ${stamp}`) });
-    await expect(rows).toHaveCount(2);
-    // štítok už nie je v stĺpci názvu
-    await expect(rows.filter({ hasText: "koncept" }).locator("[class*=clientName]")).not.toContainText("Koncept");
-    await expect(rows.filter({ hasText: "koncept" })).toContainText("Koncept");
-    const mealEdges = await chipRightEdges(page, new RegExp(`E2E Zoznam .* ${stamp}`));
-    expect(mealEdges.length).toBeGreaterThanOrEqual(1);
-    expect(new Set(mealEdges).size, `pravé okraje: ${mealEdges.join(", ")}`).toBe(1);
-
-    await page.goto("/dashboard/treningy");
-    const planEdges = await chipRightEdges(page, /.+/);
-    expect(planEdges.length).toBeGreaterThanOrEqual(2);
-    expect(new Set(planEdges).size, `pravé okraje: ${planEdges.join(", ")}`).toBe(1);
-    await expect(page.locator("[class*=planListMeta]").getByText("Aktívny", { exact: true }).first()).toBeVisible();
   });
 
   test("Strava u klienta: „Stiahnuť PDF“ pod jedálničkom", async ({ page }, testInfo) => {

@@ -55,7 +55,6 @@ const TRAINER_SECTIONS: SectionDef[] = [
     steps: [
       ["plans-new", "guides.t-plans.new"],
       ["plans-ai", "guides.t-plans.ai"],
-      ["plans-list", "guides.t-plans.list"],
     ],
   },
   {
@@ -63,7 +62,6 @@ const TRAINER_SECTIONS: SectionDef[] = [
     nav: ["nav-vyziva", "trainer.navVyziva"],
     steps: [
       ["mealplans-new", "guides.t-mealplans.new"],
-      ["mealplans-list", "guides.t-mealplans.list"],
     ],
   },
   {
