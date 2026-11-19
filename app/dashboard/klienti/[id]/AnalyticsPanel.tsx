@@ -74,17 +74,6 @@ export async function AnalyticsPanel({
 
   return (
     <div className={styles.cardStack}>
-      <div className={`${pa.grid} ${pa.narrow}`}>
-        <a href={`/api/export/progress/${clientId}/pdf`} className={`${pa.action} ${pa.small}`}>
-          <ActionDownloadIcon />
-          {t("downloadPdf")}
-        </a>
-        <a href={`/api/export/progress/${clientId}/csv`} className={`${pa.action} ${pa.small}`}>
-          <ActionDownloadIcon />
-          {t("downloadCsv")}
-        </a>
-      </div>
-
       {summaryParts.length > 0 && (
         <div className={styles.combinedSummary}>
           {summaryParts.map((p, i) => (
@@ -221,6 +210,14 @@ export async function AnalyticsPanel({
             })}
           </p>
         )}
+      </div>
+
+      {/* Export progresu na spodku — menej častá akcia než samotné grafy */}
+      <div className={`${pa.grid} ${pa.narrow}`}>
+        <a href={`/api/export/progress/${clientId}/pdf`} className={`${pa.action} ${pa.small}`}>
+          <ActionDownloadIcon />
+          {t("downloadPdf")}
+        </a>
       </div>
     </div>
   );

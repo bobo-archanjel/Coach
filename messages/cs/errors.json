@@ -184,15 +184,6 @@
     "offDown": "Open Food Facts teď neodpovídá. Zkus to za chvíli nebo potravinu založ ručně."
   },
   "csv": {
-    "date": "Datum",
-    "weight": "Váha (kg)",
-    "waist": "Pas (cm)",
-    "chest": "Hrudník (cm)",
-    "hips": "Boky (cm)",
-    "arm": "Paže (cm)",
-    "thigh": "Stehno (cm)",
-    "note": "Poznámka",
-    "measurementsFile": "mereni",
     "clientFallback": "klient",
     "progressFile": "pokrok",
     "mealPlanFallback": "jidelnicek",

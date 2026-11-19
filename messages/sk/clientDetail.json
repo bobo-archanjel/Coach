@@ -31,7 +31,6 @@
     "weight": "Váha",
     "weightDelta": "{delta} kg (90 dní)",
     "downloadPdf": "Stiahnuť PDF",
-    "downloadCsv": "Stiahnuť CSV (merania)",
     "title": "Analytika",
     "trainingAdherence": "Adherencia tréningu",
     "trainingAdherenceTip": "% dní, kedy klient odcvičil aspoň jeden tréning (bez pevného rozvrhu).",

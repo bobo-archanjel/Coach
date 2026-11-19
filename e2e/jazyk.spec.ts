@@ -140,7 +140,7 @@ test.describe("Jazyk — účty (reálna DB)", () => {
     }
   });
 
-  test("tréner: Nastavenia → Jazyk → Čeština (menu, zvonček, CSV, nové prihlásenie)", async ({ page, context, browser }) => {
+  test("tréner: Nastavenia → Jazyk → Čeština (menu, zvonček, nové prihlásenie)", async ({ page, context, browser }) => {
     test.setTimeout(120_000);
     await setLocaleCookie(context, "sk");
     await login(page, env.trainerEmail!, env.trainerPassword!, "Prihlásiť sa", /\/dashboard/);
@@ -156,15 +156,6 @@ test.describe("Jazyk — účty (reálna DB)", () => {
     await expect(page.getByRole("button", { name: /^Upozornění/ }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /Tréninky/ }).first()).toBeAttached();
     expect((await context.cookies()).find((c) => c.name === "fp-locale")?.value).toBe("cs");
-
-    // CSV export meraní: hlavička a názov súboru v jazyku trénera
-    const { data: client } = await admin.from("clients").select("id").eq("trainer_id", trainerId).limit(1).maybeSingle();
-    if (client) {
-      const res = await page.request.get(`/api/export/progress/${client.id}/csv`);
-      expect(res.status()).toBe(200);
-      expect(res.headers()["content-disposition"]).toContain('filename="mereni-');
-      expect((await res.text()).split("\r\n")[0]).toContain("Datum");
-    }
 
     if (hasLocaleColumn) {
       await expect.poll(() => profileLocale(trainerId)).toBe("cs");
