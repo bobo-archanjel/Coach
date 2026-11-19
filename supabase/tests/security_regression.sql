@@ -493,6 +493,50 @@ select pg_temp.chk('H6: priamy update roly v profile ostáva zakázaný',
 select pg_temp.chk('H6: … a rola sa nezmenila',
   (select role from public.profiles where id = :GN) = 'client');
 
+-- ============================================================ H7) správy patria spolupráci, nie klientovi (0069)
+-- Klient píše s trénerom A, odíde, pripojí sa k trénerovi B. B nesmie vidieť konverzáciu s A.
+\set MA '''a7a7a7a7-0000-0000-0000-0000000000a7'''
+\set MB '''b7b7b7b7-0000-0000-0000-0000000000b7'''
+\set MK '''c7c7c7c7-0000-0000-0000-0000000000c7'''
+insert into auth.users (id, email, raw_user_meta_data) values
+  (:MA, 'msg-a@x.sk', '{"role":"trainer","full_name":"Trener A"}'),
+  (:MB, 'msg-b@x.sk', '{"role":"trainer","full_name":"Trener B"}'),
+  (:MK, 'msg-k@x.sk', '{"role":"client","full_name":"Klient K"}');
+select id as mk_cid, invite_code as mk_code1 from public.clients where user_id = :MK \gset
+select pg_temp.try(:MA, format($f$select * from public.add_client_by_code(%L)$f$, :'mk_code1')) as mk_attach_a \gset
+select pg_temp.try(:MA, format($f$insert into public.messages (client_id, sender, sender_id, body) values (%L, 'trainer', %L, 'A: sukromna rada')$f$, :'mk_cid', :MA)) as mk_msg_a \gset
+select pg_temp.try(:MK, format($f$insert into public.messages (client_id, sender, sender_id, body) values (%L, 'client', %L, 'K->A: moje zdravie')$f$, :'mk_cid', :MK)) as mk_msg_k1 \gset
+select pg_temp.chk('H7: legit — klient píše s trénerom A',
+  :'mk_attach_a' = 'OK' and :'mk_msg_a' = 'OK' and :'mk_msg_k1' = 'OK',
+  :'mk_attach_a' || ' / ' || :'mk_msg_a' || ' / ' || :'mk_msg_k1');
+select pg_temp.chk('H7: tréner A vidí svoju konverzáciu s klientom',
+  pg_temp.cnt(:MA, format($f$select 1 from public.messages where client_id = %L and body in ('A: sukromna rada', 'K->A: moje zdravie')$f$, :'mk_cid')) = 2);
+select pg_temp.try(:MK, 'select public.leave_trainer()') as mk_leave \gset
+select invite_code as mk_code2 from public.clients where id = :'mk_cid' \gset
+select pg_temp.try(:MB, format($f$select * from public.add_client_by_code(%L)$f$, :'mk_code2')) as mk_attach_b \gset
+select pg_temp.try(:MB, format($f$insert into public.messages (client_id, sender, sender_id, body) values (%L, 'trainer', %L, 'B: vitaj')$f$, :'mk_cid', :MB)) as mk_msg_b \gset
+select pg_temp.chk('H7: legit — klient odíde od A a pripojí sa k B',
+  :'mk_leave' = 'OK' and :'mk_attach_b' = 'OK' and :'mk_msg_b' = 'OK',
+  :'mk_leave' || ' / ' || :'mk_attach_b' || ' / ' || :'mk_msg_b');
+select pg_temp.chk('H7: nový tréner B NEVIDÍ konverzáciu klienta s trénerom A',
+  pg_temp.cnt(:MB, format($f$select 1 from public.messages where client_id = %L and body in ('A: sukromna rada', 'K->A: moje zdravie')$f$, :'mk_cid')) = 0);
+select pg_temp.try(:MK, format($f$insert into public.messages (client_id, sender, sender_id, body, trainer_id) values (%L, 'client', %L, 'K->B: ahoj', %L)$f$, :'mk_cid', :MK, :MA)) as mk_msg_k2 \gset
+select pg_temp.chk('H7: tréner B vidí svoju spoluprácu (svoju správu aj odpoveď klienta)',
+  :'mk_msg_k2' = 'OK'
+  and pg_temp.cnt(:MB, format($f$select 1 from public.messages where client_id = %L and body in ('B: vitaj', 'K->B: ahoj')$f$, :'mk_cid')) = 2, :'mk_msg_k2');
+select pg_temp.chk('H7: trainer_id správy sa nedá podvrhnúť (nastaví ho DB podľa spolupráce)',
+  (select trainer_id from public.messages where client_id = :'mk_cid' and body = 'K->B: ahoj') = :MB);
+select pg_temp.chk('H7: bývalý tréner A už nevidí nič z vlákna',
+  pg_temp.cnt(:MA, format('select 1 from public.messages where client_id = %L', :'mk_cid')) = 0);
+select pg_temp.chk('H7: klient vidí celú svoju históriu (A aj B)',
+  pg_temp.cnt(:MK, format($f$select 1 from public.messages where client_id = %L and body in ('A: sukromna rada', 'K->A: moje zdravie', 'B: vitaj')$f$, :'mk_cid')) = 3);
+-- prečítanie: B nesmie označiť ako prečítanú správu klienta trénerovi A
+update public.messages set read_at = null where client_id = :'mk_cid' and body = 'K->A: moje zdravie';
+select pg_temp.try(:MB, format('select public.mark_messages_read(%L)', :'mk_cid')) as mk_read_b \gset
+select pg_temp.chk('H7: tréner B neoznačí ako prečítanú správu, ktorá patrila A',
+  :'mk_read_b' = 'OK'
+  and (select read_at from public.messages where client_id = :'mk_cid' and body = 'K->A: moje zdravie') is null, :'mk_read_b');
+
 -- ============================================================ výsledok
 \echo
 \echo ===== VÝSLEDKY =====
