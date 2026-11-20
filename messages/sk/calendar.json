@@ -1,12 +1,7 @@
 {
   "title": "Kalendár",
   "tip": "Voľné termíny s klientmi — konzultácie, tréningy alebo čokoľvek mimo bežného tréningového plánu.",
-  "newAppointment": "Nový termín",
-  "emptyTitle": "Žiadne nadchádzajúce termíny",
-  "emptyText": "Pridaj prvý termín cez formulár „Nový termín“.",
   "noClients": "Najprv pridaj klienta na stránke Klienti.",
-  "today": "Dnes",
-  "tomorrow": "Zajtra",
   "form": {
     "client": "Klient (povinné)",
     "chooseClient": "Vyber klienta *",
@@ -31,5 +26,17 @@
     "edit": "Upraviť",
     "remove": "Zmazať",
     "confirm": "Zmazať termín „{title}“?"
+  },
+  "month": {
+    "prev": "Predchádzajúci mesiac",
+    "next": "Nasledujúci mesiac",
+    "today": "Dnes",
+    "close": "Zavrieť",
+    "dayAria": "{date}, {count, plural, one {# termín} few {# termíny} other {# termínov}}",
+    "addAria": "Nový termín na {date}",
+    "newAppointment": "Nový termín",
+    "back": "Späť na termíny dňa",
+    "empty": "Na tento deň nemáš nič naplánované.",
+    "noClients": "Najprv pridaj klienta na stránke Klienti."
   }
 }

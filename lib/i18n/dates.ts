@@ -23,6 +23,12 @@ export const MONTH_GENITIVE: Record<Locale, readonly string[]> = {
   cs: ["ledna", "února", "března", "dubna", "května", "června", "července", "srpna", "září", "října", "listopadu", "prosince"],
 };
 
+/** Mesiace v 1. páde s veľkým písmenom — nadpis mesačného kalendára („November 2026“). */
+export const MONTH_NOMINATIVE: Record<Locale, readonly string[]> = {
+  sk: ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"],
+  cs: ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"],
+};
+
 /** Relatívne dni pri krátkych časoch („dnes 21:30“, „zajtra 8:05“). */
 export const RELATIVE_DAY: Record<Locale, { today: string; tomorrow: string; yesterday: string }> = {
   sk: { today: "dnes", tomorrow: "zajtra", yesterday: "včera" },

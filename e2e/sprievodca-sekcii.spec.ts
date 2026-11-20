@@ -328,7 +328,7 @@ test.describe("reálna DB (QA tréner a klient)", () => {
       ["/dashboard/treningy", ["Tréningy", "Nový plán", "AI generátor"]],
       ["/dashboard/jedalnicky", ["Jedálničky", "Nový jedálniček"]],
       ["/dashboard/spravy", ["Správy", "Konverzácie", "Hromadná správa"]],
-      ["/dashboard/kalendar", ["Kalendár", "Nový termín", "Pripomienka"]],
+      ["/dashboard/kalendar", ["Kalendár", "Mesačný prehľad", "Pripomienka"]],
       ["/dashboard/sablony", ["Šablóny", "Druh šablón"]],
       ["/dashboard/nastavenia", ["Nastavenia", "Návod"]],
     ] as const) {

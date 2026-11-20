@@ -71,11 +71,13 @@ export function AppointmentForm({
 
   useEffect(() => {
     if (wasPending.current && !pending && !state.error) {
-      // Úspech: nový termín → prázdny formulár; úprava → zavrieť editor.
+      // Úspech: nový termín → prázdny formulár (a `onDone`, ak ho volajúci chce zavrieť —
+      // okno dňa v mesačnom kalendári); úprava → zavrieť editor.
       if (editing) onDone?.();
       else {
         formRef.current?.reset();
         setSelected(defaultSelection());
+        onDone?.();
       }
     }
     wasPending.current = pending;

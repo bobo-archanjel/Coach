@@ -188,13 +188,9 @@
       }
     },
     "t-calendar": {
-      "new": {
-        "title": "Nový termín",
-        "body": "Vyber klienta (aj viacerých naraz), dátum a čas. Názov a poznámka sú voliteľné."
-      },
-      "list": {
-        "title": "Nadchádzajúce termíny",
-        "body": "Termíny sú zoradené po dňoch. Každý môžeš upraviť alebo zmazať."
+      "month": {
+        "title": "Mesačný prehľad",
+        "body": "Bodka pri dni znamená naplánovaný termín. Ťukni na deň — uvidíš jeho termíny a cez „+“ pridáš nový."
       },
       "bell": {
         "title": "Pripomienka",

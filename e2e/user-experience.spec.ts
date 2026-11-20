@@ -226,13 +226,16 @@ test.describe("Kalendár a zvonček trénera (reálna DB)", () => {
   test("nový termín pre dvoch klientov naraz → dva termíny, pripomienka vo zvončeku", async ({ page }) => {
     test.setTimeout(120_000);
     await loginTrainer(page);
-    await page.goto("/dashboard/kalendar");
-
     // o 2 h (v zóne Bratislava) → do 24 h, teda aj vo zvončeku
     const when = bratislavaParts(new Date(Date.now() + 2 * 3600_000));
-    const form = page.locator("form").filter({ has: page.getByRole("button", { name: /^Pridať termín/ }) });
+    // mesačný kalendár: deň → „+“ → formulár nového termínu s predvyplneným dátumom
+    await page.goto(`/dashboard/kalendar?mesiac=${when.date.slice(0, 7)}`);
+    await page.locator(`[data-date="${when.date}"]`).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: /^Nový termín na / }).click();
+    const form = dialog.locator("form").filter({ has: page.getByRole("button", { name: /^Pridať termín/ }) });
+    await expect(form.locator('input[name="date"]')).toHaveValue(when.date);
     await form.locator('input[name="title"]').fill(title);
-    await form.locator('input[name="date"]').fill(when.date);
     await form.locator('input[name="time"]').fill(when.time);
 
     // bez klienta neodošle a povie prečo (vyplnené polia ostanú)
@@ -246,8 +249,9 @@ test.describe("Kalendár a zvonček trénera (reálna DB)", () => {
     await expect(form.getByRole("alert")).toHaveCount(0);
     await expect(form.getByText("Každý vybraný klient dostane vlastný termín v rovnakom čase.")).toBeVisible();
     await form.getByRole("button", { name: "Pridať termín (2)" }).click();
-    // po úspechu sa výber vyprázdni
-    await expect(page.getByRole("button", { name: "Vyber klientov" })).toBeVisible({ timeout: 15_000 });
+    // po úspechu sa formulár zavrie a okno dňa ukáže oba nové termíny (bez reloadu)
+    await expect(dialog.getByTestId("day-appointments").getByText(title)).toHaveCount(2, { timeout: 15_000 });
+    await expect(page.locator(`[data-date="${when.date}"]`)).not.toHaveAttribute("data-count", "0");
 
     const { data: rows } = await admin.from("appointments").select("client_id, title, starts_at, trainer_id").eq("title", title);
     expect(rows ?? []).toHaveLength(2);

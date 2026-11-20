@@ -21,11 +21,17 @@ export function BuilderDialog({
   closeLabel,
   onClose,
   children,
+  headActions,
+  wide = false,
 }: {
   title: string;
   closeLabel: string;
   onClose: () => void;
   children: ReactNode;
+  /** tlačidlá v hlavičke pred ✕ (napr. „+“ v okne dňa kalendára) */
+  headActions?: ReactNode;
+  /** širšie okno pre celý formulár (okno dňa kalendára) */
+  wide?: boolean;
 }) {
   const titleId = useId();
   // Prvok, ktorý okno otvoril — zachytený už pri prvom vykreslení: autoFocus poľa v okne
@@ -82,14 +88,17 @@ export function BuilderDialog({
   const dialog = (
     <div ref={layerRef} className={d.layer}>
       <button type="button" className={d.scrim} aria-label={closeLabel} tabIndex={-1} onClick={onClose} />
-      <div className={d.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className={`${d.dialog} ${wide ? d.wide : ""}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className={d.head}>
           <h2 id={titleId} className={d.title}>
             {title}
           </h2>
-          <button type="button" className={d.close} onClick={onClose} aria-label={closeLabel}>
-            <CloseIcon />
-          </button>
+          <span className={d.headActions}>
+            {headActions}
+            <button type="button" className={d.close} onClick={onClose} aria-label={closeLabel}>
+              <CloseIcon />
+            </button>
+          </span>
         </div>
         {children}
       </div>

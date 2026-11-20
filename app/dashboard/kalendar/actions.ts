@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { dbErr } from "@/lib/dbError";
 import { MAX_PLAN_CLIENTS, areTrainerClients, uniqueClientIds } from "@/lib/planRecipients";
+import { bratislavaToUtcIso } from "@/lib/calendar/month";
 
 /** Hodnoty formulára termínu — pri chybe sa vracajú späť, nech sa po validácii nevymažú polia. */
 export interface AppointmentFormValues {
@@ -24,20 +25,6 @@ export interface ActionState {
   values?: AppointmentFormValues;
 }
 const ok: ActionState = { error: null };
-
-/**
- * Prevedie "wall-clock" dátum+čas v Europe/Bratislava (z <input type="date">/"time",
- * appka nemá timezone knižnicu) na UTC ISO string. Trik: naformátuje ten istý
- * okamih do oboch zón cez Intl, rozdiel časov (parsovaný ako string → Date, systémová
- * lokálna interpretácia sa pri odčítaní vyruší) je presný posun vrátane DST.
- */
-function bratislavaToUtcIso(dateStr: string, timeStr: string): string {
-  const naive = new Date(`${dateStr}T${timeStr}:00Z`);
-  const asUtc = new Date(naive.toLocaleString("en-US", { timeZone: "UTC" }));
-  const asBratislava = new Date(naive.toLocaleString("en-US", { timeZone: "Europe/Bratislava" }));
-  const offsetMs = asBratislava.getTime() - asUtc.getTime();
-  return new Date(naive.getTime() - offsetMs).toISOString();
-}
 
 function readValues(formData: FormData): AppointmentFormValues {
   const str = (k: string) => ((formData.get(k) as string | null) ?? "").trim();
