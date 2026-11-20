@@ -76,8 +76,7 @@ const TRAINER_SECTIONS: SectionDef[] = [
     path: "/dashboard/kalendar",
     nav: ["nav-kalendar", "trainer.navKalendar"],
     steps: [
-      ["calendar-new", "guides.t-calendar.new"],
-      ["calendar-list", "guides.t-calendar.list"],
+      ["calendar-month", "guides.t-calendar.month"],
       ["bell", "guides.t-calendar.bell"],
     ],
   },

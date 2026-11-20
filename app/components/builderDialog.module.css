@@ -51,6 +51,17 @@
   justify-content: space-between;
   gap: 12px;
 }
+.headActions {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+/* okno dňa kalendára — termíny dňa a celý formulár nového termínu */
+.wide {
+  width: min(560px, 100%);
+  max-height: min(86vh, 760px);
+}
 .title {
   margin: 0;
   font-size: 18px;
