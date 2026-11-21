@@ -51,5 +51,6 @@
   "dayDoneShort": "Odcvičeno",
   "dayDone": "Odcvičeno {date}",
   "dayDoneHint": "Tento den je už odcvičený — nejde upravit.",
-  "dayDoneNoValues": "Trénink byl ukončen bez zapsaných hodnot."
+  "dayDoneNoValues": "Trénink byl ukončen bez zapsaných hodnot.",
+  "defaultDayName": "Den {n}"
 }

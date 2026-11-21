@@ -140,11 +140,15 @@ export function ClientPlanBuilder({
   const t = useTranslations("clientBuilder");
   const locale = useLocale() as Locale;
   const [name, setName] = useState(initial?.name ?? template?.name ?? "");
-  const [days, setDays] = useState<BDay[]>(() => toDraftDays(initial?.days ?? template?.days ?? []));
+  // Nový prázdny tréning začína s jedným dňom „Deň 1“ (ako u trénera) — cviky sa dajú
+  // pridávať hneď; ďalšie dni cez „+ deň“. Úprava a šablóna majú vlastné dni.
+  const [days, setDays] = useState<BDay[]>(() =>
+    initial || template
+      ? toDraftDays(initial?.days ?? template?.days ?? [])
+      : [{ key: uid(), id: null, name: t("defaultDayName", { n: 1 }), exercises: [] }],
+  );
   // "" = ešte nevybraný → activeDay spadne na prvý deň (nižšie).
   const [activeKey, setActiveKey] = useState<string>("");
-  // Nový prázdny tréning začína bez dní (ako u trénera) — „+ deň“ v dráhe otvorí okno
-  // s názvom dňa (nie predvyplnený "Deň 1"). Okno sa samo neotvára, prvé je pole s názvom tréningu.
   const [addingDay, setAddingDay] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // okno „Premenovať“ aktívny deň (lokálne, do DB až „Uložiť“)

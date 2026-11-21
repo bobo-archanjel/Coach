@@ -133,10 +133,13 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
 
     const builder = page.getByRole("region", { name: "Nový vlastný tréning" });
     await builder.getByLabel("Názov tréningového plánu").fill(clientPlanName);
-    await builder.getByRole("button", { name: "+ deň" }).click();
-    const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
-    await dayDialog.locator("#client-day-name").fill("E2E Nohy");
-    await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
+    // nový tréning má hneď „Deň 1“ — premenovať ho na „E2E Nohy“
+    await expect(builder.getByRole("button", { name: "Deň 1", exact: true })).toHaveAttribute("aria-current", "true");
+    await builder.getByRole("button", { name: "Premenovať", exact: true }).click();
+    const firstRename = page.getByRole("dialog", { name: "Premenovať deň" });
+    await firstRename.getByLabel("Názov tréningu").fill("E2E Nohy");
+    await firstRename.getByRole("button", { name: "Hotovo", exact: true }).click();
+    await expect(firstRename).toHaveCount(0);
     await builder.getByLabel("Názov vlastného cviku").fill("E2E Výpad");
     await builder.getByRole("button", { name: "+ Pridať do tréningu" }).click();
 
