@@ -164,10 +164,7 @@ test.describe("superséria — reálna DB", () => {
     await page.goto("/portal/trening");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
     await page.getByLabel("Názov tréningového plánu").fill(name);
-    await page.getByRole("button", { name: "+ deň" }).click();
-    const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
-    await dayDialog.locator("#client-day-name").fill("Deň 1");
-    await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
+    // nový tréning má hneď „Deň 1“ — cviky rovno doň
     for (const ex of ["E2E Výpady", "E2E Skoky"]) {
       await page.getByLabel("Názov vlastného cviku").fill(ex);
       await page.getByRole("button", { name: "+ Pridať do tréningu" }).click();

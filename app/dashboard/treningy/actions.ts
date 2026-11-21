@@ -84,6 +84,11 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
 
   if (error || !data) return { error: error?.message ?? await tErr("plans.createPlanFailed") };
 
+  // Nový plán má hneď prvý deň („Deň 1“) — tréner môže rovno pridávať cviky. Keby vloženie
+  // zlyhalo, plán ostane bez dní (deň sa dá pridať cez „+ deň“), preto chyba nie je fatálna.
+  const tb = await getTranslations("plans.builder");
+  await supabase.from("workout_days").insert({ plan_id: data.id, day_number: 1, name: tb("defaultDayName", { n: 1 }), exercises: [] });
+
   const recipientsError = await addPlanRecipients(supabase, user.id, "workout", data.id, others);
   if (recipientsError) {
     // bez príjemcov by koncept dostal len prvý klient — radšej nič a jasná chyba

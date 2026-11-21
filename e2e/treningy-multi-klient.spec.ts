@@ -166,6 +166,12 @@ test.describe("Tréningy: výber viacerých klientov (reálna DB, dizajn v6)", (
     await page.waitForURL(/\/dashboard\/treningy\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: `${planName} solo` })).toBeVisible();
     await expect(page.getByText("Pošle sa aj:")).toBeHidden();
+    // nový plán má hneď „Deň 1“ — cviky sa dajú pridávať bez „+ deň“
+    const days = page.getByRole("group", { name: "Tréningové dni" });
+    await expect(days.getByRole("button", { name: /Deň 1/ })).toHaveAttribute("aria-current", "true");
+    const soloId = page.url().split("/").pop()!;
+    const { data: soloDays } = await trainer.api.from("workout_days").select("name, day_number, exercises").eq("plan_id", soloId);
+    expect(soloDays).toEqual([{ name: "Deň 1", day_number: 1, exercises: [] }]);
   });
 
   test("AI generátor: plán pre každého klienta zvlášť, priebeh, zlyhanie jedného, súhrn, Skúsiť znova", async ({
