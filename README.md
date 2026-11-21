@@ -75,6 +75,8 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-21** — **Nový tréningový plán začína dňom „Deň 1“** (`feature/plan-den-1`, bez migrácie).
+  - Tréner: „Vytvoriť plán“ uloží aj prvý deň („Deň 1“ / „Den 1“), builder sa otvorí rovno na ňom. Klient: nový vlastný tréning začína v builderi s „Deň 1“ (úprava a šablóna nie). Cviky sa dajú pridávať hneď, ďalšie dni cez „+ deň“. Test `e2e/plan-den-1.spec.ts`.
 - **2026-11-20** — **Kalendár trénera: mesačný prehľad** (`feature/calendar-view`, bez migrácie).
   - Mriežka mesiaca (po – ne), šípky na susedné mesiace cez `?mesiac=YYYY-MM` (termíny celej mriežky jedným dopytom), dnešok zvýraznený, dni susedných mesiacov stlmené, oranžová bodka (`--accent`) pri dni s termínom.
   - Ťuk na deň: okno (✕ / klik mimo / Esc) so zoznamom termínov (úprava, zmazanie) alebo prázdnym stavom; „+“ otvorí existujúci formulár s predvyplneným dátumom, po uložení sa zoznam aj bodky obnovia bez reloadu. Karta „Nový termín“ a zoznam nadchádzajúcich termínov zo stránky preč.
