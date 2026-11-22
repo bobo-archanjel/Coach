@@ -246,7 +246,7 @@
       },
       "addExercise": {
         "title": "Iný cvik?",
-        "body": "Ak ti cvik z plánu nevyhovuje alebo chceš niečo navyše, pridaj si vlastný — stačí napísať názov. Tréner ho uvidí ako cvik mimo plánu."
+        "body": "Ak ti cvik z plánu nevyhovuje alebo chceš niečo navyše, pridaj si vlastný cez „+ cvik“ — vložíš ho medzi cviky alebo na koniec. Tréner ho uvidí ako cvik mimo plánu."
       },
       "stopwatch": {
         "title": "Stopky a časovač",

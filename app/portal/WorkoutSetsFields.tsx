@@ -37,15 +37,49 @@ export interface WorkoutFormValues {
   /** supersérie tohto tréningu po indexoch cvikov (plán + spojenia klienta počas tréningu);
    *  chýba = podľa plánu (lib/workouts/superset.ts) */
   supersets?: (string | null)[];
+  /** poradie zobrazenia — indexy cvikov (plán + pridané); pridaný cvik sa dá vložiť medzi
+   *  cviky. Riadky / poznámky / supersérie ostávajú podľa indexu cviku. Chýba = poradie indexov. */
+  order?: number[];
+  /** odškrtnuté (odcvičené) série podľa indexu cviku — len postup počas tréningu (krúžok
+   *  na karte Dnes); ukladajú sa všetky vyplnené série bez ohľadu na odškrtnutie */
+  checked?: Record<number, boolean[]>;
 }
 
-/** Supersérie tréningu: klientove spojenia, inak z plánu (pridané cviky samostatne). */
+/** Poradie zobrazenia cvikov (platná permutácia indexov, inak 0..n-1). */
+export function displayOrder(count: number, values: WorkoutFormValues): number[] {
+  const o = values.order;
+  if (o && o.length === count && new Set(o).size === count && o.every((i) => Number.isInteger(i) && i >= 0 && i < count)) {
+    return o;
+  }
+  return Array.from({ length: count }, (_, i) => i);
+}
+
+/** Supersérie tréningu podľa indexu cviku: klientove spojenia, inak z plánu (pridané cviky
+ *  samostatne). Skupiny sa upratujú v poradí zobrazenia (vložený cvik skupinu rozdelí). */
 export function effectiveSupersets(exercises: PortalExercise[], values: WorkoutFormValues): (string | null)[] {
   const raw =
     values.supersets && values.supersets.length === exercises.length
       ? values.supersets
       : exercises.map((e) => e.superset ?? null);
-  return normalizeSupersets(raw.map((superset) => ({ superset }))).map((x) => x.superset ?? null);
+  const order = displayOrder(exercises.length, values);
+  const ordered = normalizeSupersets(order.map((i) => ({ superset: raw[i] ?? null }))).map((x) => x.superset ?? null);
+  const out: (string | null)[] = exercises.map(() => null);
+  order.forEach((i, pos) => {
+    out[i] = ordered[pos];
+  });
+  return out;
+}
+
+/** Postup tréningu: cvik je hotový, keď má aspoň jednu sériu a všetky sú odškrtnuté. */
+export function workoutProgress(planExercises: PortalExercise[], values: WorkoutFormValues): { done: number; total: number } {
+  const total = formExercises(planExercises, values).length;
+  let done = 0;
+  for (let i = 0; i < total; i++) {
+    const n = (values.rows[i] ?? []).length;
+    const checked = values.checked?.[i] ?? [];
+    if (n > 0 && Array.from({ length: n }, (_, k) => checked[k] === true).every(Boolean)) done++;
+  }
+  return { done, total };
 }
 
 /** Cvik pridaný počas tréningu; `timed` = meria sa čas (sekundy), nie opakovania. */
@@ -93,6 +127,12 @@ function dropIndex<T>(rec: Record<number, T>, at: number): Record<number, T> {
   }
   return out;
 }
+
+const CheckIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 const PlusIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -169,11 +209,14 @@ export function formValuesFromLog(
   const base = emptyFormValues(exercises);
   const notes: Record<number, string | undefined> = {};
   const used = new Set<LoggedExercise>();
+  // index cviku formulára pre každý zapísaný cvik — poradie zobrazenia podľa zápisu
+  const indexOf = new Map<LoggedExercise, number>();
   // supersérie zo zápisu (spojenia počas tréningu); starší zápis bez nich → podľa plánu
   const loggedHasSupersets = logged.some((l) => l.superset);
   const supersets: (string | null)[] = [];
   const fill = (i: number, match: LoggedExercise, timed: boolean) => {
     used.add(match);
+    indexOf.set(match, i);
     if (loggedHasSupersets) supersets[i] = match.superset ?? null;
     if (match.sets.length > 0) {
       base.rows[i] = match.sets.map((s) => ({
@@ -200,7 +243,25 @@ export function formValuesFromLog(
     added.push(timed ? { name: l.name, timed } : { name: l.name });
   }
   const all = exercises.length + added.length;
+  // Poradie: zapísané cviky v poradí zápisu (pridaný cvik ostane tam, kam ho klient vložil);
+  // nezapísané cviky plánu na svojom mieste medzi nimi, zvyšok na koniec.
+  const order: number[] = [];
+  const placed = new Set<number>();
+  const place = (i: number) => {
+    if (!placed.has(i)) {
+      placed.add(i);
+      order.push(i);
+    }
+  };
+  for (const l of logged) {
+    const i = indexOf.get(l);
+    if (i === undefined) continue;
+    if (i < exercises.length) for (let k = 0; k < i; k++) if (!logged.some((x) => indexOf.get(x) === k)) place(k);
+    place(i);
+  }
+  for (let k = 0; k < all; k++) place(k);
   return {
+    order,
     rows: base.rows,
     notes,
     rpe: rpe != null ? String(rpe) : "",
@@ -215,7 +276,9 @@ export function buildEntriesPayload(planExercises: PortalExercise[], values: Wor
   const exercises = formExercises(planExercises, values);
   const summary = summarizeWorkoutForm(exercises.length, values.rows);
   const supersets = effectiveSupersets(exercises, values);
-  const entries = exercises.map((ex, i) => {
+  // v poradí zobrazenia (cvik vložený medzi cviky ostane na svojom mieste aj v zápise)
+  const entries = displayOrder(exercises.length, values).map((i) => {
+    const ex = exercises[i];
     const sets = summary.sets[i] ?? [];
     return {
       entryId: ex.entryId,
@@ -234,30 +297,37 @@ export function WorkoutSetsFields({
   values,
   onChange,
   showInvalid,
+  checkable = false,
 }: {
   exercises: PortalExercise[];
   values: WorkoutFormValues;
   onChange: (next: WorkoutFormValues) => void;
   showInvalid: boolean;
+  /** odškrtávanie sérií (počas tréningu na karte Dnes; pri „Upraviť hodnoty“ nie) */
+  checkable?: boolean;
 }) {
   const t = useTranslations("workout");
   const tl = useTranslations("labels");
   const locale = useLocale();
   const { rows, notes, rpe, sessionNote } = values;
   const added = values.added ?? [];
+  const checked = values.checked ?? {};
   const exercises = formExercises(planExercises, values);
+  const order = displayOrder(exercises.length, values);
   const supersets = effectiveSupersets(exercises, values);
-  const ssPositions = supersetPositions(supersets.map((superset) => ({ superset })));
+  // pozície v supersérii podľa poradia zobrazenia
+  const ssPositions = supersetPositions(order.map((i) => ({ superset: supersets[i] })));
   const setRows = (next: Record<number, SetRow[]>) => onChange({ ...values, rows: next });
-  // ručné pridanie cviku počas tréningu (len názov, nie z knižnice)
-  const [adding, setAdding] = useState(false);
+  // ručné pridanie cviku počas tréningu (len názov, nie z knižnice) — `addingAt` = pozícia
+  // v poradí, za ktorú sa nový cvik vloží (malé „+ cvik“ medzi cvikmi / za posledným)
+  const [addingAt, setAddingAt] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
   const [newTimed, setNewTimed] = useState(false);
   // Ťuk na tlačidlo formulára nesmie zobrať fokus poľu názvu: na mobile by sa po blur
   // vrátilo spodné menu (skryté pri klávesnici) a prekrylo tlačidlo — ťuk by skončil v menu.
   const keepFocus = (e: MouseEvent) => e.preventDefault();
   const closeAdd = () => {
-    setAdding(false);
+    setAddingAt(null);
     setNewName("");
     setNewTimed(false);
   };
@@ -273,14 +343,17 @@ export function WorkoutSetsFields({
     block.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
   }, [focusExIdx, exercises.length]);
 
+  /** nový cvik za pozíciu `pos` v poradí zobrazenia (index cviku = na koniec zoznamu) */
   const addExercise = () => {
     const name = newName.trim().slice(0, ADDED_NAME_MAX);
-    if (!name) return;
+    if (!name || addingAt === null) return;
     const at = exercises.length;
+    const pos = Math.min(addingAt, order.length - 1);
     onChange({
       ...values,
       added: [...added, newTimed ? { name, timed: true } : { name }],
       rows: { ...rows, [at]: Array.from({ length: ADDED_SETS }, () => ({ reps: "", weight: "" })) },
+      order: [...order.slice(0, pos + 1), at, ...order.slice(pos + 1)],
       ...(values.supersets && { supersets: [...supersets, null] }),
     });
     closeAdd();
@@ -294,21 +367,30 @@ export function WorkoutSetsFields({
       added: added.filter((_, i) => i !== addedIdx),
       rows: dropIndex(rows, exIdx),
       notes: dropIndex(notes, exIdx),
-      // odobraný člen supersérie — skupina s jedným cvikom zanikne
-      supersets: normalizeSupersets(supersets.filter((_, i) => i !== exIdx).map((superset) => ({ superset }))).map(
-        (x) => x.superset ?? null,
-      ),
+      checked: dropIndex(checked, exIdx),
+      order: order.filter((i) => i !== exIdx).map((i) => (i > exIdx ? i - 1 : i)),
+      // odobraný člen supersérie — skupina s jedným cvikom zanikne (upratanie v effectiveSupersets)
+      supersets: supersets.filter((_, i) => i !== exIdx),
     });
   };
-  /** spojenie počas tréningu: cvik + nasledujúci do supersérie / rozdelenie (plán sa nemení) */
-  const toggleSuperset = (exIdx: number) =>
-    onChange({
-      ...values,
-      supersets: toggleLinkWithNext(
-        supersets.map((superset) => ({ superset })),
-        exIdx,
-      ).map((x) => x.superset ?? null),
+  /** spojenie počas tréningu: cvik na pozícii `pos` + nasledujúci do supersérie / rozdelenie */
+  const toggleSuperset = (pos: number) => {
+    const ordered = toggleLinkWithNext(
+      order.map((i) => ({ superset: supersets[i] })),
+      pos,
+    ).map((x) => x.superset ?? null);
+    const byIndex: (string | null)[] = exercises.map(() => null);
+    order.forEach((i, p) => {
+      byIndex[i] = ordered[p];
     });
+    onChange({ ...values, supersets: byIndex });
+  };
+  /** odškrtnutie série (postup na krúžku karty Dnes) */
+  const toggleCheck = (exIdx: number, rowIdx: number) => {
+    const list = [...(checked[exIdx] ?? [])];
+    list[rowIdx] = !list[rowIdx];
+    onChange({ ...values, checked: { ...checked, [exIdx]: list } });
+  };
 
   const updateRow = (exIdx: number, rowIdx: number, field: keyof SetRow, value: string) => {
     const next = [...(rows[exIdx] ?? [])];
@@ -319,16 +401,79 @@ export function WorkoutSetsFields({
   const addRow = (exIdx: number) =>
     setRows({ ...rows, [exIdx]: [...(rows[exIdx] ?? []), plannedSetRow(exercises[exIdx])] });
   const removeRow = (exIdx: number, rowIdx: number) =>
-    setRows({ ...rows, [exIdx]: (rows[exIdx] ?? []).filter((_, i) => i !== rowIdx) });
+    onChange({
+      ...values,
+      rows: { ...rows, [exIdx]: (rows[exIdx] ?? []).filter((_, i) => i !== rowIdx) },
+      checked: { ...checked, [exIdx]: (checked[exIdx] ?? []).filter((_, i) => i !== rowIdx) },
+    });
+
+  /** formulár nového cviku priamo na mieste, kam sa vloží (názov + opakovania / čas) */
+  const renderAddForm = () => (
+    <div className={styles.addExerciseForm}>
+      <input
+        type="text"
+        className={styles.logNoteInput}
+        autoFocus
+        autoComplete="off"
+        maxLength={ADDED_NAME_MAX}
+        placeholder={t("addExercisePlaceholder")}
+        aria-label={t("addExerciseAria")}
+        value={newName}
+        onChange={(e) => setNewName(e.target.value)}
+        onKeyDown={(e) => {
+          // Enter nesmie odoslať formulár „Ukončiť tréning“
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addExercise();
+          } else if (e.key === "Escape") {
+            closeAdd();
+          }
+        }}
+      />
+      {/* meria sa opakovaniami, alebo časom (statický hold, plank…) */}
+      <div className={styles.modeToggle} role="radiogroup" aria-label={tl("repsMode.aria")}>
+        {([false, true] as const).map((timedOpt) => (
+          <button
+            key={String(timedOpt)}
+            type="button"
+            role="radio"
+            aria-checked={newTimed === timedOpt}
+            className={newTimed === timedOpt ? styles.modeOn : undefined}
+            onMouseDown={keepFocus}
+            onClick={() => setNewTimed(timedOpt)}
+          >
+            {tl(timedOpt ? "repsMode.time" : "repsMode.reps")}
+          </button>
+        ))}
+      </div>
+      <div className={styles.addExerciseActions}>
+        <button type="button" className={styles.swBtnGhost} onMouseDown={keepFocus} onClick={closeAdd}>
+          {t("cancel")}
+        </button>
+        <button
+          type="button"
+          className={styles.swBtnPrimary}
+          onMouseDown={keepFocus}
+          onClick={addExercise}
+          disabled={!newName.trim()}
+        >
+          {t("addExerciseConfirm")}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <>
-      {exercises.map((ex, exIdx) => {
+      {order.map((exIdx, pos) => {
+        const ex = exercises[exIdx];
         const timed = isTimedExercise(ex);
         const plannedSecs = timedSeconds(ex.plannedReps);
-        const ss = ssPositions[exIdx];
-        const next = exercises[exIdx + 1];
-        const linked = Boolean(supersets[exIdx]) && supersets[exIdx] === supersets[exIdx + 1];
+        const ss = ssPositions[pos];
+        const nextIdx = order[pos + 1];
+        const next = nextIdx === undefined ? undefined : exercises[nextIdx];
+        const linked = nextIdx !== undefined && Boolean(supersets[exIdx]) && supersets[exIdx] === supersets[nextIdx];
+        const isLast = pos === order.length - 1;
         return (
           <Fragment key={`${ex.idx}-${exIdx}`}>
           {ss?.first && (
@@ -379,7 +524,21 @@ export function WorkoutSetsFields({
                 return (
                   <div key={rowIdx}>
                     <div className={styles.setRow}>
-                      <span className={styles.setNum}>{rowIdx + 1}</span>
+                      {checkable ? (
+                        // číslo série = odškrtnutie (odcvičená séria → krúžok na karte Dnes)
+                        <button
+                          type="button"
+                          className={`${styles.setCheck} ${checked[exIdx]?.[rowIdx] ? styles.setCheckOn : ""}`}
+                          aria-pressed={checked[exIdx]?.[rowIdx] === true}
+                          aria-label={t("setDoneAria", { name: ex.name, n: rowIdx + 1 })}
+                          onClick={() => toggleCheck(exIdx, rowIdx)}
+                          data-set-check
+                        >
+                          {checked[exIdx]?.[rowIdx] ? <CheckIcon /> : rowIdx + 1}
+                        </button>
+                      ) : (
+                        <span className={styles.setNum}>{rowIdx + 1}</span>
+                      )}
                       <label className={`${styles.setField} ${showInvalid && repsErr ? styles.setFieldInvalid : ""}`}>
                         <input
                           type="text"
@@ -450,79 +609,38 @@ export function WorkoutSetsFields({
               />
             )}
           </div>
-          {/* spojenie so susedným cvikom do supersérie len pre tento tréning (plán sa nemení) */}
-          {next && (
-            <SupersetLink
-              linked={linked}
-              label={linked ? t("ssUnlink") : t("ssLink")}
-              ariaLabel={linked ? t("ssUnlinkAria", { a: ex.name, b: next.name }) : t("ssLinkAria", { a: ex.name, b: next.name })}
-              onToggle={() => toggleSuperset(exIdx)}
-            />
+          {/* medzi cvikmi: spojenie do supersérie (len tento tréning) a malé „+ cvik“, ktoré
+              vloží nový cvik práve sem; za posledným cvikom len „+ cvik“ */}
+          {addingAt === pos ? (
+            renderAddForm()
+          ) : (
+            <div className={styles.logBetween}>
+              {next && (
+                <SupersetLink
+                  linked={linked}
+                  label={linked ? t("ssUnlink") : t("ssLink")}
+                  ariaLabel={linked ? t("ssUnlinkAria", { a: ex.name, b: next.name }) : t("ssLinkAria", { a: ex.name, b: next.name })}
+                  onToggle={() => toggleSuperset(pos)}
+                />
+              )}
+              <button
+                type="button"
+                className={styles.logAddBtn}
+                onClick={() => {
+                  setAddingAt(pos);
+                  setNewName("");
+                  setNewTimed(false);
+                }}
+                aria-label={next ? t("addExerciseBetweenAria", { a: ex.name, b: next.name }) : t("addExerciseEndAria")}
+                data-tour={isLast ? "workout-add-exercise" : undefined}
+              >
+                <PlusIcon /> {t("addExerciseShort")}
+              </button>
+            </div>
           )}
           </Fragment>
         );
       })}
-
-      <div className={styles.addExercise} data-tour="workout-add-exercise">
-        {adding ? (
-          <div className={styles.addExerciseForm}>
-            <input
-              type="text"
-              className={styles.logNoteInput}
-              autoFocus
-              autoComplete="off"
-              maxLength={ADDED_NAME_MAX}
-              placeholder={t("addExercisePlaceholder")}
-              aria-label={t("addExerciseAria")}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => {
-                // Enter nesmie odoslať formulár „Ukončiť tréning“
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addExercise();
-                } else if (e.key === "Escape") {
-                  closeAdd();
-                }
-              }}
-            />
-            {/* meria sa opakovaniami, alebo časom (statický hold, plank…) */}
-            <div className={styles.modeToggle} role="radiogroup" aria-label={tl("repsMode.aria")}>
-              {([false, true] as const).map((timedOpt) => (
-                <button
-                  key={String(timedOpt)}
-                  type="button"
-                  role="radio"
-                  aria-checked={newTimed === timedOpt}
-                  className={newTimed === timedOpt ? styles.modeOn : undefined}
-                  onMouseDown={keepFocus}
-                  onClick={() => setNewTimed(timedOpt)}
-                >
-                  {tl(timedOpt ? "repsMode.time" : "repsMode.reps")}
-                </button>
-              ))}
-            </div>
-            <div className={styles.addExerciseActions}>
-              <button type="button" className={styles.swBtnGhost} onMouseDown={keepFocus} onClick={closeAdd}>
-                {t("cancel")}
-              </button>
-              <button
-                type="button"
-                className={styles.swBtnPrimary}
-                onMouseDown={keepFocus}
-                onClick={addExercise}
-                disabled={!newName.trim()}
-              >
-                {t("addExerciseConfirm")}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button type="button" className={styles.addExerciseBtn} onClick={() => setAdding(true)}>
-            <PlusIcon /> {t("addExercise")}
-          </button>
-        )}
-      </div>
 
       <div className={styles.logSessionMeta} data-tour="workout-meta">
         <label className={styles.logRpeField}>

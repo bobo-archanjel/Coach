@@ -33,7 +33,6 @@
   "editDeadline": "Hodnoty môžeš upraviť do {deadline}.",
   "cancel": "Zrušiť",
   "saveChanges": "Uložiť zmeny",
-  "addExercise": "Pridať cvik",
   "addExercisePlaceholder": "Názov cviku, napr. Tlaky s jednoručkami",
   "addExerciseAria": "Názov pridaného cviku",
   "addExerciseConfirm": "Pridať",
@@ -62,5 +61,9 @@
     "rest": "pauza {seconds} s",
     "toneBelow": "pod plánom",
     "toneAbove": "nad plán"
-  }
+  },
+  "setDoneAria": "{name}, séria {n} odcvičená",
+  "addExerciseShort": "cvik",
+  "addExerciseBetweenAria": "Pridať cvik medzi {a} a {b}",
+  "addExerciseEndAria": "Pridať cvik na koniec tréningu"
 }

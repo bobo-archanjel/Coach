@@ -1143,7 +1143,7 @@
 }
 .setRow {
   display: grid;
-  grid-template-columns: 22px 1fr 1fr 32px;
+  grid-template-columns: 30px 1fr 1fr 32px;
   align-items: center;
   gap: 8px;
 }
@@ -1158,6 +1158,64 @@
   color: var(--paper-dim);
   background: var(--surface-solid);
   font-variant-numeric: tabular-nums;
+}
+/* odškrtnutie série počas tréningu — číslo série je tlačidlo, hotová séria = oranžová fajka */
+.setCheck {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1.5px solid var(--fill-strong);
+  background: var(--surface-solid);
+  color: var(--paper-dim);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.setCheck:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.setCheckOn {
+  border-color: transparent;
+  background: var(--accent-grad, var(--accent));
+  color: var(--on-accent, #fff);
+  box-shadow: var(--accent-glow);
+}
+/* medzi cvikmi: reťaz supersérie + malé „+ cvik“ (vloží cvik sem) */
+.logBetween {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0;
+}
+.logBetween > div {
+  margin: 0;
+}
+.logAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px dashed var(--fill-strong, var(--hairline));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.logAddBtn:hover {
+  border-color: var(--accent);
+  background: var(--fill);
 }
 .setField {
   position: relative;
@@ -2343,20 +2401,6 @@
   font-weight: 800;
   color: var(--paper);
   font-variant-numeric: tabular-nums;
-}
-.swHide {
-  width: 100%;
-  margin-top: 14px;
-  padding: 8px;
-  border: 0;
-  background: transparent;
-  color: var(--paper-faint);
-  font-size: 12.5px;
-  font-weight: 650;
-  cursor: pointer;
-}
-.swHide:hover {
-  color: var(--paper-dim);
 }
 @keyframes swFabIn {
   from {

@@ -1,0 +1,81 @@
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * Tréning na karte Dnes (DEV náhľad ?preview=ok — 6 cvikov, Predkopávanie + Zakopávanie v supersérii):
+ *  - odškrtnutie sérií (číslo série = tlačidlo), krúžok „x/y cvikov“ sa mení počas cvičenia,
+ *  - malé „+ cvik“ medzi cvikmi vloží cvik na to miesto a krúžok zvýši počet cvikov,
+ *  - veľké „Pridať cvik“ dole už nie je, odškrtnutia prežijú refresh.
+ */
+const ring = (page: Page) => page.getByTestId("progress-ring");
+const check = (page: Page, name: string, n: number) => page.getByRole("button", { name: `${name}, séria ${n} odcvičená` });
+
+test.describe("karta Dnes — odškrtávanie sérií a krúžok počas tréningu", () => {
+  test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/portal?preview=ok");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.getByRole("button", { name: "Začať tréning" }).click();
+  });
+
+  test("odškrtnuté série posúvajú krúžok, cvik je hotový až so všetkými sériami", async ({ page }) => {
+    await expect(ring(page)).toHaveAttribute("data-done", "0");
+    await expect(ring(page)).toHaveAttribute("data-total", "6");
+
+    const drep = "Drep s veľkou činkou"; // 4 série
+    for (const n of [1, 2, 3]) await check(page, drep, n).click();
+    await expect(check(page, drep, 1)).toHaveAttribute("aria-pressed", "true");
+    await expect(ring(page)).toHaveAttribute("data-done", "0");
+    await check(page, drep, 4).click();
+    await expect(ring(page)).toHaveAttribute("data-done", "1");
+    await expect(ring(page)).toContainText("1/6");
+
+    // odškrtnutie späť
+    await check(page, drep, 2).click();
+    await expect(check(page, drep, 2)).toHaveAttribute("aria-pressed", "false");
+    await expect(ring(page)).toHaveAttribute("data-done", "0");
+    await check(page, drep, 2).click();
+
+    // prežije refresh (koncept tréningu)
+    await page.reload();
+    await expect(check(page, drep, 4)).toHaveAttribute("aria-pressed", "true");
+    await expect(ring(page)).toHaveAttribute("data-done", "1");
+  });
+
+  test("„+ cvik“ medzi cvikmi vloží cvik na to miesto, krúžok zráta aj pridaný cvik", async ({ page }) => {
+    // veľké „Pridať cvik“ dole zrušené — len malé „+ cvik“ medzi cvikmi / za posledným
+    await expect(page.getByRole("button", { name: "Pridať cvik", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pridať cvik na koniec tréningu" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Pridať cvik medzi Drep s veľkou činkou a Rumunský mŕtvy ťah" }).click();
+    await page.getByLabel("Názov pridaného cviku").fill("Výpady");
+    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+    await expect(ring(page)).toHaveAttribute("data-total", "7");
+
+    // v poradí hneď za drepom — na stránke aj v zápise
+    const names = await page.locator("[data-ex-idx]").evaluateAll((els) =>
+      els.map((el) => el.querySelector("p")?.textContent?.replace(/Pridaný$/, "").trim() ?? ""),
+    );
+    expect(names.slice(0, 3)).toEqual(["Drep s veľkou činkou", "Výpady", "Rumunský mŕtvy ťah"]);
+    await page.getByLabel("Výpady, séria 1, opakovania").fill("12");
+    const entries = JSON.parse(await page.locator('input[name="entries"]').inputValue()) as { name: string }[];
+    expect(entries.map((e) => e.name).slice(0, 3)).toEqual(["Drep s veľkou činkou", "Výpady", "Rumunský mŕtvy ťah"]);
+
+    // hotový pridaný cvik → 1/7; poradie prežije refresh
+    for (const n of [1, 2, 3]) await check(page, "Výpady", n).click();
+    await expect(ring(page)).toContainText("1/7");
+    await page.reload();
+    await expect(ring(page)).toHaveAttribute("data-total", "7");
+    await expect(ring(page)).toHaveAttribute("data-done", "1");
+    await expect(page.locator("[data-ex-idx]").nth(1)).toContainText("Výpady");
+  });
+
+  test("vložený cvik medzi členov supersérie supersériu rozdelí", async ({ page }) => {
+    await expect(page.locator('[data-superset="A1"]')).toContainText("Predkopávanie na stroji");
+    await page.getByRole("button", { name: "Pridať cvik medzi Predkopávanie na stroji a Zakopávanie v ľahu" }).click();
+    await page.getByLabel("Názov pridaného cviku").fill("Kliky");
+    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+    await expect(page.locator("[data-superset]")).toHaveCount(0);
+  });
+});
