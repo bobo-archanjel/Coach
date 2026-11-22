@@ -252,6 +252,8 @@ export interface PortalTrainingData {
   plans: PortalPlan[];
   activePlanId: string | null;
   templates: PortalTemplate[];
+  /** id prihláseného — rozpracovaný koncept buildera v prehliadači patrí len jemu (builderDraft.ts) */
+  draftOwner: string;
 }
 
 export interface ExerciseOption {

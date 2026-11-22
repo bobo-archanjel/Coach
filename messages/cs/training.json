@@ -71,5 +71,10 @@
   "dayViewPlan": "Plán",
   "doneNoValues": "Trénink jsi ukončil bez zapsaných hodnot.",
   "tabsAria": "Tréninkové plány nebo moje šablony",
-  "templatesEmpty": "Zatím nemáš žádnou šablonu. Trénink si ulož jako šablonu (tlačítko pod plánem) a později z ní vytvoříš nový."
+  "templatesEmpty": "Zatím nemáš žádnou šablonu. Trénink si ulož jako šablonu (tlačítko pod plánem) a později z ní vytvoříš nový.",
+  "draftTitle": "Rozpracovaný trénink",
+  "draftEditTitle": "Rozpracovaná úprava tréninku",
+  "draftUnnamed": "Bez názvu",
+  "draftContinue": "Pokračovat",
+  "draftDiscard": "Zahodit"
 }

@@ -633,7 +633,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
 
     if (!client) {
-      return { state: "ok", data: { plans: [], activePlanId: null, templates: [] } };
+      return { state: "ok", data: { plans: [], activePlanId: null, templates: [], draftOwner: user.id } };
     }
 
     // published: false = trénerov koncept (0021) — v klientovom zozname sa nezobrazí,
@@ -738,7 +738,7 @@ export async function getPortalTraining(): Promise<PortalTrainingResult> {
       }));
     }
 
-    return { state: "ok", data: { plans, activePlanId, templates } };
+    return { state: "ok", data: { plans, activePlanId, templates, draftOwner: user.id } };
   } catch (err) {
     return { state: "error", message: err instanceof Error ? err.message : await tErr("portal.unknownLoad") };
   }

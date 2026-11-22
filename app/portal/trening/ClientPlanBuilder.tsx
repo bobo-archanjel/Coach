@@ -3,6 +3,13 @@
 import { SwipeBack } from "@/app/components/SwipeBack";
 import { useLocale, useTranslations } from "next-intl";
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
+import {
+  clearBuilderDraft,
+  draftSignature,
+  saveBuilderDraft,
+  type DraftDay,
+  type PlanBuilderDraft,
+} from "./builderDraft";
 import dynamic from "next/dynamic";
 import type { ExerciseOption, PortalDayLog, PortalExercise, PortalPlan, PortalTemplate } from "@/lib/portal/types";
 import { formatCompletedDate, type CompletedCompare } from "@/lib/workouts/completed";
@@ -123,12 +130,45 @@ function toDraftDays(
   }));
 }
 
+/** dni buildera → koncept v prehliadači (bez React kľúčov a bez `done`) */
+function toStoredDays(days: BDay[]): DraftDay[] {
+  return days.map((d) => ({
+    id: d.id,
+    name: d.name,
+    exercises: d.exercises.map((e) => ({
+      entryId: e.entryId,
+      exerciseId: e.exerciseId,
+      name: e.name,
+      sets: e.sets,
+      reps: e.reps,
+      loadKg: e.loadKg,
+      restSeconds: e.restSeconds,
+      note: e.note,
+      superset: e.superset,
+    })),
+  }));
+}
+
+/** koncept z prehliadača → dni buildera; `done` (odcvičený deň) z aktuálneho plánu podľa id dňa */
+function fromDraftDays(stored: DraftDay[], current: BDay[]): BDay[] {
+  const doneById = new Map(current.filter((d) => d.id).map((d) => [d.id as string, d.done ?? null]));
+  return stored.map((d) => {
+    const done = d.id ? (doneById.get(d.id) ?? null) : null;
+    // odcvičený deň sa v builderi nemení — vždy jeho aktuálna podoba, nie z konceptu
+    const currentDay = d.id && done ? current.find((c) => c.id === d.id) : undefined;
+    if (currentDay) return currentDay;
+    return { key: uid(), id: d.id, name: d.name, done, exercises: d.exercises.map((e) => ({ ...e, key: uid() })) };
+  });
+}
+
 export function ClientPlanBuilder({
   library,
   initial,
   template = null,
   onCancel,
   onSaved,
+  draftOwner,
+  resume = null,
 }: {
   library: ExerciseOption[];
   initial: PortalPlan | null;
@@ -136,17 +176,40 @@ export function ClientPlanBuilder({
   template?: PortalTemplate | null;
   onCancel: () => void;
   onSaved: () => void;
+  /** komu patrí rozpracovaný koncept v prehliadači (builderDraft.ts) */
+  draftOwner: string;
+  /** „Pokračovať“ — rozpracovaný koncept z prehliadača namiesto východiska */
+  resume?: PlanBuilderDraft | null;
 }) {
   const t = useTranslations("clientBuilder");
   const locale = useLocale() as Locale;
-  const [name, setName] = useState(initial?.name ?? template?.name ?? "");
-  // Nový prázdny tréning začína s jedným dňom „Deň 1“ (ako u trénera) — cviky sa dajú
-  // pridávať hneď; ďalšie dni cez „+ deň“. Úprava a šablóna majú vlastné dni.
+  // Východisko: úprava / šablóna / nový tréning s jedným dňom „Deň 1“ (ako u trénera) —
+  // cviky sa dajú pridávať hneď; ďalšie dni cez „+ deň“.
+  const [fresh] = useState(() => ({
+    name: initial?.name ?? template?.name ?? "",
+    days:
+      initial || template
+        ? toDraftDays(initial?.days ?? template?.days ?? [])
+        : [{ key: uid(), id: null, name: t("defaultDayName", { n: 1 }), exercises: [] } as BDay],
+  }));
+  const [name, setName] = useState(resume?.name ?? fresh.name);
+  // pri „Pokračovať“ koncept; odcvičenie dňa (`done`) sa berie z aktuálneho plánu, nie z konceptu
   const [days, setDays] = useState<BDay[]>(() =>
-    initial || template
-      ? toDraftDays(initial?.days ?? template?.days ?? [])
-      : [{ key: uid(), id: null, name: t("defaultDayName", { n: 1 }), exercises: [] }],
+    resume ? fromDraftDays(resume.days, fresh.days) : fresh.days,
   );
+  // Rozpracovaný koncept v prehliadači: pri každej zmene oproti východisku sa uloží; keď sa
+  // klient vráti k východisku, zmaže. Samotné otvorenie buildera starší koncept neprepíše.
+  const [freshSignature] = useState(() => draftSignature({ name: fresh.name, days: toStoredDays(fresh.days) }));
+  const touchedDraft = useRef(Boolean(resume));
+  useEffect(() => {
+    const stored = toStoredDays(days);
+    if (draftSignature({ name, days: stored }) !== freshSignature) {
+      touchedDraft.current = true;
+      saveBuilderDraft(draftOwner, { planId: initial?.id ?? null, name, days: stored });
+    } else if (touchedDraft.current) {
+      clearBuilderDraft(draftOwner);
+    }
+  }, [name, days, freshSignature, draftOwner, initial?.id]);
   // "" = ešte nevybraný → activeDay spadne na prvý deň (nižšie).
   const [activeKey, setActiveKey] = useState<string>("");
   const [addingDay, setAddingDay] = useState(false);
@@ -158,6 +221,12 @@ export function ClientPlanBuilder({
   const [justAddedKey, setJustAddedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const nameRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  // nová chyba → posun k nej (hore pod názvom), aj keď klient ukladal tlačidlom dole
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [error]);
   const [detailFor, setDetailFor] = useState<{ id: string; name: string } | null>(null);
   const [detail, setDetail] = useState<ExerciseDetail | null | undefined>(undefined);
   const [, startDetailTransition] = useTransition();
@@ -276,6 +345,8 @@ export function ClientPlanBuilder({
     const trimmedName = name.trim();
     if (!trimmedName) {
       setError(t("planNameRequired"));
+      // pole je hore — kurzor doň (a posun k nemu), nech klient hneď vidí, čo chýba
+      nameRef.current?.focus({ preventScroll: true });
       return;
     }
     if (days.length === 0) {
@@ -306,7 +377,10 @@ export function ClientPlanBuilder({
     startTransition(async () => {
       const res = await saveClientPlanAction(JSON.stringify(draft), initial?.id);
       if (res.error) setError(res.error);
-      else onSaved();
+      else {
+        clearBuilderDraft(draftOwner);
+        onSaved();
+      }
     });
   };
 
@@ -336,8 +410,18 @@ export function ClientPlanBuilder({
             placeholder={t("namePlaceholder")}
             maxLength={60}
             className={styles.trNameInput}
+            ref={nameRef}
+            aria-invalid={error === t("planNameRequired") || undefined}
           />
         </label>
+
+        {/* Chyba hore pod názvom (predtým až pod knižnicou cvikov — na mobile ju klient nevidel).
+            Pri ukladaní tlačidlom dole sa k nej stránka posunie. */}
+        {error && (
+          <p ref={errorRef} className={styles.trError} role="alert">
+            {error}
+          </p>
+        )}
 
         <div className={`${b.builderGrid} ${styles.trBuilderGrid}`}>
           <div className={`${b.canvas} ${styles.trBuilderCanvas}`}>
@@ -595,12 +679,6 @@ export function ClientPlanBuilder({
             <ClientExerciseLibrary library={library} hasDay={activeDay !== null} onAdd={addExercise} onDetail={openDetail} />
           )}
         </div>
-
-        {error && (
-          <p className={styles.trError} role="alert">
-            {error}
-          </p>
-        )}
 
         <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
           {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}

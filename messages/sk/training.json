@@ -71,5 +71,10 @@
   "dayViewPlan": "Plán",
   "doneNoValues": "Tréning si ukončil bez zapísaných hodnôt.",
   "tabsAria": "Tréningové plány alebo moje šablóny",
-  "templatesEmpty": "Zatiaľ nemáš žiadnu šablónu. Tréning si ulož ako šablónu (tlačidlo pod plánom) a neskôr z nej vytvoríš nový."
+  "templatesEmpty": "Zatiaľ nemáš žiadnu šablónu. Tréning si ulož ako šablónu (tlačidlo pod plánom) a neskôr z nej vytvoríš nový.",
+  "draftTitle": "Rozpracovaný tréning",
+  "draftEditTitle": "Rozpracovaná úprava tréningu",
+  "draftUnnamed": "Bez názvu",
+  "draftContinue": "Pokračovať",
+  "draftDiscard": "Zahodiť"
 }

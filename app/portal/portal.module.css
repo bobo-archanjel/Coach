@@ -3650,6 +3650,38 @@
   color: var(--paper);
   box-shadow: var(--shadow-1);
 }
+/* chýbajúci názov po pokuse o uloženie (ClientPlanBuilder) */
+.trNameInput[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+/* Tréning: rozpracovaný vlastný tréning (builderDraft.ts) — „Pokračovať“ / „Zahodiť“ */
+.trDraft {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent-soft);
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--accent-soft), transparent 80%), var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+.trDraftText {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+.trDraftLabel {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.trDraftName {
+  font-size: 16px;
+  font-weight: 720;
+  color: var(--paper);
+}
 .trNameInput:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
