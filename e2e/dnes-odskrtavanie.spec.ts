@@ -49,8 +49,16 @@ test.describe("karta Dnes — odškrtávanie sérií a krúžok počas tréningu
     await expect(page.getByRole("button", { name: "Pridať cvik na koniec tréningu" })).toBeVisible();
 
     await page.getByRole("button", { name: "Pridať cvik medzi Drep s veľkou činkou a Rumunský mŕtvy ťah" }).click();
+    // okno „Pridať cvik“ povie, kam sa cvik vloží; Esc ho zavrie bez pridania
+    const dialog = page.getByRole("dialog", { name: "Pridať cvik" });
+    await expect(dialog).toContainText("Vloží sa za cvik Drep s veľkou činkou.");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(ring(page)).toHaveAttribute("data-total", "6");
+    await page.getByRole("button", { name: "Pridať cvik medzi Drep s veľkou činkou a Rumunský mŕtvy ťah" }).click();
     await page.getByLabel("Názov pridaného cviku").fill("Výpady");
-    await page.getByRole("button", { name: "Pridať", exact: true }).click();
+    await dialog.getByRole("button", { name: "Pridať", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
     await expect(ring(page)).toHaveAttribute("data-total", "7");
 
     // v poradí hneď za drepom — na stránke aj v zápise

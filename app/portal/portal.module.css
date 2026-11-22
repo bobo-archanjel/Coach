@@ -1109,6 +1109,18 @@
   border-radius: 20px;
   background: var(--fill);
 }
+/* rovnaký formulár v okne (BuilderDialog) — bez vlastného podkladu, okno ho má */
+.addExerciseInDialog {
+  padding: 0;
+  background: none;
+  gap: 14px;
+}
+.addExerciseWhere {
+  margin: -6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--paper-faint);
+}
 .addExerciseForm .logNoteInput {
   margin-top: 0;
 }

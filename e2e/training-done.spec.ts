@@ -327,13 +327,17 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await page.getByRole("button", { name: "Pridať cvik na koniec tréningu" }).click();
     const nameField = page.getByLabel("Názov pridaného cviku");
     await expect(nameField).toBeFocused();
-    // ručné pridanie, nie knižnica
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // ručné pridanie v okne „Pridať cvik“ (nie knižnica)
+    const addDialog = page.getByRole("dialog", { name: "Pridať cvik" });
+    await expect(addDialog).toBeVisible();
+    await expect(addDialog).toContainText("Pridá sa na koniec tréningu.");
+    await expect(addDialog.getByPlaceholder(/Hľadať/)).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeDisabled();
     await nameField.fill(added);
     await nameField.press("Enter"); // Enter pridá cvik, neodošle tréning
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await expect(nameField).toHaveCount(0);
+    await expect(addDialog).toHaveCount(0);
 
     // 3 prázdne série, štítok „Pridaný“; kurzor rovno v prvej sérii (pridať a vyplniť v jednom kroku)
     await expect(page.locator("[data-added]")).toContainText(`${added} Pridaný`);

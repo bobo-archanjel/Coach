@@ -65,5 +65,9 @@
   "setDoneAria": "{name}, séria {n} odcvičená",
   "addExerciseShort": "cvik",
   "addExerciseBetweenAria": "Pridať cvik medzi {a} a {b}",
-  "addExerciseEndAria": "Pridať cvik na koniec tréningu"
+  "addExerciseEndAria": "Pridať cvik na koniec tréningu",
+  "addExerciseTitle": "Pridať cvik",
+  "addExerciseClose": "Zavrieť",
+  "addExerciseWhere": "Vloží sa za cvik {name}.",
+  "addExerciseWhereEnd": "Pridá sa na koniec tréningu."
 }

@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Fragment, useEffect, useState, type MouseEvent } from "react";
 import { SupersetLink } from "@/app/components/SupersetLink";
+import { BuilderDialog } from "@/app/components/BuilderDialog";
 import { normalizeSupersets, supersetPositions, toggleLinkWithNext } from "@/lib/workouts/superset";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { LoggedExercise, PortalExercise } from "@/lib/portal/types";
@@ -143,12 +144,6 @@ const PlusIcon = () => (
 const CloseIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-  </svg>
-);
-
-const RemoveIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
   </svg>
 );
 
@@ -340,7 +335,9 @@ export function WorkoutSetsFields({
     if (!block) return;
     setFocusExIdx(null);
     block.scrollIntoView({ block: "center", behavior: "smooth" });
-    block.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+    // až po zatvorení okna „Pridať cvik“ — to vracia fokus na „+ cvik“ (BuilderDialog, mikroúloha).
+    // Bez upratania: setFocusExIdx(null) hneď prekreslí a cleanup by časovač zrušil.
+    window.setTimeout(() => block.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true }), 0);
   }, [focusExIdx, exercises.length]);
 
   /** nový cvik za pozíciu `pos` v poradí zobrazenia (index cviku = na koniec zoznamu) */
@@ -409,7 +406,14 @@ export function WorkoutSetsFields({
 
   /** formulár nového cviku priamo na mieste, kam sa vloží (názov + opakovania / čas) */
   const renderAddForm = () => (
-    <div className={styles.addExerciseForm}>
+    <div className={`${styles.addExerciseForm} ${styles.addExerciseInDialog}`}>
+      {addingAt !== null && exercises[order[addingAt]] && (
+        <p className={styles.addExerciseWhere}>
+          {addingAt < order.length - 1
+            ? t("addExerciseWhere", { name: exercises[order[addingAt]].name })
+            : t("addExerciseWhereEnd")}
+        </p>
+      )}
       <input
         type="text"
         className={styles.logNoteInput}
@@ -571,7 +575,7 @@ export function WorkoutSetsFields({
                         onClick={() => removeRow(exIdx, rowIdx)}
                         aria-label={t("removeSet")}
                       >
-                        <RemoveIcon />
+                        <CloseIcon />
                       </button>
                     </div>
                     {rowErr && (
@@ -611,36 +615,39 @@ export function WorkoutSetsFields({
           </div>
           {/* medzi cvikmi: spojenie do supersérie (len tento tréning) a malé „+ cvik“, ktoré
               vloží nový cvik práve sem; za posledným cvikom len „+ cvik“ */}
-          {addingAt === pos ? (
-            renderAddForm()
-          ) : (
-            <div className={styles.logBetween}>
-              {next && (
-                <SupersetLink
-                  linked={linked}
-                  label={linked ? t("ssUnlink") : t("ssLink")}
-                  ariaLabel={linked ? t("ssUnlinkAria", { a: ex.name, b: next.name }) : t("ssLinkAria", { a: ex.name, b: next.name })}
-                  onToggle={() => toggleSuperset(pos)}
-                />
-              )}
-              <button
-                type="button"
-                className={styles.logAddBtn}
-                onClick={() => {
-                  setAddingAt(pos);
-                  setNewName("");
-                  setNewTimed(false);
-                }}
-                aria-label={next ? t("addExerciseBetweenAria", { a: ex.name, b: next.name }) : t("addExerciseEndAria")}
-                data-tour={isLast ? "workout-add-exercise" : undefined}
-              >
-                <PlusIcon /> {t("addExerciseShort")}
-              </button>
-            </div>
-          )}
+          <div className={styles.logBetween}>
+            {next && (
+              <SupersetLink
+                linked={linked}
+                label={linked ? t("ssUnlink") : t("ssLink")}
+                ariaLabel={linked ? t("ssUnlinkAria", { a: ex.name, b: next.name }) : t("ssLinkAria", { a: ex.name, b: next.name })}
+                onToggle={() => toggleSuperset(pos)}
+              />
+            )}
+            <button
+              type="button"
+              className={styles.logAddBtn}
+              onClick={() => {
+                setAddingAt(pos);
+                setNewName("");
+                setNewTimed(false);
+              }}
+              aria-label={next ? t("addExerciseBetweenAria", { a: ex.name, b: next.name }) : t("addExerciseEndAria")}
+              data-tour={isLast ? "workout-add-exercise" : undefined}
+            >
+              <PlusIcon /> {t("addExerciseShort")}
+            </button>
+          </div>
           </Fragment>
         );
       })}
+
+      {/* nový cvik cez okno; vloží sa za cvik, pri ktorom klient ťukol „+ cvik“ */}
+      {addingAt !== null && (
+        <BuilderDialog title={t("addExerciseTitle")} closeLabel={t("addExerciseClose")} onClose={closeAdd}>
+          {renderAddForm()}
+        </BuilderDialog>
+      )}
 
       <div className={styles.logSessionMeta} data-tour="workout-meta">
         <label className={styles.logRpeField}>
