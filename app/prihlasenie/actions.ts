@@ -31,16 +31,34 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile, isHoneypotTripped } from "@/lib/turnstile";
 import { checkPassword } from "@/lib/passwordStrength";
 import { getTranslations } from "next-intl/server";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { isCompleteSignupCode, normalizeSignupCode } from "@/lib/auth/signupCode";
 
 export interface LoginState {
   error: string | null;
   redirectTo: string | null;
+  /** správne heslo, ale neoverený e-mail — poslali sme nový kód, appka ukáže krok s kódom */
+  needsCode?: boolean;
+  email?: string;
 }
 
 export interface RegisterState {
   error: string | null;
   redirectTo: string | null;
   needsConfirm: boolean;
+  /** pri `needsConfirm` — na ktorý e-mail odišiel kód */
+  email?: string;
+}
+
+export interface VerifyCodeState {
+  error: string | null;
+  redirectTo: string | null;
+}
+
+export interface ResendCodeState {
+  error: string | null;
+  /** o koľko sekúnd sa dá poslať ďalší kód */
+  cooldown: number;
 }
 
 /** Chybové hlášky v jazyku používateľa (messages/<jazyk>/auth.json → errors). Registrácia
@@ -118,6 +136,12 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  // Neoverený e-mail: Supabase to hlási len pri SPRÁVNOM hesle — nie je to zlý pokus.
+  // Pošleme nový kód a appka ukáže krok s kódom (overenie e-mailu prihlási).
+  if (error && (error.code === "email_not_confirmed" || /email not confirmed/i.test(error.message))) {
+    await supabase.auth.resend({ type: "signup", email });
+    return { error: null, redirectTo: null, needsCode: true, email };
+  }
   if (error) {
     if (admin) {
       await Promise.all(
@@ -137,10 +161,18 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
     });
   }
 
+  return { error: null, redirectTo: await afterSignIn(supabase, data.user) };
+}
+
+/**
+ * Spoločné kroky po prihlásení (heslo aj overenie kódu z registrácie): jazyk účtu → cookie,
+ * klientovi poistka `clients` riadku + starý pozývací kód. Vráti cieľ presmerovania podľa roly.
+ */
+async function afterSignIn(supabase: SupabaseClient, user: User): Promise<string> {
   const [{ data: profile }] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle(),
+    supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
     // jazyk účtu → cookie (feature/cestina), nech appka hovorí jazykom účtu aj na novom zariadení
-    syncLocaleCookieFromProfile(supabase, data.user.id),
+    syncLocaleCookieFromProfile(supabase, user.id),
   ]);
 
   if (profile?.role === "client") {
@@ -151,13 +183,13 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
     await supabase.rpc("ensure_self_client");
 
     // Doklaimovanie starého pozývacieho kódu, ak zostal z pôvodného flow (backward compat).
-    const inviteCode = data.user.user_metadata?.invite_code as string | undefined;
+    const inviteCode = user.user_metadata?.invite_code as string | undefined;
     if (inviteCode && inviteCode.length <= 64) {
       await supabase.rpc("claim_client_by_invite", { p_invite_code: inviteCode });
     }
   }
 
-  return { error: null, redirectTo: profile?.role === "client" ? "/portal" : "/dashboard" };
+  return profile?.role === "client" ? "/portal" : "/dashboard";
 }
 
 /**
@@ -232,11 +264,81 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
   }
 
   if (!data.session) {
-    // Predvolené nastavenie Supabase: treba potvrdiť e-mail skôr, než vznikne session.
-    return { error: null, redirectTo: null, needsConfirm: true };
+    // Predvolené nastavenie Supabase: treba potvrdiť e-mail skôr, než vznikne session —
+    // prišiel kód (šablóna Confirm signup), appka ukáže krok s kódom.
+    return { error: null, redirectTo: null, needsConfirm: true, email };
   }
 
   return { error: null, redirectTo: role === "client" ? "/portal" : "/dashboard", needsConfirm: false };
+}
+
+const MAX_CODE_PER_EMAIL = 5;
+const MAX_CODE_PER_IP = 30;
+const MAX_RESEND_PER_EMAIL = 5;
+
+/**
+ * Overenie e-mailu kódom z registrácie (feature/overenie-kodom). Správny kód e-mail potvrdí
+ * a vytvorí session — rovno prihlási (klient → /portal, tréner → /dashboard). Hádanie
+ * 6 číslic brzdí lockout (0028/0036: počítadlá v 15-min okne) na e-mail aj IP.
+ */
+export async function verifySignupCodeAction(rawEmail: string, rawCode: string): Promise<VerifyCodeState> {
+  const t = await getTranslations("auth.verify");
+  const email = (typeof rawEmail === "string" ? rawEmail : "").trim().toLowerCase();
+  const code = normalizeSignupCode(typeof rawCode === "string" ? rawCode : "");
+  if (!email || email.length > MAX_INPUT_LENGTH || !isCompleteSignupCode(code)) {
+    return { error: t("codeIncomplete"), redirectTo: null };
+  }
+
+  const ipHash = shortHash(await clientIp());
+  const ids = { email: `otp:${shortHash(email)}`, ip: `otp-ip:${ipHash}` };
+  const admin = tryCreateAdminClient();
+  if (admin) {
+    const [byEmail, byIp] = await Promise.all([
+      admin.rpc("check_login_lockout", { p_identifier: ids.email, p_max: MAX_CODE_PER_EMAIL }),
+      admin.rpc("check_login_lockout", { p_identifier: ids.ip, p_max: MAX_CODE_PER_IP }),
+    ]);
+    if (byEmail.data === true || byIp.data === true) return { error: t("lockout"), redirectTo: null };
+  }
+
+  const supabase = await createClient();
+  // typ „email“ overí aj kód z registrácie (Confirm signup) — overené proti Supabase
+  const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+  if (error || !data.user) {
+    if (admin) await Promise.all([ids.email, ids.ip].map((id) => admin.rpc("record_failed_login", { p_identifier: id })));
+    return { error: t("codeInvalid"), redirectTo: null };
+  }
+  if (admin) after(async () => void (await admin.rpc("clear_login_attempts", { p_identifier: ids.email })));
+
+  return { error: null, redirectTo: await afterSignIn(supabase, data.user) };
+}
+
+/**
+ * Nový kód na overenie e-mailu. Odpoveď neprezrádza, či účet existuje; Supabase pošle
+ * na jeden e-mail najviac jeden kód za minútu (429 „after N seconds“ → odpočet), navyše
+ * najviac MAX_RESEND_PER_EMAIL za 15 minút (lockout počítadlo).
+ */
+export async function resendSignupCodeAction(rawEmail: string): Promise<ResendCodeState> {
+  const t = await getTranslations("auth.verify");
+  const email = (typeof rawEmail === "string" ? rawEmail : "").trim().toLowerCase();
+  if (!email || email.length > MAX_INPUT_LENGTH) return { error: t("resendFailed"), cooldown: 0 };
+
+  const key = `otp-resend:${shortHash(email)}`;
+  const admin = tryCreateAdminClient();
+  if (admin) {
+    const { data: limited } = await admin.rpc("check_login_lockout", { p_identifier: key, p_max: MAX_RESEND_PER_EMAIL });
+    if (limited === true) return { error: t("resendLimit"), cooldown: 0 };
+    await admin.rpc("record_failed_login", { p_identifier: key });
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({ type: "signup", email });
+  if (error) {
+    const wait = error.message.match(/after (\d+) seconds?/);
+    if (error.status === 429 && wait) return { error: null, cooldown: Number(wait[1]) };
+    if (error.status === 429 || /rate limit/i.test(error.message)) return { error: t("resendLimit"), cooldown: 0 };
+    // iné chyby (napr. e-mail už overený / neexistuje) — neutrálne, bez prezradenia účtu
+  }
+  return { error: null, cooldown: 60 };
 }
 
 /**

@@ -12,7 +12,7 @@ a reset hesla. Z 6 šablón, ktoré Supabase ponúka, appka reálne spúšťa le
 
 | Šablóna v Supabase | Kedy sa odošle | Súbor tu |
 |---|---|---|
-| **Confirm signup** | Po registrácii (`registerAction` → `supabase.auth.signUp`), ak má projekt zapnuté "Confirm email" | `potvrdenie-registracie.html` |
+| **Confirm signup** | Po registrácii (`registerAction` → `supabase.auth.signUp`), pri „Poslať kód znova“ a pri prihlásení s neovereným e-mailom (`supabase.auth.resend`) — e-mail obsahuje **6-miestny kód**, nie odkaz | `potvrdenie-registracie.html` |
 | **Reset Password** | Po kliknutí "Zabudnuté heslo?" na `/prihlasenie` (`resetPasswordForEmail`) | `reset-hesla.html` |
 
 Zvyšné (**Magic Link**, **Invite user**, **Change Email Address**, **Reauthentication**)
@@ -27,7 +27,7 @@ nasadí neskôr, doplň šablónu vtedy.
 2. Vyber šablónu zo zoznamu (**Confirm signup** / **Reset Password**).
 3. Do poľa **Subject heading** vlož (predmet je tiež šablóna — slovensky alebo česky podľa jazyka účtu):
    - Confirm signup:
-     `{{ if eq .Data.locale "cs" }}Potvrď svou registraci ve FitPilotu{{ else }}Potvrď svoju registráciu vo FitPilote{{ end }}`
+     `{{ if eq .Data.locale "cs" }}Tvůj kód pro FitPilot: {{ .Token }}{{ else }}Tvoj kód pre FitPilot: {{ .Token }}{{ end }}`
    - Reset Password:
      `{{ if eq .Data.locale "cs" }}Obnovení hesla ve FitPilotu{{ else }}Reset hesla vo FitPilote{{ end }}`
 4. Do poľa **Message body** (HTML editor) vlož **celý obsah** príslušného `.html`
@@ -37,8 +37,34 @@ nasadí neskôr, doplň šablónu vtedy.
 Supabase do šablóny pri odosielaní doplní premenné v `{{ .Premenna }}` tvare —
 v týchto dvoch šablónach sa používajú:
 
-- `{{ .ConfirmationURL }}` — hotový odkaz s tokenom (potvrdenie e-mailu / reset hesla).
+- `{{ .Token }}` — 6-miestny overovací kód (Confirm signup, viď nižšie),
+- `{{ .ConfirmationURL }}` — hotový odkaz s tokenom (len Reset Password).
 - `{{ .Data.locale }}` — jazyk účtu (`sk` / `cs`) z `user_metadata` (feature/cestina).
+
+### Overenie e-mailu kódom (Confirm signup)
+
+Od `feature/overenie-kodom` sa registrácia nepotvrdzuje odkazom, ale **kódom**:
+po registrácii appka hneď ukáže krok „Over svoj e-mail“, používateľ prepíše 6 číslic
+z e-mailu a je rovno prihlásený (klient → `/portal`, tréner → `/dashboard`).
+Ak sa neskôr prihlási s neovereným e-mailom (správne heslo), appka mu pošle nový kód
+a ukáže ten istý krok. Kód overuje `verifySignupCodeAction`
+(`supabase.auth.verifyOtp`, lockout 5 zlých pokusov / 15 min na e-mail),
+nový kód posiela `resendSignupCodeAction` (`supabase.auth.resend`, max 5 / 15 min).
+
+V Supabase Dashboarde preto okrem šablóny nastav aj:
+
+1. **Authentication → Sign In / Providers → Email**:
+   - **Confirm email** — ostáva **zapnuté**,
+   - **Email OTP Length** — **6** (appka očakáva presne 6 číslic),
+   - **Email OTP Expiration** — **3600** s (1 hodina — text v appke aj v e-maile
+     hovorí „platí 1 hodinu“).
+2. **Authentication → Email Templates → Confirm signup** — nový predmet (s kódom,
+   viď vyššie) a celý obsah `potvrdenie-registracie.html`. Šablóna už **nemá**
+   `{{ .ConfirmationURL }}` — len kód `{{ .Token }}`.
+
+Staré e-maily s odkazom (odoslané pred zmenou šablóny) fungujú ďalej cez
+`/auth/callback`. Kým šablónu nezmeníš, e-mail príde s odkazom a kód v ňom chýba —
+krok s kódom v appke potom nemá čo overiť, **šablónu preto zmeň hneď pri nasadení**.
 
 ### Jazyk e-mailu (slovenčina / čeština)
 
@@ -148,9 +174,9 @@ a e-maily nerozchádzali v tom, čo je "domov".
 
 1. Otvor produkčnú appku (`https://coach-pi-bice.vercel.app/prihlasenie`), nie
    localhost.
-2. Zaregistruj testovací účet s reálnym e-mailom → prišiel e-mail s logom a
-   funguje tlačidlo "Potvrdiť e-mail"? Po kliknutí ťa má hodiť späť na produkčnú
-   appku (Site URL), nie na localhost.
+2. Zaregistruj testovací účet s reálnym e-mailom → prišiel e-mail s logom
+   a 6-miestnym kódom? Zadaj ho v appke — má ťa rovno prihlásiť
+   (klient → portál, tréner → dashboard).
 3. "Zabudnuté heslo?" s existujúcim účtom → prišiel e-mail → tlačidlo "Nastaviť
    nové heslo" ťa má hodiť na `https://coach-pi-bice.vercel.app/prihlasenie/nove-heslo`
    s funkčným formulárom (nie na chybovú stránku "odkaz neplatí").
@@ -176,7 +202,9 @@ fungujú rovnako nezávisle od toho, aký SMTP projekt používa.
 ## Ako to odskúšať
 
 - **Confirm signup**: zaregistruj si testovací účet na `/prihlasenie` (tab
-  "Registrácia") s reálnou e-mailovou adresou, na ktorú máš prístup.
+  "Registrácia") s reálnou e-mailovou adresou, na ktorú máš prístup, a zadaj
+  kód z e-mailu. Vyskúšaj aj „Poslať kód znova“ (po 60 s) a prihlásenie
+  neovereným účtom (appka pošle nový kód).
 - **Reset Password**: na `/prihlasenie` → "Zabudnuté heslo?" → zadaj e-mail
   existujúceho účtu.
 
