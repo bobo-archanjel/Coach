@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-22** — **Overenie e-mailu kódom pri registrácii** (`feature/overenie-kodom`, bez migrácie).
+  - Po registrácii krok „Over svoj e-mail“: 6-miestny kód z e-mailu (jedno pole, vloženie, odoslanie po 6. číslici), správny kód rovno prihlási (klient → portál, tréner → dashboard); „Poslať kód znova“ s odpočtom 60 s, „Zmeniť e-mail“; krok prežije refresh.
+  - Prihlásenie s neovereným e-mailom pošle nový kód a ukáže ten istý krok.
+  - Lockout: 5 zlých kódov / 15 min na e-mail (30 na IP), nový kód max 5× / 15 min (`verifySignupCodeAction`, `resendSignupCodeAction`).
+  - E-mail Confirm signup len s kódom (`docs/email-templates/potvrdenie-registracie.html`). **Pri nasadení ručne v Supabase:** Email OTP Length = 6, Expiration = 3600, nová šablóna + predmet (postup v `docs/email-templates/README.md`).
 - **2026-11-22** — **Karta Dnes: zbalenie cvikov, súhrn po tréningu, viac tréningov za deň; „Tréning 1“** (`feature/dnes-zbalit-cvik`, bez migrácie).
   - Počas tréningu: šípka pri každom cviku ho zbalí (súhrn „Série x/y“, v koncepte); panel stopiek sa zatvára šípkou nadol.
   - Po odcvičení: súhrn 2×2 (cviky, série, objem, náročnosť) s ikonami; „Zobraziť / Skryť cviky“ v strede (zbalené skryje aj poznámku a úpravu); nový text „Tento tréning máš hotový — upraviť hodnoty môžeš kedykoľvek počas dnešného dňa“.
