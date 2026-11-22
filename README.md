@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-22** — **Klient: builder a tréning na karte Dnes** (`feature/klient-builder-fixy`, bez migrácie).
+  - Builder vlastného tréningu: chyba „Zadaj názov…“ hore pod názvom (pole zvýraznené, kurzor, posun k chybe); rozpracovaný tréning (nový aj úprava) sa ukladá do prehliadača podľa účtu (`app/portal/trening/builderDraft.ts`) — po návrate na Tréning karta „Pokračovať“ / „Zahodiť“.
+  - Karta Dnes počas tréningu: odškrtávanie sérií (číslo série = tlačidlo s jemným svietiacim okrajom; len postup, ukladajú sa všetky vyplnené série), krúžok ukazuje živý postup (cvik hotový = všetky série odškrtnuté) vrátane pridaných cvikov; po ukončení podľa zápisu.
+  - „+ cvik“ pri reťazi supersérie a za posledným cvikom otvorí okno „Pridať cvik“ a vloží cvik na to miesto (poradie aj v zápise a pri úprave hodnôt); veľké „Pridať cvik“ dole preč. Odobratie série „×“, stopky bez „Skryť stopky“.
+  - Testy: `e2e/klient-builder-koncept.spec.ts`, `e2e/dnes-odskrtavanie.spec.ts`.
 - **2026-11-21** — **Nový tréningový plán začína dňom „Deň 1“** (`feature/plan-den-1`, bez migrácie).
   - Tréner: „Vytvoriť plán“ uloží aj prvý deň („Deň 1“ / „Den 1“), builder sa otvorí rovno na ňom. Klient: nový vlastný tréning začína v builderi s „Deň 1“ (úprava a šablóna nie). Cviky sa dajú pridávať hneď, ďalšie dni cez „+ deň“. Test `e2e/plan-den-1.spec.ts`.
 - **2026-11-20** — **Kalendár trénera: mesačný prehľad** (`feature/calendar-view`, bez migrácie).
