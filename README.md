@@ -75,6 +75,12 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-22** — **Karta Dnes: zbalenie cvikov, súhrn po tréningu, viac tréningov za deň; „Tréning 1“** (`feature/dnes-zbalit-cvik`, bez migrácie).
+  - Počas tréningu: šípka pri každom cviku ho zbalí (súhrn „Série x/y“, v koncepte); panel stopiek sa zatvára šípkou nadol.
+  - Po odcvičení: súhrn 2×2 (cviky, série, objem, náročnosť) s ikonami; „Zobraziť / Skryť cviky“ v strede (zbalené skryje aj poznámku a úpravu); nový text „Tento tréning máš hotový — upraviť hodnoty môžeš kedykoľvek počas dnešného dňa“.
+  - Viac tréningov za deň: ďalšie dnešné tréningy ako samostatné karty pod aktuálnym (zbalené, rozbalia sa na súhrn, cviky a úpravu).
+  - Tréner: celý odcvičený plán (Hotovo) sa nedá nastaviť ako aktívny.
+  - Nový tréningový plán začína „Tréning 1“, tlačidlo „+ tréning“ (jedálničky ostávajú „+ deň“).
 - **2026-11-22** — **Klient: builder a tréning na karte Dnes** (`feature/klient-builder-fixy`, bez migrácie).
   - Builder vlastného tréningu: chyba „Zadaj názov…“ hore pod názvom (pole zvýraznené, kurzor, posun k chybe); rozpracovaný tréning (nový aj úprava) sa ukladá do prehliadača podľa účtu (`app/portal/trening/builderDraft.ts`) — po návrate na Tréning karta „Pokračovať“ / „Zahodiť“.
   - Karta Dnes počas tréningu: odškrtávanie sérií (číslo série = tlačidlo s jemným svietiacim okrajom; len postup, ukladajú sa všetky vyplnené série), krúžok ukazuje živý postup (cvik hotový = všetky série odškrtnuté) vrátane pridaných cvikov; po ukončení podľa zápisu.
