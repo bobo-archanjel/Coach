@@ -117,5 +117,11 @@ test.describe("hotový plán — reálna DB", () => {
     await page.getByRole("button", { name: /E2E Deň B/ }).click();
     await expect(page.getByText("9/10")).toBeVisible();
     await expect(page.getByText("„E2E ťažký deň“")).toBeVisible();
+
+    // detail klienta: hotový plán má „Hotovo“ a nedá sa nastaviť ako aktívny
+    await page.goto(`/dashboard/klienti/${client!.id}`);
+    const row = page.locator(`a[href="/dashboard/treningy/${planId}"]`).locator("..");
+    await expect(row).toContainText("Hotovo");
+    await expect(page.getByRole("button", { name: new RegExp(`^Nastaviť „E2E hotový plán`) })).toHaveCount(0);
   });
 });

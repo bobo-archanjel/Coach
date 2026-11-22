@@ -270,7 +270,8 @@ export default async function ClientDetailPage({
                           <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>{t("draft")}</span>
                         ) : plan.id === activePlanId ? (
                           <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>{t("active")}</span>
-                        ) : (
+                        ) : done?.allDone ? null : (
+                          // celý odcvičený plán (Hotovo) sa aktívnym nastaviť nedá
                           <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />
                         )}
                       </span>
