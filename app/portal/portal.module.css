@@ -1468,37 +1468,72 @@
 }
 .doneStat {
   display: grid;
-  gap: 2px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: var(--fill);
-  font-size: 11.5px;
-  font-weight: 650;
+  gap: 10px;
+  padding: 12px 14px 13px;
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+}
+.doneStatHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.doneStatIcon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.doneStatLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--paper-faint);
 }
-.doneStat strong {
+.doneStatValue {
   white-space: nowrap;
-  font-size: 17px;
-  font-weight: 780;
-  letter-spacing: -0.02em;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
   color: var(--paper);
   font-variant-numeric: tabular-nums;
 }
+/* v strede, s oranžovým nádychom (akcent) — hlavné ovládanie zbaleného tréningu */
 .doneToggle {
-  margin: 12px 0 4px;
-  display: inline-flex;
+  margin: 14px auto 4px;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 6px 12px 6px 14px;
-  border: 1px solid var(--hairline);
+  min-height: 38px;
+  padding: 7px 14px 7px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 999px;
-  background: var(--surface-solid);
-  color: var(--paper);
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 720;
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.doneToggle:hover {
+  border-color: var(--accent);
 }
 .doneToggle:focus-visible {
   outline: 2px solid var(--accent);

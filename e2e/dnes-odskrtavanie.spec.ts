@@ -125,17 +125,23 @@ test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", (
     // náhľad: 4 zapísané cviky z 8 (6 plánu + 2 pridané), 9 sérií, objem 4 594 kg, RPE 8
     const stats = page.getByTestId("done-stats");
     await expect(stats).toContainText("4/8");
-    await expect(stats).toContainText(/9\s*série/);
+    await expect(stats).toContainText(/série\s*9/);
     await expect(stats).toContainText(/4\s?594 kg/);
     await expect(stats).toContainText("8/10");
 
     const toggle = page.getByTestId("done-toggle");
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
+    await expect(page.getByText("„Dobrý tréning, koleno OK.“")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
     await toggle.click();
     await expect(toggle).toHaveText(/Zobraziť cviky/);
     await expect(page.getByTestId("completed-exercise")).toHaveCount(0);
     await expect(stats).toBeVisible();
+    // zbalené: bez poznámky k tréningu a bez „Upraviť hodnoty“
+    await expect(page.getByText("„Dobrý tréning, koleno OK.“")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toHaveCount(0);
+    await expect(page.getByText("Tento tréning máš hotový — upraviť hodnoty môžeš kedykoľvek počas dnešného dňa")).toBeVisible();
 
     await page.reload();
     await expect(page.getByTestId("done-toggle")).toHaveAttribute("aria-expanded", "false");

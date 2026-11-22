@@ -34,7 +34,7 @@
   "planFinished": "Plán máš hotový",
   "exercises": "{count, plural, one {# cvik} few {# cviky} other {# cvikov}}",
   "allDaysDone": "Odcvičil si všetky dni plánu. Ďalší ti pripraví tréner — alebo si vytvor vlastný v sekcii Tréning.",
-  "doneToday": "Tento tréning máš dnes hotový — vrátiš sa sem kedykoľvek, kým je dnešný deň",
+  "doneToday": "Tento tréning máš hotový — upraviť hodnoty môžeš kedykoľvek počas dnešného dňa",
   "emptyNamed": "Plán „{name}“ je zatiaľ prázdny",
   "onTheWay": "Plán je na ceste",
   "noPlan": "Zatiaľ nemáš tréningový plán",
