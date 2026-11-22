@@ -8,9 +8,10 @@ import { DoneWorkoutView } from "./DoneWorkoutView";
 import styles from "./portal.module.css";
 
 /**
- * Ďalšie dnes odcvičené tréningy pod práve zobrazeným na karte Dnes (klient odcvičil 2–3
- * dni plánu v jeden deň). Každý zbalený riadok — názov a krátky súhrn; ťuk ho rozbalí na
- * súhrn 2×2, cviky a „Upraviť hodnoty“ (DoneWorkoutView, rovnako ako hlavný tréning).
+ * Ďalšie dnes odcvičené tréningy (klient odcvičil 2–3 dni plánu v jeden deň) — každý ako
+ * samostatná karta pod kartou aktuálneho tréningu (nie vnorený v nej). Zbalená karta ukáže
+ * názov a krátky súhrn; ťuk ju rozbalí na súhrn 2×2, cviky a „Upraviť hodnoty“
+ * (DoneWorkoutView, rovnako ako hlavný tréning).
  */
 export function OtherTodayWorkouts({ workouts }: { workouts: TodayOtherWorkout[] }) {
   const t = useTranslations("today");
@@ -18,13 +19,12 @@ export function OtherTodayWorkouts({ workouts }: { workouts: TodayOtherWorkout[]
   if (workouts.length === 0) return null;
 
   return (
-    <section className={styles.otherToday} aria-label={t("otherTodayTitle")} data-testid="other-today">
-      <p className={styles.otherTodayTitle}>{t("otherTodayTitle")}</p>
+    <>
       {workouts.map((w) => {
         const open = openId === w.logId;
         const stats = w.compare.exercises.length > 0 ? workoutStats(w.compare.exercises) : null;
         return (
-          <div key={w.logId} className={styles.otherTodayItem}>
+          <section key={w.logId} className={styles.otherTodayCard} aria-label={w.title} data-testid="other-today">
             <button
               type="button"
               className={styles.otherTodayHead}
@@ -33,6 +33,7 @@ export function OtherTodayWorkouts({ workouts }: { workouts: TodayOtherWorkout[]
               aria-label={t(open ? "otherTodayHide" : "otherTodayShow", { name: w.title })}
             >
               <span className={styles.otherTodayText}>
+                <span className={styles.otherTodayKicker}>{t("otherTodayKicker")}</span>
                 <span className={styles.otherTodayName}>{w.title}</span>
                 {stats && (
                   <span className={styles.otherTodayMeta}>
@@ -42,8 +43,8 @@ export function OtherTodayWorkouts({ workouts }: { workouts: TodayOtherWorkout[]
               </span>
               <svg
                 className={`${styles.otherTodayChevron} ${open ? styles.otherTodayChevronOpen : ""}`}
-                width="18"
-                height="18"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 aria-hidden="true"
@@ -65,9 +66,9 @@ export function OtherTodayWorkouts({ workouts }: { workouts: TodayOtherWorkout[]
                 />
               </div>
             )}
-          </div>
+          </section>
         );
       })}
-    </section>
+    </>
   );
 }

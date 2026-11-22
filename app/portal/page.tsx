@@ -316,11 +316,11 @@ function NextWorkout({ session }: { session: TodaySession }) {
               // key: iný deň = nový stav formulára
               <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} />
             )}
-
-            {/* ďalšie dnes odcvičené tréningy (2–3 dni plánu za deň) — zbalené pod aktuálnym */}
-            {session.otherToday && session.otherToday.length > 0 && <OtherTodayWorkouts workouts={session.otherToday} />}
           </div>
         </section>
+
+        {/* ďalšie dnes odcvičené tréningy (2–3 dni plánu za deň) — samostatné karty pod aktuálnym */}
+        {session.otherToday && session.otherToday.length > 0 && <OtherTodayWorkouts workouts={session.otherToday} />}
 
         {/* plávajúce stopky — fixne pozicované, miesto v strome je len logické */}
         {session.dayId && <WorkoutStopwatch dayId={session.dayId} finished={session.kind === "done"} />}

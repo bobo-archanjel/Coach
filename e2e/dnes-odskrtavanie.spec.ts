@@ -154,12 +154,14 @@ test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", (
 test.describe("karta Dnes — viac tréningov za deň", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
-  test("ďalší dnešný tréning zbalený pod aktuálnym, rozbalí sa so súhrnom a úpravou", async ({ page }) => {
+  test("ďalší dnešný tréning ako samostatná karta pod aktuálnym, rozbalí sa so súhrnom a úpravou", async ({ page }) => {
     await page.goto("/portal?preview=done");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     const other = page.getByTestId("other-today");
-    await expect(other).toContainText("Ďalšie dnešné tréningy");
+    await expect(other).toContainText("Ďalší dnešný tréning");
+    // samostatná karta pod kartou aktuálneho tréningu, nie vnorená v nej
+    await expect(page.locator('[data-tour="today-hero"] [data-testid="other-today"]')).toHaveCount(0);
     const head = other.getByRole("button", { name: "Zobraziť tréning Deň A — Tlak" });
     await expect(head).toHaveAttribute("aria-expanded", "false");
     await expect(other).toContainText("Cviky 2/2 · série 5");
