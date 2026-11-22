@@ -12,10 +12,10 @@
   "save": "Uložit",
   "planName": "Název tréninkového plánu",
   "dayName": "Název tréninku",
-  "dayPlaceholder": "např. Den {n} — Push",
+  "dayPlaceholder": "Trénink {n}",
   "add": "Přidat",
   "cancel": "Zrušit",
-  "addDay": "+ den",
+  "addDay": "+ trénink",
   "deleteDayConfirm": "Opravdu smazat den „{name}“{count, plural, =0 {} one { i s # cvikem} other { i s # cviky}}?",
   "yesDeleteDay": "Ano, smazat den",
   "rename": "Přejmenovat",
@@ -52,5 +52,5 @@
   "dayDone": "Odcvičeno {date}",
   "dayDoneHint": "Tento den je už odcvičený — nejde upravit.",
   "dayDoneNoValues": "Trénink byl ukončen bez zapsaných hodnot.",
-  "defaultDayName": "Den {n}"
+  "defaultDayName": "Trénink {n}"
 }

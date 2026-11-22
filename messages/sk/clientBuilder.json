@@ -12,10 +12,10 @@
   "save": "Uložiť",
   "planName": "Názov tréningového plánu",
   "dayName": "Názov tréningu",
-  "dayPlaceholder": "napr. Deň {n} — Push",
+  "dayPlaceholder": "Tréning {n}",
   "add": "Pridať",
   "cancel": "Zrušiť",
-  "addDay": "+ deň",
+  "addDay": "+ tréning",
   "deleteDayConfirm": "Naozaj zmazať deň „{name}“{count, plural, =0 {} one { aj s # cvikom} other { aj s # cvikmi}}?",
   "yesDeleteDay": "Áno, zmazať deň",
   "rename": "Premenovať",
@@ -52,5 +52,5 @@
   "dayDone": "Odcvičené {date}",
   "dayDoneHint": "Tento deň je už odcvičený — nedá sa upraviť.",
   "dayDoneNoValues": "Tréning bol ukončený bez zapísaných hodnôt.",
-  "defaultDayName": "Deň {n}"
+  "defaultDayName": "Tréning {n}"
 }

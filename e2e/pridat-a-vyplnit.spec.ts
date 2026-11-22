@@ -28,7 +28,7 @@ const AUTH = { auth: { persistSession: false, autoRefreshToken: false } };
 async function openClientBuilder(page: Page) {
   await page.goto("/portal/trening?preview=ok");
   await page.getByRole("button", { name: "Vlastný tréning" }).click();
-  await page.getByRole("button", { name: "+ deň" }).click();
+  await page.getByRole("button", { name: "+ tréning" }).click();
   const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
   await dayDialog.locator("#client-day-name").fill("Ruky");
   await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();

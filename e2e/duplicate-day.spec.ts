@@ -94,7 +94,7 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
     await expect(copyTab).toHaveAttribute("aria-current", "true", { timeout: 15_000 });
     for (const e of entries) await expect(page.getByText(e.exercise_name, { exact: true }).first()).toBeVisible();
 
-    // Premenovať: okno (ako „+ deň“) — Esc zruší, Hotovo uloží
+    // Premenovať: okno (ako „+ tréning“) — Esc zruší, Hotovo uloží
     await page.getByRole("button", { name: "Premenovať", exact: true }).click();
     const renameDialog = page.getByRole("dialog", { name: "Premenovať deň" });
     await expect(renameDialog).toBeVisible();
@@ -133,8 +133,8 @@ test.describe("Duplikovať a premenovať deň tréningu (reálna DB, dizajn v6)"
 
     const builder = page.getByRole("region", { name: "Nový vlastný tréning" });
     await builder.getByLabel("Názov tréningového plánu").fill(clientPlanName);
-    // nový tréning má hneď „Deň 1“ — premenovať ho na „E2E Nohy“
-    await expect(builder.getByRole("button", { name: "Deň 1", exact: true })).toHaveAttribute("aria-current", "true");
+    // nový tréning má hneď „Tréning 1“ — premenovať ho na „E2E Nohy“
+    await expect(builder.getByRole("button", { name: "Tréning 1", exact: true })).toHaveAttribute("aria-current", "true");
     await builder.getByRole("button", { name: "Premenovať", exact: true }).click();
     const firstRename = page.getByRole("dialog", { name: "Premenovať deň" });
     await firstRename.getByLabel("Názov tréningu").fill("E2E Nohy");

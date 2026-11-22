@@ -50,7 +50,7 @@ test.describe("superséria — náhľady", () => {
   test("klient: vlastný tréning — spojenie, štítky, presun cviku supersériu zruší", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
-    await page.getByRole("button", { name: "+ deň" }).click();
+    await page.getByRole("button", { name: "+ tréning" }).click();
     const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
     await dayDialog.locator("#client-day-name").fill("Ruky");
     await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
@@ -164,7 +164,7 @@ test.describe("superséria — reálna DB", () => {
     await page.goto("/portal/trening");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
     await page.getByLabel("Názov tréningového plánu").fill(name);
-    // nový tréning má hneď „Deň 1“ — cviky rovno doň
+    // nový tréning má hneď „Tréning 1“ — cviky rovno doň
     for (const ex of ["E2E Výpady", "E2E Skoky"]) {
       await page.getByLabel("Názov vlastného cviku").fill(ex);
       await page.getByRole("button", { name: "+ Pridať do tréningu" }).click();

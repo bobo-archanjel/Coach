@@ -46,7 +46,7 @@ test.describe("cvik na čas v builderi", () => {
   test("klient: vlastný tréning — poznámka k cviku sa zobrazí pod cvikom", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
-    await page.getByRole("button", { name: "+ deň" }).click();
+    await page.getByRole("button", { name: "+ tréning" }).click();
     const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
     await dayDialog.locator("#client-day-name").fill("Ruky");
     await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();
@@ -65,7 +65,7 @@ test.describe("cvik na čas v builderi", () => {
   test("klient: vlastný tréning — cvik na čas „3× 60 s“, úprava ho otvorí v režime Čas", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
-    await page.getByRole("button", { name: "+ deň" }).click();
+    await page.getByRole("button", { name: "+ tréning" }).click();
     const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
     await dayDialog.locator("#client-day-name").fill("Core");
     await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();

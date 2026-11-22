@@ -59,7 +59,7 @@ test.describe("mobil: polia ≥ 16px (iOS nezoomuje) a bez horizontálneho scrol
 
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
-    await page.getByRole("button", { name: "+ deň" }).click(); // okno s názvom dňa
+    await page.getByRole("button", { name: "+ tréning" }).click(); // okno s názvom dňa
     await page.getByLabel("Názov tréningu", { exact: true }).first().waitFor();
     expect(await smallInputs(page)).toEqual([]);
     await noHorizontalScroll(page);
@@ -70,7 +70,7 @@ test.describe("mobil: polia ≥ 16px (iOS nezoomuje) a bez horizontálneho scrol
     await clickIf(page, /Knižnica cvikov/);
     await page.getByRole("button", { name: "Upraviť cvik" }).first().click();
     await page.getByRole("button", { name: "Upraviť názov plánu" }).click();
-    await page.getByRole("button", { name: "+ deň" }).click(); // okno je navrchu — posledné
+    await page.getByRole("button", { name: "+ tréning" }).click(); // okno je navrchu — posledné
     expect(await smallInputs(page)).toEqual([]);
     await noHorizontalScroll(page);
   });
