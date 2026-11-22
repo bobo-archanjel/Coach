@@ -19,6 +19,7 @@ import { ProfileIcon, TrainingIcon } from "@/app/portal/icons";
 import { AlertIcon, Notice } from "./Notice";
 import s from "./portal.module.css";
 import { LiveProgressRing, ProgressRing } from "./ProgressRing";
+import { OtherTodayWorkouts } from "./OtherTodayWorkouts";
 
 /* /portal — "Dnes": dáta z getPortalData, pozdrav, odkaz trénera, terakotová karta
    dňa s prstencom postupu (začatie/zápis tréningu, stopky), prehľad týždňa s grafom. */
@@ -315,6 +316,9 @@ function NextWorkout({ session }: { session: TodaySession }) {
               // key: iný deň = nový stav formulára
               <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} />
             )}
+
+            {/* ďalšie dnes odcvičené tréningy (2–3 dni plánu za deň) — zbalené pod aktuálnym */}
+            {session.otherToday && session.otherToday.length > 0 && <OtherTodayWorkouts workouts={session.otherToday} />}
           </div>
         </section>
 

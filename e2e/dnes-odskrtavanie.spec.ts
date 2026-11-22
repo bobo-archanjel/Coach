@@ -150,3 +150,28 @@ test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", (
     await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
   });
 });
+
+test.describe("karta Dnes — viac tréningov za deň", () => {
+  test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
+
+  test("ďalší dnešný tréning zbalený pod aktuálnym, rozbalí sa so súhrnom a úpravou", async ({ page }) => {
+    await page.goto("/portal?preview=done");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    const other = page.getByTestId("other-today");
+    await expect(other).toContainText("Ďalšie dnešné tréningy");
+    const head = other.getByRole("button", { name: "Zobraziť tréning Deň A — Tlak" });
+    await expect(head).toHaveAttribute("aria-expanded", "false");
+    await expect(other).toContainText("Cviky 2/2 · série 5");
+    await expect(other.getByTestId("done-stats")).toHaveCount(0);
+
+    await head.click();
+    await expect(other.getByRole("button", { name: "Skryť tréning Deň A — Tlak" })).toHaveAttribute("aria-expanded", "true");
+    await expect(other.getByTestId("done-stats")).toContainText("2/2");
+    await expect(other.getByTestId("done-stats")).toContainText("7/10");
+    await expect(other.getByText("„Ranný tréning pred prácou.“")).toBeVisible();
+    await expect(other.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
+    // hlavný (posledný) tréning ostáva hore ako doteraz
+    await expect(page.getByTestId("done-stats").first()).toContainText("4/8");
+  });
+});

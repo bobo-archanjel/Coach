@@ -1548,6 +1548,73 @@
 .doneToggleIconClosed {
   transform: none;
 }
+/* ďalšie dnešné tréningy pod aktuálnym (OtherTodayWorkouts) */
+.otherToday {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.otherTodayTitle {
+  margin: 0 0 2px;
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.otherTodayItem {
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+.otherTodayHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.otherTodayHead:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.otherTodayText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.otherTodayName {
+  font-size: 14.5px;
+  font-weight: 720;
+}
+.otherTodayMeta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.otherTodayChevron {
+  flex: none;
+  color: var(--accent-text);
+  transition: transform 0.2s ease;
+}
+.otherTodayChevronOpen {
+  transform: rotate(180deg);
+}
+.otherTodayBody {
+  padding: 0 14px 14px;
+}
 .doneExercises {
   margin-top: 12px;
   display: grid;
