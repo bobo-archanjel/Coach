@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ if eq .Data.locale "cs" }}Potvrď registraci{{ else }}Potvrď registráciu{{ end }}</title>
+    <title>{{ if eq .Data.locale "cs" }}Ověřovací kód FitPilot{{ else }}Overovací kód FitPilot{{ end }}</title>
   </head>
   <body style="margin:0; padding:0; background:#f2ece6;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2ece6;">
@@ -38,43 +38,42 @@
                   {{ if eq .Data.locale "cs" }}Vítej ve FitPilotu{{ else }}Vitaj vo FitPilote{{ end }}
                 </h1>
                 <p style="margin:0 0 20px; color:#574d47; font-size:15px; line-height:1.55;">
-                  {{ if eq .Data.locale "cs" }}Ještě jeden krok — potvrď svou e-mailovou adresu a účet bude připravený k přihlášení.{{ else }}Ešte jeden krok — potvrď svoju e-mailovú adresu a účet bude pripravený na prihlásenie.{{ end }}
+                  {{ if eq .Data.locale "cs" }}Ještě jeden krok — zadej tento kód v aplikaci FitPilot a tvůj e-mail bude ověřený.{{ else }}Ešte jeden krok — zadaj tento kód v aplikácii FitPilot a tvoj e-mail bude overený.{{ end }}
                 </p>
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding:0 32px 28px;">
-                <table role="presentation" cellpadding="0" cellspacing="0">
+              <td align="center" style="padding:0 32px 12px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                   <tr>
                     <td
                       align="center"
-                      bgcolor="#d9694a"
-                      style="border-radius:999px; background:linear-gradient(140deg, #ea8a6c 0%, #d9694a 46%, #bd5034 100%);"
+                      bgcolor="#f7e3da"
+                      style="border-radius:20px; background:#f7e3da; border:1px solid #efcfc2; padding:20px 12px;"
                     >
-                      <a
-                        href="{{ .ConfirmationURL }}"
-                        style="display:inline-block; color:#ffffff; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; letter-spacing:-0.01em; text-decoration:none; padding:13px 28px;"
-                      >
-                        {{ if eq .Data.locale "cs" }}Potvrdit e-mail{{ else }}Potvrdiť e-mail{{ end }}
-                      </a>
+                      <div style="margin:0 0 6px; color:#7d726a; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">
+                        {{ if eq .Data.locale "cs" }}Tvůj ověřovací kód{{ else }}Tvoj overovací kód{{ end }}
+                      </div>
+                      <div style="color:#1f1a17; font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace; font-size:34px; font-weight:800; letter-spacing:0.3em; line-height:1.2;">
+                        {{ .Token }}
+                      </div>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:0 32px 28px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <td style="padding:8px 32px 28px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <p style="margin:0; color:#7d726a; font-size:12.5px; line-height:1.5;">
-                  {{ if eq .Data.locale "cs" }}Pokud tlačítko nefunguje, zkopíruj tento odkaz do prohlížeče:{{ else }}Ak tlačidlo nefunguje, skopíruj tento odkaz do prehliadača:{{ end }}<br />
-                  <a href="{{ .ConfirmationURL }}" style="color:#b4492d; word-break:break-all;">{{ .ConfirmationURL }}</a>
+                  {{ if eq .Data.locale "cs" }}Kód platí 1 hodinu. Nikomu ho neposílej — FitPilot tě o něj nikdy nepožádá e-mailem ani telefonicky.{{ else }}Kód platí 1 hodinu. Nikomu ho neposielaj — FitPilot ťa oň nikdy nepožiada e-mailom ani telefonicky.{{ end }}
                 </p>
               </td>
             </tr>
             <tr>
               <td style="padding:16px 32px 28px; border-top:1px solid #efe6dd; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 <p style="margin:0; color:#7d726a; font-size:12px; line-height:1.5;">
-                  {{ if eq .Data.locale "cs" }}Pokud jsi tento účet nevytvořil/a ty, můžeš tento e-mail ignorovat — bez potvrzení e-mailu účet nikdo nepoužije.
-                  Potřebuješ pomoc?{{ else }}Ak si tento účet nevytvoril/a ty, tento e-mail môžeš ignorovať — nikto bez potvrdenia e-mailu účet nepoužije.
+                  {{ if eq .Data.locale "cs" }}Pokud jsi tento účet nevytvořil/a ty, můžeš tento e-mail ignorovat — bez ověřovacího kódu účet nikdo nepoužije.
+                  Potřebuješ pomoc?{{ else }}Ak si tento účet nevytvoril/a ty, tento e-mail môžeš ignorovať — nikto bez overovacieho kódu účet nepoužije.
                   Potrebuješ pomoc?{{ end }} <a href="mailto:podpora@myfitpilot.sk" style="color:#b4492d;">podpora@myfitpilot.sk</a>
                 </p>
               </td>
