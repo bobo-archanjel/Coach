@@ -18,12 +18,11 @@ import { ProgressCard } from "@/app/portal/ProgressCard";
 import { ProfileIcon, TrainingIcon } from "@/app/portal/icons";
 import { AlertIcon, Notice } from "./Notice";
 import s from "./portal.module.css";
+import { LiveProgressRing, ProgressRing } from "./ProgressRing";
 
 /* /portal — "Dnes": dáta z getPortalData, pozdrav, odkaz trénera, terakotová karta
    dňa s prstencom postupu (začatie/zápis tréningu, stopky), prehľad týždňa s grafom. */
 
-const RING_R = 40;
-const RING_CIRC = 2 * Math.PI * RING_R;
 
 type TodayT = ReturnType<typeof useTranslations<"today">>;
 
@@ -70,25 +69,6 @@ const RulerIcon = () => (
     <path d="M8 12l2 2M11 9l2 2M14 6l2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
-
-function ProgressRing({ done, total }: { done: number; total: number }) {
-  const t = useTranslations("today");
-  const fraction = total > 0 ? done / total : 0;
-  const offset = RING_CIRC * (1 - fraction);
-  return (
-    <svg className={s.ring} viewBox="0 0 92 92" style={{ ["--ring-circ" as string]: `${RING_CIRC}` }} aria-hidden="true">
-      <circle className={s.ringTrack} cx="46" cy="46" r={RING_R} strokeDasharray={RING_CIRC} />
-      <circle className={s.ringStart} cx="46" cy={46 - RING_R} r="4" />
-      <circle className={s.ringValue} cx="46" cy="46" r={RING_R} strokeDasharray={RING_CIRC} strokeDashoffset={offset} />
-      <text className={s.ringCenter} x="46" y="44" textAnchor="middle" dominantBaseline="middle">
-        {done}/{total}
-      </text>
-      <text className={s.ringCenterSub} x="46" y="59" textAnchor="middle" dominantBaseline="middle">
-        {t("exercisesRing")}
-      </text>
-    </svg>
-  );
-}
 
 /** Série pod týždňom (lib/portal/streak.ts — od MIN_VISIBLE_STREAK dní). */
 function StreakChips({ streaks }: { streaks: PortalStreaks }) {
@@ -290,6 +270,15 @@ function NextWorkout({ session }: { session: TodaySession }) {
             <div className={s.heroRing}>
               {complete ? (
                 <ProgressRing done={session.completedCount} total={session.completedCount} />
+              ) : session.kind === "done" && session.compare && session.compare.exercises.length > 0 ? (
+                // po odcvičení podľa zápisu: cviky so zapísanou sériou / plán + pridané cviky
+                <ProgressRing
+                  done={session.compare.exercises.filter((e) => e.status !== "skipped").length}
+                  total={session.compare.exercises.length}
+                />
+              ) : session.kind === "training" && session.dayId ? (
+                // počas tréningu živý postup z odškrtnutých sérií (LogWorkoutButton)
+                <LiveProgressRing dayId={session.dayId} done={session.completedCount} total={total} />
               ) : (
                 <ProgressRing done={session.completedCount} total={total} />
               )}

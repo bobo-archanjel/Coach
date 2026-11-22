@@ -21,6 +21,7 @@ const DAY_A_ENTRIES = [
 ];
 
 const PREVIEW: PortalTrainingData = {
+  draftOwner: "preview",
   activePlanId: "plan-trainer",
   plans: [
     {

@@ -9,8 +9,6 @@ import {
   clearWorkoutDraft,
   clearWorkoutStarted,
   isWorkoutStarted,
-  hideStopwatchFor,
-  isStopwatchHidden,
 } from "./workoutSession";
 
 /**
@@ -19,7 +17,8 @@ import {
  * Stopky (počítadlo nahor + medzičasy) a Časovač (odpočet pauzy medzi sériami s
  * predvoľbami a vibráciou na konci). Stav žije v localStorage, takže prežije
  * prepnutie tabu aj remount. Panel sa zatvára krížikom, ťukom mimo alebo Esc;
- * ikona ostáva, kým sa tréning neukončí (prop `finished`) alebo ju klient neskryje.
+ * ikona ostáva, kým sa tréning neukončí (prop `finished`). „Skryť stopky“ zrušené — stopky
+ * patria k bežiacemu tréningu.
  */
 
 const SW_KEY = "fitpilot.stopwatch.v1";
@@ -94,7 +93,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
       return;
     }
 
-    setActive(isWorkoutStarted(dayId) && !isStopwatchHidden(dayId));
+    setActive(isWorkoutStarted(dayId));
 
     try {
       const raw = localStorage.getItem(SW_KEY);
@@ -547,9 +546,6 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
             </div>
           )}
 
-          <button type="button" className={styles.swHide} onClick={() => { setActive(false); hideStopwatchFor(dayId); try { localStorage.removeItem(SW_KEY); } catch {} }}>
-            {t("hide")}
-          </button>
         </div>
       )}
     </>

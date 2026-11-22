@@ -41,7 +41,10 @@ test.describe("mobil: polia ≥ 16px (iOS nezoomuje) a bez horizontálneho scrol
     await page.reload();
     await page.getByRole("button", { name: "Začať tréning" }).click();
     await clickIf(page, "Poznámka");
-    await clickIf(page, "Pridať cvik"); // pole názvu ručne pridaného cviku
+    // pole názvu ručne pridaného cviku — v okne „Pridať cvik“, po kontrole ho zavrieť
+    await clickIf(page, "Pridať cvik");
+    expect(await smallInputs(page)).toEqual([]);
+    await page.keyboard.press("Escape");
     await clickIf(page, /Zapísať meranie/);
     await clickIf(page, /obvody/);
     expect(await smallInputs(page)).toEqual([]);

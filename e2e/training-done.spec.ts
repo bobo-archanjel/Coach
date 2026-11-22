@@ -324,16 +324,20 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
       JSON.parse(await page.locator('input[name="entries"]').inputValue()) as { entryId: string | null; name: string; sets: unknown[] }[];
     const added = "Tlaky s jednoručkami";
 
-    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    await page.getByRole("button", { name: "Pridať cvik na koniec tréningu" }).click();
     const nameField = page.getByLabel("Názov pridaného cviku");
     await expect(nameField).toBeFocused();
-    // ručné pridanie, nie knižnica
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // ručné pridanie v okne „Pridať cvik“ (nie knižnica)
+    const addDialog = page.getByRole("dialog", { name: "Pridať cvik" });
+    await expect(addDialog).toBeVisible();
+    await expect(addDialog).toContainText("Pridá sa na koniec tréningu.");
+    await expect(addDialog.getByPlaceholder(/Hľadať/)).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Pridať", exact: true })).toBeDisabled();
     await nameField.fill(added);
     await nameField.press("Enter"); // Enter pridá cvik, neodošle tréning
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await expect(nameField).toHaveCount(0);
+    await expect(addDialog).toHaveCount(0);
 
     // 3 prázdne série, štítok „Pridaný“; kurzor rovno v prvej sérii (pridať a vyplniť v jednom kroku)
     await expect(page.locator("[data-added]")).toContainText(`${added} Pridaný`);
@@ -350,7 +354,7 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     expect((await entries()).at(-1)).toEqual({ entryId: null, name: added, sets: [{ reps: 10, weight: 20 }] });
 
     // druhý pridaný cvik bez zápisu → varovanie pri ukončení
-    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    await page.getByRole("button", { name: "Pridať cvik na koniec tréningu" }).click();
     await page.getByLabel("Názov pridaného cviku").fill("Kliky");
     await page.getByRole("button", { name: "Pridať", exact: true }).click();
     await finish(page);
@@ -372,7 +376,7 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
   test("pridanie cviku na čas: voľba Čas → sekundy, uloží sa ako čas, prežije refresh", async ({ page }) => {
     const entries = async () =>
       JSON.parse(await page.locator('input[name="entries"]').inputValue()) as { name: string; sets: unknown[] }[];
-    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    await page.getByRole("button", { name: "Pridať cvik na koniec tréningu" }).click();
     // predvolene opakovania
     await expect(page.getByRole("radio", { name: "Opakovania" })).toHaveAttribute("aria-checked", "true");
     await page.getByLabel("Názov pridaného cviku").fill("Bočný plank");
@@ -400,23 +404,22 @@ test.describe("portál — formulár pri ukončení (?preview=ok)", () => {
     await expect(page.getByLabel("Bočný plank, séria 1, čas v sekundách")).toHaveValue("30");
 
     // ďalší pridaný cvik je zas predvolene na opakovania
-    await page.getByRole("button", { name: "Pridať cvik" }).click();
+    await page.getByRole("button", { name: "Pridať cvik na koniec tréningu" }).click();
     await expect(page.getByRole("radio", { name: "Opakovania" })).toHaveAttribute("aria-checked", "true");
     await page.getByLabel("Názov pridaného cviku").fill("Kliky");
     await page.getByRole("button", { name: "Pridať", exact: true }).click();
     await expect(page.getByLabel("Kliky, séria 1, opakovania")).toBeVisible();
   });
 
-  test("K20: „Skryť stopky“ skryje len stopky, tréning beží ďalej", async ({ page }) => {
+  test("stopky bez „Skryť stopky“ — ostávajú počas tréningu aj po refreshi", async ({ page }) => {
     await reps(page, "Drep s veľkou činkou", 1).fill("5");
     await page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ }).click();
-    await page.getByRole("button", { name: "Skryť stopky" }).click();
-    await expect(page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Skryť stopky" })).toHaveCount(0);
 
     await page.reload();
     await expect(page.getByRole("button", { name: "Začať tréning" })).toHaveCount(0);
     await expect(reps(page, "Drep s veľkou činkou", 1)).toHaveValue("5");
-    await expect(page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ })).toBeVisible();
   });
 });
 

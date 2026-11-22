@@ -1109,6 +1109,18 @@
   border-radius: 20px;
   background: var(--fill);
 }
+/* rovnaký formulár v okne (BuilderDialog) — bez vlastného podkladu, okno ho má */
+.addExerciseInDialog {
+  padding: 0;
+  background: none;
+  gap: 14px;
+}
+.addExerciseWhere {
+  margin: -6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--paper-faint);
+}
 .addExerciseForm .logNoteInput {
   margin-top: 0;
 }
@@ -1143,7 +1155,7 @@
 }
 .setRow {
   display: grid;
-  grid-template-columns: 22px 1fr 1fr 32px;
+  grid-template-columns: 30px 1fr 1fr 32px;
   align-items: center;
   gap: 8px;
 }
@@ -1158,6 +1170,78 @@
   color: var(--paper-dim);
   background: var(--surface-solid);
   font-variant-numeric: tabular-nums;
+}
+/* odškrtnutie série počas tréningu — číslo série je tlačidlo, hotová séria = oranžová fajka */
+.setCheck {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  /* jemný svietiaci okraj — klient vidí, že na číslo sa dá ťuknúť (odškrtnúť sériu) */
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--surface-solid);
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    0 0 10px color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.setCheck:hover {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 4px var(--accent-soft),
+    0 0 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.setCheck:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.setCheckOn {
+  border-color: transparent;
+  background: var(--accent-grad, var(--accent));
+  color: var(--on-accent, #fff);
+  box-shadow: var(--accent-glow);
+}
+/* medzi cvikmi: reťaz supersérie + malé „+ cvik“ (vloží cvik sem) */
+.logBetween {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0;
+}
+.logBetween > div {
+  margin: 0;
+}
+.logAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px dashed var(--fill-strong, var(--hairline));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.logAddBtn:hover {
+  border-color: var(--accent);
+  background: var(--fill);
 }
 .setField {
   position: relative;
@@ -2343,20 +2427,6 @@
   font-weight: 800;
   color: var(--paper);
   font-variant-numeric: tabular-nums;
-}
-.swHide {
-  width: 100%;
-  margin-top: 14px;
-  padding: 8px;
-  border: 0;
-  background: transparent;
-  color: var(--paper-faint);
-  font-size: 12.5px;
-  font-weight: 650;
-  cursor: pointer;
-}
-.swHide:hover {
-  color: var(--paper-dim);
 }
 @keyframes swFabIn {
   from {
@@ -3649,6 +3719,38 @@
   border-radius: 20px;
   color: var(--paper);
   box-shadow: var(--shadow-1);
+}
+/* chýbajúci názov po pokuse o uloženie (ClientPlanBuilder) */
+.trNameInput[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+/* Tréning: rozpracovaný vlastný tréning (builderDraft.ts) — „Pokračovať“ / „Zahodiť“ */
+.trDraft {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent-soft);
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--accent-soft), transparent 80%), var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+.trDraftText {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+.trDraftLabel {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.trDraftName {
+  font-size: 16px;
+  font-weight: 720;
+  color: var(--paper);
 }
 .trNameInput:focus-visible {
   outline: 2px solid var(--accent);

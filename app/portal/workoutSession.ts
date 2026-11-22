@@ -11,7 +11,6 @@
 export const WORKOUT_STARTED_EVENT = "fitpilot:workout-started";
 
 const STARTED_KEY = "fitpilot.workout.started.v1";
-const SW_HIDDEN_KEY = "fitpilot.stopwatch.hidden.v1";
 const TTL_MS = 6 * 60 * 60 * 1000; // 6 h — dosť na jeden tréning, nie na ďalší cyklus
 
 type StartedRecord = { dayId: string; at: number };
@@ -20,7 +19,6 @@ export function markWorkoutStarted(dayId: string): void {
   try {
     const rec: StartedRecord = { dayId, at: Date.now() };
     localStorage.setItem(STARTED_KEY, JSON.stringify(rec));
-    localStorage.removeItem(SW_HIDDEN_KEY);
   } catch {
     /* private mode / disabled storage — feature degraduje na "žije len tento mount" */
   }
@@ -74,6 +72,10 @@ export type WorkoutDraft = {
   added?: { name: string; timed?: boolean }[];
   /** supersérie tohto tréningu (plán + spojenia klienta), po indexoch cvikov */
   supersets?: (string | null)[];
+  /** poradie zobrazenia cvikov (pridaný cvik vložený medzi cviky) */
+  order?: number[];
+  /** odškrtnuté série podľa indexu cviku (postup na krúžku karty Dnes) */
+  checked?: Record<number, boolean[]>;
 };
 
 type DraftRecord = WorkoutDraft & { dayId: string; at: number };
@@ -105,10 +107,23 @@ export function loadWorkoutDraft(dayId: string, signature: string): WorkoutDraft
       supersets: Array.isArray(rec.supersets)
         ? rec.supersets.map((v) => (typeof v === "string" && v.length <= 16 ? v : null))
         : undefined,
+      // neplatné poradie WorkoutSetsFields aj tak nahradí poradím indexov (displayOrder)
+      order: Array.isArray(rec.order) && rec.order.every((v) => Number.isInteger(v)) ? rec.order : undefined,
+      checked: parseChecked(rec.checked),
     };
   } catch {
     return null;
   }
+}
+
+/** Odškrtnuté série z konceptu — len polia booleanov pod číselnými kľúčmi. */
+function parseChecked(raw: unknown): Record<number, boolean[]> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<number, boolean[]> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (/^\d+$/.test(k) && Array.isArray(v)) out[Number(k)] = v.map((x) => x === true);
+  }
+  return out;
 }
 
 /** Pridané cviky z konceptu: { name, timed } alebo staršie len názvy. Riadky sú viazané na
@@ -131,26 +146,5 @@ export function clearWorkoutDraft(): void {
     localStorage.removeItem(DRAFT_KEY);
   } catch {
     /* ignoruj */
-  }
-}
-
-// ---------- skryté stopky (QA K20) ----------
-// "Skryť stopky" predtým volalo clearWorkoutStarted() — formulár sa po návrate
-// zbalil na "Začať tréning", akoby tréning skončil. Skrytie je teraz samostatný
-// príznak viazaný na deň; nový "Začať tréning" (markWorkoutStarted) ho zruší.
-
-export function hideStopwatchFor(dayId: string): void {
-  try {
-    localStorage.setItem(SW_HIDDEN_KEY, dayId);
-  } catch {
-    /* ignoruj */
-  }
-}
-
-export function isStopwatchHidden(dayId: string): boolean {
-  try {
-    return localStorage.getItem(SW_HIDDEN_KEY) === dayId;
-  } catch {
-    return false;
   }
 }

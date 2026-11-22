@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PortalExercise } from "@/lib/portal/types";
 import { finishWorkoutAction, type ActionState } from "./actions";
+import { publishWorkoutProgress } from "./workoutProgress";
 import styles from "./portal.module.css";
 import {
   WORKOUT_STARTED_EVENT,
@@ -16,6 +17,7 @@ import {
 import {
   WorkoutSetsFields,
   buildEntriesPayload,
+  workoutProgress,
   formExercises,
   plannedFormValues,
   type WorkoutFormValues,
@@ -74,7 +76,16 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
   const [values, setValues] = useState<WorkoutFormValues>(() => {
     const draft = loadWorkoutDraft(dayId, signature);
     return draft
-      ? { rows: draft.rows, notes: draft.notes, rpe: draft.rpe, sessionNote: draft.sessionNote, added: draft.added, supersets: draft.supersets }
+      ? {
+          rows: draft.rows,
+          notes: draft.notes,
+          rpe: draft.rpe,
+          sessionNote: draft.sessionNote,
+          added: draft.added,
+          supersets: draft.supersets,
+          order: draft.order,
+          checked: draft.checked,
+        }
       : plannedFormValues(exercises); // hodnoty trénera — pri odcvičení podľa plánu netreba nič písať
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -98,6 +109,12 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
     if (!started) return;
     saveWorkoutDraft(dayId, { signature, ...values });
   }, [started, dayId, signature, values]);
+
+  // Živý postup pre krúžok v hlavičke karty (odškrtnuté cviky / všetky vrátane pridaných).
+  useEffect(() => {
+    publishWorkoutProgress(started ? { dayId, ...workoutProgress(exercises, values) } : null);
+  }, [started, dayId, exercises, values]);
+  useEffect(() => () => publishWorkoutProgress(null), []);
 
   // Úspešné ukončenie → koncept už netreba (pri chybe ostáva, klient to skúsi znova).
   useEffect(() => {
@@ -147,7 +164,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
       <input type="hidden" name="rpe" value={values.rpe} readOnly />
       <input type="hidden" name="note" value={values.sessionNote} readOnly />
 
-      <WorkoutSetsFields exercises={exercises} values={values} onChange={setValues} showInvalid={showInvalid} />
+      <WorkoutSetsFields exercises={exercises} values={values} onChange={setValues} showInvalid={showInvalid} checkable />
 
       <button
         type="button"

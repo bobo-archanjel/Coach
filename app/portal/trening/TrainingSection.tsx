@@ -16,6 +16,7 @@ import {
 import { ExercisePreviewList } from "../ExercisePreviewList";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { PlansTabs, type PlansTab } from "../PlansTabs";
+import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./builderDraft";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
@@ -86,6 +87,13 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [editing, setEditing] = useState<PortalPlan | null>(null);
   // "Použiť" pri šablóne — builder nového tréningu predvyplnený jej obsahom.
   const [fromTemplate, setFromTemplate] = useState<PortalTemplate | null>(null);
+  // Rozpracovaný vlastný tréning v prehliadači (builderDraft.ts) — karta „Pokračovať“ v zozname;
+  // `resumeDraft` = koncept, s ktorým sa builder práve otvoril.
+  const [savedDraft, setSavedDraft] = useState<PlanBuilderDraft | null>(null);
+  const [resumeDraft, setResumeDraft] = useState<PlanBuilderDraft | null>(null);
+  useEffect(() => {
+    setSavedDraft(loadBuilderDraft(data.draftOwner));
+  }, [data.draftOwner]);
   // Výsledok "Uložiť ako šablónu" pri konkrétnom tréningu (potvrdenie alebo chyba).
   const [templateNote, setTemplateNote] = useState<{ planId: string; text: string; error: boolean } | null>(null);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
@@ -117,9 +125,14 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [library, setLibrary] = useState<ExerciseOption[]>([]);
   const [, startLibraryTransition] = useTransition();
 
-  const openBuilder = (plan: PortalPlan | null, template: PortalTemplate | null = null) => {
+  const openBuilder = (
+    plan: PortalPlan | null,
+    template: PortalTemplate | null = null,
+    resume: PlanBuilderDraft | null = null,
+  ) => {
     setEditing(plan);
     setFromTemplate(template);
+    setResumeDraft(resume);
     setError(null);
     setMode("build");
     // Záznam v histórii (bez načítania stránky): späť v prehliadači, potiahnutie na mobile
@@ -139,7 +152,25 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     setMode("list");
     setEditing(null);
     setFromTemplate(null);
-  }, []);
+    setResumeDraft(null);
+    // odchod bez uloženia → koncept ostal v prehliadači, karta „Pokračovať“ ho ponúkne
+    setSavedDraft(loadBuilderDraft(data.draftOwner));
+  }, [data.draftOwner]);
+  const continueDraft = () => {
+    if (!savedDraft) return;
+    const plan = savedDraft.planId ? (plans.find((p) => p.id === savedDraft.planId) ?? null) : null;
+    // upravovaný tréning medzitým zmizol (zmazaný) — koncept nemá k čomu patriť
+    if (savedDraft.planId && !plan) {
+      clearBuilderDraft(data.draftOwner);
+      setSavedDraft(null);
+      return;
+    }
+    openBuilder(plan, null, savedDraft);
+  };
+  const discardDraft = () => {
+    clearBuilderDraft(data.draftOwner);
+    setSavedDraft(null);
+  };
   /** Odchod z buildera (potiahnutie späť, uloženie): krok späť v histórii — ?tvorba zmizne
       a efekt nižšie builder zavrie; bez záznamu (napr. po obnovení stránky) rovno zavrie. */
   const leaveBuilder = () => {
@@ -275,6 +306,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         template={fromTemplate}
         onCancel={leaveBuilder}
         onSaved={onSaved}
+        draftOwner={data.draftOwner}
+        resume={resumeDraft}
       />
     );
   }
@@ -309,6 +342,26 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         <p className={styles.trError} role="alert">
           {error}
         </p>
+      )}
+
+      {/* rozpracovaný vlastný tréning (odchod z buildera bez uloženia — iný tab, refresh) */}
+      {savedDraft && (
+        <div className={styles.trDraft} role="status" data-testid="builder-draft">
+          <p className={styles.trDraftText}>
+            <span className={styles.trDraftLabel}>{savedDraft.planId ? tr("draftEditTitle") : tr("draftTitle")}</span>
+            <span className={styles.trDraftName}>{savedDraft.name.trim() || tr("draftUnnamed")}</span>
+          </p>
+          <div className={pa.gridRow}>
+            <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={continueDraft}>
+              <ActionEditIcon />
+              {tr("draftContinue")}
+            </button>
+            <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={discardDraft}>
+              <ActionTrashIcon />
+              {tr("draftDiscard")}
+            </button>
+          </div>
+        </div>
       )}
 
       {tab === "templates" ? (
