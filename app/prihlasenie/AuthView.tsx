@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { checkPassword, type PasswordIssue } from "@/lib/passwordStrength";
 import { loginAction, registerAction, syncRecoveryLocaleAction, type LoginState, type RegisterState } from "./actions";
 import styles from "./auth.module.css";
+import { RESEND_COOLDOWN, VerifyCodeStep } from "./VerifyCodeStep";
+import { PENDING_VERIFY_KEY } from "@/lib/auth/signupCode";
 
 const initialLoginState: LoginState = { error: null, redirectTo: null };
 const initialRegisterState: RegisterState = { error: null, redirectTo: null, needsConfirm: false };
@@ -35,6 +37,38 @@ function Honeypot() {
 // "Zapamätať si ma" — pre-fill e-mailu pri ďalšej návšteve (feature/navod, "pre-fill
 // what you can"). Zámerne len e-mail, nie heslo — appka si heslá nikdy neukladá.
 const REMEMBER_EMAIL_KEY = "fitpilot_remembered_email";
+
+/** rozpracované overenie e-mailu kódom — v sessionStorage, aby krok prežil refresh */
+interface PendingVerify {
+  email: string;
+  mode: "register" | "login";
+  /** kedy odišiel posledný kód (ms) — odpočet „Poslať znova“ po refreshi pokračuje */
+  sentAt: number;
+}
+/** kód platí 1 h (Supabase „Email OTP Expiration“) — staršie rozpracované overenie neobnovíme */
+const VERIFY_MAX_AGE_MS = 60 * 60 * 1000;
+const VERIFY_PREVIEW_EMAIL = "jana.novakova@example.com";
+
+function readPendingVerify(): PendingVerify | null {
+  try {
+    const raw = window.sessionStorage.getItem(PENDING_VERIFY_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<PendingVerify>;
+    if (typeof v.email !== "string" || typeof v.sentAt !== "number") return null;
+    if (Date.now() - v.sentAt > VERIFY_MAX_AGE_MS) return null;
+    return { email: v.email, mode: v.mode === "login" ? "login" : "register", sentAt: v.sentAt };
+  } catch {
+    return null;
+  }
+}
+function writePendingVerify(v: PendingVerify | null) {
+  try {
+    if (v) window.sessionStorage.setItem(PENDING_VERIFY_KEY, JSON.stringify(v));
+    else window.sessionStorage.removeItem(PENDING_VERIFY_KEY);
+  } catch {
+    // sessionStorage nedostupný — krok funguje, len neprežije refresh
+  }
+}
 
 const ErrorIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -316,6 +350,46 @@ export function AuthView() {
     if (!registerTarget) return;
     router.push(registerTarget);
   }, [registerTarget, router]);
+
+  // ---- overenie e-mailu kódom (feature/overenie-kodom) ----
+  // Po registrácii aj po prihlásení s neovereným e-mailom príde 6-miestny kód; krok
+  // s kódom nahradí taby. Rozpracovaný krok prežije refresh (sessionStorage + ?overenie=1).
+  const [verify, setVerify] = useState<(PendingVerify & { cooldown: number }) | null>(null);
+  const [verifyPreview, setVerifyPreview] = useState(false);
+  function openVerify(v: PendingVerify) {
+    const elapsed = Math.floor((Date.now() - v.sentAt) / 1000);
+    setVerify({ ...v, cooldown: Math.max(0, RESEND_COOLDOWN - elapsed) });
+    writePendingVerify(v);
+    window.history.replaceState(null, "", `${window.location.pathname}?overenie=1`);
+  }
+  function closeVerify(tab: "login" | "register") {
+    writePendingVerify(null);
+    window.history.replaceState(null, "", window.location.pathname);
+    setVerify(null);
+    setActiveTab(tab);
+    setForgotOpen(false);
+  }
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (process.env.NODE_ENV !== "production" && params.get("preview") === "code") {
+      setVerifyPreview(true);
+      const mode = params.get("mode") === "login" ? "login" : "register";
+      setVerify({ email: VERIFY_PREVIEW_EMAIL, mode, sentAt: Date.now(), cooldown: RESEND_COOLDOWN });
+      return;
+    }
+    if (params.get("overenie") !== "1") return;
+    const pending = readPendingVerify();
+    if (pending) openVerify(pending);
+    else closeVerify("login");
+  }, []);
+  useEffect(() => {
+    if (registerState.needsConfirm && registerState.email)
+      openVerify({ email: registerState.email, mode: "register", sentAt: Date.now() });
+  }, [registerState]);
+  useEffect(() => {
+    if (loginState.needsCode && loginState.email)
+      openVerify({ email: loginState.email, mode: "login", sentAt: Date.now() });
+  }, [loginState]);
   // Živý ukazovateľ sily hesla (feature/optimalizacia, security audit) — kontext
   // (meno/e-mail) sa reálne vyhodnocuje až pri submite (handleRegisterSubmit má
   // finálne hodnoty všetkých polí), tu len dĺžka/rozmanitosť pre rýchlu spätnú väzbu.
@@ -453,435 +527,448 @@ export function AuthView() {
 
       <main className={styles.formPanel}>
         <div className={styles.authCard}>
-          <div className={styles.tabs} role="tablist" aria-label={t("tabsLabel")}>
-            <button
-              type="button"
-              className={styles.tabBtn}
-              role="tab"
-              aria-selected={activeTab === "login"}
-              aria-controls="panel-login"
-              onClick={() => setActiveTab("login")}
-            >
-              {t("tabLogin")}
-            </button>
-            <button
-              type="button"
-              className={styles.tabBtn}
-              role="tab"
-              aria-selected={activeTab === "register"}
-              aria-controls="panel-register"
-              onClick={() => {
-                setActiveTab("register");
-                setForgotOpen(false);
+          {verify ? (
+            <VerifyCodeStep
+              key={`${verify.email}:${verify.mode}`}
+              email={verify.email}
+              mode={verify.mode}
+              initialCooldown={verify.cooldown}
+              preview={verifyPreview}
+              onResent={() => !verifyPreview && writePendingVerify({ email: verify.email, mode: verify.mode, sentAt: Date.now() })}
+              onVerified={(to) => {
+                if (verifyPreview) return;
+                writePendingVerify(null);
+                router.push(to);
               }}
-            >
-              {t("tabRegister")}
-            </button>
-          </div>
+              onChangeEmail={() => closeVerify(verify.mode)}
+            />
+          ) : (
+            <>
+            <div className={styles.tabs} role="tablist" aria-label={t("tabsLabel")}>
+              <button
+                type="button"
+                className={styles.tabBtn}
+                role="tab"
+                aria-selected={activeTab === "login"}
+                aria-controls="panel-login"
+                onClick={() => setActiveTab("login")}
+              >
+                {t("tabLogin")}
+              </button>
+              <button
+                type="button"
+                className={styles.tabBtn}
+                role="tab"
+                aria-selected={activeTab === "register"}
+                aria-controls="panel-register"
+                onClick={() => {
+                  setActiveTab("register");
+                  setForgotOpen(false);
+                }}
+              >
+                {t("tabRegister")}
+              </button>
+            </div>
 
-          {activeTab === "login" && !forgotOpen && (
-            <section id="panel-login" role="tabpanel" aria-labelledby="tab-login">
-              <div className={styles.authHead}>
-                <h2>{t("loginTitle")}</h2>
-                <p>{t("loginSub")}</p>
-              </div>
-
-              <div className={styles.oauthRow}>
-                <button
-                  type="button"
-                  className={styles.oauthBtn}
-                  disabled={oauthPending !== null}
-                  onClick={() => handleOAuth("google")}
-                >
-                  {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
-                  {t("google")}
-                </button>
-              </div>
-              <div className={styles.divider}>
-                <span>{t("or")}</span>
-              </div>
-
-              {oauthError && (
-                <div className={`${styles.formStatus} ${styles.error}`} role="alert" style={{ marginBottom: 16 }}>
-                  <ErrorIcon />
-                  {oauthError === "not_registered" ? t("oauthNotRegistered") : t("oauthFailed")}
-                </div>
-              )}
-
-              <form ref={loginFormRef} noValidate onSubmit={handleLoginSubmit} onInput={updateLoginCanSubmit}>
-                <Honeypot />
-                <div className={styles.field}>
-                  <label htmlFor="login-email">{t("email")}</label>
-                  <input
-                    id="login-email"
-                    name="email"
-                    type="email"
-                    placeholder={t("emailPlaceholder")}
-                    autoComplete="email"
-                    required
-                    aria-invalid={loginInvalid.email}
-                    data-valid={loginInvalid.email === false || undefined}
-                    onChange={(e) => clearFieldError(e, loginInvalid, setLoginInvalid)}
-                    onBlur={(e) => validateFieldOnBlur(e, loginInvalid, setLoginInvalid)}
-                  />
-                  {loginInvalid.email && (
-                    <span className={styles.fieldError}>
-                      <ErrorIcon />
-                      {t("emailInvalid")}
-                    </span>
-                  )}
+            {activeTab === "login" && !forgotOpen && (
+              <section id="panel-login" role="tabpanel" aria-labelledby="tab-login">
+                <div className={styles.authHead}>
+                  <h2>{t("loginTitle")}</h2>
+                  <p>{t("loginSub")}</p>
                 </div>
 
-                <div className={`${styles.field} ${styles.hasToggle}`}>
-                  <label htmlFor="login-password">{t("password")}</label>
-                  <div className={styles.inputWrap}>
+                <div className={styles.oauthRow}>
+                  <button
+                    type="button"
+                    className={styles.oauthBtn}
+                    disabled={oauthPending !== null}
+                    onClick={() => handleOAuth("google")}
+                  >
+                    {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
+                    {t("google")}
+                  </button>
+                </div>
+                <div className={styles.divider}>
+                  <span>{t("or")}</span>
+                </div>
+
+                {oauthError && (
+                  <div className={`${styles.formStatus} ${styles.error}`} role="alert" style={{ marginBottom: 16 }}>
+                    <ErrorIcon />
+                    {oauthError === "not_registered" ? t("oauthNotRegistered") : t("oauthFailed")}
+                  </div>
+                )}
+
+                <form ref={loginFormRef} noValidate onSubmit={handleLoginSubmit} onInput={updateLoginCanSubmit}>
+                  <Honeypot />
+                  <div className={styles.field}>
+                    <label htmlFor="login-email">{t("email")}</label>
                     <input
-                      id="login-password"
-                      name="password"
-                      type={loginShowPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
+                      id="login-email"
+                      name="email"
+                      type="email"
+                      placeholder={t("emailPlaceholder")}
+                      autoComplete="email"
                       required
-                      minLength={8}
-                      aria-invalid={loginInvalid.password}
+                      aria-invalid={loginInvalid.email}
+                      data-valid={loginInvalid.email === false || undefined}
                       onChange={(e) => clearFieldError(e, loginInvalid, setLoginInvalid)}
                       onBlur={(e) => validateFieldOnBlur(e, loginInvalid, setLoginInvalid)}
                     />
-                    <button
-                      type="button"
-                      className={styles.toggleVisibility}
-                      aria-label={loginShowPassword ? t("hidePassword") : t("showPassword")}
-                      onClick={() => setLoginShowPassword((v) => !v)}
-                    >
-                      <EyeIcon />
+                    {loginInvalid.email && (
+                      <span className={styles.fieldError}>
+                        <ErrorIcon />
+                        {t("emailInvalid")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={`${styles.field} ${styles.hasToggle}`}>
+                    <label htmlFor="login-password">{t("password")}</label>
+                    <div className={styles.inputWrap}>
+                      <input
+                        id="login-password"
+                        name="password"
+                        type={loginShowPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        required
+                        minLength={8}
+                        aria-invalid={loginInvalid.password}
+                        onChange={(e) => clearFieldError(e, loginInvalid, setLoginInvalid)}
+                        onBlur={(e) => validateFieldOnBlur(e, loginInvalid, setLoginInvalid)}
+                      />
+                      <button
+                        type="button"
+                        className={styles.toggleVisibility}
+                        aria-label={loginShowPassword ? t("hidePassword") : t("showPassword")}
+                        onClick={() => setLoginShowPassword((v) => !v)}
+                      >
+                        <EyeIcon />
+                      </button>
+                    </div>
+                    {loginInvalid.password && (
+                      <span className={styles.fieldError}>
+                        <ErrorIcon />
+                        {t("passwordTooShort")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={styles.rowBetween}>
+                    <label className={styles.checkboxRow} style={{ fontSize: 13 }}>
+                      <input type="checkbox" name="remember" />
+                      {t("remember")}
+                    </label>
+                    <button type="button" className={styles.link} onClick={() => setForgotOpen(true)}>
+                      {t("forgotLink")}
                     </button>
                   </div>
-                  {loginInvalid.password && (
-                    <span className={styles.fieldError}>
-                      <ErrorIcon />
-                      {t("passwordTooShort")}
-                    </span>
+
+                  <div ref={loginTurnstile.containerRef} className={styles.turnstile} />
+
+                  <button
+                    type="submit"
+                    className={`${styles.btnSubmit} ${loginStatus === "success" ? styles.success : ""}`}
+                    disabled={loginStatus === "loading" || !loginCanSubmit}
+                  >
+                    {loginStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
+                    <span>{loginStatus === "loading" ? (loginLoadingText ?? t("loggingIn")) : t("loginSubmit")}</span>
+                  </button>
+
+                  {loginStatus === "success" && (
+                    <div className={styles.formStatus} role="status">
+                      <SuccessIcon />
+                      {t("loginSuccess")}
+                    </div>
                   )}
+                  {loginError && (
+                    <div className={`${styles.formStatus} ${styles.error}`} role="alert">
+                      <ErrorIcon />
+                      {loginError}
+                    </div>
+                  )}
+                </form>
+
+                <p className={styles.switchLine}>
+                  {t("noAccount")}{" "}
+                  <button type="button" className={styles.link} onClick={() => setActiveTab("register")}>
+                    {t("createAccount")}
+                  </button>
+                </p>
+              </section>
+            )}
+
+            {activeTab === "login" && forgotOpen && (
+              <section id="panel-forgot" role="tabpanel" aria-labelledby="tab-login">
+                <div className={styles.authHead}>
+                  <h2>{t("forgotTitle")}</h2>
+                  <p>{t("forgotSub")}</p>
                 </div>
 
-                <div className={styles.rowBetween}>
-                  <label className={styles.checkboxRow} style={{ fontSize: 13 }}>
-                    <input type="checkbox" name="remember" />
-                    {t("remember")}
-                  </label>
-                  <button type="button" className={styles.link} onClick={() => setForgotOpen(true)}>
-                    {t("forgotLink")}
+                <form ref={forgotFormRef} noValidate onSubmit={handleForgotSubmit}>
+                  <div className={styles.field}>
+                    <label htmlFor="forgot-email">{t("email")}</label>
+                    <input
+                      id="forgot-email"
+                      name="email"
+                      type="email"
+                      placeholder={t("emailPlaceholder")}
+                      autoComplete="email"
+                      required
+                      aria-invalid={forgotInvalid}
+                      onChange={(e) => forgotInvalid && e.currentTarget.checkValidity() && setForgotInvalid(false)}
+                    />
+                    {forgotInvalid && (
+                      <span className={styles.fieldError}>
+                        <ErrorIcon />
+                        {t("emailInvalid")}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className={`${styles.btnSubmit} ${forgotStatus === "success" ? styles.success : ""}`}
+                    disabled={forgotStatus === "loading" || forgotCooldown > 0}
+                  >
+                    {forgotStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
+                    <span>
+                      {forgotStatus === "loading"
+                        ? (forgotLoadingText ?? t("sending"))
+                        : forgotCooldown > 0
+                          ? t("resendIn", { seconds: forgotCooldown })
+                          : t("sendReset")}
+                    </span>
+                  </button>
+
+                  {forgotStatus === "success" && (
+                    <div className={styles.formStatus} role="status">
+                      <SuccessIcon />
+                      {t("forgotSent")}
+                    </div>
+                  )}
+                  {forgotError && (
+                    <div className={`${styles.formStatus} ${styles.error}`} role="alert">
+                      <ErrorIcon />
+                      {forgotError}
+                    </div>
+                  )}
+                </form>
+
+                <p className={styles.switchLine}>
+                  <button type="button" className={styles.link} onClick={() => setForgotOpen(false)}>
+                    {t("backToLogin")}
+                  </button>
+                </p>
+              </section>
+            )}
+
+            {activeTab === "register" && (
+              <section id="panel-register" role="tabpanel" aria-labelledby="tab-register">
+                <div className={styles.tabs} role="group" aria-label={t("roleGroup")}>
+                  <button
+                    type="button"
+                    className={styles.tabBtn}
+                    aria-pressed={isClientSignup}
+                    onClick={() => setRegisterRole("client")}
+                  >
+                    {t("roleClient")}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.tabBtn}
+                    aria-pressed={!isClientSignup}
+                    onClick={() => setRegisterRole("trainer")}
+                  >
+                    {t("roleTrainer")}
                   </button>
                 </div>
 
-                <div ref={loginTurnstile.containerRef} className={styles.turnstile} />
-
-                <button
-                  type="submit"
-                  className={`${styles.btnSubmit} ${loginStatus === "success" ? styles.success : ""}`}
-                  disabled={loginStatus === "loading" || !loginCanSubmit}
-                >
-                  {loginStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>{loginStatus === "loading" ? (loginLoadingText ?? t("loggingIn")) : t("loginSubmit")}</span>
-                </button>
-
-                {loginStatus === "success" && (
-                  <div className={styles.formStatus} role="status">
-                    <SuccessIcon />
-                    {t("loginSuccess")}
-                  </div>
-                )}
-                {loginError && (
-                  <div className={`${styles.formStatus} ${styles.error}`} role="alert">
-                    <ErrorIcon />
-                    {loginError}
-                  </div>
-                )}
-              </form>
-
-              <p className={styles.switchLine}>
-                {t("noAccount")}{" "}
-                <button type="button" className={styles.link} onClick={() => setActiveTab("register")}>
-                  {t("createAccount")}
-                </button>
-              </p>
-            </section>
-          )}
-
-          {activeTab === "login" && forgotOpen && (
-            <section id="panel-forgot" role="tabpanel" aria-labelledby="tab-login">
-              <div className={styles.authHead}>
-                <h2>{t("forgotTitle")}</h2>
-                <p>{t("forgotSub")}</p>
-              </div>
-
-              <form ref={forgotFormRef} noValidate onSubmit={handleForgotSubmit}>
-                <div className={styles.field}>
-                  <label htmlFor="forgot-email">{t("email")}</label>
-                  <input
-                    id="forgot-email"
-                    name="email"
-                    type="email"
-                    placeholder={t("emailPlaceholder")}
-                    autoComplete="email"
-                    required
-                    aria-invalid={forgotInvalid}
-                    onChange={(e) => forgotInvalid && e.currentTarget.checkValidity() && setForgotInvalid(false)}
-                  />
-                  {forgotInvalid && (
-                    <span className={styles.fieldError}>
-                      <ErrorIcon />
-                      {t("emailInvalid")}
-                    </span>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  className={`${styles.btnSubmit} ${forgotStatus === "success" ? styles.success : ""}`}
-                  disabled={forgotStatus === "loading" || forgotCooldown > 0}
-                >
-                  {forgotStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>
-                    {forgotStatus === "loading"
-                      ? (forgotLoadingText ?? t("sending"))
-                      : forgotCooldown > 0
-                        ? t("resendIn", { seconds: forgotCooldown })
-                        : t("sendReset")}
-                  </span>
-                </button>
-
-                {forgotStatus === "success" && (
-                  <div className={styles.formStatus} role="status">
-                    <SuccessIcon />
-                    {t("forgotSent")}
-                  </div>
-                )}
-                {forgotError && (
-                  <div className={`${styles.formStatus} ${styles.error}`} role="alert">
-                    <ErrorIcon />
-                    {forgotError}
-                  </div>
-                )}
-              </form>
-
-              <p className={styles.switchLine}>
-                <button type="button" className={styles.link} onClick={() => setForgotOpen(false)}>
-                  {t("backToLogin")}
-                </button>
-              </p>
-            </section>
-          )}
-
-          {activeTab === "register" && (
-            <section id="panel-register" role="tabpanel" aria-labelledby="tab-register">
-              <div className={styles.tabs} role="group" aria-label={t("roleGroup")}>
-                <button
-                  type="button"
-                  className={styles.tabBtn}
-                  aria-pressed={isClientSignup}
-                  onClick={() => setRegisterRole("client")}
-                >
-                  {t("roleClient")}
-                </button>
-                <button
-                  type="button"
-                  className={styles.tabBtn}
-                  aria-pressed={!isClientSignup}
-                  onClick={() => setRegisterRole("trainer")}
-                >
-                  {t("roleTrainer")}
-                </button>
-              </div>
-
-              <div className={styles.authHead}>
-                {isClientSignup ? (
-                  <>
-                    <h2>{t.rich("clientTitle", { br: () => <br /> })}</h2>
-                    <p>{t("clientSub")}</p>
-                  </>
-                ) : (
-                  <>
-                    <h2>{t.rich("trainerTitle", { br: () => <br /> })}</h2>
-                    <p>{t("trainerSub")}</p>
-                  </>
-                )}
-              </div>
-
-              <div className={styles.oauthRow}>
-                <button
-                  type="button"
-                  className={styles.oauthBtn}
-                  disabled={oauthPending !== null}
-                  onClick={() => handleOAuth("google", registerRole)}
-                >
-                  {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
-                  {t("google")}
-                </button>
-              </div>
-              <div className={styles.divider}>
-                <span>{t("or")}</span>
-              </div>
-
-              <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit} onInput={updateRegisterCanSubmit}>
-                <Honeypot />
-                <div className={styles.field}>
-                  <label htmlFor="reg-name">{t("name")}</label>
-                  <input
-                    id="reg-name"
-                    name="name"
-                    type="text"
-                    placeholder={t("namePlaceholder")}
-                    autoComplete="name"
-                    required
-                    aria-invalid={registerInvalid.name}
-                    onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
-                    onBlur={(e) => validateFieldOnBlur(e, registerInvalid, setRegisterInvalid)}
-                  />
-                  {registerInvalid.name && (
-                    <span className={styles.fieldError}>
-                      <ErrorIcon />
-                      {t("nameRequired")}
-                    </span>
-                  )}
-                </div>
-
-                <div className={styles.field}>
-                  <label htmlFor="reg-email">{t("email")}</label>
-                  <input
-                    id="reg-email"
-                    name="email"
-                    type="email"
-                    placeholder={t("emailPlaceholder")}
-                    autoComplete="email"
-                    required
-                    aria-invalid={registerInvalid.email}
-                    onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
-                    onBlur={(e) => validateFieldOnBlur(e, registerInvalid, setRegisterInvalid)}
-                  />
-                  {registerInvalid.email && (
-                    <span className={styles.fieldError}>
-                      <ErrorIcon />
-                      {t("emailInvalid")}
-                    </span>
-                  )}
-                </div>
-
-                <div className={`${styles.field} ${styles.hasToggle}`}>
-                  <label htmlFor="reg-password">{t("password")}</label>
-                  <div className={styles.inputWrap}>
-                    <input
-                      id="reg-password"
-                      name="password"
-                      type={registerShowPassword ? "text" : "password"}
-                      placeholder={t("passwordPlaceholder")}
-                      autoComplete="new-password"
-                      required
-                      minLength={8}
-                      aria-invalid={registerInvalid.password}
-                      onChange={(e) => {
-                        clearFieldError(e, registerInvalid, setRegisterInvalid);
-                        setRegisterPassword(e.currentTarget.value);
-                        if (registerPasswordIssues.length > 0) setRegisterPasswordIssues([]);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className={styles.toggleVisibility}
-                      aria-label={registerShowPassword ? t("hidePassword") : t("showPassword")}
-                      onClick={() => setRegisterShowPassword((v) => !v)}
-                    >
-                      <EyeIcon />
-                    </button>
-                  </div>
-                  {registerPassword ? (
-                    <PasswordRequirements password={registerPassword} />
+                <div className={styles.authHead}>
+                  {isClientSignup ? (
+                    <>
+                      <h2>{t.rich("clientTitle", { br: () => <br /> })}</h2>
+                      <p>{t("clientSub")}</p>
+                    </>
                   ) : (
-                    <span className={styles.fieldHint}>{t("passwordHint")}</span>
-                  )}
-                  {registerInvalid.password && (
-                    <span className={styles.fieldError}>
-                      <ErrorIcon />
-                      {registerPasswordIssues[0] ? tp(`issue.${registerPasswordIssues[0]}`) : t("passwordTooShort")}
-                    </span>
+                    <>
+                      <h2>{t.rich("trainerTitle", { br: () => <br /> })}</h2>
+                      <p>{t("trainerSub")}</p>
+                    </>
                   )}
                 </div>
 
-                <div className={styles.field} style={{ marginBottom: 16 }}>
-                  <label className={styles.checkboxRow}>
+                <div className={styles.oauthRow}>
+                  <button
+                    type="button"
+                    className={styles.oauthBtn}
+                    disabled={oauthPending !== null}
+                    onClick={() => handleOAuth("google", registerRole)}
+                  >
+                    {oauthPending === "google" ? <span className={styles.spinner} aria-hidden="true" /> : <GoogleIcon />}
+                    {t("google")}
+                  </button>
+                </div>
+                <div className={styles.divider}>
+                  <span>{t("or")}</span>
+                </div>
+
+                <form ref={registerFormRef} noValidate onSubmit={handleRegisterSubmit} onInput={updateRegisterCanSubmit}>
+                  <Honeypot />
+                  <div className={styles.field}>
+                    <label htmlFor="reg-name">{t("name")}</label>
                     <input
-                      type="checkbox"
-                      name="terms"
+                      id="reg-name"
+                      name="name"
+                      type="text"
+                      placeholder={t("namePlaceholder")}
+                      autoComplete="name"
                       required
+                      aria-invalid={registerInvalid.name}
                       onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
+                      onBlur={(e) => validateFieldOnBlur(e, registerInvalid, setRegisterInvalid)}
                     />
+                    {registerInvalid.name && (
+                      <span className={styles.fieldError}>
+                        <ErrorIcon />
+                        {t("nameRequired")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={styles.field}>
+                    <label htmlFor="reg-email">{t("email")}</label>
+                    <input
+                      id="reg-email"
+                      name="email"
+                      type="email"
+                      placeholder={t("emailPlaceholder")}
+                      autoComplete="email"
+                      required
+                      aria-invalid={registerInvalid.email}
+                      onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
+                      onBlur={(e) => validateFieldOnBlur(e, registerInvalid, setRegisterInvalid)}
+                    />
+                    {registerInvalid.email && (
+                      <span className={styles.fieldError}>
+                        <ErrorIcon />
+                        {t("emailInvalid")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={`${styles.field} ${styles.hasToggle}`}>
+                    <label htmlFor="reg-password">{t("password")}</label>
+                    <div className={styles.inputWrap}>
+                      <input
+                        id="reg-password"
+                        name="password"
+                        type={registerShowPassword ? "text" : "password"}
+                        placeholder={t("passwordPlaceholder")}
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                        aria-invalid={registerInvalid.password}
+                        onChange={(e) => {
+                          clearFieldError(e, registerInvalid, setRegisterInvalid);
+                          setRegisterPassword(e.currentTarget.value);
+                          if (registerPasswordIssues.length > 0) setRegisterPasswordIssues([]);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.toggleVisibility}
+                        aria-label={registerShowPassword ? t("hidePassword") : t("showPassword")}
+                        onClick={() => setRegisterShowPassword((v) => !v)}
+                      >
+                        <EyeIcon />
+                      </button>
+                    </div>
+                    {registerPassword ? (
+                      <PasswordRequirements password={registerPassword} />
+                    ) : (
+                      <span className={styles.fieldHint}>{t("passwordHint")}</span>
+                    )}
+                    {registerInvalid.password && (
+                      <span className={styles.fieldError}>
+                        <ErrorIcon />
+                        {registerPasswordIssues[0] ? tp(`issue.${registerPasswordIssues[0]}`) : t("passwordTooShort")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={styles.field} style={{ marginBottom: 16 }}>
+                    <label className={styles.checkboxRow}>
+                      <input
+                        type="checkbox"
+                        name="terms"
+                        required
+                        onChange={(e) => clearFieldError(e, registerInvalid, setRegisterInvalid)}
+                      />
+                      <span>
+                        {t.rich("terms", {
+                          terms: (chunks) => (
+                            <a href="/obchodne-podmienky" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                              {chunks}
+                            </a>
+                          ),
+                          privacy: (chunks) => (
+                            <a href="/ochrana-sukromia" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                              {chunks}
+                            </a>
+                          ),
+                        })}
+                      </span>
+                    </label>
+                    {registerInvalid.terms && (
+                      <span className={styles.fieldError} style={{ marginLeft: 27 }}>
+                        <ErrorIcon />
+                        {t("termsRequired")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div ref={registerTurnstile.containerRef} className={styles.turnstile} />
+
+                  <button
+                    type="submit"
+                    className={`${styles.btnSubmit} ${registerStatus === "success" ? styles.success : ""}`}
+                    disabled={registerStatus === "loading" || !registerCanSubmit}
+                  >
+                    {registerStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
                     <span>
-                      {t.rich("terms", {
-                        terms: (chunks) => (
-                          <a href="/obchodne-podmienky" target="_blank" rel="noopener noreferrer" className={styles.link}>
-                            {chunks}
-                          </a>
-                        ),
-                        privacy: (chunks) => (
-                          <a href="/ochrana-sukromia" target="_blank" rel="noopener noreferrer" className={styles.link}>
-                            {chunks}
-                          </a>
-                        ),
-                      })}
+                      {registerStatus === "loading"
+                        ? (registerLoadingText ?? t("creatingAccount"))
+                        : isClientSignup
+                          ? t("registerClient")
+                          : t("registerTrainer")}
                     </span>
-                  </label>
-                  {registerInvalid.terms && (
-                    <span className={styles.fieldError} style={{ marginLeft: 27 }}>
-                      <ErrorIcon />
-                      {t("termsRequired")}
-                    </span>
+                  </button>
+
+                  {registerStatus === "success" && !registerNeedsConfirm && (
+                    <div className={styles.formStatus} role="status">
+                      <SuccessIcon />
+                      {t("registered")}
+                    </div>
                   )}
-                </div>
+                  {registerError && (
+                    <div className={`${styles.formStatus} ${styles.error}`} role="alert">
+                      <ErrorIcon />
+                      {registerError}
+                    </div>
+                  )}
+                </form>
 
-                <div ref={registerTurnstile.containerRef} className={styles.turnstile} />
-
-                <button
-                  type="submit"
-                  className={`${styles.btnSubmit} ${registerStatus === "success" ? styles.success : ""}`}
-                  disabled={registerStatus === "loading" || !registerCanSubmit}
-                >
-                  {registerStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
-                  <span>
-                    {registerStatus === "loading"
-                      ? (registerLoadingText ?? t("creatingAccount"))
-                      : isClientSignup
-                        ? t("registerClient")
-                        : t("registerTrainer")}
-                  </span>
-                </button>
-
-                {registerStatus === "success" && !registerNeedsConfirm && (
-                  <div className={styles.formStatus} role="status">
-                    <SuccessIcon />
-                    {t("registered")}
-                  </div>
-                )}
-                {registerStatus === "success" && registerNeedsConfirm && (
-                  <div className={styles.formStatus} role="status">
-                    <SuccessIcon />
-                    {t("registeredConfirm")}
-                  </div>
-                )}
-                {registerError && (
-                  <div className={`${styles.formStatus} ${styles.error}`} role="alert">
-                    <ErrorIcon />
-                    {registerError}
-                  </div>
-                )}
-              </form>
-
-              <p className={styles.switchLine}>
-                {t("haveAccount")}{" "}
-                <button type="button" className={styles.link} onClick={() => setActiveTab("login")}>
-                  {t("loginSubmit")}
-                </button>
-              </p>
-            </section>
+                <p className={styles.switchLine}>
+                  {t("haveAccount")}{" "}
+                  <button type="button" className={styles.link} onClick={() => setActiveTab("login")}>
+                    {t("loginSubmit")}
+                  </button>
+                </p>
+              </section>
+            )}
+            </>
           )}
         </div>
       </main>
