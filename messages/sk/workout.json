@@ -69,5 +69,8 @@
   "addExerciseTitle": "Pridať cvik",
   "addExerciseClose": "Zavrieť",
   "addExerciseWhere": "Vloží sa za cvik {name}.",
-  "addExerciseWhereEnd": "Pridá sa na koniec tréningu."
+  "addExerciseWhereEnd": "Pridá sa na koniec tréningu.",
+  "collapseExercise": "Zbaliť {name}",
+  "expandExercise": "Rozbaliť {name}",
+  "collapsedSummary": "Série {done}/{total}"
 }

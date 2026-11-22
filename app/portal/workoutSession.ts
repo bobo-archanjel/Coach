@@ -76,6 +76,8 @@ export type WorkoutDraft = {
   order?: number[];
   /** odškrtnuté série podľa indexu cviku (postup na krúžku karty Dnes) */
   checked?: Record<number, boolean[]>;
+  /** zbalené cviky (indexy) */
+  collapsed?: number[];
 };
 
 type DraftRecord = WorkoutDraft & { dayId: string; at: number };
@@ -110,6 +112,7 @@ export function loadWorkoutDraft(dayId: string, signature: string): WorkoutDraft
       // neplatné poradie WorkoutSetsFields aj tak nahradí poradím indexov (displayOrder)
       order: Array.isArray(rec.order) && rec.order.every((v) => Number.isInteger(v)) ? rec.order : undefined,
       checked: parseChecked(rec.checked),
+      collapsed: Array.isArray(rec.collapsed) ? rec.collapsed.filter((v) => Number.isInteger(v)) : undefined,
     };
   } catch {
     return null;

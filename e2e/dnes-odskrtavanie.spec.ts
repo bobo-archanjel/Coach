@@ -86,4 +86,31 @@ test.describe("karta Dnes — odškrtávanie sérií a krúžok počas tréningu
     await page.getByRole("button", { name: "Pridať", exact: true }).click();
     await expect(page.locator("[data-superset]")).toHaveCount(0);
   });
+
+  test("šípka nadol zbalí cvik (súhrn sérií), zbalenie prežije refresh", async ({ page }) => {
+    const drep = "Drep s veľkou činkou";
+    for (const n of [1, 2, 3, 4]) await check(page, drep, n).click();
+    await page.getByRole("button", { name: `Zbaliť ${drep}` }).click();
+    const block = page.locator("[data-ex-idx]").first();
+    await expect(block.getByTestId("collapsed-summary")).toHaveText("Série 4/4");
+    await expect(page.getByLabel(`${drep}, séria 1, opakovania`)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: `Rozbaliť ${drep}` })).toHaveAttribute("aria-expanded", "false");
+    // ostatné cviky ostávajú rozbalené
+    await expect(page.getByLabel("Rumunský mŕtvy ťah, séria 1, opakovania")).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator("[data-ex-idx]").first().getByTestId("collapsed-summary")).toHaveText("Série 4/4");
+    await page.getByRole("button", { name: `Rozbaliť ${drep}` }).click();
+    await expect(page.getByLabel(`${drep}, séria 1, opakovania`)).toBeVisible();
+    await expect(page.getByRole("button", { name: `Zbaliť ${drep}` })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("stopky: panel sa zbalí šípkou nadol", async ({ page }) => {
+    await page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ }).click();
+    const panel = page.getByRole("dialog", { name: /Stopky/ });
+    await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Zavrieť", exact: true }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ })).toBeVisible();
+  });
 });

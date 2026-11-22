@@ -1068,6 +1068,62 @@
 .logExerciseHead .logExerciseName {
   margin: 6px 0 0;
 }
+/* vpravo v hlavičke cviku: odobratie pridaného cviku + šípka na zbalenie */
+.logExerciseTools {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: -2px -4px 0 0;
+}
+.logCollapseBtn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+.logCollapseBtn:hover {
+  background: var(--surface-solid);
+  color: var(--paper);
+}
+.logCollapseBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* zbalený cvik — šípka doprava (ťuk ho znova rozbalí) */
+.logCollapseBtnClosed {
+  transform: rotate(-90deg);
+}
+.logExerciseCollapsed {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.logExerciseCollapsed .logExerciseHead {
+  margin-bottom: 0;
+}
+.logCollapsedSummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.logCollapsedSummary svg {
+  color: var(--accent-text);
+}
 .addedTag {
   display: inline-block;
   margin-left: 6px;
