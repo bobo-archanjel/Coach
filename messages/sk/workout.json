@@ -72,5 +72,11 @@
   "addExerciseWhereEnd": "Pridá sa na koniec tréningu.",
   "collapseExercise": "Zbaliť {name}",
   "expandExercise": "Rozbaliť {name}",
-  "collapsedSummary": "Série {done}/{total}"
+  "collapsedSummary": "Série {done}/{total}",
+  "statExercises": "cviky",
+  "statSets": "série",
+  "statVolume": "objem",
+  "statRpe": "náročnosť",
+  "showExercises": "Zobraziť cviky",
+  "hideExercises": "Skryť cviky"
 }

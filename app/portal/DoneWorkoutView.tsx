@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LoggedExercise, LoggedSet, PortalExercise } from "@/lib/portal/types";
 import {
   formatCompletedDate,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/workouts/completed";
 import { LoggedWorkoutEditor } from "./LoggedWorkoutEditor";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
-import type { CompletedCompare } from "@/lib/workouts/completed";
+import { workoutStats, type CompletedCompare } from "@/lib/workouts/completed";
 import styles from "./portal.module.css";
 
 const LockIcon = () => (
@@ -74,6 +74,30 @@ export function DoneWorkoutView({
   const locale = useLocale();
   const [editing, setEditing] = useState(false);
   const canEdit = !!logId && isStillEditable(editableUntil);
+  // Cviky odcvičeného tréningu sa dajú zbaliť (hore ostane súhrn) — voľba pre tento záznam
+  // v prehliadači; po načítaní najprv rozbalené (server nevie, čo si klient zvolil).
+  const [open, setOpen] = useState(true);
+  const collapseKey = logId ? `fitpilot.done.collapsed.v1:${logId}` : null;
+  useEffect(() => {
+    if (!collapseKey) return;
+    try {
+      if (localStorage.getItem(collapseKey) === "1") setOpen(false);
+    } catch {
+      /* bez úložiska ostáva rozbalené */
+    }
+  }, [collapseKey]);
+  const toggleOpen = () => {
+    const next = !open;
+    setOpen(next);
+    if (!collapseKey) return;
+    try {
+      if (next) localStorage.removeItem(collapseKey);
+      else localStorage.setItem(collapseKey, "1");
+    } catch {
+      /* ignoruj */
+    }
+  };
+  const stats = compare && compare.exercises.length > 0 ? workoutStats(compare.exercises) : null;
 
   if (editing && canEdit && logId && editableUntil) {
     return (
@@ -91,8 +115,57 @@ export function DoneWorkoutView({
 
   return (
     <>
+      {/* súhrn tréningu — viditeľný aj pri zbalených cvikoch */}
+      {loggedExercises && stats && (
+        <div className={styles.doneStats} data-testid="done-stats">
+          <span className={styles.doneStat}>
+            <strong>
+              {stats.exercisesDone}/{stats.exercisesTotal}
+            </strong>
+            {t("statExercises")}
+          </span>
+          <span className={styles.doneStat}>
+            <strong>{stats.sets}</strong>
+            {t("statSets")}
+          </span>
+          {stats.volumeKg > 0 && (
+            <span className={styles.doneStat}>
+              <strong>{stats.volumeKg.toLocaleString(intlLocale(locale as Locale))} kg</strong>
+              {t("statVolume")}
+            </span>
+          )}
+          {sessionRpe != null && (
+            <span className={styles.doneStat}>
+              <strong>{sessionRpe}/10</strong>
+              {t("statRpe")}
+            </span>
+          )}
+        </div>
+      )}
+
       {loggedExercises && compare && compare.exercises.length > 0 ? (
-        <CompletedExercises exercises={compare.exercises} hasPlan={compare.hasPlan} flat />
+        <>
+          <button
+            type="button"
+            className={styles.doneToggle}
+            onClick={toggleOpen}
+            aria-expanded={open}
+            data-testid="done-toggle"
+          >
+            {open ? t("hideExercises") : t("showExercises")}
+            <svg
+              className={`${styles.doneToggleIcon} ${open ? "" : styles.doneToggleIconClosed}`}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {open && <CompletedExercises exercises={compare.exercises} hasPlan={compare.hasPlan} flat />}
+        </>
       ) : loggedExercises ? (
         <div className={styles.doneExercises}>
           {loggedExercises.map((ex, i) => (
@@ -113,10 +186,11 @@ export function DoneWorkoutView({
         <p className={styles.doneNoValues}>{t("noValues")}</p>
       )}
 
-      {(sessionRpe != null || sessionNote) && (
+      {/* RPE je v súhrne; bez súhrnu (starší zápis) ostáva v riadku s poznámkou */}
+      {((!stats && sessionRpe != null) || sessionNote) && (
         <p className={styles.doneNote}>
-          {sessionRpe != null && t("rpeLine", { rpe: sessionRpe })}
-          {sessionRpe != null && sessionNote && " · "}
+          {!stats && sessionRpe != null && t("rpeLine", { rpe: sessionRpe })}
+          {!stats && sessionRpe != null && sessionNote && " · "}
           {sessionNote && <>„{sessionNote}“</>}
         </p>
       )}

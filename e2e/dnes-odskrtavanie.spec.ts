@@ -114,3 +114,33 @@ test.describe("karta Dnes — odškrtávanie sérií a krúžok počas tréningu
     await expect(page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ })).toBeVisible();
   });
 });
+
+test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", () => {
+  test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
+
+  test("súhrn (cviky, série, objem, RPE) a cviky sa dajú zbaliť, voľba prežije refresh", async ({ page }) => {
+    await page.goto("/portal?preview=done");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    // náhľad: 4 zapísané cviky z 8 (6 plánu + 2 pridané), 9 sérií, objem 4 594 kg, RPE 8
+    const stats = page.getByTestId("done-stats");
+    await expect(stats).toContainText("4/8");
+    await expect(stats).toContainText(/9\s*série/);
+    await expect(stats).toContainText(/4\s?594 kg/);
+    await expect(stats).toContainText("8/10");
+
+    const toggle = page.getByTestId("done-toggle");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveText(/Zobraziť cviky/);
+    await expect(page.getByTestId("completed-exercise")).toHaveCount(0);
+    await expect(stats).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByTestId("done-toggle")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("completed-exercise")).toHaveCount(0);
+    await page.getByTestId("done-toggle").click();
+    await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
+  });
+});
