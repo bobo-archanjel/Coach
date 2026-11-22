@@ -43,6 +43,16 @@ const PREVIEW_SESSION: TodaySession = {
   ],
 };
 
+/** ?preview=done — ďalší tréning odcvičený v ten istý deň (ráno), zbalený pod aktuálnym. */
+const PREVIEW_MORNING_PLAN: PortalExercise[] = [
+  { idx: "1", name: "Tlak na lavičke", scheme: "3 × 8", load: "70 kg", rest: "120 s", entryId: "m1", plannedSets: 3, plannedReps: "8", exerciseId: null, loadKg: 70, restSeconds: 120 },
+  { idx: "2", name: "Príťahy v predklone", scheme: "3 × 10", load: "50 kg", rest: "90 s", entryId: "m2", plannedSets: 3, plannedReps: "10", exerciseId: null, loadKg: 50, restSeconds: 90 },
+];
+const PREVIEW_MORNING_ENTRIES = [
+  { entryId: "m1", name: "Tlak na lavičke", sets: [{ reps: 8, weight: 70 }, { reps: 8, weight: 70 }, { reps: 7, weight: 70 }] },
+  { entryId: "m2", name: "Príťahy v predklone", sets: [{ reps: 10, weight: 50 }, { reps: 10, weight: 50 }] },
+];
+
 /** Karta Dnes po odcvičení (?preview=done): čo klient naozaj zapísal. */
 const PREVIEW_DONE_ENTRIES = [
   { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
@@ -182,6 +192,19 @@ export function previewResult(kind: string): PortalResult | null {
             completedCount: PREVIEW_SESSION.exercises.length,
             loggedExercises: PREVIEW_DONE_ENTRIES,
             compare: previewCompare(PREVIEW_SESSION.exercises, PREVIEW_DONE_ENTRIES),
+            otherToday: [
+              {
+                logId: "preview-log-morning",
+                title: "Deň A — Tlak",
+                completedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+                editableUntil: new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString(),
+                rpe: 7,
+                note: "Ranný tréning pred prácou.",
+                loggedExercises: PREVIEW_MORNING_ENTRIES,
+                compare: previewCompare(PREVIEW_MORNING_PLAN, PREVIEW_MORNING_ENTRIES),
+                exercises: PREVIEW_MORNING_PLAN,
+              },
+            ],
             completedAt: new Date().toISOString(),
             logId: "preview-log",
             editableUntil: new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString(),

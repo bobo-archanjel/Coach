@@ -60,7 +60,7 @@ import type {
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
 import { cleanSupersetId } from "@/lib/workouts/superset";
-import { compareLog, editableUntil, isStillEditable, parseLoggedEntries } from "@/lib/workouts/completed";
+import { compareLog, editableUntil, isStillEditable, parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
 
 const TZ = "Europe/Bratislava";
 /** Jazyk a texty požiadavky (dni týždňa, mesiace, záložné názvy) — raz na request. */
@@ -495,6 +495,24 @@ export async function getPortalData(): Promise<PortalResult> {
               : exList.length
             : 0,
           dayId: targetDay.id,
+          // Ďalšie dnes odcvičené tréningy (iné dni plánu) — logy sú od najnovšieho.
+          otherToday: logs
+            .filter((l) => l.performed_on === isoDate && l.workout_day_id !== targetDay!.id)
+            .map((l) => {
+              const day = days.find((d) => d.id === l.workout_day_id);
+              const entries = parseLoggedEntries(l.entries);
+              return {
+                logId: l.id as string,
+                title: day?.name ?? (parsePlanSnapshot(l.plan_snapshot)?.dayName ?? L.t("workout")),
+                completedAt: (l.completed_at as string | null) ?? null,
+                editableUntil: editableUntil(l.completed_at as string | null),
+                rpe: (l.rpe as number | null) ?? null,
+                note: (l.note as string | null) ?? null,
+                loggedExercises: entries.length > 0 ? entries : null,
+                compare: compareLog(l.plan_snapshot, l.entries),
+                exercises: day ? parseEntries(day.exercises).map((e, i) => toPortalExercise(e, i, L)) : [],
+              };
+            }),
         };
       }
     }

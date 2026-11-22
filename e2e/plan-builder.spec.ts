@@ -25,7 +25,7 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
 
     await expect(page.getByRole("button", { name: /Deň 1 — Tlak/ })).toHaveAttribute("aria-current", "true");
     await expect(page.getByRole("button", { name: /Deň 4 — Horná časť tela/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "+ deň" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "+ tréning" })).toBeVisible();
 
     // prepni na Deň 2 → panel ukáže jeho cviky (3)
     await page.getByRole("button", { name: /Deň 2 — Nohy/ }).click();
@@ -36,11 +36,11 @@ test.describe("PlanBuilder /dashboard/treningy/[id]?preview=builder", () => {
     expect(real(errs), real(errs).join("\n")).toEqual([]);
   });
 
-  test("„+ deň“ otvorí okno: názov dňa s fokusom, Esc zavrie a fokus sa vráti na „+ deň“", async ({ page }) => {
+  test("„+ tréning“ otvorí okno: názov dňa s fokusom, Esc zavrie a fokus sa vráti na „+ tréning“", async ({ page }) => {
     const errs = collectErrors(page);
     await page.goto("/dashboard/treningy/x?preview=builder");
 
-    const addDay = page.getByRole("button", { name: "+ deň" });
+    const addDay = page.getByRole("button", { name: "+ tréning" });
     await addDay.click();
     const dialog = page.getByRole("dialog", { name: "Nový deň" });
     await expect(dialog).toBeVisible();

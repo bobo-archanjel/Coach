@@ -110,6 +110,21 @@ export interface PortalNextAppointment {
   startsAt: string; // ISO timestamptz
 }
 
+/** Ďalší dnes odcvičený tréning na karte Dnes (pod práve zobrazeným). */
+export interface TodayOtherWorkout {
+  logId: string;
+  title: string;
+  completedAt: string | null;
+  /** do kedy ho klient smie opraviť (24 h, 0049); null = už nie */
+  editableUntil: string | null;
+  rpe: number | null;
+  note: string | null;
+  loggedExercises: LoggedExercise[] | null;
+  compare: CompletedCompare;
+  /** cviky dňa v pláne — formulár „Upraviť hodnoty“ */
+  exercises: PortalExercise[];
+}
+
 export interface TodaySession {
   /** training = pripravený ďalší tréning v poradí, done = dnes už odcvičené,
    *  complete = všetky dni plánu odcvičené (plán je jednorazový, dni sa neopakujú) */
@@ -127,6 +142,9 @@ export interface TodaySession {
   loggedExercises: LoggedExercise[] | null;
   /** `kind: "done"` — plán vs. skutočnosť po sériách (farby ako u trénera) */
   compare?: CompletedCompare | null;
+  /** ďalšie tréningy odcvičené dnes (iné dni plánu, najnovší prvý) — karta ich ukáže pod
+   *  aktuálnym, zbalené */
+  otherToday?: TodayOtherWorkout[];
   /** `kind: "done"` — čas ukončenia (workout_logs.completed_at, 0048) */
   completedAt?: string | null;
   /** `kind: "done"` — id záznamu a do kedy ho klient smie opraviť (24 h, 0049) */

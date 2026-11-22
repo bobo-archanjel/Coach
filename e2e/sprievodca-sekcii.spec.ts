@@ -264,7 +264,7 @@ test.describe("sprievodcovia hlbších okien (podvrhnutý zoznam videných)", ()
   test("otvorené okno sprievodcu zdrží", async ({ page }) => {
     await mockGuides(page, []);
     await page.goto("/dashboard/treningy/x?preview=builder");
-    await page.getByRole("button", { name: "+ deň" }).click();
+    await page.getByRole("button", { name: "+ tréning" }).click();
     await expect(page.getByRole("dialog", { name: "Nový deň" })).toBeVisible();
     await page.waitForTimeout(3000);
     await expect(overlay(page)).toHaveCount(0);

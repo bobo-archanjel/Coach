@@ -69,5 +69,14 @@
   "addExerciseTitle": "Přidat cvik",
   "addExerciseClose": "Zavřít",
   "addExerciseWhere": "Vloží se za cvik {name}.",
-  "addExerciseWhereEnd": "Přidá se na konec tréninku."
+  "addExerciseWhereEnd": "Přidá se na konec tréninku.",
+  "collapseExercise": "Sbalit {name}",
+  "expandExercise": "Rozbalit {name}",
+  "collapsedSummary": "Série {done}/{total}",
+  "statExercises": "cviky",
+  "statSets": "série",
+  "statVolume": "objem",
+  "statRpe": "náročnost",
+  "showExercises": "Zobrazit cviky",
+  "hideExercises": "Skrýt cviky"
 }

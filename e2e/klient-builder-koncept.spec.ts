@@ -58,7 +58,7 @@ test.describe("builder vlastného tréningu — chyba hore a rozpracovaný konce
     await card.getByRole("button", { name: "Pokračovať" }).click();
     await expect(page.getByLabel("Názov tréningového plánu")).toHaveValue("Môj rozpracovaný");
     await expect(page.getByText("Výpady", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("group", { name: "Tréningové dni" }).getByRole("button", { name: /Deň 1/ })).toContainText("1");
+    await expect(page.getByRole("group", { name: "Tréningové dni" }).getByRole("button", { name: /Tréning 1/ })).toContainText("1");
 
     // ďalší odchod, tentoraz Zahodiť
     await page.goto("/portal?preview=ok");

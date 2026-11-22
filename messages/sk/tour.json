@@ -122,7 +122,7 @@
     "t-plan": {
       "days": {
         "title": "Tréningové dni",
-        "body": "Medzi dňami prepínaš tu, číslo ukazuje počet cvikov. Nový deň pridáš cez „+ deň“."
+        "body": "Medzi tréningami prepínaš tu, číslo ukazuje počet cvikov. Ďalší tréning pridáš cez „+ tréning“."
       },
       "dayActions": {
         "title": "Úprava dňa",
@@ -282,7 +282,7 @@
       },
       "days": {
         "title": "Tréningové dni",
-        "body": "Nový deň pridáš cez „+ deň“. Vybraný deň premenuješ, duplikuješ alebo zmažeš hneď pod dráhou."
+        "body": "Ďalší tréning pridáš cez „+ tréning“. Vybraný tréning premenuješ, duplikuješ alebo zmažeš hneď pod dráhou."
       },
       "custom": {
         "title": "Pridať nový cvik",

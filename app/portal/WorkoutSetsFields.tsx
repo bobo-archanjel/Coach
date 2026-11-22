@@ -44,6 +44,8 @@ export interface WorkoutFormValues {
   /** odškrtnuté (odcvičené) série podľa indexu cviku — len postup počas tréningu (krúžok
    *  na karte Dnes); ukladajú sa všetky vyplnené série bez ohľadu na odškrtnutie */
   checked?: Record<number, boolean[]>;
+  /** zbalené cviky (indexy) — klient si po odcvičení cvik schová (len karta Dnes) */
+  collapsed?: number[];
 }
 
 /** Poradie zobrazenia cvikov (platná permutácia indexov, inak 0..n-1). */
@@ -132,6 +134,12 @@ function dropIndex<T>(rec: Record<number, T>, at: number): Record<number, T> {
 const CheckIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -307,6 +315,7 @@ export function WorkoutSetsFields({
   const { rows, notes, rpe, sessionNote } = values;
   const added = values.added ?? [];
   const checked = values.checked ?? {};
+  const collapsed = values.collapsed ?? [];
   const exercises = formExercises(planExercises, values);
   const order = displayOrder(exercises.length, values);
   const supersets = effectiveSupersets(exercises, values);
@@ -365,6 +374,7 @@ export function WorkoutSetsFields({
       rows: dropIndex(rows, exIdx),
       notes: dropIndex(notes, exIdx),
       checked: dropIndex(checked, exIdx),
+      collapsed: collapsed.filter((i) => i !== exIdx).map((i) => (i > exIdx ? i - 1 : i)),
       order: order.filter((i) => i !== exIdx).map((i) => (i > exIdx ? i - 1 : i)),
       // odobraný člen supersérie — skupina s jedným cvikom zanikne (upratanie v effectiveSupersets)
       supersets: supersets.filter((_, i) => i !== exIdx),
@@ -382,6 +392,12 @@ export function WorkoutSetsFields({
     });
     onChange({ ...values, supersets: byIndex });
   };
+  /** zbalenie / rozbalenie cviku (po odcvičení si ho klient schová) */
+  const toggleCollapsed = (exIdx: number) =>
+    onChange({
+      ...values,
+      collapsed: collapsed.includes(exIdx) ? collapsed.filter((i) => i !== exIdx) : [...collapsed, exIdx],
+    });
   /** odškrtnutie série (postup na krúžku karty Dnes) */
   const toggleCheck = (exIdx: number, rowIdx: number) => {
     const list = [...(checked[exIdx] ?? [])];
@@ -478,6 +494,9 @@ export function WorkoutSetsFields({
         const next = nextIdx === undefined ? undefined : exercises[nextIdx];
         const linked = nextIdx !== undefined && Boolean(supersets[exIdx]) && supersets[exIdx] === supersets[nextIdx];
         const isLast = pos === order.length - 1;
+        const isCollapsed = checkable && collapsed.includes(exIdx);
+        const setsTotal = (rows[exIdx] ?? []).length;
+        const setsDone = Array.from({ length: setsTotal }, (_, k) => checked[exIdx]?.[k] === true).filter(Boolean).length;
         return (
           <Fragment key={`${ex.idx}-${exIdx}`}>
           {ss?.first && (
@@ -489,37 +508,57 @@ export function WorkoutSetsFields({
             </p>
           )}
           <div
-            className={`${styles.logExercise} ${ss ? styles.logExerciseSs : ""}`}
+            className={`${styles.logExercise} ${ss ? styles.logExerciseSs : ""} ${isCollapsed ? styles.logExerciseCollapsed : ""}`}
             data-superset={ss ? `${ss.letter}${ss.index}` : undefined}
             data-tour={exIdx < planExercises.length ? "workout-exercise" : undefined}
             data-added={exIdx >= planExercises.length ? "" : undefined}
             data-ex-idx={exIdx}
           >
-            {exIdx < planExercises.length ? (
-              <>
-                <p className={styles.logExerciseName}>
-                  {ss && <span className={styles.logSsTag}>{`${ss.letter}${ss.index}`}</span>}
-                  {ex.name}
-                </p>
-                {/* poznámka k cviku z plánu (v dátach `tempo`) — počas tréningu po ruke */}
-                {ex.tempo && <p className={styles.logExerciseNote}>„{ex.tempo}“</p>}
-              </>
+            <div className={styles.logExerciseHead}>
+              <p className={styles.logExerciseName}>
+                {ss && <span className={styles.logSsTag}>{`${ss.letter}${ss.index}`}</span>}
+                {ex.name}
+                {exIdx >= planExercises.length && (
+                  <>
+                    {" "}
+                    <span className={styles.addedTag}>{t("addedTag")}</span>
+                  </>
+                )}
+              </p>
+              <span className={styles.logExerciseTools}>
+                {exIdx >= planExercises.length && !isCollapsed && (
+                  <button
+                    type="button"
+                    className={styles.setRemove}
+                    onClick={() => removeExercise(exIdx)}
+                    aria-label={t("removeExercise", { name: ex.name })}
+                  >
+                    <CloseIcon />
+                  </button>
+                )}
+                {checkable && (
+                  // šípka nadol: po odcvičení si klient cvik schová (zbalený ukáže len súhrn sérií)
+                  <button
+                    type="button"
+                    className={`${styles.logCollapseBtn} ${isCollapsed ? styles.logCollapseBtnClosed : ""}`}
+                    onClick={() => toggleCollapsed(exIdx)}
+                    aria-expanded={!isCollapsed}
+                    aria-label={t(isCollapsed ? "expandExercise" : "collapseExercise", { name: ex.name })}
+                  >
+                    <ChevronDownIcon />
+                  </button>
+                )}
+              </span>
+            </div>
+            {isCollapsed ? (
+              <p className={styles.logCollapsedSummary} data-testid="collapsed-summary">
+                {setsDone === setsTotal && setsTotal > 0 && <CheckIcon />}
+                {t("collapsedSummary", { done: setsDone, total: setsTotal })}
+              </p>
             ) : (
-              <div className={styles.logExerciseHead}>
-                <p className={styles.logExerciseName}>
-                  {ss && <span className={styles.logSsTag}>{`${ss.letter}${ss.index}`}</span>}
-                  {ex.name} <span className={styles.addedTag}>{t("addedTag")}</span>
-                </p>
-                <button
-                  type="button"
-                  className={styles.setRemove}
-                  onClick={() => removeExercise(exIdx)}
-                  aria-label={t("removeExercise", { name: ex.name })}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-            )}
+              <>
+            {/* poznámka k cviku z plánu (v dátach `tempo`) — počas tréningu po ruke */}
+            {exIdx < planExercises.length && ex.tempo && <p className={styles.logExerciseNote}>„{ex.tempo}“</p>}
             <div className={styles.logRows}>
               {(rows[exIdx] ?? []).map((row, rowIdx) => {
                 const repsErr = parseReps(row.reps).error;
@@ -611,6 +650,8 @@ export function WorkoutSetsFields({
                 value={notes[exIdx]}
                 onChange={(e) => onChange({ ...values, notes: { ...notes, [exIdx]: e.target.value } })}
               />
+            )}
+              </>
             )}
           </div>
           {/* medzi cvikmi: spojenie do supersérie (len tento tréning) a malé „+ cvik“, ktoré

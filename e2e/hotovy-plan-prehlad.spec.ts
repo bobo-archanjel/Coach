@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Celý odcvičený (uzamknutý) plán u trénera: rovnaký prehľad ako rozpracovaný — dráha dní,
- * pri každom dni dátum, RPE / poznámka a plán vs. skutočnosť. Bez „+ deň“, bez úprav,
+ * pri každom dni dátum, RPE / poznámka a plán vs. skutočnosť. Bez „+ tréning“, bez úprav,
  * bez zoznamu „Odcvičené tréningy“ (každý tréning sa predtým otváral zvlášť).
  */
 
@@ -25,7 +25,7 @@ const hasEnv = Object.values(env).every(Boolean);
 const AUTH = { auth: { persistSession: false, autoRefreshToken: false } };
 
 async function expectReadOnlyPlan(page: Page) {
-  await expect(page.getByRole("button", { name: "+ deň" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "+ tréning" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Premenovať", exact: true })).toHaveCount(0);
   await expect(page.getByText("Pridať nový cvik")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Odcvičené tréningy" })).toHaveCount(0);
@@ -117,5 +117,11 @@ test.describe("hotový plán — reálna DB", () => {
     await page.getByRole("button", { name: /E2E Deň B/ }).click();
     await expect(page.getByText("9/10")).toBeVisible();
     await expect(page.getByText("„E2E ťažký deň“")).toBeVisible();
+
+    // detail klienta: hotový plán má „Hotovo“ a nedá sa nastaviť ako aktívny
+    await page.goto(`/dashboard/klienti/${client!.id}`);
+    const row = page.locator(`a[href="/dashboard/treningy/${planId}"]`).locator("..");
+    await expect(row).toContainText("Hotovo");
+    await expect(page.getByRole("button", { name: new RegExp(`^Nastaviť „E2E hotový plán`) })).toHaveCount(0);
   });
 });

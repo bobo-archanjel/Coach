@@ -85,6 +85,7 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
           supersets: draft.supersets,
           order: draft.order,
           checked: draft.checked,
+          collapsed: draft.collapsed,
         }
       : plannedFormValues(exercises); // hodnoty trénera — pri odcvičení podľa plánu netreba nič písať
   });

@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LoggedExercise, LoggedSet, PortalExercise } from "@/lib/portal/types";
 import {
   formatCompletedDate,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/workouts/completed";
 import { LoggedWorkoutEditor } from "./LoggedWorkoutEditor";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
-import type { CompletedCompare } from "@/lib/workouts/completed";
+import { workoutStats, type CompletedCompare } from "@/lib/workouts/completed";
 import styles from "./portal.module.css";
 
 const LockIcon = () => (
@@ -45,6 +45,43 @@ function setLabel(s: LoggedSet, repsLabel: (n: number) => string, locale: Locale
   return s.rpe != null ? `${base} · RPE ${s.rpe}` : base;
 }
 
+/** Dlaždica súhrnu tréningu: ikona v oranžovom krúžku, popis, hodnota. */
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className={styles.doneStat}>
+      <span className={styles.doneStatHead}>
+        <span className={styles.doneStatIcon}>{icon}</span>
+        <span className={styles.doneStatLabel}>{label}</span>
+      </span>
+      <strong className={styles.doneStatValue}>{value}</strong>
+    </div>
+  );
+}
+
+const DumbbellIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+  </svg>
+);
+const LayersIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 4 3.5 8.5 12 13l8.5-4.5L12 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M3.5 12.5 12 17l8.5-4.5M3.5 16.5 12 21l8.5-4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const WeightIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M9 7.5a3 3 0 1 1 6 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M6.2 7.5h11.6l2 12.5H4.2l2-12.5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+  </svg>
+);
+const GaugeIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 17a8 8 0 1 1 16 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M12 17l4-5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+  </svg>
+);
+
 /**
  * Dokončený tréning na karte Dnes — zapísané hodnoty oproti plánu (CompletedExercises,
  * farby ako u trénera; bez `compare` len zoznam sérií). 24 h po ukončení ponúka
@@ -74,6 +111,30 @@ export function DoneWorkoutView({
   const locale = useLocale();
   const [editing, setEditing] = useState(false);
   const canEdit = !!logId && isStillEditable(editableUntil);
+  // Cviky odcvičeného tréningu sa dajú zbaliť (hore ostane súhrn) — voľba pre tento záznam
+  // v prehliadači; po načítaní najprv rozbalené (server nevie, čo si klient zvolil).
+  const [open, setOpen] = useState(true);
+  const collapseKey = logId ? `fitpilot.done.collapsed.v1:${logId}` : null;
+  useEffect(() => {
+    if (!collapseKey) return;
+    try {
+      if (localStorage.getItem(collapseKey) === "1") setOpen(false);
+    } catch {
+      /* bez úložiska ostáva rozbalené */
+    }
+  }, [collapseKey]);
+  const toggleOpen = () => {
+    const next = !open;
+    setOpen(next);
+    if (!collapseKey) return;
+    try {
+      if (next) localStorage.removeItem(collapseKey);
+      else localStorage.setItem(collapseKey, "1");
+    } catch {
+      /* ignoruj */
+    }
+  };
+  const stats = compare && compare.exercises.length > 0 ? workoutStats(compare.exercises) : null;
 
   if (editing && canEdit && logId && editableUntil) {
     return (
@@ -91,8 +152,45 @@ export function DoneWorkoutView({
 
   return (
     <>
+      {/* súhrn tréningu — viditeľný aj pri zbalených cvikoch */}
+      {loggedExercises && stats && (
+        <div className={styles.doneStats} data-testid="done-stats">
+          <Stat icon={<DumbbellIcon />} label={t("statExercises")} value={`${stats.exercisesDone}/${stats.exercisesTotal}`} />
+          <Stat icon={<LayersIcon />} label={t("statSets")} value={String(stats.sets)} />
+          {stats.volumeKg > 0 && (
+            <Stat
+              icon={<WeightIcon />}
+              label={t("statVolume")}
+              value={`${stats.volumeKg.toLocaleString(intlLocale(locale as Locale))} kg`}
+            />
+          )}
+          {sessionRpe != null && <Stat icon={<GaugeIcon />} label={t("statRpe")} value={`${sessionRpe}/10`} />}
+        </div>
+      )}
+
       {loggedExercises && compare && compare.exercises.length > 0 ? (
-        <CompletedExercises exercises={compare.exercises} hasPlan={compare.hasPlan} flat />
+        <>
+          <button
+            type="button"
+            className={styles.doneToggle}
+            onClick={toggleOpen}
+            aria-expanded={open}
+            data-testid="done-toggle"
+          >
+            {open ? t("hideExercises") : t("showExercises")}
+            <svg
+              className={`${styles.doneToggleIcon} ${open ? "" : styles.doneToggleIconClosed}`}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {open && <CompletedExercises exercises={compare.exercises} hasPlan={compare.hasPlan} flat />}
+        </>
       ) : loggedExercises ? (
         <div className={styles.doneExercises}>
           {loggedExercises.map((ex, i) => (
@@ -113,26 +211,33 @@ export function DoneWorkoutView({
         <p className={styles.doneNoValues}>{t("noValues")}</p>
       )}
 
-      {(sessionRpe != null || sessionNote) && (
-        <p className={styles.doneNote}>
-          {sessionRpe != null && t("rpeLine", { rpe: sessionRpe })}
-          {sessionRpe != null && sessionNote && " · "}
-          {sessionNote && <>„{sessionNote}“</>}
-        </p>
-      )}
-
-      {canEdit && editableUntil ? (
+      {/* Zbalené: len súhrn a tlačidlo „Zobraziť cviky“ — poznámka, úprava hodnôt aj zámok
+          sa ukážu po rozbalení. */}
+      {open && (
         <>
-          <button type="button" className={styles.editValuesBtn} onClick={() => setEditing(true)}>
-            <PencilIcon /> {t("editValues")}
-          </button>
-          <p className={styles.lockNote}>{t("editUntil", { deadline: formatEditDeadline(editableUntil, undefined, locale) })}</p>
+          {/* RPE je v súhrne; bez súhrnu (starší zápis) ostáva v riadku s poznámkou */}
+          {((!stats && sessionRpe != null) || sessionNote) && (
+            <p className={styles.doneNote}>
+              {!stats && sessionRpe != null && t("rpeLine", { rpe: sessionRpe })}
+              {!stats && sessionRpe != null && sessionNote && " · "}
+              {sessionNote && <>„{sessionNote}“</>}
+            </p>
+          )}
+
+          {canEdit && editableUntil ? (
+            <>
+              <button type="button" className={styles.editValuesBtn} onClick={() => setEditing(true)}>
+                <PencilIcon /> {t("editValues")}
+              </button>
+              <p className={styles.lockNote}>{t("editUntil", { deadline: formatEditDeadline(editableUntil, undefined, locale) })}</p>
+            </>
+          ) : (
+            <p className={styles.lockNote}>
+              <LockIcon />{" "}
+              {completedAt ? t("lockedOn", { date: formatCompletedDate(completedAt, locale) }) : t("locked")}
+            </p>
+          )}
         </>
-      ) : (
-        <p className={styles.lockNote}>
-          <LockIcon />{" "}
-          {completedAt ? t("lockedOn", { date: formatCompletedDate(completedAt, locale) }) : t("locked")}
-        </p>
       )}
     </>
   );

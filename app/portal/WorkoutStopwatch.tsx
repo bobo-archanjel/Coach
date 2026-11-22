@@ -381,7 +381,7 @@ export function WorkoutStopwatch({ dayId, finished }: { dayId: string; finished:
           <div className={styles.swHead}>
             <p className={styles.swTitle}>{t("stopwatch")}</p>
             <button ref={closeRef} type="button" className={styles.swClose} onClick={closePanel} aria-label={t("close")}>
-              <CloseIcon />
+              <ChevronDownIcon />
             </button>
           </div>
 
@@ -557,8 +557,9 @@ function clampTimer(ms: number): number {
   return Math.min(TIMER_MAX_MS, Math.max(TIMER_MIN_MS, Math.round(ms / 1000) * 1000));
 }
 
-const CloseIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
-    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+/** šípka nadol — panel stopiek sa zbalí späť do ikony (nie „zavrieť“ ako ✕) */
+const ChevronDownIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );

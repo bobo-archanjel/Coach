@@ -54,9 +54,9 @@ test.describe("Builder: akcie dňa a prázdne stavy", () => {
     ]);
   });
 
-  test("tréner: plán bez dní — žiadna karta „Zatiaľ žiadny deň“, len „+ deň“", async ({ page }) => {
+  test("tréner: plán bez dní — žiadna karta „Zatiaľ žiadny deň“, len „+ tréning“", async ({ page }) => {
     await page.goto("/dashboard/treningy/x?preview=builder_empty");
-    await expect(page.getByRole("button", { name: "+ deň" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "+ tréning" })).toBeVisible();
     // karta „Zatiaľ žiadny deň“ zrušená (feature/builder-cleanup) — klik na cvik bez dňa hlási chybu
     await expect(page.getByText("Zatiaľ žiadny deň", { exact: true })).toHaveCount(0);
     await expect(page.getByText(/Pridaj prvý deň/)).toHaveCount(0);
@@ -65,10 +65,10 @@ test.describe("Builder: akcie dňa a prázdne stavy", () => {
   test("klient: deň bez cvikov bez prázdnej karty, karta „Pridať nový cvik“, akcie dňa v jednom riadku", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
-    await expect(page.getByRole("button", { name: "+ deň" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "+ tréning" })).toBeVisible();
     await expect(page.getByText("Zatiaľ žiadny deň", { exact: true })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "+ deň" }).click();
+    await page.getByRole("button", { name: "+ tréning" }).click();
     const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
     await dayDialog.locator("#client-day-name").fill("Push");
     await dayDialog.getByRole("button", { name: "Pridať", exact: true }).click();

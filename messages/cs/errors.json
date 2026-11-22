@@ -38,6 +38,7 @@
     "createFailed": "Klienta se nepodařilo přidat. Zkus to prosím znovu."
   },
   "planLocked": "Klient tento plán celý odcvičil — plán je uzamčený a nedá se upravovat.",
+  "planDoneNotActivatable": "Klient tento plán už celý odcvičil — jako aktivní ho nastavit nejde.",
   "dayLocked": "Tento den je už odcvičený — odcvičený trénink nejde upravovat.",
   "plans": {
     "someSelectedNotYours": "Některý z vybraných klientů nepatří tobě.",

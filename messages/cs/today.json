@@ -34,7 +34,7 @@
   "planFinished": "Plán máš hotový",
   "exercises": "{count, plural, one {# cvik} few {# cviky} other {# cviků}}",
   "allDaysDone": "Odcvičil jsi všechny dny plánu. Další ti připraví trenér — nebo si vytvoř vlastní v sekci Trénink.",
-  "doneToday": "Tento trénink máš dnes hotový — vrátíš se sem kdykoli, dokud je dnešní den",
+  "doneToday": "Tento trénink máš hotový — upravit hodnoty můžeš kdykoli během dnešního dne",
   "emptyNamed": "Plán „{name}“ je zatím prázdný",
   "onTheWay": "Plán je na cestě",
   "noPlan": "Zatím nemáš tréninkový plán",
@@ -113,5 +113,9 @@
     "text": "Tvé tréninky, výživa, deník i zprávy zůstávají uložené — spolupráci jde kdykoli obnovit. Do té doby můžeš aplikaci používat i samostatně.",
     "removedTitle": "Trenér tě odebral ze svého portfolia",
     "removedText": "Tvoje tréninkové plány, jídelníčky, cíl maker i zápisy zůstaly v aplikaci a můžeš ji používat samostatně. S novým trenérem se propojíš kódem v Profilu."
-  }
+  },
+  "otherTodayMeta": "Cviky {done}/{total} · série {sets}",
+  "otherTodayShow": "Zobrazit trénink {name}",
+  "otherTodayHide": "Skrýt trénink {name}",
+  "otherTodayKicker": "Další dnešní trénink"
 }

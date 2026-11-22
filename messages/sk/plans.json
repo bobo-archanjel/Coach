@@ -57,8 +57,8 @@
     "retry": "Skúsiť znova ({count})"
   },
   "builder": {
-    "addDay": "+ deň",
-    "dayPlaceholder": "napr. Deň {n} — Push",
+    "addDay": "+ tréning",
+    "dayPlaceholder": "Tréning {n}",
     "add": "Pridať",
     "cancel": "Zrušiť",
     "deleteDay": "Zmazať deň",
@@ -143,6 +143,6 @@
     "dayDone": "Odcvičené {date}",
     "dayDoneHint": "Klient tento deň už odcvičil — nedá sa upraviť.",
     "dayDoneNoValues": "Klient ukončil tréning bez zapísaných hodnôt.",
-    "defaultDayName": "Deň {n}"
+    "defaultDayName": "Tréning {n}"
   }
 }

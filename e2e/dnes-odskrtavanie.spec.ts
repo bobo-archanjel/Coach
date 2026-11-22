@@ -86,4 +86,94 @@ test.describe("karta Dnes — odškrtávanie sérií a krúžok počas tréningu
     await page.getByRole("button", { name: "Pridať", exact: true }).click();
     await expect(page.locator("[data-superset]")).toHaveCount(0);
   });
+
+  test("šípka nadol zbalí cvik (súhrn sérií), zbalenie prežije refresh", async ({ page }) => {
+    const drep = "Drep s veľkou činkou";
+    for (const n of [1, 2, 3, 4]) await check(page, drep, n).click();
+    await page.getByRole("button", { name: `Zbaliť ${drep}` }).click();
+    const block = page.locator("[data-ex-idx]").first();
+    await expect(block.getByTestId("collapsed-summary")).toHaveText("Série 4/4");
+    await expect(page.getByLabel(`${drep}, séria 1, opakovania`)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: `Rozbaliť ${drep}` })).toHaveAttribute("aria-expanded", "false");
+    // ostatné cviky ostávajú rozbalené
+    await expect(page.getByLabel("Rumunský mŕtvy ťah, séria 1, opakovania")).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator("[data-ex-idx]").first().getByTestId("collapsed-summary")).toHaveText("Série 4/4");
+    await page.getByRole("button", { name: `Rozbaliť ${drep}` }).click();
+    await expect(page.getByLabel(`${drep}, séria 1, opakovania`)).toBeVisible();
+    await expect(page.getByRole("button", { name: `Zbaliť ${drep}` })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("stopky: panel sa zbalí šípkou nadol", async ({ page }) => {
+    await page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ }).click();
+    const panel = page.getByRole("dialog", { name: /Stopky/ });
+    await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Zavrieť", exact: true }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Otvoriť stopky|Otvoriť panel/ })).toBeVisible();
+  });
+});
+
+test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", () => {
+  test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
+
+  test("súhrn (cviky, série, objem, RPE) a cviky sa dajú zbaliť, voľba prežije refresh", async ({ page }) => {
+    await page.goto("/portal?preview=done");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    // náhľad: 4 zapísané cviky z 8 (6 plánu + 2 pridané), 9 sérií, objem 4 594 kg, RPE 8
+    const stats = page.getByTestId("done-stats");
+    await expect(stats).toContainText("4/8");
+    await expect(stats).toContainText(/série\s*9/);
+    await expect(stats).toContainText(/4\s?594 kg/);
+    await expect(stats).toContainText("8/10");
+
+    const toggle = page.getByTestId("done-toggle");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
+    await expect(page.getByText("„Dobrý tréning, koleno OK.“")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveText(/Zobraziť cviky/);
+    await expect(page.getByTestId("completed-exercise")).toHaveCount(0);
+    await expect(stats).toBeVisible();
+    // zbalené: bez poznámky k tréningu a bez „Upraviť hodnoty“
+    await expect(page.getByText("„Dobrý tréning, koleno OK.“")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Upraviť hodnoty/ })).toHaveCount(0);
+    await expect(page.getByText("Tento tréning máš hotový — upraviť hodnoty môžeš kedykoľvek počas dnešného dňa")).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByTestId("done-toggle")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("completed-exercise")).toHaveCount(0);
+    await page.getByTestId("done-toggle").click();
+    await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
+  });
+});
+
+test.describe("karta Dnes — viac tréningov za deň", () => {
+  test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
+
+  test("ďalší dnešný tréning ako samostatná karta pod aktuálnym, rozbalí sa so súhrnom a úpravou", async ({ page }) => {
+    await page.goto("/portal?preview=done");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    const other = page.getByTestId("other-today");
+    await expect(other).toContainText("Ďalší dnešný tréning");
+    // samostatná karta pod kartou aktuálneho tréningu, nie vnorená v nej
+    await expect(page.locator('[data-tour="today-hero"] [data-testid="other-today"]')).toHaveCount(0);
+    const head = other.getByRole("button", { name: "Zobraziť tréning Deň A — Tlak" });
+    await expect(head).toHaveAttribute("aria-expanded", "false");
+    await expect(other).toContainText("Cviky 2/2 · série 5");
+    await expect(other.getByTestId("done-stats")).toHaveCount(0);
+
+    await head.click();
+    await expect(other.getByRole("button", { name: "Skryť tréning Deň A — Tlak" })).toHaveAttribute("aria-expanded", "true");
+    await expect(other.getByTestId("done-stats")).toContainText("2/2");
+    await expect(other.getByTestId("done-stats")).toContainText("7/10");
+    await expect(other.getByText("„Ranný tréning pred prácou.“")).toBeVisible();
+    await expect(other.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
+    // hlavný (posledný) tréning ostáva hore ako doteraz
+    await expect(page.getByTestId("done-stats").first()).toContainText("4/8");
+  });
 });

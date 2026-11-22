@@ -192,6 +192,33 @@ export function comparePlanWithActual(snapshot: PlanSnapshot | null, entries: Lo
   return result;
 }
 
+/** Súhrn odcvičeného tréningu (karta Dnes po uložení): cviky so zápisom / všetky, série, objem. */
+export interface WorkoutStats {
+  exercisesDone: number;
+  exercisesTotal: number;
+  sets: number;
+  /** Σ opakovania × váha (kg) zo sérií, kde sú obe hodnoty */
+  volumeKg: number;
+}
+
+export function workoutStats(exercises: CompareExercise[]): WorkoutStats {
+  let sets = 0;
+  let volumeKg = 0;
+  for (const ex of exercises) {
+    for (const row of ex.rows) {
+      if (!row.actual) continue;
+      sets++;
+      if (row.actual.reps != null && row.actual.weight != null) volumeKg += row.actual.reps * row.actual.weight;
+    }
+  }
+  return {
+    exercisesDone: exercises.filter((e) => e.status !== "skipped").length,
+    exercisesTotal: exercises.length,
+    sets,
+    volumeKg: Math.round(volumeKg),
+  };
+}
+
 /** Porovnanie jedného záznamu pre zobrazenie (CompletedExercises); `hasPlan` false = bez plan_snapshot. */
 export interface CompletedCompare {
   exercises: CompareExercise[];

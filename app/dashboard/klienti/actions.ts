@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { generateProgressSummary } from "@/lib/ai/progressSummary";
 import { dbErr } from "@/lib/dbError";
+import { isPlanLocked } from "@/lib/dashboard/planCompletion";
 
 export interface ActionState {
   error: string | null;
@@ -141,10 +142,12 @@ export async function resumeClientCooperationAction(clientId: string): Promise<A
 /**
  * Tréner zvolí klientovi aktívny tréningový plán — ten riadi kartu Dnes v portáli
  * (RPC set_client_active_plan, 0056: klient musí patriť trénerovi, plán klientovi
- * a byť zverejnený). Klient si ho môže kedykoľvek prepnúť sám.
+ * a byť zverejnený). Klient si ho môže kedykoľvek prepnúť sám. Celý odcvičený plán nie.
  */
 export async function setClientActivePlanAction(clientId: string, planId: string): Promise<ActionState> {
   const supabase = await createClient();
+  // celý odcvičený plán (badge „Hotovo“) už nie je čo cvičiť — aktívnym sa nastaviť nedá
+  if (await isPlanLocked(supabase, planId)) return { error: await tErr("planDoneNotActivatable") };
   const { error } = await supabase.rpc("set_client_active_plan", { p_client_id: clientId, p_plan_id: planId });
   if (error) {
     if (error.message.includes("not_authenticated")) return { error: await tErr("notSignedIn") };
