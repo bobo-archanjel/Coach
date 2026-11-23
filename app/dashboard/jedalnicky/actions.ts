@@ -37,9 +37,10 @@ export async function saveNutritionProfileAction(
 
   if (!clientId) return { error: await tErr("missingClient") };
   if (!SEX_VALUES.includes(sex)) return { error: "Vyber pohlavie." };
-  if (!Number.isFinite(age) || age <= 0 || age >= 120) return { error: await tErr("meals.invalidAge") };
-  if (!Number.isFinite(weightKg) || weightKg <= 0) return { error: await tErr("meals.invalidWeight") };
-  if (!Number.isFinite(heightCm) || heightCm <= 0) return { error: await tErr("meals.invalidHeight") };
+  // hranice zhodné s DB (0004: vek < 120; 0070: váha <= 500, výška <= 300) a s UI
+  if (!Number.isInteger(age) || age < 10 || age > 119) return { error: await tErr("meals.invalidAge") };
+  if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 500) return { error: await tErr("meals.invalidWeight") };
+  if (!Number.isFinite(heightCm) || heightCm < 80 || heightCm > 300) return { error: await tErr("meals.invalidHeight") };
   if (!ACTIVITY_VALUES.includes(activityLevel)) return { error: await tErr("meals.chooseActivity") };
   if (!GOAL_VALUES.includes(goal)) return { error: await tErr("plans.chooseGoal") };
 
