@@ -16,6 +16,9 @@ import { compareLog } from "@/lib/workouts/completed";
 import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
 import { getTrainerExerciseLibrary } from "@/lib/exerciseLibrary";
 import { InfoTip } from "@/app/components/InfoTip";
+import { PlanReviewPanel } from "./PlanReviewPanel";
+import { getPlanReview } from "@/lib/portal/planReviewData";
+import { buildPlanReview } from "@/lib/portal/planReview";
 import styles from "@/app/dashboard/dashboard.module.css";
 
 // i18n-ignore-start — DEV náhľad (vymyslené dáta)
@@ -50,6 +53,8 @@ const PREVIEW_DONE_DAYS: Record<string, DoneDay> = {
 };
 
 // ?preview=builder_done — celý plán odcvičený (uzamknutý): každý deň s výsledkom
+const previewDoneEntries = (d: (typeof PREVIEW_DAYS)[number]) =>
+  d.exercises.map((e) => ({ entryId: e.entry_id, name: e.exercise_name, sets: [{ reps: 10, weight: e.load_kg }, { reps: 9, weight: e.load_kg }, { reps: 8, weight: e.load_kg }] }));
 const PREVIEW_ALL_DONE: Record<string, DoneDay> = Object.fromEntries(
   PREVIEW_DAYS.map((d, i) => [
     d.id,
@@ -59,13 +64,55 @@ const PREVIEW_ALL_DONE: Record<string, DoneDay> = Object.fromEntries(
       rpe: 7,
       note: null,
       editedAt: null,
-      compare: compareLog(
-        { exercises: d.exercises },
-        d.exercises.map((e) => ({ entryId: e.entry_id, name: e.exercise_name, sets: [{ reps: 10, weight: e.load_kg }, { reps: 9, weight: e.load_kg }, { reps: 8, weight: e.load_kg }] })),
-      ),
+      compare: compareLog({ exercises: d.exercises }, previewDoneEntries(d)),
     },
   ]),
 );
+// vyhodnotenie hotového plánu v náhľade: zápisy dní + starší tréning (rekord pri tlakoch nad hlavu)
+function previewReview() {
+  return buildPlanReview({
+    days: PREVIEW_DAYS,
+    logs: [
+      {
+        id: "preview-history",
+        dayId: null,
+        performedOn: "2026-10-20",
+        completedAt: null,
+        rpe: null,
+        note: null,
+        entries: [{ entryId: "old", name: "Tlaky nad hlavu", sets: [{ reps: 10, weight: 35 }] }],
+        planSnapshot: null,
+      },
+      ...PREVIEW_DAYS.map((d, i) => ({
+        id: `preview-log-${d.id}`,
+        dayId: d.id,
+        performedOn: `2026-11-${String(10 + i * 2).padStart(2, "0")}`,
+        completedAt: null,
+        rpe: d.id === "d3" ? 8 : 7,
+        note: d.id === "d3" ? "Zhyby v poslednej sérii už s gumou." : null,
+        entries:
+          d.id === "d3"
+            ? [
+                { entryId: "p20", name: "Zhyby", sets: [{ reps: 10, weight: null }, { reps: 8, weight: null }, { reps: 7, weight: null }] },
+                { entryId: "p21", name: "Veslovanie v predklone", sets: [{ reps: 9, weight: 40 }, { reps: 8, weight: 42.5 }] },
+              ]
+            : previewDoneEntries(d),
+        planSnapshot: { exercises: d.exercises },
+      })),
+    ],
+    nameOf: (_entryId, storedName) => storedName,
+  });
+}
+const toProgressionDays = (days: { id: string; name: string; exercises: unknown }[]) =>
+  days.map((d) => ({
+    id: d.id,
+    name: d.name,
+    exercises: ((Array.isArray(d.exercises) ? d.exercises : []) as WorkoutExerciseEntry[]).map((e) => ({
+      entryId: e.entry_id ?? null,
+      name: e.exercise_name,
+      loadKg: e.load_kg ?? null,
+    })),
+  }));
 
 const PREVIEW_LIBRARY = [
   { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [], equipment: "barbell" },
@@ -127,6 +174,7 @@ export default async function PlanDetailPage({
             <PublishActions planId={planId} published={livePreview} />
           </div>
         )}
+        {donePreview && <PlanReviewPanel planId={planId} review={previewReview()} days={toProgressionDays(PREVIEW_DAYS)} preview />}
         <PlanBuilder
           planId={planId}
           days={preview === "builder_empty" ? [] : PREVIEW_DAYS}
@@ -203,8 +251,12 @@ export default async function PlanDetailPage({
       editedAt: (log.edited_at as string | null) ?? null,
     };
   }
-  // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú plán aj títo
-  const recipients = await listPlanRecipients(supabase, "workout", planId);
+  // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú plán aj títo;
+  // hotový plán: vyhodnotenie (súhrn, rekordy, zistenia, progresia)
+  const [recipients, review] = await Promise.all([
+    listPlanRecipients(supabase, "workout", planId),
+    locked ? getPlanReview(planId) : Promise.resolve(null),
+  ]);
   const t = await getTranslations("plans.builder");
 
   return (
@@ -240,6 +292,9 @@ export default async function PlanDetailPage({
           <PublishActions planId={planId} published={plan.published} recipientCount={recipients.length} />
         </div>
       )}
+
+      {/* Hotový plán: vyhodnotenie nad prehľadom dní + „Zopakovať s progresiou“ (nový koncept). */}
+      {locked && review && <PlanReviewPanel planId={planId} review={review} days={toProgressionDays(days ?? [])} />}
 
       {/* Hotový plán: rovnaký prehľad ako rozpracovaný — dráha dní, pri každom dni dátum
           a plán vs. skutočnosť; nič sa nedá upraviť ani pridať. */}

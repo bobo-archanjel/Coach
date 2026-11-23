@@ -18,6 +18,8 @@ import { PLAN_GOALS } from "@/lib/planGoals";
 import { dbErr } from "@/lib/dbError";
 import { getDayForEdit, isPlanLocked } from "@/lib/dashboard/planCompletion";
 import { tErr } from "@/lib/i18n/serverErrors";
+import { getPlanReview } from "@/lib/portal/planReviewData";
+import { PROGRESSION_OPTIONS, progressLoad } from "@/lib/portal/planReview";
 import { getTranslations } from "next-intl/server";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
@@ -98,6 +100,68 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
 
   revalidatePath("/dashboard/treningy");
   redirect(`/dashboard/treningy/${data.id}`);
+}
+
+/**
+ * „Zopakovať s progresiou“ na hotovom pláne (detail plánu trénera): nový KONCEPT plánu pre
+ * toho istého klienta — rovnaké dni a cviky (nové entry_id, superséria ostáva), záťaž +pct %
+ * pri cvikoch, kde klient pri poslednom tréningu splnil všetky série (getPlanReview → `ready`,
+ * rovnaký výpočet ako vyhodnotenie). Tréner ho potom upraví a odošle ako každý koncept.
+ */
+export async function createProgressedPlanAction(planId: string, pct: number): Promise<ActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: await tErr("notSignedIn") };
+  if (!(PROGRESSION_OPTIONS as readonly number[]).includes(pct)) return { error: await tErr("planNotFound") };
+
+  // RLS: cudzí plán sa nenájde
+  const { data: plan } = await supabase
+    .from("workout_plans")
+    .select("id, name, client_id, trainer_id, workout_days(day_number, name, exercises)")
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .order("day_number", { referencedTable: "workout_days", ascending: true })
+    .maybeSingle();
+  if (!plan) return { error: await tErr("planNotFound") };
+
+  const review = await getPlanReview(planId);
+  const ready = review?.ready ?? {};
+  const tr = await getTranslations("plans.review");
+
+  const { data: created, error } = await supabase
+    .from("workout_plans")
+    .insert({
+      client_id: plan.client_id,
+      trainer_id: user.id,
+      name: tr("repeatName", { name: plan.name as string }).slice(0, 120),
+      published: false,
+    })
+    .select("id")
+    .single();
+  if (error || !created) return { error: error?.message ?? (await tErr("plans.createPlanFailed")) };
+
+  const days = (plan.workout_days ?? []) as { day_number: number; name: string; exercises: unknown }[];
+  const rows = days.map((d) => ({
+    plan_id: created.id,
+    day_number: d.day_number,
+    name: d.name,
+    exercises: ((Array.isArray(d.exercises) ? d.exercises : []) as WorkoutExerciseEntry[]).map((e) => {
+      const base = e.entry_id ? ready[e.entry_id] : undefined;
+      return { ...e, entry_id: randomUUID(), load_kg: base != null ? progressLoad(base, pct) : e.load_kg };
+    }),
+  }));
+  if (rows.length > 0) {
+    const { error: daysErr } = await supabase.from("workout_days").insert(rows);
+    if (daysErr) {
+      await supabase.from("workout_plans").delete().eq("id", created.id);
+      return { error: await dbErr(daysErr, "actions") };
+    }
+  }
+
+  revalidatePath("/dashboard/treningy");
+  redirect(`/dashboard/treningy/${created.id}`);
 }
 
 /**
