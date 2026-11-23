@@ -26,10 +26,6 @@ export default function PrivacyCs() {
       </p>
 
       <h2>2. Jaké údaje zpracováváme</h2>
-      <p>
-        Pokud se přihlásíš na čekací listinu: jméno a e-mailová adresa, případně informace, zda jsi trenér
-        nebo jednotlivec, a co jsi nám dobrovolně napsal do poznámky.
-      </p>
       <p>Pokud jsi registrovaný uživatel aplikace: přihlašovací údaje (e-mail, zahashované heslo) a podle role:</p>
       <ul>
         <li><strong>Trenér:</strong> jméno, e-mail, seznam klientů a vztahy s nimi.</li>
@@ -53,10 +49,6 @@ export default function PrivacyCs() {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Zařazení na čekací listinu a informování o spuštění</td>
-            <td>Tvůj souhlas (čl. 6 odst. 1 písm. a) GDPR)</td>
-          </tr>
           <tr>
             <td>Poskytování aplikace registrovaným uživatelům</td>
             <td>Plnění smlouvy (čl. 6 odst. 1 písm. b) GDPR)</td>
@@ -96,7 +88,6 @@ export default function PrivacyCs() {
 
       <h2>6. Jak dlouho údaje uchováváme</h2>
       <ul>
-        <li>Údaje z čekací listiny uchováváme do spuštění aplikace nebo do tvého odhlášení, podle toho, co nastane dříve.</li>
         <li>Údaje aktivního účtu uchováváme po celou dobu jeho existence.</li>
         <li>
           Pokud požádáš o smazání účtu (trenér i klient mají tuto možnost přímo v aplikaci), data natrvalo
@@ -112,7 +103,7 @@ export default function PrivacyCs() {
         <li>Výmaz údajů („právo být zapomenut“) — v aplikaci přímo dostupné, trenér i klient si mohou o výmaz požádat sami</li>
         <li>Přenositelnost údajů ve strojově čitelném formátu</li>
         <li>Vznesení námitky proti zpracování založenému na oprávněném zájmu</li>
-        <li>Odvolání souhlasu kdykoli (např. odhlášení z čekací listiny)</li>
+        <li>Odvolání souhlasu kdykoli (tam, kde zpracování stojí na souhlasu)</li>
       </ul>
       <p>
         Svá práva můžeš uplatnit na <span className={styles.placeholder}>[kontaktní e-mail]</span>. Pokud si

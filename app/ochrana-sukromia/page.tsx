@@ -9,7 +9,7 @@ export const generateMetadata = () => legalMetadata("privacy");
 /**
  * 2026-09-22 — nahradené kompletným návrhom (zásady ochrany osobných údajov
  * prispôsobené FitPilotu: Supabase, Anthropic/Claude API, budúci Stripe,
- * waitlist štádium, role tréner/klient). Nie je to právne záväzný text od
+ * role tréner/klient; čakacia listina odstránená v 0070). Nie je to právne záväzný text od
  * právnika — pozri draftNotice aj PLACEHOLDER polia, ktoré treba pred
  * zverejnením doplniť (žlto zvýraznené). feature/cestina: text v jazyku
  * používateľa (content.sk.tsx / content.cs.tsx).

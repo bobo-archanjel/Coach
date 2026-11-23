@@ -72,9 +72,8 @@ export async function addClientAction(
     return { error: await tErr("addClient.nameRequired") };
   }
 
-  // Voliteľné základné údaje — na rozdiel od nutrition_profiles (0004) nie sú
-  // povinné ani validované na rozsah v appke, len na DB check constraint
-  // (0009_client_basics.sql); prázdne pole = null, nie 0.
+  // Voliteľné základné údaje (0009_client_basics.sql); prázdne pole = null, nie 0.
+  // Zadaná hodnota sa overí na rozsah (rovnaké hranice ako výživový profil).
   const parseOptionalNumber = (key: string) => {
     const raw = (formData.get(key) as string | null)?.trim();
     if (!raw) return null;
@@ -84,6 +83,9 @@ export async function addClientAction(
   const age = parseOptionalNumber("age");
   const weightKg = parseOptionalNumber("weight_kg");
   const heightCm = parseOptionalNumber("height_cm");
+  if (age !== null && (!Number.isInteger(age) || age < 10 || age > 119)) return { error: await tErr("meals.invalidAge") };
+  if (weightKg !== null && (weightKg < 20 || weightKg > 500)) return { error: await tErr("meals.invalidWeight") };
+  if (heightCm !== null && (heightCm < 80 || heightCm > 300)) return { error: await tErr("meals.invalidHeight") };
 
   // invite_code sa NEzadáva: generuje ho DB (default gen_client_code(), 80 bitov z CSPRNG,
   // migrácia 0036). Predtým ho tu skladal Math.random() z iniciálok mena (predvídateľný,

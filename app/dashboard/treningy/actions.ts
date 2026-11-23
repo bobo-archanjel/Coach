@@ -22,6 +22,7 @@ import { getPlanReview } from "@/lib/portal/planReviewData";
 import { PROGRESSION_OPTIONS, progressLoad } from "@/lib/portal/planReview";
 import { getTranslations } from "next-intl/server";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
+import { clampInt, optionalNum } from "@/lib/workouts/clamp";
 import { nextEntryDefaults } from "@/lib/workouts/nextEntryDefaults";
 import { detachFromSuperset, normalizeSupersets, toggleLinkWithNext } from "@/lib/workouts/superset";
 
@@ -236,7 +237,7 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
 
   const { error } = await supabase.from("workout_days").insert({
     plan_id: planId,
-    day_number: Number.isFinite(dayNumber) ? dayNumber : 1,
+    day_number: clampInt(dayNumber, 1, 100, 1),
     name,
     exercises: [],
   });
@@ -486,11 +487,12 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
     entry.entry_id === entryId
       ? {
           ...entry,
-          sets,
-          reps,
-          load_kg: loadRaw ? Number(loadRaw) : null,
+          // hranice rovnako ako pri vlastnom pláne klienta (app/portal/trening/actions.ts)
+          sets: clampInt(sets, 1, 20, 3),
+          reps: reps.slice(0, 20),
+          load_kg: optionalNum(loadRaw, 0, 1000),
           tempo,
-          rest_seconds: restRaw ? Number(restRaw) : null,
+          rest_seconds: restRaw ? clampInt(restRaw, 0, 3600, 0) : null,
         }
       : entry
   );
@@ -681,7 +683,7 @@ async function parseAiPlanParams(raw: AiPlanParams): Promise<ValidAiPlanParams |
   if (!raw.goal || !PLAN_GOALS.includes(raw.goal as PlanGoal)) return { error: await tErr("plans.chooseGoal") };
   if (!raw.experience || !PLAN_EXPERIENCES.includes(raw.experience as PlanExperience)) return { error: await tErr("plans.chooseExperience") };
   if (!raw.equipment || !PLAN_EQUIPMENT.includes(raw.equipment as PlanEquipment)) return { error: await tErr("plans.chooseEquipment") };
-  if (!singleDay && (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7)) {
+  if (!singleDay && (!Number.isInteger(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7)) {
     return { error: await tErr("plans.daysRange") };
   }
   return {

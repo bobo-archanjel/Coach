@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { isCompleteSignupCode, normalizeSignupCode, SIGNUP_CODE_LENGTH } from "@/lib/auth/signupCode";
+import { useTurnstile } from "../components/Turnstile";
 import { resendSignupCodeAction, verifySignupCodeAction } from "./actions";
 import styles from "./auth.module.css";
 
@@ -37,6 +38,7 @@ export function VerifyCodeStep({
   email,
   mode,
   initialCooldown = RESEND_COOLDOWN,
+  autoSend = false,
   preview = false,
   onResent,
   onVerified,
@@ -46,6 +48,8 @@ export function VerifyCodeStep({
   /** „register“ = práve sa zaregistroval, „login“ = prihlásenie s neovereným e-mailom */
   mode: "register" | "login";
   initialCooldown?: number;
+  /** kód ešte neodišiel (prihlásenie s neovereným e-mailom) — pošle sa hneď po mounte */
+  autoSend?: boolean;
   /** DEV náhľad — bez servera: kód 123456 je správny, nový kód sa „pošle“ len naoko */
   preview?: boolean;
   onResent?: () => void;
@@ -60,6 +64,8 @@ export function VerifyCodeStep({
   // posledný odoslaný kód — automatické odoslanie ten istý zlý kód neposiela dookola
   const lastSubmitted = useRef<string | null>(null);
 
+  // vlastný (nenápadný) Turnstile widget — „Poslať znova“ potrebuje čerstvý jednorazový token
+  const turnstile = useTurnstile({ invisible: true });
   const [cooldown, setCooldown] = useState(initialCooldown);
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -111,11 +117,14 @@ export function VerifyCodeStep({
   async function handleResend() {
     if (cooldown > 0 || resending) return;
     setResending(true);
+    // token dodá widget; ak ešte nie je hotový, krátko počkáme (vývoj bez widgetu: pošle sa bez neho)
+    const captchaToken = preview ? "" : await turnstile.waitForToken();
+    turnstile.reset(); // spotrebuje ho Supabase — widget vydá nový na ďalšie poslanie
     setError(null);
     setResent(false);
     const res = preview
       ? { error: null, cooldown: RESEND_COOLDOWN }
-      : await resendSignupCodeAction(email).catch(() => ({ error: t("resendFailed"), cooldown: 0 }));
+      : await resendSignupCodeAction(email, captchaToken).catch(() => ({ error: t("resendFailed"), cooldown: 0 }));
     setResending(false);
     setCooldown(res.cooldown);
     if (res.error) {
@@ -128,6 +137,15 @@ export function VerifyCodeStep({
     onResent?.();
     inputRef.current?.focus();
   }
+
+  // prvé poslanie kódu po prihlásení s neovereným e-mailom (token z prihlásenia je už spotrebovaný)
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (!autoSend || autoSent.current) return;
+    autoSent.current = true;
+    void handleResend();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSend]);
 
   const busy = status !== "idle";
 
@@ -207,6 +225,7 @@ export function VerifyCodeStep({
         </button>
       </div>
       <p className={styles.verifyHint}>{t("spam")}</p>
+      <div ref={turnstile.containerRef} className={styles.verifyTurnstile} />
     </section>
   );
 }

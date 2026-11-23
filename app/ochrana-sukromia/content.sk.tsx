@@ -26,10 +26,6 @@ export default function PrivacySk() {
       </p>
 
       <h2>2. Aké údaje spracúvame</h2>
-      <p>
-        Ak sa prihlásiš na čakaciu listinu: meno a e-mailová adresa, prípadne informácia, či si tréner
-        alebo jednotlivec, a čo si nám dobrovoľne napísal do poznámky.
-      </p>
       <p>Ak si zaregistrovaný používateľ appky: prihlasovacie údaje (e-mail, zahashované heslo), a podľa role:</p>
       <ul>
         <li><strong>Tréner:</strong> meno, e-mail, zoznam klientov a vzťahy s nimi.</li>
@@ -53,10 +49,6 @@ export default function PrivacySk() {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Zaradenie na čakaciu listinu a informovanie o spustení</td>
-            <td>Tvoj súhlas (čl. 6 ods. 1 písm. a) GDPR)</td>
-          </tr>
           <tr>
             <td>Poskytovanie appky zaregistrovaným používateľom</td>
             <td>Plnenie zmluvy (čl. 6 ods. 1 písm. b) GDPR)</td>
@@ -96,7 +88,6 @@ export default function PrivacySk() {
 
       <h2>6. Ako dlho údaje uchovávame</h2>
       <ul>
-        <li>Údaje z čakacej listiny uchovávame do spustenia appky alebo do tvojho odhlásenia sa, podľa toho, čo nastane skôr.</li>
         <li>Údaje aktívneho účtu uchovávame po celú dobu jeho existencie.</li>
         <li>
           Ak požiadaš o vymazanie účtu (tréner aj klient majú túto možnosť priamo v appke), dáta
@@ -112,7 +103,7 @@ export default function PrivacySk() {
         <li>Vymazanie údajov („právo na zabudnutie“) — v appke priamo dostupné, tréner aj klient si vedia vymazanie požiadať sami</li>
         <li>Prenositeľnosť údajov v strojovo čitateľnom formáte</li>
         <li>Namietanie proti spracúvaniu založenému na oprávnenom záujme</li>
-        <li>Odvolanie súhlasu kedykoľvek (napr. odhlásenie z čakacej listiny)</li>
+        <li>Odvolanie súhlasu kedykoľvek (tam, kde spracúvanie stojí na súhlase)</li>
       </ul>
       <p>
         Svoje práva môžeš uplatniť na <span className={styles.placeholder}>[kontaktný e-mail]</span>. Ak

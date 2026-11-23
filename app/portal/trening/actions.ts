@@ -13,6 +13,7 @@ import type { ExerciseOption } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
 import { deleteWorkoutTemplate, saveOwnPlanAsTemplate } from "@/lib/templates";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
+import { clampInt, optionalNum } from "@/lib/workouts/clamp";
 import { cleanSupersetId, normalizeSupersets } from "@/lib/workouts/superset";
 
 /* Vlastný tréning klienta — vytvorenie / úprava / zmazanie / prepnutie aktívneho.
@@ -97,19 +98,6 @@ type CleanEntry = {
   tempo: string | null;
   superset: string | null;
 };
-
-function clampInt(v: unknown, min: number, max: number, fallback: number): number {
-  const n = typeof v === "number" ? v : Number(v);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.min(max, Math.max(min, Math.round(n)));
-}
-
-function optionalNum(v: unknown, min: number, max: number): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  const n = typeof v === "number" ? v : Number(v);
-  if (!Number.isFinite(n)) return null;
-  return Math.min(max, Math.max(min, n));
-}
 
 function cleanText(v: unknown, max: number): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";

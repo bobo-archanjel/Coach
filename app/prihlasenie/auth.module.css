@@ -605,3 +605,10 @@
   font-size: 12.5px;
   color: var(--paper-faint);
 }
+
+/* nenápadný Turnstile widget v kroku s kódom — zaberá miesto len keď Cloudflare žiada interakciu */
+.verifyTurnstile {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
