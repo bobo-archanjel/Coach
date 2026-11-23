@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { sessionLogin, userIdByEmail } from "./helpers/sessionLogin";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -170,12 +171,11 @@ test.describe("náhľad hotového plánu — reálna DB", () => {
     await admin.from("workout_plans").delete().in("id", planIds);
   });
 
-  test("vyhodnotenie z reálnych zápisov: rekord oproti staršiemu plánu, návrh progresie, Zopakovať", async ({ page }, testInfo) => {
+  test("vyhodnotenie z reálnych zápisov: rekord oproti staršiemu plánu, návrh progresie, Zopakovať", async ({ page, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     test.setTimeout(120_000);
     admin = createClient(env.url!, env.serviceRole!, AUTH);
-    const anon = createClient(env.url!, env.anon!, AUTH);
-    const { data: auth } = await anon.auth.signInWithPassword({ email: env.clientEmail!, password: env.clientPassword! });
+    const auth = { user: { id: await userIdByEmail(env.clientEmail!) } };
     const { data: client } = await admin.from("clients").select("id").eq("user_id", auth.user!.id).limit(1).single();
     const stamp = Date.now();
     const exName = `E2E Drep ${stamp}`;
@@ -216,11 +216,8 @@ test.describe("náhľad hotového plánu — reálna DB", () => {
     const done = await mkPlan(`E2E Hotový vlastný ${stamp}`, `new${stamp}`);
     await log(done, `new${stamp}`, "2026-01-12", 50, 7, "E2E dobrý tréning");
 
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.clientEmail!);
-    await page.locator("#login-password").fill(env.clientPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/portal/, { timeout: 30_000 });
+    // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+    await sessionLogin(page, env.clientEmail!, baseURL!);
     await page.goto("/portal/trening");
 
     await page.getByRole("button", { name: new RegExp(`E2E Hotový vlastný ${stamp}`) }).click();
@@ -298,13 +295,12 @@ test.describe("tréner: zopakovať s progresiou — reálna DB", () => {
     await admin.from("workout_plans").delete().in("id", planIds);
   });
 
-  test("hotový plán → +10 % → nový koncept pre klienta s vyššou záťažou", async ({ page }, testInfo) => {
+  test("hotový plán → +10 % → nový koncept pre klienta s vyššou záťažou", async ({ page, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     test.setTimeout(120_000);
     admin = createClient(env.url!, env.serviceRole!, AUTH);
-    const anon = createClient(env.url!, env.anon!, AUTH);
-    const { data: tr } = await anon.auth.signInWithPassword({ email: trainerEnv.email!, password: trainerEnv.password! });
-    const { data: cl } = await anon.auth.signInWithPassword({ email: env.clientEmail!, password: env.clientPassword! });
+    const tr = { user: { id: await userIdByEmail(trainerEnv.email!) } };
+    const cl = { user: { id: await userIdByEmail(env.clientEmail!) } };
     const { data: client } = await admin.from("clients").select("id").eq("user_id", cl.user!.id).limit(1).single();
     const stamp = Date.now();
     const name = `E2E Progresia tréner ${stamp}`;
@@ -333,11 +329,8 @@ test.describe("tréner: zopakovať s progresiou — reálna DB", () => {
       ],
     });
 
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(trainerEnv.email!);
-    await page.locator("#login-password").fill(trainerEnv.password!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+    await sessionLogin(page, trainerEnv.email!, baseURL!);
     await page.goto(`/dashboard/treningy/${plan!.id}`);
 
     const panel = page.getByTestId("trainer-plan-review");

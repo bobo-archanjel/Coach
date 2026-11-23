@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { sessionLogin, userIdByEmail } from "./helpers/sessionLogin";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -76,13 +77,12 @@ test.describe("hotový plán — reálna DB", () => {
     }
   });
 
-  test("celý odcvičený plán: prehľad dní s výsledkami", async ({ page }, testInfo) => {
+  test("celý odcvičený plán: prehľad dní s výsledkami", async ({ page, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     test.setTimeout(120_000);
     admin = createClient(env.url!, env.serviceRole!, AUTH);
-    const anon = createClient(env.url!, env.anon!, AUTH);
-    const { data: t } = await anon.auth.signInWithPassword({ email: env.trainerEmail!, password: env.trainerPassword! });
-    const { data: c } = await anon.auth.signInWithPassword({ email: env.clientEmail!, password: env.clientPassword! });
+    const t = { user: { id: await userIdByEmail(env.trainerEmail!) } };
+    const c = { user: { id: await userIdByEmail(env.clientEmail!) } };
     const { data: client } = await admin.from("clients").select("id").eq("user_id", c.user!.id).limit(1).single();
     const { data: plan } = await admin
       .from("workout_plans")
@@ -109,11 +109,8 @@ test.describe("hotový plán — reálna DB", () => {
       });
     }
 
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.trainerEmail!);
-    await page.locator("#login-password").fill(env.trainerPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+    await sessionLogin(page, env.trainerEmail!, baseURL!);
     await page.goto(`/dashboard/treningy/${planId}`);
 
     await expect(page.getByText("Hotovo", { exact: true }).first()).toBeVisible();
@@ -147,11 +144,8 @@ test.describe("hotový plán — reálna DB", () => {
     await admin.from("clients").update({ active_plan_id: otherPlanId, active_day_id: null }).eq("id", client!.id);
 
     await page.context().clearCookies();
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.clientEmail!);
-    await page.locator("#login-password").fill(env.clientPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/portal/, { timeout: 30_000 });
+    // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+    await sessionLogin(page, env.clientEmail!, baseURL!);
 
     const doneName = (await admin.from("workout_plans").select("name").eq("id", planId).single()).data!.name as string;
     await page.goto("/portal/trening");

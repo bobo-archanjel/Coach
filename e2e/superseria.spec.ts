@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { sessionLogin, userIdByEmail } from "./helpers/sessionLogin";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -115,19 +116,15 @@ test.describe("superséria — reálna DB", () => {
     if (admin && cleanup.plans.length) await admin.from("workout_plans").delete().in("id", cleanup.plans);
   });
 
-  async function login(page: Page, email: string, password: string, to: RegExp) {
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(email);
-    await page.locator("#login-password").fill(password);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(to, { timeout: 30_000 });
+  // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+  async function login(page: Page, email: string) {
+    await sessionLogin(page, email, test.info().project.use.baseURL!);
   }
 
   test("tréner: spojenie reťazou sa uloží do plánu", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     admin = createClient(env.url!, env.serviceRole!, AUTH);
-    const api = createClient(env.url!, env.anon!, AUTH);
-    const { data: auth } = await api.auth.signInWithPassword({ email: env.trainerEmail!, password: env.trainerPassword! });
+    const auth = { user: { id: await userIdByEmail(env.trainerEmail!) } };
     const trainerId = auth.user!.id;
     const { data: client } = await admin.from("clients").select("id").eq("trainer_id", trainerId).limit(1).single();
     const { data: plan } = await admin
@@ -143,7 +140,7 @@ test.describe("superséria — reálna DB", () => {
       .select("id")
       .single();
 
-    await login(page, env.trainerEmail!, env.trainerPassword!, /\/dashboard/);
+    await login(page, env.trainerEmail!);
     await page.goto(`/dashboard/treningy/${plan!.id}`);
     await page.getByRole("button", { name: "Spojiť cviky E2E Zhyby a E2E Kliky do supersérie" }).click();
     await expect(tag(page, "E2E Zhyby")).toHaveAttribute("data-superset", "A1");
@@ -160,7 +157,7 @@ test.describe("superséria — reálna DB", () => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     admin = createClient(env.url!, env.serviceRole!, AUTH);
     const name = `E2E superséria klient ${Date.now()}`;
-    await login(page, env.clientEmail!, env.clientPassword!, /\/portal/);
+    await login(page, env.clientEmail!);
     await page.goto("/portal/trening");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
     await page.getByLabel("Názov tréningového plánu").fill(name);
