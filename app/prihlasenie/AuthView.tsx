@@ -44,6 +44,8 @@ interface PendingVerify {
   mode: "register" | "login";
   /** kedy odišiel posledný kód (ms) — odpočet „Poslať znova“ po refreshi pokračuje */
   sentAt: number;
+  /** kód ešte neodišiel (prihlásenie s neovereným e-mailom) — krok ho pošle sám s čerstvým CAPTCHA tokenom */
+  unsent?: boolean;
 }
 /** kód platí 1 h (Supabase „Email OTP Expiration“) — staršie rozpracované overenie neobnovíme */
 const VERIFY_MAX_AGE_MS = 60 * 60 * 1000;
@@ -56,7 +58,7 @@ function readPendingVerify(): PendingVerify | null {
     const v = JSON.parse(raw) as Partial<PendingVerify>;
     if (typeof v.email !== "string" || typeof v.sentAt !== "number") return null;
     if (Date.now() - v.sentAt > VERIFY_MAX_AGE_MS) return null;
-    return { email: v.email, mode: v.mode === "login" ? "login" : "register", sentAt: v.sentAt };
+    return { email: v.email, mode: v.mode === "login" ? "login" : "register", sentAt: v.sentAt, unsent: v.unsent === true };
   } catch {
     return null;
   }
@@ -192,11 +194,6 @@ export function AuthView() {
       ? "success"
       : "idle";
   const loginError = loginState.error;
-  // Token je jednorazový — po neúspechu treba nový na ďalší pokus.
-  useEffect(() => {
-    if (loginError) loginTurnstile.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginError]);
   const loginLoadingText = useLoadingMessage(loginStatus === "loading", [
     t("loggingIn"),
     t("verifying"),
@@ -255,12 +252,15 @@ export function AuthView() {
 
     const fd = new FormData(form);
     fd.set("turnstile_token", loginTurnstile.getToken());
+    // token je jednorazový (spotrebuje ho Supabase) — widget hneď vydá nový na ďalší pokus
+    loginTurnstile.reset();
     startTransition(() => loginFormAction(fd));
   }
 
   // ---- zabudnuté heslo ----
   const [forgotOpen, setForgotOpen] = useState(false);
   const forgotFormRef = useRef<HTMLFormElement>(null);
+  const forgotTurnstile = useTurnstile();
   const [forgotInvalid, setForgotInvalid] = useState(false);
   const [forgotStatus, setForgotStatus] = useState<"idle" | "loading" | "success">("idle");
   const [forgotError, setForgotError] = useState<string | null>(null);
@@ -288,14 +288,23 @@ export function AuthView() {
     setForgotStatus("loading");
     // e-mail v jazyku zvolenom na webe; zlyhanie nevadí — e-mail príde v jazyku účtu
     await syncRecoveryLocaleAction(emailEl.value).catch(() => {});
+    // Supabase Auth má zapnutú CAPTCHA — čerstvý jednorazový token ide priamo do Supabase
+    const captchaToken = forgotTurnstile.getToken();
+    forgotTurnstile.reset();
     const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value, {
       redirectTo: `${window.location.origin}/prihlasenie/nove-heslo`,
+      ...(captchaToken ? { captchaToken } : {}),
     });
     // Supabase úmyselne nehlási, či e-mail v systéme existuje (ochrana pred
     // enumeráciou účtov) — správa je preto vždy rovnaká, aj pri chybe siete
     // necháme používateľa skúsiť znova cez formError, ale neprezrádzame existenciu.
     if (error) {
       const msg = error.message.toLowerCase();
+      if (error.code === "captcha_failed" || msg.includes("captcha")) {
+        setForgotStatus("idle");
+        setForgotError(t("errors.captcha"));
+        return;
+      }
       // 429 „For security purposes, you can only request this after N seconds“ = na tento
       // e-mail odišiel odkaz pred chvíľou — rovnaká neutrálna správa ako pri úspechu
       // (neprezradí, či účet existuje) a odpočet do ďalšieho pokusu.
@@ -340,10 +349,6 @@ export function AuthView() {
       : "idle";
   const registerError = registerClientError ?? registerState.error;
   const registerNeedsConfirm = registerState.needsConfirm;
-  useEffect(() => {
-    if (registerError) registerTurnstile.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [registerError]);
   // "/portal"/"/dashboard" zo servera — po prihlásení existuje len nový dizajn.
   const registerTarget = registerState.redirectTo ?? null;
   useEffect(() => {
@@ -358,7 +363,7 @@ export function AuthView() {
   const [verifyPreview, setVerifyPreview] = useState(false);
   function openVerify(v: PendingVerify) {
     const elapsed = Math.floor((Date.now() - v.sentAt) / 1000);
-    setVerify({ ...v, cooldown: Math.max(0, RESEND_COOLDOWN - elapsed) });
+    setVerify({ ...v, cooldown: v.unsent ? 0 : Math.max(0, RESEND_COOLDOWN - elapsed) });
     writePendingVerify(v);
     window.history.replaceState(null, "", `${window.location.pathname}?overenie=1`);
   }
@@ -388,7 +393,7 @@ export function AuthView() {
   }, [registerState]);
   useEffect(() => {
     if (loginState.needsCode && loginState.email)
-      openVerify({ email: loginState.email, mode: "login", sentAt: Date.now() });
+      openVerify({ email: loginState.email, mode: "login", sentAt: Date.now(), unsent: loginState.sendCode === true });
   }, [loginState]);
   // Živý ukazovateľ sily hesla (feature/optimalizacia, security audit) — kontext
   // (meno/e-mail) sa reálne vyhodnocuje až pri submite (handleRegisterSubmit má
@@ -452,6 +457,7 @@ export function AuthView() {
     const fd = new FormData(form);
     fd.set("role", registerRole);
     fd.set("turnstile_token", registerTurnstile.getToken());
+    registerTurnstile.reset(); // jednorazový token — viď prihlásenie
     startTransition(() => registerFormAction(fd));
   }
 
@@ -533,6 +539,7 @@ export function AuthView() {
               email={verify.email}
               mode={verify.mode}
               initialCooldown={verify.cooldown}
+              autoSend={verify.unsent === true}
               preview={verifyPreview}
               onResent={() => !verifyPreview && writePendingVerify({ email: verify.email, mode: verify.mode, sentAt: Date.now() })}
               onVerified={(to) => {
@@ -726,6 +733,8 @@ export function AuthView() {
                       </span>
                     )}
                   </div>
+
+                  <div ref={forgotTurnstile.containerRef} className={styles.turnstile} />
 
                   <button
                     type="submit"

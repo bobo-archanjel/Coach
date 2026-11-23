@@ -28,7 +28,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/lib/legal/terms";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
-import { verifyTurnstile, isHoneypotTripped } from "@/lib/turnstile";
+import { isHoneypotTripped } from "@/lib/turnstile";
 import { checkPassword } from "@/lib/passwordStrength";
 import { getTranslations } from "next-intl/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
@@ -39,6 +39,8 @@ export interface LoginState {
   redirectTo: string | null;
   /** správne heslo, ale neoverený e-mail — poslali sme nový kód, appka ukáže krok s kódom */
   needsCode?: boolean;
+  /** kód ešte NEodišiel — krok s kódom ho pošle sám (čerstvý CAPTCHA token) */
+  sendCode?: boolean;
   email?: string;
 }
 
@@ -76,6 +78,35 @@ async function authErrors() {
   };
 }
 
+/**
+ * Supabase e-mail NEODOSLAL (SMTP odmietol prihlásenie, výpadok poskytovateľa…) — GoTrue vráti
+ * 5xx / „Error sending … email“. Na rozdiel od 429 (kód práve odišiel) nesmie appka tvrdiť,
+ * že kód poslala: chyba ide do logu servera a používateľ dostane pravdivú hlášku.
+ */
+function isEmailSendFailure(error: { status?: number; message?: string } | null): boolean {
+  if (!error) return false;
+  if (typeof error.status === "number" && error.status >= 500) return true;
+  return /error sending|smtp|failed to send/i.test(error.message ?? "");
+}
+
+/**
+ * Supabase Auth má zapnutú CAPTCHA (Attack Protection → Turnstile): GoTrue overuje token
+ * SÁM, preto ho appka už NEoveruje cez siteverify (token je jednorazový — overenie u nás by
+ * ho spotrebovalo) a len ho prepošle v `options.captchaToken`. Chránené sú token (heslo),
+ * signup, recover, resend a otp; verify (kód z e-mailu) nie. Bez tokenu (vývoj bez widgetu)
+ * sa pošle bez captchaToken — ak je CAPTCHA zapnutá, Supabase vráti `captcha_failed`.
+ */
+function captchaOptions(raw: unknown): { captchaToken?: string } {
+  const token = typeof raw === "string" ? raw.trim() : "";
+  return token && token.length <= 4096 ? { captchaToken: token } : {};
+}
+
+/** Supabase odmietol CAPTCHA (chýbajúci/spotrebovaný/neplatný token). */
+function isCaptchaFailure(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "captcha_failed" || /captcha/i.test(error.message ?? "");
+}
+
 const MAX_PER_EMAIL = 10;
 const MAX_PER_EMAIL_AND_IP = 5;
 const MAX_PER_IP = 30;
@@ -104,9 +135,7 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   if (email.length > MAX_INPUT_LENGTH || password.length > 1024) return { error: GENERIC_ERROR, redirectTo: null };
 
   const ip = await clientIp();
-  const turnstileToken = (formData.get("turnstile_token") as string | null) ?? "";
-  const turnstile = await verifyTurnstile(turnstileToken, ip === "unknown" ? null : ip);
-  if (!turnstile.ok) return { error: CAPTCHA_ERROR, redirectTo: null };
+  const captcha = captchaOptions(formData.get("turnstile_token"));
 
   const supabase = await createClient();
 
@@ -135,12 +164,14 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
     }
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: captcha });
+  // CAPTCHA zamietnutá — nie je to zlý pokus o heslo (nezapisuje sa do lockoutu).
+  if (isCaptchaFailure(error)) return { error: CAPTCHA_ERROR, redirectTo: null };
   // Neoverený e-mail: Supabase to hlási len pri SPRÁVNOM hesle — nie je to zlý pokus.
-  // Pošleme nový kód a appka ukáže krok s kódom (overenie e-mailu prihlási).
+  // Token z prihlásenia je už spotrebovaný, nový kód preto NEposielame tu: appka otvorí
+  // krok s kódom (`sendCode`) a ten kód pošle (auth.resend) s čerstvým tokenom z vlastného widgetu.
   if (error && (error.code === "email_not_confirmed" || /email not confirmed/i.test(error.message))) {
-    await supabase.auth.resend({ type: "signup", email });
-    return { error: null, redirectTo: null, needsCode: true, email };
+    return { error: null, redirectTo: null, needsCode: true, sendCode: true, email };
   }
   if (error) {
     if (admin) {
@@ -228,19 +259,18 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
     };
   }
 
-  const ip = await clientIp();
-  const turnstileToken = (formData.get("turnstile_token") as string | null) ?? "";
-  const turnstile = await verifyTurnstile(turnstileToken, ip === "unknown" ? null : ip);
-  if (!turnstile.ok) return { error: CAPTCHA_ERROR, redirectTo: null, needsConfirm: false };
-
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     // locale: jazyk profilu (0059, handle_new_user) aj potvrdzovacieho e-mailu (docs/email-templates)
     // terms_version: súhlas s touto verziou podmienok (0063, handle_new_user ho zapíše do profilu)
-    options: { data: { full_name: name, role, locale: await getUserLocale(), terms_version: TERMS_VERSION } },
+    options: {
+      data: { full_name: name, role, locale: await getUserLocale(), terms_version: TERMS_VERSION },
+      ...captchaOptions(formData.get("turnstile_token")),
+    },
   });
+  if (isCaptchaFailure(error)) return { error: CAPTCHA_ERROR, redirectTo: null, needsConfirm: false };
   // E-mail už má účet: s potvrdzovaním e-mailu Supabase nevráti chybu, ale „falošného“
   // používateľa bez identít (ochrana pred zisťovaním účtov) — appka by ukázala „skontroluj
   // si e-mail“. Bez potvrdzovania príde chyba „User already registered“. Oboje = jasná hláška.
@@ -249,6 +279,10 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
     (!error && data.user && (data.user.identities?.length ?? 1) === 0);
   if (emailTaken) {
     return { error: EMAIL_IN_USE_ERROR, redirectTo: null, needsConfirm: false };
+  }
+  if (isEmailSendFailure(error)) {
+    console.error("registerAction: overovací e-mail sa nepodarilo odoslať:", error?.status, error?.message);
+    return { error: (await getTranslations("auth.verify"))("sendFailed"), redirectTo: null, needsConfirm: false };
   }
   if (error) {
     const msg = error.message.toLowerCase();
@@ -317,7 +351,7 @@ export async function verifySignupCodeAction(rawEmail: string, rawCode: string):
  * na jeden e-mail najviac jeden kód za minútu (429 „after N seconds“ → odpočet), navyše
  * najviac MAX_RESEND_PER_EMAIL za 15 minút (lockout počítadlo).
  */
-export async function resendSignupCodeAction(rawEmail: string): Promise<ResendCodeState> {
+export async function resendSignupCodeAction(rawEmail: string, rawCaptchaToken?: string): Promise<ResendCodeState> {
   const t = await getTranslations("auth.verify");
   const email = (typeof rawEmail === "string" ? rawEmail : "").trim().toLowerCase();
   if (!email || email.length > MAX_INPUT_LENGTH) return { error: t("resendFailed"), cooldown: 0 };
@@ -331,11 +365,16 @@ export async function resendSignupCodeAction(rawEmail: string): Promise<ResendCo
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.resend({ type: "signup", email });
+  const { error } = await supabase.auth.resend({ type: "signup", email, options: captchaOptions(rawCaptchaToken) });
   if (error) {
+    if (isCaptchaFailure(error)) return { error: (await getTranslations("auth.errors"))("captcha"), cooldown: 0 };
     const wait = error.message.match(/after (\d+) seconds?/);
     if (error.status === 429 && wait) return { error: null, cooldown: Number(wait[1]) };
     if (error.status === 429 || /rate limit/i.test(error.message)) return { error: t("resendLimit"), cooldown: 0 };
+    if (isEmailSendFailure(error)) {
+      console.error("resendSignupCodeAction: overovací e-mail sa nepodarilo odoslať:", error.status, error.message);
+      return { error: t("sendFailed"), cooldown: 0 };
+    }
     // iné chyby (napr. e-mail už overený / neexistuje) — neutrálne, bez prezradenia účtu
   }
   return { error: null, cooldown: 60 };

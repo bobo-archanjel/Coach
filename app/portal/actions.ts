@@ -425,16 +425,12 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
   const eatenOn = validDiaryDate(eatenOnRaw, today);
   if (!eatenOn) return { error: await tErr("client.diaryRange", { days: DIARY_MAX_DAYS_BACK }) };
 
-  // Vlastná potravina (custom=1): názov a makrá zadáva klient, žiadny food_id —
-  // preto ich tu overíme, nie len `|| 0` ako pri snapshote z plánu/online.
+  // Vlastná potravina (custom=1): názov a kcal zadáva klient, žiadny food_id — povinné polia
+  // overíme tu. Číselné hranice makier sa overujú nižšie pre každú cestu, kde makrá
+  // pochádzajú z formulára (vlastná potravina aj snapshot z plánu/online).
   if (formData.get("custom") === "1") {
     if (!name || name.length > 120) return { error: await tErr("client.foodNameRequired") };
     if (((formData.get("kcal_100g") as string | null) ?? "").trim() === "") return { error: await tErr("client.kcalRequired") };
-    const vals = ["kcal_100g", "protein_100g", "carbs_100g", "fat_100g"].map((k) => Number(formData.get(k)));
-    if (vals.some((v) => !Number.isFinite(v) || v < 0)) return { error: await tErr("client.macrosNonNegative") };
-    const [kcal, protein, carbs, fat] = vals;
-    if (kcal > 900) return { error: await tErr("client.kcalMax") };
-    if (protein + carbs + fat > 100) return { error: await tErr("client.macrosMax") };
   }
 
   // Autoritatívne makrá z DB; fallback na snapshot z formulára.
@@ -452,6 +448,19 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
     foodId ? loadFoodForLog(supabase, foodId) : Promise.resolve(null),
   ]);
   if (!clientId) return { error: await tErr("client.notLinkedTrainer") };
+
+  // Makrá z formulára (nenašla sa potravina v DB) — klientovi neveríme: konečné, nezáporné,
+  // kcal <= 900 a spolu P+S+T <= 100 g na 100 g. Prázdne pole = 0 (snapshot bez makier).
+  if (!food) {
+    const vals = ["kcal_100g", "protein_100g", "carbs_100g", "fat_100g"].map((k) => {
+      const raw = ((formData.get(k) as string | null) ?? "").trim();
+      return raw === "" ? 0 : Number(raw);
+    });
+    if (vals.some((v) => !Number.isFinite(v) || v < 0)) return { error: await tErr("client.macrosNonNegative") };
+    const [kcal, protein, carbs, fat] = vals;
+    if (kcal > 900) return { error: await tErr("client.kcalMax") };
+    if (protein + carbs + fat > 100) return { error: await tErr("client.macrosMax") };
+  }
 
   if (food) {
     // Množstvo × jednotku prepočítame z hodnôt potraviny v DB (klient neurčuje gramy pre ks/porciu);
