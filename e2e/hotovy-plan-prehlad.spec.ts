@@ -47,7 +47,8 @@ test.describe("hotový plán — prehľad dní (náhľad)", () => {
     await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
 
     await page.getByRole("button", { name: /Deň 3 — Ťah/ }).click();
-    await expect(page.getByText("„Zhyby v poslednej sérii už s gumou.“")).toBeVisible();
+    // poznámka je aj vo vyhodnotení plánu (Ako sa klientovi cvičilo) — tu tá pri dni (posledná)
+    await expect(page.getByText("„Zhyby v poslednej sérii už s gumou.“").last()).toBeVisible();
     await expect(page.getByTestId("completed-exercise").filter({ hasText: "Veslovanie v predklone" }).getByTestId("set-row").nth(2)).toContainText(
       "neodcvičené",
     );
@@ -122,8 +123,9 @@ test.describe("hotový plán — reálna DB", () => {
     await expect(rowsA.nth(1)).toContainText("neodcvičené");
 
     await page.getByRole("button", { name: /E2E Deň B/ }).click();
-    await expect(page.getByText("9/10")).toBeVisible();
-    await expect(page.getByText("„E2E ťažký deň“")).toBeVisible();
+    // RPE a poznámka sú aj vo vyhodnotení plánu nad prehľadom — tu tie pri dni (posledné)
+    await expect(page.getByText("9/10").last()).toBeVisible();
+    await expect(page.getByText("„E2E ťažký deň“").last()).toBeVisible();
 
     // detail klienta: hotový plán má „Hotovo“ a nedá sa nastaviť ako aktívny
     await page.goto(`/dashboard/klienti/${client!.id}`);
