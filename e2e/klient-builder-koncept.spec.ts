@@ -21,7 +21,7 @@ test.describe("builder vlastného tréningu — chyba hore a rozpracovaný konce
     await page.getByRole("button", { name: "Hotovo", exact: true }).click();
 
     // uloženie tlačidlom dole
-    await page.getByRole("button", { name: "Uložiť tréning" }).click();
+    await page.getByRole("button", { name: "Uložiť", exact: true }).click();
     const alert = page.getByRole("alert").filter({ hasText: "Zadaj názov tréningového plánu." });
     await expect(alert).toBeVisible();
     await expect(alert).toBeInViewport();
@@ -36,6 +36,41 @@ test.describe("builder vlastného tréningu — chyba hore a rozpracovaný konce
     await nameInput.fill("Ranný tréning");
     await expect(alert).toHaveCount(0);
     await expect(nameInput).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("hore Uložiť + Zmazať koncept (s potvrdením), dole žiadne Uložiť tréning", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.getByRole("button", { name: "Vlastný tréning" }).click();
+    const builder = page.getByRole("region", { name: "Nový vlastný tréning" });
+    await expect(builder.getByRole("button", { name: "Uložiť", exact: true })).toHaveCount(1);
+    await expect(builder.getByRole("button", { name: /Uložiť tréning|Uložiť zmeny/ })).toHaveCount(0);
+    await page.getByLabel("Názov vlastného cviku").fill("Kliky");
+    await page.getByRole("button", { name: "+ Pridať do tréningu" }).click();
+    await page.getByRole("button", { name: "Hotovo", exact: true }).click();
+
+    // Esc potvrdenie zruší, builder ostane
+    await builder.getByRole("button", { name: "Zmazať koncept" }).click();
+    await expect(page.getByText("Naozaj zmazať tento koncept?")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(builder.getByRole("button", { name: "Zmazať koncept" })).toBeVisible();
+
+    await builder.getByRole("button", { name: "Zmazať koncept" }).click();
+    await page.getByRole("button", { name: "Áno, zmazať" }).click();
+    await expect(builder).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pokračovať" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Tréningové plány" })).toBeVisible();
+  });
+
+  test("úprava vlastného plánu: Zahodiť úpravy", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    await page.getByRole("button", { name: /Moje kardio \+ core/ }).click();
+    await page.locator("#plan-plan-own").getByRole("button", { name: "Upraviť" }).click();
+    const builder = page.getByRole("region", { name: "Úprava vlastného tréningu" });
+    await builder.getByRole("button", { name: "Zahodiť úpravy" }).click();
+    await page.getByRole("button", { name: "Áno, zahodiť" }).click();
+    await expect(page.getByRole("button", { name: "Zahodiť úpravy" })).toHaveCount(0);
   });
 
   test("odchod na iný tab a späť: Pokračovať obnoví rozpracovaný tréning, Zahodiť ho zmaže", async ({ page }) => {

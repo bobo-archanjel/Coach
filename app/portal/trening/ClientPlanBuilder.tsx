@@ -25,6 +25,7 @@ import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
 import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
+import pa from "@/app/components/planActions.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 import { DayNameDialog } from "@/app/components/DayNameDialog";
 import { focusAddExercise } from "@/app/components/pendingEntryEdit";
@@ -258,6 +259,22 @@ export function ClientPlanBuilder({
   }, [loadReview]);
   // „Zopakovať s progresiou“ — okno s voľbou % (ProgressionDialog), potom builder nového plánu
   const [repeating, setRepeating] = useState(false);
+  // „Zmazať koncept“ / „Zahodiť úpravy“ — potvrdenie v riadku tlačidiel (Esc = zrušiť)
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  useEffect(() => {
+    if (!confirmDiscard) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmDiscard(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmDiscard]);
+  const discard = () => {
+    // koncept v prehliadači preč — po zatvorení sa nezobrazí karta „Pokračovať“
+    touchedDraft.current = false;
+    clearBuilderDraft(draftOwner);
+    onCancel();
+  };
   // "" = ešte nevybraný → activeDay spadne na prvý deň (nižšie).
   const [activeKey, setActiveKey] = useState<string>("");
   const [addingDay, setAddingDay] = useState(false);
@@ -439,15 +456,6 @@ export function ClientPlanBuilder({
     // prehliadači alebo „Tréning“ v menu (TrainingSection, ?tvorba) — tlačidlo „Späť“ tu nie je.
     <SwipeBack onBack={onCancel}>
       <section aria-label={readOnly ? t("previewAria") : initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
-        {/* náhľad sa neukladá — hore nič, hlavná akcia „Zopakovať s progresiou“ je dole */}
-        {!readOnly && (
-          <div className={styles.trBuilderTop}>
-            <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="cbuilder-save">
-              {pending ? t("saving") : t("save")}
-            </button>
-          </div>
-        )}
-
         {readOnly ? (
           <>
             <div className={styles.trNameField}>
@@ -477,8 +485,36 @@ export function ClientPlanBuilder({
         </label>
         )}
 
-        {/* Chyba hore pod názvom (predtým až pod knižnicou cvikov — na mobile ju klient nevidel).
-            Pri ukladaní tlačidlom dole sa k nej stránka posunie. */}
+        {/* Rozloženie ako u trénera: pod názvom Uložiť + Zmazať koncept (nový plán) /
+            Zahodiť úpravy (úprava) — s potvrdením; dolné „Uložiť tréning“ už nie je. */}
+        {!readOnly &&
+          (confirmDiscard ? (
+            <div className={pa.confirm} role="alertdialog" aria-labelledby="discard-question">
+              <p id="discard-question" className={pa.confirmText}>
+                {initial ? t("discardEditsConfirm") : t("deleteDraftConfirm")}
+              </p>
+              <span className={pa.confirmBtns}>
+                <button type="button" className={pa.confirmNo} onClick={() => setConfirmDiscard(false)}>
+                  {t("cancel")}
+                </button>
+                <button type="button" className={pa.confirmYes} onClick={discard}>
+                  {initial ? t("yesDiscard") : t("yesDelete")}
+                </button>
+              </span>
+            </div>
+          ) : (
+            <div className={styles.trActionsGrid}>
+              <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="cbuilder-save">
+                {pending ? t("saving") : t("save")}
+              </button>
+              <button type="button" className={styles.trDiscardBtn} onClick={() => setConfirmDiscard(true)} disabled={pending}>
+                {initial ? t("discardEdits") : t("deleteDraft")}
+              </button>
+            </div>
+          ))}
+
+        {/* Chyba hore pod názvom (predtým až pod knižnicou cvikov — na mobile ju klient nevidel);
+            stránka sa k nej pri ukladaní posunie. */}
         {error && (
           <p ref={errorRef} className={styles.trError} role="alert">
             {error}
@@ -766,13 +802,6 @@ export function ClientPlanBuilder({
               />
             )}
           </>
-        )}
-
-        {/* náhľad odcvičeného plánu sa neukladá — bez „Uložiť zmeny“ */}
-        {!readOnly && (
-          <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
-            {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}
-          </button>
         )}
 
         {detailFor && (

@@ -171,7 +171,7 @@ test.describe("superséria — reálna DB", () => {
       await page.getByRole("button", { name: "Hotovo", exact: true }).click();
     }
     await page.getByRole("button", { name: "Spojiť cviky E2E Výpady a E2E Skoky do supersérie" }).click();
-    await page.getByRole("button", { name: "Uložiť tréning" }).click();
+    await page.getByRole("button", { name: "Uložiť", exact: true }).click();
     await expect(page.getByText(name)).toBeVisible({ timeout: 30_000 });
 
     const { data: plan } = await admin.from("workout_plans").select("id, workout_days(exercises)").eq("name", name).single();

@@ -26,8 +26,6 @@
   "moveDown": "Posunúť cvik nižšie",
   "editExercise": "Upraviť cvik",
   "removeExercise": "Odstrániť cvik",
-  "saveChanges": "Uložiť zmeny",
-  "saveWorkout": "Uložiť tréning",
   "sets": "Série",
   "load": "Záťaž (kg)",
   "done": "Hotovo",
@@ -101,5 +99,11 @@
   "progressionCancel": "Zrušiť",
   "progressionClose": "Zavrieť",
   "progressionCreating": "Vytváram…",
-  "defaultPlanName": "Tréningový plán na týždeň"
+  "defaultPlanName": "Tréningový plán na týždeň",
+  "deleteDraft": "Zmazať koncept",
+  "deleteDraftConfirm": "Naozaj zmazať tento koncept?",
+  "discardEdits": "Zahodiť úpravy",
+  "discardEditsConfirm": "Naozaj zahodiť neuložené úpravy?",
+  "yesDelete": "Áno, zmazať",
+  "yesDiscard": "Áno, zahodiť"
 }
