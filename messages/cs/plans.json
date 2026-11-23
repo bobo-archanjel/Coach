@@ -143,7 +143,15 @@
     "dayDone": "Odcvičeno {date}",
     "dayDoneHint": "Klient tento den už odcvičil — nejde upravit.",
     "dayDoneNoValues": "Klient ukončil trénink bez zapsaných hodnot.",
-    "defaultDayName": "Trénink {n}"
+    "defaultDayName": "Trénink {n}",
+    "pendingBadge": "Neuložené úpravy",
+    "pendingEditsHint": "Klient vidí původní verzi plánu, dokud úpravy neuložíš.",
+    "saveEdits": "Uložit úpravy",
+    "savingEdits": "Ukládám…",
+    "discardEdits": "Zahodit úpravy",
+    "discardEditsConfirm": "Zahodit všechny neuložené úpravy?",
+    "yesDiscard": "Ano, zahodit",
+    "discarding": "Zahazuji…"
   },
   "review": {
     "reviewPeriod": "{from} – {to}",

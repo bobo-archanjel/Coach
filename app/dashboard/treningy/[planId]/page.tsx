@@ -1,13 +1,13 @@
 import { SwipeBack } from "@/app/components/SwipeBack";
 import { getTranslations } from "next-intl/server";
 import { AppLink as Link } from "../../../components/AppLink";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { PlanBuilder, type DoneDay } from "./PlanBuilder";
 import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
 import { listPlanRecipients } from "@/lib/planRecipients";
-import { PublishActions, PublishBadge } from "./PublishControl";
+import { PendingEditsActions, PublishActions, PublishBadge } from "./PublishControl";
 import { PlanTitle } from "./PlanTitle";
 import { PlanFooterActions } from "./PlanFooterActions";
 import type { WorkoutExerciseEntry } from "../actions";
@@ -194,14 +194,14 @@ export default async function PlanDetailPage({
 
   // `plan`, `days` aj `exercises` berú `planId`/nič z route parametra — nezávislé,
   // paralelne namiesto čakania na `plan` pred spustením zvyšných dvoch.
-  const [{ data: plan }, { days, locked }, exercises, { data: completedLogs }] = await Promise.all([
+  const [{ data: plan }, { days, locked }, exercises, { data: completedLogs }, { data: draft }] = await Promise.all([
     supabase
       .from("workout_plans")
       // Explicitná FK: odkedy má `clients` aj `active_plan_id → workout_plans`
       // (0010_client_own_workouts.sql), je vzťah workout_plans↔clients nejednoznačný
       // a plain `clients(...)` embed padá na PGRST201 (a maybeSingle() to potichu
       // zmení na "nenájdené" — celá stránka detailu plánu bola nedostupná).
-      .select("id, name, client_id, published, clients!workout_plans_client_id_fkey(full_name)")
+      .select("id, name, client_id, published, edit_of, clients!workout_plans_client_id_fkey(full_name)")
       .eq("id", planId)
       .maybeSingle(),
     // Plán celý odcvičený klientom (badge "Hotovo", rovnaká definícia ako zoznam
@@ -228,11 +228,20 @@ export default async function PlanDetailPage({
       .eq("status", "completed")
       .order("completed_at", { ascending: false })
       .limit(50),
+    // Rozpracované úpravy zverejneného plánu (0071) — skrytá kópia, klient ju nevidí.
+    supabase
+      .from("workout_plans")
+      .select("id, name, workout_days(id, day_number, name, exercises, source_day_id)")
+      .eq("edit_of", planId)
+      .order("day_number", { referencedTable: "workout_days", ascending: true })
+      .maybeSingle(),
   ]);
 
   if (!plan) {
     notFound();
   }
+  // skrytá kópia úprav nemá vlastnú stránku — patrí k plánu, ktorý upravuje
+  if (plan.edit_of) redirect(`/dashboard/treningy/${plan.edit_of}`);
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
   // Odcvičené dni (posledný záznam dňa; logy sú od najnovšieho) — v builderi zamknuté,
@@ -251,6 +260,20 @@ export default async function PlanDetailPage({
       editedAt: (log.edited_at as string | null) ?? null,
     };
   }
+  // Rozpracované úpravy: builder ukazuje kópiu (jej dni, názov), odcvičené dni podľa pôvodného
+  // dňa (source_day_id). Akcie buildera dostávajú id živého plánu a zapisujú do kópie (editTarget).
+  type DraftDay = { id: string; day_number: number; name: string; exercises: WorkoutExerciseEntry[]; source_day_id: string | null };
+  const pendingDraft = plan.published && !locked && draft ? draft : null;
+  const draftDays = ((pendingDraft?.workout_days ?? []) as DraftDay[]).slice().sort((a, b) => a.day_number - b.day_number);
+  const viewDays = pendingDraft ? draftDays : (days ?? []);
+  const viewDoneDays: Record<string, DoneDay> = pendingDraft
+    ? Object.fromEntries(draftDays.flatMap((d) => (d.source_day_id && doneDays[d.source_day_id] ? [[d.id, doneDays[d.source_day_id]]] : [])))
+    : doneDays;
+  const dayAliases: Record<string, string> = Object.fromEntries(
+    draftDays.flatMap((d) => (d.source_day_id ? [[d.source_day_id, d.id]] : [])),
+  );
+  const viewName = (pendingDraft?.name as string | undefined) ?? plan.name;
+
   // šablóna použitá pre viacerých klientov (0052) — pri odoslaní dostanú plán aj títo;
   // hotový plán: vyhodnotenie (súhrn, rekordy, zistenia, progresia)
   const [recipients, review] = await Promise.all([
@@ -265,7 +288,7 @@ export default async function PlanDetailPage({
 
       <div className={styles.detailHead}>
         <div className={styles.detailTitle}>
-          {locked ? <h1>{plan.name}</h1> : <PlanTitle planId={planId} name={plan.name} />}
+          {locked ? <h1>{plan.name}</h1> : <PlanTitle planId={planId} name={viewName} />}
           <div className={styles.clientGoal}>
             <Link href={`/dashboard/klienti/${plan.client_id}`}>{clientName}</Link>
           </div>
@@ -274,6 +297,11 @@ export default async function PlanDetailPage({
         {/* Vysvetlenie stavu plánu na požiadanie (otáznik vedľa odznaku), nie odsek pod hlavičkou. */}
         <div className={styles.detailHeadStatus}>
           {locked ? <span className={styles.planDoneBadge}>{t("doneBadge")}</span> : <PublishBadge published={plan.published} />}
+          {pendingDraft && (
+            <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`} data-testid="pending-badge">
+              {t("pendingBadge")}
+            </span>
+          )}
           {locked ? (
             <InfoTip title={t("lockedTitle")}>{t("lockedText")}</InfoTip>
           ) : (
@@ -289,7 +317,11 @@ export default async function PlanDetailPage({
           Hotový plán publikovanie nemá. */}
       {!locked && (
         <div className={styles.planActions} data-tour="plan-publish">
-          <PublishActions planId={planId} published={plan.published} recipientCount={recipients.length} />
+          {pendingDraft ? (
+            <PendingEditsActions planId={planId} />
+          ) : (
+            <PublishActions planId={planId} published={plan.published} recipientCount={recipients.length} />
+          )}
         </div>
       )}
 
@@ -298,7 +330,14 @@ export default async function PlanDetailPage({
 
       {/* Hotový plán: rovnaký prehľad ako rozpracovaný — dráha dní, pri každom dni dátum
           a plán vs. skutočnosť; nič sa nedá upraviť ani pridať. */}
-      <PlanBuilder planId={planId} days={days ?? []} library={exercises} doneDays={doneDays} locked={locked} />
+      <PlanBuilder
+        planId={planId}
+        days={viewDays}
+        library={exercises}
+        doneDays={viewDoneDays}
+        locked={locked}
+        dayAliases={dayAliases}
+      />
 
       {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
       <div className={styles.planFooterActions} data-tour="plan-footer">
