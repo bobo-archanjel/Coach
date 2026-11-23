@@ -182,10 +182,11 @@ export async function renamePlanAction(planId: string, rawName: string): Promise
   if (locked) return { error: await tErr("planLocked") };
   if (!user) return { error: await tErr("notSignedIn") };
 
+  const target = await editTarget(supabase, planId);
   const { data, error } = await supabase
     .from("workout_plans")
     .update({ name })
-    .eq("id", planId)
+    .eq("id", target.planId)
     .eq("trainer_id", user.id)
     .select("client_id");
   if (error) return { error: await dbErr(error, "actions") };
@@ -194,6 +195,60 @@ export async function renamePlanAction(planId: string, rawName: string): Promise
   revalidatePath(`/dashboard/treningy/${planId}`);
   revalidatePath("/dashboard/treningy");
   revalidatePath(`/dashboard/klienti/${data[0].client_id}`);
+  return ok;
+}
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Kam zapísať úpravu z buildera (0071): koncept → priamo do neho (ako doteraz); zverejnený
+ * plán → do skrytej kópie rozpracovaných úprav (start_plan_edit ju pri prvej úprave
+ * vytvorí), ktorú klient nevidí, kým tréner nedá „Uložiť úpravy“. Deň živého plánu sa
+ * preloží na jeho náprotivok v kópii (source_day_id). revalidatePath ostáva na živom pláne (URL).
+ */
+async function editTarget(
+  supabase: Supabase,
+  planId: string,
+  dayId?: string | null,
+): Promise<{ planId: string; dayId: string | null }> {
+  const { data, error } = await supabase.rpc("start_plan_edit", { p_plan: planId });
+  // bez RPC (napr. pred migráciou) / cudzí plán — zápis ide ako doteraz, RLS ho aj tak ustráži
+  const target = !error && typeof data === "string" ? data : planId;
+  if (!dayId || target === planId) return { planId: target, dayId: dayId ?? null };
+  const { data: day } = await supabase
+    .from("workout_days")
+    .select("id")
+    .eq("plan_id", target)
+    .or(`id.eq.${dayId},source_day_id.eq.${dayId}`)
+    .limit(1)
+    .maybeSingle();
+  return { planId: target, dayId: (day?.id as string | undefined) ?? null };
+}
+
+/** „Uložiť úpravy“ zverejneného plánu — rozpracované úpravy z kópie do plánu, ktorý vidí klient. */
+export async function savePlanEditsAction(planId: string): Promise<ActionState> {
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("apply_plan_edits", { p_plan: planId });
+  if (error) return { error: await dbErr(error, "actions") };
+  const { data: plan } = await supabase.from("workout_plans").select("client_id").eq("id", planId).maybeSingle();
+  revalidatePath(`/dashboard/treningy/${planId}`);
+  if (plan?.client_id) revalidatePath(`/dashboard/klienti/${plan.client_id}`);
+  revalidatePath("/portal", "layout");
+  return ok;
+}
+
+/** „Zahodiť úpravy“ — zmaže skrytú kópiu, klient má ďalej pôvodný plán. */
+export async function discardPlanEditsAction(planId: string): Promise<ActionState> {
+  if (!planId) return { error: await tErr("plans.missingPlanId") };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: await tErr("notSignedIn") };
+  const { error } = await supabase.from("workout_plans").delete().eq("edit_of", planId).eq("trainer_id", user.id);
+  if (error) return { error: await dbErr(error, "actions") };
+  revalidatePath(`/dashboard/treningy/${planId}`);
   return ok;
 }
 
@@ -208,11 +263,13 @@ export async function setPlanPublishedAction(_prevState: ActionState, formData: 
   if (!user) return { error: await tErr("notSignedIn") };
   if (locked) return { error: await tErr("planLocked") };
 
+  // skrytá kópia rozpracovaných úprav (0071) sa nezverejňuje — ukladá sa cez „Uložiť úpravy“
   const { error } = await supabase
     .from("workout_plans")
     .update({ published })
     .eq("id", planId)
-    .eq("trainer_id", user.id);
+    .eq("trainer_id", user.id)
+    .is("edit_of", null);
 
   if (error) return { error: await dbErr(error, "actions") };
 
@@ -235,8 +292,9 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
   if (!name) return { error: await tErr("plans.dayNameRequired") };
   if (await isPlanLocked(supabase, planId)) return { error: await tErr("planLocked") };
 
+  const target = await editTarget(supabase, planId);
   const { error } = await supabase.from("workout_days").insert({
-    plan_id: planId,
+    plan_id: target.planId,
     day_number: clampInt(dayNumber, 1, 100, 1),
     name,
     exercises: [],
@@ -260,8 +318,10 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
   if (!planId || !dayId) return { error: await tErr("plans.missingDayId") };
 
   const supabase = await createClient();
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
   const [{ locked, dayDone }, { data: { user } }] = await Promise.all([
-    getDayForEdit(supabase, dayId),
+    getDayForEdit(supabase, target.dayId),
     supabase.auth.getUser(),
   ]);
   if (locked) return { error: await tErr("planLocked") };
@@ -273,8 +333,8 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
   const { data: deleted, error } = await supabase
     .from("workout_days")
     .delete()
-    .eq("id", dayId)
-    .eq("plan_id", planId)
+    .eq("id", target.dayId)
+    .eq("plan_id", target.planId)
     .select("id");
   if (error) return { error: await dbErr(error, "actions") };
   if (!deleted || deleted.length === 0) return { error: await tErr("plans.deleteDayFailed") };
@@ -282,7 +342,7 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
   const { data: rest } = await supabase
     .from("workout_days")
     .select("id, day_number")
-    .eq("plan_id", planId)
+    .eq("plan_id", target.planId)
     .order("day_number")
     .order("created_at");
   await Promise.all(
@@ -308,7 +368,9 @@ export async function renameDayAction(planId: string, dayId: string, rawName: st
   if (name.length > 120) return { error: await tErr("plans.dayNameTooLong") };
 
   const supabase = await createClient();
-  const lock = await getDayForEdit(supabase, dayId);
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
+  const lock = await getDayForEdit(supabase, target.dayId);
   if (lock.locked) return { error: await tErr("planLocked") };
   if (lock.dayDone) return { error: await tErr("dayLocked") };
 
@@ -316,8 +378,8 @@ export async function renameDayAction(planId: string, dayId: string, rawName: st
   const { data, error } = await supabase
     .from("workout_days")
     .update({ name })
-    .eq("id", dayId)
-    .eq("plan_id", planId)
+    .eq("id", target.dayId)
+    .eq("plan_id", target.planId)
     .select("id");
   if (error) return { error: await dbErr(error, "actions") };
   if (!data || data.length === 0) return { error: await tErr("plans.renameDayFailed") };
@@ -336,10 +398,12 @@ export async function duplicateDayAction(planId: string, dayId: string): Promise
   if (!planId || !dayId) return fail(await tErr("plans.missingDayId"));
 
   const supabase = await createClient();
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return fail(await tErr("plans.dayNotFoundRefresh"));
   const [{ locked, dayDone }, { data: src }, { count }] = await Promise.all([
-    getDayForEdit(supabase, dayId),
-    supabase.from("workout_days").select("name, exercises").eq("id", dayId).eq("plan_id", planId).maybeSingle(),
-    supabase.from("workout_days").select("id", { count: "exact", head: true }).eq("plan_id", planId),
+    getDayForEdit(supabase, target.dayId),
+    supabase.from("workout_days").select("name, exercises").eq("id", target.dayId).eq("plan_id", target.planId).maybeSingle(),
+    supabase.from("workout_days").select("id", { count: "exact", head: true }).eq("plan_id", target.planId),
   ]);
   if (locked) return fail(await tErr("planLocked"));
   if (dayDone) return fail(await tErr("dayLocked"));
@@ -352,7 +416,7 @@ export async function duplicateDayAction(planId: string, dayId: string): Promise
   const { data, error } = await supabase
     .from("workout_days")
     // dni sú po zmazaní prečíslované 1..n (deleteDayAction) → kópia ide za posledný
-    .insert({ plan_id: planId, day_number: (count ?? 0) + 1, name: (await tErr("plans.copySuffix", { name: src.name })).slice(0, 120), exercises })
+    .insert({ plan_id: target.planId, day_number: (count ?? 0) + 1, name: (await tErr("plans.copySuffix", { name: src.name })).slice(0, 120), exercises })
     .select("id")
     .single();
   if (error || !data) return fail(error ? await dbErr(error, "actions") : await tErr("plans.duplicateDayFailed"));
@@ -375,8 +439,11 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   if (!exerciseId) return { error: "Vyber cvik." };
 
   // Deň + zámok (jeden dopyt) a cvik naraz — predtým 5 dopytov za sebou pred zápisom.
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
+  const targetDayId = target.dayId;
   const [{ day, locked, dayDone }, { data: exercise }] = await Promise.all([
-    getDayForEdit(supabase, dayId),
+    getDayForEdit(supabase, targetDayId),
     supabase.from("exercises").select("name, name_sk").eq("id", exerciseId).maybeSingle(),
   ]);
   if (locked) return { error: await tErr("planLocked") };
@@ -404,7 +471,7 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
   const { error } = await supabase
     .from("workout_days")
     .update({ exercises: [...current, newEntry] })
-    .eq("id", dayId);
+    .eq("id", targetDayId);
 
   if (error) return { error: await dbErr(error, "actions") };
 
@@ -430,7 +497,10 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   if (!planId) return { error: await tErr("plans.missingPlanId") };
   if (!name) return { error: await tErr("plans.exerciseNameRequired") };
 
-  const { day, locked, dayDone } = await getDayForEdit(supabase, dayId);
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
+  const targetDayId = target.dayId;
+  const { day, locked, dayDone } = await getDayForEdit(supabase, targetDayId);
   if (locked) return { error: await tErr("planLocked") };
   if (dayDone) return { error: await tErr("dayLocked") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
@@ -452,7 +522,7 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
   const { error } = await supabase
     .from("workout_days")
     .update({ exercises: [...current, newEntry] })
-    .eq("id", dayId);
+    .eq("id", targetDayId);
 
   if (error) return { error: await dbErr(error, "actions") };
 
@@ -477,7 +547,10 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
   if (!Number.isFinite(sets) || sets < 1) return { error: await tErr("plans.setsRequired") };
   if (!reps) return { error: "Zadaj opakovania." };
 
-  const { day, locked, dayDone } = await getDayForEdit(supabase, dayId);
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
+  const targetDayId = target.dayId;
+  const { day, locked, dayDone } = await getDayForEdit(supabase, targetDayId);
   if (locked) return { error: await tErr("planLocked") };
   if (dayDone) return { error: await tErr("dayLocked") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
@@ -497,7 +570,7 @@ export async function updateExerciseEntryAction(_prevState: ActionState, formDat
       : entry
   );
 
-  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", targetDayId);
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
@@ -521,7 +594,10 @@ export async function moveExerciseEntryAction(input: {
   if (!planId || !dayId || !entryId) return { error: await tErr("plans.missingEntryId") };
 
   const supabase = await createClient();
-  const { day, locked, dayDone } = await getDayForEdit(supabase, dayId);
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
+  const targetDayId = target.dayId;
+  const { day, locked, dayDone } = await getDayForEdit(supabase, targetDayId);
   if (locked) return { error: await tErr("planLocked") };
   if (dayDone) return { error: await tErr("dayLocked") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
@@ -530,15 +606,15 @@ export async function moveExerciseEntryAction(input: {
   const idx = current.findIndex((e) => e.entry_id === entryId);
   if (idx < 0) return { error: await tErr("plans.exerciseNotFound") };
 
-  const target = direction === "up" ? idx - 1 : idx + 1;
-  if (target < 0 || target >= current.length) return ok; // už na kraji — nič nemeníme
+  const to = direction === "up" ? idx - 1 : idx + 1;
+  if (to < 0 || to >= current.length) return ok; // už na kraji — nič nemeníme
 
   const swapped = [...current];
-  [swapped[idx], swapped[target]] = [swapped[target], swapped[idx]];
+  [swapped[idx], swapped[to]] = [swapped[to], swapped[idx]];
   // presunutý cvik vypadne zo supersérie (skupina ostane súvislá)
-  const updated = detachFromSuperset(swapped, target);
+  const updated = detachFromSuperset(swapped, to);
 
-  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", targetDayId);
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
@@ -554,7 +630,10 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
 
   if (!dayId || !planId || !entryId) return { error: await tErr("plans.missingEntryId") };
 
-  const { day, locked, dayDone } = await getDayForEdit(supabase, dayId);
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
+  const targetDayId = target.dayId;
+  const { day, locked, dayDone } = await getDayForEdit(supabase, targetDayId);
   if (locked) return { error: await tErr("planLocked") };
   if (dayDone) return { error: await tErr("dayLocked") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
@@ -563,7 +642,7 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
   // supersériu, z ktorej ostal jeden cvik, zruší
   const updated = normalizeSupersets(current.filter((entry) => entry.entry_id !== entryId));
 
-  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", targetDayId);
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);
@@ -580,7 +659,10 @@ export async function toggleSupersetLinkAction(input: { planId: string; dayId: s
   if (!planId || !dayId || !entryId) return { error: await tErr("plans.missingEntryId") };
 
   const supabase = await createClient();
-  const { day, locked, dayDone } = await getDayForEdit(supabase, dayId);
+  const target = await editTarget(supabase, planId, dayId);
+  if (!target.dayId) return { error: await tErr("plans.dayNotFound") };
+  const targetDayId = target.dayId;
+  const { day, locked, dayDone } = await getDayForEdit(supabase, targetDayId);
   if (locked) return { error: await tErr("planLocked") };
   if (dayDone) return { error: await tErr("dayLocked") };
   if (!day) return { error: await tErr("plans.dayNotFound") };
@@ -590,7 +672,7 @@ export async function toggleSupersetLinkAction(input: { planId: string; dayId: s
   if (idx < 0 || idx >= current.length - 1) return { error: await tErr("plans.exerciseNotFound") };
 
   const updated = toggleLinkWithNext(current, idx);
-  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", dayId);
+  const { error } = await supabase.from("workout_days").update({ exercises: updated }).eq("id", targetDayId);
   if (error) return { error: await dbErr(error, "actions") };
 
   revalidatePath(`/dashboard/treningy/${planId}`);

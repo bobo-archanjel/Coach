@@ -39,6 +39,8 @@ export async function getLateStatusByClient(
     .in("id", clientIds)
     .order("performed_on", { referencedTable: "workout_logs", ascending: false })
     .limit(1, { referencedTable: "workout_logs" })
+    // kópia rozpracovaných úprav (0071) nie je nový plán klienta
+    .is("workout_plans.edit_of", null)
     .order("created_at", { referencedTable: "workout_plans", ascending: false })
     .limit(1, { referencedTable: "workout_plans" });
 
