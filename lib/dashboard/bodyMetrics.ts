@@ -66,7 +66,7 @@ export async function getLatestBodyMetric(clientId: string): Promise<BodyMetricE
 }
 
 type LoggedSet = { reps: number | null; weight: number | null };
-type LoggedExerciseEntry = { entryId?: string | null; name?: string; sets?: LoggedSet[] };
+export type LoggedExerciseEntry = { entryId?: string | null; name?: string; sets?: LoggedSet[] };
 
 function parseEntries(raw: unknown): LoggedExerciseEntry[] {
   if (!Array.isArray(raw)) return [];
@@ -88,7 +88,7 @@ export interface StrengthPR {
   achievedOn: string;
 }
 
-type StrengthLogRow = { performed_on: string; entries: unknown; client_id?: string; workout_days?: unknown };
+export type StrengthLogRow = { performed_on: string; entries: unknown; client_id?: string; workout_days?: unknown };
 type PlanEntry = { entry_id?: string | null; exercise_id?: string | null };
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
@@ -106,7 +106,7 @@ const STRENGTH_LOG_COLUMNS = "performed_on, entries, workout_days(exercises)";
  * s anglickým/slovenským názvom cvikov z plánov tohto klienta; inak ostáva
  * uložený názov (vlastné cviky bez exercise_id).
  */
-async function buildExerciseNameResolver(
+export async function buildExerciseNameResolver(
   supabase: SupabaseServer,
   rows: StrengthLogRow[],
 ): Promise<(row: StrengthLogRow, entry: LoggedExerciseEntry) => string | null> {

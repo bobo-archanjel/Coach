@@ -4,7 +4,6 @@ import { previewResult } from "@/app/portal/trening/preview";
 import { TrainingSection } from "@/app/portal/trening/TrainingSection";
 import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
-import s from "../portal.module.css";
 
 /* /portal/trening — plány od trénera aj vlastné, šablóny a builder (TrainingSection). */
 
@@ -21,13 +20,6 @@ export default async function TreningPage({ searchParams }: { searchParams: Prom
     );
   }
 
-  return (
-    <>
-      <header>
-        <h1 className={s.pageTitle}>{t("pageTitle")}</h1>
-        <p className={s.pageSub}>{t("pageSub")}</p>
-      </header>
-      <TrainingSection data={result.data} />
-    </>
-  );
+  // hlavičku „Tréning“ vykresľuje TrainingSection — pri náhľade hotového plánu ju skryje
+  return <TrainingSection data={result.data} />;
 }

@@ -75,6 +75,13 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-23** — **Vyhodnotenie hotového plánu, progresia, úpravy zverejneného plánu až po uložení** (`feature/nahlad-analytika`, **migrácia `0071_plan_pending_edits.sql`**).
+  - Klient: celý odcvičený plán (vlastný aj od trénera) má „Náhľad“ namiesto „Upraviť“ — vyhodnotenie: súhrn (tréningy, splnené série, objem, náročnosť), úspechy (rekordy oproti obdobiu pred plánom), čo z toho plynie, karty cvikov s grafom najťažšej série, ako sa cvičilo (`lib/portal/planReview.ts`).
+  - „Zopakovať s progresiou“ (vlastný plán): okno s voľbou +2,5 / 5 / 7,5 / 10 % a náhľadom zmien → nový plán s vyššou záťažou tam, kde boli splnené všetky série (zaokrúhlené na 0,5 kg).
+  - Tréner: vyhodnotenie na detaile hotového plánu + „Zopakovať s progresiou“ → nový neodoslaný koncept pre klienta (`createProgressedPlanAction`).
+  - Tréning klienta: hlavička „Tréningové plány“ len pri zozname (nie v builderi ani v náhľade); nový plán má predvyplnený názov „Tréningový plán na týždeň“; v builderi pod názvom Uložiť + Zmazať koncept / Zahodiť úpravy (ako u trénera), dolné „Uložiť tréning“ zrušené.
+  - Tréner — zverejnený plán: úpravy idú do skrytej kópie (klient vidí pôvodnú verziu), „Uložiť úpravy“ ich prenesie naraz (dni na mieste, odcvičený deň bez zmeny), „Zahodiť úpravy“ ich zruší. Koncept sa ukladá hneď ako doteraz.
+  - Testy: `e2e/helpers/sessionLogin.ts` — prihlásenie bez formulára (CAPTCHA v Supabase); testy tejto vetvy naň prepnuté.
 - **2026-11-23** — **Klient: celý odcvičený plán sa nedá nastaviť ako aktívny** (`feature/klient-hotovy-plan`, bez migrácie).
   - Tréning: hotový plán má „Hotovo“ a namiesto „Nastaviť ako aktívny“ vysvetlenie; prepínač „Zmeniť“ na Dnes ho ukáže stlmený s „Hotovo“, zvoliť sa nedá.
   - Server (`callSetActivePlan`) hotový plán odmietne — `isPlanFinished` (lib/portal/data.ts): každý deň s cvikmi má zápis. Rovnaké pravidlo ako u trénera.

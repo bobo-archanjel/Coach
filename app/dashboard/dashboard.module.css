@@ -3149,3 +3149,10 @@ select.addClientInputSm {
   margin-bottom: 12px;
 }
 
+
+/* rozpracované úpravy zverejneného plánu (0071) — vysvetlenie nad Uložiť / Zahodiť úpravy */
+.pendingEditsHint {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+}

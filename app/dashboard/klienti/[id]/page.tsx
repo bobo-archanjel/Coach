@@ -151,6 +151,8 @@ export default async function ClientDetailPage({
     .from("workout_plans")
     .select("id, name, created_at, published, workout_days(id)")
     .eq("client_id", id)
+    // skrytá kópia rozpracovaných úprav zverejneného plánu (0071) nie je samostatný plán
+    .is("edit_of", null)
     .order("created_at", { ascending: false })
     .then(async ({ data: plans }) => ({
       plans,
