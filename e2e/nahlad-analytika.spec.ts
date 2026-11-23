@@ -48,6 +48,23 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await expect(page.getByRole("button", { name: "Pokračovať" })).toHaveCount(0);
   });
 
+  test("hotový plán od trénera: Náhľad s vyhodnotením, bez Zopakovať s progresiou", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    await page.getByRole("button", { name: /Letný plán — celé telo/ }).click();
+    const card = planCard(page, "plan-done");
+    await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);
+    await card.getByRole("button", { name: "Náhľad" }).click();
+
+    const view = page.getByRole("region", { name: "Náhľad tréningu" });
+    await expect(view.getByRole("heading", { name: "Letný plán — celé telo" })).toBeVisible();
+    await expect(view.getByTestId("review-stats")).toContainText(/Tréningy\s*1/);
+    await expect(view.getByTestId("review-card").first()).toContainText("Bench press");
+    await expect(view.getByTestId("review-timeline")).toContainText("„Prvý tréning po dovolenke.“");
+    // nový plán od trénera zostaví tréner — klient ho neopakuje
+    await expect(view.getByRole("button", { name: "Zopakovať s progresiou" })).toHaveCount(0);
+    await expect(view.getByRole("button", { name: /Uložiť/ })).toHaveCount(0);
+  });
+
   test("vyhodnotenie: súhrn, úspechy, zistenia, karty cvikov a ako sa cvičilo", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: /Moja jesenná sila/ }).click();

@@ -175,7 +175,15 @@ const PREVIEW: PortalTrainingData = {
           name: "Celé telo",
           done: true,
           doneToday: false,
-          lastLog: null,
+          lastLog: {
+            id: "log-d5",
+            completedAt: "2026-09-02T17:00:00Z",
+            editableUntil: null,
+            entries: DAY_A_ENTRIES,
+            rpe: 7,
+            note: "Prvý tréning po dovolenke.",
+            compare: previewCompare(DAY_A, DAY_A_ENTRIES),
+          },
           exercises: DAY_A,
         },
       ],
@@ -225,9 +233,35 @@ function withFreshLog(data: PortalTrainingData): PortalTrainingData {
   };
 }
 
+/**
+ * Náhľad hotového plánu bez servera: každý celý odcvičený plán bez vlastného vyhodnotenia
+ * (napr. „Silový plán“ od trénera) ho dostane z posledných zápisov svojich dní.
+ */
+function withReviews(data: PortalTrainingData): PortalTrainingData {
+  const previewReview = { ...data.previewReview };
+  for (const plan of data.plans) {
+    if (previewReview[plan.id] || plan.days.length === 0 || !plan.days.every((d) => d.done && d.lastLog)) continue;
+    previewReview[plan.id] = buildPlanReview({
+      days: plan.days.map((d) => ({ id: d.id, name: d.name, exercises: snapshotOf(d.exercises).exercises })),
+      logs: plan.days.map((d) => ({
+        id: d.lastLog!.id,
+        dayId: d.id,
+        performedOn: (d.lastLog!.completedAt ?? "2026-01-01").slice(0, 10),
+        completedAt: d.lastLog!.completedAt,
+        rpe: d.lastLog!.rpe,
+        note: d.lastLog!.note,
+        entries: d.lastLog!.entries,
+        planSnapshot: snapshotOf(d.exercises),
+      })),
+      nameOf: (_entryId, storedName) => storedName,
+    });
+  }
+  return { ...data, previewReview };
+}
+
 export function previewResult(kind: string): PortalTrainingResult | null {
   if (process.env.NODE_ENV !== "development") return null;
-  if (kind === "ok") return { state: "ok", data: withFreshLog(PREVIEW) };
+  if (kind === "ok") return { state: "ok", data: withReviews(withFreshLog(PREVIEW)) };
   if (kind === "empty") return { state: "ok", data: { ...PREVIEW, plans: [], activePlanId: null } };
   if (kind === "own")
     return {

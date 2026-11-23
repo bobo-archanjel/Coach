@@ -315,7 +315,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         resume={resumeDraft}
         readOnly={viewOnly}
         reviewPreview={viewOnly && editing ? (data.previewReview?.[editing.id] ?? null) : null}
-        onRepeat={(template) => openBuilder(null, template)}
+        // plán od trénera sa neopakuje — nový plán klientovi zostaví tréner (u neho „Zopakovať s progresiou“)
+        onRepeat={editing?.source === "client" ? (template) => openBuilder(null, template) : undefined}
       />
     );
   }
@@ -638,19 +639,20 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             </div>
                           ) : (
                             <div className={pa.grid}>
-                              {plan.source === "client" &&
-                                (planDone ? (
-                                  // celý odcvičený — upraviť sa nedá nič, len pozrieť (a analytika)
-                                  <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
-                                    <ActionPreviewIcon />
-                                    {tr("viewPlan")}
-                                  </button>
-                                ) : (
+                              {planDone ? (
+                                // celý odcvičený plán (vlastný aj od trénera) — nič sa nemení, len vyhodnotenie
+                                <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                                  <ActionPreviewIcon />
+                                  {tr("viewPlan")}
+                                </button>
+                              ) : (
+                                plan.source === "client" && (
                                   <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
                                     <ActionEditIcon />
                                     {tr("edit")}
                                   </button>
-                                ))}
+                                )
+                              )}
                               <button
                                 type="button"
                                 className={pa.action}
