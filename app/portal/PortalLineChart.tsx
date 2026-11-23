@@ -11,7 +11,8 @@ import s from "./portal.module.css";
  * bez zelenej/červenej). Používa ho karta Progres (merania) aj Analytika tréningu (objem cviku).
  */
 
-export type LinePoint = { date: string; value: number };
+/** `note` = doplnok k hodnote vybraného bodu (napr. „× 6 opak.“ pri najťažšej sérii) */
+export type LinePoint = { date: string; value: number; note?: string };
 
 const CHART_W = 300;
 const CHART_H = 100;
@@ -121,7 +122,10 @@ export function PortalLineChart({
             <span className={s.pgNum}>{nf.format(cur.value)}</span>
             <span className={s.pgUnit}>{unit}</span>
           </p>
-          <p className={s.pgDate}>{fullDate(cur.date)}</p>
+          <p className={s.pgDate}>
+            {fullDate(cur.date)}
+            {cur.note ? ` · ${cur.note}` : ""}
+          </p>
         </div>
         {points.length > 1 && sel > 0 && (
           <p className={s.pgDelta}>
@@ -152,7 +156,7 @@ export function PortalLineChart({
               aria-valuemin={0}
               aria-valuemax={points.length - 1}
               aria-valuenow={sel}
-              aria-valuetext={`${fullDate(cur.date)}: ${val(cur.value)}`}
+              aria-valuetext={`${fullDate(cur.date)}: ${val(cur.value)}${cur.note ? ` ${cur.note}` : ""}`}
               onPointerDown={onDown}
               onPointerMove={onMove}
               onPointerUp={onUp}

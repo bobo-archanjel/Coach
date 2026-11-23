@@ -66,7 +66,7 @@ export async function getLatestBodyMetric(clientId: string): Promise<BodyMetricE
 }
 
 type LoggedSet = { reps: number | null; weight: number | null };
-type LoggedExerciseEntry = { entryId?: string | null; name?: string; sets?: LoggedSet[] };
+export type LoggedExerciseEntry = { entryId?: string | null; name?: string; sets?: LoggedSet[] };
 
 function parseEntries(raw: unknown): LoggedExerciseEntry[] {
   if (!Array.isArray(raw)) return [];
@@ -88,7 +88,7 @@ export interface StrengthPR {
   achievedOn: string;
 }
 
-type StrengthLogRow = { performed_on: string; entries: unknown; client_id?: string; workout_days?: unknown };
+export type StrengthLogRow = { performed_on: string; entries: unknown; client_id?: string; workout_days?: unknown };
 type PlanEntry = { entry_id?: string | null; exercise_id?: string | null };
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
@@ -106,7 +106,7 @@ const STRENGTH_LOG_COLUMNS = "performed_on, entries, workout_days(exercises)";
  * s anglickým/slovenským názvom cvikov z plánov tohto klienta; inak ostáva
  * uložený názov (vlastné cviky bez exercise_id).
  */
-async function buildExerciseNameResolver(
+export async function buildExerciseNameResolver(
   supabase: SupabaseServer,
   rows: StrengthLogRow[],
 ): Promise<(row: StrengthLogRow, entry: LoggedExerciseEntry) => string | null> {
@@ -194,102 +194,6 @@ function latestIsNewPR(points: StrengthPoint[]): boolean {
  * Vracia zoznam názvov (abecedne, pre výber v UI) + mapu názov → body grafu +
  * zoznam cvikov, na ktorých je posledný záznam nové osobné maximum (bod 3).
  */
-/** Bod grafu objemu: celkový objem cviku na jednom tréningu (Σ opakovania × kg). */
-export interface VolumePoint {
-  date: string; // performed_on
-  volumeKg: number;
-}
-
-/** Cvik dňa plánu s históriou objemu (Analytika tréningu v náhľade vlastného plánu). */
-export interface PlanVolumeExercise {
-  entryId: string;
-  name: string;
-  points: VolumePoint[];
-}
-export interface PlanVolumeDay {
-  dayId: string;
-  exercises: PlanVolumeExercise[];
-}
-
-/**
- * Zoskupí workout_logs riadky na časový rad objemu per cvik (zjednotený názov). Objem =
- * súčet opakovaní × kg sérií, ktoré majú oboje (rovnako ako `volumeKg` v súhrne tréningu,
- * lib/workouts/completed.ts). Za dátum jeden bod — dva tréningy v ten istý deň sa sčítajú.
- * Cvik bez jedinej série s kg do radu nepatrí (objem by bol 0 a graf zavádzajúci).
- */
-function volumeSeriesFromRows(
-  rows: StrengthLogRow[],
-  nameOf: (row: StrengthLogRow, entry: LoggedExerciseEntry) => string | null,
-): Record<string, VolumePoint[]> {
-  const byExercise: Record<string, Map<string, number>> = {};
-  for (const row of rows) {
-    for (const ex of parseEntries(row.entries)) {
-      const name = nameOf(row, ex);
-      if (!name) continue;
-      let volume = 0;
-      let weighted = false;
-      for (const set of ex.sets ?? []) {
-        if (set.reps == null || set.weight == null) continue;
-        weighted = true;
-        volume += set.reps * set.weight;
-      }
-      if (!weighted) continue;
-      const byDate = (byExercise[name] ??= new Map());
-      byDate.set(row.performed_on, (byDate.get(row.performed_on) ?? 0) + volume);
-    }
-  }
-  const result: Record<string, VolumePoint[]> = {};
-  for (const [name, byDate] of Object.entries(byExercise)) {
-    result[name] = [...byDate.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, v]) => ({ date, volumeKg: Math.round(v) }));
-  }
-  return result;
-}
-
-/**
- * Objem každého cviku plánu v čase — zo VŠETKÝCH tréningov klienta (nielen z tohto plánu),
- * aby graf ukázal vývoj. Názvy cvikov plánu aj zápisov sa zjednotia tým istým resolverom
- * ako graf sily (entryId → exercise_id → názov z knižnice), takže „Bench press“ z iného
- * plánu sa zráta k tomu istému cviku. RLS: klient vidí len svoje plány a zápisy.
- * `null` = plán neexistuje / nepatrí prihlásenému, alebo chyba načítania.
- */
-export async function getPlanVolumeProgress(planId: string): Promise<PlanVolumeDay[] | null> {
-  const supabase = await createClient();
-  const { data: plan, error: planErr } = await supabase
-    .from("workout_plans")
-    .select("client_id, workout_days(id, day_number, exercises)")
-    .eq("id", planId)
-    .order("day_number", { referencedTable: "workout_days", ascending: true })
-    .maybeSingle();
-  if (planErr || !plan) return null;
-
-  const { data, error } = await supabase
-    .from("workout_logs")
-    .select(STRENGTH_LOG_COLUMNS)
-    .eq("client_id", plan.client_id as string)
-    .order("performed_on", { ascending: true });
-  if (error) return null;
-
-  const rows = (data ?? []) as StrengthLogRow[];
-  const days = (plan.workout_days ?? []) as { id: string; exercises: unknown }[];
-  // dni plánu ako „riadky“ navyše — resolver z nich pozná entry_id → exercise_id aj
-  // pre cvik, ktorý ešte nikto nezapísal
-  const planRows: StrengthLogRow[] = days.map((d) => ({ performed_on: "", entries: [], workout_days: { exercises: d.exercises } }));
-  const nameOf = await buildExerciseNameResolver(supabase, [...rows, ...planRows]);
-  const series = volumeSeriesFromRows(rows, nameOf);
-
-  return days.map((d) => ({
-    dayId: d.id,
-    exercises: ((Array.isArray(d.exercises) ? d.exercises : []) as { entry_id?: string; exercise_name?: string }[])
-      .filter((e) => e.entry_id && e.exercise_name)
-      .map((e) => {
-        const name = nameOf({ performed_on: "", entries: [] }, { entryId: e.entry_id!, name: e.exercise_name! }) ?? e.exercise_name!;
-        return { entryId: e.entry_id!, name, points: series[name] ?? [] };
-      }),
-  }));
-}
-
 export async function getAllStrengthProgress(
   clientId: string,
 ): Promise<{ names: string[]; byExercise: Record<string, StrengthPoint[]>; prs: StrengthPR[] } | null> {
