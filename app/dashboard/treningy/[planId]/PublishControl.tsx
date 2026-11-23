@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { setPlanPublishedAction, deletePlanAction, type ActionState } from "../actions";
+import { setPlanPublishedAction, deletePlanAction, savePlanEditsAction, discardPlanEditsAction, type ActionState } from "../actions";
 import styles from "../../dashboard.module.css";
 
 const initialState: ActionState = { error: null };
@@ -111,6 +111,66 @@ export function PublishActions({
       {confirmMsg}
       {state.error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{state.error}</p>}
       {deleteError && <p className={`${styles.publishError} ${styles.templateStatus}`}>{deleteError}</p>}
+    </div>
+  );
+}
+
+/**
+ * Rozpracované úpravy zverejneného plánu (0071): klient vidí pôvodnú verziu, kým tréner
+ * nedá „Uložiť úpravy“; „Zahodiť úpravy“ (s potvrdením) ich zruší. Rovnaká mriežka ako
+ * „Potvrdiť a uložiť“ + „Zmazať koncept“ pri koncepte.
+ */
+export function PendingEditsActions({ planId }: { planId: string }) {
+  const t = useTranslations("plans.builder");
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [busy, setBusy] = useState<"save" | "discard" | null>(null);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !pending) setConfirming(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirming, pending]);
+
+  const run = (kind: "save" | "discard") => {
+    setError(null);
+    setBusy(kind);
+    startTransition(async () => {
+      const res = kind === "save" ? await savePlanEditsAction(planId) : await discardPlanEditsAction(planId);
+      if (res.error) setError(res.error);
+      setConfirming(false);
+      setBusy(null);
+    });
+  };
+
+  return (
+    <div className={styles.templateGrid} data-testid="pending-edits">
+      <p className={`${styles.pendingEditsHint} ${styles.templateStatus}`}>{t("pendingEditsHint")}</p>
+      {confirming ? (
+        <>
+          <p className={`${styles.publishDeleteConfirm} ${styles.templateStatus}`}>{t("discardEditsConfirm")}</p>
+          <button type="button" className="btn btn-primary btn-sm btn-danger" onClick={() => run("discard")} disabled={pending}>
+            {busy === "discard" ? t("discarding") : t("yesDiscard")}
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)} disabled={pending}>
+            {t("cancel")}
+          </button>
+        </>
+      ) : (
+        <>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => run("save")} disabled={pending}>
+            {busy === "save" ? t("savingEdits") : t("saveEdits")}
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setConfirming(true)} disabled={pending}>
+            {t("discardEdits")}
+          </button>
+        </>
+      )}
+      {error && <p className={`${styles.publishError} ${styles.templateStatus}`}>{error}</p>}
     </div>
   );
 }

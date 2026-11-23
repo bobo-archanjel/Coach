@@ -20,7 +20,7 @@ import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./bu
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import { ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import { ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import styles from "../portal.module.css";
 
@@ -142,7 +142,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     }
     // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
     // otvorenie buildera v rámci tej istej návštevy /portal/trening).
-    if (library.length === 0) {
+    const viewOnly = Boolean(plan && plan.days.length > 0 && plan.days.every((d) => d.done));
+    if (library.length === 0 && !viewOnly) {
       startLibraryTransition(async () => {
         setLibrary(await getExerciseLibraryAction());
       });
@@ -298,9 +299,22 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     });
   };
 
+  // hlavička stránky (predtým v page.tsx) — len pri zozname plánov; v builderi (tvorba, úprava)
+  // ani v náhľade hotového plánu nie je, klient vie, že je v Tréningu
+  const pageHeader = (
+    <header>
+      <h1 className={styles.pageTitle}>{tr("pageTitle")}</h1>
+      <p className={styles.pageSub}>{tr("pageSub")}</p>
+    </header>
+  );
+
   if (mode === "build") {
+    // celý odcvičený plán = len náhľad s vyhodnotením (nič sa v ňom nedá zmeniť)
+    const viewOnly = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
     return (
       <ClientPlanBuilder
+        // „Zopakovať s progresiou“ prepne z náhľadu na nový plán — builder začne odznova
+        key={editing?.id ?? fromTemplate?.id ?? "new"}
         library={library}
         initial={editing}
         template={fromTemplate}
@@ -308,11 +322,17 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         onSaved={onSaved}
         draftOwner={data.draftOwner}
         resume={resumeDraft}
+        readOnly={viewOnly}
+        reviewPreview={viewOnly && editing ? (data.previewReview?.[editing.id] ?? null) : null}
+        // plán od trénera sa neopakuje — nový plán klientovi zostaví tréner (u neho „Zopakovať s progresiou“)
+        onRepeat={editing?.source === "client" ? (template) => openBuilder(null, template) : undefined}
       />
     );
   }
 
   return (
+    <>
+    {pageHeader}
     <section aria-label={tr("plans")} className={styles.trWrap}>
       <div className={`${styles.trHead} ${styles.trHeadTabs}`}>
         <PlansTabs
@@ -630,11 +650,19 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             </div>
                           ) : (
                             <div className={pa.grid}>
-                              {plan.source === "client" && (
+                              {planDone ? (
+                                // celý odcvičený plán (vlastný aj od trénera) — nič sa nemení, len vyhodnotenie
                                 <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
-                                  <ActionEditIcon />
-                                  {tr("edit")}
+                                  <ActionPreviewIcon />
+                                  {tr("viewPlan")}
                                 </button>
+                              ) : (
+                                plan.source === "client" && (
+                                  <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                                    <ActionEditIcon />
+                                    {tr("edit")}
+                                  </button>
+                                )
                               )}
                               <button
                                 type="button"
@@ -678,5 +706,6 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
       {tab === "plans" && plans.length > 1 && <p className={styles.trHint}>{tr("hint")}</p>}
     </section>
+    </>
   );
 }

@@ -4701,3 +4701,337 @@ a.bellItemMain:hover {
   line-height: 1.4;
   color: var(--error);
 }
+
+/* ---------- Náhľad odcvičeného vlastného tréningu + Analytika tréningu (feature/nahlad-analytika) ---------- */
+/* názov plánu v náhľade — len text, nie pole */
+.trNameStatic {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.rvOverview {
+  display: grid;
+  gap: 12px;
+}
+.rvPeriod {
+  margin-top: -4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--paper-dim);
+}
+.rvState {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.rvSkeleton {
+  display: block;
+  width: 100%;
+  height: 140px;
+  border-radius: 22px;
+  background: var(--fill);
+  animation: rvPulse 1.2s ease-in-out infinite;
+}
+@keyframes rvPulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rvSkeleton {
+    animation: none;
+  }
+}
+.rvBox {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: var(--card-shadow);
+}
+.rvBoxTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 14.5px;
+  font-weight: 750;
+  color: var(--paper);
+}
+.rvBoxIcon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  flex: none;
+}
+.rvList {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--paper);
+}
+.rvList li {
+  display: grid;
+  gap: 2px;
+  padding-left: 14px;
+  position: relative;
+}
+.rvList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.rvList strong {
+  font-weight: 700;
+}
+.rvSub {
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}
+.rvCards {
+  display: grid;
+  gap: 12px;
+}
+.rvCard {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: var(--card-shadow);
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+.rvCardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rvCardName {
+  font-size: 15.5px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.rvChipRecord {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.rvLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--paper-faint);
+}
+.rvToggle {
+  justify-self: start;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--fill);
+  color: var(--paper);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.rvToggle:hover {
+  border-color: var(--fill-strong);
+}
+.rvTimeline {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.rvTimeline li {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--paper);
+}
+.rvTimeDate {
+  color: var(--paper-faint);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.rvTimeBody {
+  min-width: 0;
+}
+.rvNote {
+  display: block;
+  color: var(--paper-dim);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+.rvRepeat {
+  display: grid;
+  gap: 8px;
+}
+.rvRepeat .trHint {
+  text-align: center;
+}
+/* okno „Zopakovať s progresiou“ — voľba % a náhľad zmien */
+.pgdBody {
+  display: grid;
+  gap: 14px;
+}
+.pgdOptions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.pgdOption {
+  min-height: 44px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-solid);
+  color: var(--paper);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.pgdOption:hover {
+  border-color: var(--fill-strong);
+}
+.pgdOption[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+/* zoznam zmien sa posúva sám — tlačidlá okna ostávajú vždy viditeľné */
+.pgdScroll {
+  display: grid;
+  gap: 12px;
+  max-height: min(30vh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+.pgdGroup {
+  display: grid;
+  gap: 6px;
+}
+.pgdDay {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper-faint);
+  overflow-wrap: anywhere;
+}
+.pgdList {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.pgdList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--fill);
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.pgdList li[data-up] {
+  background: var(--accent-soft);
+}
+.pgdName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+.pgdValue {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-dim);
+  text-align: right;
+}
+.pgdList li[data-up] .pgdValue {
+  color: var(--accent-text);
+  font-weight: 750;
+}
+.pgdActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* vyhodnotenie hotového plánu u trénera (detail plánu) */
+.rvPanel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.rvPanelTitle {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+}
+/* builder vlastného plánu: Uložiť + Zmazať koncept / Zahodiť úpravy pod názvom (ako u trénera) */
+.trActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 480px;
+}
+.trActionsGrid > button {
+  width: 100%;
+}
+.trDiscardBtn {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--danger-line);
+  background: transparent;
+  color: var(--danger);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.trDiscardBtn:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+.trDiscardBtn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

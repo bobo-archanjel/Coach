@@ -96,14 +96,29 @@ export async function getDayForEdit(
 ): Promise<{ day: { plan_id: string; exercises: unknown } | null; locked: boolean; dayDone: boolean }> {
   const { data } = await supabase
     .from("workout_days")
-    .select("plan_id, exercises, workout_plans(workout_days(id, workout_logs(count)))")
+    .select("plan_id, exercises, source_day_id, workout_plans(edit_of, workout_days(id, workout_logs(count)))")
     .eq("id", dayId)
     .maybeSingle();
   if (!data) return { day: null, locked: false, dayDone: false };
-  const plan = data.workout_plans as unknown as { workout_days: DayLogCount[] | null } | null;
+  const plan = data.workout_plans as unknown as { edit_of: string | null; workout_days: DayLogCount[] | null } | null;
+  const day = { plan_id: data.plan_id as string, exercises: data.exercises };
+
+  // Deň skrytej kópie rozpracovaných úprav zverejneného plánu (0071): zápisy tréningov
+  // visia na pôvodnom dni (source_day_id) a zámok celého plánu na pôvodnom pláne.
+  if (plan?.edit_of) {
+    const sourceId = data.source_day_id as string | null;
+    const [locked, { count }] = await Promise.all([
+      isPlanLocked(supabase, plan.edit_of),
+      sourceId
+        ? supabase.from("workout_logs").select("id", { count: "exact", head: true }).eq("workout_day_id", sourceId)
+        : Promise.resolve({ count: 0 }),
+    ]);
+    return { day, locked, dayDone: (count ?? 0) > 0 };
+  }
+
   const self = plan?.workout_days?.find((d) => d.id === dayId);
   return {
-    day: { plan_id: data.plan_id as string, exercises: data.exercises },
+    day,
     locked: allDaysDone(plan?.workout_days),
     // klient z tohto dňa už odcvičil tréning — deň je zamknutý (úpravy, premenovanie, zmazanie, kópia)
     dayDone: (self?.workout_logs?.[0]?.count ?? 0) > 0,

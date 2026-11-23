@@ -191,7 +191,7 @@ test.describe("zámok odcvičeného dňa — reálna DB", () => {
     await page.getByRole("button", { name: "Premenovať", exact: true }).click();
     await page.locator("#client-day-rename").fill("E2E Deň 2 nový");
     await page.getByRole("dialog").getByRole("button", { name: "Hotovo", exact: true }).click();
-    await page.getByRole("button", { name: "Uložiť zmeny" }).click();
+    await page.getByRole("button", { name: "Uložiť", exact: true }).click();
     await expect(page.getByText(name).first()).toBeVisible({ timeout: 30_000 });
 
     const { data: saved } = await admin.from("workout_days").select("id, name, exercises").eq("plan_id", plan!.id).order("day_number");
