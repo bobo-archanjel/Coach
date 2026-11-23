@@ -76,6 +76,47 @@ const PREVIEW: PortalTrainingData = {
       ],
     },
     {
+      // celý odcvičený VLASTNÝ plán — „Náhľad“ namiesto „Upraviť“ (+ Analytika tréningu)
+      id: "plan-own-done",
+      name: "Moja jesenná sila",
+      source: "client",
+      isActive: false,
+      days: [
+        {
+          id: "d6",
+          name: "Tréning 1",
+          done: true,
+          doneToday: false,
+          lastLog: {
+            id: "log-d6",
+            completedAt: "2026-11-10T17:00:00Z",
+            editableUntil: null,
+            entries: DAY_A_ENTRIES,
+            rpe: 8,
+            note: null,
+            compare: previewCompare(DAY_A, DAY_A_ENTRIES),
+          },
+          exercises: DAY_A,
+        },
+        {
+          id: "d7",
+          name: "Tréning 2",
+          done: true,
+          doneToday: false,
+          lastLog: {
+            id: "log-d7",
+            completedAt: "2026-11-12T17:00:00Z",
+            editableUntil: null,
+            entries: DAY_B_ENTRIES,
+            rpe: 9,
+            note: null,
+            compare: previewCompare(DAY_B, DAY_B_ENTRIES),
+          },
+          exercises: DAY_B,
+        },
+      ],
+    },
+    {
       // celý odcvičený plán — „Hotovo“, aktívnym sa už nastaviť nedá
       id: "plan-done",
       name: "Letný plán — celé telo",
@@ -93,6 +134,40 @@ const PREVIEW: PortalTrainingData = {
       ],
     },
   ],
+  // Analytika tréningu „Moja jesenná sila“: bench 3 tréningy, tlaky 1 (graf až od 2.), zhyby bez kg
+  previewVolume: {
+    "plan-own-done": [
+      {
+        dayId: "d6",
+        exercises: [
+          {
+            entryId: "e1",
+            name: "Bench press",
+            points: [
+              { date: "2026-10-27", volumeKg: 1680 },
+              { date: "2026-11-03", volumeKg: 1824 },
+              { date: "2026-11-10", volumeKg: 1375 },
+            ],
+          },
+          { entryId: "e2", name: "Tlaky nad hlavu", points: [{ date: "2026-11-10", volumeKg: 1080 }] },
+        ],
+      },
+      {
+        dayId: "d7",
+        exercises: [
+          {
+            entryId: "e3",
+            name: "Mŕtvy ťah",
+            points: [
+              { date: "2026-10-29", volumeKg: 1500 },
+              { date: "2026-11-12", volumeKg: 1080 },
+            ],
+          },
+          { entryId: "e4", name: "Zhyby", points: [] },
+        ],
+      },
+    ],
+  },
   templates: [
     {
       id: "tpl-own",

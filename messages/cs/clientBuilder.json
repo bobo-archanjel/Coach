@@ -52,5 +52,16 @@
   "dayDone": "Odcvičeno {date}",
   "dayDoneHint": "Tento den je už odcvičený — nejde upravit.",
   "dayDoneNoValues": "Trénink byl ukončen bez zapsaných hodnot.",
-  "defaultDayName": "Trénink {n}"
+  "defaultDayName": "Trénink {n}",
+  "previewAria": "Náhled tréninku",
+  "analytics": "Analytika tréninku",
+  "backToPreview": "Náhled",
+  "analyticsIntro": "Celkový objem práce (opakování × kg) u každého cviku tohoto tréninku — ze všech tvých tréninků.",
+  "volumeLoading": "Načítám analytiku…",
+  "volumeError": "Analytiku se nepodařilo načíst.",
+  "volumeRetry": "Zkusit znovu",
+  "volumeNoWeight": "Objem se počítá z kg — u tohoto cviku není zapsaná váha.",
+  "volumeSingle": "Zatím jeden trénink s tímto cvikem — graf se ukáže od druhého.",
+  "volumeChartAria": "Graf objemu: {name}, {count, plural, one {# trénink} few {# tréninky} other {# tréninků}}. Šipkami vybereš trénink.",
+  "volumeEmpty": "Tento trénink nemá žádné cviky."
 }

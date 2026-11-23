@@ -1,6 +1,7 @@
 // Typy klientskeho portálu /portal. Naplnené reálnymi Supabase dátami v lib/portal/data.ts
 // (migrácia supabase/migrations/0002_workout_portal.sql). Viď DESIGN.md → Surfaces → Klientsky portál.
 
+import type { PlanVolumeDay } from "@/lib/dashboard/bodyMetrics";
 import type { MealSlot } from "@/lib/meals";
 import type { PortionUnit } from "@/lib/portions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
@@ -274,6 +275,8 @@ export interface PortalTrainingData {
   templates: PortalTemplate[];
   /** id prihláseného — rozpracovaný koncept buildera v prehliadači patrí len jemu (builderDraft.ts) */
   draftOwner: string;
+  /** len DEV náhľad (?preview=): Analytika tréningu bez servera, podľa id plánu */
+  previewVolume?: Record<string, PlanVolumeDay[]>;
 }
 
 export interface ExerciseOption {

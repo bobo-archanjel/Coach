@@ -20,7 +20,7 @@ import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./bu
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import { ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import { ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import styles from "../portal.module.css";
 
@@ -142,7 +142,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     }
     // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
     // otvorenie buildera v rámci tej istej návštevy /portal/trening).
-    if (library.length === 0) {
+    const viewOnly = Boolean(plan && plan.days.length > 0 && plan.days.every((d) => d.done));
+    if (library.length === 0 && !viewOnly) {
       startLibraryTransition(async () => {
         setLibrary(await getExerciseLibraryAction());
       });
@@ -299,6 +300,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   };
 
   if (mode === "build") {
+    // celý odcvičený vlastný plán = len náhľad (nič sa v ňom nedá zmeniť) + Analytika tréningu
+    const viewOnly = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
     return (
       <ClientPlanBuilder
         library={library}
@@ -308,6 +311,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         onSaved={onSaved}
         draftOwner={data.draftOwner}
         resume={resumeDraft}
+        readOnly={viewOnly}
+        volumePreview={viewOnly && editing ? (data.previewVolume?.[editing.id] ?? null) : null}
       />
     );
   }
@@ -630,12 +635,19 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             </div>
                           ) : (
                             <div className={pa.grid}>
-                              {plan.source === "client" && (
-                                <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
-                                  <ActionEditIcon />
-                                  {tr("edit")}
-                                </button>
-                              )}
+                              {plan.source === "client" &&
+                                (planDone ? (
+                                  // celý odcvičený — upraviť sa nedá nič, len pozrieť (a analytika)
+                                  <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                                    <ActionPreviewIcon />
+                                    {tr("viewPlan")}
+                                  </button>
+                                ) : (
+                                  <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                                    <ActionEditIcon />
+                                    {tr("edit")}
+                                  </button>
+                                ))}
                               <button
                                 type="button"
                                 className={pa.action}

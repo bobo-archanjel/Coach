@@ -15,7 +15,9 @@ import type { ExerciseOption, PortalDayLog, PortalExercise, PortalPlan, PortalTe
 import { formatCompletedDate, type CompletedCompare } from "@/lib/workouts/completed";
 import type { Locale } from "@/lib/i18n/locales";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
-import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
+import { saveClientPlanAction, getExerciseDetailAction, getPlanVolumeAction, type PlanDraft } from "./actions";
+import type { PlanVolumeDay } from "@/lib/dashboard/bodyMetrics";
+import { VolumeAnalytics } from "./VolumeAnalytics";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
@@ -169,6 +171,8 @@ export function ClientPlanBuilder({
   onSaved,
   draftOwner,
   resume = null,
+  readOnly = false,
+  volumePreview = null,
 }: {
   library: ExerciseOption[];
   initial: PortalPlan | null;
@@ -180,6 +184,10 @@ export function ClientPlanBuilder({
   draftOwner: string;
   /** „Pokračovať“ — rozpracovaný koncept z prehliadača namiesto východiska */
   resume?: PlanBuilderDraft | null;
+  /** Náhľad celého odcvičeného plánu: nič sa nemení ani neukladá; hore „Analytika tréningu“ */
+  readOnly?: boolean;
+  /** DEV náhľad (?preview=) — analytika bez servera */
+  volumePreview?: PlanVolumeDay[] | null;
 }) {
   const t = useTranslations("clientBuilder");
   const locale = useLocale() as Locale;
@@ -195,13 +203,15 @@ export function ClientPlanBuilder({
   const [name, setName] = useState(resume?.name ?? fresh.name);
   // pri „Pokračovať“ koncept; odcvičenie dňa (`done`) sa berie z aktuálneho plánu, nie z konceptu
   const [days, setDays] = useState<BDay[]>(() =>
-    resume ? fromDraftDays(resume.days, fresh.days) : fresh.days,
+    resume && !readOnly ? fromDraftDays(resume.days, fresh.days) : fresh.days,
   );
   // Rozpracovaný koncept v prehliadači: pri každej zmene oproti východisku sa uloží; keď sa
   // klient vráti k východisku, zmaže. Samotné otvorenie buildera starší koncept neprepíše.
   const [freshSignature] = useState(() => draftSignature({ name: fresh.name, days: toStoredDays(fresh.days) }));
   const touchedDraft = useRef(Boolean(resume));
   useEffect(() => {
+    // náhľad sa nemení — koncept (karta „Pokračovať“) z neho nevzniká
+    if (readOnly) return;
     const stored = toStoredDays(days);
     if (draftSignature({ name, days: stored }) !== freshSignature) {
       touchedDraft.current = true;
@@ -209,7 +219,30 @@ export function ClientPlanBuilder({
     } else if (touchedDraft.current) {
       clearBuilderDraft(draftOwner);
     }
-  }, [name, days, freshSignature, draftOwner, initial?.id]);
+  }, [name, days, freshSignature, draftOwner, initial?.id, readOnly]);
+
+  // Analytika tréningu (len náhľad): načíta sa pri prvom otvorení, potom ostáva v pamäti.
+  const [view, setView] = useState<"preview" | "analytics">("preview");
+  const [volume, setVolume] = useState<PlanVolumeDay[] | null>(volumePreview);
+  const [volumeError, setVolumeError] = useState<string | null>(null);
+  const [, startVolumeTransition] = useTransition();
+  const loadVolume = () => {
+    if (!initial || volumePreview) return;
+    setVolumeError(null);
+    startVolumeTransition(async () => {
+      const res = await getPlanVolumeAction(initial.id).catch(() => ({ error: t("volumeError") }));
+      if ("error" in res) setVolumeError(res.error);
+      else setVolume(res.days);
+    });
+  };
+  const toggleView = () => {
+    if (view === "analytics") {
+      setView("preview");
+      return;
+    }
+    setView("analytics");
+    if (!volume) loadVolume();
+  };
   // "" = ešte nevybraný → activeDay spadne na prvý deň (nižšie).
   const [activeKey, setActiveKey] = useState<string>("");
   const [addingDay, setAddingDay] = useState(false);
@@ -390,13 +423,26 @@ export function ClientPlanBuilder({
     // Späť (zatvoriť builder bez uloženia): potiahnutie zľava doprava na mobile, späť v
     // prehliadači alebo „Tréning“ v menu (TrainingSection, ?tvorba) — tlačidlo „Späť“ tu nie je.
     <SwipeBack onBack={onCancel}>
-      <section aria-label={initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
+      <section aria-label={readOnly ? t("previewAria") : initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
         <div className={styles.trBuilderTop}>
-          <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="cbuilder-save">
-            {pending ? t("saving") : t("save")}
-          </button>
+          {readOnly ? (
+            // náhľad sa neukladá — namiesto „Uložiť“ prepínač Analytika tréningu ↔ Náhľad
+            <button type="button" className={styles.trSaveBtn} onClick={toggleView} aria-pressed={view === "analytics"}>
+              {view === "analytics" ? t("backToPreview") : t("analytics")}
+            </button>
+          ) : (
+            <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="cbuilder-save">
+              {pending ? t("saving") : t("save")}
+            </button>
+          )}
         </div>
 
+        {readOnly ? (
+          <div className={styles.trNameField}>
+            <span className={styles.panelLabel}>{t("planName")}</span>
+            <h2 className={styles.trNameStatic}>{name}</h2>
+          </div>
+        ) : (
         <label className={styles.trNameField} data-tour="cbuilder-name">
           <span className={styles.panelLabel}>{t("planName")}</span>
           <input
@@ -414,6 +460,7 @@ export function ClientPlanBuilder({
             aria-invalid={error === t("planNameRequired") || undefined}
           />
         </label>
+        )}
 
         {/* Chyba hore pod názvom (predtým až pod knižnicou cvikov — na mobile ju klient nevidel).
             Pri ukladaní tlačidlom dole sa k nej stránka posunie. */}
@@ -449,6 +496,7 @@ export function ClientPlanBuilder({
                   </span>
                 </button>
               ))}
+              {!readOnly && (
               <button
                 type="button"
                 className={b.addDayTab}
@@ -459,6 +507,7 @@ export function ClientPlanBuilder({
               >
                 {t("addDay")}
               </button>
+              )}
             </div>
 
             {addingDay && (
@@ -508,7 +557,7 @@ export function ClientPlanBuilder({
               </div>
             )}
 
-            {activeDay && !activeDone && (
+            {activeDay && !activeDone && !readOnly && (
               // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
               <div className={b.dayHead}>
                 <div className={b.dayActionsRow}>
@@ -561,7 +610,13 @@ export function ClientPlanBuilder({
             )}
 
             <div className={b.dayPanel}>
-              {activeDay && activeDone ? (
+              {readOnly && view === "analytics" ? (
+                <VolumeAnalytics
+                  exercises={volume ? (volume.find((d) => d.dayId === activeDay?.id)?.exercises ?? []) : null}
+                  error={volumeError}
+                  onRetry={loadVolume}
+                />
+              ) : activeDay && activeDone ? (
                 activeDone.compare.exercises.length > 0 ? (
                   <CompletedExercises exercises={activeDone.compare.exercises} hasPlan={activeDone.compare.hasPlan} />
                 ) : (
@@ -675,14 +730,17 @@ export function ClientPlanBuilder({
 
           {/* Až za plátnom aj v DOM — poradie pre klávesnicu/čítačku = vizuálne */}
           {/* odcvičený deň sa nemení — pridávanie cvikov netreba (ako u trénera) */}
-          {!activeDone && (
+          {!activeDone && !readOnly && (
             <ClientExerciseLibrary library={library} hasDay={activeDay !== null} onAdd={addExercise} onDetail={openDetail} />
           )}
         </div>
 
-        <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
-          {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}
-        </button>
+        {/* náhľad odcvičeného plánu sa neukladá — bez „Uložiť zmeny“ */}
+        {!readOnly && (
+          <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
+            {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}
+          </button>
+        )}
 
         {detailFor && (
           <ExerciseDetailModal detail={detail} fallbackName={detailFor.name} onClose={() => setDetailFor(null)} />
