@@ -19,9 +19,10 @@ const PREVIEW_PLAN_CHOICE: PortalPlanChoice = {
   activePlanId: "pp-strength",
   activePlanName: "Silový 3× týždenne",
   plans: [
-    { id: "pp-strength", name: "Silový 3× týždenne", source: "trainer", dayCount: 3 },
-    { id: "pp-own", name: "Môj ranný tréning", source: "client", dayCount: 2 },
-    { id: "pp-empty", name: "Rozpracovaný plán", source: "trainer", dayCount: 0 },
+    { id: "pp-strength", name: "Silový 3× týždenne", source: "trainer", dayCount: 3, done: false },
+    { id: "pp-own", name: "Môj ranný tréning", source: "client", dayCount: 2, done: false },
+    { id: "pp-empty", name: "Rozpracovaný plán", source: "trainer", dayCount: 0, done: false },
+    { id: "pp-done", name: "Letný plán", source: "trainer", dayCount: 2, done: true },
   ],
 };
 

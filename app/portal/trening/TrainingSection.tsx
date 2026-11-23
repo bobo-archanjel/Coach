@@ -425,6 +425,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
           {plans.map((plan) => {
             const expanded = expandedId === plan.id;
             const selectedDay = expanded && selectedDayId ? (plan.days.find((d) => d.id === selectedDayId) ?? null) : null;
+            // celý plán odcvičený — „Hotovo“, aktívnym sa už nastaviť nedá (callSetActivePlan to odmietne)
+            const planDone = plan.days.length > 0 && plan.days.every((d) => d.done);
             return (
               <li
                 key={plan.id}
@@ -444,6 +446,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                   </span>
                   <span className={styles.trPlanChips}>
                     {plan.isActive && <span className={styles.trActivePill}>{tr("active")}</span>}
+                    {planDone && <span className={styles.trDoneBadge}>{tr("done")}</span>}
                     <span className={styles.trSrcChip} data-src={plan.source}>
                       {plan.source === "trainer" ? tr("fromTrainer") : tr("own")}
                     </span>
@@ -458,7 +461,10 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
                 {expanded && (
                   <div className={styles.trPlanBody}>
-                    {!selectedDay && !plan.isActive && plan.days.length > 0 && (
+                    {!selectedDay && !plan.isActive && planDone && (
+                      <p className={`${styles.trHint} ${styles.trDoneHint}`}>{tr("planDoneHint")}</p>
+                    )}
+                    {!selectedDay && !plan.isActive && !planDone && plan.days.length > 0 && (
                       <div className={styles.trActiveRow}>
                         <button type="button" className={styles.trGhostBtn} onClick={() => makeActive(plan)} disabled={pending}>
                           {tr("setActive")}

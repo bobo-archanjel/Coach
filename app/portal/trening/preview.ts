@@ -75,6 +75,23 @@ const PREVIEW: PortalTrainingData = {
         },
       ],
     },
+    {
+      // celý odcvičený plán — „Hotovo“, aktívnym sa už nastaviť nedá
+      id: "plan-done",
+      name: "Letný plán — celé telo",
+      source: "trainer",
+      isActive: false,
+      days: [
+        {
+          id: "d5",
+          name: "Celé telo",
+          done: true,
+          doneToday: false,
+          lastLog: null,
+          exercises: DAY_A,
+        },
+      ],
+    },
   ],
   templates: [
     {

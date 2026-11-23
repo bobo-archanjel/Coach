@@ -3670,6 +3670,10 @@
   gap: 8px 12px;
   padding-top: 12px;
 }
+/* celý odcvičený plán — namiesto „Nastaviť ako aktívny“ len vysvetlenie */
+.trDoneHint {
+  padding-top: 12px;
+}
 .trActiveNote {
   margin-top: 12px;
   font-size: 13px;

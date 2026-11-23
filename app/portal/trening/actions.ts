@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { fetchExerciseDetail, type ExerciseDetail } from "@/lib/exercises";
-import { getExerciseLibrary } from "@/lib/portal/data";
+import { getExerciseLibrary, isPlanFinished } from "@/lib/portal/data";
 import type { ExerciseOption } from "@/lib/portal/types";
 import { dbErr } from "@/lib/dbError";
 import { deleteWorkoutTemplate, saveOwnPlanAsTemplate } from "@/lib/templates";
@@ -365,6 +365,10 @@ export async function chooseActivePlanAction(planId: string): Promise<ActionStat
 /** RPC set_active_plan (0022) s ľudskými chybami — overí prihlásenie aj vlastníctvo plánu. */
 async function callSetActivePlan(planId: string, dayId: string | null): Promise<ActionState> {
   const supabase = await createClient();
+  // celý odcvičený plán (badge „Hotovo“) už nie je čo cvičiť — aktívnym sa nastaviť nedá
+  // (RLS: klient vidí len svoje plány a zápisy; cudzí plán RPC aj tak odmietne)
+  const { data: days } = await supabase.from("workout_days").select("exercises, workout_logs(count)").eq("plan_id", planId);
+  if (isPlanFinished(days)) return { error: await tErr("client.planDone") };
   const { error } = await supabase.rpc("set_active_plan", { p_plan_id: planId, p_day_id: dayId });
   if (!error) return ok;
   if (error.message.includes("not_authenticated")) return { error: await tErr("notSignedIn") };

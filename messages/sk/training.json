@@ -17,6 +17,7 @@
   "planDays": "{count, plural, =0 {Zatiaľ bez dní} one {Plán na # deň} few {Plán na # dni} other {Plán na # dní}}",
   "setActive": "Nastaviť ako aktívny",
   "showsOnToday": "Zobrazí sa na karte Dnes.",
+  "planDoneHint": "Celý plán máš odcvičený — ako aktívny sa už nastaviť nedá.",
   "noDays": "Tento tréning nemá žiadne dni.",
   "allDays": "Všetky dni",
   "noExercises": "Žiadne cviky.",
