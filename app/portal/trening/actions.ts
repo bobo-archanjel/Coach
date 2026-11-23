@@ -1,7 +1,8 @@
 "use server";
 
 import { tErr } from "@/lib/i18n/serverErrors";
-import { getPlanVolumeProgress, type PlanVolumeDay } from "@/lib/dashboard/bodyMetrics";
+import { getPlanReview } from "@/lib/portal/planReviewData";
+import type { PlanReview } from "@/lib/portal/planReview";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -26,14 +27,14 @@ export interface ActionState {
 const ok: ActionState = { error: null };
 
 /**
- * Analytika tréningu (náhľad odcvičeného vlastného plánu): objem každého cviku plánu
- * v čase zo všetkých tréningov klienta. Načíta sa až pri otvorení analytiky.
+ * Vyhodnotenie celého odcvičeného vlastného plánu (Náhľad): súhrn, rekordy, zistenia,
+ * história cvikov a návrh záťaže pre „Zopakovať s progresiou“. Načíta sa pri otvorení náhľadu.
  */
-export async function getPlanVolumeAction(planId: string): Promise<{ days: PlanVolumeDay[] } | { error: string }> {
+export async function getPlanReviewAction(planId: string): Promise<{ review: PlanReview } | { error: string }> {
   if (typeof planId !== "string" || !planId) return { error: await tErr("client.workoutNotFound") };
-  const days = await getPlanVolumeProgress(planId);
-  if (!days) return { error: await tErr("client.workoutNotFound") };
-  return { days };
+  const review = await getPlanReview(planId);
+  if (!review) return { error: await tErr("client.workoutNotFound") };
+  return { review };
 }
 
 /** Detail cviku (obrázky + inštrukcie) pre náhľad v builderi vlastného tréningu. */

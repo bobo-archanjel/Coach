@@ -46,7 +46,7 @@ function setLabel(s: LoggedSet, repsLabel: (n: number) => string, locale: Locale
 }
 
 /** Dlaždica súhrnu tréningu: ikona v oranžovom krúžku, popis, hodnota. */
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+export function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className={styles.doneStat}>
       <span className={styles.doneStatHead}>
@@ -58,24 +58,24 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-const DumbbellIcon = () => (
+export const DumbbellIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
   </svg>
 );
-const LayersIcon = () => (
+export const LayersIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M12 4 3.5 8.5 12 13l8.5-4.5L12 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     <path d="M3.5 12.5 12 17l8.5-4.5M3.5 16.5 12 21l8.5-4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-const WeightIcon = () => (
+export const WeightIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M9 7.5a3 3 0 1 1 6 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     <path d="M6.2 7.5h11.6l2 12.5H4.2l2-12.5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
   </svg>
 );
-const GaugeIcon = () => (
+export const GaugeIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M4 17a8 8 0 1 1 16 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     <path d="M12 17l4-5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />

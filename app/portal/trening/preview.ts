@@ -1,6 +1,7 @@
 /* DEV náhľady sekcie Tréning (?preview=…). */
 import type { PortalExercise, PortalTrainingData, PortalTrainingResult } from "@/lib/portal/types";
 import { previewCompare } from "../previewCompare";
+import { buildPlanReview, type PlanReview } from "@/lib/portal/planReview";
 
 const DAY_A: PortalExercise[] = [
   { idx: "1", name: "Bench press", scheme: "4 × 6", load: "80 kg", rest: "150 s", tempo: "lopatky stiahnuté, 2 s dole", entryId: "e1", plannedSets: 4, plannedReps: "6", exerciseId: null, loadKg: 80, restSeconds: 150 },
@@ -19,6 +20,52 @@ const DAY_B_ENTRIES = [
 const DAY_A_ENTRIES = [
   { entryId: "e1", name: "Bench press", sets: [{ reps: 6, weight: 80 }, { reps: 6, weight: 82.5 }, { reps: 5, weight: 80 }] },
 ];
+
+// „Moja jesenná sila“ (celý odcvičený vlastný plán): bench všetky série splnené (→ návrh +2,5 kg),
+// tlaky 2 z 3 sérií, mŕtvy ťah 120 kg (rekord oproti 115), zhyby vždy viac opakovaní
+const OWN_T1_ENTRIES = [
+  { entryId: "e1", name: "Bench press", sets: [{ reps: 6, weight: 80 }, { reps: 6, weight: 80 }, { reps: 6, weight: 80 }, { reps: 7, weight: 80 }] },
+  { entryId: "e2", name: "Tlaky nad hlavu", sets: [{ reps: 8, weight: 45 }, { reps: 7, weight: 45 }] },
+];
+const OWN_T2_ENTRIES = [
+  { entryId: "e3", name: "Mŕtvy ťah", superset: "sstr", sets: [{ reps: 5, weight: 120 }, { reps: 5, weight: 120 }, { reps: 4, weight: 120 }] },
+  { entryId: "e4", name: "Zhyby", superset: "sstr", sets: [{ reps: 10, weight: null }, { reps: 10, weight: null }, { reps: 9, weight: null }, { reps: 9, weight: null }] },
+];
+const snapshotOf = (exercises: PortalExercise[]) => ({
+  exercises: exercises.map((e) => ({
+    entry_id: e.entryId,
+    exercise_name: e.name,
+    sets: e.plannedSets,
+    reps: e.plannedReps,
+    load_kg: e.loadKg,
+  })),
+});
+function ownDoneReview(): PlanReview {
+  const log = (id: string, dayId: string | null, performedOn: string, entries: unknown, planSnapshot: unknown, rpe: number | null, note: string | null) => ({
+    id,
+    dayId,
+    performedOn,
+    completedAt: `${performedOn}T17:00:00Z`,
+    rpe,
+    note,
+    entries,
+    planSnapshot,
+  });
+  return buildPlanReview({
+    days: [
+      { id: "d6", name: "Tréning 1", exercises: snapshotOf(DAY_A).exercises },
+      { id: "d7", name: "Tréning 2", exercises: snapshotOf(DAY_B).exercises },
+    ],
+    logs: [
+      // staršie tréningy z iného plánu — história pre grafy a rekordy
+      log("h1", null, "2026-10-20", [{ entryId: "o1", name: "Bench press", sets: [{ reps: 6, weight: 75 }, { reps: 6, weight: 77.5 }] }, { entryId: "o2", name: "Mŕtvy ťah", sets: [{ reps: 5, weight: 110 }] }], null, 7, null),
+      log("h2", null, "2026-10-27", [{ entryId: "o1", name: "Bench press", sets: [{ reps: 6, weight: 80 }, { reps: 5, weight: 80 }] }, { entryId: "o2", name: "Mŕtvy ťah", sets: [{ reps: 5, weight: 115 }] }], null, 8, null),
+      log("log-d6", "d6", "2026-11-10", OWN_T1_ENTRIES, snapshotOf(DAY_A), 8, "Bench išiel ľahko."),
+      log("log-d7", "d7", "2026-11-12", OWN_T2_ENTRIES, snapshotOf(DAY_B), 9, null),
+    ],
+    nameOf: (_entryId, storedName) => storedName,
+  });
+}
 
 const PREVIEW: PortalTrainingData = {
   draftOwner: "preview",
@@ -91,10 +138,10 @@ const PREVIEW: PortalTrainingData = {
             id: "log-d6",
             completedAt: "2026-11-10T17:00:00Z",
             editableUntil: null,
-            entries: DAY_A_ENTRIES,
+            entries: OWN_T1_ENTRIES,
             rpe: 8,
-            note: null,
-            compare: previewCompare(DAY_A, DAY_A_ENTRIES),
+            note: "Bench išiel ľahko.",
+            compare: previewCompare(DAY_A, OWN_T1_ENTRIES),
           },
           exercises: DAY_A,
         },
@@ -107,10 +154,10 @@ const PREVIEW: PortalTrainingData = {
             id: "log-d7",
             completedAt: "2026-11-12T17:00:00Z",
             editableUntil: null,
-            entries: DAY_B_ENTRIES,
+            entries: OWN_T2_ENTRIES,
             rpe: 9,
             note: null,
-            compare: previewCompare(DAY_B, DAY_B_ENTRIES),
+            compare: previewCompare(DAY_B, OWN_T2_ENTRIES),
           },
           exercises: DAY_B,
         },
@@ -134,40 +181,7 @@ const PREVIEW: PortalTrainingData = {
       ],
     },
   ],
-  // Analytika tréningu „Moja jesenná sila“: bench 3 tréningy, tlaky 1 (graf až od 2.), zhyby bez kg
-  previewVolume: {
-    "plan-own-done": [
-      {
-        dayId: "d6",
-        exercises: [
-          {
-            entryId: "e1",
-            name: "Bench press",
-            points: [
-              { date: "2026-10-27", volumeKg: 1680 },
-              { date: "2026-11-03", volumeKg: 1824 },
-              { date: "2026-11-10", volumeKg: 1375 },
-            ],
-          },
-          { entryId: "e2", name: "Tlaky nad hlavu", points: [{ date: "2026-11-10", volumeKg: 1080 }] },
-        ],
-      },
-      {
-        dayId: "d7",
-        exercises: [
-          {
-            entryId: "e3",
-            name: "Mŕtvy ťah",
-            points: [
-              { date: "2026-10-29", volumeKg: 1500 },
-              { date: "2026-11-12", volumeKg: 1080 },
-            ],
-          },
-          { entryId: "e4", name: "Zhyby", points: [] },
-        ],
-      },
-    ],
-  },
+  previewReview: { "plan-own-done": ownDoneReview() },
   templates: [
     {
       id: "tpl-own",

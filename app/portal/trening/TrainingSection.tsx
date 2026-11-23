@@ -304,6 +304,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     const viewOnly = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
     return (
       <ClientPlanBuilder
+        // „Zopakovať s progresiou“ prepne z náhľadu na nový plán — builder začne odznova
+        key={editing?.id ?? fromTemplate?.id ?? "new"}
         library={library}
         initial={editing}
         template={fromTemplate}
@@ -312,7 +314,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         draftOwner={data.draftOwner}
         resume={resumeDraft}
         readOnly={viewOnly}
-        volumePreview={viewOnly && editing ? (data.previewVolume?.[editing.id] ?? null) : null}
+        reviewPreview={viewOnly && editing ? (data.previewReview?.[editing.id] ?? null) : null}
+        onRepeat={(template) => openBuilder(null, template)}
       />
     );
   }
