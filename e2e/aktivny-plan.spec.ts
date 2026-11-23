@@ -20,13 +20,16 @@ test.describe("aktívny plán — náhľady", () => {
     await change.click();
     const sheet = page.getByRole("dialog", { name: "Aktívny tréningový plán" });
     await expect(sheet).toBeVisible();
-    await expect(sheet.getByRole("button")).toHaveCount(4); // zavrieť + 3 plány
+    await expect(sheet.getByRole("button")).toHaveCount(5); // zavrieť + 4 plány
     await expect(sheet.getByRole("button", { name: /Silový 3× týždenne/ })).toHaveAttribute("aria-current", "true");
     await expect(sheet.getByRole("button", { name: /Môj ranný tréning/ })).not.toHaveAttribute("aria-current", "true");
     await expect(sheet.getByText("Vlastný")).toBeVisible();
     // fokus na aktívnom pláne; plán bez cvikov sa zvoliť nedá (ako v Tréningu)
     await expect(sheet.getByRole("button", { name: /Silový 3× týždenne/ })).toBeFocused();
     await expect(sheet.getByRole("button", { name: /Rozpracovaný plán/ })).toBeDisabled();
+    // celý odcvičený plán: „Hotovo“, zvoliť sa nedá
+    await expect(sheet.getByRole("button", { name: /Letný plán/ })).toBeDisabled();
+    await expect(sheet.getByRole("button", { name: /Letný plán/ })).toContainText("Hotovo");
     await page.keyboard.press("Escape");
     await expect(sheet).toHaveCount(0);
     await expect(change).toBeFocused();
@@ -45,6 +48,15 @@ test.describe("aktívny plán — náhľady", () => {
     await expect(page.getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
     await page.getByRole("button", { name: /Moje kardio \+ core/ }).click();
     await expect(page.getByRole("button", { name: "Nastaviť ako aktívny" })).toBeVisible();
+  });
+
+  test("Tréning: celý odcvičený plán má „Hotovo“ a nedá sa nastaviť ako aktívny", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    const head = page.getByRole("button", { name: /Letný plán — celé telo/ });
+    await expect(head).toContainText("Hotovo");
+    await head.click();
+    await expect(page.locator("#plan-plan-done")).toContainText("Celý plán máš odcvičený — ako aktívny sa už nastaviť nedá.");
+    await expect(page.getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
   });
 });
 

@@ -105,7 +105,8 @@
     "inProgress": "Práve máš rozbehnutý tréning — prepnutím sa preruší. Rozpísané hodnoty ostanú uložené.",
     "fromTrainer": "Od trénera",
     "own": "Vlastný",
-    "switching": "Prepínam…"
+    "switching": "Prepínam…",
+    "done": "Hotovo"
   },
   "cooperation": {
     "close": "Zavrieť upozornenie",

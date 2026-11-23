@@ -170,7 +170,8 @@
     "missingDay": "Chýba deň tréningu.",
     "macrosMax": "Bielkoviny, sacharidy a tuky spolu nemôžu mať viac ako 100 g na 100 g.",
     "aiCoachTrainerOnly": "AI Kouč je zatiaľ dostupný len klientom s prideleným trénerom.",
-    "diaryRange": "Zapisovať sa dá len za posledných {days} dní, nie do budúcnosti."
+    "diaryRange": "Zapisovať sa dá len za posledných {days} dní, nie do budúcnosti.",
+    "planDone": "Tento plán máš už celý odcvičený — ako aktívny sa nastaviť nedá."
   },
   "api": {
     "clientNotFound": "Klient sa nenašiel.",

@@ -205,6 +205,8 @@ export interface PortalPlanOption {
   name: string;
   source: PlanSource;
   dayCount: number;
+  /** celý plán odcvičený (badge „Hotovo“) — aktívnym sa už nastaviť nedá */
+  done: boolean;
 }
 
 /** Aktívny plán + zoznam na výber (najnovší prvý) — clients.active_plan_id, inak najnovší (0056). */

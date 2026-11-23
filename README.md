@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-23** — **Klient: celý odcvičený plán sa nedá nastaviť ako aktívny** (`feature/klient-hotovy-plan`, bez migrácie).
+  - Tréning: hotový plán má „Hotovo“ a namiesto „Nastaviť ako aktívny“ vysvetlenie; prepínač „Zmeniť“ na Dnes ho ukáže stlmený s „Hotovo“, zvoliť sa nedá.
+  - Server (`callSetActivePlan`) hotový plán odmietne — `isPlanFinished` (lib/portal/data.ts): každý deň s cvikmi má zápis. Rovnaké pravidlo ako u trénera.
 - **2026-11-22** — **Overenie e-mailu kódom pri registrácii** (`feature/overenie-kodom`, bez migrácie).
   - Po registrácii krok „Over svoj e-mail“: 6-miestny kód z e-mailu (jedno pole, vloženie, odoslanie po 6. číslici), správny kód rovno prihlási (klient → portál, tréner → dashboard); „Poslať kód znova“ s odpočtom 60 s, „Zmeniť e-mail“; krok prežije refresh.
   - Prihlásenie s neovereným e-mailom pošle nový kód a ukáže ten istý krok.
