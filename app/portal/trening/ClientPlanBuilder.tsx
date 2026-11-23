@@ -212,7 +212,8 @@ export function ClientPlanBuilder({
   // Východisko: úprava / šablóna / nový tréning s jedným dňom „Deň 1“ (ako u trénera) —
   // cviky sa dajú pridávať hneď; ďalšie dni cez „+ deň“.
   const [fresh] = useState(() => ({
-    name: initial?.name ?? template?.name ?? "",
+    // nový plán má predvyplnený názov — klient ho môže prepísať
+    name: initial?.name ?? template?.name ?? t("defaultPlanName"),
     days:
       initial || template
         ? toDraftDays(initial?.days ?? template?.days ?? [])
@@ -451,7 +452,8 @@ export function ClientPlanBuilder({
           <>
             <div className={styles.trNameField}>
               <span className={styles.panelLabel}>{t("planName")}</span>
-              <h2 className={styles.trNameStatic}>{name}</h2>
+              {/* v náhľade nie je hlavička „Tréning“ — názov plánu je nadpis stránky */}
+            <h1 className={styles.trNameStatic}>{name}</h1>
             </div>
             <ReviewOverview review={review} error={reviewError} onRetry={loadReview} />
           </>

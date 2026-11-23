@@ -100,5 +100,6 @@
   "progressionCreate": "Sestavit plán",
   "progressionCancel": "Zrušit",
   "progressionClose": "Zavřít",
-  "progressionCreating": "Vytvářím…"
+  "progressionCreating": "Vytvářím…",
+  "defaultPlanName": "Tréninkový plán na týden"
 }

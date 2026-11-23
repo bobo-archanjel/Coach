@@ -12,6 +12,10 @@ test.describe("builder vlastného tréningu — chyba hore a rozpracovaný konce
   test("bez názvu: chyba hore pod názvom, pole zvýraznené a s kurzorom", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.getByRole("button", { name: "Vlastný tréning" }).click();
+    // nový plán má predvyplnený názov; bez hlavičky „Tréningové plány“ (klient vie, že je v Tréningu)
+    await expect(page.getByLabel("Názov tréningového plánu")).toHaveValue("Tréningový plán na týždeň");
+    await expect(page.getByRole("heading", { level: 1, name: "Tréningové plány" })).toHaveCount(0);
+    await page.getByLabel("Názov tréningového plánu").fill("");
     await page.getByLabel("Názov vlastného cviku").fill("Kliky");
     await page.getByRole("button", { name: "+ Pridať do tréningu" }).click();
     await page.getByRole("button", { name: "Hotovo", exact: true }).click();

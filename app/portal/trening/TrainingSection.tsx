@@ -299,8 +299,17 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     });
   };
 
+  // hlavička stránky (predtým v page.tsx) — len pri zozname plánov; v builderi (tvorba, úprava)
+  // ani v náhľade hotového plánu nie je, klient vie, že je v Tréningu
+  const pageHeader = (
+    <header>
+      <h1 className={styles.pageTitle}>{tr("pageTitle")}</h1>
+      <p className={styles.pageSub}>{tr("pageSub")}</p>
+    </header>
+  );
+
   if (mode === "build") {
-    // celý odcvičený vlastný plán = len náhľad (nič sa v ňom nedá zmeniť) + Analytika tréningu
+    // celý odcvičený plán = len náhľad s vyhodnotením (nič sa v ňom nedá zmeniť)
     const viewOnly = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
     return (
       <ClientPlanBuilder
@@ -322,6 +331,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   }
 
   return (
+    <>
+    {pageHeader}
     <section aria-label={tr("plans")} className={styles.trWrap}>
       <div className={`${styles.trHead} ${styles.trHeadTabs}`}>
         <PlansTabs
@@ -695,5 +706,6 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
       {tab === "plans" && plans.length > 1 && <p className={styles.trHint}>{tr("hint")}</p>}
     </section>
+    </>
   );
 }

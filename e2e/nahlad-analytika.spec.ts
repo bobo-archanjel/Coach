@@ -31,7 +31,9 @@ test.describe("náhľad hotového plánu — náhľady", () => {
 
     const view = page.getByRole("region", { name: "Náhľad tréningu" });
     await expect(view).toBeVisible();
-    await expect(view.getByRole("heading", { name: "Moja jesenná sila" })).toBeVisible();
+    // bez hlavičky „Tréningové plány“ — nadpisom stránky je názov plánu
+    await expect(page.getByRole("heading", { level: 1, name: "Tréningové plány" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Moja jesenná sila" })).toBeVisible();
     await expect(view.getByRole("button", { name: "Uložiť", exact: true })).toHaveCount(0);
     await expect(view.getByRole("button", { name: /Uložiť zmeny|Uložiť tréning/ })).toHaveCount(0);
     await expect(view.getByLabel("Názov tréningového plánu")).toHaveCount(0);
@@ -45,6 +47,7 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     // zatvorenie (späť) — z náhľadu nevznikne rozpracovaný koncept („Pokračovať“)
     await page.goBack();
     await expect(view).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Tréningové plány" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Pokračovať" })).toHaveCount(0);
   });
 
