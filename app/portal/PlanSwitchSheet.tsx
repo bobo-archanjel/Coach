@@ -135,8 +135,10 @@ function PlanSwitchSheet({
         <ul className={s.psList}>
           {choice.plans.map((plan) => {
             const active = plan.id === choice.activePlanId;
-            // plán bez cvikov sa odcvičiť nedá — rovnako ako v Tréningu ho nejde zvoliť
+            // plán bez cvikov sa odcvičiť nedá a celý odcvičený už nie je čo cvičiť —
+            // rovnako ako v Tréningu ho nejde zvoliť
             const empty = plan.dayCount === 0 && !active;
+            const finished = plan.done && !active;
             return (
               <li key={plan.id}>
                 <button
@@ -144,8 +146,8 @@ function PlanSwitchSheet({
                   type="button"
                   className={`${s.psItem} ${active ? s.psItemOn : ""}`}
                   onClick={() => pick(plan.id)}
-                  disabled={pending || empty}
-                  data-empty={empty || undefined}
+                  disabled={pending || empty || finished}
+                  data-empty={empty || finished || undefined}
                   aria-current={active ? "true" : undefined}
                 >
                   <span className={s.psItemText}>
@@ -155,6 +157,7 @@ function PlanSwitchSheet({
                         {plan.source === "trainer" ? t("fromTrainer") : t("own")}
                       </span>
                       <span className={s.chip}>{t("days", { count: plan.dayCount })}</span>
+                      {plan.done && <span className={s.trDoneBadge}>{t("done")}</span>}
                     </span>
                   </span>
                   <span className={s.psItemEnd} aria-hidden={!active && pickedId !== plan.id}>

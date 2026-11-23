@@ -209,6 +209,16 @@ function hasExercises(day: { exercises: unknown }): boolean {
 }
 
 /**
+ * Celý plán odcvičený — každý deň s cvikmi má aspoň jeden zápis (rovnako ako badge
+ * „Hotovo“ pri dňoch v Tréningu). Taký plán sa nedá nastaviť ako aktívny — u klienta
+ * (Tréning, prepínač na Dnes, chooseActivePlanAction) ani u trénera (isPlanLocked).
+ */
+export function isPlanFinished(days: { exercises: unknown; workout_logs?: { count: number }[] | null }[] | null | undefined): boolean {
+  const withExercises = (days ?? []).filter(hasExercises);
+  return withExercises.length > 0 && withExercises.every((d) => (d.workout_logs?.[0]?.count ?? 0) > 0);
+}
+
+/**
  * Zostaví jeden týždeň pre pás „Tento týždeň" — Po–Ne, s odcvičenými tréningmi
  * v každom dni (na klik v UI, viď app/portal/WeekHistory.tsx). Počíta so **všetkými**
  * plánmi klienta (od trénera aj vlastnými), nie len s aktívnym. Žiadna migrácia —
@@ -346,7 +356,7 @@ export async function getPortalData(): Promise<PortalResult> {
     const [{ data: planListRows, error: listErr }, { data: firstRow, error: firstErr }] = await Promise.all([
       supabase
         .from("workout_plans")
-        .select("id, name, trainer_id, workout_days(exercises)")
+        .select("id, name, trainer_id, workout_days(exercises, workout_logs(count))")
         .eq("client_id", client.id)
         .eq("published", true)
         .order("created_at", { ascending: false }),
@@ -379,6 +389,7 @@ export async function getPortalData(): Promise<PortalResult> {
             source: (p.trainer_id ? "trainer" : "client") as PlanSource,
             // len dni s cvikmi — rovnako ako počet v sekcii Tréning (getPortalTraining)
             dayCount: ((p.workout_days as unknown as { exercises: unknown }[] | null) ?? []).filter(hasExercises).length,
+            done: isPlanFinished(p.workout_days as unknown as { exercises: unknown; workout_logs: { count: number }[] }[] | null),
           })),
         }
       : null;

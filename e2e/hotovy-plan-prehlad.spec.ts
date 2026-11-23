@@ -60,12 +60,19 @@ test.describe("hotový plán — reálna DB", () => {
 
   let admin: SupabaseClient;
   let planId = "";
+  let otherPlanId = "";
+  let clientRow: { id: string; active_plan_id: string | null; active_day_id: string | null } | null = null;
   test.afterAll(async () => {
     if (!admin || !planId) return;
     const { data: days } = await admin.from("workout_days").select("id").eq("plan_id", planId);
     const ids = (days ?? []).map((d) => d.id as string);
     if (ids.length) await admin.from("workout_logs").delete().in("workout_day_id", ids);
-    await admin.from("workout_plans").delete().eq("id", planId);
+    await admin.from("workout_plans").delete().in("id", [planId, otherPlanId].filter(Boolean));
+    // klientovi vrátiť pôvodný aktívny plán
+    if (clientRow) {
+      const { id, ...original } = clientRow;
+      await admin.from("clients").update(original).eq("id", id);
+    }
   });
 
   test("celý odcvičený plán: prehľad dní s výsledkami", async ({ page }, testInfo) => {
@@ -123,5 +130,39 @@ test.describe("hotový plán — reálna DB", () => {
     const row = page.locator(`a[href="/dashboard/treningy/${planId}"]`).locator("..");
     await expect(row).toContainText("Hotovo");
     await expect(page.getByRole("button", { name: new RegExp(`^Nastaviť „E2E hotový plán`) })).toHaveCount(0);
+
+    // klient: hotový plán má „Hotovo“, v Tréningu ani v prepínači na Dnes sa nedá nastaviť ako aktívny.
+    // Aktívny je iný (rozpracovaný) plán — inak by sa hotový plán ako najnovší stal aktívnym sám.
+    const { data: original } = await admin.from("clients").select("id, active_plan_id, active_day_id").eq("id", client!.id).single();
+    clientRow = original;
+    const { data: other } = await admin
+      .from("workout_plans")
+      .insert({ client_id: client!.id, trainer_id: t.user!.id, name: `E2E rozpracovaný plán ${Date.now()}`, published: true })
+      .select("id")
+      .single();
+    otherPlanId = other!.id;
+    await admin.from("workout_days").insert({ plan_id: otherPlanId, day_number: 1, name: "E2E Deň C", exercises: [ex("c", "E2E Kliky")] });
+    await admin.from("clients").update({ active_plan_id: otherPlanId, active_day_id: null }).eq("id", client!.id);
+
+    await page.context().clearCookies();
+    await page.goto("/prihlasenie");
+    await page.locator("#login-email").fill(env.clientEmail!);
+    await page.locator("#login-password").fill(env.clientPassword!);
+    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
+    await page.waitForURL(/\/portal/, { timeout: 30_000 });
+
+    const doneName = (await admin.from("workout_plans").select("name").eq("id", planId).single()).data!.name as string;
+    await page.goto("/portal/trening");
+    const head = page.getByRole("button", { name: new RegExp(doneName) });
+    await expect(head).toContainText("Hotovo");
+    await head.click();
+    await expect(page.locator(`#plan-${planId}`)).toContainText("Celý plán máš odcvičený");
+    await expect(page.locator(`#plan-${planId}`).getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
+
+    await page.goto("/portal");
+    await page.getByRole("button", { name: "Zmeniť", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Aktívny tréningový plán" });
+    await expect(sheet.getByRole("button", { name: new RegExp(doneName) })).toBeDisabled();
+    await expect(sheet.getByRole("button", { name: new RegExp(doneName) })).toContainText("Hotovo");
   });
 });
