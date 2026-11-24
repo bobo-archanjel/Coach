@@ -83,14 +83,27 @@ function TemplatesIcon() {
   );
 }
 
+function ChallengesIcon() {
+  return (
+    <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8 4.5h8v4.2a4 4 0 0 1-8 0V4.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M8 6.2H5.5a2.3 2.3 0 0 0 2.6 3.4M16 6.2h2.5a2.3 2.3 0 0 1-2.6 3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M12 12.7v3.6M8.8 19.5h6.4M10 16.3h4l.6 3.2H9.4l.6-3.2Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // Poradie v menu (aj v spodnej lište na mobile): Správy hneď za Jedálničkami (feature/builder-cleanup).
-const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean }[] = [
+const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages" | "challenges"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean; desktopOnly?: boolean }[] = [
   { href: "/dashboard", label: "clients", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "plans", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/jedalnicky", label: "mealPlans", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
   { href: "/dashboard/spravy", label: "messages", Icon: MessagesIcon, tour: "nav-spravy", match: (p: string) => p.startsWith("/dashboard/spravy") },
   { href: "/dashboard/kalendar", label: "calendar", Icon: CalendarIcon, tour: "nav-kalendar", match: (p: string) => p.startsWith("/dashboard/kalendar") },
   { href: "/dashboard/sablony", label: "templates", Icon: TemplatesIcon, tour: "nav-sablony", match: (p: string) => p.startsWith("/dashboard/sablony") },
+  // Výzvy a rebríček (gamifikácia B) — len v bočnom paneli na počítači; spodná lišta na mobile by so 7
+  // položkami bola pritesná, na mobile sa sem ide z karty „Tím tento týždeň“ na úvodnej stránke.
+  { href: "/dashboard/vyzvy", label: "challenges", Icon: ChallengesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/vyzvy"), desktopOnly: true },
 ];
 
 /**
@@ -117,7 +130,7 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
       </div>
 
       <nav className={styles.navList} aria-label={t("trainerLabel")}>
-        {NAV_ITEMS.map(({ href, label, Icon, tour, match }) => {
+        {NAV_ITEMS.map(({ href, label, Icon, tour, match, desktopOnly }) => {
           const active = match(pathname);
           const showBadge = href === "/dashboard/spravy" && unread > 0;
           return (
@@ -125,7 +138,7 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
               key={href}
               href={href}
               data-tour={tour ?? undefined}
-              className={`${styles.navLink} ${active ? styles.navLinkActive : ""}`}
+              className={`${styles.navLink} ${active ? styles.navLinkActive : ""} ${desktopOnly ? styles.navLinkDesktopOnly : ""}`}
               aria-current={active ? "page" : undefined}
               // Správy s otvoreným vláknom → zoznam ukázať hneď, nie až po odpovedi servera
               // (inak na sekundu ostal viditeľný starý chat).
