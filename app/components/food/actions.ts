@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { getTranslations } from "next-intl/server";
 import { getUser, createClient } from "@/lib/supabase/server";
 import { parseBarcode } from "@/lib/barcode";
@@ -27,6 +28,8 @@ export interface UserFoodInput {
 export async function createUserFoodAction(
   input: UserFoodInput,
 ): Promise<{ error: string | null; food: PortalFoodOption | null }> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked, food: null };
   const fail = (error: string) => ({ error, food: null });
   const t = await getTranslations("food.errors");
   const {

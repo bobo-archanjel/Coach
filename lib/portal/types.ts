@@ -519,4 +519,6 @@ export type PortalAiChatResult =
   | { state: "unlinked"; firstName: string | null }
   /** klient nemá prideleného trénera (self-klient) — AI Kouč zatiaľ funguje len s trénerom priradeným. */
   | { state: "no_trainer" }
+  /** tréner nemá tarifu s AI Koučom (Pro/Business) alebo mu predplatné vypršalo */
+  | { state: "coach_locked" }
   | { state: "error"; message?: string };

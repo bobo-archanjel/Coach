@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock, trainerAddClientBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -14,6 +15,8 @@ const ok: ActionState = { error: null };
 
 /** Chat — tréner odošle správu klientovi (RLS messages_insert, sender='trainer'). */
 export async function sendTrainerMessageAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,6 +66,8 @@ const MAX_BULK_RECIPIENTS = 200;
  * vynechá namiesto pádu celej akcie.
  */
 export async function bulkSendTrainerMessageAction(_prevState: BulkMessageState, formData: FormData): Promise<BulkMessageState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked, sentCount: null };
   const supabase = await createClient();
   const {
     data: { user },
@@ -121,6 +126,8 @@ export async function markTrainerChatSeenAction(clientId: string): Promise<void>
 
 /** Ukončenie spolupráce (nie GDPR výmaz) — dáta ostávajú, dá sa kedykoľvek obnoviť (0020). */
 export async function endClientCooperationAction(clientId: string): Promise<ActionState> {
+  const blocked = await trainerBlock({ allowReadOnly: true });
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const { error } = await supabase.rpc("end_client_cooperation", { p_client_id: clientId });
   if (error) return { error: await dbErr(error, "actions") };
@@ -131,6 +138,8 @@ export async function endClientCooperationAction(clientId: string): Promise<Acti
 
 /** Obnovenie ukončenej spolupráce (0020). */
 export async function resumeClientCooperationAction(clientId: string): Promise<ActionState> {
+  const blocked = await trainerAddClientBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const { error } = await supabase.rpc("resume_client_cooperation", { p_client_id: clientId });
   if (error) return { error: await dbErr(error, "actions") };
@@ -145,6 +154,8 @@ export async function resumeClientCooperationAction(clientId: string): Promise<A
  * a byť zverejnený). Klient si ho môže kedykoľvek prepnúť sám. Celý odcvičený plán nie.
  */
 export async function setClientActivePlanAction(clientId: string, planId: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   // celý odcvičený plán (badge „Hotovo“) už nie je čo cvičiť — aktívnym sa nastaviť nedá
   if (await isPlanLocked(supabase, planId)) return { error: await tErr("planDoneNotActivatable") };
@@ -162,6 +173,8 @@ export async function setClientActivePlanAction(clientId: string, planId: string
 
 /** GDPR — tréner požiada o zmazanie klienta (30-dňová grace period, 0018_client_deletion.sql). */
 export async function requestClientDeletionAction(clientId: string): Promise<ActionState> {
+  const blocked = await trainerBlock({ allowReadOnly: true });
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_client_deletion", { p_client_id: clientId });
   if (error) return { error: await dbErr(error, "actions") };
@@ -176,6 +189,8 @@ export async function requestClientDeletionAction(clientId: string): Promise<Act
  * zmažú sa trénerove koncepty, poznámky, správy a termíny k nemu. Hneď, bez lehoty.
  */
 export async function removeClientFromPortfolioAction(clientId: string): Promise<ActionState> {
+  const blocked = await trainerBlock({ allowReadOnly: true });
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_client_from_portfolio", { p_client_id: clientId });
   if (error) return { error: await dbErr(error, "actions") };
@@ -185,6 +200,8 @@ export async function removeClientFromPortfolioAction(clientId: string): Promise
 
 /** GDPR — zrušenie žiadosti o zmazanie počas grace period. */
 export async function cancelClientDeletionAction(clientId: string): Promise<ActionState> {
+  const blocked = await trainerAddClientBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_client_deletion", { p_client_id: clientId });
   if (error) return { error: await dbErr(error, "actions") };
@@ -208,6 +225,8 @@ export async function generateProgressSummaryAction(
   _prevState: ProgressSummaryState,
   formData: FormData,
 ): Promise<ProgressSummaryState> {
+  const blocked = await trainerBlock({ feature: "aiSummaries" });
+  if (blocked) return { ...noSummary, error: blocked };
   const supabase = await createClient();
   const {
     data: { user },

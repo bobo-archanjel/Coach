@@ -19,6 +19,9 @@ interface DbErrorLike {
  *  (a pri zámku podľa okna 24 h) vyberie preložený text. */
 function friendlyKey(msg: string): ErrorKey | null {
   if (msg.startsWith("rate_limited:")) return "db.rateLimited";
+  // stráže predplatného z migrácie 0073 (trigger billing_write_guard / billing_clients_limit_guard)
+  if (msg.includes("billing_read_only")) return "billing.readOnlyGeneric";
+  if (msg.includes("client_limit_reached")) return "billing.clientLimitGeneric";
   if (msg.startsWith("locked:")) return /24/.test(msg) ? "db.lockedEditWindow" : "db.locked";
   return null;
 }

@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { CreatePlanForm } from "./CreatePlanForm";
+import { FeatureGate } from "../LockedFeature";
 import { AiPlanGeneratorForm } from "./AiPlanGeneratorForm";
 import styles from "@/app/dashboard/dashboard.module.css";
 
@@ -49,7 +50,9 @@ export default async function TreningyPage() {
 
       <div className={styles.card} data-tour="plans-ai">
         <h3>{t("aiGenerator")}</h3>
-        <AiPlanGeneratorForm clients={clientList} />
+        <FeatureGate feature="aiPlanGenerator">
+          <AiPlanGeneratorForm clients={clientList} />
+        </FeatureGate>
       </div>
 
     </>

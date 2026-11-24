@@ -59,6 +59,7 @@ import type {
 } from "./types";
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
+import { trainerAllowsCoach } from "@/lib/billing/server";
 import { cleanSupersetId } from "@/lib/workouts/superset";
 import { compareLog, editableUntil, isStillEditable, parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
 
@@ -1205,6 +1206,8 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     if (!client.trainer_id) return { state: "no_trainer" };
+    // AI Kouč klienta je súčasťou tarify trénera (Pro/Business) — viď lib/billing
+    if (!(await trainerAllowsCoach(client.trainer_id))) return { state: "coach_locked" };
 
     // Správy cez konverzáciu klienta jedným dopytom (predtým konverzácia → správy
     // za sebou). Konverzácia sa zakladá až pri prvej správe — bez nej je výsledok [].

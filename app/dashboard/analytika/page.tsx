@@ -8,6 +8,7 @@ import { getClientAnalyticsOverview, type ClientAnalyticsRow } from "@/lib/dashb
 import { clientStatus, sortScore } from "@/lib/dashboard/portfolioStatus";
 import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
+import { FeatureGate } from "../LockedFeature";
 import { RosterSummaryCard } from "./RosterSummaryCard";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
@@ -188,7 +189,9 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
             <AiInsightsPanel data={aiInsights} />
           </Suspense>
 
-          <RosterSummaryCard previewSummary={isPreview ? PREVIEW_ROSTER_SUMMARY : null} />
+          <FeatureGate feature="aiSummaries">
+            <RosterSummaryCard previewSummary={isPreview ? PREVIEW_ROSTER_SUMMARY : null} />
+          </FeatureGate>
         </>
       )}
 

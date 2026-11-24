@@ -19,7 +19,7 @@
   "aiCostsHint": "Orientačný odhad nákladov na AI funkcie tvojho konta — AI kouč klientov, generátor plánov a zhrnutia.",
   "aiNone": "Zatiaľ žiadne AI volania.",
   "billing": "Fakturácia",
-  "billingHint": "Správa predplatného a platobných údajov tu bude dostupná čoskoro.",
+  "billingHint": "Tarifa, skúšobná doba, platby a faktúry.",
   "tour": "Návod",
   "tourHint": "Sprievodca ťa prevedie všetkými sekciami appky a ukáže, čo sa v ktorej dá robiť.",
   "tourRestart": "Spustiť návod znova",
@@ -32,5 +32,6 @@
     "no": "Nie",
     "pending": "Účet sa natrvalo zmaže {date} (o {days, plural, one {# deň} few {# dni} other {# dní}}). Klientov sme upozornili v chate. Dovtedy appku normálne používaš a zmazanie môžeš zrušiť.",
     "cancel": "Zrušiť zmazanie"
-  }
+  },
+  "billingOpen": "Otvoriť predplatné"
 }

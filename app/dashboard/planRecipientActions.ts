@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,8 @@ const builderPath = (kind: PlanKind, planId: string) =>
 
 /** Odobrať ďalšieho príjemcu konceptu (šablóna pre viacerých klientov, 0052) — ešte pred odoslaním. */
 export async function removePlanRecipientAction(kind: PlanKind, planId: string, clientId: string): Promise<{ error: string | null }> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,6 +32,8 @@ export async function removePlanRecipientAction(kind: PlanKind, planId: string, 
 
 /** Odoslaný plán, ktorý sa niektorým príjemcom nepodarilo doručiť — skúsiť znova. */
 export async function sendToRemainingRecipientsAction(kind: PlanKind, planId: string): Promise<{ error: string | null }> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -78,6 +79,8 @@ async function validateAppointment(
 }
 
 export async function createAppointmentAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -105,6 +108,8 @@ export async function createAppointmentAction(_prevState: ActionState, formData:
 
 /** Úprava existujúceho termínu (QA 2026-09-23 — dal sa len vytvoriť a zmazať). */
 export async function updateAppointmentAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -133,6 +138,7 @@ export async function updateAppointmentAction(_prevState: ActionState, formData:
 }
 
 export async function deleteAppointmentAction(appointmentId: string): Promise<void> {
+  if (await trainerBlock()) return;
   const supabase = await createClient();
   const {
     data: { user },

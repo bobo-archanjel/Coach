@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +19,8 @@ export async function saveNutritionProfileAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },

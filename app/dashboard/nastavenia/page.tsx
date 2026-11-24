@@ -116,11 +116,11 @@ export default async function NastaveniaPage() {
         </div>
 
         <div className={styles.card}>
-          <div className={styles.settingsRowHead}>
-            <h3 style={{ marginBottom: 0 }}>{t("billing")}</h3>
-            <span className={styles.comingSoon}>{t("comingSoon")}</span>
-          </div>
-          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>{t("billingHint")}</p>
+          <h3>{t("billing")}</h3>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginBottom: 14 }}>{t("billingHint")}</p>
+          <Link href="/dashboard/predplatne" className={`${pa.action} ${pa.small} ${pa.inline}`} data-testid="open-billing">
+            {t("billingOpen")}
+          </Link>
         </div>
 
         <div className={styles.card} data-tour="settings-guide">
