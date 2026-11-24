@@ -12,6 +12,7 @@ import { ActionDownloadIcon, ActionEditIcon, ActionPreviewIcon, ActionTemplateIc
 import { BuilderDialog } from "@/app/components/BuilderDialog";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros } from "@/lib/meals";
 import pa from "@/app/components/planActions.module.css";
+import { PlanBand } from "@/app/components/PlanBand";
 import { PlansTabs, type PlansTab } from "../PlansTabs";
 import {
   chooseActiveMealPlanAction,
@@ -321,46 +322,67 @@ export function NutritionSection({
               <p className={styles.trEmptyBody}>{t("templatesEmpty")}</p>
             </div>
           ) : (
-            <div className={styles.trTplBox}>
-              <ul id="moje-sablony-jedalnicka" className={styles.trTplList}>
-                {templates.map((tpl) => (
-                  <li key={tpl.id} className={styles.trTpl}>
-                    <span className={styles.trTplText}>
-                      <span className={styles.trTplName}>{tpl.name}</span>
-                      <span className={styles.trTplMeta}>
-                        {t("tplMeta", { days: tpl.days.length, foods: tpl.days.reduce((n, d) => n + d.meals.length, 0) })}
-                      </span>
-                    </span>
-                    {confirmTplDelete === tpl.id ? (
-                      <div className={`${pa.confirm} ${pa.confirmWide}`}>
-                        <span className={pa.confirmText}>{t("deleteTemplate")}</span>
-                        <span className={pa.confirmBtns}>
-                          <button type="button" className={pa.confirmNo} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
-                            {t("no")}
-                          </button>
-                          <button type="button" className={pa.confirmYes} onClick={() => removeTemplate(tpl.id)} disabled={pending}>
-                            {t("delete")}
-                          </button>
-                        </span>
+            <div>
+              {/* karty šablón — rovnaký vzhľad ako karty tréningových plánov */}
+              <ul id="moje-sablony-jedalnicka" className={styles.trPlanList}>
+                {templates.map((tpl) => {
+                  const dayKcal = tpl.days.map((d) => sumMacros(d.meals.map((m) => scaleFoodMacros(m, m.grams))).kcal);
+                  const withFood = dayKcal.filter((k) => k > 0);
+                  const avgKcal = withFood.length ? Math.round(withFood.reduce((a, b) => a + b, 0) / withFood.length) : null;
+                  return (
+                    <li key={tpl.id} className={styles.trPlan} data-testid="template-card">
+                      <PlanBand name={tpl.name} countLabel={t("days", { count: tpl.days.length })} activeLabel={null} chips={[]} />
+                      <div className={styles.trPlanBody}>
+                        <p className={styles.tplSummary}>
+                          {avgKcal != null ? t("tplAvgKcal", { kcal: avgKcal }) : t("tplNoFood")}
+                        </p>
+                        {tpl.days.length > 0 && (
+                          <ul className={styles.trDayList} data-scroll={tpl.days.length > 3 || undefined}>
+                            {tpl.days.map((d, i) => (
+                              <li key={i} className={styles.tplDayRow}>
+                                <span className={styles.trDayMark} aria-hidden="true">
+                                  {i + 1}
+                                </span>
+                                <span className={styles.trDayBtnName}>{d.name}</span>
+                                <span className={styles.trDayCount}>{dayKcal[i]} kcal</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className={styles.trPlanFoot}>
+                          {confirmTplDelete === tpl.id ? (
+                            <div className={pa.confirm}>
+                              <span className={pa.confirmText}>{t("deleteTemplate")}</span>
+                              <span className={pa.confirmBtns}>
+                                <button type="button" className={pa.confirmNo} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
+                                  {t("no")}
+                                </button>
+                                <button type="button" className={pa.confirmYes} onClick={() => removeTemplate(tpl.id)} disabled={pending}>
+                                  {t("delete")}
+                                </button>
+                              </span>
+                            </div>
+                          ) : (
+                            <div className={pa.row}>
+                              <button type="button" className={pa.action} onClick={() => setPreviewTpl(tpl)}>
+                                <ActionPreviewIcon />
+                                {t("preview")}
+                              </button>
+                              <button type="button" className={`${pa.action} ${pa.primary}`} onClick={() => openBuilder(false, tpl)}>
+                                <ActionUseIcon />
+                                {t("use")}
+                              </button>
+                              <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => setConfirmTplDelete(tpl.id)}>
+                                <ActionTrashIcon />
+                                {t("delete")}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <div className={`${pa.gridRow} ${pa.gridRow3}`}>
-                        <button type="button" className={`${pa.action} ${pa.small}`} onClick={() => setPreviewTpl(tpl)}>
-                          <ActionPreviewIcon />
-                          {t("preview")}
-                        </button>
-                        <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(false, tpl)}>
-                          <ActionUseIcon />
-                          {t("use")}
-                        </button>
-                        <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirmTplDelete(tpl.id)}>
-                          <ActionTrashIcon />
-                          {t("delete")}
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
               {previewTpl && (
                 <BuilderDialog title={previewTpl.name} closeLabel={t("close")} onClose={() => setPreviewTpl(null)} wide>
