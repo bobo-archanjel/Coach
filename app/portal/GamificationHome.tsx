@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import type { CSSProperties } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import type { GamificationHome as HomeData } from "@/lib/gamification/stats";
 import type { Ring } from "@/lib/gamification/rings";
@@ -80,7 +81,7 @@ export function GamificationHome({ home, freezes = null }: { home: HomeData; fre
           aria-valuenow={percent}
           aria-label={detail.nextN ? t("level.progressAria", { next: t(`levelTitles.${detail.nextN}` as never), percent }) : t("level.maxAria")}
         >
-          <span className={g.barFill} style={{ width: `${percent}%` }} />
+          <span className={g.barFill} style={{ "--p": percent / 100 } as CSSProperties} />
         </div>
         <div className={g.levelFoot}>
           <span>

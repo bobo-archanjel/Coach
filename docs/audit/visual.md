@@ -30,3 +30,10 @@ Metóda: statický prechod CSS modulov (tokeny, farby, rádiusy, písma, dotykov
 3. ReportBarChart: SVG text sa škáluje s viewBox; na 360 px je stále ~8 px. Plné riešenie = popisky ako HTML alebo responzívny viewBox.
 4. Texty 10.5–11 px (pilulky) sú v appke bežné, ale pod odporúčaným minimom 12 px.
 5. Konzistencia SK/CS textov a e-mailových šablón sa nekontrolovala vizuálne (bez prístupu) — bez zmien.
+
+## Kolo 2 (feature/polish)
+- Progress bary v gamifikácii (`.barFill` v `gamification.module.css`, `.msBarFill` v `gamificationV2.module.css`; použité v MissionsCard, úroveň v portáli/úspechoch, výzvy v portáli aj dashboarde): `transition: width` nahradené `transform: scaleX(var(--p))` (`transform-origin: left`, výplň má `width: 100%`), `--p` = 0–1 z inline štýlu. Prechod beží na transforme, stále len pri `prefers-reduced-motion: no-preference`; `role=progressbar`/`aria-valuenow` rodičov sa nemenili. Vedľajší efekt: zaoblený koniec výplne sa pri malých hodnotách mierne splošťuje (škáluje sa s transformom) — pri 6–8 px lište nepostrehnuteľné.
+- Zvyšné `transition: width` (`.aiBat…`, `.ccBa…` v `dashboard.module.css`) sú od Mata (blame) — mimo rozsahu. Ostatné bary (reporty, predplatné, kvóta komunikácie) `transition: width` nemajú, nemenené.
+- `ReportBarChart`: popisky osí, hodnoty nad stĺpcami a popis cieľovej čiary sú teraz HTML (11,5 px fixne, nezávisle od šírky SVG); SVG nesie len stĺpce a čiary. Šírka sa meria (`ResizeObserver`) a na úzkom displeji sa rieďou popisky osí a skrývajú hodnoty nad stĺpcami, ak by sa neprekrývali. Skrytá tabuľka, `role=img` a API komponentu sú nezmenené.
+- Overené dočasnou stránkou (po použití zmazaná) v 390 a 1280 px, svetlá/tmavá: bez horizontálneho pretekania. Screenshoty: `...\scratchpad\visual3\`.
+- Známe: ak je stĺpec tesne pri cieľovej čiare, jeho hodnota sa môže vizuálne dotknúť popisu čiary (kcal graf, posledný stĺpec).

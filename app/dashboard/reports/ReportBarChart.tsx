@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import styles from "@/app/dashboard/dashboard.module.css";
 import rs from "./reports.module.css";
 
@@ -52,12 +52,23 @@ export function ReportBarChart({
 }) {
   const uid = useId();
   const [hover, setHover] = useState<number | null>(null);
+  // Popisky sú HTML (pevných ~11–12 px), nie SVG text, ktorý sa škáluje s viewBoxom a na telefóne
+  // klesne na ~8 px. Reálnu šírku meriame, aby sme na úzkom displeji vynechali časť popiskov.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [px, setPx] = useState(600);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setPx(e.contentRect.width || 600));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const W = 600;
   const H = height;
   const padX = 6;
-  const padTop = 22;
-  const padBottom = 28;
+  const padTop = 26;
+  const padBottom = 2;
   const innerW = W - padX * 2;
   const innerH = H - padTop - padBottom;
   const n = groups.length;
@@ -66,8 +77,12 @@ export function ReportBarChart({
   const slot = n > 0 ? innerW / n : innerW;
   const barArea = slot * 0.72;
   const barW = barArea / Math.max(1, series.length);
-  const labelEvery = n <= 12 ? 1 : n <= 26 ? 2 : Math.ceil(n / 12);
-  const valuesOn = showValues ?? (n <= 14 && series.length === 1);
+  const slotPx = (px * (slot / W)) || 1;
+  const maxLabelLen = Math.max(1, ...groups.map((g) => g.label.length));
+  const labelNeed = Math.max(26, maxLabelLen * 6.5 + 8);
+  const labelEvery = Math.max(n <= 12 ? 1 : n <= 26 ? 2 : Math.ceil(n / 12), Math.ceil(labelNeed / slotPx));
+  const maxValLen = Math.max(1, ...allValues.map((v) => formatValue(v).length));
+  const valuesOn = (showValues ?? (n <= 14 && series.length === 1)) && slotPx >= maxValLen * 7 + 4;
   const y = (v: number) => padTop + innerH - (v / top) * innerH;
 
   const handleMove = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -80,7 +95,7 @@ export function ReportBarChart({
   const hoverLeftPct = hover != null ? ((padX + slot * (hover + 0.5)) / W) * 100 : 0;
 
   return (
-    <div className={styles.chartWrap}>
+    <div className={styles.chartWrap} ref={wrapRef}>
       {series.length > 1 && (
         <div className={styles.chartLegend}>
           {series.map((s) => (
@@ -91,6 +106,7 @@ export function ReportBarChart({
           ))}
         </div>
       )}
+      <div className={rs.barPlot}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className={styles.chartSvg}
@@ -105,12 +121,7 @@ export function ReportBarChart({
       >
         <line x1={padX} x2={W - padX} y1={y(0)} y2={y(0)} stroke="var(--hairline)" strokeWidth="1" />
         {refLine && (
-          <g>
-            <line x1={padX} x2={W - padX} y1={y(refLine.value)} y2={y(refLine.value)} stroke="var(--paper-faint)" strokeWidth="1" strokeDasharray="4 4" />
-            <text x={W - padX} y={y(refLine.value) - 4} textAnchor="end" fontSize="14" fill="var(--paper-faint)">
-              {refLine.label}
-            </text>
-          </g>
+          <line x1={padX} x2={W - padX} y1={y(refLine.value)} y2={y(refLine.value)} stroke="var(--paper-faint)" strokeWidth="1" strokeDasharray="4 4" />
         )}
         {groups.map((g, gi) => {
           const x0 = padX + slot * gi + (slot - barArea) / 2;
@@ -131,23 +142,44 @@ export function ReportBarChart({
                   />
                 );
               })}
-              {valuesOn &&
-                g.values.map((v, si) =>
-                  v == null ? null : (
-                    <text key={`t${si}`} x={x0 + si * barW + barW / 2} y={y(v) - 4} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--paper-dim)">
-                      {formatValue(v)}
-                    </text>
-                  ),
-                )}
-              {gi % labelEvery === 0 && (
-                <text x={padX + slot * (gi + 0.5)} y={H - 9} textAnchor="middle" fontSize="14" fill="var(--paper-faint)">
-                  {g.label}
-                </text>
-              )}
             </g>
           );
         })}
       </svg>
+      <div className={rs.barOverlay} aria-hidden="true">
+        {refLine && (
+          <span className={rs.barRefLabel} style={{ top: `${(y(refLine.value) / H) * 100}%` }}>
+            {refLine.label}
+          </span>
+        )}
+        {valuesOn &&
+          groups.flatMap((g, gi) =>
+            g.values.map((v, si) =>
+              v == null ? null : (
+                <span
+                  key={`${gi}-${si}`}
+                  className={rs.barValue}
+                  style={{
+                    left: `${((padX + (slot - barArea) / 2 + slot * gi + si * barW + barW / 2) / W) * 100}%`,
+                    top: `${(y(v) / H) * 100}%`,
+                  }}
+                >
+                  {formatValue(v)}
+                </span>
+              ),
+            ),
+          )}
+      </div>
+      </div>
+      <div className={rs.barAxis} aria-hidden="true">
+        {groups.map((g, gi) =>
+          gi % labelEvery === 0 ? (
+            <span key={gi} className={rs.barAxisLabel} style={{ left: `${((padX + slot * (gi + 0.5)) / W) * 100}%` }}>
+              {g.label}
+            </span>
+          ) : null,
+        )}
+      </div>
       {hovered && (
         <div className={styles.chartTooltip} style={{ left: `${hoverLeftPct}%` }}>
           <strong>{hovered.title}</strong>

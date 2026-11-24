@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getMyClient, getUser } from "@/lib/supabase/server";
 import { getUserLocale } from "@/lib/i18n/server";
@@ -127,7 +128,7 @@ async function Gallery({
           aria-valuenow={percent}
           aria-label={detail.nextN ? t("level.progressAria", { next: t(`levelTitles.${detail.nextN}` as never), percent }) : t("level.maxAria")}
         >
-          <span className={g.barFill} style={{ width: `${percent}%` }} />
+          <span className={g.barFill} style={{ "--p": percent / 100 } as CSSProperties} />
         </div>
         <p className={g.levelFoot}>
           {detail.nextN != null && detail.toNext != null ? t("levelDetail.toNext", { count: detail.toNext, n: detail.nextN }) : t("level.max")}

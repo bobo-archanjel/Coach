@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -63,7 +64,7 @@ export function ChallengeList({ items }: { items: TrainerChallenge[] }) {
                     <li key={p.clientId} className={g.tcPart}>
                       <span>{p.name}</span>
                       <div className={g.bar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label={`${p.name}: ${percent} %`}>
-                        <span className={g.barFill} style={{ width: `${percent}%` }} />
+                        <span className={g.barFill} style={{ "--p": percent / 100 } as CSSProperties} />
                       </div>
                       <span className={g.tcPartVal}>{p.done ? t("trainer.partDone") : `${p.value}/${c.target}`}</span>
                     </li>

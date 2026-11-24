@@ -307,3 +307,45 @@
     min-height: 44px;
   }
 }
+
+/* Stĺpcový graf — popisky ako HTML, aby ostali čitateľné (≥ 11 px) aj na 360 px telefóne */
+.barPlot {
+  position: relative;
+}
+.barOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.barValue,
+.barRefLabel {
+  position: absolute;
+  font-size: 11.5px;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.barValue {
+  transform: translate(-50%, calc(-100% - 3px));
+  font-weight: 700;
+  color: var(--paper-dim);
+}
+.barRefLabel {
+  right: 0.5%;
+  transform: translateY(calc(-100% - 3px));
+  color: var(--paper-faint);
+}
+.barAxis {
+  position: relative;
+  height: 20px;
+  margin-top: 4px;
+}
+.barAxisLabel {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 11.5px;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--paper-faint);
+}

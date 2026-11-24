@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import g from "../components/gamification.module.css";
@@ -105,7 +106,7 @@ export function MissionsCard({
                 aria-valuenow={pct}
                 aria-label={m.aria}
               >
-                <span className={g2.msBarFill} style={{ width: `${pct}%` }} />
+                <span className={g2.msBarFill} style={{ "--p": pct / 100 } as CSSProperties} />
               </div>
               {!compact && (
                 <div className={g2.msFoot}>
