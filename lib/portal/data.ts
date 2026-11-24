@@ -373,7 +373,7 @@ export async function getPortalData(): Promise<PortalResult> {
       getBodyMetrics(client.id),
       supabase
         .from("appointments")
-        .select("title, starts_at")
+        .select("id, title, starts_at")
         .eq("client_id", client.id)
         .gte("starts_at", new Date().toISOString())
         .order("starts_at", { ascending: true })
@@ -618,7 +618,7 @@ export async function getPortalData(): Promise<PortalResult> {
           ? { endedAt: client.ended_at, removed: !client.trainer_id }
           : null,
       bodyMetrics: bodyMetrics ?? [],
-      nextAppointment: nextAppt ? { title: nextAppt.title, startsAt: nextAppt.starts_at } : null,
+      nextAppointment: nextAppt ? { id: nextAppt.id, title: nextAppt.title, startsAt: nextAppt.starts_at } : null,
       planChoice,
     };
 

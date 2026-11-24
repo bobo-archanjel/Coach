@@ -484,6 +484,28 @@
   width: 17px;
   height: 17px;
 }
+.appointment > p {
+  flex: 1;
+  min-width: 0;
+}
+/* × — skryť upozornenie (termín ostáva v kalendári) */
+.appointmentClose {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: -8px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.appointmentClose:hover {
+  background: var(--fill-strong);
+  color: var(--paper);
+}
 
 /* hlavná karta dňa: terakotový pás (názov + prstenec) nad bielym telom s akciou */
 /* ---------- aktívny plán nad kartou ďalšieho tréningu (PlanSwitchSheet) ---------- */
@@ -5302,4 +5324,23 @@ a.bellItemMain:hover {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* náhľad šablóny (Moje šablóny — Tréning aj Jedálniček) */
+.tplPreview {
+  display: grid;
+  gap: 14px;
+}
+.tplPreviewDay {
+  display: grid;
+  gap: 8px;
+}
+.tplPreviewDayName {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--paper);
 }

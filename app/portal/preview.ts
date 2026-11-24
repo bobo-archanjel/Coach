@@ -87,7 +87,7 @@ const PREVIEW_DATA: PortalData = {
   },
   deletionNotice: null,
   cooperationEndedNotice: null,
-  nextAppointment: { title: "Konzultácia — kontrola techniky", startsAt: new Date(Date.now() + 2 * 86_400_000).toISOString() },
+  nextAppointment: { id: "pv-next-appt", title: "Konzultácia — kontrola techniky", startsAt: new Date(Date.now() + 2 * 86_400_000).toISOString() },
   planChoice: PREVIEW_PLAN_CHOICE,
   bodyMetrics: [90, 76, 62, 48, 34, 20, 6].map((daysAgo, i) => ({
     measuredOn: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10),

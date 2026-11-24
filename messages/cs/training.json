@@ -78,5 +78,8 @@
   "draftEditTitle": "Rozpracovaná úprava tréninku",
   "draftUnnamed": "Bez názvu",
   "draftContinue": "Pokračovat",
-  "draftDiscard": "Zahodit"
+  "draftDiscard": "Zahodit",
+  "close": "Zavřít",
+  "useTemplate": "Použít šablonu",
+  "tplDayEmpty": "Tento trénink zatím nemá cviky."
 }

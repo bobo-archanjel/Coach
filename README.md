@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Klient: × pri najbližšom termíne, náhľad šablón** (`feature/klient-termin-sablony`, bez migrácie).
+  - Karta Dnes: upozornenie „Najbližší termín“ má × — skryje ho (termín ostáva v kalendári); platí pre konkrétny termín (cookie s id), ďalší sa ukáže znova.
+  - Moje šablóny (Tréning aj Jedálniček): „Náhľad“ — dni s cvikmi / jedlami (kcal, makrá) a „Použiť šablónu“.
 - **2026-11-24** — **Oprava: kalendár klienta — polia času na mobile** (`fix/kalendar-cas-inputy`, bez migrácie).
   - Pri pridávaní udalosti sa polia „Od“ a „Do“ na iPhone (Safari) prelínali — stĺpce sa už nenaťahujú podľa natívneho poľa času, na úzkom displeji sú pod sebou.
   - Dátumy dní v kalendári rovnaké na serveri aj v Safari (bez nesúladu pri hydratácii).
