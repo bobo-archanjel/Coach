@@ -19,7 +19,7 @@ test.describe("náhľad rozpracovaného plánu — klient (náhľad)", () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     const own = card(page, "plan-own");
-    await expect(own.getByRole("button", { name: "Upraviť" })).toBeVisible();
+    await expect(own.getByRole("button", { name: "Upraviť plán" })).toBeVisible();
     // plán bez odcvičeného tréningu by Náhľad nemal — tu je 1 z 2 odcvičený
     await own.getByRole("button", { name: "Report" }).click();
 
@@ -41,7 +41,7 @@ test.describe("náhľad rozpracovaného plánu — klient (náhľad)", () => {
     await page.goto("/portal/trening?preview=own");
     // „own“ náhľad: len vlastné plány — hotový „Moja jesenná sila“ má Náhľad, nie Upraviť
     await expect(card(page, "plan-own-done").getByRole("button", { name: "Report" })).toBeVisible();
-    await expect(card(page, "plan-own-done").getByRole("button", { name: "Upraviť" })).toHaveCount(0);
+    await expect(card(page, "plan-own-done").getByRole("button", { name: "Upraviť plán" })).toHaveCount(0);
   });
 });
 

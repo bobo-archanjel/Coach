@@ -3733,14 +3733,6 @@
 .trPlanBody {
   padding: 2px 16px 16px;
 }
-/* „Nastaviť ako aktívny“ nad zoznamom dní neaktívneho plánu + potvrdenie po prepnutí */
-.trActiveRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding-top: 12px;
-}
 /* celý odcvičený plán — namiesto „Nastaviť ako aktívny“ len vysvetlenie */
 .trDoneHint {
   padding-top: 14px;
