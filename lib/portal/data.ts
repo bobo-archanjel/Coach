@@ -852,6 +852,7 @@ const EMPTY_NUTRITION: PortalNutritionData = {
   activeSource: null,
   editableDays: null,
   templates: [],
+  draftOwner: "",
 };
 
 /**
@@ -887,7 +888,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
 
     if (!client) {
       const { data: tplRows } = await templatesQuery;
-      return { state: "ok", data: { ...EMPTY_NUTRITION, templates: toMealTemplates(tplRows) } };
+      return { state: "ok", data: { ...EMPTY_NUTRITION, templates: toMealTemplates(tplRows), draftOwner: user.id } };
     }
 
     const [
@@ -1000,6 +1001,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
       activeSource: plan ? (plan.trainer_id ? "trainer" : "client") : null,
       editableDays,
       templates: toMealTemplates(tplRows),
+      draftOwner: user.id,
     };
     return { state: "ok", data };
   } catch (err) {

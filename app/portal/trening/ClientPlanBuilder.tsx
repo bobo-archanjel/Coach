@@ -17,7 +17,7 @@ import type { Locale } from "@/lib/i18n/locales";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { saveClientPlanAction, getExerciseDetailAction, getPlanReviewAction, type PlanDraft } from "./actions";
 import { progressLoad, type PlanReview } from "@/lib/portal/planReview";
-import { DayReview, ProgressionDialog, ReviewOverview, ReviewTimeline } from "./PlanReviewView";
+import { DayReview, ProgressionDialog, ReviewOverview } from "./PlanReviewView";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
@@ -784,7 +784,7 @@ export function ClientPlanBuilder({
 
         {readOnly && (
           <>
-            <ReviewTimeline review={review} />
+            {/* „Ako sa ti cvičilo“ v náhľade klienta nie je (poznámky a RPE vidí pri tréningoch) */}
             {onRepeat && (
               <div className={styles.rvRepeat}>
                 <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={() => setRepeating(true)}>

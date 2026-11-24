@@ -51,3 +51,19 @@ export async function userIdByEmail(email: string): Promise<string> {
   }
   throw new Error(`Používateľ ${email} neexistuje.`);
 }
+
+/**
+ * Prihlásený Supabase klient pre testy RLS (namiesto signInWithPassword, ktoré CAPTCHA
+ * odmietne) — magic link cez service role (e-mail sa neodošle), session v pamäti.
+ */
+export async function apiSession(email: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const opts = { auth: { persistSession: false, autoRefreshToken: false } };
+  const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!, opts);
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  if (error || !data.properties?.hashed_token) throw new Error(`generateLink ${email}: ${error?.message}`);
+  const api = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, opts);
+  const { data: session, error: verifyErr } = await api.auth.verifyOtp({ token_hash: data.properties.hashed_token, type: "magiclink" });
+  if (verifyErr || !session.user) throw new Error(`verifyOtp ${email}: ${verifyErr?.message}`);
+  return { api, userId: session.user.id };
+}

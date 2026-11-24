@@ -4,7 +4,6 @@ import { previewResult, PREVIEW_STAPLES } from "@/app/portal/strava/preview";
 import { NutritionSection } from "@/app/portal/strava/NutritionSection";
 import { RetryButton } from "@/app/portal/RetryButton";
 import { AlertIcon, Notice } from "../Notice";
-import s from "../portal.module.css";
 
 /* /portal/strava — makro cieľ, aktívny jedálniček (od trénera alebo vlastný) a builder
    vlastného jedálnička (NutritionSection, getPortalNutrition). */
@@ -29,13 +28,6 @@ export default async function StravaPage({ searchParams }: { searchParams: Promi
   // trénera) — typ ho pozná kvôli spätnej kompatibilite
   if (result.state === "unlinked") return null;
 
-  return (
-    <>
-      <header>
-        <h1 className={s.pageTitle}>{t("title")}</h1>
-        <p className={s.pageSub}>{t("sub")}</p>
-      </header>
-      <NutritionSection data={result.data} initialStaples={previewData ? PREVIEW_STAPLES : undefined} />
-    </>
-  );
+  // hlavičku „Jedálniček“ vykresľuje NutritionSection — v builderi ju skryje
+  return <NutritionSection data={result.data} initialStaples={previewData ? PREVIEW_STAPLES : undefined} />;
 }
