@@ -114,6 +114,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // Odcvičený deň otvorený v editore "Upraviť hodnoty" (id záznamu workout_logs).
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  // builder otvorený ako náhľad (vyhodnotenie) — bez úprav
+  const [previewing, setPreviewing] = useState(false);
   // Odcvičený deň: posledný tréning (plán vs. skutočnosť) alebo plán dňa — prepínač.
   const [dayView, setDayView] = useState<"done" | "plan">("done");
   const [error, setError] = useState<string | null>(null);
@@ -131,8 +133,10 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     plan: PortalPlan | null,
     template: PortalTemplate | null = null,
     resume: PlanBuilderDraft | null = null,
+    preview = false,
   ) => {
     setEditing(plan);
+    setPreviewing(preview);
     setFromTemplate(template);
     setResumeDraft(resume);
     setError(null);
@@ -144,8 +148,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     }
     // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
     // otvorenie buildera v rámci tej istej návštevy /portal/trening).
-    const viewOnly = Boolean(plan && plan.days.length > 0 && plan.days.every((d) => d.done));
-    if (library.length === 0 && !viewOnly) {
+    if (library.length === 0 && !preview) {
       startLibraryTransition(async () => {
         setLibrary(await getExerciseLibraryAction());
       });
@@ -154,6 +157,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const closeBuilder = useCallback(() => {
     setMode("list");
     setEditing(null);
+    setPreviewing(false);
     setFromTemplate(null);
     setResumeDraft(null);
     // odchod bez uloženia → koncept ostal v prehliadači, karta „Pokračovať“ ho ponúkne
@@ -301,8 +305,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   );
 
   if (mode === "build") {
-    // celý odcvičený plán = len náhľad s vyhodnotením (nič sa v ňom nedá zmeniť)
-    const viewOnly = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
+    // náhľad = vyhodnotenie (aj rozpracovaného plánu — rátajú sa odcvičené tréningy), nič sa nemení
+    const viewOnly = previewing && editing !== null;
+    const editingDone = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
     return (
       <ClientPlanBuilder
         // „Zopakovať s progresiou“ prepne z náhľadu na nový plán — builder začne odznova
@@ -316,8 +321,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         resume={resumeDraft}
         readOnly={viewOnly}
         reviewPreview={viewOnly && editing ? (data.previewReview?.[editing.id] ?? null) : null}
-        // plán od trénera sa neopakuje — nový plán klientovi zostaví tréner (u neho „Zopakovať s progresiou“)
-        onRepeat={editing?.source === "client" ? (template) => openBuilder(null, template) : undefined}
+        // plán od trénera sa neopakuje — nový plán klientovi zostaví tréner (u neho „Zopakovať s progresiou“);
+        // rozpracovaný plán sa tiež neopakuje (ešte nie je čo stupňovať)
+        onRepeat={editing?.source === "client" && editingDone ? (template) => openBuilder(null, template) : undefined}
       />
     );
   }
@@ -661,20 +667,21 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             </span>
                           </div>
                         ) : (
-                          <div className={pa.grid}>
-                            {planDone ? (
-                              // celý odcvičený plán (vlastný aj od trénera) — nič sa nemení, len vyhodnotenie
-                              <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                          <div className={pa.row}>
+                            {/* Náhľad = vyhodnotenie — hotový plán aj rozpracovaný s aspoň jedným
+                                odcvičeným tréningom (rátajú sa len odcvičené) */}
+                            {plan.days.some((d) => d.done) && (
+                              <button type="button" className={pa.action} onClick={() => openBuilder(plan, null, null, true)}>
                                 <ActionPreviewIcon />
                                 {tr("viewPlan")}
                               </button>
-                            ) : (
-                              plan.source === "client" && (
-                                <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
-                                  <ActionEditIcon />
-                                  {tr("edit")}
-                                </button>
-                              )
+                            )}
+                            {/* celý odcvičený plán sa už nemení — len náhľad */}
+                            {!planDone && plan.source === "client" && (
+                              <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                                <ActionEditIcon />
+                                {tr("edit")}
+                              </button>
                             )}
                             <button
                               type="button"

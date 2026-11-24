@@ -40,6 +40,8 @@ test.describe("hotový plán — prehľad dní (náhľad)", () => {
     await page.goto("/dashboard/treningy/x?preview=builder_done");
     const tabs = page.getByRole("group", { name: /dni/i }).getByRole("button");
     await expect(tabs).toHaveCount(4);
+    // hotový plán sa dá zmazať (odcvičené tréningy ostanú) — dole vedľa PDF
+    await expect(page.getByRole("button", { name: "Zmazať", exact: true })).toBeVisible();
     await expect(page.locator("[data-done='true']")).toHaveCount(4);
     await expectReadOnlyPlan(page);
 

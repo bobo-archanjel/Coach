@@ -1277,15 +1277,30 @@ select.addClientInputSm {
 }
 .cpFoot {
   margin-top: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: stretch;
   padding-top: 12px;
   border-top: 1px solid var(--hairline);
 }
 .cpFoot > a {
   text-decoration: none;
+}
+/* potvrdenie zmazania — na celú šírku pätičky (vlastný riadok pod dlaždicami) */
+.cpFoot > .cpConfirm {
+  flex: 1 1 100%;
+}
+.cpConfirm {
+  display: grid;
+  gap: 8px;
+}
+/* náhľad plánu (/dashboard/treningy/[planId]/nahlad) */
+.previewDayBadge {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.previewOpenPlan {
+  display: inline-flex;
+  text-decoration: none;
+  max-width: 280px;
 }
 /* širší displej — viac ako 3 tréningy sa posúvajú v karte, spodok sa stráca */
 @media (min-width: 720px) {

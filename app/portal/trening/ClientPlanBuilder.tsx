@@ -662,7 +662,14 @@ export function ClientPlanBuilder({
 
             <div className={b.dayPanel}>
               {readOnly ? (
-                <DayReview compare={activeDone?.compare ?? null} review={review} />
+                // náhľad rozpracovaného plánu — neodcvičený tréning nemá čo vyhodnotiť
+                activeDone ? (
+                  <DayReview compare={activeDone.compare} review={review} />
+                ) : (
+                  <p className={b.libraryHint} data-testid="day-not-done">
+                    {t("dayNotDoneYet")}
+                  </p>
+                )
               ) : activeDay && activeDone ? (
                 activeDone.compare.exercises.length > 0 ? (
                   <CompletedExercises exercises={activeDone.compare.exercises} hasPlan={activeDone.compare.hasPlan} />

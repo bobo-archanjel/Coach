@@ -21,8 +21,9 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await page.goto("/portal/trening?preview=ok");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
+    // rozpracovaný vlastný plán (1 z 2 odcvičený): Upraviť aj Náhľad (feature/treningy-karty)
     await expect(planCard(page, "plan-own").getByRole("button", { name: "Upraviť" })).toBeVisible();
-    await expect(planCard(page, "plan-own").getByRole("button", { name: "Náhľad" })).toHaveCount(0);
+    await expect(planCard(page, "plan-own").getByRole("button", { name: "Náhľad" })).toBeVisible();
 
     const card = planCard(page, "plan-own-done");
     await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);

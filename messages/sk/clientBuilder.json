@@ -105,5 +105,6 @@
   "discardEdits": "Zahodiť úpravy",
   "discardEditsConfirm": "Naozaj zahodiť neuložené úpravy?",
   "yesDelete": "Áno, zmazať",
-  "yesDiscard": "Áno, zahodiť"
+  "yesDiscard": "Áno, zahodiť",
+  "dayNotDoneYet": "Tento tréning ešte nie je odcvičený."
 }

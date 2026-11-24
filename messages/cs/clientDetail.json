@@ -149,5 +149,6 @@
     "rpe": "Náročnost (RPE)",
     "clientNote": "Poznámka klienta"
   },
-  "tabsAria": "Sekce klienta"
+  "tabsAria": "Sekce klienta",
+  "previewPlan": "Náhled"
 }

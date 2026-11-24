@@ -12,8 +12,9 @@ import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { ActivePlanButton } from "./ActivePlanButton";
+import { PlanCardDelete } from "./PlanCardDelete";
 import { PlanBand } from "@/app/components/PlanBand";
-import { ActionPreviewIcon } from "@/app/components/ActionIcons";
+import { ActionEditIcon, ActionPreviewIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import { CreateMealPlanButton } from "./CreateMealPlanButton";
 import { NutritionForm } from "./NutritionForm";
@@ -299,15 +300,23 @@ export default async function ClientDetailPage({
                             ))}
                           </ul>
                         )}
-                        <div className={styles.cpFoot}>
+                        <div className={`${styles.cpFoot} ${pa.row}`}>
+                          {/* náhľad = vyhodnotenie, aj rozpracovaného plánu (rátajú sa odcvičené tréningy) */}
+                          {(done?.completedDays ?? 0) > 0 && (
+                            <Link href={`/dashboard/treningy/${plan.id}/nahlad`} className={`${pa.action} ${pa.small}`}>
+                              <ActionPreviewIcon />
+                              {t("previewPlan")}
+                            </Link>
+                          )}
                           <Link href={`/dashboard/treningy/${plan.id}`} className={`${pa.action} ${pa.small}`}>
-                            <ActionPreviewIcon />
+                            <ActionEditIcon />
                             {t("openPlan")}
                           </Link>
                           {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí; hotový sa nedá */}
                           {plan.published && !isActive && !done?.allDone && (
                             <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />
                           )}
+                          <PlanCardDelete planId={plan.id} planName={plan.name} hasCompleted={(done?.completedDays ?? 0) > 0} />
                         </div>
                       </div>
                     </article>

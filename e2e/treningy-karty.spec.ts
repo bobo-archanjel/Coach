@@ -36,7 +36,7 @@ test.describe("tréningové plány — karty s pásom", () => {
     await expect(band).toContainText("Od trénera");
     // počet tréningov hneď vedľa názvu
     await expect(card(page, "plan-trainer").getByTestId("plan-count")).toHaveText("2 tréningy");
-    await expect(card(page, "plan-own").getByTestId("plan-count")).toHaveText("1 tréning");
+    await expect(card(page, "plan-own").getByTestId("plan-count")).toHaveText("2 tréningy");
     await expect(card(page, "plan-own").locator("header")).toContainText("Vlastný");
     await expect(card(page, "plan-own").locator("header")).not.toContainText("Aktívny");
     // farebné odlíšenie — typ čipu

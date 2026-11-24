@@ -17,12 +17,18 @@ export function PlanReviewPanel({
   review,
   days,
   preview = false,
+  canRepeat = true,
+  title,
 }: {
   planId: string;
   review: PlanReview;
   days: ProgressionDay[];
   /** DEV náhľad — okno sa otvorí, koncept sa nevytvára */
   preview?: boolean;
+  /** „Zopakovať s progresiou“ — len pri celom odcvičenom pláne (náhľad rozpracovaného ho nemá) */
+  canRepeat?: boolean;
+  /** nadpis panelu — rozpracovaný plán „Priebežné vyhodnotenie“ */
+  title?: string;
 }) {
   const t = useTranslations("plans.review");
   const [open, setOpen] = useState(false);
@@ -45,16 +51,18 @@ export function PlanReviewPanel({
   return (
     <section className={styles.rvPanel} aria-labelledby="plan-review-title" data-testid="trainer-plan-review">
       <h2 id="plan-review-title" className={styles.rvPanelTitle}>
-        {t("reviewTitle")}
+        {title ?? t("reviewTitle")}
       </h2>
       <ReviewOverview review={review} voice="trainer" />
       <ReviewTimeline review={review} voice="trainer" />
-      <div className={styles.rvRepeat}>
-        <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={() => setOpen(true)}>
-          {t("repeat")}
-        </button>
-        <p className={styles.trHint}>{t("repeatHint")}</p>
-      </div>
+      {canRepeat && (
+        <div className={styles.rvRepeat}>
+          <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={() => setOpen(true)}>
+            {t("repeat")}
+          </button>
+          <p className={styles.trHint}>{t("repeatHint")}</p>
+        </div>
+      )}
       {open && (
         <ProgressionDialog
           days={days}
