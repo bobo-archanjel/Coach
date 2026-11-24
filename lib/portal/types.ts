@@ -388,6 +388,8 @@ export interface PortalNutritionData {
   /** dni aktívneho jedálnička pre „Upraviť“ — len pri vlastnom (tréner ho upravuje sám) */
   editableDays: EditableMealDay[] | null;
   templates: PortalMealTemplate[];
+  /** id prihláseného — rozpracovaný jedálniček v prehliadači patrí len jemu (mealDraft.ts) */
+  draftOwner: string;
 }
 
 export type PortalNutritionResult =

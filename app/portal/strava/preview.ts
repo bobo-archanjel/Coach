@@ -84,6 +84,7 @@ const BASE: PortalNutritionData = {
   ],
   activeSource: "trainer",
   editableDays: null,
+  draftOwner: "preview",
   templates: [{ id: "tpl-meal", name: "Rýchle raňajky", days: [{ id: null, name: "Deň 1", meals: [entry("s1", ovos, "ranajky", 80), entry("s2", banan, "ranajky", 120)] }] }],
 };
 
