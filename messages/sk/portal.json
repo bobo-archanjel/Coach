@@ -75,7 +75,9 @@
     "draftEditTitle": "Rozpracovaná úprava jedálnička",
     "draftUnnamed": "Bez názvu",
     "draftContinue": "Pokračovať",
-    "draftDiscard": "Zahodiť"
+    "draftDiscard": "Zahodiť",
+    "preview": "Náhľad",
+    "useTemplate": "Použiť šablónu"
   },
   "chat": {
     "loadFailed": "Nepodarilo sa načítať chat",

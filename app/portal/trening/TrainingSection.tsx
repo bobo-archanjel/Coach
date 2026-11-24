@@ -14,6 +14,7 @@ import {
   setActivePlanAction,
 } from "./actions";
 import { ExercisePreviewList } from "../ExercisePreviewList";
+import { BuilderDialog } from "@/app/components/BuilderDialog";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { PlansTabs, type PlansTab } from "../PlansTabs";
 import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./builderDraft";
@@ -97,6 +98,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   // Výsledok "Uložiť ako šablónu" pri konkrétnom tréningu (potvrdenie alebo chyba).
   const [templateNote, setTemplateNote] = useState<{ planId: string; text: string; error: boolean } | null>(null);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
+  // „Náhľad“ šablóny — okno s jej dňami a cvikmi (bez úprav)
+  const [previewTpl, setPreviewTpl] = useState<PortalTemplate | null>(null);
   // Tréningové plány / Moje šablóny — prepínač v hlavičke sekcie
   const [tab, setTab] = useState<PlansTab>("plans");
   // ?plan=<id> (odkaz z upozornenia „Nový tréningový plán“) rozbalí presne ten plán,
@@ -416,7 +419,11 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                         </span>
                       </div>
                     ) : (
-                      <div className={pa.gridRow}>
+                      <div className={`${pa.gridRow} ${pa.gridRow3}`}>
+                        <button type="button" className={`${pa.action} ${pa.small}`} onClick={() => setPreviewTpl(t)}>
+                          <ActionPreviewIcon />
+                          {tr("viewPlan")}
+                        </button>
                         <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(null, t)}>
                           <ActionUseIcon />
                           {tr("use")}
@@ -431,6 +438,36 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                 );
               })}
             </ul>
+            {previewTpl && (
+              <BuilderDialog title={previewTpl.name} closeLabel={tr("close")} onClose={() => setPreviewTpl(null)} wide>
+                <div className={styles.tplPreview} data-testid="template-preview">
+                  {previewTpl.days.map((d, i) => (
+                    <section key={i} className={styles.tplPreviewDay}>
+                      <p className={styles.tplPreviewDayName}>
+                        {d.name}
+                        <span className={styles.chip}>{tr("exercises", { count: d.exercises.length })}</span>
+                      </p>
+                      {d.exercises.length > 0 ? (
+                        <ExercisePreviewList exercises={d.exercises} />
+                      ) : (
+                        <p className={styles.trEmptyDay}>{tr("tplDayEmpty")}</p>
+                      )}
+                    </section>
+                  ))}
+                  <button
+                    type="button"
+                    className={`btn btn-primary ${styles.startBtn}`}
+                    onClick={() => {
+                      const tpl = previewTpl;
+                      setPreviewTpl(null);
+                      openBuilder(null, tpl);
+                    }}
+                  >
+                    {tr("useTemplate")}
+                  </button>
+                </div>
+              </BuilderDialog>
+            )}
           </div>
         )
       ) : plans.length === 0 ? (

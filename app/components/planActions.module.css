@@ -56,6 +56,12 @@
     max-width: none;
   }
 }
+/* riadok s tromi akciami (šablóna: Náhľad · Použiť · Zmazať) */
+.gridRow3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 440px;
+  flex-basis: 320px;
+}
 
 .action {
   display: inline-flex;
