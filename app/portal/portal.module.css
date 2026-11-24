@@ -484,6 +484,28 @@
   width: 17px;
   height: 17px;
 }
+.appointment > p {
+  flex: 1;
+  min-width: 0;
+}
+/* × — skryť upozornenie (termín ostáva v kalendári) */
+.appointmentClose {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: -8px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.appointmentClose:hover {
+  background: var(--fill-strong);
+  color: var(--paper);
+}
 
 /* hlavná karta dňa: terakotový pás (názov + prstenec) nad bielym telom s akciou */
 /* ---------- aktívny plán nad kartou ďalšieho tréningu (PlanSwitchSheet) ---------- */
@@ -5239,14 +5261,17 @@ a.bellItemMain:hover {
   border-radius: 18px;
   background: var(--fill);
 }
+/* minmax(0, 1fr) + min-width: 0 — pole času na iPhone (Safari) má vlastnú minimálnu
+   šírku a v stĺpci 1fr pretieklo do vedľajšieho poľa (Od a Do sa prelínali) */
 .calFieldRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 .calField {
   display: grid;
   gap: 5px;
+  min-width: 0;
   font-size: 12.5px;
   font-weight: 650;
   color: var(--paper-dim);
@@ -5266,6 +5291,29 @@ a.bellItemMain:hover {
 .calField textarea {
   resize: vertical;
 }
+.calField input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* natívne pole času v Safari: bez vlastného vzhľadu sa riadi šírkou, výška ako ostatné polia */
+.calField input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-height: 44px;
+  line-height: 1.25;
+}
+.calField input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
+/* veľmi úzky displej (napr. iPhone SE s väčším písmom) — Od a Do pod sebou */
+@media (max-width: 360px) {
+  .calFieldRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .calField input:focus,
 .calField textarea:focus {
   outline: none;
@@ -5276,4 +5324,23 @@ a.bellItemMain:hover {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* náhľad šablóny (Moje šablóny — Tréning aj Jedálniček) */
+.tplPreview {
+  display: grid;
+  gap: 14px;
+}
+.tplPreviewDay {
+  display: grid;
+  gap: 8px;
+}
+.tplPreviewDayName {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--paper);
 }

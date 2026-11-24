@@ -20,6 +20,9 @@ import { AlertIcon, Notice } from "./Notice";
 import s from "./portal.module.css";
 import { LiveProgressRing, ProgressRing } from "./ProgressRing";
 import { OtherTodayWorkouts } from "./OtherTodayWorkouts";
+import { AppointmentNotice } from "./AppointmentNotice";
+import { HIDDEN_APPOINTMENT_COOKIE } from "@/lib/portal/appointmentNotice";
+import { cookies } from "next/headers";
 
 /* /portal — "Dnes": dáta z getPortalData, pozdrav, odkaz trénera, terakotová karta
    dňa s prstencom postupu (začatie/zápis tréningu, stopky), prehľad týždňa s grafom. */
@@ -128,10 +131,17 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
     );
   }
 
-  return <Today data={result.data} preview={Boolean(preview) && process.env.NODE_ENV === "development"} />;
+  const hiddenAppointmentId = decodeURIComponent((await cookies()).get(HIDDEN_APPOINTMENT_COOKIE)?.value ?? "");
+  return (
+    <Today
+      data={result.data}
+      preview={Boolean(preview) && process.env.NODE_ENV === "development"}
+      hiddenAppointmentId={hiddenAppointmentId}
+    />
+  );
 }
 
-function Today({ data, preview = false }: { data: PortalData; preview?: boolean }) {
+function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: PortalData; preview?: boolean; hiddenAppointmentId?: string }) {
   const {
     clientFirstName,
     today,
@@ -193,8 +203,9 @@ function Today({ data, preview = false }: { data: PortalData; preview?: boolean 
         </div>
       )}
 
-      {nextAppointment && (
-        <div className={s.appointment}>
+      {/* najbližší termín — × ho skryje (termín ostáva v kalendári); skrytý = cookie s jeho id */}
+      {nextAppointment && nextAppointment.id !== hiddenAppointmentId && (
+        <AppointmentNotice appointmentId={nextAppointment.id} closeLabel={t("hideAppointment")}>
           <span className={s.appointmentIcon} aria-hidden="true">
             <CalendarIcon />
           </span>
@@ -205,7 +216,7 @@ function Today({ data, preview = false }: { data: PortalData; preview?: boolean 
               when: appointmentWhenLabel(nextAppointment.startsAt, t, locale),
             })}
           </p>
-        </div>
+        </AppointmentNotice>
       )}
 
       {/* aktívny plán (riadi túto kartu) — pri viacerých plánoch „Zmeniť“ */}

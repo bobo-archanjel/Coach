@@ -32,6 +32,23 @@ test.describe("kalendár klienta — náhľad", () => {
     await expect(calendar(page)).toContainText("Od trénera");
   });
 
+  test("formulár udalosti: polia Od a Do sa neprekrývajú (mobil)", async ({ page }) => {
+    await page.goto("/portal?preview=ok");
+    await cell(page, "2026-08-25").click();
+    await page.getByRole("button", { name: "+ Pridať udalosť" }).click();
+    const [from, to] = await page.locator('input[type="time"]').evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      }),
+    );
+    const sameRow = from.top < to.bottom && to.top < from.bottom;
+    // vedľa seba bez presahu, alebo pod sebou (úzky displej)
+    expect(sameRow ? from.right <= to.left : true).toBe(true);
+    const form = await page.locator("form").boundingBox();
+    expect(to.right).toBeLessThanOrEqual(form!.x + form!.width);
+  });
+
   test("okno dňa: tréning, termín od trénera, vlastná udalosť — pridať, upraviť, zmazať", async ({ page }) => {
     await page.goto("/portal?preview=ok");
     await cell(page, "2026-08-27").click();

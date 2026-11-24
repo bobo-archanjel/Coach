@@ -124,6 +124,7 @@ export interface CoachNote {
 
 /** Najbližší nadchádzajúci termín klienta (appointments, 0026) — karta na Dnes. */
 export interface PortalNextAppointment {
+  id: string;
   title: string;
   startsAt: string; // ISO timestamptz
 }
