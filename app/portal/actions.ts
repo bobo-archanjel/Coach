@@ -12,6 +12,8 @@ import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isValidReps, isValidWeight } from "@/lib/workouts/setInput";
 import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
 import { cleanSupersetId, normalizeSupersets } from "@/lib/workouts/superset";
+import { bratislavaToUtcIso } from "@/lib/calendar/month";
+import { getTranslations } from "next-intl/server";
 
 export interface ActionState {
   error: string | null;
@@ -27,6 +29,59 @@ export async function getExerciseDetailAction(exerciseId: string): Promise<Exerc
 /** Pás „Tento týždeň" — načíta iný (spravidla minulý) týždeň pri listovaní. */
 export async function getPortalWeekAction(mondayIso: string): Promise<PortalWeekResult> {
   return getPortalWeek(mondayIso);
+}
+
+/** Vlastná udalosť klienta v kalendári na karte Dnes (client_events, 0072 — súkromná). */
+export interface ClientEventInput {
+  id?: string;
+  title: string;
+  /** YYYY-MM-DD (deň v kalendári) */
+  date: string;
+  /** HH:MM, Europe/Bratislava */
+  time: string;
+  endTime: string;
+  note: string;
+}
+
+async function validateClientEvent(v: ClientEventInput): Promise<{ error: string } | { row: { title: string; starts_at: string; ends_at: string | null; note: string | null } }> {
+  const title = (v.title ?? "").trim();
+  const note = (v.note ?? "").trim();
+  if (title.length > 200) return { error: await tErr("calendar.titleTooLong") };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date ?? "")) return { error: await tErr("calendar.dateRequired") };
+  if (!/^\d{2}:\d{2}$/.test(v.time ?? "")) return { error: await tErr("calendar.timeRequired") };
+  if (note.length > 1000) return { error: await tErr("calendar.noteTooLong") };
+  const startsAt = bratislavaToUtcIso(v.date, v.time);
+  const endsAt = /^\d{2}:\d{2}$/.test(v.endTime ?? "") ? bratislavaToUtcIso(v.date, v.endTime) : null;
+  if (endsAt && endsAt <= startsAt) return { error: await tErr("calendar.endAfterStart") };
+  // názov je voliteľný (povinný je deň a čas) — stĺpec je NOT NULL, preto predvolený
+  const fallback = (await getTranslations("today.calendar"))("defaultTitle");
+  return { row: { title: title || fallback, starts_at: startsAt, ends_at: endsAt, note: note || null } };
+}
+
+/** Nová / upravená vlastná udalosť (RLS client_events_all_own_client — len vlastný riadok). */
+export async function saveClientEventAction(input: ClientEventInput): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: await tErr("client.clientProfileMissing") };
+  const v = await validateClientEvent(input);
+  if ("error" in v) return { error: v.error };
+  const { error } = input.id
+    ? await supabase.from("client_events").update(v.row).eq("id", input.id).eq("client_id", clientId)
+    : await supabase.from("client_events").insert({ ...v.row, client_id: clientId });
+  if (error) return { error: await dbErr(error, "actions") };
+  revalidatePath("/portal");
+  return ok;
+}
+
+export async function deleteClientEventAction(id: string): Promise<ActionState> {
+  if (typeof id !== "string" || !id) return { error: await tErr("calendar.appointmentNotFound") };
+  const supabase = await createClient();
+  const clientId = await currentClientId(supabase);
+  if (!clientId) return { error: await tErr("client.clientProfileMissing") };
+  const { error } = await supabase.from("client_events").delete().eq("id", id).eq("client_id", clientId);
+  if (error) return { error: await dbErr(error, "actions") };
+  revalidatePath("/portal");
+  return ok;
 }
 
 /** GDPR — klient požiada o zmazanie vlastných dát (30-dňová grace period, 0013_client_deletion.sql). */
