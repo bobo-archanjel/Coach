@@ -417,7 +417,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                       <div className={`${pa.gridRow} ${pa.gridRow3}`}>
                         <button type="button" className={`${pa.action} ${pa.small}`} onClick={() => setPreviewTpl(t)}>
                           <ActionPreviewIcon />
-                          {tr("viewPlan")}
+                          {tr("tplPreview")}
                         </button>
                         <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(null, t)}>
                           <ActionUseIcon />

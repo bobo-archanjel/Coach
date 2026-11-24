@@ -75,6 +75,10 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Report plánu + Export PDF** (`feature/report-nazov`, bez migrácie).
+  - „Náhľad“ (vyhodnotenie plánu) sa volá **Report** — klient aj tréner; stránka trénera `/dashboard/treningy/[id]/report`. Náhľad šablón ostáva „Náhľad“.
+  - Tréner: hotový plán na karte bez „Otvoriť plán“ (Report ukáže to isté); na stránke Reportu hore **Export PDF** namiesto „Otvoriť plán“ dole.
+  - PDF reportu: súhrn, úspechy, čo z toho plynie, ako sa klientovi cvičilo, odcvičené tréningy (plán vs. skutočnosť po sériách, náročnosť, poznámka) a zostávajúce tréningy.
 - **2026-11-24** — **Tréningové plány: karty s oranžovým pásom, Náhľad aj rozpracovaného plánu, tréner maže plány** (`feature/treningy-karty`, bez migrácie).
   - Klient (Tréning): plány vždy rozbalené; sklenený oranžový pás s názvom a počtom tréningov, farebné čipy (Aktívny, ✓ Hotovo, Od trénera, Vlastný); aktívny plán má pás do červena. Desktop 2–3 stĺpce, rovnako vysoké karty, viac ako 3 tréningy sa posúvajú. Akcie ako jeden rad dlaždíc.
   - Karta Dnes: „Plán <názov>“ a „Zmeniť plán“ priamo v oranžovom poli (riadok nad kartou zmizol).

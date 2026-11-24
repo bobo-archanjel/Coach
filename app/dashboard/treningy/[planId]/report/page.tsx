@@ -6,20 +6,21 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlanReview } from "@/lib/portal/planReviewData";
 import { buildDoneDays, fetchPlanLogs, toProgressionDays } from "@/lib/dashboard/planDoneDays";
 import { DayReview } from "@/app/portal/trening/PlanReviewView";
-import { ActionEditIcon } from "@/app/components/ActionIcons";
+import { ActionDownloadIcon } from "@/app/components/ActionIcons";
 import { PlanReviewPanel } from "../PlanReviewPanel";
 import pa from "@/app/components/planActions.module.css";
 import rv from "@/app/portal/portal.module.css";
 import styles from "@/app/dashboard/dashboard.module.css";
 
 /**
- * Náhľad plánu pre trénera (karta plánu v detaile klienta → „Náhľad“) — vyhodnotenie aj
+ * Report plánu pre trénera (karta plánu v detaile klienta → „Report“) — vyhodnotenie aj
  * rozpracovaného plánu: rátajú sa len odcvičené tréningy (buildPlanReview berie len zápisy
  * dní plánu). Pod súhrnom každý deň: odcvičený → karty cvikov (plán vs. skutočnosť, graf),
  * neodcvičený → krátka veta. „Zopakovať s progresiou“ len pri celom odcvičenom pláne.
- * Nič sa tu neupravuje — úpravy sú v detaile plánu („Otvoriť plán“).
+ * Nič sa tu neupravuje. Hore „Export PDF“ — celý report (vyhodnotenie, odcvičené tréningy
+ * plán vs. skutočnosť, zostávajúce tréningy) — app/api/export/plan/[planId]/report/pdf.
  */
-export default async function PlanPreviewPage({ params }: { params: Promise<{ planId: string }> }) {
+export default async function PlanReportPage({ params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
   const supabase = await createClient();
 
@@ -37,8 +38,8 @@ export default async function PlanPreviewPage({ params }: { params: Promise<{ pl
   ]);
 
   if (!plan) notFound();
-  // skrytá kópia úprav nemá vlastný náhľad — patrí k plánu, ktorý upravuje
-  if (plan.edit_of) redirect(`/dashboard/treningy/${plan.edit_of}/nahlad`);
+  // skrytá kópia úprav nemá vlastný report — patrí k plánu, ktorý upravuje
+  if (plan.edit_of) redirect(`/dashboard/treningy/${plan.edit_of}/report`);
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
   const planDays = days ?? [];
@@ -57,6 +58,11 @@ export default async function PlanPreviewPage({ params }: { params: Promise<{ pl
           </div>
         </div>
         <div className={styles.detailHeadStatus}>
+          {/* súborový download (Route Handler) — obyčajný <a>, nie klientska navigácia */}
+          <a href={`/api/export/plan/${planId}/report/pdf`} className={`${pa.action} ${pa.small} ${styles.reportExport}`}>
+            <ActionDownloadIcon />
+            {t("exportPdf")}
+          </a>
           {allDone ? (
             <span className={styles.planDoneBadge}>{t("doneBadge")}</span>
           ) : (
@@ -104,12 +110,6 @@ export default async function PlanPreviewPage({ params }: { params: Promise<{ pl
         })}
       </section>
 
-      <div className={styles.planFooterActions}>
-        <Link href={`/dashboard/treningy/${planId}`} className={`${pa.action} ${styles.previewOpenPlan}`}>
-          <ActionEditIcon />
-          {t("openPlan")}
-        </Link>
-      </div>
     </SwipeBack>
   );
 }

@@ -1297,10 +1297,9 @@ select.addClientInputSm {
   margin-left: 8px;
   vertical-align: middle;
 }
-.previewOpenPlan {
-  display: inline-flex;
+.reportExport {
   text-decoration: none;
-  max-width: 280px;
+  white-space: nowrap;
 }
 /* širší displej — viac ako 3 tréningy sa posúvajú v karte, spodok sa stráca */
 @media (min-width: 720px) {
