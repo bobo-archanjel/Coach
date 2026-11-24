@@ -3316,13 +3316,23 @@ select.addClientInputSm {
   }
 }
 .ccCard {
+  /* odtieň avatara (data-tone podľa mena) — avatar aj prechod v hornej časti karty */
+  --tone: var(--accent);
   position: relative;
   display: grid;
   align-content: start;
   gap: 14px;
   padding: 18px;
   border-radius: 24px;
-  background: var(--card-bg);
+  /* horná časť s menom a avatarom jemne podfarbená odtieňom avatara, prechod zhora nadol */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tone) 17%, transparent) 0,
+      color-mix(in srgb, var(--tone) 7%, transparent) 64px,
+      transparent 118px
+    ),
+    var(--card-bg);
   border: 1px solid var(--surface-border);
   box-shadow: var(--card-shadow);
   min-width: 0;
@@ -3351,7 +3361,6 @@ select.addClientInputSm {
   gap: 12px;
 }
 .ccAvatar {
-  --tone: var(--accent);
   display: grid;
   place-items: center;
   width: 46px;
@@ -3364,19 +3373,19 @@ select.addClientInputSm {
   font-weight: 800;
   letter-spacing: 0.01em;
 }
-.ccAvatar[data-tone="1"] {
+.ccCard[data-tone="1"] {
   --tone: var(--moss);
 }
-.ccAvatar[data-tone="2"] {
+.ccCard[data-tone="2"] {
   --tone: #6f8fd8;
 }
-.ccAvatar[data-tone="3"] {
+.ccCard[data-tone="3"] {
   --tone: #b07cc9;
 }
-.ccAvatar[data-tone="4"] {
+.ccCard[data-tone="4"] {
   --tone: #c99a32;
 }
-.ccAvatar[data-tone="5"] {
+.ccCard[data-tone="5"] {
   --tone: #3f9c96;
 }
 .ccIdentity {
