@@ -284,15 +284,25 @@ export function NutritionForm({
 
       <div className={styles.card}>
         <div className={styles.macroResultHead}>
-          <h3>
-            {t("result")}
-            {isUnsavedPreview && profile ? t("unsavedPreview") : isUnsavedPreview ? t("preview") : ""}
-          </h3>
-          {isManual && !isDirty && (
-            <span className={styles.macroManualBadge} data-testid="macro-manual">
-              {t("manualBadge")}
-            </span>
-          )}
+          <span className={styles.macroHeadTitle}>
+            <h3>
+              {t("result")}
+              {isUnsavedPreview && profile ? t("unsavedPreview") : isUnsavedPreview ? t("preview") : ""}
+            </h3>
+            {isManual && !isDirty && (
+              <span className={styles.macroManualBadge} data-testid="macro-manual">
+                {t("manualBadge")}
+              </span>
+            )}
+          </span>
+          <span className={styles.macroHeadSide}>
+            {/* „Upraviť hodnoty“ hore pri nadpise — ručná úprava makier */}
+            {canEdit && !editing && (
+              <button type="button" className={`btn btn-ghost btn-sm ${styles.macroEditBtn}`} onClick={startEdit} disabled={macroPending}>
+                {t("editValues")}
+              </button>
+            )}
+          </span>
         </div>
         {editing && stored ? (
           // ručná úprava: makrá v gramoch, kalorický cieľ = ich súčet (živo)
@@ -396,16 +406,11 @@ export function NutritionForm({
                 </div>
               </div>
             </div>
-            {canEdit && (
+            {canEdit && isManual && (
               <div className={styles.macroEditActions}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={startEdit} disabled={macroPending}>
-                  {t("editValues")}
+                <button type="button" className="btn btn-ghost btn-sm" onClick={resetMacros} disabled={macroPending}>
+                  {macroPending ? t("saving") : t("resetAuto")}
                 </button>
-                {isManual && (
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={resetMacros} disabled={macroPending}>
-                    {macroPending ? t("saving") : t("resetAuto")}
-                  </button>
-                )}
               </div>
             )}
             {!editing && macroError && (

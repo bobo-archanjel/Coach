@@ -3533,6 +3533,23 @@ select.addClientInputSm {
 .macroResultHead h3 {
   margin: 0;
 }
+.macroHeadTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+}
+.macroHeadSide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.macroEditBtn {
+  white-space: nowrap;
+}
 .macroManualBadge {
   flex: none;
   padding: 3px 10px;
