@@ -14,7 +14,9 @@ import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
 import { cleanSupersetId, normalizeSupersets } from "@/lib/workouts/superset";
 import { bratislavaToUtcIso } from "@/lib/calendar/month";
 import { getTranslations } from "next-intl/server";
-import { syncGamification } from "@/lib/gamification/server";
+import { emptyReport, syncGamification } from "@/lib/gamification/server";
+import { buildFinishSummary, setFinishSummaryCookie } from "@/lib/gamification/finishServer";
+import { todayIso } from "@/lib/reports/period";
 
 export interface ActionState {
   error: string | null;
@@ -378,9 +380,17 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   // Gamifikácia: osobné rekordy a odznaky z tohto tréningu. Nikdy nezhodí zápis — chyby
   // syncGamification ticho pohltí (viď lib/gamification/server.ts). Oslava sa ukáže cez
   // revalidáciu layoutu nižšie (AchievementHost číta nezobrazené úspechy).
+  const report = emptyReport();
   await syncGamification(supabase, { clientId: client.id, activePlanId: client.active_plan_id }, "workout", {
     logId: (inserted?.id as string | undefined) ?? null,
+    report,
   });
+  // „Tréning v číslach“ (v2): súhrn z toho, čo server sám zapísal a vyhodnotil; čas štartu je jediné číslo od klienta
+  // (overí sa: 1–360 min). Krátkodobá cookie → layout portálu ho ukáže raz (FinishSummaryHost).
+  const startedAt = Number(formData.get("started_at"));
+  await setFinishSummaryCookie(
+    await buildFinishSummary(supabase, { clientId: client.id, entries, startedAtMs: startedAt > 0 ? startedAt : null, report, today: todayIso() }),
+  );
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
   // pre badge "Hotovo" (lib/portal/data.ts) — bez "layout" ostal cache tej stránky

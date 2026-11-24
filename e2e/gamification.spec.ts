@@ -198,38 +198,39 @@ test.describe("katalóg odznakov", () => {
     }
   });
 
-  test("Vytrvalosť: prvý tréning a 10/25/50/100/250", () => {
+  // v2: rodiny majú stupne bronz / striebro / zlato (podrobné testy: e2e/gamification-v2.spec.ts)
+  test("Vytrvalosť: prvý tréning a stupne 10 / 50 / 150", () => {
     expect(satisfiedBadges(stats({ workoutCount: 0 }))).toEqual([]);
     expect(satisfiedBadges(stats({ workoutCount: 1 }))).toEqual(["first_workout"]);
     const at = (n: number) => satisfiedBadges(stats({ workoutCount: n })).filter((id) => id.startsWith("workouts_"));
     expect(at(9)).toEqual([]);
-    expect(at(10)).toEqual(["workouts_10"]);
-    expect(at(25)).toEqual(["workouts_10", "workouts_25"]);
-    expect(at(250)).toEqual(["workouts_10", "workouts_25", "workouts_50", "workouts_100", "workouts_250"]);
+    expect(at(10)).toEqual(["workouts_bronze"]);
+    expect(at(50)).toEqual(["workouts_bronze", "workouts_silver"]);
+    expect(at(250)).toEqual(["workouts_bronze", "workouts_silver", "workouts_gold"]);
   });
 
-  test("Vytrvalosť: séria týždňov 4/12/26/52", () => {
+  test("Vytrvalosť: séria týždňov 4 / 12 / 26", () => {
     const at = (n: number) => satisfiedBadges(stats({ bestTrainingStreakWeeks: n })).filter((id) => id.startsWith("streak_"));
     expect(at(3)).toEqual([]);
-    expect(at(4)).toEqual(["streak_4w"]);
-    expect(at(12)).toEqual(["streak_4w", "streak_12w"]);
-    expect(at(52)).toEqual(["streak_4w", "streak_12w", "streak_26w", "streak_52w"]);
+    expect(at(4)).toEqual(["streak_bronze"]);
+    expect(at(12)).toEqual(["streak_bronze", "streak_silver"]);
+    expect(at(52)).toEqual(["streak_bronze", "streak_silver", "streak_gold"]);
   });
 
-  test("Sila: prvý rekord, 10 rekordov, objem 1 t / 10 t / 50 t / 100 t", () => {
+  test("Sila: prvý rekord, rekordy 5 / 25 / 75, objem 1 t a 10 / 50 / 200 t", () => {
     expect(satisfiedBadges(stats({ prCount: 1 }))).toEqual(["first_pr"]);
-    expect(satisfiedBadges(stats({ prCount: 10 }))).toEqual(["first_pr", "prs_10"]);
+    expect(satisfiedBadges(stats({ prCount: 10 }))).toEqual(["first_pr", "prs_bronze"]);
     const vol = (kg: number) => satisfiedBadges(stats({ totalVolumeKg: kg })).filter((id) => id.startsWith("volume_"));
     expect(vol(999)).toEqual([]);
     expect(vol(1000)).toEqual(["volume_1t"]);
-    expect(vol(10_000)).toEqual(["volume_1t", "volume_10t"]);
-    expect(vol(100_000)).toEqual(["volume_1t", "volume_10t", "volume_50t", "volume_100t"]);
+    expect(vol(10_000)).toEqual(["volume_1t", "volume_bronze"]);
+    expect(vol(200_000)).toEqual(["volume_1t", "volume_bronze", "volume_silver", "volume_gold"]);
   });
 
-  test("Strava: jedlo 7 / 30 dní v rade a týždeň s cieľom bielkovín", () => {
+  test("Strava: jedlo 7 / 30 / 100 dní v rade a týždeň s cieľom bielkovín", () => {
     expect(satisfiedBadges(stats({ bestFoodStreakDays: 6 }))).toEqual([]);
-    expect(satisfiedBadges(stats({ bestFoodStreakDays: 7 }))).toEqual(["food_streak_7"]);
-    expect(satisfiedBadges(stats({ bestFoodStreakDays: 30 }))).toEqual(["food_streak_7", "food_streak_30"]);
+    expect(satisfiedBadges(stats({ bestFoodStreakDays: 7 }))).toEqual(["food_bronze"]);
+    expect(satisfiedBadges(stats({ bestFoodStreakDays: 30 }))).toEqual(["food_bronze", "food_silver"]);
     expect(satisfiedBadges(stats({ proteinWeek: true }))).toEqual(["protein_week"]);
   });
 
@@ -274,7 +275,7 @@ test.describe("pravidlá odznakov nad históriou", () => {
   test("séria jedla po dňoch: 30 dní v rade", () => {
     const dates = Array.from({ length: 30 }, (_, i) => daysBack(i + 1));
     expect(bestFoodStreakDays(dates, TODAY)).toBe(30);
-    expect(satisfiedBadges(stats({ bestFoodStreakDays: bestFoodStreakDays(dates, TODAY) }))).toContain("food_streak_30");
+    expect(satisfiedBadges(stats({ bestFoodStreakDays: bestFoodStreakDays(dates, TODAY) }))).toContain("food_silver");
     expect(bestFoodStreakDays([], TODAY)).toBe(0);
   });
 
@@ -314,17 +315,17 @@ test.describe("pripisovanie odznakov", () => {
   test("missingBadges vráti len splnené a ešte nepripísané — opakované volanie nič nezdvojí", () => {
     const s = stats({ workoutCount: 10, prCount: 1 });
     const first = missingBadges(s, new Set());
-    expect(first).toEqual(["first_workout", "workouts_10", "first_pr"]);
+    expect(first).toEqual(["first_workout", "workouts_bronze", "first_pr"]);
     // po pripísaní nie je čo dopísať
     expect(missingBadges(s, new Set(first))).toEqual([]);
     // nový tréning prinesie len ten jediný nový odznak
-    const next = missingBadges(stats({ workoutCount: 25, prCount: 1 }), new Set(first));
-    expect(next).toEqual(["workouts_25"]);
+    const next = missingBadges(stats({ workoutCount: 50, prCount: 1 }), new Set(first));
+    expect(next).toEqual(["workouts_silver"]);
   });
 
   test("filter podľa spúšťača: jedlo nepripíše odznaky za tréning", () => {
     const s = stats({ workoutCount: 100, bestFoodStreakDays: 7 });
-    expect(missingBadges(s, new Set(), ["food"])).toEqual(["food_streak_7"]);
+    expect(missingBadges(s, new Set(), ["food"])).toEqual(["food_bronze"]);
     expect(missingBadges(s, new Set(), ["body"])).toEqual([]);
   });
 
@@ -339,7 +340,7 @@ test.describe("pripisovanie odznakov", () => {
     expect(hidden).toMatchObject({ earned: false, revealed: false });
     const first = views.find((v) => v.id === "first_workout")!;
     expect(first).toMatchObject({ earned: true, revealed: true, earnedOn: "2026-09-01" });
-    expect(views.find((v) => v.id === "workouts_10")).toMatchObject({ earned: false, revealed: true });
+    expect(views.find((v) => v.id === "workouts_bronze")).toMatchObject({ earned: false, revealed: true });
     expect(buildBadgeViews(new Map([["new_year", "2027-01-01"]])).find((v) => v.id === "new_year")).toMatchObject({ earned: true, revealed: true });
   });
 });

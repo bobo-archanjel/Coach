@@ -7,7 +7,7 @@ import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/s
 import { getUserLocale } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/locales";
 import { loadBrandingForTrainer } from "@/lib/branding/server";
-import { badgeById } from "@/lib/gamification/badges";
+import { badgeById, canonicalBadgeId } from "@/lib/gamification/badges";
 import { loadWeeklySummary } from "@/lib/gamification/weeklyServer";
 import { addDaysIso, todayIso, weekStartOf } from "@/lib/reports/period";
 import {
@@ -146,7 +146,7 @@ export async function GET(request: Request) {
     text.headline = t("pr.headline", { weight: nf.format(card.weightKg ?? 0) });
     text.sub = card.reps ? t("pr.subReps", { exercise: card.exerciseName ?? "", reps: card.reps }) : (card.exerciseName ?? "");
   } else if (card.kind === "badge") {
-    const def = card.badgeId ? badgeById(card.badgeId) : undefined;
+    const def = card.badgeId ? badgeById(canonicalBadgeId(card.badgeId)) : undefined;
     if (!def) return err(404, "not found");
     text.kicker = t("badge.kicker");
     text.headline = tb(`${def.id}.name` as never);

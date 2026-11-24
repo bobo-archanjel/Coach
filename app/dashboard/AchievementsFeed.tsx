@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { badgeById } from "@/lib/gamification/badges";
+import { badgeById, canonicalBadgeId } from "@/lib/gamification/badges";
 import { loadAchievementsFeed, type FeedItem } from "@/lib/gamification/trainerFeed";
 import { intlLocale } from "@/lib/i18n/locales";
 import { HighFiveButton } from "./HighFiveButton";
@@ -29,7 +29,7 @@ export async function AchievementsFeed({ clientId, hideTitle = false }: { client
       return i.reps ? t("trainer.prReps", { exercise: i.exerciseName, weight: i.value, reps: i.reps }) : t("trainer.pr", { exercise: i.exerciseName, weight: i.value });
     }
     if (i.kind === "challenge") return i.challengeName ? t("trainer.challenge", { name: i.challengeName }) : "";
-    const def = i.badgeId ? badgeById(i.badgeId) : undefined;
+    const def = i.badgeId ? badgeById(canonicalBadgeId(i.badgeId)) : undefined;
     return def ? t("trainer.badge", { badge: t(`badges.${def.id}.name` as never) }) : "";
   };
   const when = (iso: string) =>

@@ -21,6 +21,11 @@ import { PortalNav } from "./PortalNav";
 import { PortalSkeletonOverlay } from "./PortalSkeletonOverlay";
 import { NotificationBellSlot } from "./NotificationBell";
 import { AchievementHost } from "./AchievementHost";
+import { FinishSummaryHost } from "./FinishSummaryHost";
+import { loadCosmetics } from "@/lib/gamification/cosmeticsServer";
+import { THEME_SWATCH } from "@/lib/gamification/rewards";
+import { FRAME_TINTED_CLASS, frameClassName } from "./frameClass";
+import themes from "@/app/components/clientThemes.module.css";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "@/app/v6design/theme";
 import t from "@/app/v6design/styles/tokens.module.css";
 import s from "./portal.module.css";
@@ -83,6 +88,11 @@ export default async function PortalLayout({ children }: { children: React.React
   // vzhľad (klient bez trénera, tréner bez Business, značka nenastavená).
   const branding = await loadBrandingForTrainer(trainerId);
   const tb = branding ? await getTranslations("branding") : null;
+  // v2: rámik avatara a farebná téma z odmien za úrovne. Téma mení farby portálu LEN bez značky trénera
+  // (značka vždy vyhráva); so značkou téma farbí iba rámik avatara.
+  const cosmetics = await loadCosmetics(user?.id ?? "");
+  const themeActive = !branding && cosmetics.theme !== "default";
+  const tinted = Boolean(branding) && cosmetics.theme !== "default" && cosmetics.frame !== "none";
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
@@ -91,9 +101,10 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div
-      className={`${t.root} ${branding?.theme ? brand.branded : ""}`}
+      className={`${t.root} ${branding?.theme ? brand.branded : ""} ${themeActive ? themes.themed : ""}`}
       style={brandStyle(branding?.theme)}
       data-theme={theme}
+      data-fp-theme={themeActive ? cosmetics.theme : undefined}
       data-v6-root=""
       data-branded={branding ? "" : undefined}
     >
@@ -118,7 +129,14 @@ export default async function PortalLayout({ children }: { children: React.React
             </Link>
             <div className={s.v6TopActions}>
               <NotificationBellSlot placement="header" />
-              <Link href="/portal/profil" className={s.v6Avatar} aria-label={tn("profile")} data-tour="nav-profil">
+              <Link
+                href="/portal/profil"
+                className={`${s.v6Avatar} ${frameClassName(cosmetics.frame)} ${tinted ? FRAME_TINTED_CLASS : ""}`}
+                style={tinted ? ({ ["--tint" as string]: THEME_SWATCH[cosmetics.theme] } as React.CSSProperties) : undefined}
+                data-frame={cosmetics.frame}
+                aria-label={tn("profile")}
+                data-tour="nav-profil"
+              >
                 {initial}
               </Link>
             </div>
@@ -145,6 +163,9 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
         <Suspense fallback={null}>
           <AchievementHost />
+        </Suspense>
+        <Suspense fallback={null}>
+          <FinishSummaryHost />
         </Suspense>
         <Suspense fallback={null}>
           <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} home="/portal" />

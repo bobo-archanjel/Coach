@@ -7,6 +7,7 @@ import type { PortionUnit } from "@/lib/portions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 import type { PortalStreaks } from "./streak";
 import type { GamificationHome } from "@/lib/gamification/stats";
+import type { ExerciseHistory } from "@/lib/gamification/progression";
 import type { CompletedCompare } from "@/lib/workouts/completed";
 
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
@@ -208,6 +209,10 @@ export interface PortalData {
   streaks: PortalStreaks;
   /** týždenné prstence a úroveň (lib/gamification); null = nedostupné (pred migráciou 0078) */
   gamification?: GamificationHome | null;
+  /** zmrazenia série (gamifikácia v2): počet nepoužitých a či bolo nedávno použité; null = nedostupné (pred migráciou 0084) */
+  freezes?: { available: number; recentUse: boolean } | null;
+  /** nápoveda z histórie pre cviky dnešného tréningu (kľúč cviku → história); chýba mimo tréningu */
+  workoutHints?: Record<string, ExerciseHistory>;
   /** null, kým nie je podaná žiadosť o zmazanie klienta (viď DeleteAccountSection na /portal/profil) */
   deletionNotice: PortalDeletionNotice | null;
   /** null, kým tréner neukončil spoluprácu (0020) — na rozdiel od deletionNotice dáta ostávajú */

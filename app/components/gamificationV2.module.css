@@ -1,0 +1,623 @@
+/* FitPilot — gamifikácia v2: týždenné misie, stupne odznakov, „ešte N do…“, rámiky avatara, výber odmien,
+   obrazovka „Tréning v číslach“, živá nápoveda pri sérii, prezývka v rebríčku.
+   Len tokeny dizajnu v6 (--card-bg, --fill, --accent…), takže sedí do svetlej aj tmavej témy.
+   Bez farebných bočných pruhov na kartách (DESIGN.md); pohyb len pri prefers-reduced-motion: no-preference. */
+
+/* ---------- misie ---------- */
+.msCard {
+  display: grid;
+  gap: 12px;
+}
+.msHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.msTitle {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--paper);
+  margin: 0;
+}
+.msSub {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.msList {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.msItem {
+  display: grid;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: var(--radius-m);
+  background: var(--fill);
+  min-width: 0;
+}
+.msItemDone {
+  background: var(--moss-soft);
+}
+.msRow {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.msMark {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--paper-faint);
+  background: var(--surface-solid);
+  box-shadow: inset 0 0 0 1.5px var(--hairline);
+  font-variant-numeric: tabular-nums;
+}
+.msMarkDone {
+  background: var(--moss);
+  color: #fff;
+  box-shadow: none;
+}
+.msMark svg {
+  width: 14px;
+  height: 14px;
+}
+.msName {
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.msXp {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.msBar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bar-off);
+  overflow: hidden;
+}
+.msBarFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-grad);
+}
+.msItemDone .msBarFill {
+  background: var(--moss);
+}
+.msFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.msBonus {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.msBonusDone {
+  position: relative;
+  overflow: hidden;
+  padding: 10px 12px;
+  border-radius: var(--radius-m);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+.msCompactRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .msBarFill {
+    transition: width 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .msMarkPop {
+    animation: g2Pop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .msBonusPop {
+    animation: g2Rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+@keyframes g2Pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes g2Rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------- odznaky: stupne, vzácnosť, postup ---------- */
+.tierPill,
+.rarityPill {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--paper-dim);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.tierBronze {
+  color: #8a4f1d;
+  background: rgba(184, 115, 51, 0.16);
+  box-shadow: none;
+}
+.tierSilver {
+  color: #566170;
+  background: rgba(142, 154, 168, 0.22);
+  box-shadow: none;
+}
+.tierGold {
+  color: #8a6300;
+  background: rgba(212, 160, 23, 0.2);
+  box-shadow: none;
+}
+.rarityRare {
+  color: var(--info, #2f6fb0);
+}
+.rarityEpic {
+  color: var(--accent-text);
+}
+.badgePills {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.ringBronze {
+  box-shadow: 0 0 0 2px rgba(184, 115, 51, 0.55);
+}
+.ringSilver {
+  box-shadow: 0 0 0 2px rgba(142, 154, 168, 0.75);
+}
+.ringGold {
+  box-shadow: 0 0 0 2px rgba(212, 160, 23, 0.8);
+}
+.badgeProgress {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+.badgeProgressText {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.nextBox {
+  display: grid;
+  gap: 8px;
+}
+.nextItem {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-m);
+  background: var(--fill);
+}
+.nextLine {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--paper);
+  line-height: 1.35;
+  margin: 0;
+}
+.nextCompact {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-dim);
+  margin: 0;
+}
+
+/* ---------- úroveň s titulom, odmeny, zmrazenia ---------- */
+.titleLine {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--accent-text);
+}
+.freezeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper-dim);
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--fill);
+  font-variant-numeric: tabular-nums;
+}
+.freezeUsed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--info, #2f6fb0);
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--fill);
+}
+.freezeHist {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}
+.rewardGroup {
+  display: grid;
+  gap: 8px;
+}
+.rewardGroupTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.pickGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pickBtn {
+  appearance: none;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  min-height: 44px;
+}
+.pickBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.pickOn {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.pickLocked {
+  opacity: 0.55;
+  cursor: default;
+}
+.pickMeta {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.previewAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--on-accent);
+  background: var(--accent-grad);
+  box-shadow: 0 0 0 3px var(--surface-solid);
+}
+.rewardNote {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.rewardChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rewardChips li {
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* ---------- rámiky avatara (hlavička portálu) ---------- */
+.frame {
+  position: relative;
+  isolation: isolate;
+}
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  z-index: -1;
+  background: var(--frame-bg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+}
+.frameEmber {
+  --frame-bg: linear-gradient(135deg, #ffb347, #e8472b);
+}
+.frameMint {
+  --frame-bg: linear-gradient(135deg, #8ae6c2, #2fae8a);
+}
+.frameSteel {
+  --frame-bg: linear-gradient(135deg, #e3e8ee, #7e8a97 50%, #eef2f6);
+}
+.frameGold {
+  --frame-bg: linear-gradient(135deg, #ffe58f, #d4a017 55%, #fff1b8);
+}
+.frameAurora {
+  --frame-bg: conic-gradient(from 0deg, #5eead4, #818cf8, #f472b6, #5eead4);
+}
+.framePrism {
+  --frame-bg: conic-gradient(from 0deg, #ff5e62, #ffd36e, #7be08f, #5ec8ff, #b184ff, #ff5e62);
+}
+.frameOlympus {
+  --frame-bg: conic-gradient(from 0deg, #fff1b8, #d4a017, #fff, #d4a017, #fff1b8);
+}
+/* tréner má značku: téma farbí len rámik avatara (--tint z inline štýlu) */
+.frameTinted::before {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 70%, #fff), var(--tint));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .frameAurora::before,
+  .framePrism::before,
+  .frameOlympus::before {
+    animation: g2Spin 9s linear infinite;
+  }
+}
+@keyframes g2Spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- „Tréning v číslach“ ---------- */
+.fsDialog {
+  text-align: left;
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  padding: 24px 20px 20px;
+}
+.fsTitle {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: var(--paper);
+}
+.fsSub {
+  font-size: 13px;
+  color: var(--paper-dim);
+  margin: 0 0 14px;
+}
+.fsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fsTile {
+  display: grid;
+  gap: 2px;
+  padding: 11px 12px;
+  border-radius: var(--radius-m);
+  background: var(--fill);
+}
+.fsNum {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.fsLab {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+.fsXpTile {
+  grid-column: 1 / -1;
+  background: var(--accent-soft);
+}
+.fsXpTile .fsNum {
+  color: var(--accent-text);
+  font-size: 28px;
+}
+.fsSection {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+.fsSectionTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.fsMission {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-m);
+  background: var(--fill);
+  font-size: 13px;
+  color: var(--paper);
+}
+.fsMissionDone {
+  background: var(--moss-soft);
+}
+.fsMissionState {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.fsNote {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.fsActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 16px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fsTile {
+    animation: g2Rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .fsTile:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .fsTile:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .fsTile:nth-child(4) {
+    animation-delay: 180ms;
+  }
+}
+
+/* ---------- živá nápoveda pri sérii ---------- */
+.hintLine {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--paper-dim);
+  margin: 0 0 8px;
+}
+.prFlare {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-text);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  margin: 2px 0 0 36px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .prFlare {
+    animation: g2Pop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+/* ---------- prezývka v rebríčku ---------- */
+.nickBox {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.nickTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper);
+  margin: 0;
+}
+.nickRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nickInput {
+  flex: 1 1 160px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-solid);
+  color: var(--paper);
+  font: inherit;
+  font-size: 16px; /* iOS: bez priblíženia pri fokuse */
+}
+.nickInput:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nickHint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--paper-faint);
+  margin: 0;
+}
+.nickErr {
+  font-size: 12.5px;
+  color: var(--danger);
+  margin: 0;
+}
+.nickOk {
+  font-size: 12.5px;
+  color: var(--moss);
+  margin: 0;
+}

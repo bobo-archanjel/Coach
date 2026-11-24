@@ -22,7 +22,8 @@
     "workouts": "Tréninky",
     "food": "Dny se zápisem jídla",
     "prs": "Osobní rekordy",
-    "badges": "Odznaky"
+    "badges": "Odznaky",
+    "missions": "Mise týdne"
   },
   "home": {
     "title": "Tento týden",
@@ -46,7 +47,8 @@
     "strength": "Síla",
     "nutrition": "Strava",
     "progress": "Progres",
-    "hidden": "Skryté"
+    "hidden": "Skryté",
+    "fun": "Zábavné"
   },
   "rarity": {
     "common": "Běžný",
@@ -59,7 +61,8 @@
     "earnedOn": "Získáno {date}",
     "fromHistory": "Z tvé dosavadní historie",
     "locked": "Zatím zamčeno",
-    "howTo": "Jak získat: {text}"
+    "howTo": "Jak získat: {text}",
+    "progress": "Postup: {value} z {goal}"
   },
   "hidden": {
     "name": "???",
@@ -79,7 +82,8 @@
     "pr": "Rekord: {exercise}, {weight} kg",
     "badge": "Odznak: {name}",
     "highFive": "Tvůj trenér ti dal high five",
-    "challenge": "Výzva splněna: {name}"
+    "challenge": "Výzva splněna: {name}",
+    "level": "Nová úroveň: {n}. {title}"
   },
   "unlock": {
     "prTitle": "Nový osobní rekord na {exercise}: {weight} kg 🎉",
@@ -92,80 +96,22 @@
     "aria": "Nový úspěch",
     "viewAll": "Všechny odznaky",
     "challengeTitle": "Výzva splněna: {name}",
-    "challengeSub": "Skvělá práce, dotáhl/a jsi to do konce. Trenér o tom ví."
+    "challengeSub": "Skvělá práce, dotáhl/a jsi to do konce. Trenér o tom ví.",
+    "levelTitle": "Nová úroveň: {n}. {title}",
+    "levelSub": "Postoupil/a jsi výš. Podívej se, co sis odemkl/a."
   },
   "badges": {
     "first_workout": {
       "name": "První krok",
       "desc": "Dokonči svůj první trénink."
     },
-    "workouts_10": {
-      "name": "Rozběhnutý",
-      "desc": "Dokonči 10 tréninků."
-    },
-    "workouts_25": {
-      "name": "Stálice",
-      "desc": "Dokonči 25 tréninků."
-    },
-    "workouts_50": {
-      "name": "Padesátka",
-      "desc": "Dokonči 50 tréninků."
-    },
-    "workouts_100": {
-      "name": "Stovkař",
-      "desc": "Dokonči 100 tréninků."
-    },
-    "workouts_250": {
-      "name": "Legenda",
-      "desc": "Dokonči 250 tréninků."
-    },
-    "streak_4w": {
-      "name": "Měsíc v kole",
-      "desc": "Cvič 4 týdny v řadě. Jedno vynechání se toleruje."
-    },
-    "streak_12w": {
-      "name": "Čtvrtletí",
-      "desc": "Cvič 12 týdnů v řadě. Jedno vynechání se toleruje."
-    },
-    "streak_26w": {
-      "name": "Půl roku",
-      "desc": "Cvič 26 týdnů v řadě. Jedno vynechání se toleruje."
-    },
-    "streak_52w": {
-      "name": "Celý rok",
-      "desc": "Cvič 52 týdnů v řadě. Jedno vynechání se toleruje."
-    },
     "first_pr": {
       "name": "První rekord",
       "desc": "Překonej svou dosavadní nejlepší váhu nebo odhad 1RM v nějakém cviku."
     },
-    "prs_10": {
-      "name": "Lámač rekordů",
-      "desc": "Získej 10 osobních rekordů."
-    },
     "volume_1t": {
       "name": "Tuna železa",
       "desc": "Zvedni celkem 1 tunu (kilogramy krát opakování)."
-    },
-    "volume_10t": {
-      "name": "Slon",
-      "desc": "Zvedni celkem 10 tun, to je váha slona."
-    },
-    "volume_50t": {
-      "name": "Lokomotiva",
-      "desc": "Zvedni celkem 50 tun."
-    },
-    "volume_100t": {
-      "name": "Modrá velryba",
-      "desc": "Zvedni celkem 100 tun."
-    },
-    "food_streak_7": {
-      "name": "Týden v deníku",
-      "desc": "Zapiš jídlo 7 dní v řadě. Jedno vynechání se toleruje."
-    },
-    "food_streak_30": {
-      "name": "Měsíc v deníku",
-      "desc": "Zapiš jídlo 30 dní v řadě. Jedno vynechání se toleruje."
     },
     "protein_week": {
       "name": "Bílkovinový týden",
@@ -182,6 +128,102 @@
     "new_year": {
       "name": "Silvestr a Nový rok",
       "desc": "Zacvič si 31. prosince nebo 1. ledna."
+    },
+    "workouts_bronze": {
+      "name": "Rozběhnutý",
+      "desc": "Dokonči 10 tréninků."
+    },
+    "workouts_silver": {
+      "name": "Železný režim",
+      "desc": "Dokonči 50 tréninků."
+    },
+    "workouts_gold": {
+      "name": "Stálice",
+      "desc": "Dokonči 150 tréninků."
+    },
+    "streak_bronze": {
+      "name": "Měsíc v rytmu",
+      "desc": "Cvič 4 týdny v řadě (jedno vynechání se toleruje)."
+    },
+    "streak_silver": {
+      "name": "Čtvrtletí v kondici",
+      "desc": "Cvič 12 týdnů v řadě."
+    },
+    "streak_gold": {
+      "name": "Půl roku bez ústupu",
+      "desc": "Cvič 26 týdnů v řadě."
+    },
+    "prs_bronze": {
+      "name": "Lamač rekordů",
+      "desc": "Překonej 5 osobních rekordů."
+    },
+    "prs_silver": {
+      "name": "Rekordman",
+      "desc": "Překonej 25 osobních rekordů."
+    },
+    "prs_gold": {
+      "name": "Legenda rekordů",
+      "desc": "Překonej 75 osobních rekordů."
+    },
+    "volume_bronze": {
+      "name": "Deset tun",
+      "desc": "Zvedni dohromady 10 tun (kilogramy krát opakování)."
+    },
+    "volume_silver": {
+      "name": "Padesát tun",
+      "desc": "Zvedni dohromady 50 tun."
+    },
+    "volume_gold": {
+      "name": "Dvě stě tun",
+      "desc": "Zvedni dohromady 200 tun."
+    },
+    "food_bronze": {
+      "name": "Týden v zápisech",
+      "desc": "Zapiš jídlo 7 dní v řadě (jedno vynechání se toleruje)."
+    },
+    "food_silver": {
+      "name": "Měsíc v zápisech",
+      "desc": "Zapiš jídlo 30 dní v řadě."
+    },
+    "food_gold": {
+      "name": "Sto dní v zápisech",
+      "desc": "Zapiš jídlo 100 dní v řadě."
+    },
+    "night_owl": {
+      "name": "Noční sova",
+      "desc": "Dokonči 5 tréninků po 21:00 (i v noci)."
+    },
+    "early_bird": {
+      "name": "Ranní ptáče",
+      "desc": "Dokonči 5 tréninků mezi 4:00 a 8:00 (počítáme čas dokončení)."
+    },
+    "weekend_warrior": {
+      "name": "Víkendový bojovník",
+      "desc": "Cvič v sobotu i v neděli ve 4 víkendech."
+    },
+    "comeback": {
+      "name": "Comeback",
+      "desc": "Vrať se k tréninku po pauze 14 a více dní. Hlavní, že jsi zpět."
+    },
+    "tank": {
+      "name": "Tank",
+      "desc": "Zvedni v jednom tréninku dohromady alespoň 5 tun."
+    },
+    "versatile": {
+      "name": "Všestranný",
+      "desc": "Vyzkoušej alespoň 15 různých cviků."
+    },
+    "monday_power": {
+      "name": "Pondělní síla",
+      "desc": "Cvič v pondělí v 8 různých týdnech."
+    },
+    "easter_week": {
+      "name": "Velikonoční šampion",
+      "desc": "Zacvič si ve velikonočním týdnu."
+    },
+    "christmas": {
+      "name": "Vánoční bojovník",
+      "desc": "Zacvič si 24. – 26. prosince."
     }
   },
   "trainer": {
@@ -266,7 +308,6 @@
       "everyoneOnly": "Výzva se přiřadí všem klientům. Výběr klientů je od Pro."
     },
     "trainer": {
-      "leaderboardTitle": "Žebříček",
       "newTitle": "Nová výzva",
       "listTitle": "Tvoje výzvy",
       "empty": "Zatím nemáš žádnou výzvu.",
@@ -318,19 +359,33 @@
       "prsMonth": "{count, plural, one {# rekord} few {# rekordy} other {# rekordů}}"
     },
     "you": "ty",
-    "yourRank": "Tvoje místo: {rank}. z {total}",
-    "yourRankShort": "Tvoje místo: {rank}.",
+    "yourRank": "Tvoje pozice: {rank}. z {total}",
+    "yourRankShort": "Tvoje pozice: {rank}. z {total}",
     "noRank": "Zatím jsi bez umístění. Pár tréninků a jsi ve hře.",
     "empty": "Zatím tu nikdo není. První trénink žebříček rozjede.",
     "hide": "Skrýt mě v žebříčku",
     "show": "Zobrazit žebříček",
     "hiddenText": "Skryl/a ses v žebříčku, proto ho nevidíš ani ty. Kdykoli ho můžeš znovu zapnout.",
-    "privacy": "Vidět je jen křestní jméno a iniciála. Počítá se jen aktivita u tvého trenéra, nikdy váha ani kalorie.",
+    "privacy": "Žebříček je pro všechny klienty aplikace. Ostatní vidí jen tvou přezdívku a číslo, nikdy příjmení, trenéra ani fotku. Počítá se jen aktivita, nikdy váha ani kalorie.",
     "failed": "Nastavení se nepodařilo uložit. Zkus to znovu.",
-    "trainer": {
-      "label": "Zobrazit žebříček klientům",
-      "hint": "Klienti uvidí pořadí podle tréninků, série a rekordů (jen jméno a iniciála). Každý se v něm může sám skrýt."
-    }
+    "sub": "Pořadí všech klientů aplikace.",
+    "nickname": {
+      "title": "Tvoje přezdívka v žebříčku",
+      "hint": "2–20 znaků: písmena, čísla, mezera, tečka, podtržítko nebo pomlčka.",
+      "placeholder": "Např. Železná Jana",
+      "aria": "Přezdívka v žebříčku",
+      "shownAs": "V žebříčku se zobrazuješ jako: {name}",
+      "save": "Uložit přezdívku",
+      "reset": "Použít výchozí ({name})",
+      "saved": "Přezdívka uložena.",
+      "errors": {
+        "length": "Přezdívka musí mít 2 až 20 znaků.",
+        "chars": "Použij jen písmena, čísla, mezeru, tečku, podtržítko nebo pomlčku.",
+        "blocked": "Tato přezdívka není povolená. Zkus jinou.",
+        "failed": "Přezdívku se nepodařilo uložit. Zkus to znovu."
+      }
+    },
+    "anonymous": "Cvičenec"
   },
   "weekly": {
     "title": "Tvůj týden",
@@ -387,5 +442,166 @@
     "summary": "Celkem {total, plural, one {# aktivní klient} few {# aktivní klienti} other {# aktivních klientů}}. Týden jde od pondělí.",
     "quiet": "Tento týden je zatím klidný. Rekordy a odznaky se ukážou tady.",
     "challengesLink": "Výzvy a žebříček"
+  },
+  "levelTitles": {
+    "1": "Nováček",
+    "2": "Zahřívač",
+    "3": "Rozběhnutý",
+    "4": "Vytrvalec",
+    "5": "Železný",
+    "6": "Zocelený",
+    "7": "Silák",
+    "8": "Ocelový",
+    "9": "Bojovník",
+    "10": "Šampion",
+    "11": "Mistr",
+    "12": "Titán",
+    "13": "Gladiátor",
+    "14": "Elitní",
+    "15": "Hrdina",
+    "16": "Legenda posilovny",
+    "17": "Vládce železa",
+    "18": "Šampion šampionů",
+    "19": "Mýtus",
+    "20": "Olympan"
+  },
+  "levelUp": {
+    "title": "Úroveň {n}: {title}!",
+    "sub": "Postoupil/a jsi výš. Každý trénink se počítá.",
+    "rewardsTitle": "Odemčeno pro tebe",
+    "openRewards": "Vybrat odměny"
+  },
+  "levelDetail": {
+    "detail": "Úroveň {n} · {title}",
+    "toNext": "Ještě {count} XP do úrovně {n}",
+    "groupLine": "Skupina {group}"
+  },
+  "frames": {
+    "none": "Bez rámečku",
+    "ember": "Žhavý",
+    "mint": "Mátový",
+    "steel": "Ocelový",
+    "gold": "Zlatý",
+    "aurora": "Polární záře",
+    "prism": "Duhový",
+    "olympus": "Olymp"
+  },
+  "themes": {
+    "default": "Terakota",
+    "ocean": "Oceán",
+    "forest": "Les",
+    "sunset": "Západ slunce",
+    "violet": "Fialová",
+    "graphite": "Grafit"
+  },
+  "rewards": {
+    "title": "Odměny za úrovně",
+    "framesTitle": "Rámeček avataru",
+    "themesTitle": "Barva portálu",
+    "lockedAt": "Od úrovně {level}",
+    "active": "Aktivní",
+    "brandedNote": "Tvůj trenér má vlastní značku, proto zůstávají barvy portálu podle značky. Vybraná barva tu zabarví jen rámeček avataru.",
+    "next": "Další odměna na úrovni {level}: {text}",
+    "allUnlocked": "Všechny odměny máš odemčené. Skvělá práce!",
+    "failed": "Výběr se nepodařilo uložit. Zkus to znovu.",
+    "locked": "Tato odměna se ještě neodemkla.",
+    "item": {
+      "frame": "rámeček {name}",
+      "theme": "barva {name}",
+      "freeze": "zmrazení série 🧊"
+    },
+    "avatarAria": "Tvůj avatar s rámečkem {name}"
+  },
+  "freeze": {
+    "title": "Zmrazení série",
+    "text": "Zmrazení automaticky ochrání tvou sérii, když by se po dvou vynechaných týdnech za sebou (u jídla po dvou dnech) měla přerušit. Nikdo tě za pauzu nekritizuje.",
+    "count": "{count, plural, one {# zmrazení} few {# zmrazení} other {# zmrazení}} 🧊 (max. {max})",
+    "earn": "Nové získáš za každou 4. úroveň a za týden, ve kterém splníš všechny tři mise.",
+    "used": "🧊 Zmrazení použito",
+    "usedWeek": "Týden od {date}",
+    "usedDay": "Den {date}",
+    "none": "Zatím jsi žádné nepoužil/a.",
+    "chip": "🧊 {count}",
+    "chipAria": "Zmrazení série: {count}"
+  },
+  "missions": {
+    "title": "Mise týdne",
+    "compactTitle": "Mise týdne · {done}/{total}",
+    "sub": "Tři osobní mise, každé pondělí nové. Cíle jsou nastavené podle tvého tempa za poslední týdny.",
+    "kind": {
+      "workouts": "Odcvič {n, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
+      "food_days": "Zapiš stravu {n, plural, one {# den} few {# dny} other {# dní}}",
+      "pr_exercise": "Překonej rekord v cviku {exercise}",
+      "protein_days": "Splň bílkoviny {n, plural, one {# den} few {# dny} other {# dní}}",
+      "workout_by_wed": "Odcvič trénink do středy",
+      "volume": "Zvedni dohromady {kg, number} kg tento týden",
+      "measurement": "Zapiš měření",
+      "sets": "Zapiš {n, plural, one {# sérii} few {# série} other {# sérií}}"
+    },
+    "xp": "+{xp} XP",
+    "progress": "{value} z {goal}",
+    "progressKg": "{value, number} z {goal, number} kg",
+    "done": "Splněno",
+    "aria": "{title}: {value} z {goal}",
+    "bonusPending": "Splň všechny tři a získáš bonus +{xp} XP a zmrazení série 🧊.",
+    "bonusDone": "Všechny tři splněné, bonus +{xp} XP a zmrazení série 🧊",
+    "allDoneTitle": "Týden misí splněn! 🎉",
+    "celebrate": "Skvělý týden, všechny mise máš za sebou.",
+    "viewAll": "Všechny mise",
+    "unavailable": "Mise se právě nepodařilo načíst."
+  },
+  "hints": {
+    "weight": "Minule: {lastWeight} kg × {lastReps} · zkus {nextWeight} kg 💪",
+    "reps": "Minule: {lastWeight} kg × {lastReps} · zkus {nextReps} opak. 💪",
+    "bodyweight": "Minule: {lastReps} opak. · zkus {nextReps} 💪",
+    "time": "Minule: {last} s · zkus {next} s 💪",
+    "newRecord": "🔥 Nový rekord!"
+  },
+  "finish": {
+    "title": "Trénink v číslech",
+    "sub": "Hotovo. Takhle vypadal tvůj trénink.",
+    "aria": "Souhrn tréninku",
+    "duration": "Čas",
+    "durationValue": "{min} min",
+    "volume": "Objem",
+    "volumeValue": "{kg, number} kg",
+    "sets": "Série",
+    "prs": "Rekordy",
+    "xp": "Získané XP",
+    "xpValue": "+{xp}",
+    "missions": "Mise týdne",
+    "justDone": "Splněno!",
+    "bonus": "Bonus týdne +{xp} XP 🎉",
+    "streak": "Série: {count, plural, one {# týden} few {# týdny} other {# týdnů}} 🔥",
+    "streakNeed": "Do splnění týdne ještě {count, plural, one {# trénink} few {# tréninky} other {# tréninků}}.",
+    "streakDone": "Tento týden je splněný. Skvělé tempo.",
+    "freezeUsed": "🧊 Zmrazení použito, série zůstala",
+    "levelUp": "Nová úroveň: {n} 🚀",
+    "share": "Sdílet týden",
+    "close": "Pokračovat"
+  },
+  "next": {
+    "title": "Co tě čeká",
+    "line": "Ještě {amount} do odznaku {name} 🎯",
+    "units": {
+      "workouts": "{count, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
+      "weeks": "{count, plural, one {# týden} few {# týdny} other {# týdnů}}",
+      "tons": "{count, number} t",
+      "prs": "{count, plural, one {# rekord} few {# rekordy} other {# rekordů}}",
+      "days": "{count, plural, one {# den} few {# dny} other {# dní}}",
+      "nights": "{count, plural, one {# noční trénink} few {# noční tréninky} other {# nočních tréninků}}",
+      "mornings": "{count, plural, one {# ranní trénink} few {# ranní tréninky} other {# ranních tréninků}}",
+      "weekends": "{count, plural, one {# víkend} few {# víkendy} other {# víkendů}}",
+      "exercises": "{count, plural, one {# cvik} few {# cviky} other {# cviků}}",
+      "mondays": "{count, plural, one {# pondělí} few {# pondělí} other {# pondělí}}",
+      "measurements": "{count, plural, one {# měření} few {# měření} other {# měření}}"
+    },
+    "progress": "{value} z {goal}",
+    "progressTons": "{value, number} z {goal, number} t"
+  },
+  "tiers": {
+    "bronze": "Bronz",
+    "silver": "Stříbro",
+    "gold": "Zlato"
   }
 }

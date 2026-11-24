@@ -50,6 +50,8 @@ export async function loadAchievementsFeed(
       "id, client_id, kind, meta, badge_id, exercise_name, value, reps, achieved_at, clients!inner(full_name, trainer_id, ended_at, deletion_requested_at), high_fives(id)",
     )
     .eq("backfilled", false)
+    // oslavy postupu na vyššiu úroveň (kind 'level') sú len pre klienta; tréner ich vo feede nemá
+    .in("kind", ["pr", "badge", "challenge"])
     .eq("clients.trainer_id", trainerId)
     .gte("achieved_at", since)
     .order("achieved_at", { ascending: false })

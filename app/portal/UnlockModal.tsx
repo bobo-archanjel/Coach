@@ -7,6 +7,7 @@ import type { BadgeIcon as BadgeIconKey } from "@/lib/gamification/badges";
 import { ShareButton } from "../components/ShareButton";
 import { markAchievementsSeenAction } from "./gamificationActions";
 import g from "../components/gamification.module.css";
+import g2 from "../components/gamificationV2.module.css";
 
 /* Oslava nového rekordu / odznaku (lib/gamification). Texty prichádzajú hotové zo servera
    (AchievementHost). Ukáže sa raz: hneď po zobrazení sa úspechy označia ako videné
@@ -20,6 +21,8 @@ export interface UnlockItem {
   sub: string;
   /** adresa zdieľacej karty (/api/gamification/share?a=…) */
   shareHref?: string;
+  /** odomknuté odmeny (postup na vyššiu úroveň) */
+  chips?: string[];
 }
 
 
@@ -86,6 +89,13 @@ export function UnlockModal({
           {item.title}
         </h2>
         <p className={g.dialogSub}>{item.sub}</p>
+        {item.chips && item.chips.length > 0 && (
+          <ul className={g2.rewardChips} data-testid="unlock-rewards">
+            {item.chips.map((c, i) => (
+              <li key={`${c}-${i}`}>{c}</li>
+            ))}
+          </ul>
+        )}
         {item.shareHref && (
           <div className={g.shareRow} style={{ justifyContent: "center", marginBottom: 12 }}>
             <ShareButton href={item.shareHref} fileName="fitpilot-uspech.png" />

@@ -4,21 +4,26 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type Board, type LeaderboardMetric } from "@/lib/gamification/leaderboard";
-import { setLeaderboardVisibleAction } from "./gamificationActions";
+import { NICKNAME_MAX, NICKNAME_MIN } from "@/lib/gamification/nickname";
+import { setLeaderboardVisibleAction, setNicknameAction } from "./gamificationActions";
 import g from "@/app/components/gamification.module.css";
+import g2 from "@/app/components/gamificationV2.module.css";
 
-/* Rebríček klientov jedného trénera: tréningy tento týždeň / mesiac, séria týždňov, rekordy
-   tento mesiac. Len „krstné meno + iniciála“ a číslo; nikdy podľa váhy. Klient sa dá jedným
-   ťuknutím skryť (potom rebríček sám nevidí) a znova zobraziť. */
+/* Celoappkový rebríček: TOP 10 + „Tvoja pozícia: 37. z 412“. Zobrazuje sa len prezývka (predvolene „Meno P.“,
+   vlastnú si klient nastaví tu) a číslo; nikdy priezvisko, tréner ani fotka. Klient sa dá jedným ťuknutím skryť
+   (potom rebríček sám nevidí a v poradí nie je) a znova zobraziť. Metriky: tréningy tento týždeň / mesiac,
+   séria týždňov, rekordy tento mesiac — nikdy podľa váhy ani kalórií. */
 
 export function LeaderboardCard({
   metrics,
   boards,
   hidden,
+  me,
 }: {
   metrics: LeaderboardMetric[];
   boards: Partial<Record<LeaderboardMetric, Board>> | null;
   hidden: boolean;
+  me: { nickname: string | null; defaultName: string; shownName: string };
 }) {
   const t = useTranslations("gamification.leaderboard");
   const router = useRouter();
@@ -47,11 +52,10 @@ export function LeaderboardCard({
     );
   }
 
-  // záložky len z povolených metrík tarify trénera; s jedinou záložkou sa prepínač nezobrazuje
+  // záložky len z povolených metrík tarify trénera (klient bez trénera má sadu Starter); s jedinou záložkou sa prepínač nezobrazuje
   const active = metrics.includes(metric) ? metric : metrics[0];
   const board = active ? boards[active] : undefined;
   if (!board || !active) return null;
-  const meInTop = board.top.some((r) => r.isMe);
   return (
     <section className={g.card} aria-label={t("title")} data-testid="leaderboard">
       <h2 className={g.cardTitle}>{t("title")}</h2>
@@ -90,19 +94,79 @@ export function LeaderboardCard({
       )}
 
       <div className={g.lbFoot}>
-        <span>
-          {board.me
-            ? meInTop
-              ? t("yourRankShort", { rank: board.me.rank })
-              : t("yourRank", { rank: board.me.rank, total: board.total })
-            : t("noRank")}
-        </span>
+        <span data-testid="leaderboard-rank">{board.me ? t("yourRank", { rank: board.me.rank, total: board.total }) : t("noRank")}</span>
         <button type="button" className={g.linkBtn} onClick={() => toggle(false)} disabled={pending}>
           {t("hide")}
         </button>
       </div>
       <p className={g.chDesc}>{t("privacy")}</p>
       {failed && <p className={g.fiveError}>{t("failed")}</p>}
+
+      <NicknameEditor me={me} onSaved={() => router.refresh()} />
     </section>
+  );
+}
+
+function NicknameEditor({ me, onSaved }: { me: { nickname: string | null; defaultName: string; shownName: string }; onSaved: () => void }) {
+  const t = useTranslations("gamification.leaderboard.nickname");
+  const [value, setValue] = useState(me.nickname ?? "");
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  const save = (next: string | null) =>
+    start(async () => {
+      setMsg(null);
+      const res = await setNicknameAction(next);
+      if (res.ok) {
+        setMsg({ kind: "ok", text: t("saved") });
+        if (next == null) setValue("");
+        onSaved();
+      } else {
+        const key = res.error === "length" || res.error === "chars" || res.error === "blocked" ? res.error : "failed";
+        setMsg({ kind: "err", text: t(`errors.${key}`) });
+      }
+    });
+
+  return (
+    <form
+      className={g2.nickBox}
+      data-testid="nickname-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save(value.trim() === "" ? null : value);
+      }}
+    >
+      <h3 className={g2.nickTitle}>{t("title")}</h3>
+      <p className={g2.nickHint}>{t("shownAs", { name: me.shownName })}</p>
+      <div className={g2.nickRow}>
+        <input
+          className={g2.nickInput}
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          minLength={NICKNAME_MIN}
+          maxLength={NICKNAME_MAX}
+          autoComplete="off"
+          autoCapitalize="words"
+          placeholder={t("placeholder")}
+          aria-label={t("aria")}
+          disabled={pending}
+        />
+        <button type="submit" className="btn btn-ghost btn-sm" disabled={pending}>
+          {t("save")}
+        </button>
+      </div>
+      <p className={g2.nickHint}>{t("hint")}</p>
+      {me.nickname && (
+        <button type="button" className={g.linkBtn} onClick={() => save(null)} disabled={pending}>
+          {t("reset", { name: me.defaultName })}
+        </button>
+      )}
+      {msg && (
+        <p className={msg.kind === "ok" ? g2.nickOk : g2.nickErr} role={msg.kind === "ok" ? "status" : "alert"}>
+          {msg.text}
+        </p>
+      )}
+    </form>
   );
 }
