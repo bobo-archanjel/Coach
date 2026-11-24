@@ -927,3 +927,16 @@
     order: 3;
   }
 }
+
+/* dotykové ciele ≥ 44 px na telefóne */
+@media (max-width: 640px), (pointer: coarse) {
+  .fiveBtn,
+  .lbTab,
+  .linkBtn {
+    min-height: 44px;
+  }
+  .linkBtn {
+    display: inline-flex;
+    align-items: center;
+  }
+}

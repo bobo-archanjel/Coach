@@ -240,3 +240,10 @@
   font-size: 12.5px;
   color: var(--paper-faint);
 }
+
+/* dotykové ciele ≥ 44 px na telefóne */
+@media (max-width: 640px), (pointer: coarse) {
+  .bannerCta {
+    min-height: 44px;
+  }
+}

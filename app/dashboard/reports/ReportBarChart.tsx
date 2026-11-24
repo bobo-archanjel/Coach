@@ -57,7 +57,7 @@ export function ReportBarChart({
   const H = height;
   const padX = 6;
   const padTop = 22;
-  const padBottom = 24;
+  const padBottom = 28;
   const innerW = W - padX * 2;
   const innerH = H - padTop - padBottom;
   const n = groups.length;
@@ -107,7 +107,7 @@ export function ReportBarChart({
         {refLine && (
           <g>
             <line x1={padX} x2={W - padX} y1={y(refLine.value)} y2={y(refLine.value)} stroke="var(--paper-faint)" strokeWidth="1" strokeDasharray="4 4" />
-            <text x={W - padX} y={y(refLine.value) - 4} textAnchor="end" fontSize="10.5" fill="var(--paper-faint)">
+            <text x={W - padX} y={y(refLine.value) - 4} textAnchor="end" fontSize="14" fill="var(--paper-faint)">
               {refLine.label}
             </text>
           </g>
@@ -134,13 +134,13 @@ export function ReportBarChart({
               {valuesOn &&
                 g.values.map((v, si) =>
                   v == null ? null : (
-                    <text key={`t${si}`} x={x0 + si * barW + barW / 2} y={y(v) - 4} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--paper-dim)">
+                    <text key={`t${si}`} x={x0 + si * barW + barW / 2} y={y(v) - 4} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--paper-dim)">
                       {formatValue(v)}
                     </text>
                   ),
                 )}
               {gi % labelEvery === 0 && (
-                <text x={padX + slot * (gi + 0.5)} y={H - 7} textAnchor="middle" fontSize="10.5" fill="var(--paper-faint)">
+                <text x={padX + slot * (gi + 0.5)} y={H - 9} textAnchor="middle" fontSize="14" fill="var(--paper-faint)">
                   {g.label}
                 </text>
               )}

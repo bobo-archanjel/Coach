@@ -183,3 +183,10 @@
   outline: 2px solid #fff;
   outline-offset: 1px;
 }
+
+/* odstránenie miniatúry: vizuálne 28 px, dotyková plocha 44 px */
+.thumbRemove::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}

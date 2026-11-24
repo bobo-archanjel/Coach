@@ -299,3 +299,11 @@
     padding: 6px 8px;
   }
 }
+
+/* dotykové ciele ≥ 44 px na telefóne */
+@media (max-width: 640px), (pointer: coarse) {
+  .periodBtn,
+  .chip {
+    min-height: 44px;
+  }
+}

@@ -426,3 +426,19 @@
   gap: 12px;
   max-width: 420px;
 }
+
+/* vizuálne malé ovládače (vzorky farieb, výber farby) dostanú väčšiu dotykovú plochu
+   bez zmeny vzhľadu — neviditeľné rozšírenie cez ::after */
+.swatch {
+  position: relative;
+}
+.swatch::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+}
+@media (max-width: 640px), (pointer: coarse) {
+  .picker {
+    height: 44px;
+  }
+}
