@@ -120,6 +120,35 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* tenké tlačidlo cez celú šírku (Nastaviť ako aktívny nad radom akcií na karte plánu) */
+.wide {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  gap: 6px;
+  border-radius: 13px;
+  font-size: 13px;
+}
+/* tenký rad nad dlaždicami (klient: Nastaviť ako aktívny | Uložiť ako šablónu) — rovnako široké */
+.rowThin {
+  display: flex;
+  gap: 8px;
+}
+.rowThin > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.rowThin .wide {
+  padding: 6px 6px;
+  gap: 5px;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.rowThin .wide svg {
+  width: 14px;
+  height: 14px;
+}
 /* menšia dlaždica (riadky a karty šablón) */
 .small {
   min-height: 42px;

@@ -130,9 +130,9 @@ test.describe("hotový plán — reálna DB", () => {
     await page.goto(`/dashboard/klienti/${client!.id}`);
     const row = page.locator(`#plan-${planId}`);
     await expect(row.locator("header")).toContainText("Hotovo");
-    // hotový plán: len Report (ukáže to isté ako detail plánu), „Otvoriť plán“ nie
+    // hotový plán: len Report (ukáže to isté ako detail plánu), „Upraviť plán“ nie
     await expect(row.getByRole("link", { name: "Report" })).toHaveAttribute("href", `/dashboard/treningy/${planId}/report`);
-    await expect(row.getByRole("link", { name: "Otvoriť plán" })).toHaveCount(0);
+    await expect(row.getByRole("link", { name: "Upraviť plán" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: new RegExp(`^Nastaviť „E2E hotový plán`) })).toHaveCount(0);
 
     // klient: hotový plán má „Hotovo“, v Tréningu ani v prepínači na Dnes sa nedá nastaviť ako aktívny.

@@ -29,7 +29,7 @@ test.describe("tréningové plány — karty s pásom", () => {
     // dni aj akcie viditeľné hneď
     await expect(card(page, "plan-trainer").getByRole("button", { name: /Deň A — Tlak/ })).toBeVisible();
     await expect(card(page, "plan-own").getByRole("button", { name: /Rozcvička/ })).toBeVisible();
-    await expect(card(page, "plan-own").getByRole("button", { name: "Upraviť" })).toBeVisible();
+    await expect(card(page, "plan-own").getByRole("button", { name: "Upraviť plán" })).toBeVisible();
     // čipy v páse
     const band = card(page, "plan-trainer").locator("header");
     await expect(band).toContainText("Aktívny");
@@ -44,6 +44,25 @@ test.describe("tréningové plány — karty s pásom", () => {
     await expect(band.locator('[data-kind="done"]')).toHaveText("Hotovo");
     await expect(card(page, "plan-own").locator('header [data-kind="client"]')).toHaveText("Vlastný");
     await expect(card(page, "plan-own").locator('header [data-kind="done"]')).toHaveCount(0);
+  });
+
+  test("pätička: hore Nastaviť ako aktívny | Uložiť ako šablónu, dole Report · Upraviť plán · Zmazať", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    const own = card(page, "plan-own");
+    const box = (name: string) => own.getByRole("button", { name, exact: true }).boundingBox();
+    const [act, tpl, rep, edit, del] = await Promise.all(
+      ["Nastaviť ako aktívny", "Uložiť ako šablónu", "Report", "Upraviť plán", "Zmazať"].map(box),
+    );
+    // hore dve tenké vedľa seba (aktívny vľavo), dole tri dlaždice v jednom rade
+    expect(Math.abs(act!.y - tpl!.y)).toBeLessThan(2);
+    expect(act!.x).toBeLessThan(tpl!.x);
+    expect(act!.height).toBeLessThan(rep!.height);
+    expect(act!.y + act!.height).toBeLessThanOrEqual(rep!.y);
+    expect(Math.abs(rep!.y - edit!.y)).toBeLessThan(2);
+    expect(Math.abs(edit!.y - del!.y)).toBeLessThan(2);
+    // aktívny plán „Nastaviť ako aktívny“ nemá — šablóna ostáva hore
+    await expect(card(page, "plan-trainer").getByRole("button", { name: "Uložiť ako šablónu" })).toBeVisible();
+    await expect(card(page, "plan-trainer").getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
   });
 
   test("výber dňa sa otvorí len v karte svojho plánu, Všetky dni ho vráti", async ({ page }) => {

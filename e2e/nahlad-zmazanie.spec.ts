@@ -19,7 +19,7 @@ test.describe("náhľad rozpracovaného plánu — klient (náhľad)", () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     const own = card(page, "plan-own");
-    await expect(own.getByRole("button", { name: "Upraviť" })).toBeVisible();
+    await expect(own.getByRole("button", { name: "Upraviť plán" })).toBeVisible();
     // plán bez odcvičeného tréningu by Náhľad nemal — tu je 1 z 2 odcvičený
     await own.getByRole("button", { name: "Report" }).click();
 
@@ -41,7 +41,7 @@ test.describe("náhľad rozpracovaného plánu — klient (náhľad)", () => {
     await page.goto("/portal/trening?preview=own");
     // „own“ náhľad: len vlastné plány — hotový „Moja jesenná sila“ má Náhľad, nie Upraviť
     await expect(card(page, "plan-own-done").getByRole("button", { name: "Report" })).toBeVisible();
-    await expect(card(page, "plan-own-done").getByRole("button", { name: "Upraviť" })).toHaveCount(0);
+    await expect(card(page, "plan-own-done").getByRole("button", { name: "Upraviť plán" })).toHaveCount(0);
   });
 });
 
@@ -117,6 +117,18 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     // ---------- Náhľad rozpracovaného plánu ----------
     const wipCard = card(page, wip.planId);
     await expect(wipCard.locator("header")).toContainText("2 tréningy");
+    // pätička: „Nastaviť ako aktívny“ tenké cez celú šírku, pod ním Report · Upraviť plán · Zmazať v jednom rade
+    const activate = wipCard.getByRole("button", { name: `Nastaviť „E2E rozpracovaný náhľad ${stamp}“ ako aktívny plán klienta` });
+    const report = wipCard.getByRole("link", { name: "Report" });
+    const edit = wipCard.getByRole("link", { name: "Upraviť plán" });
+    const del = wipCard.getByRole("button", { name: `Zmazať plán E2E rozpracovaný náhľad ${stamp}` });
+    await expect(edit).toHaveAttribute("href", `/dashboard/treningy/${wip.planId}`);
+    const [a, r, e, d] = await Promise.all([activate, report, edit, del].map((l) => l.boundingBox()));
+    expect(a!.y + a!.height).toBeLessThanOrEqual(r!.y);
+    expect(Math.abs(r!.y - e!.y)).toBeLessThan(2);
+    expect(Math.abs(e!.y - d!.y)).toBeLessThan(2);
+    expect(a!.width).toBeGreaterThan(d!.x + d!.width - r!.x - 4);
+    expect(a!.height).toBeLessThan(r!.height);
     await wipCard.getByRole("link", { name: "Report" }).click();
     await expect(page).toHaveURL(new RegExp(`/dashboard/treningy/${wip.planId}/report`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: `E2E rozpracovaný náhľad ${stamp}` })).toBeVisible();
@@ -130,8 +142,8 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     await expect(previewDays.nth(0)).toHaveAttribute("data-done", "true");
     await expect(previewDays.nth(0).getByTestId("review-card").first()).toContainText("E2E Drep");
     await expect(previewDays.nth(1)).toContainText("Tento tréning klient ešte neodcvičil.");
-    // dole už nie je „Otvoriť plán“; hore „Export PDF“ — celý report na stiahnutie
-    await expect(page.getByRole("link", { name: "Otvoriť plán" })).toHaveCount(0);
+    // dole už nie je „Upraviť plán“; hore „Export PDF“ — celý report na stiahnutie
+    await expect(page.getByRole("link", { name: "Upraviť plán" })).toHaveCount(0);
     const exportLink = page.getByRole("link", { name: "Export PDF" });
     await expect(exportLink).toHaveAttribute("href", `/api/export/plan/${wip.planId}/report/pdf`);
     const res = await page.request.get(`/api/export/plan/${wip.planId}/report/pdf`);
@@ -159,9 +171,9 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     // ---------- hotový plán sa tiež zmaže ----------
     const doneCard = card(page, done.planId);
     await expect(doneCard.locator("header")).toContainText("Hotovo");
-    // hotový plán: Report áno, „Otvoriť plán“ nie (Report ukáže to isté)
+    // hotový plán: Report áno, „Upraviť plán“ nie (Report ukáže to isté)
     await expect(doneCard.getByRole("link", { name: "Report" })).toBeVisible();
-    await expect(doneCard.getByRole("link", { name: "Otvoriť plán" })).toHaveCount(0);
+    await expect(doneCard.getByRole("link", { name: "Upraviť plán" })).toHaveCount(0);
     await doneCard.getByRole("button", { name: `Zmazať plán E2E hotový zmazať ${stamp}` }).click();
     await doneCard.getByRole("button", { name: "Áno, zmazať" }).click();
     await expect(doneCard).toHaveCount(0, { timeout: 15_000 });

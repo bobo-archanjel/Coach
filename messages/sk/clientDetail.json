@@ -12,7 +12,7 @@
   "planTrainings": "{count, plural, =0 {Zatiaľ bez tréningov} one {# tréning} few {# tréningy} other {# tréningov}}",
   "planProgress": "Odcvičené {done}/{total}",
   "planNoDays": "Plán zatiaľ nemá žiadny tréning.",
-  "openPlan": "Otvoriť plán",
+  "openPlan": "Upraviť plán",
   "noPlans": "Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <link>Tréningy</link>.",
   "mealPlansTitle": "Jedálničky",
   "mealPlanCount": "{count, plural, one {# jedálniček} few {# jedálničky} other {# jedálničkov}}",

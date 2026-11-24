@@ -300,27 +300,30 @@ export default async function ClientDetailPage({
                             ))}
                           </ul>
                         )}
-                        <div className={`${styles.cpFoot} ${pa.row}`}>
-                          {/* Report = vyhodnotenie, aj rozpracovaného plánu (rátajú sa odcvičené tréningy) */}
-                          {(done?.completedDays ?? 0) > 0 && (
-                            <Link href={`/dashboard/treningy/${plan.id}/report`} className={`${pa.action} ${pa.small}`}>
-                              <ActionPreviewIcon />
-                              {t("previewPlan")}
-                            </Link>
-                          )}
-                          {/* hotový plán: Report ukáže to isté (dni s výsledkami) — „Otvoriť plán“ netreba;
-                              detail plánu (PDF, šablóna) je dostupný z Reportu */}
-                          {!done?.allDone && (
-                            <Link href={`/dashboard/treningy/${plan.id}`} className={`${pa.action} ${pa.small}`}>
-                              <ActionEditIcon />
-                              {t("openPlan")}
-                            </Link>
-                          )}
-                          {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí; hotový sa nedá */}
+                        <div className={styles.cpFoot}>
+                          {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí; hotový sa nedá —
+                              tenšie tlačidlo cez celú šírku nad radom akcií */}
                           {plan.published && !isActive && !done?.allDone && (
-                            <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />
+                            <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} wide />
                           )}
-                          <PlanCardDelete planId={plan.id} planName={plan.name} hasCompleted={(done?.completedDays ?? 0) > 0} />
+                          <div className={pa.row}>
+                            {/* Report = vyhodnotenie, aj rozpracovaného plánu (rátajú sa odcvičené tréningy) */}
+                            {(done?.completedDays ?? 0) > 0 && (
+                              <Link href={`/dashboard/treningy/${plan.id}/report`} className={`${pa.action} ${pa.small}`}>
+                                <ActionPreviewIcon />
+                                {t("previewPlan")}
+                              </Link>
+                            )}
+                            {/* hotový plán: Report ukáže to isté (dni s výsledkami) — „Otvoriť plán“ netreba;
+                                detail plánu (PDF, šablóna) je dostupný z Reportu */}
+                            {!done?.allDone && (
+                              <Link href={`/dashboard/treningy/${plan.id}`} className={`${pa.action} ${pa.small}`}>
+                                <ActionEditIcon />
+                                {t("openPlan")}
+                              </Link>
+                            )}
+                            <PlanCardDelete planId={plan.id} planName={plan.name} hasCompleted={(done?.completedDays ?? 0) > 0} />
+                          </div>
                         </div>
                       </div>
                     </article>
