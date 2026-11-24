@@ -12,6 +12,10 @@ import { DangerZone } from "./DangerZone";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { ActivePlanButton } from "./ActivePlanButton";
+import { PlanCardDelete } from "./PlanCardDelete";
+import { PlanBand } from "@/app/components/PlanBand";
+import { ActionEditIcon, ActionPreviewIcon } from "@/app/components/ActionIcons";
+import pa from "@/app/components/planActions.module.css";
 import { CreateMealPlanButton } from "./CreateMealPlanButton";
 import { NutritionForm } from "./NutritionForm";
 import styles from "@/app/dashboard/dashboard.module.css";
@@ -149,7 +153,7 @@ export default async function ClientDetailPage({
     // `workout_days(id)` (nie `(count)`) — z tých istých ID sa počíta počet dní
     // aj odcvičenosť (getPlanCompletion, zdieľané so zoznamom /dashboard/treningy).
     .from("workout_plans")
-    .select("id, name, created_at, published, workout_days(id)")
+    .select("id, name, created_at, published, workout_days(id, name, day_number)")
     .eq("client_id", id)
     // skrytá kópia rozpracovaných úprav zverejneného plánu (0071) nie je samostatný plán
     .is("edit_of", null)
@@ -249,35 +253,73 @@ export default async function ClientDetailPage({
           <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(t("plansTitle"), plans && plans.length > 0 ? count(t("planCount", { count: plans.length })) : undefined)}
             {plans && plans.length > 0 ? (
-              <div className={styles.roster}>
+              // karty plánov — rovnaký oranžový pás ako u klienta (PlanBand), aktívny do červena;
+              // dni s ✓ pri odcvičených, odcvičenosť, Otvoriť plán + Nastaviť ako aktívny (0056)
+              <div className={styles.cpGrid}>
                 {plans.map((plan) => {
-                  const dayCount = (plan.workout_days as unknown as { id: string }[] | null)?.length ?? 0;
+                  const days = ((plan.workout_days as unknown as { id: string; name: string; day_number: number }[] | null) ?? [])
+                    .slice()
+                    .sort((a, b) => a.day_number - b.day_number);
                   const done = planCompletion.get(plan.id);
+                  const doneSet = new Set(done?.doneDayIds ?? []);
+                  const isActive = plan.published && plan.id === activePlanId;
+                  const pct = days.length > 0 ? Math.round(((done?.completedDays ?? 0) / days.length) * 100) : 0;
                   return (
-                    <div key={plan.id} className={`${styles.planRow} ${plan.id === activePlanId ? styles.planRowActive : ""}`}>
-                      <Link href={`/dashboard/treningy/${plan.id}`} className={styles.planRowLink}>
-                        <span className={styles.clientName}>{plan.name}</span>
-                        {done?.allDone ? (
-                          <span className={styles.planDoneBadge}>{t("done")}</span>
+                    <article
+                      key={plan.id}
+                      id={`plan-${plan.id}`}
+                      className={`${styles.cpCard} ${isActive ? styles.cpCardActive : ""}`}
+                    >
+                      <PlanBand
+                        name={plan.name}
+                        countLabel={t("planTrainings", { count: days.length })}
+                        activeLabel={isActive ? t("active") : null}
+                        chips={[
+                          ...(done?.allDone ? [{ kind: "done" as const, label: t("done") }] : []),
+                          ...(!plan.published ? [{ kind: "draft" as const, label: t("draft") }] : []),
+                        ]}
+                      />
+                      <div className={styles.cpBody}>
+                        {days.length > 0 && (
+                          <div className={styles.cpProgress}>
+                            <span>{t("planProgress", { done: done?.completedDays ?? 0, total: days.length })}</span>
+                            <span className={styles.cpBar} aria-hidden="true">
+                              <span style={{ width: `${pct}%` }} />
+                            </span>
+                          </div>
+                        )}
+                        {days.length === 0 ? (
+                          <p className={styles.cpEmpty}>{t("planNoDays")}</p>
                         ) : (
-                          <span className={styles.clientSince}>
-                            {done && done.completedDays > 0 ? `${done.completedDays}/${dayCount}` : dayCount}{" "}
-                            {t("days", { count: dayCount })}
-                          </span>
+                          <ul className={styles.cpDays} data-scroll={days.length > 3 || undefined}>
+                            {days.map((d) => (
+                              <li key={d.id} className={styles.cpDay}>
+                                <span className={styles.cpDayName}>{d.name}</span>
+                                {doneSet.has(d.id) && <span className={styles.planDoneBadge}>{t("done")}</span>}
+                              </li>
+                            ))}
+                          </ul>
                         )}
-                      </Link>
-                      {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí */}
-                      <span className={styles.planRowSide}>
-                        {!plan.published ? (
-                          <span className={`${styles.publishBadge} ${styles.publishBadgeDraft}`}>{t("draft")}</span>
-                        ) : plan.id === activePlanId ? (
-                          <span className={`${styles.publishBadge} ${styles.publishBadgeLive}`}>{t("active")}</span>
-                        ) : done?.allDone ? null : (
-                          // celý odcvičený plán (Hotovo) sa aktívnym nastaviť nedá
-                          <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />
-                        )}
-                      </span>
-                    </div>
+                        <div className={`${styles.cpFoot} ${pa.row}`}>
+                          {/* náhľad = vyhodnotenie, aj rozpracovaného plánu (rátajú sa odcvičené tréningy) */}
+                          {(done?.completedDays ?? 0) > 0 && (
+                            <Link href={`/dashboard/treningy/${plan.id}/nahlad`} className={`${pa.action} ${pa.small}`}>
+                              <ActionPreviewIcon />
+                              {t("previewPlan")}
+                            </Link>
+                          )}
+                          <Link href={`/dashboard/treningy/${plan.id}`} className={`${pa.action} ${pa.small}`}>
+                            <ActionEditIcon />
+                            {t("openPlan")}
+                          </Link>
+                          {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí; hotový sa nedá */}
+                          {plan.published && !isActive && !done?.allDone && (
+                            <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />
+                          )}
+                          <PlanCardDelete planId={plan.id} planName={plan.name} hasCompleted={(done?.completedDays ?? 0) > 0} />
+                        </div>
+                      </div>
+                    </article>
                   );
                 })}
               </div>

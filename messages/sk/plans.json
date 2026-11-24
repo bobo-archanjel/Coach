@@ -151,7 +151,8 @@
     "discardEdits": "Zahodiť úpravy",
     "discardEditsConfirm": "Zahodiť všetky neuložené úpravy?",
     "yesDiscard": "Áno, zahodiť",
-    "discarding": "Zahadzujem…"
+    "discarding": "Zahadzujem…",
+    "deletePlanAria": "Zmazať plán {name}"
   },
   "review": {
     "reviewPeriod": "{from} – {to}",
@@ -188,6 +189,13 @@
     "progressionCreating": "Vytváram…",
     "repeat": "Zopakovať s progresiou",
     "repeatHint": "Nový koncept plánu z tohto s vyššou záťažou tam, kde klient splnil všetky série.",
-    "repeatName": "{name} — pokračovanie"
+    "repeatName": "{name} — pokračovanie",
+    "reviewTitleProgress": "Priebežné vyhodnotenie",
+    "doneBadge": "Hotovo",
+    "progressBadge": "Odcvičené {done}/{total}",
+    "daysTitle": "Tréningy plánu",
+    "dayNotDone": "Tento tréning klient ešte neodcvičil.",
+    "openPlan": "Otvoriť plán",
+    "chartSingle": "Graf sa ukáže, keď klient cvik spraví aspoň na dvoch tréningoch."
   }
 }

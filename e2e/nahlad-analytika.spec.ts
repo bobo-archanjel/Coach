@@ -21,11 +21,10 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await page.goto("/portal/trening?preview=ok");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    await page.getByRole("button", { name: /Moje kardio \+ core/ }).click();
+    // rozpracovaný vlastný plán (1 z 2 odcvičený): Upraviť aj Náhľad (feature/treningy-karty)
     await expect(planCard(page, "plan-own").getByRole("button", { name: "Upraviť" })).toBeVisible();
-    await expect(planCard(page, "plan-own").getByRole("button", { name: "Náhľad" })).toHaveCount(0);
+    await expect(planCard(page, "plan-own").getByRole("button", { name: "Náhľad" })).toBeVisible();
 
-    await page.getByRole("button", { name: /Moja jesenná sila/ }).click();
     const card = planCard(page, "plan-own-done");
     await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);
     await card.getByRole("button", { name: "Náhľad" }).click();
@@ -54,7 +53,6 @@ test.describe("náhľad hotového plánu — náhľady", () => {
 
   test("hotový plán od trénera: Náhľad s vyhodnotením, bez Zopakovať s progresiou", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    await page.getByRole("button", { name: /Letný plán — celé telo/ }).click();
     const card = planCard(page, "plan-done");
     await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);
     await card.getByRole("button", { name: "Náhľad" }).click();
@@ -71,7 +69,6 @@ test.describe("náhľad hotového plánu — náhľady", () => {
 
   test("vyhodnotenie: súhrn, úspechy, zistenia, karty cvikov a ako sa cvičilo", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    await page.getByRole("button", { name: /Moja jesenná sila/ }).click();
     await planCard(page, "plan-own-done").getByRole("button", { name: "Náhľad" }).click();
     const view = page.getByRole("region", { name: "Náhľad tréningu" });
 
@@ -112,7 +109,6 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await page.goto("/portal/trening?preview=ok");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    await page.getByRole("button", { name: /Moja jesenná sila/ }).click();
     await planCard(page, "plan-own-done").getByRole("button", { name: "Náhľad" }).click();
     await page.getByRole("button", { name: "Zopakovať s progresiou" }).click();
 
@@ -220,7 +216,6 @@ test.describe("náhľad hotového plánu — reálna DB", () => {
     await sessionLogin(page, env.clientEmail!, baseURL!);
     await page.goto("/portal/trening");
 
-    await page.getByRole("button", { name: new RegExp(`E2E Hotový vlastný ${stamp}`) }).click();
     await planCard(page, done.planId).getByRole("button", { name: "Náhľad" }).click();
     const view = page.getByRole("region", { name: "Náhľad tréningu" });
     await expect(view.getByRole("button", { name: "Uložiť", exact: true })).toHaveCount(0);

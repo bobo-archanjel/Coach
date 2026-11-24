@@ -9,6 +9,10 @@
   "days": "{count, plural, one {den} few {dny} other {dní}}",
   "draft": "Koncept",
   "active": "Aktivní",
+  "planTrainings": "{count, plural, =0 {Zatím bez tréninků} one {# trénink} few {# tréninky} other {# tréninků}}",
+  "planProgress": "Odcvičeno {done}/{total}",
+  "planNoDays": "Plán zatím nemá žádný trénink.",
+  "openPlan": "Otevřít plán",
   "noPlans": "Klient zatím nemá vytvořený tréninkový plán — přidej ho v sekci <link>Tréninky</link>.",
   "mealPlansTitle": "Jídelníčky",
   "mealPlanCount": "{count, plural, one {# jídelníček} few {# jídelníčky} other {# jídelníčků}}",
@@ -145,5 +149,6 @@
     "rpe": "Náročnost (RPE)",
     "clientNote": "Poznámka klienta"
   },
-  "tabsAria": "Sekce klienta"
+  "tabsAria": "Sekce klienta",
+  "previewPlan": "Náhled"
 }

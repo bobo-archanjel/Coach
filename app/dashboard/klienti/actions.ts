@@ -144,6 +144,36 @@ export async function resumeClientCooperationAction(clientId: string): Promise<A
  * (RPC set_client_active_plan, 0056: klient musí patriť trénerovi, plán klientovi
  * a byť zverejnený). Klient si ho môže kedykoľvek prepnúť sám. Celý odcvičený plán nie.
  */
+/**
+ * Zmazanie plánu z karty v detaile klienta → Tréningy — aj hotového (celý odcvičený).
+ * `workout_days` idú kaskádou, skrytá kópia úprav (0071, edit_of) tiež; odcvičené tréningy
+ * ostanú: `workout_logs.workout_day_id` → null, záznam drží plan_snapshot (0048 to povoľuje).
+ * `clients.active_plan_id` sa cez FK vynuluje — portál spadne na najnovší zostávajúci plán.
+ * Bez presmerovania: revalidácia prekreslí zoznam kariet.
+ */
+export async function deleteTrainerPlanAction(planId: string): Promise<ActionState> {
+  if (typeof planId !== "string" || !planId) return { error: await tErr("plans.missingPlanId") };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: await tErr("notSignedIn") };
+
+  const { data: deleted, error } = await supabase
+    .from("workout_plans")
+    .delete()
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .select("client_id");
+  if (error) return { error: await dbErr(error, "actions") };
+  if (!deleted || deleted.length === 0) return { error: await tErr("planNotFound") };
+
+  revalidatePath(`/dashboard/klienti/${deleted[0].client_id}`);
+  revalidatePath("/dashboard/treningy");
+  revalidatePath("/dashboard");
+  return ok;
+}
+
 export async function setClientActivePlanAction(clientId: string, planId: string): Promise<ActionState> {
   const supabase = await createClient();
   // celý odcvičený plán (badge „Hotovo“) už nie je čo cvičiť — aktívnym sa nastaviť nedá

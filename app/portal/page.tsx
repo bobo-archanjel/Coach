@@ -13,6 +13,7 @@ import { RetryButton } from "@/app/portal/RetryButton";
 import { WorkoutStopwatch } from "@/app/portal/WorkoutStopwatch";
 import { WeekHistory } from "@/app/portal/WeekHistory";
 import { PlanSwitch } from "@/app/portal/PlanSwitchSheet";
+import type { ReactNode } from "react";
 import { BodyMetricForm } from "@/app/portal/BodyMetricForm";
 import { ProgressCard } from "@/app/portal/ProgressCard";
 import { ProfileIcon, TrainingIcon } from "@/app/portal/icons";
@@ -219,12 +220,17 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
         </AppointmentNotice>
       )}
 
-      {/* aktívny plán (riadi túto kartu) — pri viacerých plánoch „Zmeniť“ */}
-      {planChoice && <PlanSwitch choice={planChoice} dayId={session?.dayId ?? null} />}
+      {/* aktívny plán (riadi túto kartu) — pri viacerých plánoch „Zmeniť“; s tréningom je
+          „Plán <názov>“ priamo v oranžovom poli karty, nad ňou len pri prázdnom pláne */}
+      {planChoice && !session && <PlanSwitch choice={planChoice} dayId={null} />}
 
       {/* ďalší tréning — alebo prázdna karta plánu (nový klient, prázdny plán) */}
       {session ? (
-        <NextWorkout session={session} />
+        <NextWorkout
+          session={session}
+          planName={planChoice?.activePlanName ?? null}
+          planSwitch={planChoice ? <PlanSwitch choice={planChoice} dayId={session.dayId ?? null} variant="hero" /> : null}
+        />
       ) : (
         <EmptyPlan
           planName={planChoice?.activePlanName ?? null}
@@ -254,7 +260,16 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
 }
 
 /** Ďalší / dnešný tréning aktívneho plánu — terakotový pás s prstencom, pod ním akcia. */
-function NextWorkout({ session }: { session: TodaySession }) {
+function NextWorkout({
+  session,
+  planName,
+  planSwitch,
+}: {
+  session: TodaySession;
+  planName: string | null;
+  /** „Zmeniť“ (PlanSwitch variant hero) — v rade čipov */
+  planSwitch: ReactNode;
+}) {
   const total = session.exercises.length;
   const complete = session.kind === "complete";
   const t = useTranslations("today");
@@ -268,16 +283,21 @@ function NextWorkout({ session }: { session: TodaySession }) {
                 {complete ? t("plan") : session.kind === "done" ? t("todayWorkout") : t("nextWorkout")}
               </p>
               <h2 className={s.heroTitle}>{complete ? t("planFinished") : session.title}</h2>
-              {/* názov plánu je v riadku PlanSwitch nad kartou — tu by bol druhýkrát */}
-              {!complete && session.focus && <p className={s.heroFocus}>{session.focus}</p>}
-              {!complete && (
-                <div className={s.heroChips}>
-                  <span className={s.heroChip}>
-                    {t("exercises", { count: total })}
+              {/* „Plán <názov>“ priamo v oranžovom poli, pod názvom tréningu */}
+              {planName && (
+                <p className={s.heroPlan}>
+                  <span className={s.heroPlanLabel}>{t("planSwitch.plan")}</span>
+                  <span className={s.heroPlanName} data-testid="hero-plan">
+                    {planName}
                   </span>
-                  {session.durationLabel && <span className={s.heroChip}>{session.durationLabel}</span>}
-                </div>
+                </p>
               )}
+              {!complete && session.focus && <p className={s.heroFocus}>{session.focus}</p>}
+              <div className={s.heroChips}>
+                {!complete && <span className={s.heroChip}>{t("exercises", { count: total })}</span>}
+                {!complete && session.durationLabel && <span className={s.heroChip}>{session.durationLabel}</span>}
+                {planSwitch}
+              </div>
             </div>
             <div className={s.heroRing}>
               {complete ? (

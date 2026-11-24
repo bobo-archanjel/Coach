@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Voľba aktívneho tréningového plánu (feature/active-training, migrácia 0056):
- * klient ho prepína v Tréningu („Nastaviť ako aktívny“) aj na karte Dnes („Zmeniť“),
+ * klient ho prepína v Tréningu („Nastaviť ako aktívny“) aj na karte Dnes („Zmeniť plán“),
  * tréner v detaile klienta; nový zverejnený plán zvolený aktívny neprebije.
  * Náhľady bez session (DEV, ?preview=) + reálny tok na QA účtoch (plány po sebe zmaže
  * a klientovi vráti pôvodný aktívny plán).
@@ -13,10 +13,12 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 test.describe("aktívny plán — náhľady", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
-  test("Dnes: názov aktívneho plánu a „Zmeniť“ otvorí zoznam plánov", async ({ page }) => {
+  test("Dnes: názov aktívneho plánu a „Zmeniť plán“ otvorí zoznam plánov", async ({ page }) => {
     await page.goto("/portal?preview=ok");
-    await expect(page.getByText("Silový 3× týždenne", { exact: true })).toBeVisible();
-    const change = page.getByRole("button", { name: "Zmeniť", exact: true });
+    await expect(page.getByText("Silový 3× týždenne", { exact: true }).first()).toBeVisible();
+    // názov plánu aj v oranžovom poli ďalšieho tréningu
+    await expect(page.getByTestId("hero-plan")).toHaveText("Silový 3× týždenne");
+    const change = page.getByRole("button", { name: "Zmeniť plán", exact: true });
     await change.click();
     const sheet = page.getByRole("dialog", { name: "Aktívny tréningový plán" });
     await expect(sheet).toBeVisible();
@@ -43,20 +45,19 @@ test.describe("aktívny plán — náhľady", () => {
 
   test("Tréning: „Nastaviť ako aktívny“ len pri neaktívnom pláne", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    // aktívny plán je rozbalený hneď — bez tlačidla
-    await expect(page.getByRole("button", { name: /Silový plán — 3× týždenne/ })).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
-    await page.getByRole("button", { name: /Moje kardio \+ core/ }).click();
-    await expect(page.getByRole("button", { name: "Nastaviť ako aktívny" })).toBeVisible();
+    // všetky plány sú rozbalené — aktívny bez tlačidla, neaktívny (nedokončený) s ním
+    await expect(page.locator("#plan-plan-trainer").getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
+    await expect(page.locator("#plan-plan-own").getByRole("button", { name: "Nastaviť ako aktívny" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(1);
   });
 
   test("Tréning: celý odcvičený plán má „Hotovo“ a nedá sa nastaviť ako aktívny", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    const head = page.getByRole("button", { name: /Letný plán — celé telo/ });
+    const head = page.locator("#plan-plan-done header");
+    await expect(head).toContainText("Letný plán — celé telo");
     await expect(head).toContainText("Hotovo");
-    await head.click();
     await expect(page.locator("#plan-plan-done")).toContainText("Celý plán máš odcvičený — ako aktívny sa už nastaviť nedá.");
-    await expect(page.getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
+    await expect(page.locator("#plan-plan-done").getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
   });
 });
 
@@ -150,16 +151,15 @@ test.describe("aktívny plán — reálna DB (klient aj tréner)", () => {
     // ---------- klient: Tréning → Nastaviť ako aktívny ----------
     await loginV6(page, env.clientEmail!, env.clientPassword!, /\/portal/);
     await page.goto("/portal/trening");
-    await page.getByRole("button", { name: new RegExp(names.a) }).click();
-    await page.getByRole("button", { name: "Nastaviť ako aktívny" }).click();
+    await page.locator(`#plan-${planA}`).getByRole("button", { name: "Nastaviť ako aktívny" }).click();
     await expect(page.getByText(`Na karte Dnes je teraz „${names.a}“.`)).toBeVisible({ timeout: 15_000 });
     expect(await activeId()).toBe(planA);
     await page.goto("/portal");
-    await expect(page.getByText(names.a, { exact: true })).toBeVisible();
+    await expect(page.getByTestId("hero-plan")).toHaveText(names.a);
     await expect(page.getByRole("heading", { name: "E2E Deň A" })).toBeVisible();
 
     // ---------- klient: Dnes → Zmeniť ----------
-    await page.getByRole("button", { name: "Zmeniť", exact: true }).click();
+    await page.getByRole("button", { name: "Zmeniť plán", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Aktívny tréningový plán" });
     await sheet.getByRole("button", { name: new RegExp(names.b) }).click();
     await expect(sheet).toHaveCount(0, { timeout: 15_000 });

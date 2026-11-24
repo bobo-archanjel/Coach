@@ -148,10 +148,6 @@ test.describe("portál — plán hotový (?preview=complete)", () => {
 test.describe("sekcia Tréning — odcvičený deň (?preview=ok)", () => {
   test("neodcvičený: Začať · odcvičený v okne: Upraviť hodnoty · po okne: uzavreté", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    await page.getByRole("button", { name: /Silový plán/ }).click().catch(() => {});
-    const plan = page.getByRole("button", { name: /Silový plán/ });
-    if ((await plan.getAttribute("aria-expanded")) !== "true") await plan.click();
-
     await page.getByRole("button", { name: /Deň A — Tlak/ }).click();
     await expect(page.getByRole("button", { name: "Začať tréning" })).toHaveCount(0);
     await page.getByRole("button", { name: /Upraviť hodnoty/ }).click();
@@ -164,7 +160,6 @@ test.describe("sekcia Tréning — odcvičený deň (?preview=ok)", () => {
     await expect(page.getByRole("button", { name: /Upraviť hodnoty|Začať tréning/ })).toHaveCount(0);
     await expect(page.getByText(/teraz sú uzavreté/)).toBeVisible();
 
-    await page.getByRole("button", { name: /Moje kardio/ }).click();
     await page.getByRole("button", { name: /Rozcvička/ }).click();
     await expect(page.getByRole("button", { name: "Začať tréning" })).toBeVisible();
   });

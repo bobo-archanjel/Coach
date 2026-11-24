@@ -67,10 +67,7 @@ test("nový vlastný plán: upozornenie vedie na plán a po kliknutí zmizne", a
     const panel = await openBell(page);
     await panel.getByRole("link", { name: new RegExp(name) }).click();
     await expect(page).toHaveURL(new RegExp(`/portal/trening\\?plan=${plan.id}`));
-    await expect(page.locator(`#plan-${plan.id}`).getByRole("button", { name: new RegExp(name) })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+    await expect(page.locator(`#plan-${plan.id}`).getByRole("heading", { name: new RegExp(name) })).toBeInViewport();
     await expect(panel).toHaveCount(0); // panel sa po kliknutí zavrie
 
     // upozornenie zmizlo — hneď aj po obnovení stránky (uložené na serveri)

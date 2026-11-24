@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Tréningové plány: karty s oranžovým pásom, Náhľad aj rozpracovaného plánu, tréner maže plány** (`feature/treningy-karty`, bez migrácie).
+  - Klient (Tréning): plány vždy rozbalené; sklenený oranžový pás s názvom a počtom tréningov, farebné čipy (Aktívny, ✓ Hotovo, Od trénera, Vlastný); aktívny plán má pás do červena. Desktop 2–3 stĺpce, rovnako vysoké karty, viac ako 3 tréningy sa posúvajú. Akcie ako jeden rad dlaždíc.
+  - Karta Dnes: „Plán <názov>“ a „Zmeniť plán“ priamo v oranžovom poli (riadok nad kartou zmizol).
+  - Tréner (detail klienta → Tréningy): rovnaké karty — dni s ✓, odcvičenosť, Náhľad, Otvoriť plán, Nastaviť ako aktívny, **Zmazať** (aj hotový plán; odcvičené tréningy ostanú). Detail plánu: hotový plán sa tiež dá zmazať.
+  - **Náhľad** (vyhodnotenie) aj pre nehotový plán s aspoň jedným odcvičeným tréningom — rátajú sa len odcvičené. Klient v náhľade, tréner na stránke `/dashboard/treningy/[id]/nahlad` („Priebežné vyhodnotenie“, „Zopakovať s progresiou“ len pri hotovom).
 - **2026-11-24** — **Klient: × pri najbližšom termíne, náhľad šablón** (`feature/klient-termin-sablony`, bez migrácie).
   - Karta Dnes: upozornenie „Najbližší termín“ má × — skryje ho (termín ostáva v kalendári); platí pre konkrétny termín (cookie s id), ďalší sa ukáže znova.
   - Moje šablóny (Tréning aj Jedálniček): „Náhľad“ — dni s cvikmi / jedlami (kcal, makrá) a „Použiť šablónu“.

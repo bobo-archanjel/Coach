@@ -63,6 +63,28 @@
   flex-basis: 320px;
 }
 
+/* akcie na karte plánu (klient aj tréner) — jeden rad rovnako širokých dlaždíc: ikona nad
+   krátkym popisom, aby sa zmestili vedľa seba aj v úzkej karte (3 stĺpce na desktope, mobil).
+   Potvrdenie zmazania (prvok s flex-basis 100 %) sa zalomí na vlastný riadok. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.row .action {
+  width: 100%;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 60px;
+  padding: 9px 6px;
+  border-radius: 16px;
+  font-size: 12.5px;
+}
+
 .action {
   display: inline-flex;
   align-items: center;
