@@ -33,5 +33,6 @@
     "pending": "Účet se natrvalo smaže {date} (za {days, plural, one {# den} few {# dny} other {# dní}}). Klienty jsme upozornili v chatu. Do té doby aplikaci normálně používáš a smazání můžeš zrušit.",
     "cancel": "Zrušit smazání"
   },
-  "billingOpen": "Otevřít předplatné"
+  "billingOpen": "Otevřít předplatné",
+  "moreSections": "Další sekce"
 }
