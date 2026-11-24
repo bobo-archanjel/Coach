@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Karty plánov: tlačidlá a fade, prehľad klientov vo farbe avatara** (`feature/karta-tlacidla`, bez migrácie).
+  - Tréner (detail klienta → Tréningy): „Nastaviť ako aktívny“ tenké cez celú šírku, pod ním Report · Upraviť plán · Zmazať; „Otvoriť plán“ → „Upraviť plán“.
+  - Klient (Tréning): hore Nastaviť ako aktívny | Uložiť ako šablónu, dole Report · Upraviť plán · Zmazať; „Upraviť“ → „Upraviť plán“.
+  - Karty plánov (klient aj tréner): horná časť s jemným prechodom zhora nadol namiesto plného oranžového pásu; aktívny plán výraznejšie do červena s jemnou žiarou.
+  - Prehľad klientov u trénera: horná časť karty s menom a avatarom jemne podfarbená farbou avatara.
 - **2026-11-24** — **Report plánu + Export PDF** (`feature/report-nazov`, bez migrácie).
   - „Náhľad“ (vyhodnotenie plánu) sa volá **Report** — klient aj tréner; stránka trénera `/dashboard/treningy/[id]/report`. Náhľad šablón ostáva „Náhľad“.
   - Tréner: hotový plán na karte bez „Otvoriť plán“ (Report ukáže to isté); na stránke Reportu hore **Export PDF** namiesto „Otvoriť plán“ dole.
