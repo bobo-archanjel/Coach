@@ -3529,6 +3529,8 @@ select.addClientInputSm {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  /* odstup od deliacej čiary pod hlavičkou (horný okraj prvého riadku) */
+  margin-bottom: 14px;
 }
 .macroResultHead h3 {
   margin: 0;
