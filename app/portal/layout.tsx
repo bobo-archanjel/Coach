@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
@@ -6,6 +6,9 @@ import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
 import { tourStepsFor } from "@/lib/onboarding/tourSteps";
+import { MESSAGES } from "@/messages";
+import { scopedMessages } from "@/lib/i18n/clientMessages";
+import { ScopedMessages } from "@/app/components/ScopedMessages";
 import { LogoMark } from "@/app/components/LogoMark";
 import { OnboardingTour } from "@/app/components/OnboardingTour";
 import { SectionGuide } from "@/app/components/SectionGuide";
@@ -105,7 +108,9 @@ export default async function PortalLayout({ children }: { children: React.React
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
+  // ScopedMessages: texty oblasti portálu (koreňový layout posiela len verejné — lib/i18n/clientMessages.ts)
   return (
+    <ScopedMessages extra={scopedMessages(MESSAGES[await getLocale()], "portal")}>
     <div
       className={`${t.root} ${branding?.theme ? brand.branded : ""} ${themeActive ? themes.themed : ""}`}
       style={brandStyle(branding?.theme)}
@@ -179,5 +184,6 @@ export default async function PortalLayout({ children }: { children: React.React
         </Suspense>
       </NavigationProgressProvider>
     </div>
+    </ScopedMessages>
   );
 }

@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
@@ -6,6 +6,9 @@ import { createClient, getProfile, getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
 import { tourStepsFor } from "@/lib/onboarding/tourSteps";
 import { needsTermsConsent } from "@/lib/legal/terms";
+import { MESSAGES } from "@/messages";
+import { scopedMessages } from "@/lib/i18n/clientMessages";
+import { ScopedMessages } from "../components/ScopedMessages";
 import { OnboardingTour } from "../components/OnboardingTour";
 import { SectionGuide } from "../components/SectionGuide";
 import { NavigationProgressProvider } from "../components/NavigationProgress";
@@ -92,7 +95,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   // koreň s tokenmi a témou dizajnu v6 (data-v6-root — sem idú aj okná cez createPortal)
+  // ScopedMessages: texty oblasti dashboardu (koreňový layout posiela len verejné — lib/i18n/clientMessages.ts)
   return (
+    <ScopedMessages extra={scopedMessages(MESSAGES[await getLocale()], "dashboard")}>
     <div className={tokens.root} data-theme={await v6Theme()} data-v6-root="">
       <NavigationProgressProvider>
         <div className={styles.shell}>
@@ -113,5 +118,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </NavigationProgressProvider>
     </div>
+    </ScopedMessages>
   );
 }
