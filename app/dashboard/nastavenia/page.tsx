@@ -102,6 +102,7 @@ export default async function NastaveniaPage() {
     if (adminForQuota) invitesLeft = (await loadInviteQuota(adminForQuota, user.id)).now;
   }
   const tc = await getTranslations("branding.comms");
+  const tn = await getTranslations("nav");
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";
@@ -126,6 +127,18 @@ export default async function NastaveniaPage() {
       </div>
 
       <div className={styles.settingsGrid}>
+        {/* Na mobile nie sú Výzvy a Záujemcovia v spodnej lište (bola by pritesná) — odkazy sú tu */}
+        <div className={`${styles.card} ${styles.mobileOnly}`} data-testid="settings-more-sections">
+          <h3>{t("moreSections")}</h3>
+          <div className={styles.settingsMoreLinks}>
+            <Link href="/dashboard/vyzvy" className={`${pa.action} ${pa.small} ${pa.inline}`}>
+              {tn("challenges")}
+            </Link>
+            <Link href="/dashboard/zaujemcovia" className={`${pa.action} ${pa.small} ${pa.inline}`}>
+              {tn("leads")}
+            </Link>
+          </div>
+        </div>
         <div className={styles.card}>
           <h3>{t("appearance")}</h3>
           <ThemeSwitch initial={await v6Theme()} />

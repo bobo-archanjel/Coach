@@ -23,6 +23,7 @@ import s from "./portal.module.css";
 import { LiveProgressRing, ProgressRing } from "./ProgressRing";
 import { OtherTodayWorkouts } from "./OtherTodayWorkouts";
 import { GamificationHome } from "./GamificationHome";
+import { MissionsHost } from "./MissionsHost";
 import { Suspense } from "react";
 import { ChallengesHost } from "./ChallengesCard";
 import { WeeklySummaryHost } from "./WeeklySummaryHost";
@@ -81,12 +82,13 @@ const RulerIcon = () => (
 );
 
 /** Série pod týždňom (lib/portal/streak.ts — od MIN_VISIBLE_STREAK dní). */
-function StreakChips({ streaks }: { streaks: PortalStreaks }) {
+function StreakChips({ streaks, freezeUsed = false }: { streaks: PortalStreaks; freezeUsed?: boolean }) {
   const { training, food } = streaks;
   const t = useTranslations("today");
+  const tf = useTranslations("gamification.freeze");
   const showTraining = training.count >= MIN_VISIBLE_STREAK;
   const showFood = food.count >= MIN_VISIBLE_STREAK;
-  if (!showTraining && !showFood) return null;
+  if (!showTraining && !showFood && !freezeUsed) return null;
 
   const need = training.needThisWeek;
   let hint: string | null = null;
@@ -108,6 +110,11 @@ function StreakChips({ streaks }: { streaks: PortalStreaks }) {
         {showFood && (
           <span className={s.chip}>
             {t("streakFood", { count: food.count })}
+          </span>
+        )}
+        {freezeUsed && (
+          <span className={s.chip} data-testid="freeze-used">
+            {tf("used")}
           </span>
         )}
       </div>
@@ -172,6 +179,8 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
     nextAppointment,
     planChoice,
     hasTrainer,
+    freezes,
+    workoutHints,
   } = data;
   const t = useTranslations("today");
   const locale = useLocale();
@@ -243,6 +252,7 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
       {session ? (
         <NextWorkout
           session={session}
+          workoutHints={workoutHints}
           planName={planChoice?.activePlanName ?? null}
           planSwitch={planChoice ? <PlanSwitch choice={planChoice} dayId={session.dayId ?? null} variant="hero" /> : null}
         />
@@ -268,8 +278,8 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
 
         <WeekHistory initial={week} footer={
             <>
-              {gamification && <GamificationHome home={gamification} />}
-              <StreakChips streaks={streaks} />
+              {gamification && <GamificationHome home={gamification} freezes={freezes?.available ?? null} />}
+              <StreakChips streaks={streaks} freezeUsed={freezes?.recentUse ?? false} />
             </>
           } preview={preview} />
 
@@ -279,6 +289,9 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
       {/* fáza B: týždenný súhrn (raz za týždeň) a výzvy od trénera — dostreamujú sa, nespomaľujú kartu Dnes */}
       {!preview && (
         <>
+          <Suspense fallback={null}>
+            <MissionsHost compact />
+          </Suspense>
           <Suspense fallback={null}>
             <WeeklySummaryHost mode="due" />
           </Suspense>
@@ -296,11 +309,14 @@ function NextWorkout({
   session,
   planName,
   planSwitch,
+  workoutHints,
 }: {
   session: TodaySession;
   planName: string | null;
   /** „Zmeniť“ (PlanSwitch variant hero) — v rade čipov */
   planSwitch: ReactNode;
+  /** história cvikov dňa pre nápovedu pri sérii (gamifikácia v2) */
+  workoutHints?: PortalData["workoutHints"];
 }) {
   const total = session.exercises.length;
   const complete = session.kind === "complete";
@@ -377,7 +393,7 @@ function NextWorkout({
 
             {session.kind === "training" && session.dayId && (
               // key: iný deň = nový stav formulára
-              <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} />
+              <LogWorkoutButton key={session.dayId} dayId={session.dayId} exercises={session.exercises} hints={workoutHints} />
             )}
           </div>
         </section>

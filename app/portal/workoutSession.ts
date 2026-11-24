@@ -29,6 +29,18 @@ export function markWorkoutStarted(dayId: string): void {
   }
 }
 
+/** Kedy klient začal tréning (ms od epochy) — pre čas na obrazovke „Tréning v číslach“; null = neznámy. */
+export function getWorkoutStartedAt(dayId: string): number | null {
+  try {
+    const raw = localStorage.getItem(STARTED_KEY);
+    if (!raw) return null;
+    const rec = JSON.parse(raw) as Partial<StartedRecord>;
+    return rec?.dayId === dayId && typeof rec.at === "number" && Date.now() - rec.at < TTL_MS ? rec.at : null;
+  } catch {
+    return null;
+  }
+}
+
 export function isWorkoutStarted(dayId: string): boolean {
   try {
     const raw = localStorage.getItem(STARTED_KEY);

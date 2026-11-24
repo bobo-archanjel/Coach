@@ -117,8 +117,8 @@ export default function PrivacySk() {
             <td>Oprávnený záujem (čl. 6 ods. 1 písm. f) GDPR)</td>
           </tr>
           <tr>
-            <td>Gamifikácia: úspechy, osobné rekordy, odznaky, úrovne a rebríček medzi klientmi jedného trénera</td>
-            <td>Plnenie zmluvy (výpočet z tvojich tréningových údajov); zobrazenie v rebríčku — oprávnený záujem s možnosťou kedykoľvek sa skryť (opt-out)</td>
+            <td>Gamifikácia: úspechy, osobné rekordy, odznaky, úrovne, týždenné misie, odmeny (rámik avatara, farba portálu, zmrazenie série) a celoappkový rebríček všetkých klientov aplikácie</td>
+            <td>Plnenie zmluvy (výpočet z tvojich tréningových údajov); zobrazenie v celoappkovom rebríčku pod prezývkou — oprávnený záujem (čl. 6 ods. 1 písm. f) GDPR) s možnosťou kedykoľvek sa skryť (opt-out)</td>
           </tr>
           <tr>
             <td>Zverejnenie verejnej stránky a značky trénera</td>
@@ -226,10 +226,18 @@ export default function PrivacySk() {
       <h2>10. Gamifikácia a rebríček</h2>
       <p>
         Úspechy, osobné rekordy, odznaky a úrovne sa počítajú automaticky z tvojich tréningových údajov.
-        V rebríčku sa tvoje krstné meno a iniciálka priezviska zobrazia ostatným klientom{" "}
-        <strong>toho istého trénera</strong>. Z rebríčka sa môžeš kedykoľvek skryť (opt-out) — potom
-        rebríček ostatných nevidíš ani ty. Zdieľacie karty (obrázky s tvojimi výsledkami) sa generujú len
-        na tvoju žiadosť; o ich ďalšom šírení rozhoduješ ty.
+        Týždenné misie, odmeny a úrovne sa tiež počítajú z tvojich tréningových údajov (tréningy, zápisy jedla,
+        merania); výber rámika avatara, farby portálu a prezývky sa ukladá k tvojmu účtu.
+      </p>
+      <p>
+        Rebríček je <strong>celoappkový</strong>: zobrazuje poradie všetkých klientov aplikácie (nielen klientov
+        jedného trénera) podľa počtu tréningov, série týždňov a rekordov. Ostatným klientom sa zobrazí{" "}
+        <strong>iba tvoja prezývka</strong> (predvolene krstné meno a iniciálka priezviska, napr. „Jana N.“; vlastnú
+        prezývku si môžeš kedykoľvek zmeniť) a číslo — nikdy priezvisko, tvoj tréner, fotka ani údaje o váhe či
+        kalóriách. Právnym základom je oprávnený záujem (motivácia a porovnanie výkonu medzi používateľmi) a máš
+        právo kedykoľvek namietať: z rebríčka sa môžeš jedným ťuknutím skryť (opt-out) — potom v poradí nie si a
+        rebríček ostatných nevidíš ani ty. Zdieľacie karty (obrázky s tvojimi výsledkami) sa generujú len na tvoju
+        žiadosť; o ich ďalšom šírení rozhoduješ ty.
       </p>
 
       <h2>11. Tvoje práva</h2>

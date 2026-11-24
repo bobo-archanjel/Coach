@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { createClient, getMyClient, getUser } from "@/lib/supabase/server";
-import { badgeById } from "@/lib/gamification/badges";
+import { badgeById, canonicalBadgeId } from "@/lib/gamification/badges";
+import { rewardsBetween } from "@/lib/gamification/rewards";
 import { loadUnseenAchievements } from "@/lib/gamification/server";
 import { UnlockModal, type UnlockItem } from "./UnlockModal";
 
@@ -30,8 +31,22 @@ export async function AchievementHost() {
         sub: t("unlock.prSub", { weight: a.value, reps: a.reps ?? 1 }),
         shareHref: `/api/gamification/share?a=${a.id}`,
       });
+    } else if (a.kind === "level" && a.level != null) {
+      const r = rewardsBetween(a.levelFrom ?? a.level - 1, a.level);
+      const chips = [
+        ...r.frames.map((f) => t("rewards.item.frame", { name: t(`frames.${f}` as never) })),
+        ...r.themes.map((th) => t("rewards.item.theme", { name: t(`themes.${th}` as never) })),
+        ...Array.from({ length: r.freezes }, () => t("rewards.item.freeze")),
+      ];
+      items.push({
+        id: a.id,
+        icon: "star",
+        title: t("unlock.levelTitle", { n: a.level, title: t(`levelTitles.${a.level}` as never) }),
+        sub: chips.length > 0 ? t("levelUp.rewardsTitle") : t("unlock.levelSub"),
+        chips,
+      });
     } else if (a.kind === "badge" && a.badgeId) {
-      const def = badgeById(a.badgeId);
+      const def = badgeById(canonicalBadgeId(a.badgeId));
       if (!def) continue; // odznak, ktorý už nie je v katalógu
       items.push({
         id: a.id,

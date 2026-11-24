@@ -16,7 +16,10 @@ import {
   type SetDraftRow,
 } from "@/lib/workouts/setInput";
 import { timedSeconds } from "@/lib/workouts/timedReps";
+import { isNewPersonalRecord, progressionHint, type ExerciseHistory } from "@/lib/gamification/progression";
+import { exerciseKeyOf } from "@/lib/gamification/records";
 import styles from "./portal.module.css";
+import g2 from "../components/gamificationV2.module.css";
 
 /**
  * Polia zápisu tréningu (série, poznámka ku cviku, RPE, poznámka k tréningu) —
@@ -301,6 +304,7 @@ export function WorkoutSetsFields({
   onChange,
   showInvalid,
   checkable = false,
+  hints,
 }: {
   exercises: PortalExercise[];
   values: WorkoutFormValues;
@@ -308,8 +312,11 @@ export function WorkoutSetsFields({
   showInvalid: boolean;
   /** odškrtávanie sérií (počas tréningu na karte Dnes; pri „Upraviť hodnoty“ nie) */
   checkable?: boolean;
+  /** história cvikov dňa (gamifikácia v2): nápoveda „Minule … skús …“ a okamžitá kontrola rekordu pri odškrtnutej sérii */
+  hints?: Record<string, ExerciseHistory>;
 }) {
   const t = useTranslations("workout");
+  const th = useTranslations("gamification.hints");
   const tl = useTranslations("labels");
   const locale = useLocale();
   const { rows, notes, rpe, sessionNote } = values;
@@ -322,6 +329,24 @@ export function WorkoutSetsFields({
   // pozície v supersérii podľa poradia zobrazenia
   const ssPositions = supersetPositions(order.map((i) => ({ superset: supersets[i] })));
   const setRows = (next: Record<number, SetRow[]>) => onChange({ ...values, rows: next });
+  const fmt = (n: number) => n.toLocaleString(intlLocale(locale as Locale), { maximumFractionDigits: 2 });
+  /** nápoveda z histórie pre cvik: „Minule: 80 kg × 8 · skús 82,5 kg 💪“ (pravidlá: lib/gamification/progression.ts) */
+  const hintText = (ex: PortalExercise): string | null => {
+    const hist = hints?.[exerciseKeyOf(ex.name)];
+    if (!hist) return null;
+    const h = progressionHint(hist.lastSets, { plannedReps: ex.plannedReps, timed: isTimedExercise(ex) });
+    if (!h) return null;
+    switch (h.kind) {
+      case "weight":
+        return th("weight", { lastWeight: fmt(h.lastWeight), lastReps: h.lastReps, nextWeight: fmt(h.nextWeight) });
+      case "reps":
+        return th("reps", { lastWeight: fmt(h.lastWeight), lastReps: h.lastReps, nextReps: h.nextReps });
+      case "bodyweight":
+        return th("bodyweight", { lastReps: h.lastReps, nextReps: h.nextReps });
+      case "time":
+        return th("time", { last: h.lastSeconds, next: h.nextSeconds });
+    }
+  };
   // ručné pridanie cviku počas tréningu (len názov, nie z knižnice) — `addingAt` = pozícia
   // v poradí, za ktorú sa nový cvik vloží (malé „+ cvik“ medzi cvikmi / za posledným)
   const [addingAt, setAddingAt] = useState<number | null>(null);
@@ -559,6 +584,14 @@ export function WorkoutSetsFields({
               <>
             {/* poznámka k cviku z plánu (v dátach `tempo`) — počas tréningu po ruke */}
             {exIdx < planExercises.length && ex.tempo && <p className={styles.logExerciseNote}>„{ex.tempo}“</p>}
+            {(() => {
+              const hint = hintText(ex);
+              return hint ? (
+                <p className={g2.hintLine} data-testid="workout-hint">
+                  {hint}
+                </p>
+              ) : null;
+            })()}
             <div className={styles.logRows}>
               {(rows[exIdx] ?? []).map((row, rowIdx) => {
                 const repsErr = parseReps(row.reps).error;
@@ -617,6 +650,11 @@ export function WorkoutSetsFields({
                         <CloseIcon />
                       </button>
                     </div>
+                    {checkable && !timed && checked[exIdx]?.[rowIdx] === true && isNewPersonalRecord(hints?.[exerciseKeyOf(ex.name)], parseWeight(row.weight).value, parseReps(row.reps).value) && (
+                      <p className={g2.prFlare} role="status" data-testid="pr-flare">
+                        {th("newRecord")}
+                      </p>
+                    )}
                     {rowErr && (
                       <p className={styles.setError}>
                         {tl(`setInput.${rowErr}`, { max: rowErr === "repsMax" ? REPS_MAX : WEIGHT_MAX_KG })}

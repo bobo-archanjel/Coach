@@ -62,6 +62,8 @@ import type {
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
 import { buildGamificationHome, loadGamificationRaw } from "@/lib/gamification/server";
+import { resolveFreezes } from "@/lib/gamification/freezesServer";
+import { loadWorkoutHints } from "@/lib/gamification/hintsServer";
 import { trainerAllowsCoach } from "@/lib/billing/server";
 import { cleanSupersetId } from "@/lib/workouts/superset";
 import { compareLog, editableUntil, isStillEditable, parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
@@ -582,10 +584,21 @@ export async function getPortalData(): Promise<PortalResult> {
 
     // Série sú len motivačná dekorácia — chyba ich dopytu (data = null) nesmie
     // zhodiť celú kartu Dnes, len sa ukážu prázdne (žiadna séria).
+    const trainedDates = (streakTrainRows ?? []).map((r) => r.performed_on as string);
+    const foodDates = (streakFoodRows ?? []).map((r) => r.eaten_on as string);
+    // Zmrazenia série (v2): ak by druhé vynechanie v rade sériu pretrhlo a klient má zmrazenie, použije sa automaticky.
+    const freezeState = await resolveFreezes(supabase, client.id, { trainedDates, foodDates, today: isoDate });
     const streaks = {
-      training: computeTrainingStreak((streakTrainRows ?? []).map((r) => r.performed_on as string), isoDate),
-      food: computeFoodStreak((streakFoodRows ?? []).map((r) => r.eaten_on as string), isoDate),
+      training: computeTrainingStreak(trainedDates, isoDate, undefined, freezeState.frozenWeeks),
+      food: computeFoodStreak(foodDates, isoDate, freezeState.frozenDays),
     };
+    const recentUseCutoff = new Date(Date.now() - 21 * 86_400_000).toISOString();
+    const freezes = { available: freezeState.available, recentUse: freezeState.uses.some((u) => u.usedAt >= recentUseCutoff) };
+    // nápoveda z histórie pre cviky dnešného tréningu (jeden dopyt na posledné tréningy + rekordy cvikov dňa)
+    const workoutHints =
+      session && session.kind === "training" && session.exercises.length > 0
+        ? await loadWorkoutHints(supabase, client.id, session.exercises.map((e) => e.name), isoDate)
+        : undefined;
     // týždenný cieľ prstenca = počet dní aktívneho plánu (rovnaké pravidlo ako reporty)
     const gamification = gamiRaw
       ? buildGamificationHome(gamiRaw, {
@@ -618,6 +631,8 @@ export async function getPortalData(): Promise<PortalResult> {
       week,
       streaks,
       gamification,
+      freezes,
+      workoutHints,
       deletionNotice: client.deletion_requested_at
         ? { requestedBy: client.deletion_requested_by as "trainer" | "client", requestedAt: client.deletion_requested_at }
         : null,

@@ -158,20 +158,5 @@ export async function deleteChallengeAction(challengeId: string): Promise<Challe
   return { error: null, ok: true };
 }
 
-/** Tréner zapne/vypne rebríček všetkým svojim klientom. */
-export async function setLeaderboardEnabledAction(enabled: boolean): Promise<ChallengeFormState> {
-  const t = await getTranslations("gamification.challenges.errors");
-  const blocked = await trainerBlock({ feature: "leaderboard" });
-  if (blocked) return { error: blocked };
-  if (typeof enabled !== "boolean") return { error: t("invalid") };
-  const auth = await requireTrainer();
-  if (!auth) return { error: t("notSignedIn") };
-  const admin = tryCreateAdminClient();
-  if (!admin) return { error: t("failed") };
-  const { error } = await admin
-    .from("trainer_gamification_settings")
-    .upsert({ trainer_id: auth.userId, leaderboard_enabled: enabled, updated_at: new Date().toISOString() }, { onConflict: "trainer_id" });
-  if (error) return { error: t("failed") };
-  revalidatePath("/dashboard/vyzvy");
-  return { error: null, ok: true };
-}
+// Rebríček je od v2 celoappkový: nastavenie „rebríček zap/vyp“ na úrovni trénera sa zrušilo (rozhoduje len opt-out
+// klienta, gamification_settings.leaderboard_visible). Tabuľka trainer_gamification_settings ostáva, ale nečíta sa.

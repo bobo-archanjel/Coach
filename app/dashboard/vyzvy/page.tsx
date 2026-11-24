@@ -2,13 +2,11 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getMyTrainerBilling } from "@/lib/billing/server";
-import { leaderboardUnlocked } from "@/lib/gamification/gate";
 import { gamificationLimits } from "@/lib/gamification/limits";
 import { loadTrainerChallenges } from "@/lib/gamification/challengesServer";
 import { addDaysIso, todayIso } from "@/lib/reports/period";
 import { ChallengeForm } from "./ChallengeForm";
 import { ChallengeList } from "./ChallengeList";
-import { LeaderboardSetting } from "./LeaderboardSetting";
 import styles from "@/app/dashboard/dashboard.module.css";
 import g from "@/app/components/gamification.module.css";
 
@@ -32,29 +30,20 @@ export default async function VyzvyPage() {
 
   const supabase = await createClient();
   const today = todayIso();
-  const [challenges, clientsRes, settingRes] = await Promise.all([
+  const [challenges, clientsRes] = await Promise.all([
     loadTrainerChallenges(supabase, user.id, today),
     supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).is("ended_at", null).is("deletion_requested_at", null).order("full_name").limit(500),
-    supabase.from("trainer_gamification_settings").select("leaderboard_enabled").eq("trainer_id", user.id).maybeSingle(),
   ]);
   const clients = (clientsRes.data ?? []) as { id: string; full_name: string }[];
   const activeCount = (challenges ?? []).filter((c) => c.status === "active").length;
   const limits = gamificationLimits(state.accessTier);
   const limited = limits.maxActiveChallenges === 1; // Starter / skúška
-  const leaderboardEnabled = settingRes.data ? settingRes.data.leaderboard_enabled !== false : true;
 
   return (
     <>
       {head}
       <div className={g.tcStack}>
         {challenges === null && <p className={g.empty}>{t("trainer.unavailable")}</p>}
-
-        {leaderboardUnlocked(state) && (
-          <section className={styles.card} aria-label={t("trainer.leaderboardTitle")}>
-            <h3>{t("trainer.leaderboardTitle")}</h3>
-            <LeaderboardSetting enabled={leaderboardEnabled} />
-          </section>
-        )}
 
         <section className={styles.card} aria-label={t("trainer.newTitle")}>
           <h3>{t("trainer.newTitle")}</h3>

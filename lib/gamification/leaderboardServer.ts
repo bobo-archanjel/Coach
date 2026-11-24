@@ -1,100 +1,161 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { TRAINING_WEEK_TARGET } from "@/lib/portal/streak";
 import { addDaysIso, weekStartOf } from "@/lib/reports/period";
-import { trainerHasFeatureForClients, trainerTierForClients } from "./access";
+import { trainerTierForClients } from "./access";
+import { loadFreezes } from "./freezesServer";
 import { allowedLeaderboardMetrics } from "./limits";
-import {
-  STREAK_WINDOW_WEEKS,
-  buildLeaderboard,
-  streakFromWeeks,
-  type Board,
-  type BoardClient,
-  type LeaderboardMetric,
-} from "./leaderboard";
+import { defaultNickname, displayNickname } from "./nickname";
+import { cachedStreakValid, streakSnapshot } from "./streakCache";
+import { GLOBAL_TOP_N, toPublicBoard, type GlobalRanking, type RankedRow } from "./leaderboardGlobal";
+import type { Board, LeaderboardMetric } from "./leaderboard";
 
-// FitPilot — rebríček klientov jedného trénera, serverová časť (gamifikácia, fáza B).
+// FitPilot — CELOAPPKOVÝ rebríček klientov, serverová časť (gamifikácia v2, rozhodnutie vlastníka).
 //
-// Bezpečnosť: žiadne rozšírenie RLS. Po overení volajúceho (clientId + trainerId pochádzajú
-// z jeho vlastného riadka clients) server cez service role zavolá agregačné funkcie, ktoré sú
-// dostupné IBA service role (0079), a do výstupu pustí len maskované meno + číslo metriky
-// (lib/gamification/leaderboard.ts). Skrytí klienti sa vyfiltrujú pred poradím. Rebríček sa
-// ukáže len keď: tréner má platnú tarifu (Starter len týždenný rebríček, limity v limits.ts), nevypol ho a klient sa sám neskryl.
+// Poradie počíta DB (gamification_global_leaderboard, 0084): TOP N + poradie volajúceho + počet v poradí, nad
+// ohraničeným obdobím (týždeň / mesiac) a s indexmi. Funkcia je dostupná IBA service role; server z nej poskladá
+// len verejný tvar „prezývka + číslo“ (lib/gamification/leaderboardGlobal.ts) — id klientov ani celé mená, tréner,
+// fotka či čokoľvek iné sa klientovi nikdy neposielajú. Skrytí klienti (opt-out) sa filtrujú v SQL pred poradím;
+// skrytý klient rebríček nevidí (vzájomnosť) a dostane len kartu s prepínačom.
+// Tarifa: záložky podľa tarify TRÉNERA klienta (lib/billing/plans.ts), klient bez trénera má sadu Starter.
+// Nastavenie trénera „rebríček zap/vyp“ sa už NEČÍTA (rebríček je celoappkový; rozhoduje opt-out klienta).
+
+type Sb = SupabaseClient;
+
+export interface LeaderboardMe {
+  /** vlastná prezývka (null = predvolená) */
+  nickname: string | null;
+  /** predvolená „Meno P.“ (pre náhľad a tlačidlo „vrátiť predvolenú“) */
+  defaultName: string;
+  /** zobrazená prezývka */
+  shownName: string;
+}
 
 export type LeaderboardView =
   | { state: "unavailable" }
   /** klient sa skryl — rebríček nevidí (vzájomnosť), len prepínač na zapnutie */
-  | { state: "hidden" }
-  /** boards a metrics obsahujú LEN metriky povolené tarifou trénera (Starter: len workoutsWeek) */
-  | { state: "ready"; metrics: LeaderboardMetric[]; boards: Partial<Record<LeaderboardMetric, Board>> };
+  | { state: "hidden"; me: LeaderboardMe }
+  /** boards a metrics obsahujú LEN metriky povolené tarifou trénera (bez trénera / Starter: len workoutsWeek) */
+  | { state: "ready"; metrics: LeaderboardMetric[]; boards: Partial<Record<LeaderboardMetric, Board>>; me: LeaderboardMe };
 
-export async function loadLeaderboard(clientId: string, trainerId: string | null, today: string): Promise<LeaderboardView> {
+interface RpcRow {
+  row_kind: "top" | "me";
+  place: number | string;
+  member_id: string;
+  member_value: number | string;
+  member_total: number | string;
+}
+
+function rankingFrom(rows: RpcRow[]): GlobalRanking {
+  const top: RankedRow[] = rows
+    .filter((r) => r.row_kind === "top")
+    .map((r) => ({ id: r.member_id, rank: Number(r.place), value: Number(r.member_value) }))
+    .sort((a, b) => a.rank - b.rank);
+  const me = rows.find((r) => r.row_kind === "me");
+  const total = rows.reduce((m, r) => Math.max(m, Number(r.member_total)), 0);
+  return { top, me: me ? { id: me.member_id, rank: Number(me.place), value: Number(me.member_value) } : null, total };
+}
+
+/**
+ * Obnoví uloženú sériu volajúceho (client_streak_cache), ak chýba alebo je stará — rebríček série tak zahŕňa
+ * aj klientov, ktorí appku otvárajú, no netrénovali práve teraz. Zápis robí service role.
+ */
+export async function refreshStreakCache(supabase: Sb, clientId: string, today: string): Promise<void> {
+  try {
+    const admin = tryCreateAdminClient();
+    if (!admin) return;
+    const weekNow = weekStartOf(today);
+    const { data: row, error } = await admin.from("client_streak_cache").select("streak_weeks, expires_week, computed_at").eq("client_id", clientId).maybeSingle();
+    if (error) return; // migrácia 0084 ešte nebeží
+    const fresh = row && Date.now() - Date.parse(row.computed_at as string) < 6 * 3600_000 && cachedStreakValid({ streakWeeks: row.streak_weeks as number, expiresWeek: row.expires_week as string }, weekNow);
+    if (fresh) return;
+    const { data: dates, error: dErr } = await supabase
+      .from("workout_logs")
+      .select("performed_on")
+      .eq("client_id", clientId)
+      .eq("status", "completed")
+      .gte("performed_on", addDaysIso(weekNow, -7 * 52))
+      .limit(2000);
+    if (dErr) return;
+    const freezes = await loadFreezes(supabase, clientId);
+    const snap = streakSnapshot(
+      (dates ?? []).map((d) => d.performed_on as string),
+      today,
+      freezes.frozenWeeks,
+      TRAINING_WEEK_TARGET,
+    );
+    await admin
+      .from("client_streak_cache")
+      .upsert({ client_id: clientId, streak_weeks: snap.weeks, expires_week: snap.expiresWeek, computed_at: new Date().toISOString() }, { onConflict: "client_id" });
+  } catch {
+    /* rebríček je dekorácia — chyba nikdy nezhodí stránku */
+  }
+}
+
+export async function loadLeaderboard(
+  supabase: Sb,
+  input: { clientId: string; trainerId: string | null; fullName: string | null; today: string },
+  fallbackName: string,
+): Promise<LeaderboardView> {
   const none: LeaderboardView = { state: "unavailable" };
   try {
-    if (!trainerId || !(await trainerHasFeatureForClients(trainerId, "leaderboard"))) return none;
     const admin = tryCreateAdminClient();
     if (!admin) return none;
+    const { clientId, trainerId, fullName, today } = input;
 
-    const [trainerSet, clientsRes] = await Promise.all([
-      admin.from("trainer_gamification_settings").select("leaderboard_enabled").eq("trainer_id", trainerId).maybeSingle(),
-      admin
-        .from("clients")
-        .select("id, full_name")
-        .eq("trainer_id", trainerId)
-        .is("ended_at", null)
-        .is("deletion_requested_at", null)
-        .limit(500),
-    ]);
-    if (trainerSet.error || clientsRes.error) return none; // migrácia 0079 ešte nebeží
-    if (trainerSet.data && trainerSet.data.leaderboard_enabled === false) return none;
-    const group = (clientsRes.data ?? []) as { id: string; full_name: string }[];
-    // volajúci musí byť súčasným klientom tohto trénera
-    if (!group.some((c) => c.id === clientId)) return none;
+    const setRes = await admin.from("gamification_settings").select("leaderboard_visible, nickname").eq("client_id", clientId).maybeSingle();
+    if (setRes.error) return none; // migrácia 0079 / 0084 ešte nebeží
+    const nickname = (setRes.data?.nickname as string | null | undefined) ?? null;
+    const defaultName = defaultNickname(fullName) ?? fallbackName;
+    const me: LeaderboardMe = { nickname, defaultName, shownName: displayNickname(nickname, fullName, fallbackName) };
+    if (setRes.data && setRes.data.leaderboard_visible === false) return { state: "hidden", me };
 
-    const ids = group.map((c) => c.id);
-    const monday = weekStartOf(today);
-    const monthFrom = `${today.slice(0, 7)}-01`;
-    const [setRes, weeksRes, periodRes] = await Promise.all([
-      admin.from("gamification_settings").select("client_id, leaderboard_visible").in("client_id", ids),
-      admin.rpc("gamification_group_weeks", { p_trainer_id: trainerId, p_since: addDaysIso(monday, -7 * (STREAK_WINDOW_WEEKS - 1)) }),
-      admin.rpc("gamification_group_period", { p_trainer_id: trainerId, p_week_from: monday, p_month_from: monthFrom, p_to: today }),
-    ]);
-    if (setRes.error || weeksRes.error || periodRes.error) return none;
-
-    const hiddenIds = new Set(
-      ((setRes.data ?? []) as { client_id: string; leaderboard_visible: boolean }[]).filter((s) => s.leaderboard_visible === false).map((s) => s.client_id),
-    );
-    if (hiddenIds.has(clientId)) return { state: "hidden" };
-
-    const weekDays = new Map<string, Map<string, number>>();
-    for (const r of (weeksRes.data ?? []) as { client_id: string; week_start: string; trained_days: number }[]) {
-      const m = weekDays.get(r.client_id) ?? new Map<string, number>();
-      m.set(r.week_start, Number(r.trained_days));
-      weekDays.set(r.client_id, m);
-    }
-    const period = new Map(
-      ((periodRes.data ?? []) as { client_id: string; workouts_week: number | string; workouts_month: number | string; prs_month: number | string }[]).map((r) => [
-        r.client_id,
-        { week: Number(r.workouts_week), month: Number(r.workouts_month), prs: Number(r.prs_month) },
-      ]),
-    );
-
-    const clients: BoardClient[] = group.map((c) => {
-      const p = period.get(c.id);
-      return {
-        clientId: c.id,
-        fullName: c.full_name,
-        visible: !hiddenIds.has(c.id),
-        workoutsWeek: p?.week ?? 0,
-        workoutsMonth: p?.month ?? 0,
-        streakWeeks: streakFromWeeks(weekDays.get(c.id) ?? new Map(), today),
-        prsMonth: p?.prs ?? 0,
-      };
-    });
-    // zakázané metriky sa ani nepočítajú — do klienta ide len to, čo tarifa dovoľuje
-    const metrics = [...allowedLeaderboardMetrics(await trainerTierForClients(trainerId))] as LeaderboardMetric[];
+    // záložky podľa tarify trénera; bez trénera (alebo bez prístupu) sada Starter
+    const tier = trainerId ? await trainerTierForClients(trainerId) : null;
+    const metrics = [...allowedLeaderboardMetrics(tier)] as LeaderboardMetric[];
     if (metrics.length === 0) return none;
-    const boards = Object.fromEntries(metrics.map((m) => [m, buildLeaderboard(clients, m, clientId)])) as Partial<Record<LeaderboardMetric, Board>>;
-    return { state: "ready", metrics, boards };
+
+    if (metrics.includes("streakWeeks")) await refreshStreakCache(supabase, clientId, today);
+
+    const weekFrom = weekStartOf(today);
+    const monthFrom = `${today.slice(0, 7)}-01`;
+    const results = await Promise.all(
+      metrics.map((metric) =>
+        admin.rpc("gamification_global_leaderboard", {
+          p_metric: metric,
+          p_client_id: clientId,
+          p_week_from: weekFrom,
+          p_month_from: monthFrom,
+          p_to: today,
+          p_week_now: weekFrom,
+          p_top: GLOBAL_TOP_N,
+        }),
+      ),
+    );
+    if (results.some((r) => r.error)) return none;
+    const rankings = results.map((r) => rankingFrom((r.data ?? []) as RpcRow[]));
+
+    // mená len pre klientov, ktorí sa dostali do TOP N (najviac 4 × 10)
+    const ids = [...new Set(rankings.flatMap((r) => r.top.map((t) => t.id)))];
+    const names = new Map<string, { nickname: string | null; fullName: string | null }>();
+    if (ids.length > 0) {
+      const [cl, st] = await Promise.all([
+        admin.from("clients").select("id, full_name").in("id", ids),
+        admin.from("gamification_settings").select("client_id, nickname").in("client_id", ids),
+      ]);
+      if (cl.error || st.error) return none;
+      for (const c of (cl.data ?? []) as { id: string; full_name: string | null }[]) names.set(c.id, { nickname: null, fullName: c.full_name });
+      for (const s of (st.data ?? []) as { client_id: string; nickname: string | null }[]) {
+        const cur = names.get(s.client_id);
+        if (cur) cur.nickname = s.nickname;
+      }
+    }
+    const boards: Partial<Record<LeaderboardMetric, Board>> = {};
+    metrics.forEach((metric, i) => {
+      boards[metric] = toPublicBoard(metric, rankings[i], clientId, names, fallbackName);
+    });
+    return { state: "ready", metrics, boards, me };
   } catch {
     return none;
   }
