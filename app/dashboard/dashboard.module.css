@@ -3156,3 +3156,272 @@ select.addClientInputSm {
   line-height: 1.45;
   color: var(--paper-dim);
 }
+
+/* ---------- Klienti: karty (feature/klienti-karty) ---------- */
+.ccToolbar {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ccToolbar .rosterSearch {
+  margin-bottom: 0;
+}
+.ccFilters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.ccFilters::-webkit-scrollbar {
+  display: none;
+}
+.ccFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  min-height: 38px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--card-bg);
+  color: var(--paper-dim);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: var(--card-shadow);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.ccFilter:hover {
+  color: var(--paper);
+}
+.ccFilter[aria-checked="true"] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+.ccFilterCount {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.ccGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 720px) {
+  .ccGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1180px) {
+  .ccGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.ccCard {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+  min-width: 0;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.ccCard:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--surface-border));
+}
+@media (prefers-reduced-motion: reduce) {
+  .ccCard,
+  .ccCard:hover {
+    transform: none;
+  }
+}
+.ccCardMuted {
+  opacity: 0.72;
+}
+.ccHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+.ccAvatar {
+  --tone: var(--accent);
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tone) 18%, transparent);
+  color: color-mix(in srgb, var(--tone) 80%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--tone) 30%, transparent);
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.ccAvatar[data-tone="1"] {
+  --tone: var(--moss);
+}
+.ccAvatar[data-tone="2"] {
+  --tone: #6f8fd8;
+}
+.ccAvatar[data-tone="3"] {
+  --tone: #b07cc9;
+}
+.ccAvatar[data-tone="4"] {
+  --tone: #c99a32;
+}
+.ccAvatar[data-tone="5"] {
+  --tone: #3f9c96;
+}
+.ccIdentity {
+  min-width: 0;
+}
+/* dlhé meno na dva riadky (nie „Meškajúca M…“) */
+.ccName {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  text-decoration: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.ccGoal {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--paper-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ccBadges {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+.ccStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+/* číslo navrchu, popis pod ním — čísla v jednej línii bez ohľadu na dĺžku popisu */
+.ccStat {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.ccStat dd {
+  order: -1;
+}
+.ccStat dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  line-height: 1.25;
+}
+.ccStat dt svg {
+  flex: none;
+  color: var(--accent-text);
+}
+.ccStat dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+  line-height: 24px;
+}
+/* text („včera“, „pred 9 d.“) v rovnakej výške riadku ako čísla */
+.ccStat dd.ccStatText {
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 24px;
+}
+.ccPlan {
+  display: grid;
+  gap: 8px;
+}
+.ccPlanTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+.ccPlanName {
+  font-weight: 700;
+  color: var(--paper);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ccPlanCount {
+  flex: none;
+  color: var(--paper-dim);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.ccBar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fill);
+  overflow: hidden;
+}
+.ccBar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-grad);
+  transition: width 0.3s ease;
+}
+.ccBar[data-done] > span {
+  background: var(--moss);
+}
+.ccPlanEmpty {
+  font-size: 13px;
+  color: var(--paper-faint);
+}
+.ccFoot {
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ccDuration {
+  color: var(--paper-dim);
+}

@@ -2,9 +2,11 @@ import { AppLink as Link } from "../components/AppLink";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { AddClientForm } from "./AddClientForm";
-import type { RosterItem } from "./ClientRoster";
+import { ClientRoster, type RosterItem } from "./ClientRoster";
 import { ClientsBoard } from "./ClientsBoard";
 import { getLateStatusByClient } from "@/lib/dashboard/lateStatus";
+import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
+import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { getHealthDigest } from "@/lib/dashboard/healthDigest";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
@@ -13,6 +15,42 @@ import { digestDismissKey, lateDismissKey, ONBOARDING_DISMISS_KEY } from "@/lib/
 import { DismissibleNotice, LateAlertPanel } from "./DashboardNotices";
 import { pluralSk } from "@/lib/portal/streak"; // i18n: len DEV náhľad
 import styles from "@/app/dashboard/dashboard.module.css";
+
+/**
+ * Údaje na karty klientov (feature/klienti-karty): tréningové plány trénera (bez skrytých
+ * kópií úprav, 0071) s dňami — počet a aktívny plán s odcvičenosťou (getPlanCompletion,
+ * rovnaká definícia ako badge „Hotovo“) — a počet jedálničkov. Dva dopyty pre všetkých klientov.
+ */
+async function getCardStats(supabase: Awaited<ReturnType<typeof createClient>>, clientIds: string[]) {
+  const plansByClient = new Map<string, { id: string; name: string; published: boolean; dayIds: string[] }[]>();
+  const mealPlanCount = new Map<string, number>();
+  if (clientIds.length === 0) return { plansByClient, mealPlanCount, completion: new Map() as Awaited<ReturnType<typeof getPlanCompletion>> };
+  const [{ data: planRows }, { data: mealRows }] = await Promise.all([
+    supabase
+      .from("workout_plans")
+      .select("id, name, client_id, published, created_at, workout_days(id)")
+      .in("client_id", clientIds)
+      .is("edit_of", null)
+      .order("created_at", { ascending: false }),
+    supabase.from("meal_plans").select("client_id").in("client_id", clientIds),
+  ]);
+  for (const p of planRows ?? []) {
+    const list = plansByClient.get(p.client_id as string) ?? [];
+    list.push({
+      id: p.id as string,
+      name: p.name as string,
+      published: Boolean(p.published),
+      dayIds: ((p.workout_days as { id: string }[] | null) ?? []).map((d) => d.id),
+    });
+    plansByClient.set(p.client_id as string, list);
+  }
+  for (const m of mealRows ?? []) mealPlanCount.set(m.client_id as string, (mealPlanCount.get(m.client_id as string) ?? 0) + 1);
+  const completion = await getPlanCompletion(
+    supabase,
+    [...plansByClient.values()].flat().filter((p) => p.published).map((p) => ({ id: p.id, dayIds: p.dayIds })),
+  );
+  return { plansByClient, mealPlanCount, completion };
+}
 
 /** Grace period pred hard delete (0018_client_deletion.sql, pg_cron `purge_deleted_clients`). */
 const DELETION_GRACE_DAYS = 30;
@@ -50,6 +88,22 @@ const DELETION_PREVIEW = [
     deletion_requested_at: null as string | null,
   },
   {
+    id: "p-noplan",
+    full_name: "Nová Nina",
+    goal: "Kondícia",
+    created_at: new Date(Date.now() - 6 * 86_400_000).toISOString(),
+    ended_at: null as string | null,
+    deletion_requested_at: null as string | null,
+  },
+  {
+    id: "p-done",
+    full_name: "Hotový Hugo",
+    goal: "Sila",
+    created_at: "2025-11-15",
+    ended_at: null as string | null,
+    deletion_requested_at: null as string | null,
+  },
+  {
     id: "p-ended",
     full_name: "Odídený Ivan",
     goal: "Kondícia",
@@ -66,6 +120,35 @@ const DELETION_PREVIEW = [
     deletion_requested_at: new Date(Date.now() - 5 * 86_400_000).toISOString(),
   },
 ];
+
+/** Karty náhľadu: rôzne stavy (aktívny s plánom, mešká, bez plánu, hotový plán, ukončený, na zmazanie). */
+function previewRoster(clients: typeof DELETION_PREVIEW): RosterItem[] {
+  const extra: Record<string, Partial<RosterItem>> = {
+    "p-active": { statusLabel: "aktívny", statusTone: "active", unread: 2, planCount: 3, mealPlanCount: 2, lastWorkoutDays: 1, activePlan: { name: "Silový 3× týždenne", done: 5, total: 8 } },
+    "p-late": { statusLabel: "9 dní bez tréningu", statusTone: "late", planCount: 1, mealPlanCount: 0, lastWorkoutDays: 9, activePlan: { name: "Chudnutie — základ", done: 2, total: 6 } },
+    "p-noplan": { statusLabel: null, statusTone: null, planCount: 0, mealPlanCount: 1, lastWorkoutDays: null, activePlan: null },
+    "p-done": { statusLabel: "aktívny", statusTone: "active", planCount: 2, mealPlanCount: 1, lastWorkoutDays: 0, activePlan: { name: "Jesenná forma", done: 4, total: 4 } },
+    "p-ended": { planCount: 2, mealPlanCount: 1, lastWorkoutDays: 40, activePlan: null },
+    "p-deleting": { planCount: 1, mealPlanCount: 0, lastWorkoutDays: null, activePlan: null },
+  };
+  return clients.map((c) => {
+    const pendingDeletion = Boolean(c.deletion_requested_at);
+    const ended = Boolean(c.ended_at) && !pendingDeletion;
+    return {
+      id: c.id,
+      fullName: c.full_name,
+      goal: c.goal,
+      since: c.created_at,
+      unread: 0,
+      pendingDeletion,
+      deletionLabel: pendingDeletion ? purgeDateLabel(c.deletion_requested_at!) : null,
+      ended,
+      statusLabel: ended ? ENDED_LABEL : null,
+      statusTone: null,
+      ...extra[c.id],
+    };
+  });
+}
 // i18n-ignore-end
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
@@ -113,41 +196,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             </li>
           </ul>
         </div>
-        <div className={styles.roster}>
-          {rosterClients.map((client) => {
-            const pendingDeletion = Boolean(client.deletion_requested_at);
-            const ended = Boolean(client.ended_at) && !pendingDeletion;
-            return (
-              <div
-                key={client.id}
-                className={`${styles.clientCard} ${
-                  pendingDeletion ? styles.clientCardPendingDeletion : ended ? styles.clientCardEnded : ""
-                }`}
-              >
-                <div>
-                  <div className={styles.clientName}>{client.full_name}</div>
-                  {client.goal && <div className={styles.clientGoal}>{client.goal}</div>}
-                </div>
-                <span className={`${styles.clientMeta} ${styles.rosterMeta}`}>
-                  {pendingDeletion ? (
-                    <span className={styles.deletionChip}>
-                      Zmaže sa {purgeDateLabel(client.deletion_requested_at!)}
-                    </span>
-                  ) : ended ? (
-                    <span className={`${styles.statusChip} ${styles.ended}`}>{ENDED_LABEL}</span>
-                  ) : client.id === "p-late" ? (
-                    <span className={`${styles.statusChip} ${styles.late}`}>9 dní bez tréningu</span>
-                  ) : (
-                    <span className={`${styles.statusChip} ${styles.active}`}>aktívny</span>
-                  )}
-                  <span className={styles.clientSince}>
-                    od {new Date(client.created_at).toLocaleDateString("sk-SK")}
-                  </span>
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <ClientRoster items={previewRoster(rosterClients)} />
       </>
     );
   }
@@ -217,23 +266,20 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
 
   // Nezávislé dopyty — zoznam klientov nepotrebuje neprečítané správy (a naopak,
   // RLS scopuje messages na klientov tohto trénera samo) — paralelne.
-  const [{ clients, lateStatus }, { data: unreadRows }, healthDigest, dismissed] = await Promise.all([
+  const [{ clients, lateStatus, cards }, { data: unreadRows }, healthDigest, dismissed] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, full_name, goal, created_at, paired_at, ended_at, deletion_requested_at")
+      .select("id, full_name, goal, created_at, paired_at, ended_at, deletion_requested_at, active_plan_id")
       .eq("trainer_id", user.id)
       .order("created_at", { ascending: false })
-      // Stav meškania potrebuje len ID klientov — zreťazený priamo na ich dopyt,
-      // nečaká na digest/skrytia/správy (predtým ďalší round-trip po celej dávke).
-      // Zdieľané s proaktívnym AI check-in cronom (lib/dashboard/lateStatus.ts,
-      // migrácia 0033) — rovnaká definícia "meškania" na oboch miestach.
-      .then(async ({ data: clients }) => ({
-        clients,
-        lateStatus: await getLateStatusByClient(
-          supabase,
-          (clients ?? []).map((c) => c.id),
-        ),
-      })),
+      // Stav meškania a údaje na karty potrebujú len ID klientov — zreťazené priamo na ich
+      // dopyt, nečakajú na digest/skrytia/správy. Meškanie je zdieľané s proaktívnym AI
+      // check-in cronom (lib/dashboard/lateStatus.ts, migrácia 0033).
+      .then(async ({ data: clients }) => {
+        const ids = (clients ?? []).map((c) => c.id);
+        const [lateStatus, cards] = await Promise.all([getLateStatusByClient(supabase, ids), getCardStats(supabase, ids)]);
+        return { clients, lateStatus, cards };
+      }),
     // neprečítané správy od klientov → odznak pri klientovi
     supabase.from("messages").select("client_id").eq("sender", "client").is("read_at", null),
     // Weekly digest (feature/OnBoarding, migrácia 0034) — porovnanie posledných
@@ -282,6 +328,14 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     const pendingDeletion = Boolean(client.deletion_requested_at);
     const ended = Boolean(client.ended_at) && !pendingDeletion;
     const status = statusByClient.get(client.id);
+    const late = lateStatus.get(client.id);
+    const plans = cards.plansByClient.get(client.id) ?? [];
+    const activeId = resolveActivePlanId(
+      client.active_plan_id,
+      plans.filter((p) => p.published),
+    );
+    const active = activeId ? plans.find((p) => p.id === activeId) : undefined;
+    const completion = active ? cards.completion.get(active.id) : undefined;
     return {
       id: client.id,
       fullName: client.full_name,
@@ -294,6 +348,14 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       ended,
       statusLabel: pendingDeletion ? null : ended ? t("ended") : (status?.label ?? null),
       statusTone: status?.tone ?? null,
+      planCount: plans.length,
+      mealPlanCount: cards.mealPlanCount.get(client.id) ?? 0,
+      lastWorkoutDays: late?.lastWorkoutOn
+        ? Math.max(0, Math.floor((Date.now() - new Date(late.lastWorkoutOn).getTime()) / 86_400_000))
+        : null,
+      activePlan: active
+        ? { name: active.name, done: completion?.completedDays ?? 0, total: completion?.totalDays ?? active.dayIds.length }
+        : null,
     };
   });
 
