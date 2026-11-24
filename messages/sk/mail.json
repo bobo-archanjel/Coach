@@ -44,6 +44,34 @@
     "unsubscribe": "Vypnúť týždenné zhrnutie e-mailom",
     "unsubscribeProfile": "Alebo to nájdeš v appke v Profile."
   },
+  "lead": {
+    "subject": "Nový záujemca: {name}",
+    "preheader": "Niekto vyplnil formulár na tvojej verejnej stránke.",
+    "heading": "Máš nového záujemcu",
+    "greeting": "Ahoj {name},",
+    "intro": "{lead} vyplnil/-a formulár „Chcem trénovať s tebou“ na tvojej verejnej stránke.",
+    "goal": "Cieľ: {value}",
+    "experience": "Skúsenosti: {value}",
+    "availability": "Kedy sa mu/jej hodí: {value}",
+    "phone": "Telefón: {value}",
+    "email": "E-mail: {value}",
+    "message": "Správa:",
+    "cta": "Otvoriť záujemcov",
+    "hint": "Odpoveď na tento e-mail ide priamo záujemcovi.",
+    "reason": "Tento e-mail ti prišiel, lebo máš zverejnenú stránku v tarife Business. Záujemcov nájdeš aj v appke v sekcii Záujemcovia.",
+    "goals": {
+      "weight_loss": "chudnutie",
+      "muscle_gain": "naberanie svalov",
+      "fitness": "kondícia",
+      "health": "zdravie",
+      "other": "iné"
+    },
+    "experiences": {
+      "beginner": "začiatočník",
+      "intermediate": "mierne pokročilý",
+      "advanced": "pokročilý"
+    }
+  },
   "unsubscribe": {
     "title": "Odhlásenie z e-mailov",
     "confirmWeekly": "Chceš prestať dostávať týždenné zhrnutie e-mailom? V appke ho môžeš kedykoľvek zapnúť v Profile.",

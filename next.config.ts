@@ -77,6 +77,8 @@ const nextConfig: NextConfig = {
     "/api/export/**": ["./assets/fonts/*.ttf", "./public/brand/logo-mark.png"],
     // zdieľacie karty (gamifikácia, fáza B) — next/og potrebuje fonty Inter z disku
     "/api/gamification/share": ["./assets/fonts/*.ttf", "./public/brand/logo-mark.png"],
+    // náhľadový obrázok verejnej stránky trénera (/t/<handle>/og, next/og) — fonty Inter z disku
+    "/t/[handle]/og": ["./assets/fonts/*.ttf"],
     // AI Kouč (lib/ai/foodSearch.ts) číta offline balík Open Food Facts z disku na serveri
     // (fs + zlib) pri hľadaní potravín. Server action beží v serverless funkcii stránky,
     // ktorá ju hostí — kľúč je preto route stránky, nie súbor akcie.

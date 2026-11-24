@@ -21,7 +21,7 @@ export function sniffImageType(bytes: Uint8Array): SniffedImage | null {
 }
 
 /** Cieľový rozmer po zmenšení (px, dlhšia strana) — logo menšie, fotka väčšia. */
-export const IMAGE_MAX_SIDE = { logo: 512, logodark: 512, photo: 800 } as const;
+export const IMAGE_MAX_SIDE = { logo: 512, logodark: 512, photo: 800, gallery: 1200 } as const;
 export type BrandImageKind = keyof typeof IMAGE_MAX_SIDE;
 
 /** Cesta objektu v buckete: `<trainerId>/<kind>-<uuid>.webp` (logo, logodark = logo pre tmavé pozadie, photo) — názov vždy generuje server. */
@@ -34,7 +34,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /** Patrí cesta (z DB) danému trénerovi a má očakávaný tvar? Stráž pred mazaním/čítaním cudzích súborov. */
 export function isOwnBrandPath(trainerId: string, path: string | null | undefined, kind: BrandImageKind): boolean {
   if (!path) return false;
-  const m = /^([0-9a-f-]{36})\/(logo|logodark|photo)-([0-9a-f-]{36})\.webp$/.exec(path);
+  const m = /^([0-9a-f-]{36})\/(logo|logodark|photo|gallery)-([0-9a-f-]{36})\.webp$/.exec(path);
   return Boolean(m && m[1] === trainerId && m[2] === kind && UUID_RE.test(m[1]) && UUID_RE.test(m[3]));
 }
 

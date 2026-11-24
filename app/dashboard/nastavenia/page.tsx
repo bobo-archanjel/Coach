@@ -18,6 +18,9 @@ import { mailConfigured } from "@/lib/mail/config";
 import { loadInviteQuota } from "@/lib/mail/invite";
 import { getMyTrainerBilling } from "@/lib/billing/server";
 import { brandingPublicUrl } from "@/lib/branding/server";
+import { PublicPageForm, type PublicPageInitial } from "./PublicPageForm";
+import { mailSiteUrl } from "@/lib/mail/config";
+import { readSocials } from "@/lib/publicPage/socials";
 import billingStyles from "../billing.module.css";
 import brandingStyles from "./branding.module.css";
 
@@ -49,6 +52,43 @@ export default async function NastaveniaPage() {
     const res = full.error ? await supabase.from("trainer_branding").select(base).eq("trainer_id", user.id).maybeSingle() : full;
     brandingRow = (res.data as Record<string, string | null> | null) ?? null;
   }
+
+  // verejná stránka trénera (Business; 0083 — pred migráciou tabuľky chýbajú → prázdna stránka bez chyby)
+  let publicInitial: PublicPageInitial | null = null;
+  if (user && brandingUnlocked) {
+    const [prof, svc, gal, tst] = await Promise.all([
+      supabase.from("trainer_public_profiles").select("handle, published, headline, bio, location, online, specializations, socials").eq("trainer_id", user.id).maybeSingle(),
+      supabase.from("trainer_services").select("name, description, price_text").eq("trainer_id", user.id).order("position"),
+      supabase.from("trainer_gallery").select("id, path").eq("trainer_id", user.id).order("position"),
+      supabase.from("trainer_testimonials").select("author, body").eq("trainer_id", user.id).order("position"),
+    ]);
+    const pr = (prof.error ? null : prof.data) as { handle: string; published: boolean; headline: string; bio: string; location: string; online: boolean; specializations: string[]; socials: unknown } | null;
+    publicInitial = {
+      handle: pr?.handle ?? "",
+      published: pr?.published ?? false,
+      headline: pr?.headline ?? "",
+      bio: pr?.bio ?? "",
+      location: pr?.location ?? "",
+      online: pr?.online ?? false,
+      specializations: pr?.specializations ?? [],
+      socials: readSocials(pr?.socials),
+      services: ((svc.error ? [] : svc.data) ?? []).map((s) => ({ name: s.name as string, description: s.description as string, priceText: s.price_text as string })),
+      testimonials: ((tst.error ? [] : tst.data) ?? []).map((r) => ({ author: r.author as string, body: r.body as string })),
+      gallery: ((gal.error ? [] : gal.data) ?? []).flatMap((g) => {
+        const url = brandingPublicUrl(g.path as string);
+        return url ? [{ id: g.id as string, url }] : [];
+      }),
+      saved: !!pr,
+    };
+  }
+  const tp = await getTranslations("publicPage.settings");
+  const siteHost = (() => {
+    try {
+      return new URL(mailSiteUrl()).host;
+    } catch {
+      return "myfitpilot.sk";
+    }
+  })();
 
   // komunikácia s klientmi (všetky tarify): uvítacia správa (RLS: len vlastný riadok; pred 0082 tabuľka chýba → prázdne)
   // a zostatok pozvánok e-mailom (len ak je na serveri nastavené SMTP)
@@ -215,6 +255,37 @@ export default async function NastaveniaPage() {
                   <p>{tb("locked.text")}</p>
                   <Link href="/dashboard/predplatne" className={billingStyles.lockLink}>
                     {tb("locked.upgrade")}
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {user && (
+          <div className={`${styles.card} ${brandingStyles.wide}`} data-testid="public-page-card">
+            <div className={brandingStyles.head}>
+              <h3>{tp("title")}</h3>
+              <span className={brandingStyles.badge}>{tp("badge")}</span>
+            </div>
+            {publicInitial ? (
+              <>
+                <p className={brandingStyles.sub}>{tp("subtitle")}</p>
+                <PublicPageForm initial={publicInitial} host={siteHost} businessReady={brandingUnlocked} />
+              </>
+            ) : (
+              <div className={billingStyles.locked} role="note" data-testid="public-page-locked" data-feature="publicPage">
+                <span className={billingStyles.lockIcon} aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="11" width="16" height="9" rx="2.5" />
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </span>
+                <div className={billingStyles.lockBody}>
+                  <strong>{tp("locked.title")}</strong>
+                  <p>{tp("locked.text")}</p>
+                  <Link href="/dashboard/predplatne" className={billingStyles.lockLink}>
+                    {tp("locked.upgrade")}
                   </Link>
                 </div>
               </div>

@@ -68,6 +68,7 @@ export async function loadAttention(): Promise<AttentionData | null> {
     { data: unreadRows, error: unreadErr },
     { data: apptRows, error: apptErr },
     { data: chalRows, error: chalErr },
+    { count: leadsCount, error: leadsErr },
     digest,
     dismissed,
   ] = await Promise.all([
@@ -102,6 +103,8 @@ export async function loadAttention(): Promise<AttentionData | null> {
       .gte("achieved_at", new Date(Date.now() - CHALLENGE_DONE_WINDOW_DAYS * 86_400_000).toISOString())
       .order("achieved_at", { ascending: false })
       .limit(20),
+    // noví záujemcovia z verejnej stránky (0083, RLS: len vlastní) — pred migráciou dopyt zlyhá a len sa vynechá
+    supabase.from("trainer_leads").select("id", { count: "exact", head: true }).eq("trainer_id", user.id).eq("status", "new"),
     getHealthDigest(supabase, user.id),
     getActiveDismissals(supabase, user.id),
   ]);
@@ -143,6 +146,7 @@ export async function loadAttention(): Promise<AttentionData | null> {
   return applyDismissals(
     {
       unread: unreadRows?.length ?? 0,
+      newLeads: leadsErr ? 0 : (leadsCount ?? 0),
       unreadByClient,
       appointments,
       challengesDone,

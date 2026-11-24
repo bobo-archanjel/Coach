@@ -44,6 +44,34 @@
     "unsubscribe": "Vypnout týdenní shrnutí e-mailem",
     "unsubscribeProfile": "Nebo to najdeš v aplikaci v Profilu."
   },
+  "lead": {
+    "subject": "Nový zájemce: {name}",
+    "preheader": "Někdo vyplnil formulář na tvé veřejné stránce.",
+    "heading": "Máš nového zájemce",
+    "greeting": "Ahoj {name},",
+    "intro": "{lead} vyplnil/-a formulář „Chci trénovat s tebou“ na tvé veřejné stránce.",
+    "goal": "Cíl: {value}",
+    "experience": "Zkušenosti: {value}",
+    "availability": "Kdy se mu/jí hodí: {value}",
+    "phone": "Telefon: {value}",
+    "email": "E-mail: {value}",
+    "message": "Zpráva:",
+    "cta": "Otevřít zájemce",
+    "hint": "Odpověď na tento e-mail jde přímo zájemci.",
+    "reason": "Tento e-mail ti přišel, protože máš zveřejněnou stránku v tarifu Business. Zájemce najdeš i v aplikaci v sekci Zájemci.",
+    "goals": {
+      "weight_loss": "hubnutí",
+      "muscle_gain": "nabírání svalů",
+      "fitness": "kondice",
+      "health": "zdraví",
+      "other": "jiné"
+    },
+    "experiences": {
+      "beginner": "začátečník",
+      "intermediate": "mírně pokročilý",
+      "advanced": "pokročilý"
+    }
+  },
   "unsubscribe": {
     "title": "Odhlášení z e-mailů",
     "confirmWeekly": "Chceš přestat dostávat týdenní shrnutí e-mailem? V aplikaci ho můžeš kdykoli zapnout v Profilu.",

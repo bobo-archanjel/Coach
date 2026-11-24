@@ -76,6 +76,8 @@ export interface AttentionChallengeDone {
 }
 
 export interface AttentionData {
+  /** noví záujemcovia z verejnej stránky (voliteľné — chýba pred migráciou 0083 / bez Business) */
+  newLeads?: number;
   /** dokončené výzvy klientov (voliteľné — chýba pred migráciou 0079) */
   challengesDone?: AttentionChallengeDone[];
   /** neprečítané správy od klientov */
@@ -94,6 +96,7 @@ export interface AttentionData {
 export function applyDismissals(data: AttentionData, dismissed: ReadonlySet<string>): AttentionData {
   return {
     unread: data.unread,
+    newLeads: data.newLeads,
     unreadByClient: data.unreadByClient,
     appointments: data.appointments?.filter((a) => !dismissed.has(a.key)),
     challengesDone: data.challengesDone?.filter((c) => !dismissed.has(c.key)),
@@ -111,7 +114,7 @@ export interface AttentionLink {
 }
 
 export interface AttentionItem {
-  id: "messages" | "appointments" | "late" | "digest" | "challenges";
+  id: "messages" | "appointments" | "late" | "digest" | "challenges" | "leads";
   tone: "alert" | "watch";
   title: string;
   /** null = nadpis nie je odkaz (klikateľné sú len podpoložky, napr. konkrétni meškajúci klienti) */
@@ -132,7 +135,7 @@ const MAX_LINKS = 4;
 
 /** Počet na odznaku zvončeka: neprečítané správy + blížiace sa termíny + meškajúci klienti + klienti so zhoršením. */
 export function attentionTotal(data: AttentionData): number {
-  return data.unread + (data.appointments?.length ?? 0) + data.late.length + (data.digest?.count ?? 0) + (data.challengesDone?.length ?? 0);
+  return data.unread + (data.appointments?.length ?? 0) + data.late.length + (data.digest?.count ?? 0) + (data.challengesDone?.length ?? 0) + (data.newLeads ?? 0);
 }
 
 /**
@@ -188,6 +191,19 @@ export function buildAttentionItems(data: AttentionData, locale: Locale = "sk"):
         dismiss: null,
       });
     }
+  }
+
+  // noví záujemcovia z verejnej stránky — niekto čaká na odpoveď, hneď za správami
+  if ((data.newLeads ?? 0) > 0) {
+    items.push({
+      id: "leads",
+      tone: "alert",
+      title: t("trainer.newLeads", { count: data.newLeads ?? 0 }),
+      href: "/dashboard/zaujemcovia",
+      links: [],
+      markRead: false,
+      dismiss: null,
+    });
   }
 
   const appts = data.appointments ?? [];

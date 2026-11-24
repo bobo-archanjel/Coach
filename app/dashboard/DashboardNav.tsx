@@ -93,8 +93,18 @@ function ChallengesIcon() {
   );
 }
 
+function LeadsIcon() {
+  return (
+    <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4 3v-3H6.5A2.5 2.5 0 0 1 4 14.5v-8Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <circle cx="12" cy="9.2" r="1.7" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8.8 14c.4-1.4 1.6-2.2 3.2-2.2s2.8.8 3.2 2.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // Poradie v menu (aj v spodnej lište na mobile): Správy hneď za Jedálničkami (feature/builder-cleanup).
-const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages" | "challenges"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean; desktopOnly?: boolean }[] = [
+const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages" | "challenges" | "leads"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean; desktopOnly?: boolean }[] = [
   { href: "/dashboard", label: "clients", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "plans", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/jedalnicky", label: "mealPlans", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
@@ -104,6 +114,8 @@ const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "cal
   // Výzvy a rebríček (gamifikácia B) — len v bočnom paneli na počítači; spodná lišta na mobile by so 7
   // položkami bola pritesná, na mobile sa sem ide z karty „Tím tento týždeň“ na úvodnej stránke.
   { href: "/dashboard/vyzvy", label: "challenges", Icon: ChallengesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/vyzvy"), desktopOnly: true },
+  // Záujemcovia z verejnej stránky (Business) — tiež len na počítači; na mobile vedie karta „Záujemcovia“ na úvodnej stránke.
+  { href: "/dashboard/zaujemcovia", label: "leads", Icon: LeadsIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/zaujemcovia"), desktopOnly: true },
 ];
 
 /**

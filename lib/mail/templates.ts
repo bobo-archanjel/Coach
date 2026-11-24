@@ -338,3 +338,39 @@ export function renderWeeklyMail(i: WeeklyMailInput): RenderedMail {
   }
   return finish(doc, i.brand, i.nudge ? m.subjectNudge : fmt(m.subject, { range }));
 }
+
+// ------------------------------------------------------------------ nový záujemca (e-mail trénerovi)
+
+export interface LeadMailInput {
+  locale: Locale;
+  /** meno trénera (oslovenie) */
+  trainerName: string;
+  /** polia formulára záujemcu — už zvalidované a očistené (lib/publicPage/leads.ts) */
+  lead: { name: string; email: string; phone: string | null; goal: string; experience: string; availability: string; message: string };
+  /** odkaz do sekcie Záujemcovia v dashboarde */
+  link: string;
+}
+
+/** E-mail trénerovi o novom záujemcovi. Vždy v štýle FitPilot (notifikácia pre trénera, nie pre klienta). */
+export function renderLeadMail(i: LeadMailInput, siteUrl: string): RenderedMail {
+  const m = MESSAGES[i.locale].mail;
+  const l = m.lead;
+  const brand = defaultMailBrand(siteUrl);
+  const goalLabel = (l.goals as Record<string, string>)[i.lead.goal] ?? i.lead.goal;
+  const expLabel = (l.experiences as Record<string, string>)[i.lead.experience] ?? i.lead.experience;
+  const lines = [fmt(l.email, { value: i.lead.email }), fmt(l.goal, { value: goalLabel }), fmt(l.experience, { value: expLabel })];
+  if (i.lead.phone) lines.splice(1, 0, fmt(l.phone, { value: i.lead.phone }));
+  if (i.lead.availability) lines.push(fmt(l.availability, { value: i.lead.availability }));
+  const doc: MailDoc = {
+    lang: i.locale,
+    preheader: l.preheader,
+    heading: l.heading,
+    greeting: fmt(l.greeting, { name: cleanLine(i.trainerName) || brand.name }),
+    paragraphs: [fmt(l.intro, { lead: i.lead.name }), ...lines],
+    quote: i.lead.message ? i.lead.message : undefined,
+    cta: { label: l.cta, url: i.link },
+    afterCta: [l.hint],
+    reasons: [l.reason],
+  };
+  return finish(doc, brand, fmt(l.subject, { name: cleanHeaderText(i.lead.name, 60) }));
+}
