@@ -1211,7 +1211,11 @@ select.addClientInputSm {
 }
 /* aktívny plán — jemný terakotový okraj (pás má do červena) */
 .cpCardActive {
-  border-color: color-mix(in srgb, var(--accent) 34%, var(--glass-border));
+  border-color: color-mix(in srgb, #d2463a 42%, var(--glass-border));
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-hl),
+    0 18px 40px -22px color-mix(in srgb, #d2463a 70%, transparent);
 }
 .cpBody {
   flex: 1;
@@ -1277,15 +1281,16 @@ select.addClientInputSm {
 }
 .cpFoot {
   margin-top: auto;
-  align-items: stretch;
+  display: grid;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--hairline);
 }
-.cpFoot > a {
+.cpFoot a {
   text-decoration: none;
 }
 /* potvrdenie zmazania — na celú šírku pätičky (vlastný riadok pod dlaždicami) */
-.cpFoot > .cpConfirm {
+.cpFoot .cpConfirm {
   flex: 1 1 100%;
 }
 .cpConfirm {
@@ -1321,6 +1326,9 @@ select.addClientInputSm {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+}
+.activePlanWide {
+  align-items: stretch;
 }
 .activePlanAction .publishError {
   width: auto;
@@ -3312,13 +3320,23 @@ select.addClientInputSm {
   }
 }
 .ccCard {
+  /* odtieň avatara (data-tone podľa mena) — avatar aj prechod v hornej časti karty */
+  --tone: var(--accent);
   position: relative;
   display: grid;
   align-content: start;
   gap: 14px;
   padding: 18px;
   border-radius: 24px;
-  background: var(--card-bg);
+  /* horná časť s menom a avatarom jemne podfarbená odtieňom avatara, prechod zhora nadol */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tone) 17%, transparent) 0,
+      color-mix(in srgb, var(--tone) 7%, transparent) 64px,
+      transparent 118px
+    ),
+    var(--card-bg);
   border: 1px solid var(--surface-border);
   box-shadow: var(--card-shadow);
   min-width: 0;
@@ -3347,7 +3365,6 @@ select.addClientInputSm {
   gap: 12px;
 }
 .ccAvatar {
-  --tone: var(--accent);
   display: grid;
   place-items: center;
   width: 46px;
@@ -3360,19 +3377,19 @@ select.addClientInputSm {
   font-weight: 800;
   letter-spacing: 0.01em;
 }
-.ccAvatar[data-tone="1"] {
+.ccCard[data-tone="1"] {
   --tone: var(--moss);
 }
-.ccAvatar[data-tone="2"] {
+.ccCard[data-tone="2"] {
   --tone: #6f8fd8;
 }
-.ccAvatar[data-tone="3"] {
+.ccCard[data-tone="3"] {
   --tone: #b07cc9;
 }
-.ccAvatar[data-tone="4"] {
+.ccCard[data-tone="4"] {
   --tone: #c99a32;
 }
-.ccAvatar[data-tone="5"] {
+.ccCard[data-tone="5"] {
   --tone: #3f9c96;
 }
 .ccIdentity {

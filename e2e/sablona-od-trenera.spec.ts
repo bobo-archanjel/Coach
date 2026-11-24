@@ -33,7 +33,7 @@ test.describe("šablóna z plánu od trénera — náhľady", () => {
     const plan = page.locator("#plan-plan-trainer");
     await expect(plan.getByText("Od trénera")).toBeVisible();
     await expect(plan.getByRole("button", { name: "Uložiť ako šablónu" })).toBeVisible();
-    await expect(plan.getByRole("button", { name: "Upraviť", exact: true })).toHaveCount(0);
+    await expect(plan.getByRole("button", { name: "Upraviť plán", exact: true })).toHaveCount(0);
     await expect(plan.getByRole("button", { name: "Zmazať", exact: true })).toHaveCount(0);
   });
 
@@ -41,7 +41,7 @@ test.describe("šablóna z plánu od trénera — náhľady", () => {
     await page.goto("/portal/strava?preview=ok");
     const actions = page.locator('[data-tour="nutrition-plan-actions"]');
     await expect(actions.getByRole("button", { name: "Uložiť ako šablónu" })).toBeVisible();
-    await expect(actions.getByRole("button", { name: "Upraviť", exact: true })).toHaveCount(0);
+    await expect(actions.getByRole("button", { name: "Upraviť plán", exact: true })).toHaveCount(0);
     await expect(actions.getByRole("button", { name: "Zmazať", exact: true })).toHaveCount(0);
     // vlastný jedálniček má naďalej všetky tri
     await page.goto("/portal/strava?preview=own");

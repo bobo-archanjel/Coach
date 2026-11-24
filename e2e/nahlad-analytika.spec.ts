@@ -22,11 +22,11 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     // rozpracovaný vlastný plán (1 z 2 odcvičený): Upraviť aj Náhľad (feature/treningy-karty)
-    await expect(planCard(page, "plan-own").getByRole("button", { name: "Upraviť" })).toBeVisible();
+    await expect(planCard(page, "plan-own").getByRole("button", { name: "Upraviť plán" })).toBeVisible();
     await expect(planCard(page, "plan-own").getByRole("button", { name: "Report" })).toBeVisible();
 
     const card = planCard(page, "plan-own-done");
-    await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "Upraviť plán" })).toHaveCount(0);
     await card.getByRole("button", { name: "Report" }).click();
 
     const view = page.getByRole("region", { name: "Report tréningu" });
@@ -54,7 +54,7 @@ test.describe("náhľad hotového plánu — náhľady", () => {
   test("hotový plán od trénera: Report s vyhodnotením, bez Zopakovať s progresiou", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     const card = planCard(page, "plan-done");
-    await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "Upraviť plán" })).toHaveCount(0);
     await card.getByRole("button", { name: "Report" }).click();
 
     const view = page.getByRole("region", { name: "Report tréningu" });

@@ -11,7 +11,18 @@ import { ActionActivateIcon } from "@/app/components/ActionIcons";
  * „Nastaviť ako aktívny“ pri zverejnenom pláne v detaile klienta — plán sa klientovi
  * ukáže na karte Dnes (0056). Po úspechu revalidácia prekreslí zoznam s odznakom „Aktívny“.
  */
-export function ActivePlanButton({ clientId, planId, planName }: { clientId: string; planId: string; planName: string }) {
+export function ActivePlanButton({
+  clientId,
+  planId,
+  planName,
+  wide = false,
+}: {
+  clientId: string;
+  planId: string;
+  planName: string;
+  /** tenké tlačidlo cez celú šírku (karta plánu v detaile klienta) */
+  wide?: boolean;
+}) {
   const t = useTranslations("clientDetail.activePlan");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -25,10 +36,10 @@ export function ActivePlanButton({ clientId, planId, planName }: { clientId: str
   };
 
   return (
-    <span className={styles.activePlanAction}>
+    <span className={`${styles.activePlanAction} ${wide ? styles.activePlanWide : ""}`}>
       <button
         type="button"
-        className={`${pa.action} ${pa.small} ${pa.inline}`}
+        className={wide ? `${pa.action} ${pa.wide}` : `${pa.action} ${pa.small} ${pa.inline}`}
         onClick={setActive}
         disabled={pending}
         aria-label={t("aria", { name: planName })}

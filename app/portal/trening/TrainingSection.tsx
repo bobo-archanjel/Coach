@@ -22,7 +22,7 @@ import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./bu
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import { ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import { ActionActivateIcon, ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import styles from "../portal.module.css";
 
@@ -502,14 +502,6 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                   {!selectedDay && !plan.isActive && planDone && (
                     <p className={`${styles.trHint} ${styles.trDoneHint}`}>{tr("planDoneHint")}</p>
                   )}
-                  {!selectedDay && !plan.isActive && !planDone && plan.days.length > 0 && (
-                    <div className={styles.trActiveRow}>
-                      <button type="button" className={styles.trGhostBtn} onClick={() => makeActive(plan)} disabled={pending}>
-                        {tr("setActive")}
-                      </button>
-                      <span className={styles.trHint}>{tr("showsOnToday")}</span>
-                    </div>
-                  )}
                   {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (
                     <p className={styles.trActiveNote} role="status">
                       {activeNote.text}
@@ -541,39 +533,39 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                           />
                         ) : selectedDay.lastLog ? (
                           <>
-                            <div
-                              className={`${styles.modeToggle} ${styles.mpTabs}`}
-                              role="radiogroup"
-                              aria-label={tr("dayViewAria")}
-                            >
-                              {(["done", "plan"] as const).map((v) => (
-                                <button
-                                  key={v}
-                                  type="button"
-                                  role="radio"
-                                  aria-checked={dayView === v}
-                                  className={dayView === v ? styles.modeOn : undefined}
-                                  onClick={() => setDayView(v)}
-                                >
-                                  {v === "done" ? tr("dayViewDone") : tr("dayViewPlan")}
-                                </button>
-                              ))}
-                            </div>
-                            {dayView === "plan" ? (
-                              selectedDay.exercises.length > 0 ? (
-                                <ExercisePreviewList exercises={selectedDay.exercises} />
+                              <div
+                                className={`${styles.modeToggle} ${styles.mpTabs}`}
+                                role="radiogroup"
+                                aria-label={tr("dayViewAria")}
+                              >
+                                {(["done", "plan"] as const).map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={dayView === v}
+                                    className={dayView === v ? styles.modeOn : undefined}
+                                    onClick={() => setDayView(v)}
+                                  >
+                                    {v === "done" ? tr("dayViewDone") : tr("dayViewPlan")}
+                                  </button>
+                                ))}
+                              </div>
+                              {dayView === "plan" ? (
+                                selectedDay.exercises.length > 0 ? (
+                                  <ExercisePreviewList exercises={selectedDay.exercises} />
+                                ) : (
+                                  <p className={styles.trEmptyDay}>{tr("noExercises")}</p>
+                                )
+                              ) : selectedDay.lastLog.compare.exercises.length > 0 ? (
+                                <CompletedExercises
+                                  exercises={selectedDay.lastLog.compare.exercises}
+                                  hasPlan={selectedDay.lastLog.compare.hasPlan}
+                                  flat
+                                />
                               ) : (
-                                <p className={styles.trEmptyDay}>{tr("noExercises")}</p>
-                              )
-                            ) : selectedDay.lastLog.compare.exercises.length > 0 ? (
-                              <CompletedExercises
-                                exercises={selectedDay.lastLog.compare.exercises}
-                                hasPlan={selectedDay.lastLog.compare.hasPlan}
-                                flat
-                              />
-                            ) : (
-                              <p className={styles.trEmptyDay}>{tr("doneNoValues")}</p>
-                            )}
+                                <p className={styles.trEmptyDay}>{tr("doneNoValues")}</p>
+                              )}
                           </>
                         ) : selectedDay.exercises.length > 0 ? (
                           <ExercisePreviewList exercises={selectedDay.exercises} />
@@ -667,42 +659,62 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                             </span>
                           </div>
                         ) : (
-                          <div className={pa.row}>
-                            {/* Náhľad = vyhodnotenie — hotový plán aj rozpracovaný s aspoň jedným
-                                odcvičeným tréningom (rátajú sa len odcvičené) */}
-                            {plan.days.some((d) => d.done) && (
-                              <button type="button" className={pa.action} onClick={() => openBuilder(plan, null, null, true)}>
-                                <ActionPreviewIcon />
-                                {tr("viewPlan")}
-                              </button>
-                            )}
-                            {/* celý odcvičený plán sa už nemení — len náhľad */}
-                            {!planDone && plan.source === "client" && (
-                              <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
-                                <ActionEditIcon />
-                                {tr("edit")}
+                          <>
+                          {/* hore tenký rad: vľavo „Nastaviť ako aktívny“ (len neaktívny, nedokončený plán s dňami),
+                              vpravo „Uložiť ako šablónu“; dole dlaždice Report · Upraviť plán · Zmazať */}
+                          <div className={pa.rowThin}>
+                            {!plan.isActive && !planDone && plan.days.length > 0 && (
+                              <button
+                                type="button"
+                                className={`${pa.action} ${pa.wide}`}
+                                onClick={() => makeActive(plan)}
+                                disabled={pending}
+                                title={tr("showsOnToday")}
+                              >
+                                <ActionActivateIcon />
+                                {tr("setActive")}
                               </button>
                             )}
                             <button
                               type="button"
-                              className={pa.action}
+                              className={`${pa.action} ${pa.wide}`}
                               onClick={() => saveTemplate(plan.id)}
                               disabled={pending}
                             >
                               <ActionTemplateIcon />
                               {tr("saveTemplate")}
                             </button>
-                            {plan.source === "client" && (
-                              <button
-                                type="button"
-                                className={`${pa.action} ${pa.danger}`}
-                                onClick={() => setConfirmDelete(plan.id)}
-                              >
-                                <ActionTrashIcon />
-                                {tr("delete")}
-                              </button>
-                            )}
                           </div>
+                          {(plan.days.some((d) => d.done) || plan.source === "client") && (
+                            <div className={pa.row}>
+                              {/* Report = vyhodnotenie — hotový plán aj rozpracovaný s aspoň jedným
+                                  odcvičeným tréningom (rátajú sa len odcvičené) */}
+                              {plan.days.some((d) => d.done) && (
+                                <button type="button" className={pa.action} onClick={() => openBuilder(plan, null, null, true)}>
+                                  <ActionPreviewIcon />
+                                  {tr("viewPlan")}
+                                </button>
+                              )}
+                              {/* celý odcvičený plán sa už nemení — len Report */}
+                              {!planDone && plan.source === "client" && (
+                                <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                                  <ActionEditIcon />
+                                  {tr("edit")}
+                                </button>
+                              )}
+                              {plan.source === "client" && (
+                                <button
+                                  type="button"
+                                  className={`${pa.action} ${pa.danger}`}
+                                  onClick={() => setConfirmDelete(plan.id)}
+                                >
+                                  <ActionTrashIcon />
+                                  {tr("delete")}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          </>
                         )}
                         {templateNote?.planId === plan.id && (
                           <p

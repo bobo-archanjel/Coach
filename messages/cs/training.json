@@ -28,7 +28,7 @@
   "done": "Hotovo",
   "exercises": "{count, plural, one {# cvik} few {# cviky} other {# cviků}}",
   "deleteWorkout": "Opravdu smazat tento trénink?",
-  "edit": "Upravit",
+  "edit": "Upravit plán",
   "viewPlan": "Report",
   "saveTemplate": "Uložit jako šablonu",
   "hint": "Vyber si den v plánu — „Začít trénink“ ho nastaví jako aktivní na kartě Dnes.",
