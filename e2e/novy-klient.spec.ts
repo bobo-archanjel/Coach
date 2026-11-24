@@ -39,7 +39,7 @@ test("nový klient bez plánu — Dnes s prázdnym plánom, prehľadom a týžd�
     await page.waitForURL(/\/portal$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "Zatiaľ nemáš tréningový plán" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Vytvoriť plán" })).toHaveAttribute("href", "/portal/trening");
-    await expect(page.getByText(/Tento týždeň/).first()).toBeVisible();
+    await expect(page.getByTestId("client-calendar")).toContainText("Kalendár");
     await expect(page.getByText("Meranie", { exact: true })).toBeVisible();
   } finally {
     await admin.from("clients").delete().eq("user_id", uid);

@@ -24,6 +24,20 @@ export interface LoggedSessionView {
   compare: CompletedCompare;
 }
 
+/** Udalosť v kalendári klienta: termín od trénera (appointments) alebo vlastná (client_events, 0072). */
+export interface CalendarEvent {
+  id: string;
+  kind: "trainer" | "own";
+  title: string;
+  /** začiatok/koniec v UTC (ISO) — pre úpravu */
+  startsAt: string;
+  endsAt: string | null;
+  /** čas v Europe/Bratislava, „18:30“ */
+  time: string;
+  endTime: string | null;
+  note: string | null;
+}
+
 export interface WeekDay {
   /** Po, Ut, St … */
   label: string;
@@ -33,14 +47,17 @@ export interface WeekDay {
   state: DayCellState;
   /** odcvičené tréningy v tento kalendárny deň (zvyčajne 0 – 1, zriedka viac) */
   sessions: LoggedSessionView[];
+  /** termíny od trénera a vlastné udalosti v tento deň, podľa času */
+  events: CalendarEvent[];
 }
 
-/** Týždeň pre pás „Tento týždeň" — aktuálny aj ktorýkoľvek minulý (WeekHistory). */
+/** Kalendár na karte Dnes — 2 týždne (14 dní) od pondelka (WeekHistory, feature/kalendar-klient). */
 export interface WeekView {
-  /** pondelok tohto týždňa, YYYY-MM-DD */
+  /** pondelok prvého týždňa, YYYY-MM-DD */
   mondayIso: string;
-  /** ľudský rozsah týždňa, napr. „18. – 24. aug" */
+  /** ľudský rozsah, napr. „24. aug – 6. sep" */
   rangeLabel: string;
+  /** zobrazené obdobie obsahuje dnešok */
   isCurrentWeek: boolean;
   days: WeekDay[];
 }
