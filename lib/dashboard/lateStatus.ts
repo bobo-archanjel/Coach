@@ -18,6 +18,8 @@ export interface LateStatus {
    * meškanie už nie je "to isté" skryté upozornenie.
    */
   since: string;
+  /** posledný odcvičený tréning (YYYY-MM-DD), null = ešte necvičil */
+  lastWorkoutOn: string | null;
 }
 
 /** Per-klient stav meškania — len pre klientov, ktorí majú aspoň jeden priradený plán. */
@@ -61,6 +63,7 @@ export async function getLateStatusByClient(
       days,
       tone: days >= LATE_THRESHOLD_DAYS ? "late" : "active",
       since: reference.slice(0, 10),
+      lastWorkoutOn: latestLogByClient.get(clientId)?.slice(0, 10) ?? null,
     });
   }
   return statusByClient;

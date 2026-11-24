@@ -60,5 +60,31 @@
     "remove": "Odebrat příjemce {name}",
     "resend": "Poslat znovu",
     "sending": "Posílám…"
+  },
+  "card": {
+    "filtersAria": "Filtrovat klienty podle stavu",
+    "filter": {
+      "all": "Všichni",
+      "active": "Aktivní",
+      "late": "Bez tréninku",
+      "noPlan": "Bez plánu",
+      "ended": "Ukončení"
+    },
+    "noPlan": "bez plánu",
+    "plans": "{count, plural, one {tréninkový plán} few {tréninkové plány} other {tréninkových plánů}}",
+    "mealPlans": "{count, plural, one {jídelníček} few {jídelníčky} other {jídelníčků}}",
+    "lastWorkout": "poslední trénink",
+    "lastNever": "zatím ne",
+    "lastToday": "dnes",
+    "lastYesterday": "včera",
+    "lastDays": "před {count} d.",
+    "planProgress": "{done} / {total} tréninků",
+    "planDone": "Hotovo — čas na nový plán",
+    "planProgressAria": "Postup plánu {name}",
+    "planNone": "Zatím bez tréninkového plánu",
+    "planDraftOnly": "Plán je zatím koncept — klient ho nevidí",
+    "since": "Klient od {date}",
+    "durationNew": "nový",
+    "durationMonths": "{count, plural, one {# měsíc} few {# měsíce} other {# měsíců}}"
   }
 }
