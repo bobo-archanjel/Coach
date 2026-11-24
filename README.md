@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Oprava: kalendár klienta — polia času na mobile** (`fix/kalendar-cas-inputy`, bez migrácie).
+  - Pri pridávaní udalosti sa polia „Od“ a „Do“ na iPhone (Safari) prelínali — stĺpce sa už nenaťahujú podľa natívneho poľa času, na úzkom displeji sú pod sebou.
+  - Dátumy dní v kalendári rovnaké na serveri aj v Safari (bez nesúladu pri hydratácii).
 - **2026-11-24** — **Klient: kalendár na 2 týždne na karte Dnes** (`feature/kalendar-klient`, **migrácia `0072_client_events.sql`**).
   - Namiesto „Tento týždeň“ kalendár s 2 riadkami Po–Ne (tento a budúci týždeň, listovanie po 2 týždňoch dozadu aj dopredu, „Späť na dnešok“).
   - Bodky: zelená = odcvičený tréning, červená = termín od trénera (`appointments`), oranžová = vlastná udalosť klienta; legenda.
