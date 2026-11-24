@@ -3589,3 +3589,91 @@ select.addClientInputSm {
   font-style: italic;
   color: var(--paper-dim);
 }
+
+/* ---------- makro cieľ: ručná úprava (detail klienta → Makro cieľ) ---------- */
+.macroResultHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  /* odstup od deliacej čiary pod hlavičkou (horný okraj prvého riadku) */
+  margin-bottom: 14px;
+}
+.macroResultHead h3 {
+  margin: 0;
+}
+.macroHeadTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+}
+.macroHeadSide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.macroEditBtn {
+  white-space: nowrap;
+}
+.macroManualBadge {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--plate-yellow);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.macroManualHint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--plate-yellow);
+}
+.macroEdit {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.macroEditRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px;
+  grid-template-areas:
+    "label input"
+    "auto input";
+  align-items: center;
+  column-gap: 12px;
+}
+.macroEditLabel {
+  grid-area: label;
+  font-size: 14px;
+  font-weight: 650;
+}
+.macroEditAuto {
+  grid-area: auto;
+  font-size: 12px;
+  color: var(--paper-faint);
+}
+.macroEditInput {
+  grid-area: input;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.macroEditInput input {
+  width: 100%;
+  min-width: 0;
+  text-align: right;
+}
+.macroEditActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}

@@ -191,7 +191,7 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await expect(rows.nth(1)).toContainText("≈ 400 kcal/deň");
     await expect(rows.nth(1)).toContainText("3 dni");
     await expect(rows.nth(2)).toContainText(`${prefix} archív`);
-    await expect(rows.nth(2)).toContainText("Archivovaný");
+    await expect(rows.nth(2)).toContainText("Neaktívny");
 
     await rows.nth(1).click();
     await page.waitForURL(/\/dashboard\/jedalnicky\/jedalnicek\/[0-9a-f-]{36}$/, { timeout: 30_000 });

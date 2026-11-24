@@ -19,7 +19,7 @@
   "createdOn": "Vytvorený {date} · {count, plural, one {# deň} few {# dni} other {# dní}}",
   "kcalPerDay": "≈ {kcal} kcal/deň",
   "noMeals": "bez jedál",
-  "archived": "Archivovaný",
+  "archived": "Neaktívny",
   "noMealPlans": "Klient zatiaľ nemá žiadny jedálniček.",
   "defaultMealPlanName": "Jedálniček {date}",
   "infoTitle": "Informácie",
@@ -84,7 +84,15 @@
     "protein": "Bielkoviny",
     "carbs": "Sacharidy",
     "fat": "Tuky",
-    "fillHint": "Vyplň vek, váhu a výšku — výsledok sa dopočíta automaticky."
+    "fillHint": "Vyplň vek, váhu a výšku — výsledok sa dopočíta automaticky.",
+    "editValues": "Upraviť hodnoty",
+    "saveValues": "Uložiť hodnoty",
+    "cancel": "Zrušiť",
+    "manualBadge": "Upravené ručne",
+    "kcalFromMacros": "{kcal} kcal/deň — súčet makier",
+    "autoValue": "výpočet: {g} g",
+    "macroAria": "{name} v gramoch",
+    "manualOverwriteHint": "Makrá sú upravené ručne — uložením údajov sa nahradia automatickým výpočtom."
   },
   "danger": {
     "coopTitle": "Spolupráca",

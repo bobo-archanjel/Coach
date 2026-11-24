@@ -97,7 +97,10 @@
     "needDay": "Přidej alespoň jeden den.",
     "nameMax": "Název může mít nejvýš {max} znaků.",
     "invalidFood": "Potravina „{name}“ má neplatné hodnoty.",
-    "notReady": "Vlastní jídelníček se teprve zapíná — zkus to za chvíli."
+    "notReady": "Vlastní jídelníček se teprve zapíná — zkus to za chvíli.",
+    "invalidMacros": "Zadej makra v celých gramech (bílkoviny 0–500, sacharidy 0–1500, tuky 0–400).",
+    "macroKcalRange": "Součet maker musí být mezi 800 a 8000 kcal.",
+    "macroProfileMissing": "Nejdřív ulož vstupní údaje klienta."
   },
   "calendar": {
     "titleTooLong": "Název je příliš dlouhý (max. 200 znaků).",
