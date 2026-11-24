@@ -83,5 +83,6 @@
   "tplDayEmpty": "Tento tréning zatiaľ nemá cviky.",
   "tplPreview": "Náhľad",
   "progressDone": "Odcvičené {done} z {total}",
-  "nextUp": "Na rade"
+  "nextUp": "Na rade",
+  "tplExercisesTotal": "{count, plural, =0 {Zatiaľ bez cvikov} one {# cvik spolu} few {# cviky spolu} other {# cvikov spolu}}"
 }

@@ -77,7 +77,9 @@
     "draftContinue": "Pokračovať",
     "draftDiscard": "Zahodiť",
     "preview": "Náhľad",
-    "useTemplate": "Použiť šablónu"
+    "useTemplate": "Použiť šablónu",
+    "tplAvgKcal": "Priemerne {kcal} kcal na deň",
+    "tplNoFood": "Zatiaľ bez jedál"
   },
   "chat": {
     "loadFailed": "Nepodarilo sa načítať chat",

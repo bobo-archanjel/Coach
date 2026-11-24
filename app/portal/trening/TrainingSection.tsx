@@ -395,47 +395,66 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
             <p className={styles.trEmptyBody}>{tr("templatesEmpty")}</p>
           </div>
         ) : (
-          <div className={styles.trTplBox}>
-            <ul id="moje-sablony" className={styles.trTplList}>
+          <div>
+            {/* karty šablón — rovnaký vzhľad ako karty plánov (hlavička, dni v krúžkoch, rad akcií) */}
+            <ul id="moje-sablony" className={styles.trPlanList}>
               {templates.map((t) => {
                 const exCount = t.days.reduce((n, d) => n + d.exercises.length, 0);
                 return (
-                  <li key={t.id} className={styles.trTpl}>
-                    <span className={styles.trTplText}>
-                      <span className={styles.trTplName}>{t.name}</span>
-                      <span className={styles.trTplMeta}>
-                        {tr("tplMeta", { days: t.days.length, exercises: exCount })}
-                      </span>
-                    </span>
-                    {/* Nový tréning predvyplnený šablónou — uloží sa ako nový, šablóna ostane. */}
-                    {confirmTplDelete === t.id ? (
-                      <div className={`${pa.confirm} ${pa.confirmWide}`}>
-                        <span className={pa.confirmText}>{tr("deleteTemplate")}</span>
-                        <span className={pa.confirmBtns}>
-                          <button type="button" className={pa.confirmNo} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
-                            {tr("no")}
-                          </button>
-                          <button type="button" className={pa.confirmYes} onClick={() => removeTemplate(t.id)} disabled={pending}>
-                            {tr("delete")}
-                          </button>
-                        </span>
+                  <li key={t.id} className={styles.trPlan} data-testid="template-card">
+                    <PlanBand
+                      name={t.name}
+                      countLabel={tr("planTrainings", { count: t.days.length })}
+                      activeLabel={null}
+                      chips={[]}
+                    />
+                    <div className={styles.trPlanBody}>
+                      <p className={styles.tplSummary}>{tr("tplExercisesTotal", { count: exCount })}</p>
+                      {t.days.length > 0 && (
+                        <ul className={styles.trDayList} data-scroll={t.days.length > 3 || undefined}>
+                          {t.days.map((d, i) => (
+                            <li key={i} className={styles.tplDayRow}>
+                              <span className={styles.trDayMark} aria-hidden="true">
+                                {i + 1}
+                              </span>
+                              <span className={styles.trDayBtnName}>{d.name}</span>
+                              <span className={styles.trDayCount}>{tr("exercises", { count: d.exercises.length })}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {/* Nový tréning predvyplnený šablónou — uloží sa ako nový, šablóna ostane. */}
+                      <div className={styles.trPlanFoot}>
+                        {confirmTplDelete === t.id ? (
+                          <div className={pa.confirm}>
+                            <span className={pa.confirmText}>{tr("deleteTemplate")}</span>
+                            <span className={pa.confirmBtns}>
+                              <button type="button" className={pa.confirmNo} onClick={() => setConfirmTplDelete(null)} disabled={pending}>
+                                {tr("no")}
+                              </button>
+                              <button type="button" className={pa.confirmYes} onClick={() => removeTemplate(t.id)} disabled={pending}>
+                                {tr("delete")}
+                              </button>
+                            </span>
+                          </div>
+                        ) : (
+                          <div className={pa.row}>
+                            <button type="button" className={pa.action} onClick={() => setPreviewTpl(t)}>
+                              <ActionPreviewIcon />
+                              {tr("tplPreview")}
+                            </button>
+                            <button type="button" className={`${pa.action} ${pa.primary}`} onClick={() => openBuilder(null, t)}>
+                              <ActionUseIcon />
+                              {tr("use")}
+                            </button>
+                            <button type="button" className={`${pa.action} ${pa.danger}`} onClick={() => setConfirmTplDelete(t.id)}>
+                              <ActionTrashIcon />
+                              {tr("delete")}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className={`${pa.gridRow} ${pa.gridRow3}`}>
-                        <button type="button" className={`${pa.action} ${pa.small}`} onClick={() => setPreviewTpl(t)}>
-                          <ActionPreviewIcon />
-                          {tr("tplPreview")}
-                        </button>
-                        <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(null, t)}>
-                          <ActionUseIcon />
-                          {tr("use")}
-                        </button>
-                        <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={() => setConfirmTplDelete(t.id)}>
-                          <ActionTrashIcon />
-                          {tr("delete")}
-                        </button>
-                      </div>
-                    )}
+                    </div>
                   </li>
                 );
               })}

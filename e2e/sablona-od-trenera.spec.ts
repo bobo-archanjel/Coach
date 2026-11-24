@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { sessionLogin, userIdByEmail } from "./helpers/sessionLogin";
 
 /**
  * „Uložiť ako šablónu“ aj pri tréningu a jedálničku OD TRÉNERA (klient si zaň platí —
@@ -20,7 +21,6 @@ const env = {
   anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   serviceRole: process.env.SUPABASE_SERVICE_ROLE_KEY,
   clientEmail: process.env.E2E_CLIENT_EMAIL,
-  clientPassword: process.env.E2E_CLIENT_PASSWORD,
 };
 const hasEnv = Object.values(env).every(Boolean);
 const AUTH = { auth: { persistSession: false, autoRefreshToken: false } };
@@ -66,9 +66,8 @@ test.describe("šablóna z plánu od trénera — reálna DB (QA klient)", () =>
 
   test.beforeAll(async () => {
     admin = createClient(env.url!, env.serviceRole!, AUTH);
-    const api = createClient(env.url!, env.anon!, AUTH);
-    const { data } = await api.auth.signInWithPassword({ email: env.clientEmail!, password: env.clientPassword! });
-    userId = data.user!.id;
+    // bez signInWithPassword (CAPTCHA v Supabase) — id cez service role
+    userId = await userIdByEmail(env.clientEmail!);
     const { data: row } = await admin
       .from("clients")
       .select("id, trainer_id, active_plan_id, active_meal_plan_id")
@@ -91,12 +90,9 @@ test.describe("šablóna z plánu od trénera — reálna DB (QA klient)", () =>
     await admin.from("clients").update({ active_plan_id: originalActivePlan, active_meal_plan_id: originalActiveMeal }).eq("id", clientRowId);
   });
 
+  // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
   async function login(page: Page) {
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.clientEmail!);
-    await page.locator("#login-password").fill(env.clientPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/portal/, { timeout: 30_000 });
+    await sessionLogin(page, env.clientEmail!, test.info().project.use.baseURL!);
   }
 
   test("tréning aj jedálniček od trénera → šablóny klienta s rovnakými dňami", async ({ page }, testInfo) => {
