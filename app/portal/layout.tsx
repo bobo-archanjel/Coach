@@ -17,6 +17,7 @@ import brand from "@/app/components/branding.module.css";
 import { PortalNav } from "./PortalNav";
 import { PortalSkeletonOverlay } from "./PortalSkeletonOverlay";
 import { NotificationBellSlot } from "./NotificationBell";
+import { AchievementHost } from "./AchievementHost";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "@/app/v6design/theme";
 import t from "@/app/v6design/styles/tokens.module.css";
 import s from "./portal.module.css";
@@ -100,6 +101,9 @@ export default async function PortalLayout({ children }: { children: React.React
             <PortalSkeletonOverlay />
           </div>
         </div>
+        <Suspense fallback={null}>
+          <AchievementHost />
+        </Suspense>
         <Suspense fallback={null}>
           <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} home="/portal" />
           <SectionGuide role="client" />

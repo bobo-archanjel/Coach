@@ -43,6 +43,7 @@ import skLegal from "./sk/legal.json";
 import skBilling from "./sk/billing.json";
 import skBranding from "./sk/branding.json";
 import skReports from "./sk/reports.json";
+import skGamification from "./sk/gamification.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -83,6 +84,7 @@ import csLegal from "./cs/legal.json";
 import csBilling from "./cs/billing.json";
 import csBranding from "./cs/branding.json";
 import csReports from "./cs/reports.json";
+import csGamification from "./cs/gamification.json";
 
 export const sk = {
   common: skCommon,
@@ -124,6 +126,7 @@ export const sk = {
   billing: skBilling,
   branding: skBranding,
   reports: skReports,
+  gamification: skGamification,
 };
 
 export type Messages = typeof sk;
@@ -168,6 +171,7 @@ export const cs: Messages = {
   billing: csBilling,
   branding: csBranding,
   reports: csReports,
+  gamification: csGamification,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };

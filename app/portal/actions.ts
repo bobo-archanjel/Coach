@@ -14,6 +14,7 @@ import { DIARY_MAX_DAYS_BACK, validDiaryDate } from "@/lib/portal/diaryDate";
 import { cleanSupersetId, normalizeSupersets } from "@/lib/workouts/superset";
 import { bratislavaToUtcIso } from "@/lib/calendar/month";
 import { getTranslations } from "next-intl/server";
+import { syncGamification } from "@/lib/gamification/server";
 
 export interface ActionState {
   error: string | null;
@@ -215,6 +216,9 @@ export async function addOwnBodyMetricAction(_prevState: ActionState, formData: 
   );
   if (error) return { error: await dbErr(error, "actions") };
 
+  // gamifikácia: odznak „Prvé meranie“ (server si všetko dopočíta sám, nikdy nie z klienta)
+  await syncGamification(supabase, { clientId: client.id }, "body");
+
   revalidatePath("/portal", "layout");
   revalidatePath(`/dashboard/klienti/${client.id}`);
   revalidatePath("/dashboard/analytika");
@@ -329,7 +333,7 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
 
   const { data: client } = await supabase
     .from("clients")
-    .select("id")
+    .select("id, active_plan_id")
     .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -339,15 +343,19 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
   // Insert a RPC sa navzájom nepotrebujú (RPC len čistí `active_day_id` podľa
   // dayId, nie podľa výsledku insertu) — paralelne namiesto čakania jedného na
   // druhé, ušetrí jeden round-trip priamo v ceste "klik na Ukončiť tréning".
-  const [{ error }] = await Promise.all([
-    supabase.from("workout_logs").insert({
-      client_id: client.id,
-      workout_day_id: dayId,
-      entries,
-      rpe,
-      note,
-      status: "completed",
-    }),
+  const [{ error, data: inserted }] = await Promise.all([
+    supabase
+      .from("workout_logs")
+      .insert({
+        client_id: client.id,
+        workout_day_id: dayId,
+        entries,
+        rpe,
+        note,
+        status: "completed",
+      })
+      .select("id")
+      .maybeSingle(),
     // Deň je zalogovaný (nanovo alebo už bol dnes skôr) — explicitný výber dňa
     // zo sekcie Tréning (clients.active_day_id, 0022) sa tým spotreboval, ďalší
     // štart nech opäť rieši prirodzená rotácia dní (lib/portal/data.ts). RPC, lebo
@@ -366,6 +374,13 @@ export async function finishWorkoutAction(_prevState: ActionState, formData: For
     }
     return { error: await dbErr(error, "actions") };
   }
+
+  // Gamifikácia: osobné rekordy a odznaky z tohto tréningu. Nikdy nezhodí zápis — chyby
+  // syncGamification ticho pohltí (viď lib/gamification/server.ts). Oslava sa ukáže cez
+  // revalidáciu layoutu nižšie (AchievementHost číta nezobrazené úspechy).
+  await syncGamification(supabase, { clientId: client.id, activePlanId: client.active_plan_id }, "workout", {
+    logId: (inserted?.id as string | undefined) ?? null,
+  });
 
   // "layout", nie len stránka: /portal/trening číta ten istý workout_logs riadok
   // pre badge "Hotovo" (lib/portal/data.ts) — bez "layout" ostal cache tej stránky
@@ -407,11 +422,19 @@ export async function updateWorkoutLogAction(input: {
     .from("workout_logs")
     .update({ entries, rpe, note })
     .eq("id", input.logId)
-    .select("id");
+    .select("id, client_id");
   if (error) return { error: await dbErr(error, "actions") };
   if (!data || data.length === 0) {
     return { error: await tErr("client.editWindow") };
   }
+
+  // opravené hodnoty môžu rekord zmeniť alebo zrušiť — prepočítať rekordy tohto tréningu
+  const { data: owner } = await supabase
+    .from("clients")
+    .select("id, active_plan_id")
+    .eq("id", data[0].client_id as string)
+    .maybeSingle();
+  if (owner) await syncGamification(supabase, { clientId: owner.id, activePlanId: owner.active_plan_id }, "workout", { logId: input.logId });
 
   revalidatePath("/portal", "layout");
   // tréner vidí opravené hodnoty (a štítok "Upravené") v detaile tréningu
@@ -559,6 +582,10 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 
   if (error) return { error: await dbErr(error, "actions") };
 
+  // gamifikácia: séria dní so zápisom, týždeň s cieľom bielkovín — oslava (ak nejaká padla)
+  // sa ukáže po obnovení layoutu portálu
+  const fresh = await syncGamification(supabase, { clientId }, "food");
+  if (fresh > 0) revalidatePath("/portal", "layout");
   revalidatePath("/portal/dennik");
   return ok;
 }
@@ -585,6 +612,9 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
   if (error) return { error: await dbErr(error, "actions") };
   if (!data) return { error: await tErr("client.recordNotFound") };
 
+  // zvýšená gramáž môže doplniť cieľ bielkovín dňa — odznak „týždeň bielkovín“
+  const owner = await currentClientId(supabase);
+  if (owner && (await syncGamification(supabase, { clientId: owner }, "food")) > 0) revalidatePath("/portal", "layout");
   revalidatePath("/portal/dennik");
   return ok;
 }

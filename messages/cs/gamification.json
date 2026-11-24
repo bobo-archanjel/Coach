@@ -1,0 +1,140 @@
+{
+  "title": "Úspěchy",
+  "subtitle": "Odznaky, osobní rekordy a tvoje úroveň na jednom místě.",
+  "unavailable": "Úspěchy se teď nepodařilo načíst. Zkus to znovu za chvíli.",
+  "levels": {
+    "bronze": "Bronz",
+    "silver": "Stříbro",
+    "gold": "Zlato",
+    "platinum": "Platina",
+    "diamond": "Diamant"
+  },
+  "level": {
+    "name": "Úroveň {name}",
+    "xp": "{xp} XP",
+    "toNext": "Ještě {count} XP do úrovně {next}",
+    "max": "Nejvyšší úroveň, skvělá práce.",
+    "progressAria": "Postup k úrovni {next}: {percent} %",
+    "maxAria": "Nejvyšší úroveň dosažena"
+  },
+  "xpBreakdown": {
+    "title": "Odkud máš XP",
+    "workouts": "Tréninky",
+    "food": "Dny se zápisem jídla",
+    "prs": "Osobní rekordy",
+    "badges": "Odznaky"
+  },
+  "home": {
+    "title": "Tento týden",
+    "ringsAria": "Týdenní kruhy",
+    "badges": "Odznaky {count} z {total}",
+    "open": "Odznaky a rekordy",
+    "openAria": "Otevřít odznaky a osobní rekordy"
+  },
+  "rings": {
+    "training": "Tréninky",
+    "food": "Jídlo",
+    "protein": "Bílkoviny",
+    "value": "{value}/{goal}",
+    "aria": "{label}: {value} z {goal}",
+    "trainingHint": "dny s tréninkem, cíl podle plánu",
+    "foodHint": "dny se zapsaným jídlem",
+    "proteinHint": "dny s cílem bílkovin"
+  },
+  "categories": {
+    "endurance": "Vytrvalost",
+    "strength": "Síla",
+    "nutrition": "Strava",
+    "progress": "Progres",
+    "hidden": "Skryté"
+  },
+  "rarity": {
+    "common": "Běžný",
+    "rare": "Vzácný",
+    "epic": "Epický"
+  },
+  "gallery": {
+    "title": "Odznaky",
+    "count": "{count} z {total} získaných",
+    "earnedOn": "Získáno {date}",
+    "fromHistory": "Z tvé dosavadní historie",
+    "locked": "Zatím zamčeno",
+    "howTo": "Jak získat: {text}"
+  },
+  "hidden": {
+    "name": "???",
+    "desc": "Skrytý odznak. Prozradí se, až když ho získáš."
+  },
+  "records": {
+    "title": "Rekordy",
+    "empty": "První rekord přijde, když v nějakém cviku překonáš svou nejlepší váhu. Zatím se zapisuje základ.",
+    "best": "{weight} kg × {reps}",
+    "e1rm": "odhad 1RM {value} kg",
+    "last": "naposledy {date}",
+    "count": "{count, plural, one {# rekord} few {# rekordy} other {# rekordů}}"
+  },
+  "recent": {
+    "title": "Poslední úspěchy",
+    "empty": "Nové rekordy a odznaky se ukážou tady.",
+    "pr": "Rekord: {exercise}, {weight} kg",
+    "badge": "Odznak: {name}",
+    "highFive": "Tvůj trenér ti dal high five"
+  },
+  "unlock": {
+    "prTitle": "Nový osobní rekord na {exercise}: {weight} kg 🎉",
+    "prSub": "Série {weight} kg × {reps}. Takhle se buduje síla.",
+    "badgeTitle": "Nový odznak: {name}",
+    "badgeSub": "{desc}",
+    "close": "Super",
+    "next": "Další",
+    "position": "{index} z {total}",
+    "aria": "Nový úspěch",
+    "viewAll": "Všechny odznaky"
+  },
+  "badges": {
+    "first_workout": { "name": "První krok", "desc": "Dokonči svůj první trénink." },
+    "workouts_10": { "name": "Rozběhnutý", "desc": "Dokonči 10 tréninků." },
+    "workouts_25": { "name": "Stálice", "desc": "Dokonči 25 tréninků." },
+    "workouts_50": { "name": "Padesátka", "desc": "Dokonči 50 tréninků." },
+    "workouts_100": { "name": "Stovkař", "desc": "Dokonči 100 tréninků." },
+    "workouts_250": { "name": "Legenda", "desc": "Dokonči 250 tréninků." },
+    "streak_4w": { "name": "Měsíc v kole", "desc": "Cvič 4 týdny v řadě. Jedno vynechání se toleruje." },
+    "streak_12w": { "name": "Čtvrtletí", "desc": "Cvič 12 týdnů v řadě. Jedno vynechání se toleruje." },
+    "streak_26w": { "name": "Půl roku", "desc": "Cvič 26 týdnů v řadě. Jedno vynechání se toleruje." },
+    "streak_52w": { "name": "Celý rok", "desc": "Cvič 52 týdnů v řadě. Jedno vynechání se toleruje." },
+    "first_pr": { "name": "První rekord", "desc": "Překonej svou dosavadní nejlepší váhu nebo odhad 1RM v nějakém cviku." },
+    "prs_10": { "name": "Lámač rekordů", "desc": "Získej 10 osobních rekordů." },
+    "volume_1t": { "name": "Tuna železa", "desc": "Zvedni celkem 1 tunu (kilogramy krát opakování)." },
+    "volume_10t": { "name": "Slon", "desc": "Zvedni celkem 10 tun, to je váha slona." },
+    "volume_50t": { "name": "Lokomotiva", "desc": "Zvedni celkem 50 tun." },
+    "volume_100t": { "name": "Modrá velryba", "desc": "Zvedni celkem 100 tun." },
+    "food_streak_7": { "name": "Týden v deníku", "desc": "Zapiš jídlo 7 dní v řadě. Jedno vynechání se toleruje." },
+    "food_streak_30": { "name": "Měsíc v deníku", "desc": "Zapiš jídlo 30 dní v řadě. Jedno vynechání se toleruje." },
+    "protein_week": { "name": "Bílkovinový týden", "desc": "Splň cíl bílkovin alespoň 5 dní v jednom týdnu." },
+    "first_measurement": { "name": "První měření", "desc": "Zapiš své první měření váhy nebo obvodů." },
+    "plan_all_days": { "name": "Celý plán", "desc": "Odcvič každý den jednoho plánu alespoň jednou (plán má alespoň 2 dny)." },
+    "new_year": { "name": "Silvestr a Nový rok", "desc": "Zacvič si 31. prosince nebo 1. ledna." }
+  },
+  "trainer": {
+    "feedTitle": "Úspěchy klientů",
+    "feedHint": "Rekordy a odznaky za poslední dny. Jedno klepnutí a klient dostane high five.",
+    "feedEmpty": "Zatím nic nového. Rekordy a odznaky klientů se ukážou tady.",
+    "pr": "Nový rekord: {exercise}, {weight} kg",
+    "prReps": "Nový rekord: {exercise}, {weight} kg × {reps}",
+    "badge": "Nový odznak: {badge}",
+    "send": "High five",
+    "sending": "Posílám…",
+    "sent": "Odesláno",
+    "sendAria": "Poslat high five klientovi {client}: {what}",
+    "sentAria": "High five klientovi {client} už byl odeslán",
+    "clientTitle": "Úspěchy",
+    "clientEmpty": "Klient zatím nemá nové úspěchy.",
+    "readOnly": "Při pozastaveném předplatném se high five neodesílá."
+  },
+  "errors": {
+    "invalid": "Neplatný úspěch.",
+    "notSignedIn": "Nejsi přihlášen.",
+    "notFound": "Úspěch se nenašel nebo nepatří tvému klientovi.",
+    "failed": "High five se nepodařilo odeslat. Zkus to znovu."
+  }
+}

@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/locales";
 import { AppLink as Link } from "../../../components/AppLink";
 import { Suspense } from "react";
+import { AchievementsFeed } from "@/app/dashboard/AchievementsFeed";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getNutritionAdherence, getTrainingAdherence } from "@/lib/dashboard/adherence";
@@ -247,6 +248,9 @@ export default async function ClientDetailPage({
       // samostatná karta "Aktivita" pôsobila ako duplicita tejto.
       content: (
         <div className={styles.cardStack}>
+          <Suspense fallback={null}>
+            <AchievementsFeed clientId={id} />
+          </Suspense>
           <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(t("plansTitle"), plans && plans.length > 0 ? count(t("planCount", { count: plans.length })) : undefined)}
             {plans && plans.length > 0 ? (

@@ -31,7 +31,10 @@
     "newPlan": "Nový tréninkový plán: {name}",
     "newPlans": "{count, plural, one {# nový tréninkový plán} few {# nové tréninkové plány} other {# nových tréninkových plánů}}",
     "newMealPlan": "Nový jídelníček: {name}",
-    "newMealPlans": "{count, plural, one {# nový jídelníček} few {# nové jídelníčky} other {# nových jídelníčků}}"
+    "newMealPlans": "{count, plural, one {# nový jídelníček} few {# nové jídelníčky} other {# nových jídelníčků}}",
+    "highFivePr": "🙌 Tvůj trenér ti dal high five za rekord: {exercise}",
+    "highFiveBadge": "🙌 Tvůj trenér ti dal high five za nový odznak",
+    "highFives": "{count, plural, one {# high five} few {# high five} other {# high five}} od trenéra"
   },
   "bucket": {
     "ok": "V pořádku",

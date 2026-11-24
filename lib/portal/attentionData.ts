@@ -10,6 +10,8 @@ import {
   applyPortalDismissals,
   apptDismissKey,
   mealDismissKey,
+  highFiveDismissKey,
+  HIGH_FIVE_WINDOW_DAYS,
   planDismissKey,
   APPOINTMENT_REMINDER_HOURS,
   NEW_PLAN_WINDOW_DAYS,
@@ -58,7 +60,7 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
   // (napr. GDPR zmazanie/zrušenie) by sa ukazovali ako „neprečítané správy od trénera“,
   // ktoré nemá kde prečítať. Počítajú sa len pri prepojenom trénerovi.
   const noMessages = Promise.resolve({ count: 0, error: null });
-  const [{ count: unread, error: unreadErr }, plans, meals, appts, dismissed] = await Promise.all([
+  const [{ count: unread, error: unreadErr }, plans, meals, appts, dismissed, fives] = await Promise.all([
     client.trainer_id
       ? supabase
           .from("messages")
@@ -93,6 +95,14 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
       .lte("starts_at", reminderUntilIso)
       .order("starts_at", { ascending: true }),
     getActivePortalDismissals(supabase, client.id),
+    // high five od trénera (0078) — pred migráciou dopyt zlyhá a len sa vynechá
+    supabase
+      .from("high_fives")
+      .select("id, client_achievements(kind, exercise_name)")
+      .eq("client_id", client.id)
+      .gte("created_at", new Date(Date.now() - HIGH_FIVE_WINDOW_DAYS * 86_400_000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
   if (unreadErr || plans.error || meals.error || appts.error) return null;
 
@@ -101,6 +111,13 @@ export async function loadPortalAttention(): Promise<PortalAttentionData | null>
       unread: unread ?? 0,
       newPlans: (plans.data ?? []).map((p) => ({ id: p.id, name: p.name, key: planDismissKey(p.id) })),
       newMealPlans: (meals.data ?? []).map((p) => ({ id: p.id, name: p.name, key: mealDismissKey(p.id) })),
+      highFives: (fives.data ?? []).map((h) => {
+        const a = (Array.isArray(h.client_achievements) ? h.client_achievements[0] : h.client_achievements) as
+          | { kind: string; exercise_name: string | null }
+          | null
+          | undefined;
+        return { id: h.id as string, key: highFiveDismissKey(h.id as string), exercise: a?.kind === "pr" ? (a.exercise_name ?? null) : null };
+      }),
       appointments: (appts.data ?? []).map((a) => ({
         id: a.id,
         title: a.title,

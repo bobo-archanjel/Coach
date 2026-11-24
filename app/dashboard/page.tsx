@@ -1,4 +1,6 @@
 import { AppLink as Link } from "../components/AppLink";
+import { Suspense } from "react";
+import { AchievementsFeed } from "./AchievementsFeed";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { AddClientForm } from "./AddClientForm";
@@ -413,6 +415,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         </DismissibleNotice>
       )}
       <LateAlertPanel clients={lateClients} />
+
+      {/* úspechy klientov (rekordy, odznaky) s high five — dostreamuje sa, nespomaľuje zoznam */}
+      <Suspense fallback={null}>
+        <AchievementsFeed />
+      </Suspense>
 
       <ClientsBoard initialItems={rosterItems} />
     </>

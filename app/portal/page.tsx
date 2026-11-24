@@ -21,6 +21,7 @@ import { AlertIcon, Notice } from "./Notice";
 import s from "./portal.module.css";
 import { LiveProgressRing, ProgressRing } from "./ProgressRing";
 import { OtherTodayWorkouts } from "./OtherTodayWorkouts";
+import { GamificationHome } from "./GamificationHome";
 
 /* /portal — "Dnes": dáta z getPortalData, pozdrav, odkaz trénera, terakotová karta
    dňa s prstencom postupu (začatie/zápis tréningu, stopky), prehľad týždňa s grafom. */
@@ -152,6 +153,7 @@ function Today({ data, preview = false }: { data: PortalData; preview?: boolean 
     session,
     week,
     streaks,
+    gamification,
     deletionNotice,
     cooperationEndedNotice,
     bodyMetrics,
@@ -246,7 +248,12 @@ function Today({ data, preview = false }: { data: PortalData; preview?: boolean 
           <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
 
-        <WeekHistory initial={week} footer={<StreakChips streaks={streaks} />} preview={preview} />
+        <WeekHistory initial={week} footer={
+            <>
+              {gamification && <GamificationHome home={gamification} />}
+              <StreakChips streaks={streaks} />
+            </>
+          } preview={preview} />
 
         <ProgressCard history={bodyMetrics} />
       </section>
