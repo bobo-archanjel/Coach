@@ -4,7 +4,7 @@
 // (validáciu, Turnstile, limity, zápis) znova overuje server (app/t/[handle]/actions.ts).
 // Honeypot `hp` je skryté pole (mimo obrazovky, tabIndex -1, autocomplete off) — človek ho nevyplní.
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { TurnstileScript, useTurnstile } from "@/app/components/Turnstile";
@@ -32,7 +32,8 @@ export function LeadForm({ handle, disabled = false }: { handle: string; disable
   // token Turnstile sa pridá až pri odoslaní (je jednorazový a vypršanie rieši widget sám)
   async function submit(formData: FormData) {
     formData.set("turnstile", await turnstile.waitForToken(6_000));
-    formAction(formData);
+    // po await sme mimo prechodu akcie formulára — dispatch useActionState musí ísť cez startTransition
+    startTransition(() => formAction(formData));
     turnstile.reset();
   }
 
