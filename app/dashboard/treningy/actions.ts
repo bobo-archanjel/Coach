@@ -113,6 +113,8 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
  * rovnaký výpočet ako vyhodnotenie). Tréner ho potom upraví a odošle ako každý koncept.
  */
 export async function createProgressedPlanAction(planId: string, pct: number): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -232,6 +234,8 @@ async function editTarget(
 
 /** „Uložiť úpravy“ zverejneného plánu — rozpracované úpravy z kópie do plánu, ktorý vidí klient. */
 export async function savePlanEditsAction(planId: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId) return { error: await tErr("plans.missingPlanId") };
   const supabase = await createClient();
   const { error } = await supabase.rpc("apply_plan_edits", { p_plan: planId });
