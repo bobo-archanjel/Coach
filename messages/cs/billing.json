@@ -24,30 +24,31 @@
     "business": "Business"
   },
   "tierBlurb": {
-    "starter": "Pro začínající trenéry.",
+    "starter": "Pro začínající trenéry — bez AI.",
     "pro": "AI nástroje pro tebe i klienty.",
-    "business": "Bez limitu klientů."
+    "business": "Bez limitu klientů a vlastní branding."
   },
   "features": {
     "starter": {
-      "clients": "Až 10 aktivních klientů",
-      "plans": "Tréninkové plány a builder",
-      "meals": "Jídelníčky a deník stravy",
-      "dashboard": "Základní přehled"
+      "clients": "5 nebo 10 aktivních klientů (podle výběru)",
+      "builder": "Tréninkový builder",
+      "overview": "Přehled tréninkových plánů",
+      "meals": "Jídelníčky a jídelní deník",
+      "dashboard": "Základní dashboard",
+      "templates": "Vlastní šablony tréninků a jídelníčků"
     },
     "pro": {
-      "clients": "Až 50 aktivních klientů",
+      "clients": "Do 30 aktivních klientů",
       "base": "Vše ze Starter",
-      "aiCoach": "AI Kouč pro tvé klienty",
-      "aiPlans": "AI generátor tréninkových plánů",
-      "aiMeals": "AI generátor jídelníčků",
-      "aiSummaries": "AI shrnutí progresu a portfolia"
+      "aiGenerators": "AI generátor plánů a jídelníčků",
+      "aiCoach": "AI Kouč pro klienty",
+      "aiSummaries": "AI shrnutí progresu a portfolia",
+      "reports": "Pokročilé reporty"
     },
     "business": {
       "clients": "Neomezený počet klientů",
       "base": "Vše z Pro",
-      "reports": "Pokročilé reporty (brzy)",
-      "branding": "Vlastní branding (brzy)"
+      "branding": "Vlastní logo / branding aplikace"
     }
   },
   "perMonth": "{price} / měsíc",
@@ -65,7 +66,7 @@
   "choose": "Vybrat {tier}",
   "switchTo": "Přejít na {tier}",
   "manage": "Spravovat předplatné",
-  "manageHint": "Změna tarifu, platební karta, faktury a zrušení předplatného se řeší v zabezpečeném portálu Stripe.",
+  "manageHint": "Změna tarifu, platební karta, faktury a zrušení předplatného se řeší v zabezpečeném portálu Stripe. Přechod na vyšší tarif platí hned (doplatí se poměrná část), přechod na nižší nastane až po konci zaplaceného období.",
   "redirecting": "Přesměrování…",
   "readOnlyTitle": "Účet je jen pro čtení",
   "compedNote": "Tvůj účet má přístup zdarma — předplatné nepotřebuješ.",
@@ -79,7 +80,8 @@
     "title": {
       "trialEnding": "Zkouška končí",
       "pastDue": "Selhala platba",
-      "readOnly": "Účet je jen pro čtení"
+      "readOnly": "Účet je jen pro čtení",
+      "scheduledOverLimit": "Blíží se změna tarifu"
     },
     "readOnly": {
       "no_subscription": "Předplatné se nenašlo. Aktivuj ho a můžeš pokračovat — všechna tvá data zůstávají.",
@@ -87,7 +89,8 @@
       "subscription_ended": "Předplatné je zrušené nebo nezaplacené. Data vidíš, ale změny jsou vypnuté. Obnov ho a můžeš pokračovat.",
       "past_due_expired": "Platba za předplatné selhala a odklad vypršel. Data vidíš, ale změny jsou vypnuté, dokud platbu neuhradíš.",
       "over_limit": "Máš {count} aktivních klientů, ale tvůj tarif povoluje {limit}. Data vidíš, ale změny jsou vypnuté — ukonči spolupráci s částí klientů nebo přejdi na vyšší tarif."
-    }
+    },
+    "scheduledOverLimit": "Po přechodu na {plan} ({date}) budeš mít {count} klientů z {limit} — účet bude jen ke čtení, dokud je nesnížíš."
   },
   "lock": {
     "badge": "od {tier}",
@@ -101,5 +104,8 @@
   "coachUnavailable": {
     "title": "AI Kouč momentálně není dostupný",
     "text": "Tvůj trenér ho má v tuto chvíli vypnutý. Ostatní části aplikace fungují jako dosud."
-  }
+  },
+  "variantClients": "Do {limit} klientů",
+  "scheduledChange": "{current} do {date}, potom {next}",
+  "scheduledOverLimit": "Po přechodu na {plan} ({date}) budeš mít {count} klientů z {limit} — účet bude jen ke čtení, dokud je nesnížíš."
 }

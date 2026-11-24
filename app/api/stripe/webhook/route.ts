@@ -37,6 +37,8 @@ export async function POST(req: Request) {
       store: createBillingStore(),
       log: createEventLog(),
       retrieveSubscription: (id) => stripe.subscriptions.retrieve(id),
+      // ceny fáz rozbalené, aby sa dal určiť variant aj podľa lookup_key (naplánovaný downgrade)
+      retrieveSchedule: (id) => stripe.subscriptionSchedules.retrieve(id, { expand: ["phases.items.price"] }),
     });
     // „busy“ = ten istý event práve spracúva iný request → 409, Stripe to skúsi znova
     if (result.outcome === "busy") return NextResponse.json({ received: false, busy: true }, { status: 409 });

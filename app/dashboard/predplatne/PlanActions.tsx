@@ -8,7 +8,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createCheckoutSessionAction, createPortalSessionAction, type BillingRedirectState } from "./actions";
-import type { Tier } from "@/lib/billing/plans";
+import type { Variant } from "@/lib/billing/plans";
 import pa from "@/app/components/planActions.module.css";
 import styles from "../billing.module.css";
 
@@ -34,7 +34,7 @@ function useRedirectAction() {
   return { error, busy: pending || redirecting, label: redirecting ? t("redirecting") : null, run };
 }
 
-export function ChooseTierButton({ tier, tierName, label, disabled }: { tier: Tier; tierName: string; label: "choose" | "switchTo"; disabled?: boolean }) {
+export function ChooseTierButton({ variant, tierName, label, disabled }: { variant: Variant; tierName: string; label: "choose" | "switchTo"; disabled?: boolean }) {
   const t = useTranslations("billing");
   const { error, busy, run } = useRedirectAction();
   return (
@@ -44,8 +44,8 @@ export function ChooseTierButton({ tier, tierName, label, disabled }: { tier: Ti
         className={`${pa.action} ${pa.primary}`}
         style={{ width: "100%" }}
         disabled={busy || disabled}
-        onClick={() => run(() => createCheckoutSessionAction(tier))}
-        data-testid={`choose-${tier}`}
+        onClick={() => run(() => createCheckoutSessionAction(variant))}
+        data-testid={`choose-${variant}`}
       >
         {busy ? t("redirecting") : t(label, { tier: tierName })}
       </button>

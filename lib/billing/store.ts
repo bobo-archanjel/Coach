@@ -9,7 +9,7 @@ import type { BillingStore, ClaimResult, EventLog, SubscriptionPatch } from "./w
  * trainer_id / customer_id).
  */
 const COLS =
-  "trainer_id, stripe_customer_id, stripe_subscription_id, tier, status, trial_ends_at, current_period_end, cancel_at_period_end, past_due_since, comped";
+  "trainer_id, stripe_customer_id, stripe_subscription_id, tier, status, trial_ends_at, current_period_end, cancel_at_period_end, past_due_since, comped, client_limit, scheduled_tier, scheduled_client_limit, scheduled_change_at";
 
 export function createBillingStore(): BillingStore {
   const db = createAdminClient();

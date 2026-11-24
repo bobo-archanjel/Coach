@@ -26,6 +26,10 @@ const OPEN: BillingState = computeBilling(
     cancel_at_period_end: false,
     past_due_since: null,
     comped: true,
+    client_limit: null,
+    scheduled_tier: null,
+    scheduled_client_limit: null,
+    scheduled_change_at: null,
   },
   0,
 );

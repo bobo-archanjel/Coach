@@ -24,30 +24,31 @@
     "business": "Business"
   },
   "tierBlurb": {
-    "starter": "Pre začínajúcich trénerov.",
+    "starter": "Pre začínajúcich trénerov — bez AI.",
     "pro": "AI nástroje pre teba aj klientov.",
-    "business": "Bez limitu klientov."
+    "business": "Bez limitu klientov a vlastný branding."
   },
   "features": {
     "starter": {
-      "clients": "Až 10 aktívnych klientov",
-      "plans": "Tréningové plány a builder",
-      "meals": "Jedálničky a denník stravy",
-      "dashboard": "Základný prehľad"
+      "clients": "5 alebo 10 aktívnych klientov (podľa výberu)",
+      "builder": "Tréningový builder",
+      "overview": "Prehľad tréningových plánov",
+      "meals": "Jedálničky a food diary",
+      "dashboard": "Základný dashboard",
+      "templates": "Vlastné šablóny tréningov a jedálničkov"
     },
     "pro": {
-      "clients": "Až 50 aktívnych klientov",
+      "clients": "Do 30 aktívnych klientov",
       "base": "Všetko zo Starter",
-      "aiCoach": "AI Kouč pre tvojich klientov",
-      "aiPlans": "AI generátor tréningových plánov",
-      "aiMeals": "AI generátor jedálničkov",
-      "aiSummaries": "AI zhrnutia progresu a portfólia"
+      "aiGenerators": "AI generátor plánov a jedálničkov",
+      "aiCoach": "AI Kouč pre klientov",
+      "aiSummaries": "AI zhrnutia progresu a portfólia",
+      "reports": "Pokročilé reporty"
     },
     "business": {
       "clients": "Neobmedzený počet klientov",
       "base": "Všetko z Pro",
-      "reports": "Pokročilé reporty (čoskoro)",
-      "branding": "Vlastný branding (čoskoro)"
+      "branding": "Vlastné logo / branding appky"
     }
   },
   "perMonth": "{price} / mesiac",
@@ -59,13 +60,13 @@
   "trialLeft": "{days, plural, =0 {Skúška končí dnes} one {Zostáva # deň skúšky} few {Zostávajú # dni skúšky} other {Zostáva # dní skúšky}}",
   "trialEnds": "Skúška končí {date}",
   "renews": "Ďalšie obnovenie: {date}",
-  "cancelsAt": "Predplatné sa skončí {date}",
+  "cancelsAt": "Predplatné skončí {date}",
   "graceLeft": "Platbu uhraď do {days, plural, =0 {dnes} one {# dňa} other {# dní}}, inak sa účet prepne len na čítanie.",
   "currentBadge": "Aktuálna",
   "choose": "Vybrať {tier}",
   "switchTo": "Prejsť na {tier}",
   "manage": "Spravovať predplatné",
-  "manageHint": "Zmena tarify, platobná karta, faktúry a zrušenie predplatného sa riešia v zabezpečenom portáli Stripe.",
+  "manageHint": "Zmena tarify, platobná karta, faktúry a zrušenie predplatného sa riešia v zabezpečenom portáli Stripe. Prechod na vyššiu tarifu platí hneď (doplatí sa pomerná časť), prechod na nižšiu nastane až po konci zaplateného obdobia.",
   "redirecting": "Presmerovanie…",
   "readOnlyTitle": "Účet je len na čítanie",
   "compedNote": "Tvoj účet má prístup zadarmo — predplatné nepotrebuješ.",
@@ -79,7 +80,8 @@
     "title": {
       "trialEnding": "Skúška končí",
       "pastDue": "Zlyhala platba",
-      "readOnly": "Účet je len na čítanie"
+      "readOnly": "Účet je len na čítanie",
+      "scheduledOverLimit": "Blíži sa zmena tarify"
     },
     "readOnly": {
       "no_subscription": "Predplatné sa nenašlo. Aktivuj ho a môžeš pokračovať — všetky tvoje dáta ostávajú.",
@@ -87,7 +89,8 @@
       "subscription_ended": "Predplatné je zrušené alebo nezaplatené. Dáta vidíš, ale zmeny sú vypnuté. Obnov ho a môžeš pokračovať.",
       "past_due_expired": "Platba za predplatné zlyhala a odklad vypršal. Dáta vidíš, ale zmeny sú vypnuté, kým platbu neuhradíš.",
       "over_limit": "Máš {count} aktívnych klientov, no tvoja tarifa dovoľuje {limit}. Dáta vidíš, ale zmeny sú vypnuté — ukonči spoluprácu s časťou klientov alebo prejdi na vyššiu tarifu."
-    }
+    },
+    "scheduledOverLimit": "Po prechode na {plan} ({date}) budeš mať {count} klientov z {limit} — účet bude len na čítanie, kým ich neznížiš."
   },
   "lock": {
     "badge": "od {tier}",
@@ -101,5 +104,8 @@
   "coachUnavailable": {
     "title": "AI Kouč momentálne nie je dostupný",
     "text": "Tvoj tréner ho má v tejto chvíli vypnutý. Ostatné časti appky fungujú ako doteraz."
-  }
+  },
+  "variantClients": "Do {limit} klientov",
+  "scheduledChange": "{current} do {date}, potom {next}",
+  "scheduledOverLimit": "Po prechode na {plan} ({date}) budeš mať {count} klientov z {limit} — účet bude len na čítanie, kým ich neznížiš."
 }

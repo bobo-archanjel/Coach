@@ -1,8 +1,9 @@
 // FitPilot — výpočet prístupu trénera z riadku predplatného (feature/Stripe).
 // Čistá funkcia bez I/O (testy: e2e/billing.spec.ts). Zrkadlí SQL funkciu
-// billing_effective_tier z migrácie 0073 — pri zmene pravidiel upraviť OBE miesta.
+// billing_effective_tier z migrácie 0073 a billing_client_limit z 0074 — pri zmene pravidiel
+// upraviť OBE miesta.
 
-import { PLANS, type Feature, type FeatureFlags, type Tier } from "./plans";
+import { PLANS, clientLimitFor, type Feature, type FeatureFlags, type Tier } from "./plans";
 
 export type SubStatus =
   | "app_trial"
@@ -36,6 +37,23 @@ export interface SubscriptionRow {
   cancel_at_period_end: boolean;
   past_due_since: string | null;
   comped: boolean;
+  /** limit aktívnych klientov uložený webhookom z ceny; null = predvolený limit tarify (Business = bez limitu) */
+  client_limit: number | null;
+  /** naplánovaná zmena tarify na konci zaplateného obdobia (downgrade); null = žiadna */
+  scheduled_tier: Tier | null;
+  scheduled_client_limit: number | null;
+  scheduled_change_at: string | null;
+}
+
+/** Naplánovaná zmena tarify (downgrade na konci obdobia) pripravená na zobrazenie. */
+export interface ScheduledChange {
+  tier: Tier;
+  /** limit klientov po zmene (null = bez limitu) */
+  clientLimit: number | null;
+  /** kedy zmena nastane (ISO) */
+  at: string;
+  /** počet aktívnych klientov presahuje limit po zmene → po prechode bude účet len na čítanie */
+  overLimit: boolean;
 }
 
 export type ReadOnlyReason =
@@ -68,9 +86,31 @@ export interface BillingState {
   graceDaysLeft: number | null;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: string | null;
+  /** naplánovaná zmena tarify (len platené predplatné, nie komped/zrušenie) */
+  scheduledChange: ScheduledChange | null;
 }
 
 const NO_FEATURES = PLANS.starter.features;
+
+/** Limit aktívnych klientov riadku (null = bez limitu). Zrkadlo SQL billing_client_limit. */
+export function rowClientLimit(row: SubscriptionRow): number | null {
+  return clientLimitFor(row.tier, row.client_limit);
+}
+
+/** Naplánovaná zmena z riadku (len ak predplatné nekončí a zmena je v budúcnosti). */
+export function scheduledChangeOf(row: SubscriptionRow | null, activeClients: number, now: Date): ScheduledChange | null {
+  if (!row || row.comped || row.cancel_at_period_end) return null;
+  if (!row.scheduled_tier || !row.scheduled_change_at) return null;
+  if (Date.parse(row.scheduled_change_at) <= now.getTime()) return null;
+  if (row.status !== "active" && row.status !== "trialing" && row.status !== "past_due") return null;
+  const clientLimit = clientLimitFor(row.scheduled_tier, row.scheduled_client_limit);
+  return {
+    tier: row.scheduled_tier,
+    clientLimit,
+    at: row.scheduled_change_at,
+    overLimit: clientLimit !== null && activeClients > clientLimit,
+  };
+}
 
 /** Tarifa, ktorá platí práve teraz (null = žiadny prístup). Zrkadlo SQL billing_effective_tier. */
 export function effectiveTier(row: SubscriptionRow | null, now: Date = new Date()): Tier | null {
@@ -101,7 +141,7 @@ function lapsedReason(row: SubscriptionRow | null): ReadOnlyReason {
 export function computeBilling(row: SubscriptionRow | null, activeClients: number, now: Date = new Date()): BillingState {
   const accessTier = effectiveTier(row, now);
   const plan = accessTier ? PLANS[accessTier] : null;
-  const clientLimit = plan ? plan.maxClients : 0;
+  const clientLimit = plan && row ? rowClientLimit(row) : 0;
   const overLimit = clientLimit !== null && activeClients > clientLimit;
 
   let readOnly = false;
@@ -145,6 +185,7 @@ export function computeBilling(row: SubscriptionRow | null, activeClients: numbe
     graceDaysLeft,
     cancelAtPeriodEnd: row?.cancel_at_period_end ?? false,
     currentPeriodEnd: row?.current_period_end ?? null,
+    scheduledChange: scheduledChangeOf(row, activeClients, now),
   };
 }
 

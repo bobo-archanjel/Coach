@@ -6,13 +6,15 @@
 // Stavový automat:
 //  - zdrojom pravdy je vždy AKTUÁLNY objekt Subscription zo Stripe (pri každej udalosti sa
 //    znova načíta cez API), takže poradie doručenia udalostí nehrá rolu a sú idempotentné,
-//  - tarifu určuje server z cenového ID (env STRIPE_PRICE_*), nikdy z klienta/metadát,
+//  - tarifu a limit klientov určuje server z ceny (env STRIPE_PRICE_* / lookup_key ceny), nikdy z klienta/metadát,
+//  - downgrade z Customer Portalu sa vo Stripe robí cez subscription schedule: aktuálna cena ostáva
+//    pôvodná až do konca obdobia (tarifa sa nemení skôr), budúca fáza sa ukladá ako scheduled_* na zobrazenie,
 //  - past_due_since sa odvodzuje z PRECHODU stavu (nie z invoice udalostí),
 //  - cudzie (staršie) predplatné neprepíše živé aktuálne, komped účet nikdy nestratí tarifu.
 
 import type Stripe from "stripe";
 import type { SubscriptionRow, SubStatus } from "./entitlements";
-import { tierForPriceId, type PriceEnv } from "./plans";
+import { planForPrice, type Plan, type PriceEnv } from "./plans";
 
 export type SubscriptionPatch = Partial<Omit<SubscriptionRow, "trainer_id">>;
 
@@ -37,6 +39,8 @@ export interface WebhookDeps {
   store: BillingStore;
   log: EventLog;
   retrieveSubscription(id: string): Promise<Stripe.Subscription>;
+  /** načítanie subscription schedule (s rozbalenými cenami fáz); bez neho sa naplánované zmeny nesledujú */
+  retrieveSchedule?(id: string): Promise<Stripe.SubscriptionSchedule>;
   priceEnv?: PriceEnv;
   now?: () => Date;
 }
@@ -85,6 +89,7 @@ export function mapSubscription(
   existing: SubscriptionRow | null,
   now: Date,
   priceEnv?: PriceEnv,
+  schedule?: Stripe.SubscriptionSchedule | null,
 ): SubscriptionPatch | null {
   const raw = sub as unknown as Loose;
   const status = raw.status as SubStatus;
@@ -98,7 +103,12 @@ export function mapSubscription(
   const items = ((raw.items as Loose | undefined)?.data as Loose[] | undefined) ?? [];
   const first = items[0];
   const price = first?.price as Loose | undefined;
-  const mappedTier = tierForPriceId(idOf(price), priceEnv);
+  const plan = planForPrice(
+    price
+      ? { id: idOf(price), lookup_key: (price.lookup_key as string | null | undefined) ?? null, metadata: price.metadata as Record<string, string> | undefined }
+      : null,
+    priceEnv,
+  );
 
   // novšie API verzie majú current_period_end na položke predplatného, staršie na predplatnom
   const periodEnd = toIso(first?.current_period_end) ?? toIso(raw.current_period_end);
@@ -117,9 +127,56 @@ export function mapSubscription(
   };
   const customer = idOf(raw.customer);
   if (customer) patch.stripe_customer_id = customer;
-  // Komped účet si tarifu nechá (ručne daný prístup); neznáme cenové ID tarifu nemení.
-  if (mappedTier && !existing?.comped) patch.tier = mappedTier;
+  // Komped účet si tarifu aj limit nechá (ručne daný prístup); neznáma cena tarifu ani limit nemení.
+  if (plan && !existing?.comped) {
+    patch.tier = plan.tier;
+    patch.client_limit = plan.clientLimit;
+  }
+
+  // naplánovaná zmena (downgrade na konci obdobia) — len pre živé platené predplatné, ktoré nekončí
+  const next =
+    !existing?.comped && patch.cancel_at_period_end !== true && LIVE_STATUSES.includes(status) && status !== "paused"
+      ? scheduledChangeFromSchedule(schedule ?? null, plan, now, priceEnv)
+      : null;
+  patch.scheduled_tier = next?.plan.tier ?? null;
+  patch.scheduled_client_limit = next ? next.plan.clientLimit : null;
+  patch.scheduled_change_at = next?.at ?? null;
   return patch;
+}
+
+/**
+ * Budúca fáza subscription schedule, ktorá mení cenu (downgrade z Portalu „na konci obdobia“).
+ * null = žiadna zmena (alebo cena fázy sa nedá namapovať, alebo je rovnaká ako súčasná).
+ */
+export function scheduledChangeFromSchedule(
+  schedule: Stripe.SubscriptionSchedule | null,
+  current: Plan | null,
+  now: Date,
+  priceEnv?: PriceEnv,
+): { plan: Plan; at: string } | null {
+  if (!schedule) return null;
+  const status = (schedule as unknown as Loose).status;
+  if (status !== "active" && status !== "not_started") return null;
+  const phases = ((schedule as unknown as Loose).phases as Loose[] | undefined) ?? [];
+  const upcoming = phases
+    .filter((ph) => typeof ph.start_date === "number" && (ph.start_date as number) * 1000 > now.getTime())
+    .sort((a, b) => (a.start_date as number) - (b.start_date as number))[0];
+  if (!upcoming) return null;
+  const item = ((upcoming.items as Loose[] | undefined) ?? [])[0];
+  const price = item?.price as unknown;
+  const plan =
+    typeof price === "string"
+      ? planForPrice(price, priceEnv)
+      : price && typeof price === "object"
+        ? planForPrice(
+            { id: idOf(price), lookup_key: ((price as Loose).lookup_key as string | null) ?? null, metadata: (price as Loose).metadata as Record<string, string> | undefined },
+            priceEnv,
+          )
+        : null;
+  if (!plan) return null;
+  if (current && current.variant === plan.variant) return null;
+  const at = toIso(upcoming.start_date);
+  return at ? { plan, at } : null;
 }
 
 async function applySubscription(
@@ -152,7 +209,16 @@ async function applySubscription(
   }
 
   const now = (deps.now ?? (() => new Date()))();
-  const patch = mapSubscription(sub, existing, now, deps.priceEnv);
+  const scheduleId = idOf(raw.schedule);
+  let schedule: Stripe.SubscriptionSchedule | null = null;
+  if (scheduleId && deps.retrieveSchedule) {
+    try {
+      schedule = await deps.retrieveSchedule(scheduleId);
+    } catch (err) {
+      if ((err as { code?: string })?.code !== "resource_missing") throw err;
+    }
+  }
+  const patch = mapSubscription(sub, existing, now, deps.priceEnv, schedule);
   if (!patch) return { outcome: "ignored", detail: "no_change" };
   await deps.store.save(existing.trainer_id, patch);
   return { outcome: "processed", detail: `${existing.trainer_id}:${patch.status ?? existing.status}` };
@@ -199,6 +265,20 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
     case "customer.subscription.deleted": {
       const payload = event.data.object as Stripe.Subscription;
       const sub = await currentSubscription(payload.id, payload, deps);
+      return sub ? applySubscription(sub, null, deps) : { outcome: "ignored", detail: "no_subscription" };
+    }
+
+    // zmena plánu v Portalu „na konci obdobia“ sa deje cez subscription schedule — pri úprave
+    // fáz nemusí prísť customer.subscription.updated, preto sa sledujú aj udalosti schedule
+    case "subscription_schedule.created":
+    case "subscription_schedule.updated":
+    case "subscription_schedule.released":
+    case "subscription_schedule.canceled":
+    case "subscription_schedule.completed":
+    case "subscription_schedule.aborted": {
+      const subId = idOf(obj.subscription) ?? idOf(obj.released_subscription);
+      if (!subId) return { outcome: "ignored", detail: "schedule_without_subscription" };
+      const sub = await currentSubscription(subId, null, deps);
       return sub ? applySubscription(sub, null, deps) : { outcome: "ignored", detail: "no_subscription" };
     }
 

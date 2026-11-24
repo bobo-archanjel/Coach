@@ -5,10 +5,10 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { tErr, type ErrorKey } from "@/lib/i18n/serverErrors";
 import { computeBilling, coachAvailableForClients, TRIAL_DAYS, type BillingState, type SubscriptionRow } from "./entitlements";
-import { minTierFor, type Feature } from "./plans";
+import { TRIAL_CLIENT_LIMIT, minTierFor, type Feature } from "./plans";
 
 const SUB_COLUMNS =
-  "trainer_id, stripe_customer_id, stripe_subscription_id, tier, status, trial_ends_at, current_period_end, cancel_at_period_end, past_due_since, comped";
+  "trainer_id, stripe_customer_id, stripe_subscription_id, tier, status, trial_ends_at, current_period_end, cancel_at_period_end, past_due_since, comped, client_limit, scheduled_tier, scheduled_client_limit, scheduled_change_at";
 
 /**
  * Riadok predplatného trénera. Číta sa cez bežný klient (RLS: len vlastný riadok). Keď riadok
@@ -32,7 +32,7 @@ async function loadSubscription(supabase: SupabaseClient, trainerId: string): Pr
   const trialEnds = new Date(created + TRIAL_DAYS * 86_400_000).toISOString();
   const { error: insErr } = await admin
     .from("trainer_subscriptions")
-    .upsert({ trainer_id: trainerId, tier: "starter", status: "app_trial", trial_ends_at: trialEnds }, { onConflict: "trainer_id", ignoreDuplicates: true });
+    .upsert({ trainer_id: trainerId, tier: "starter", status: "app_trial", trial_ends_at: trialEnds, client_limit: TRIAL_CLIENT_LIMIT }, { onConflict: "trainer_id", ignoreDuplicates: true });
   if (insErr) {
     console.error("billing.ensureTrial:", insErr.message);
     return null;

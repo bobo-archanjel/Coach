@@ -2,15 +2,15 @@
 
 // FitPilot — fakturačné akcie trénera (feature/Stripe): Stripe Checkout a Customer Portal.
 // Tieto akcie sú ZÁMERNE povolené aj v read-only režime (tréner si tak vie predplatné obnoviť).
-// Z klienta nechodí žiadna cena ani tarifa okrem názvu tarify — cenové ID určuje server z env
-// (lib/billing/plans.ts), názov sa overí proti zoznamu. Prístup tu NIE JE udelený: tarifu
+// Z klienta nechodí žiadna cena ani limit okrem názvu varianta (starter5 / starter10 / pro / business)
+// — cenové ID určuje server z env (lib/billing/plans.ts), názov sa overí proti zoznamu. Prístup tu NIE JE udelený: tarifu
 // a stav nastavuje výhradne webhook (app/api/stripe/webhook/route.ts).
 
 import { tErr } from "@/lib/i18n/serverErrors";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured, siteUrl } from "@/lib/billing/stripe";
-import { isTier, priceIdForTier } from "@/lib/billing/plans";
+import { isVariant, priceIdForVariant } from "@/lib/billing/plans";
 import { getTrainerBilling } from "@/lib/billing/server";
 
 export interface BillingRedirectState {
@@ -34,8 +34,12 @@ async function requireTrainer() {
 }
 
 async function portalUrl(customerId: string): Promise<string> {
+  // konfigurácia Portalu (downgrade na konci obdobia, upgrade hneď) — scripts/stripe-setup.mjs;
+  // bez STRIPE_PORTAL_CONFIGURATION sa použije predvolená konfigurácia účtu
+  const configuration = process.env.STRIPE_PORTAL_CONFIGURATION?.trim();
   const session = await getStripe().billingPortal.sessions.create({
     customer: customerId,
+    ...(configuration ? { configuration } : {}),
     return_url: `${siteUrl()}/dashboard/predplatne`,
   });
   return session.url;
@@ -65,13 +69,13 @@ async function ensureCustomer(trainerId: string, email: string | undefined, exis
  * predplatným (active/trialing/past_due) ide radšej do Customer Portalu — inak by mohol
  * mať dve predplatné naraz.
  */
-export async function createCheckoutSessionAction(rawTier: string): Promise<BillingRedirectState> {
+export async function createCheckoutSessionAction(rawVariant: string): Promise<BillingRedirectState> {
   const auth = await requireTrainer();
   if (!auth.ok) return fail(auth.error);
-  if (!isTier(rawTier)) return fail(await tErr("billing.invalidTier"));
+  if (!isVariant(rawVariant)) return fail(await tErr("billing.invalidTier"));
   if (!isStripeConfigured()) return fail(await tErr("billing.notConfigured"));
 
-  const priceId = priceIdForTier(rawTier);
+  const priceId = priceIdForVariant(rawVariant);
   if (!priceId) return fail(await tErr("billing.notConfigured"));
 
   try {
