@@ -10,7 +10,7 @@ import { useLiveUnread } from "@/app/components/liveUnread";
 import { NotificationBellSlot } from "./NotificationBell";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon } from "@/app/portal/icons";
 import s from "./portal.module.css";
-import brandStyles from "@/app/components/branding.module.css";
+import { BrandLogo } from "@/app/components/BrandLogo";
 
 const BASE = "/portal";
 
@@ -36,6 +36,7 @@ export function PortalNav({
   displayName = null,
   brandName = null,
   brandLogoUrl = null,
+  brandLogoDarkUrl = null,
 }: {
   chatUnread?: boolean;
   aiKoucVisible?: boolean;
@@ -43,6 +44,8 @@ export function PortalNav({
   /** značka trénera (branding, Business) — null = FitPilot */
   brandName?: string | null;
   brandLogoUrl?: string | null;
+  /** logo pre tmavú tému (ak ho tréner nahral) */
+  brandLogoDarkUrl?: string | null;
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
@@ -69,9 +72,8 @@ export function PortalNav({
     <aside className={s.v6Side}>
       <div className={s.v6SideTopRow}>
         <Link href={BASE} className={s.v6SideBrand}>
-          {brandLogoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={brandLogoUrl} alt="" className={brandStyles.brandLogo} />
+          {brandLogoUrl || brandLogoDarkUrl ? (
+            <BrandLogo src={brandLogoUrl} darkSrc={brandLogoDarkUrl} />
           ) : (
             <LogoMark className={s.v6BrandMark} />
           )}

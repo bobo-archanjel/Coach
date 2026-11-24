@@ -4,7 +4,7 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { brandingAvailableForClients, type SubscriptionRow } from "@/lib/billing/entitlements";
 import { deriveBrandTheme } from "./colors";
 import { cleanLine, cleanMultiline } from "./validation";
-import { isOwnBrandPath } from "./image";
+import { isOwnBrandPath, isOwnIconPath, type BrandImageKind, type IconVariant } from "./image";
 import type { BrandingRow, PublicBranding } from "./types";
 
 export const BRANDING_BUCKET = "branding";
@@ -19,22 +19,34 @@ export function brandingPublicUrl(path: string | null | undefined): string | nul
   return `${base.replace(/\/$/, "")}/storage/v1/object/public/${BRANDING_BUCKET}/${path}`;
 }
 
+/** Stĺpce značky pred 0081 (poistka: ak migrácia ešte nebehla, značka sa zobrazí bez ikon a tmavého loga). */
+const LEGACY_COLUMNS = "brand_name, welcome_text, accent_color, logo_path, photo_path";
+const BRANDING_COLUMNS = `${LEGACY_COLUMNS}, logo_dark_path, icon_192_path, icon_512_path, icon_maskable_path, icon_apple_path`;
+
+type BrandingFields = Pick<BrandingRow, "brand_name" | "welcome_text" | "accent_color" | "logo_path" | "photo_path"> &
+  Partial<Pick<BrandingRow, "logo_dark_path" | "icon_192_path" | "icon_512_path" | "icon_maskable_path" | "icon_apple_path">>;
+
 /** Zloží zobraziteľnú značku z riadka (vstupy z DB sa pre istotu čistia ešte raz). */
-export function toPublicBranding(row: {
-  brand_name: string;
-  welcome_text: string;
-  accent_color: string | null;
-  logo_path: string | null;
-  photo_path: string | null;
-}, trainerId?: string): PublicBranding {
+export function toPublicBranding(row: BrandingFields, trainerId?: string): PublicBranding {
   // cesty z DB sa overujú proti tvaru (a, ak je známy tréner, aj proti jeho priečinku)
-  const okPath = (p: string | null, kind: "logo" | "photo") =>
-    p && (trainerId ? isOwnBrandPath(trainerId, p, kind) : /^[0-9a-f-]{36}\/(logo|photo)-[0-9a-f-]{36}\.webp$/.test(p)) ? p : null;
+  const okPath = (p: string | null | undefined, kind: BrandImageKind) =>
+    p && (trainerId ? isOwnBrandPath(trainerId, p, kind) : new RegExp(`^[0-9a-f-]{36}/${kind}-[0-9a-f-]{36}\\.webp$`).test(p)) ? p : null;
+  const okIcon = (p: string | null | undefined, variant: IconVariant) => (trainerId && isOwnIconPath(trainerId, p, variant) ? p : null);
+  const icon = {
+    i192: brandingPublicUrl(okIcon(row.icon_192_path, "192")),
+    i512: brandingPublicUrl(okIcon(row.icon_512_path, "512")),
+    maskable: brandingPublicUrl(okIcon(row.icon_maskable_path, "maskable")),
+    apple: brandingPublicUrl(okIcon(row.icon_apple_path, "apple")),
+  };
+  // ikony sa berú len celé (všetky štyri) — polovičná sada by dala manifest s chýbajúcou ikonou
+  const icons = icon.i192 && icon.i512 && icon.maskable && icon.apple ? { i192: icon.i192, i512: icon.i512, maskable: icon.maskable, apple: icon.apple } : null;
   return {
     brandName: cleanLine(row.brand_name),
     welcomeText: cleanMultiline(row.welcome_text),
     logoUrl: brandingPublicUrl(okPath(row.logo_path, "logo")),
+    logoDarkUrl: brandingPublicUrl(okPath(row.logo_dark_path, "logodark")),
     photoUrl: brandingPublicUrl(okPath(row.photo_path, "photo")),
+    icons,
     theme: deriveBrandTheme(row.accent_color),
   };
 }
@@ -51,14 +63,15 @@ export const loadBrandingForTrainer = cache(async (trainerId: string | null | un
   if (!trainerId) return null;
   const admin = tryCreateAdminClient();
   if (!admin) return null;
-  const [{ data: sub, error: subErr }, { data: row, error: rowErr }] = await Promise.all([
+  const readRow = (columns: string) => admin.from("trainer_branding").select(columns).eq("trainer_id", trainerId).maybeSingle();
+  const [{ data: sub, error: subErr }, first] = await Promise.all([
     admin.from("trainer_subscriptions").select(SUB_COLUMNS).eq("trainer_id", trainerId).maybeSingle(),
-    admin
-      .from("trainer_branding")
-      .select("brand_name, welcome_text, accent_color, logo_path, photo_path")
-      .eq("trainer_id", trainerId)
-      .maybeSingle(),
+    readRow(BRANDING_COLUMNS),
   ]);
+  // 0081 ešte nebehla (neznámy stĺpec) → zopakovať so starými stĺpcami, značka sa ukáže bez ikon
+  const second = first.error ? await readRow(LEGACY_COLUMNS) : null;
+  const rowErr = second ? second.error : first.error;
+  const row = (second ? second.data : first.data) as unknown as BrandingFields | null;
   if (subErr || rowErr) {
     // tabuľka ešte neexistuje (0075 nebehla) alebo výpadok → predvolený vzhľad
     console.error("branding.loadBrandingForTrainer:", (subErr ?? rowErr)?.message);

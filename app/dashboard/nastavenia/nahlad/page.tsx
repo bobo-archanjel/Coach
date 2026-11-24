@@ -2,9 +2,14 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AppLink as Link } from "@/app/components/AppLink";
 import { LogoMark } from "@/app/components/LogoMark";
+import { BrandLogo } from "@/app/components/BrandLogo";
+import { BrandAppPreview } from "@/app/components/BrandAppPreview";
 import { getUser } from "@/lib/supabase/server";
 import { loadBrandingForTrainer } from "@/lib/branding/server";
 import { brandStyle } from "@/lib/branding/theme";
+import { pickIconBackground } from "@/lib/branding/palette";
+import { shortBrandName } from "@/lib/branding/manifest";
+import { DEFAULT_ACCENT } from "@/lib/branding/colors";
 import styles from "../branding.module.css";
 import brand from "@/app/components/branding.module.css";
 import portal from "@/app/portal/portal.module.css";
@@ -38,9 +43,8 @@ export default async function BrandingPreviewPage() {
         <header className={portal.v6Top} style={{ position: "static", display: "block" }}>
           <div className={portal.v6TopInner}>
             <span className={portal.v6Brand}>
-              {branding.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={branding.logoUrl} alt="" className={brand.brandLogo} />
+              {branding.logoUrl || branding.logoDarkUrl ? (
+                <BrandLogo src={branding.logoUrl} darkSrc={branding.logoDarkUrl ?? null} />
               ) : (
                 <LogoMark className={portal.v6BrandMark} />
               )}
@@ -92,6 +96,21 @@ export default async function BrandingPreviewPage() {
           </span>
         </nav>
       </div>
+
+      {/* inštalovaná appka: ikona + názov na ploche a úvodná obrazovka (splash) — z vygenerovaných ikon */}
+      <section className={styles.pvApp} aria-label={t("appPreviewTitle")}>
+        <span className={styles.previewLabel}>{t("appPreviewTitle")}</span>
+        <BrandAppPreview
+          shortName={shortBrandName(name)}
+          name={name}
+          iconUrl={branding.icons?.apple ?? null}
+          logoUrl={branding.logoUrl}
+          background={pickIconBackground(branding.theme?.base ?? null, null)}
+          accent={branding.theme?.light.accent ?? DEFAULT_ACCENT}
+          onAccent={branding.theme?.light.on ?? "#ffffff"}
+          labels={{ home: t("appPreviewHome"), splash: t("appPreviewSplash"), placeholder: t("appPreviewNote") }}
+        />
+      </section>
       <Link href="/dashboard/nastavenia" className={`${pa.action} ${pa.small} ${pa.inline}`}>
         {t("preview.back")}
       </Link>

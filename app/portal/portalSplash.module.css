@@ -1,0 +1,86 @@
+/* Splash portálu (PortalSplash.tsx) — viditeľný len v nainštalovanej appke (display-mode: standalone). */
+
+.splash {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+@media (display-mode: standalone) {
+  .splash {
+    display: flex;
+  }
+}
+
+/* pri už ukázanom splashi v relácii (inline skript v layoute) sa nezobrazí ani na okamih */
+:global(html[data-fp-splash="done"]) .splash {
+  display: none;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #ffffff;
+  /* tenký svetlý okraj: ikona s farbou značky by sa inak zliala s pozadím rovnakej farby */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3),
+    0 18px 40px -16px rgba(0, 0, 0, 0.45);
+}
+
+.iconImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logoImg {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}
+
+.name {
+  max-width: min(80vw, 420px);
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.leaving {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .splash {
+    transition: opacity 0.18s ease;
+  }
+
+  .tile {
+    animation: splash-pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  @keyframes splash-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

@@ -29,6 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const [locale, t] = await Promise.all([getLocale(), getTranslations("meta")]);
   return {
     metadataBase: new URL(siteUrl),
+    // predvolený manifest FitPilot; portál má vlastný so značkou trénera (app/portal/layout.tsx)
+    manifest: "/manifest.webmanifest",
+    appleWebApp: { capable: true, title: "FitPilot", statusBarStyle: "default" },
     title: { default: "FitPilot", template: "%s · FitPilot" },
     description: t("description"),
     openGraph: {

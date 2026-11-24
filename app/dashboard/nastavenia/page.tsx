@@ -33,14 +33,18 @@ export default async function NastaveniaPage() {
   const billing = user ? await getMyTrainerBilling(user.id) : null;
   const brandingUnlocked = billing?.state.features.branding === true;
   // uložená značka trénera (RLS: len vlastný riadok); pred migráciou 0075 tabuľka chýba → prázdne
-  const { data: brandingRow } =
-    user && brandingUnlocked
-      ? await supabase
-          .from("trainer_branding")
-          .select("brand_name, accent_color, welcome_text, logo_path, photo_path, invite_slug")
-          .eq("trainer_id", user.id)
-          .maybeSingle()
-      : { data: null };
+  // (0081 pridala tmavé logo a ikony; ak ešte nebehla, načíta sa starý tvar bez nich)
+  let brandingRow: Record<string, string | null> | null = null;
+  if (user && brandingUnlocked) {
+    const base = "brand_name, accent_color, welcome_text, logo_path, photo_path, invite_slug";
+    const full = await supabase
+      .from("trainer_branding")
+      .select(`${base}, logo_dark_path, icon_apple_path`)
+      .eq("trainer_id", user.id)
+      .maybeSingle();
+    const res = full.error ? await supabase.from("trainer_branding").select(base).eq("trainer_id", user.id).maybeSingle() : full;
+    brandingRow = (res.data as Record<string, string | null> | null) ?? null;
+  }
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";
@@ -156,6 +160,8 @@ export default async function NastaveniaPage() {
                     welcomeText: brandingRow?.welcome_text ?? "",
                     accent: brandingRow?.accent_color ?? null,
                     logoUrl: brandingPublicUrl(brandingRow?.logo_path),
+                    logoDarkUrl: brandingPublicUrl(brandingRow?.logo_dark_path),
+                    iconUrl: brandingPublicUrl(brandingRow?.icon_apple_path),
                     photoUrl: brandingPublicUrl(brandingRow?.photo_path),
                     invitePath: brandingRow?.invite_slug ? `/pozvanka/${brandingRow.invite_slug}` : null,
                   }}

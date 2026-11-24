@@ -156,6 +156,10 @@ const nextConfig: NextConfig = {
       "media-src 'self' blob:",
       "font-src 'self' data:",
       "frame-src https://challenges.cloudflare.com",
+      // web app manifest (inštalácia na plochu) — len vlastná doména; ikony značky trénera ide
+      // cez img-src (Supabase host vyššie). Service worker zámerne nie je (viď docs v 0081/branding),
+      // preto žiadne worker-src.
+      "manifest-src 'self'",
       // wss:// je pre Supabase Realtime (ChatThread, NotificationBell) — `https://` v
       // connect-src WebSocket NEpokrýva; bez toho prehliadač spojenie ticho zablokuje.
       `connect-src 'self' ${supabaseConnectHosts()} https://plausible.io https://challenges.cloudflare.com`,

@@ -8,25 +8,32 @@ import { useActionState, useEffect, useMemo, useRef, useState, useTransition } f
 import { useTranslations } from "next-intl";
 import { AppLink as Link } from "@/app/components/AppLink";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, deriveBrandTheme, normalizeHex } from "@/lib/branding/colors";
+import { pickIconBackground } from "@/lib/branding/palette";
+import { shortBrandName } from "@/lib/branding/manifest";
 import { BRAND_NAME_MAX, MAX_UPLOAD_BYTES, WELCOME_TEXT_MAX, charLength } from "@/lib/branding/validation";
 import { brandStyle } from "@/lib/branding/theme";
-import { saveBrandingAction, regenerateInviteLinkAction, type BrandingState } from "./brandingActions";
+import { saveBrandingAction, regenerateInviteLinkAction, suggestPaletteAction, type BrandingState } from "./brandingActions";
 import styles from "./branding.module.css";
 import brand from "@/app/components/branding.module.css";
 import pa from "@/app/components/planActions.module.css";
 import { LogoMark } from "@/app/components/LogoMark";
+import { BrandAppPreview } from "@/app/components/BrandAppPreview";
 
 export interface BrandingInitial {
   brandName: string;
   welcomeText: string;
   accent: string | null;
   logoUrl: string | null;
+  /** logo pre tmavé pozadie (voliteľné) */
+  logoDarkUrl: string | null;
+  /** vygenerovaná ikona appky (apple 180) — null, kým tréner neuloží logo */
+  iconUrl: string | null;
   photoUrl: string | null;
   /** cesta pozvánky (/pozvanka/<odkaz>) alebo null pred prvým uložením */
   invitePath: string | null;
 }
 
-const initialState: BrandingState = { error: null, saved: false };
+const initialState: BrandingState = { error: null, saved: false, palette: [] };
 const ACCEPT = "image/png,image/jpeg,image/webp";
 
 export function BrandingForm({ initial }: { initial: BrandingInitial }) {
@@ -36,22 +43,31 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
   const [welcome, setWelcome] = useState(initial.welcomeText);
   const [accent, setAccent] = useState<string | null>(initial.accent);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoDarkPreview, setLogoDarkPreview] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
+  const [removeLogoDark, setRemoveLogoDark] = useState(false);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  // „Farby z tvojho loga“ — návrhy akcentu zo servera (po výbere súboru alebo po uložení)
+  const [palette, setPalette] = useState<string[]>([]);
   const logoRef = useRef<HTMLInputElement>(null);
+  const logoDarkRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
 
   const theme = useMemo(() => deriveBrandTheme(accent), [accent]);
   const shownLogo = removeLogo ? null : (logoPreview ?? initial.logoUrl);
+  const shownLogoDark = removeLogoDark ? null : (logoDarkPreview ?? initial.logoDarkUrl);
   const shownPhoto = removePhoto ? null : (photoPreview ?? initial.photoUrl);
+  // po uložení nového loga prišli farby priamo zo servera; inak platia tie z výberu súboru
+  const suggested = (state.palette && state.palette.length > 0 ? state.palette : palette).filter((c) => normalizeHex(c));
 
   // uvoľnenie object URL pri zmene/odchode
   useEffect(() => () => { if (logoPreview) URL.revokeObjectURL(logoPreview); }, [logoPreview]);
+  useEffect(() => () => { if (logoDarkPreview) URL.revokeObjectURL(logoDarkPreview); }, [logoDarkPreview]);
   useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
-  function onPick(kind: "logo" | "photo", input: HTMLInputElement) {
+  function onPick(kind: "logo" | "logoDark" | "photo", input: HTMLInputElement) {
     const file = input.files?.[0];
     setFileError(null);
     if (!file) return;
@@ -70,17 +86,35 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
     if (kind === "logo") {
       setLogoPreview(url);
       setRemoveLogo(false);
+      setPalette([]);
+      // farby z loga: server obrázok overí a vráti 3–5 návrhov akcentu (nič sa neukladá)
+      const fd = new FormData();
+      fd.set("logo", file);
+      suggestPaletteAction(fd)
+        .then((res) => {
+          if (res.error) setFileError(res.error);
+          else setPalette(res.palette);
+        })
+        .catch(() => undefined);
+    } else if (kind === "logoDark") {
+      setLogoDarkPreview(url);
+      setRemoveLogoDark(false);
     } else {
       setPhotoPreview(url);
       setRemovePhoto(false);
     }
   }
 
-  function clearFile(kind: "logo" | "photo") {
+  function clearFile(kind: "logo" | "logoDark" | "photo") {
     if (kind === "logo") {
       if (logoRef.current) logoRef.current.value = "";
       setLogoPreview(null);
       setRemoveLogo(true);
+      setPalette([]);
+    } else if (kind === "logoDark") {
+      if (logoDarkRef.current) logoDarkRef.current.value = "";
+      setLogoDarkPreview(null);
+      setRemoveLogoDark(true);
     } else {
       if (photoRef.current) photoRef.current.value = "";
       setPhotoPreview(null);
@@ -90,6 +124,9 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
 
   const displayName = name.trim() || "FitPilot";
   const hexShown = accent ?? DEFAULT_ACCENT;
+  // ikona na ploche: nová ikona vznikne pri uložení; do tej doby sa ukáže logo na pozadí ako ho skladá generátor
+  const iconBackground = pickIconBackground(accent, null);
+  const logoChanged = logoPreview !== null || removeLogo || accent !== initial.accent;
 
   return (
     <div className={styles.layout}>
@@ -140,6 +177,39 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
           </div>
           {removeLogo && <input type="hidden" name="remove_logo" value="1" />}
           <p className={styles.hint}>{t("logoHint")}</p>
+        </div>
+
+        <div className={styles.field}>
+          <span className={styles.label}>{t("logoDark")}</span>
+          <div className={styles.fileRow}>
+            {shownLogoDark ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={shownLogoDark} alt="" className={`${styles.fileThumb} ${styles.thumbDark}`} />
+            ) : (
+              <span className={`${styles.fileThumb} ${styles.thumbEmpty} ${styles.thumbDark}`} aria-hidden="true">
+                {t("noFile")}
+              </span>
+            )}
+            <input
+              ref={logoDarkRef}
+              id="logo_dark"
+              name="logo_dark"
+              type="file"
+              accept={ACCEPT}
+              className={styles.fileInput}
+              onChange={(e) => onPick("logoDark", e.currentTarget)}
+            />
+            <label htmlFor="logo_dark" className={`${pa.action} ${pa.small} ${pa.inline}`}>
+              {shownLogoDark ? t("change") : t("choose")}
+            </label>
+            {shownLogoDark && (
+              <button type="button" className={styles.linkBtn} onClick={() => clearFile("logoDark")}>
+                {t("remove")}
+              </button>
+            )}
+          </div>
+          {removeLogoDark && <input type="hidden" name="remove_logo_dark" value="1" />}
+          <p className={styles.hint}>{t("logoDarkHint")}</p>
         </div>
 
         <div className={styles.field}>
@@ -203,6 +273,24 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
               </button>
             )}
           </div>
+          {suggested.length > 0 && (
+            <div className={styles.paletteBox} data-testid="branding-palette">
+              <span className={styles.paletteTitle}>{t("paletteTitle")}</span>
+              <div className={styles.colorRow}>
+                {suggested.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`${styles.swatch} ${normalizeHex(hexShown) === c ? styles.swatchOn : ""}`}
+                    style={{ background: c }}
+                    aria-label={t("paletteUse", { color: c.toUpperCase() })}
+                    aria-pressed={normalizeHex(hexShown) === c}
+                    onClick={() => setAccent(c)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           <input type="hidden" name="accent" value={accent ?? ""} />
           <p className={styles.hint}>{t("accentHint")}</p>
         </div>
@@ -253,6 +341,17 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
           </div>
           <div className={styles.phoneFoot}>{t("poweredBy")}</div>
         </div>
+        <span className={styles.previewLabel}>{t("appPreviewTitle")}</span>
+        <BrandAppPreview
+          shortName={shortBrandName(displayName)}
+          name={displayName}
+          iconUrl={logoChanged ? null : initial.iconUrl}
+          logoUrl={shownLogo}
+          background={iconBackground}
+          accent={theme?.light.accent ?? DEFAULT_ACCENT}
+          onAccent={theme?.light.on ?? "#ffffff"}
+          labels={{ home: t("appPreviewHome"), splash: t("appPreviewSplash"), placeholder: t("appPreviewNote") }}
+        />
         <Link
           href="/dashboard/nastavenia/nahlad"
           className={`${pa.action} ${pa.small} ${pa.inline} ${styles.previewLinkBtn}`}
