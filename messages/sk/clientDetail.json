@@ -10,7 +10,7 @@
   "draft": "Koncept",
   "active": "Aktívny",
   "planTrainings": "{count, plural, =0 {Zatiaľ bez tréningov} one {# tréning} few {# tréningy} other {# tréningov}}",
-  "planProgress": "Odcvičené {done}/{total}",
+  "planProgress": "Odcvičené {done} z {total}",
   "planNoDays": "Plán zatiaľ nemá žiadny tréning.",
   "openPlan": "Upraviť plán",
   "noPlans": "Klient zatiaľ nemá vytvorený tréningový plán — pridaj ho na <link>Tréningy</link>.",
@@ -19,7 +19,7 @@
   "createdOn": "Vytvorený {date} · {count, plural, one {# deň} few {# dni} other {# dní}}",
   "kcalPerDay": "≈ {kcal} kcal/deň",
   "noMeals": "bez jedál",
-  "archived": "Archivovaný",
+  "archived": "Neaktívny",
   "noMealPlans": "Klient zatiaľ nemá žiadny jedálniček.",
   "defaultMealPlanName": "Jedálniček {date}",
   "infoTitle": "Informácie",
@@ -84,7 +84,15 @@
     "protein": "Bielkoviny",
     "carbs": "Sacharidy",
     "fat": "Tuky",
-    "fillHint": "Vyplň vek, váhu a výšku — výsledok sa dopočíta automaticky."
+    "fillHint": "Vyplň vek, váhu a výšku — výsledok sa dopočíta automaticky.",
+    "editValues": "Upraviť hodnoty",
+    "saveValues": "Uložiť hodnoty",
+    "cancel": "Zrušiť",
+    "manualBadge": "Upravené ručne",
+    "kcalFromMacros": "{kcal} kcal/deň — súčet makier",
+    "autoValue": "výpočet: {g} g",
+    "macroAria": "{name} v gramoch",
+    "manualOverwriteHint": "Makrá sú upravené ručne — uložením údajov sa nahradia automatickým výpočtom."
   },
   "danger": {
     "coopTitle": "Spolupráca",
@@ -150,5 +158,9 @@
     "clientNote": "Poznámka klienta"
   },
   "tabsAria": "Sekcie klienta",
-  "previewPlan": "Report"
+  "previewPlan": "Report",
+  "doneOn": "Odcvičené {date}",
+  "doneRpe": "Náročnosť {rpe}/10",
+  "doneDayAria": "Zobraziť odcvičený tréning {name}",
+  "doneNoValues": "Klient tréning ukončil bez zapísaných hodnôt."
 }

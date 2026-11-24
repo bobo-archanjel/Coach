@@ -57,7 +57,8 @@ test.describe("aktívny plán — náhľady", () => {
     const head = page.locator("#plan-plan-done header");
     await expect(head).toContainText("Letný plán — celé telo");
     await expect(head).toContainText("Hotovo");
-    await expect(page.locator("#plan-plan-done")).toContainText("Celý plán máš odcvičený — ako aktívny sa už nastaviť nedá.");
+    // celý odcvičený: postup 1 z 1 (zelený), bez „Nastaviť ako aktívny“
+    await expect(page.locator("#plan-plan-done")).toContainText("Odcvičené 1 z 1");
     await expect(page.locator("#plan-plan-done").getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
   });
 });

@@ -298,7 +298,12 @@ export function previewResult(kind: string): PortalTrainingResult | null {
   if (kind === "own")
     return {
       state: "ok",
-      data: { ...PREVIEW, plans: PREVIEW.plans.filter((p) => p.source === "client"), activePlanId: "plan-own" },
+      data: {
+        ...PREVIEW,
+        // aktívny je vlastný rozpracovaný plán — „Na rade“ pri najbližšom neodcvičenom tréningu
+        plans: PREVIEW.plans.filter((p) => p.source === "client").map((p) => ({ ...p, isActive: p.id === "plan-own" })),
+        activePlanId: "plan-own",
+      },
     };
   if (kind === "error") return { state: "error" };
   return null;
