@@ -247,10 +247,6 @@
       "title": "Výzvy a rebríček",
       "subtitle": "Motivuj klientov spoločným cieľom. Progres sa počíta sám z ich tréningov a zápisov."
     },
-    "locked": {
-      "title": "Výzvy a rebríček sú od tarify {tier}",
-      "text": "S tarifou {tier} vytvoríš klientom výzvy a zapneš rebríček v rámci svojich klientov."
-    },
     "form": {
       "name": "Názov výzvy",
       "namePlaceholder": "Napr. Novembrová osmička",
@@ -265,7 +261,9 @@
       "selected": "Len pre vybraných",
       "create": "Vytvoriť výzvu",
       "creating": "Vytváram…",
-      "created": "Výzva je vytvorená. Klienti ju uvidia na karte Dnes aj v Úspechoch."
+      "created": "Výzva je vytvorená. Klienti ju uvidia na karte Dnes aj v Úspechoch.",
+      "fromPro": "od Pro",
+      "everyoneOnly": "Výzva sa priradí všetkým klientom. Výber klientov je od Pro."
     },
     "trainer": {
       "leaderboardTitle": "Rebríček",
@@ -273,6 +271,8 @@
       "listTitle": "Tvoje výzvy",
       "empty": "Zatiaľ nemáš žiadnu výzvu.",
       "noClients": "Najprv pridaj klienta, potom mu môžeš vytvoriť výzvu.",
+      "counter": "{active}/{max} {max, plural, one {aktívna výzva} few {aktívne výzvy} other {aktívnych výziev}}",
+      "overLimit": "Máš {active} aktívnych výziev, tvoja tarifa dovoľuje {max}. Bežiace výzvy dobehnú do konca, novú pridáš, keď ich bude menej než {max}.",
       "unavailable": "Výzvy sa teraz nepodarilo načítať. Skús to znova o chvíľu.",
       "targetOf": "cieľ {target}",
       "doneOf": "Splnilo {done} z {total}",
@@ -294,6 +294,9 @@
       "tooLong": "Výzva môže trvať najviac 120 dní.",
       "clients": "Vyber aspoň jedného svojho klienta.",
       "limit": "Naraz môžeš mať najviac {max} aktívnych výziev. Ukonči alebo zmaž niektorú.",
+      "limitOne": "Tvoja tarifa dovoľuje naraz jednu aktívnu výzvu. Ukonči bežiacu alebo prejdi na Pro.",
+      "typeLocked": "Tento typ výzvy je od tarify Pro.",
+      "targetingLocked": "Výzvu môžeš dať len všetkým klientom. Výber klientov je od tarify Pro.",
       "notSignedIn": "Nie si prihlásený.",
       "invalid": "Neplatná požiadavka.",
       "failed": "Nepodarilo sa uložiť. Skús to znova."

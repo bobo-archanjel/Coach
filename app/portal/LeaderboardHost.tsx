@@ -13,5 +13,5 @@ export async function LeaderboardHost() {
   if (!client) return null;
   const view = await loadLeaderboard(client.id, client.trainer_id ?? null, todayIso());
   if (view.state === "unavailable") return null;
-  return <LeaderboardCard boards={view.state === "ready" ? view.boards : null} hidden={view.state === "hidden"} />;
+  return <LeaderboardCard metrics={view.state === "ready" ? view.metrics : []} boards={view.state === "ready" ? view.boards : null} hidden={view.state === "hidden"} />;
 }

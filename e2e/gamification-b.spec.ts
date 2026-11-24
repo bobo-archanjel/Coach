@@ -2,6 +2,8 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import {
+  CHALLENGE_METRICS,
+  MAX_ACTIVE_CHALLENGES,
   challengeProgress,
   challengeStatus,
   challengeValue,
@@ -14,7 +16,7 @@ import {
   type ChallengeMetric,
   type ProgressData,
 } from "../lib/gamification/challenges";
-import { LEADERBOARD_TOP_N, buildLeaderboard, maskName, streakFromWeeks, type BoardClient } from "../lib/gamification/leaderboard";
+import { LEADERBOARD_METRICS, LEADERBOARD_TOP_N, buildLeaderboard, maskName, streakFromWeeks, type BoardClient } from "../lib/gamification/leaderboard";
 import { buildTeamWeek, buildWeeklySummary, isSummaryDue, summaryWeekFor } from "../lib/gamification/weekly";
 import {
   DEFAULT_SHARE_BRAND,
@@ -25,7 +27,8 @@ import {
 } from "../lib/gamification/shareCard";
 import { challengeNameOf } from "../lib/gamification/kinds";
 import { challengesUnlocked, leaderboardUnlocked } from "../lib/gamification/gate";
-import { PLANS, minTierFor } from "../lib/billing/plans";
+import { ALL_CHALLENGE_TYPES, ALL_LEADERBOARD_METRICS, PLANS } from "../lib/billing/plans";
+import { allowedLeaderboardMetrics, checkChallengeAgainstLimits, gamificationLimits } from "../lib/gamification/limits";
 import { computeBilling, featureAvailableForClients, type SubscriptionRow } from "../lib/billing/entitlements";
 import { deriveBrandTheme } from "../lib/branding/colors";
 import { applyDismissals, attentionTotal, buildAttentionItems, challengeDismissKey, isValidDismissKey } from "../lib/dashboard/attention";
@@ -437,20 +440,69 @@ test.describe("brány podľa tarify", () => {
     ...over,
   });
 
-  test("príznaky challenges a leaderboard: Pro a Business áno, Starter nie", () => {
-    expect(PLANS.starter.features.challenges).toBe(false);
-    expect(PLANS.starter.features.leaderboard).toBe(false);
-    expect(PLANS.pro.features.challenges).toBe(true);
-    expect(PLANS.pro.features.leaderboard).toBe(true);
-    expect(PLANS.business.features.challenges).toBe(true);
-    expect(PLANS.business.features.leaderboard).toBe(true);
-    expect(minTierFor("challenges")).toBe("pro");
+  test("príznaky challenges a leaderboard: všetky tarify áno, rozsah určujú limity", () => {
+    for (const tier of ["starter", "pro", "business"] as const) {
+      expect(PLANS[tier].features.challenges).toBe(true);
+      expect(PLANS[tier].features.leaderboard).toBe(true);
+    }
+    // zoznamy v plans.ts sa zhodujú s tým, čo naozaj existuje
+    expect([...ALL_CHALLENGE_TYPES]).toEqual([...CHALLENGE_METRICS]);
+    expect([...ALL_LEADERBOARD_METRICS]).toEqual([...LEADERBOARD_METRICS]);
+  });
+
+  test("limity Starter: 1 aktívna výzva, workouts + food_days, len všetci klienti, rebríček len tento týždeň", () => {
+    const l = gamificationLimits("starter");
+    expect(l.maxActiveChallenges).toBe(1);
+    expect([...l.challengeTypes]).toEqual(["workouts", "food_days"]);
+    expect(l.challengeTargeting).toBe("all");
+    expect([...allowedLeaderboardMetrics("starter")]).toEqual(["workoutsWeek"]);
+    // bez prístupu a skúška (tarifa starter) = rovnako prísne
+    expect(gamificationLimits(null)).toEqual(l);
+    expect(computeBilling(sub({ tier: "starter", status: "app_trial", trial_ends_at: new Date(Date.now() + 5 * 864e5).toISOString() }), 2).accessTier).toBe("starter");
+  });
+
+  test("limity Pro a Business: bez obmedzenia rozsahu (20, všetky typy, výber klientov, 4 záložky)", () => {
+    for (const tier of ["pro", "business"] as const) {
+      const l = gamificationLimits(tier);
+      expect(l.maxActiveChallenges).toBe(MAX_ACTIVE_CHALLENGES);
+      expect([...l.challengeTypes]).toEqual([...CHALLENGE_METRICS]);
+      expect(l.challengeTargeting).toBe("any");
+      expect([...allowedLeaderboardMetrics(tier)]).toEqual([...LEADERBOARD_METRICS]);
+    }
+  });
+
+  test("kontrola novej výzvy voči limitom: typ, cieľ, počet", () => {
+    const s = gamificationLimits("starter");
+    const p = gamificationLimits("pro");
+    expect(checkChallengeAgainstLimits(s, { metric: "workouts", allClients: true, activeCount: 0 })).toBeNull();
+    expect(checkChallengeAgainstLimits(s, { metric: "food_days", allClients: true, activeCount: 0 })).toBeNull();
+    expect(checkChallengeAgainstLimits(s, { metric: "prs", allClients: true, activeCount: 0 })).toBe("type");
+    expect(checkChallengeAgainstLimits(s, { metric: "volume_kg", allClients: true, activeCount: 0 })).toBe("type");
+    expect(checkChallengeAgainstLimits(s, { metric: "streak_weeks", allClients: true, activeCount: 0 })).toBe("type");
+    expect(checkChallengeAgainstLimits(s, { metric: "workouts", allClients: false, activeCount: 0 })).toBe("targeting");
+    expect(checkChallengeAgainstLimits(s, { metric: "workouts", allClients: true, activeCount: 1 })).toBe("limit");
+    expect(checkChallengeAgainstLimits(p, { metric: "volume_kg", allClients: false, activeCount: 19 })).toBeNull();
+    expect(checkChallengeAgainstLimits(p, { metric: "volume_kg", allClients: false, activeCount: 20 })).toBe("limit");
+    expect(checkChallengeAgainstLimits(p, { metric: "bogus", allClients: true, activeCount: 0 })).toBe("type");
+  });
+
+  test("downgrade Pro → Starter: existujúce výzvy ostávajú, nové až pod limitom", () => {
+    const s = gamificationLimits("starter");
+    // 5 bežiacich z Pro: nová sa nedá, kým počet neklesne pod 1 (t. j. na 0)
+    for (const n of [5, 2, 1]) expect(checkChallengeAgainstLimits(s, { metric: "workouts", allClients: true, activeCount: n })).toBe("limit");
+    expect(checkChallengeAgainstLimits(s, { metric: "workouts", allClients: true, activeCount: 0 })).toBeNull();
+    // downgrade nič nemaže ani neukončuje: stránka len ukáže stav „nad limitom“ a akcie end/delete zostávajú
+    const page = readFileSync("app/dashboard/vyzvy/page.tsx", "utf8");
+    expect(page).toContain("activeCount > limits.maxActiveChallenges");
+    expect(page).toContain("challenge-over-limit");
+    expect(page).not.toContain("challenges-locked");
   });
 
   test("klientom sa funkcia ukáže podľa tarify trénera, nie podľa read-only", () => {
     expect(featureAvailableForClients(sub({ tier: "pro" }), "challenges")).toBe(true);
     expect(featureAvailableForClients(sub({ tier: "business" }), "leaderboard")).toBe(true);
-    expect(featureAvailableForClients(sub({ tier: "starter" }), "challenges")).toBe(false);
+    expect(featureAvailableForClients(sub({ tier: "starter" }), "challenges")).toBe(true);
+    expect(featureAvailableForClients(sub({ tier: "starter" }), "leaderboard")).toBe(true);
     expect(featureAvailableForClients(null, "challenges")).toBe(false);
     expect(featureAvailableForClients(sub({ tier: "pro", status: "canceled" }), "challenges")).toBe(false);
   });
@@ -462,7 +514,7 @@ test.describe("brány podľa tarify", () => {
     expect(challengesUnlocked(over)).toBe(true); // UI ukáže existujúce výzvy len na čítanie
     expect(leaderboardUnlocked(over)).toBe(true);
     const starter = computeBilling(sub({ tier: "starter", client_limit: 10 }), 3);
-    expect(challengesUnlocked(starter)).toBe(false);
+    expect(challengesUnlocked(starter)).toBe(true); // Starter už výzvy má (s limitmi)
     expect(challengesUnlocked(computeBilling(null, 0))).toBe(false);
   });
 });
@@ -555,11 +607,15 @@ test.describe("bezpečnosť (statické kontroly zdrojov)", () => {
     // cieľoví klienti sa overujú proti vlastným klientom trénera
     expect(actions).toContain('.eq("trainer_id", auth.userId)');
     expect(actions).toContain("own.has(");
+    // limity tarify (typ, cieľ, počet aktívnych) sa overujú na serveri
+    expect(actions).toContain("gamificationLimits(state.accessTier)");
+    expect(actions).toContain("checkChallengeAgainstLimits(limits");
   });
 
   test("rebríček: bez RLS rozšírenia, kontrola tarify a nastavení, skrytí sa filtrujú", () => {
     const lb = readFileSync("lib/gamification/leaderboardServer.ts", "utf8");
     expect(lb).toContain('trainerHasFeatureForClients(trainerId, "leaderboard")');
+    expect(lb).toContain("allowedLeaderboardMetrics(");
     expect(lb).toContain("leaderboard_enabled");
     expect(lb).toContain("leaderboard_visible");
     expect(lb).toContain("group.some((c) => c.id === clientId)");

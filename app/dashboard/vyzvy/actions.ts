@@ -2,17 +2,18 @@
 
 // FitPilot — výzvy trénera a nastavenie rebríčka (gamifikácia, fáza B).
 // Server action = verejný endpoint, preto v KAŽDEJ akcii: (1) stráž predplatného cez trainerBlock
-// (read-only tréner nič nezapisuje; výzvy a rebríček vyžadujú Pro/Business), (2) overená session
+// (read-only tréner nič nezapisuje; Starter má obmedzené limity — lib/gamification/limits.ts), (2) overená session
 // a rola tréner, (3) vlastníctvo — cieľoví klienti sa načítajú cez RLS a explicitne sa overí
 // clients.trainer_id = auth.uid(), (4) zápis cez service role (tabuľky nemajú write práva, 0079).
 
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
-import { trainerBlock } from "@/lib/billing/server";
+import { getTrainerBilling, trainerBlock } from "@/lib/billing/server";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { todayIso } from "@/lib/reports/period";
-import { MAX_ACTIVE_CHALLENGES, validateChallenge, type ChallengeInput } from "@/lib/gamification/challenges";
+import { validateChallenge, type ChallengeInput } from "@/lib/gamification/challenges";
+import { checkChallengeAgainstLimits, gamificationLimits } from "@/lib/gamification/limits";
 
 export interface ChallengeFormState {
   error: string | null;
@@ -57,6 +58,10 @@ export async function createChallengeAction(payload: CreateChallengePayload): Pr
   );
   if (invalid) return { error: te(invalid) };
 
+  // limity tarify (Starter / skúška: 1 aktívna výzva, len 2 typy, len všetci klienti) — overuje server
+  const { state } = await getTrainerBilling(auth.supabase, auth.userId);
+  const limits = gamificationLimits(state.accessTier);
+
   const allClients = payload.allClients === true;
   const requested = Array.isArray(payload.clientIds) ? [...new Set(payload.clientIds)] : [];
   if (!allClients && (requested.length === 0 || requested.length > 500 || !requested.every((i) => typeof i === "string" && UUID.test(i)))) {
@@ -82,7 +87,9 @@ export async function createChallengeAction(payload: CreateChallengePayload): Pr
     .select("id", { count: "exact", head: true })
     .eq("trainer_id", auth.userId)
     .eq("status", "active");
-  if ((count ?? 0) >= MAX_ACTIVE_CHALLENGES) return { error: te("limit", { max: MAX_ACTIVE_CHALLENGES }) };
+  const limitError = checkChallengeAgainstLimits(limits, { metric: String(payload.metric), allClients, activeCount: count ?? 0 });
+  if (limitError === "limit") return { error: limits.maxActiveChallenges === 1 ? te("limitOne") : te("limit", { max: limits.maxActiveChallenges }) };
+  if (limitError) return { error: te(limitError === "type" ? "typeLocked" : "targetingLocked") };
 
   const admin = tryCreateAdminClient();
   if (!admin) return { error: t("failed") };
@@ -100,7 +107,7 @@ export async function createChallengeAction(payload: CreateChallengePayload): Pr
     })
     .select("id")
     .single();
-  if (error || !row) return { error: error?.message?.includes("challenge_limit") ? te("limit", { max: MAX_ACTIVE_CHALLENGES }) : t("failed") };
+  if (error || !row) return { error: error?.message?.includes("challenge_limit") ? te("limit", { max: limits.maxActiveChallenges }) : t("failed") };
 
   const { error: pErr } = await admin
     .from("challenge_participants")

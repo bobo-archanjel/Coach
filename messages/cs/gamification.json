@@ -247,10 +247,6 @@
       "title": "Výzvy a žebříček",
       "subtitle": "Motivuj klienty společným cílem. Pokrok se počítá sám z jejich tréninků a zápisů."
     },
-    "locked": {
-      "title": "Výzvy a žebříček jsou od tarifu {tier}",
-      "text": "S tarifem {tier} vytvoříš klientům výzvy a zapneš žebříček v rámci svých klientů."
-    },
     "form": {
       "name": "Název výzvy",
       "namePlaceholder": "Např. Listopadová osmička",
@@ -265,7 +261,9 @@
       "selected": "Jen pro vybrané",
       "create": "Vytvořit výzvu",
       "creating": "Vytvářím…",
-      "created": "Výzva je vytvořena. Klienti ji uvidí na kartě Dnes i v Úspěších."
+      "created": "Výzva je vytvořena. Klienti ji uvidí na kartě Dnes i v Úspěších.",
+      "fromPro": "od Pro",
+      "everyoneOnly": "Výzva se přiřadí všem klientům. Výběr klientů je od Pro."
     },
     "trainer": {
       "leaderboardTitle": "Žebříček",
@@ -273,6 +271,8 @@
       "listTitle": "Tvoje výzvy",
       "empty": "Zatím nemáš žádnou výzvu.",
       "noClients": "Nejdřív přidej klienta, pak mu můžeš vytvořit výzvu.",
+      "counter": "{active}/{max} {max, plural, one {aktivní výzva} few {aktivní výzvy} other {aktivních výzev}}",
+      "overLimit": "Máš {active} aktivních výzev, tvůj tarif dovoluje {max}. Běžící výzvy doběhnou do konce, novou přidáš, až jich bude méně než {max}.",
       "unavailable": "Výzvy se teď nepodařilo načíst. Zkus to znovu za chvíli.",
       "targetOf": "cíl {target}",
       "doneOf": "Splnilo {done} z {total}",
@@ -294,6 +294,9 @@
       "tooLong": "Výzva může trvat nejvýše 120 dní.",
       "clients": "Vyber alespoň jednoho svého klienta.",
       "limit": "Najednou můžeš mít nejvýše {max} aktivních výzev. Ukonči nebo smaž některou.",
+      "limitOne": "Tvůj tarif dovoluje najednou jednu aktivní výzvu. Ukonči běžící nebo přejdi na Pro.",
+      "typeLocked": "Tento typ výzvy je od tarifu Pro.",
+      "targetingLocked": "Výzvu můžeš dát jen všem klientům. Výběr klientů je od tarifu Pro.",
       "notSignedIn": "Nejsi přihlášen.",
       "invalid": "Neplatný požadavek.",
       "failed": "Nepodařilo se uložit. Zkus to znovu."

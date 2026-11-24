@@ -12,7 +12,7 @@ import { ChooseTierButton, CheckoutRefresh, ManageButton } from "./PlanActions";
 /** Predplatné trénera — tarifa, skúška, využitie klientov, výber tarify (Stripe Checkout), správa (Portal). */
 
 const FEATURE_KEYS: Record<Tier, string[]> = {
-  starter: ["clients", "builder", "overview", "meals", "dashboard", "templates"],
+  starter: ["clients", "builder", "overview", "meals", "dashboard", "templates", "challenges"],
   pro: ["clients", "base", "aiGenerators", "aiCoach", "aiSummaries", "reports", "challenges"],
   business: ["clients", "base", "branding"],
 };

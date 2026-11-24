@@ -1,9 +1,9 @@
 import "server-only";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { addDaysIso, weekStartOf } from "@/lib/reports/period";
-import { trainerHasFeatureForClients } from "./access";
+import { trainerHasFeatureForClients, trainerTierForClients } from "./access";
+import { allowedLeaderboardMetrics } from "./limits";
 import {
-  LEADERBOARD_METRICS,
   STREAK_WINDOW_WEEKS,
   buildLeaderboard,
   streakFromWeeks,
@@ -18,13 +18,14 @@ import {
 // z jeho vlastného riadka clients) server cez service role zavolá agregačné funkcie, ktoré sú
 // dostupné IBA service role (0079), a do výstupu pustí len maskované meno + číslo metriky
 // (lib/gamification/leaderboard.ts). Skrytí klienti sa vyfiltrujú pred poradím. Rebríček sa
-// ukáže len keď: tréner má Pro/Business, nevypol ho a klient sa sám neskryl.
+// ukáže len keď: tréner má platnú tarifu (Starter len týždenný rebríček, limity v limits.ts), nevypol ho a klient sa sám neskryl.
 
 export type LeaderboardView =
   | { state: "unavailable" }
   /** klient sa skryl — rebríček nevidí (vzájomnosť), len prepínač na zapnutie */
   | { state: "hidden" }
-  | { state: "ready"; boards: Record<LeaderboardMetric, Board> };
+  /** boards a metrics obsahujú LEN metriky povolené tarifou trénera (Starter: len workoutsWeek) */
+  | { state: "ready"; metrics: LeaderboardMetric[]; boards: Partial<Record<LeaderboardMetric, Board>> };
 
 export async function loadLeaderboard(clientId: string, trainerId: string | null, today: string): Promise<LeaderboardView> {
   const none: LeaderboardView = { state: "unavailable" };
@@ -89,8 +90,11 @@ export async function loadLeaderboard(clientId: string, trainerId: string | null
         prsMonth: p?.prs ?? 0,
       };
     });
-    const boards = Object.fromEntries(LEADERBOARD_METRICS.map((m) => [m, buildLeaderboard(clients, m, clientId)])) as Record<LeaderboardMetric, Board>;
-    return { state: "ready", boards };
+    // zakázané metriky sa ani nepočítajú — do klienta ide len to, čo tarifa dovoľuje
+    const metrics = [...allowedLeaderboardMetrics(await trainerTierForClients(trainerId))] as LeaderboardMetric[];
+    if (metrics.length === 0) return none;
+    const boards = Object.fromEntries(metrics.map((m) => [m, buildLeaderboard(clients, m, clientId)])) as Partial<Record<LeaderboardMetric, Board>>;
+    return { state: "ready", metrics, boards };
   } catch {
     return none;
   }

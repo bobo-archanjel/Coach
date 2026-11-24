@@ -1,29 +1,27 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { AppLink as Link } from "@/app/components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getMyTrainerBilling } from "@/lib/billing/server";
-import { minTierFor } from "@/lib/billing/plans";
-import { challengesUnlocked, leaderboardUnlocked } from "@/lib/gamification/gate";
+import { leaderboardUnlocked } from "@/lib/gamification/gate";
+import { gamificationLimits } from "@/lib/gamification/limits";
 import { loadTrainerChallenges } from "@/lib/gamification/challengesServer";
-import { MAX_ACTIVE_CHALLENGES } from "@/lib/gamification/challenges";
 import { addDaysIso, todayIso } from "@/lib/reports/period";
 import { ChallengeForm } from "./ChallengeForm";
 import { ChallengeList } from "./ChallengeList";
 import { LeaderboardSetting } from "./LeaderboardSetting";
-import billing from "@/app/dashboard/billing.module.css";
 import styles from "@/app/dashboard/dashboard.module.css";
 import g from "@/app/components/gamification.module.css";
 
-/* /dashboard/vyzvy — výzvy pre klientov a nastavenie rebríčka (Pro, Business). Starter vidí
-   zamknutú kartu s odkazom na Predplatné; zápisy zamyká server (lib/gamification/gate.ts je len UI). */
+/* /dashboard/vyzvy — výzvy pre klientov a nastavenie rebríčka (všetky tarify). Starter a skúška:
+   1 aktívna výzva, 2 typy, len všetci klienti (limity v lib/billing/plans.ts); zápisy a limity
+   znova overuje server (actions.ts), UI je len pohodlie. */
 
 export default async function VyzvyPage() {
   const {
     data: { user },
   } = await getUser();
   if (!user) redirect("/prihlasenie");
-  const [t, tb, { state }] = await Promise.all([getTranslations("gamification.challenges"), getTranslations("billing"), getMyTrainerBilling(user.id)]);
+  const [t, { state }] = await Promise.all([getTranslations("gamification.challenges"), getMyTrainerBilling(user.id)]);
 
   const head = (
     <div className={styles.pageHead}>
@@ -31,30 +29,6 @@ export default async function VyzvyPage() {
       <p>{t("page.subtitle")}</p>
     </div>
   );
-
-  if (!challengesUnlocked(state)) {
-    const tier = tb(`tiers.${minTierFor("challenges")}`);
-    return (
-      <>
-        {head}
-        <div className={billing.locked} role="note" data-testid="challenges-locked" data-feature="challenges">
-          <span className={billing.lockIcon} aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="4" y="11" width="16" height="9" rx="2.5" />
-              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-            </svg>
-          </span>
-          <div className={billing.lockBody}>
-            <strong>{t("locked.title", { tier })}</strong>
-            <p>{t("locked.text", { tier })}</p>
-            <Link href="/dashboard/predplatne" className={billing.lockLink}>
-              {tb("lock.upgrade")}
-            </Link>
-          </div>
-        </div>
-      </>
-    );
-  }
 
   const supabase = await createClient();
   const today = todayIso();
@@ -65,6 +39,8 @@ export default async function VyzvyPage() {
   ]);
   const clients = (clientsRes.data ?? []) as { id: string; full_name: string }[];
   const activeCount = (challenges ?? []).filter((c) => c.status === "active").length;
+  const limits = gamificationLimits(state.accessTier);
+  const limited = limits.maxActiveChallenges === 1; // Starter / skúška
   const leaderboardEnabled = settingRes.data ? settingRes.data.leaderboard_enabled !== false : true;
 
   return (
@@ -82,12 +58,28 @@ export default async function VyzvyPage() {
 
         <section className={styles.card} aria-label={t("trainer.newTitle")}>
           <h3>{t("trainer.newTitle")}</h3>
-          {activeCount >= MAX_ACTIVE_CHALLENGES ? (
-            <p className={g.empty}>{t("errors.limit", { max: MAX_ACTIVE_CHALLENGES })}</p>
+          <p className={g.tcHint} data-testid="challenge-counter" data-active={activeCount} data-max={limits.maxActiveChallenges}>
+            {t("trainer.counter", { active: activeCount, max: limits.maxActiveChallenges })}
+          </p>
+          {activeCount > limits.maxActiveChallenges && (
+            <p className={g.empty} data-testid="challenge-over-limit">
+              {t("trainer.overLimit", { active: activeCount, max: limits.maxActiveChallenges })}
+            </p>
+          )}
+          {activeCount >= limits.maxActiveChallenges ? (
+            <p className={g.empty} data-testid="challenge-limit-reached">
+              {limited ? t("errors.limitOne") : t("errors.limit", { max: limits.maxActiveChallenges })}
+            </p>
           ) : clients.length === 0 ? (
             <p className={g.empty}>{t("trainer.noClients")}</p>
           ) : (
-            <ChallengeForm clients={clients} today={today} defaultEnd={addDaysIso(today, 27)} />
+            <ChallengeForm
+              clients={clients}
+              today={today}
+              defaultEnd={addDaysIso(today, 27)}
+              allowedTypes={[...limits.challengeTypes]}
+              canSelectClients={limits.challengeTargeting === "any"}
+            />
           )}
         </section>
 

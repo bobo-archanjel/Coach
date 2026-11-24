@@ -77,6 +77,16 @@ test.describe("tarify a ceny", () => {
     expect(PLANS.business.features.advancedReports).toBe(true);
     expect(PLANS.business.features.branding).toBe(true);
     expect(PLANS.pro.features.branding).toBe(false);
+    // výzvy a rebríček majú všetky tarify (Starter s limitmi)
+    expect(PLANS.starter.features.challenges).toBe(true);
+    expect(PLANS.starter.features.leaderboard).toBe(true);
+    expect(PLANS.starter.limits.maxActiveChallenges).toBe(1);
+    expect(PLANS.starter.limits.challengeTypes).toEqual(["workouts", "food_days"]);
+    expect(PLANS.starter.limits.challengeTargeting).toBe("all");
+    expect(PLANS.starter.limits.leaderboardMetrics).toEqual(["workoutsWeek"]);
+    expect(PLANS.pro.limits.maxActiveChallenges).toBe(20);
+    expect(PLANS.pro.limits.challengeTargeting).toBe("any");
+    expect(PLANS.business.limits.leaderboardMetrics).toHaveLength(4);
     expect(minTierFor("aiCoach")).toBe("pro");
     expect(minTierFor("branding")).toBe("business");
   });

@@ -26,12 +26,48 @@ export type Feature = (typeof FEATURES)[number];
 
 export type FeatureFlags = Record<Feature, boolean>;
 
+/** Typy výziev (zhodné s CHALLENGE_METRICS v lib/gamification/challenges.ts — hlída test). */
+export const ALL_CHALLENGE_TYPES = ["workouts", "food_days", "streak_weeks", "prs", "volume_kg"] as const;
+export type ChallengeTypeId = (typeof ALL_CHALLENGE_TYPES)[number];
+/** Metriky rebríčka (zhodné s LEADERBOARD_METRICS v lib/gamification/leaderboard.ts — hlída test). */
+export const ALL_LEADERBOARD_METRICS = ["workoutsWeek", "workoutsMonth", "streakWeeks", "prsMonth"] as const;
+export type LeaderboardMetricId = (typeof ALL_LEADERBOARD_METRICS)[number];
+
+/** Limity gamifikácie (fáza B) podľa tarify — výzvy a rebríček majú všetky tarify, líšia sa rozsahom. */
+export interface GamificationLimits {
+  /** najviac súčasne aktívnych výziev trénera */
+  maxActiveChallenges: number;
+  /** povolené typy výziev */
+  challengeTypes: readonly ChallengeTypeId[];
+  /** komu sa dá výzva priradiť: "all" = len všetkým klientom, "any" = aj vybraným */
+  challengeTargeting: "all" | "any";
+  /** povolené záložky rebríčka */
+  leaderboardMetrics: readonly LeaderboardMetricId[];
+}
+
+const STARTER_LIMITS: GamificationLimits = {
+  maxActiveChallenges: 1,
+  challengeTypes: ["workouts", "food_days"],
+  challengeTargeting: "all",
+  leaderboardMetrics: ["workoutsWeek"],
+};
+
+/** Pro a Business: bez obmedzenia rozsahu (strop 20 drží aj trigger v 0079). */
+const FULL_LIMITS: GamificationLimits = {
+  maxActiveChallenges: 20,
+  challengeTypes: ALL_CHALLENGE_TYPES,
+  challengeTargeting: "any",
+  leaderboardMetrics: ALL_LEADERBOARD_METRICS,
+};
+
 export interface PlanDef {
   tier: Tier;
   features: FeatureFlags;
+  limits: GamificationLimits;
 }
 
-const NO_FEATURES: FeatureFlags = {
+/** Všetko vypnuté (aj pre read-only stav trénera). */
+export const NO_FEATURES: FeatureFlags = {
   aiCoach: false,
   aiPlanGenerator: false,
   aiMealGenerator: false,
@@ -42,10 +78,11 @@ const NO_FEATURES: FeatureFlags = {
   leaderboard: false,
 };
 
+// výzvy a rebríček majú VŠETKY tarify (Starter obmedzene — viď GamificationLimits)
+const STARTER_FEATURES: FeatureFlags = { ...NO_FEATURES, challenges: true, leaderboard: true };
+
 const PRO_FEATURES: FeatureFlags = {
-  ...NO_FEATURES,
-  challenges: true,
-  leaderboard: true,
+  ...STARTER_FEATURES,
   aiCoach: true,
   aiPlanGenerator: true,
   aiMealGenerator: true,
@@ -54,9 +91,9 @@ const PRO_FEATURES: FeatureFlags = {
 };
 
 export const PLANS: Record<Tier, PlanDef> = {
-  starter: { tier: "starter", features: NO_FEATURES },
-  pro: { tier: "pro", features: PRO_FEATURES },
-  business: { tier: "business", features: { ...PRO_FEATURES, branding: true } },
+  starter: { tier: "starter", features: STARTER_FEATURES, limits: STARTER_LIMITS },
+  pro: { tier: "pro", features: PRO_FEATURES, limits: FULL_LIMITS },
+  business: { tier: "business", features: { ...PRO_FEATURES, branding: true }, limits: FULL_LIMITS },
 };
 
 /** Predvolený limit aktívnych klientov tarify (null = bez limitu), keď riadok nemá vlastný client_limit. */

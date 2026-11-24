@@ -1,7 +1,8 @@
 // FitPilot — kto vidí výzvy a rebríček na strane trénera (čistá funkcia, testy: e2e/gamification-b.spec.ts).
 // Rovnaká logika ako pokročilé reporty (lib/reports/access.ts): ide o zobrazenie, preto tréner
 // nad limitom klientov alebo s vypršaným odkladom funkciu vidí (len na čítanie), ak ju jeho
-// tarifa obsahuje; bez prístupu (skúška skončila, zrušené) a pri Starter je zamknutá.
+// tarifa obsahuje; bez prístupu (skúška skončila, zrušené) je zamknutá. Výzvy a rebríček majú všetky tarify,
+// Starter obmedzene (lib/gamification/limits.ts).
 // ZÁPISY chráni server (trainerBlock s feature) — táto funkcia je len pre UI.
 
 import { PLANS } from "@/lib/billing/plans";

@@ -3,7 +3,7 @@
 // billing_effective_tier z migrácie 0073 a billing_client_limit z 0074 — pri zmene pravidiel
 // upraviť OBE miesta.
 
-import { PLANS, clientLimitFor, type Feature, type FeatureFlags, type Tier } from "./plans";
+import { NO_FEATURES, PLANS, clientLimitFor, type Feature, type FeatureFlags, type Tier } from "./plans";
 
 export type SubStatus =
   | "app_trial"
@@ -89,8 +89,6 @@ export interface BillingState {
   /** naplánovaná zmena tarify (len platené predplatné, nie komped/zrušenie) */
   scheduledChange: ScheduledChange | null;
 }
-
-const NO_FEATURES = PLANS.starter.features;
 
 /** Limit aktívnych klientov riadku (null = bez limitu). Zrkadlo SQL billing_client_limit. */
 export function rowClientLimit(row: SubscriptionRow): number | null {

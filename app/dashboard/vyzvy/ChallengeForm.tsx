@@ -12,13 +12,27 @@ import g from "@/app/components/gamification.module.css";
 /* Nová výzva: názov, typ z pevnej množiny, cieľ, obdobie, komu (všetci / vybraní). Server
    všetko znovu overí (tarifa, vlastníctvo klientov, rozsahy) — tu je len pohodlie a rýchla spätná väzba. */
 
-export function ChallengeForm({ clients, today, defaultEnd }: { clients: PickerClient[]; today: string; defaultEnd: string }) {
+export function ChallengeForm({
+  clients,
+  today,
+  defaultEnd,
+  allowedTypes,
+  canSelectClients,
+}: {
+  clients: PickerClient[];
+  today: string;
+  defaultEnd: string;
+  /** typy povolené tarifou (ostatné sú vidieť, ale zamknuté s „od Pro“) */
+  allowedTypes: ChallengeMetric[];
+  /** false = výzvu možno dať len všetkým klientom (Starter) — výber sa nezobrazí */
+  canSelectClients: boolean;
+}) {
   const t = useTranslations("gamification.challenges");
   const router = useRouter();
   const readOnly = useBilling().readOnly;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [metric, setMetric] = useState<ChallengeMetric>("workouts");
+  const [metric, setMetric] = useState<ChallengeMetric>(allowedTypes[0] ?? "workouts");
   const [target, setTarget] = useState("8");
   const [startsOn, setStartsOn] = useState(today);
   const [endsOn, setEndsOn] = useState(defaultEnd);
@@ -42,8 +56,8 @@ export function ChallengeForm({ clients, today, defaultEnd }: { clients: PickerC
         target: Number(target),
         startsOn,
         endsOn,
-        allClients: everyone,
-        clientIds: everyone ? [] : selected,
+        allClients: everyone || !canSelectClients,
+        clientIds: everyone || !canSelectClients ? [] : selected,
       });
       if (res.error) {
         setError(res.error);
@@ -67,8 +81,9 @@ export function ChallengeForm({ clients, today, defaultEnd }: { clients: PickerC
           {t("form.metric")}
           <select value={metric} onChange={(e) => setMetric(e.target.value as ChallengeMetric)}>
             {CHALLENGE_METRICS.map((m) => (
-              <option key={m} value={m}>
+              <option key={m} value={m} disabled={!allowedTypes.includes(m)}>
                 {t(`metricName.${m}`)}
+                {allowedTypes.includes(m) ? "" : ` (${t("form.fromPro")})`}
               </option>
             ))}
           </select>
@@ -103,20 +118,23 @@ export function ChallengeForm({ clients, today, defaultEnd }: { clients: PickerC
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={300} rows={2} />
       </label>
 
-      <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className={g.tcHint}>{t("form.who")}</legend>
-        <div className={g.tcRadio}>
-          <label>
-            <input type="radio" name="who" checked={everyone} onChange={() => setEveryone(true)} />
-            {t("form.everyone")}
-          </label>
-          <label>
-            <input type="radio" name="who" checked={!everyone} onChange={() => setEveryone(false)} />
-            {t("form.selected")}
-          </label>
-        </div>
-      </fieldset>
-      {!everyone && <ClientMultiSelect clients={clients} selected={selected} onChange={setSelected} name="client_ids" />}
+      {canSelectClients && (
+        <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className={g.tcHint}>{t("form.who")}</legend>
+          <div className={g.tcRadio}>
+            <label>
+              <input type="radio" name="who" checked={everyone} onChange={() => setEveryone(true)} />
+              {t("form.everyone")}
+            </label>
+            <label>
+              <input type="radio" name="who" checked={!everyone} onChange={() => setEveryone(false)} />
+              {t("form.selected")}
+            </label>
+          </div>
+        </fieldset>
+      )}
+      {!canSelectClients && <p className={g.tcHint}>{t("form.everyoneOnly")}</p>}
+      {canSelectClients && !everyone && <ClientMultiSelect clients={clients} selected={selected} onChange={setSelected} name="client_ids" />}
 
       {error && (
         <p className={g.tcErr} role="alert">

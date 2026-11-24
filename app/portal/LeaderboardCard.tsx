@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LEADERBOARD_METRICS, type Board, type LeaderboardMetric } from "@/lib/gamification/leaderboard";
+import { type Board, type LeaderboardMetric } from "@/lib/gamification/leaderboard";
 import { setLeaderboardVisibleAction } from "./gamificationActions";
 import g from "@/app/components/gamification.module.css";
 
@@ -11,7 +11,15 @@ import g from "@/app/components/gamification.module.css";
    tento mesiac. Len „krstné meno + iniciála“ a číslo; nikdy podľa váhy. Klient sa dá jedným
    ťuknutím skryť (potom rebríček sám nevidí) a znova zobraziť. */
 
-export function LeaderboardCard({ boards, hidden }: { boards: Record<LeaderboardMetric, Board> | null; hidden: boolean }) {
+export function LeaderboardCard({
+  metrics,
+  boards,
+  hidden,
+}: {
+  metrics: LeaderboardMetric[];
+  boards: Partial<Record<LeaderboardMetric, Board>> | null;
+  hidden: boolean;
+}) {
   const t = useTranslations("gamification.leaderboard");
   const router = useRouter();
   const [metric, setMetric] = useState<LeaderboardMetric>("workoutsWeek");
@@ -39,25 +47,30 @@ export function LeaderboardCard({ boards, hidden }: { boards: Record<Leaderboard
     );
   }
 
-  const board = boards[metric];
+  // záložky len z povolených metrík tarify trénera; s jedinou záložkou sa prepínač nezobrazuje
+  const active = metrics.includes(metric) ? metric : metrics[0];
+  const board = active ? boards[active] : undefined;
+  if (!board || !active) return null;
   const meInTop = board.top.some((r) => r.isMe);
   return (
     <section className={g.card} aria-label={t("title")} data-testid="leaderboard">
       <h2 className={g.cardTitle}>{t("title")}</h2>
-      <div className={g.lbTabs} role="tablist" aria-label={t("metricsAria")}>
-        {LEADERBOARD_METRICS.map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={metric === m}
-            className={`${g.lbTab} ${metric === m ? g.lbTabOn : ""}`}
-            onClick={() => setMetric(m)}
-          >
-            {t(`metrics.${m}`)}
-          </button>
-        ))}
-      </div>
+      {metrics.length > 1 && (
+        <div className={g.lbTabs} role="tablist" aria-label={t("metricsAria")}>
+          {metrics.map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={active === m}
+              className={`${g.lbTab} ${active === m ? g.lbTabOn : ""}`}
+              onClick={() => setMetric(m)}
+            >
+              {t(`metrics.${m}`)}
+            </button>
+          ))}
+        </div>
+      )}
 
       {board.top.length === 0 ? (
         <p className={g.empty}>{t("empty")}</p>
@@ -70,7 +83,7 @@ export function LeaderboardCard({ boards, hidden }: { boards: Record<Leaderboard
                 {r.name}
                 {r.isMe ? ` (${t("you")})` : ""}
               </span>
-              <span className={g.lbVal}>{t(`unit.${metric}`, { count: r.value })}</span>
+              <span className={g.lbVal}>{t(`unit.${active}`, { count: r.value })}</span>
             </li>
           ))}
         </ol>
@@ -78,7 +91,11 @@ export function LeaderboardCard({ boards, hidden }: { boards: Record<Leaderboard
 
       <div className={g.lbFoot}>
         <span>
-          {board.me ? (meInTop ? t("yourRankShort", { rank: board.me.rank }) : t("yourRank", { rank: board.me.rank, total: board.total })) : t("noRank")}
+          {board.me
+            ? meInTop
+              ? t("yourRankShort", { rank: board.me.rank })
+              : t("yourRank", { rank: board.me.rank, total: board.total })
+            : t("noRank")}
         </span>
         <button type="button" className={g.linkBtn} onClick={() => toggle(false)} disabled={pending}>
           {t("hide")}

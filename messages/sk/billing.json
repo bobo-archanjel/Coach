@@ -35,7 +35,8 @@
       "overview": "Prehľad tréningových plánov",
       "meals": "Jedálničky a food diary",
       "dashboard": "Základný dashboard",
-      "templates": "Vlastné šablóny tréningov a jedálničkov"
+      "templates": "Vlastné šablóny tréningov a jedálničkov",
+      "challenges": "1 výzva a týždenný rebríček"
     },
     "pro": {
       "clients": "Do 30 aktívnych klientov",
@@ -44,7 +45,7 @@
       "aiCoach": "AI Kouč pre klientov",
       "aiSummaries": "AI zhrnutia progresu a portfólia",
       "reports": "Pokročilé reporty",
-      "challenges": "Výzvy a rebríček pre klientov"
+      "challenges": "Neobmedzené výzvy a celý rebríček"
     },
     "business": {
       "clients": "Neobmedzený počet klientov",
