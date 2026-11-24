@@ -157,9 +157,9 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await start.click();
     await expect(page.getByRole("button", { name: /Ukončiť tréning/i })).toBeVisible();
 
-    // týždeň (sekcia „Môj prehľad“ / „Odcvičené spolu“ odstránená)
+    // kalendár na 2 týždne (predtým „Tento týždeň“; „Môj prehľad“ / „Odcvičené spolu“ odstránené)
     await expect(page.getByText("Odcvičené spolu")).toHaveCount(0);
-    await expect(page.getByText("Tento týždeň")).toBeVisible();
+    await expect(page.getByTestId("client-calendar")).toContainText("Kalendár");
 
     // spodná navigácia — 5 položiek (Profil je pod ikonou s iniciálou, nie v menu)
     await expect(page.getByRole("navigation", { name: /Klientsky portál/i }).getByRole("link")).toHaveCount(5);
@@ -170,17 +170,18 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     expect(realErrors(errs), realErrors(errs).join("\n")).toEqual([]);
   });
 
-  test("Tento týždeň: listovanie týždňami + náhľad odcvičeného dňa", async ({ page }) => {
+  test("Kalendár: 2 týždne + náhľad odcvičeného dňa", async ({ page }) => {
     const errs: string[] = [];
     page.on("pageerror", (e) => errs.push(e.message));
     await page.goto("/portal?preview=ok");
-
-    // pager: dopredu je na aktuálnom týždni zakázané, dozadu povolené
-    await expect(page.getByRole("button", { name: /Nasledujúci týždeň/i })).toBeDisabled();
-    await expect(page.getByRole("button", { name: /Predchádzajúci týždeň/i })).toBeEnabled();
+    const calendar = page.getByTestId("client-calendar");
+    await expect(calendar.locator("[data-iso]")).toHaveCount(14);
+    // náhľad bez servera — listovanie vypnuté (reálne listovanie: e2e/kalendar-klient.spec.ts)
+    await expect(page.getByRole("button", { name: "Nasledujúce 2 týždne" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Predchádzajúce 2 týždne" })).toBeDisabled();
 
     // ťuk na deň so záznamom (Po 24 v preview) → náhľad s cvikmi
-    await page.getByRole("button", { name: /pondelok 24\..*zobraziť odcvičený tréning/i }).click();
+    await calendar.locator('[data-iso="2026-08-24"]').click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText("Tlak na lavičke")).toBeVisible();
@@ -191,16 +192,14 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(dialog).toBeHidden();
 
     // deň označený ako hotový bez zapísaných sérií (St 26 v preview)
-    await page.getByRole("button", { name: /streda 26\..*zobraziť odcvičený tréning/i }).click();
+    await calendar.locator('[data-iso="2026-08-26"]').click();
     await expect(page.getByRole("dialog").getByText(/bez zápisu skutočných sérií/i)).toBeVisible();
     await page.getByRole("button", { name: "Zavrieť", exact: true }).click();
 
-    // deň bez tréningu nie je klikateľný (Ut 25)
-    await expect(page.getByRole("button", { name: /utorok 25\./i })).toHaveCount(0);
-
-    // listovanie dozadu: bez session (preview) → chybová poznámka + retry, nie pád
-    await page.getByRole("button", { name: /Predchádzajúci týždeň/i }).click();
-    await expect(page.getByRole("button", { name: "Skúsiť znova", exact: true })).toBeVisible();
+    // deň bez tréningu sa dá otvoriť (pridať udalosť) — Ut 25
+    await calendar.locator('[data-iso="2026-08-25"]').click();
+    await expect(page.getByRole("dialog")).toContainText("Na tento deň zatiaľ nič nemáš.");
+    await page.keyboard.press("Escape");
 
     expect(errs, errs.join("\n")).toEqual([]);
   });
@@ -216,7 +215,7 @@ test.describe("Klientsky portál /portal (?preview=)", () => {
     await expect(page.getByText(/nepriradil aktívny tréningový plán/i)).toBeVisible();
     await expect(page.getByText("Môj prehľad")).toHaveCount(0);
     await expect(page.getByText("Meranie", { exact: true })).toBeVisible();
-    await expect(page.getByText(/Tento týždeň/).first()).toBeVisible();
+    await expect(page.getByTestId("client-calendar")).toContainText("Kalendár");
     await expect(page.getByRole("button", { name: /Začať tréning/i })).toHaveCount(0);
   });
 
