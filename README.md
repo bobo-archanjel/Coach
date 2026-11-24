@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Klient: × pri najbližšom termíne, náhľad šablón** (`feature/klient-termin-sablony`, bez migrácie).
+  - Karta Dnes: upozornenie „Najbližší termín“ má × — skryje ho (termín ostáva v kalendári); platí pre konkrétny termín (cookie s id), ďalší sa ukáže znova.
+  - Moje šablóny (Tréning aj Jedálniček): „Náhľad“ — dni s cvikmi / jedlami (kcal, makrá) a „Použiť šablónu“.
 - **2026-11-24** — **Klient: kalendár na 2 týždne na karte Dnes** (`feature/kalendar-klient`, **migrácia `0072_client_events.sql`**).
   - Namiesto „Tento týždeň“ kalendár s 2 riadkami Po–Ne (tento a budúci týždeň, listovanie po 2 týždňoch dozadu aj dopredu, „Späť na dnešok“).
   - Bodky: zelená = odcvičený tréning, červená = termín od trénera (`appointments`), oranžová = vlastná udalosť klienta; legenda.
