@@ -14,6 +14,7 @@ import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { ActivePlanButton } from "./ActivePlanButton";
 import { PlanCardDelete } from "./PlanCardDelete";
+import { PlanTemplateButton } from "./PlanTemplateButton";
 import { PlanBand } from "@/app/components/PlanBand";
 import { PlanProgress } from "@/app/components/PlanProgress";
 import { buildDoneDays } from "@/lib/dashboard/planDoneDays";
@@ -332,11 +333,14 @@ export default async function ClientDetailPage({
                           </ul>
                         )}
                         <div className={styles.cpFoot}>
-                          {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí; hotový sa nedá —
-                              tenšie tlačidlo cez celú šírku nad radom akcií */}
-                          {plan.published && !isActive && !done?.allDone && (
-                            <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} wide />
-                          )}
+                          {/* hore tenký rad (ako u klienta): vľavo „Nastaviť ako aktívny“ (aktívny = riadi klientovu
+                              kartu Dnes, 0056; koncept klient nevidí; hotový sa nedá), vpravo „Uložiť ako šablónu“ */}
+                          <div className={pa.rowThin}>
+                            {plan.published && !isActive && !done?.allDone && (
+                              <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} wide />
+                            )}
+                            <PlanTemplateButton planId={plan.id} planName={plan.name} />
+                          </div>
                           <div className={pa.row}>
                             {/* Report = vyhodnotenie, aj rozpracovaného plánu (rátajú sa odcvičené tréningy) */}
                             {(done?.completedDays ?? 0) > 0 && (

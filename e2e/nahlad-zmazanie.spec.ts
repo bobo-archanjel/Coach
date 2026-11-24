@@ -64,9 +64,11 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
 
   let admin: SupabaseClient;
   const plans: string[] = [];
+  const templateIds: string[] = [];
   test.afterAll(async () => {
     // zmazané testom už nie sú; dokončené zápisy tréningov ostávajú (zámok 0048 ich mazať nedovolí)
     if (admin && plans.length) await admin.from("workout_plans").delete().in("id", plans);
+    if (admin && templateIds.length) await admin.from("plan_templates").delete().in("id", templateIds);
   });
 
   test("rozpracovaný plán: Report (1 z 2) → Zmazať; hotový plán sa zmaže tiež", async ({ page, baseURL }, testInfo) => {
@@ -117,18 +119,26 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     // ---------- Náhľad rozpracovaného plánu ----------
     const wipCard = card(page, wip.planId);
     await expect(wipCard.locator("header")).toContainText("2 tréningy");
-    // pätička: „Nastaviť ako aktívny“ tenké cez celú šírku, pod ním Report · Upraviť plán · Zmazať v jednom rade
+    // pätička (ako u klienta): hore tenké Nastaviť ako aktívny | Uložiť ako šablónu, dole Report · Upraviť plán · Zmazať
     const activate = wipCard.getByRole("button", { name: `Nastaviť „E2E rozpracovaný náhľad ${stamp}“ ako aktívny plán klienta` });
     const report = wipCard.getByRole("link", { name: "Report" });
     const edit = wipCard.getByRole("link", { name: "Upraviť plán" });
     const del = wipCard.getByRole("button", { name: `Zmazať plán E2E rozpracovaný náhľad ${stamp}` });
     await expect(edit).toHaveAttribute("href", `/dashboard/treningy/${wip.planId}`);
-    const [a, r, e, d] = await Promise.all([activate, report, edit, del].map((l) => l.boundingBox()));
+    const saveTpl = wipCard.getByRole("button", { name: "Uložiť ako šablónu" });
+    const [a, tp, r, e, d] = await Promise.all([activate, saveTpl, report, edit, del].map((l) => l.boundingBox()));
+    expect(Math.abs(a!.y - tp!.y)).toBeLessThan(2);
+    expect(a!.x).toBeLessThan(tp!.x);
     expect(a!.y + a!.height).toBeLessThanOrEqual(r!.y);
     expect(Math.abs(r!.y - e!.y)).toBeLessThan(2);
     expect(Math.abs(e!.y - d!.y)).toBeLessThan(2);
-    expect(a!.width).toBeGreaterThan(d!.x + d!.width - r!.x - 4);
     expect(a!.height).toBeLessThan(r!.height);
+    // Uložiť ako šablónu → šablóna trénera pod názvom plánu
+    await saveTpl.click();
+    await expect(wipCard.getByRole("status")).toContainText("Uložené", { timeout: 15_000 });
+    const { data: tpls } = await admin.from("plan_templates").select("id").eq("name", `E2E rozpracovaný náhľad ${stamp}`);
+    expect(tpls).toHaveLength(1);
+    templateIds.push(tpls![0].id as string);
     // odcvičený deň → okno s cvikmi a zapísanými váhami; neodcvičený nie je tlačidlo
     await wipCard.getByRole("button", { name: "Zobraziť odcvičený tréning E2E Deň A" }).click();
     const dayDialog = page.getByRole("dialog", { name: "E2E Deň A" });
