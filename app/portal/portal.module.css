@@ -5035,3 +5035,245 @@ a.bellItemMain:hover {
   opacity: 0.6;
   cursor: progress;
 }
+
+/* ---------- kalendár na 2 týždne na karte Dnes (feature/kalendar-klient) ---------- */
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.calWeekday {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  padding-bottom: 2px;
+}
+.calCell {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 5px;
+  min-height: 54px;
+  padding: 8px 2px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: var(--fill);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease;
+}
+.calCell:hover {
+  border-color: var(--fill-strong);
+}
+.calCell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.calCellPast {
+  background: transparent;
+  border-color: var(--hairline);
+}
+.calCellToday {
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.calNum {
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.calDots {
+  display: flex;
+  gap: 3px;
+  min-height: 7px;
+}
+.calDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.calDot[data-kind="training"] {
+  background: var(--moss);
+}
+.calDot[data-kind="own"] {
+  background: var(--accent);
+}
+.calDot[data-kind="trainer"] {
+  background: var(--danger);
+}
+/* na oranžovom dnešku bodky s bielym lemom, nech nezaniknú */
+.calCellToday .calDot {
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95);
+}
+.calLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--paper-dim);
+}
+.calLegend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (min-width: 880px) {
+  .calCell {
+    min-height: 62px;
+    border-radius: 20px;
+  }
+}
+
+/* okno dňa */
+.calSection {
+  display: grid;
+  gap: 8px;
+}
+.calSection + .calSection,
+.calSection + .calForm,
+.calSection + .calAddBtn {
+  margin-top: 14px;
+}
+.calSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--paper);
+}
+.calEvents {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.calEvent {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--fill);
+  border-left: 3px solid var(--danger);
+}
+.calEvent[data-kind="own"] {
+  border-left-color: var(--accent);
+}
+.calEventTime {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+.calEventBody {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.calEventNote {
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}
+.calEventActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 2px;
+}
+.calConfirm {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper);
+}
+.calLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+.calLinkDanger {
+  color: var(--danger);
+}
+.calAddBtn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.calForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--fill);
+}
+.calFieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.calField {
+  display: grid;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-dim);
+}
+.calField input,
+.calField textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-solid);
+  color: var(--paper);
+  font: inherit;
+  font-size: 16px; /* iOS nezoomuje */
+  font-weight: 500;
+}
+.calField textarea {
+  resize: vertical;
+}
+.calField input:focus,
+.calField textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.calFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

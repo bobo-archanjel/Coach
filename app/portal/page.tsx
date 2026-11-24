@@ -128,10 +128,10 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
     );
   }
 
-  return <Today data={result.data} />;
+  return <Today data={result.data} preview={Boolean(preview) && process.env.NODE_ENV === "development"} />;
 }
 
-function Today({ data }: { data: PortalData }) {
+function Today({ data, preview = false }: { data: PortalData; preview?: boolean }) {
   const {
     clientFirstName,
     today,
@@ -234,7 +234,7 @@ function Today({ data }: { data: PortalData }) {
           <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
 
-        <WeekHistory initial={week} footer={<StreakChips streaks={streaks} />} />
+        <WeekHistory initial={week} footer={<StreakChips streaks={streaks} />} preview={preview} />
 
         <ProgressCard history={bodyMetrics} />
       </section>
