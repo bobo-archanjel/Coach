@@ -13,7 +13,7 @@
 //    verziu nasadiť k dátumu účinnosti.
 
 /** Dátum účinnosti aktuálnej verzie obchodných podmienok (YYYY-MM-DD). */
-export const TERMS_VERSION = "2026-11-15";
+export const TERMS_VERSION = "2026-11-24";
 
 /**
  * Treba pred vstupom do appky súhlas? `undefined` = nevieme (stĺpec ešte neexistuje — pred

@@ -3,6 +3,7 @@ import type { NutritionAdherence, TrainingAdherence } from "@/lib/dashboard/adhe
 import type { BodyMetricEntry, StrengthPoint, StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { BodyMetricsCard } from "./BodyMetricsCard";
 import { StrengthCard } from "./StrengthCard";
+import { FeatureGate } from "../../LockedFeature";
 import { ProgressSummaryCard } from "./ProgressSummaryCard";
 import { getTranslations } from "next-intl/server";
 import { InfoTip } from "@/app/components/InfoTip";
@@ -84,7 +85,9 @@ export async function AnalyticsPanel({
         </div>
       )}
 
-      <ProgressSummaryCard clientId={clientId} />
+      <FeatureGate feature="aiSummaries">
+        <ProgressSummaryCard clientId={clientId} />
+      </FeatureGate>
 
       <div className={styles.card}>
         <h3>{t("title")}</h3>

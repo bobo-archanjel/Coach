@@ -61,6 +61,8 @@ import type {
 } from "./types";
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
+import { buildGamificationHome, loadGamificationRaw } from "@/lib/gamification/server";
+import { trainerAllowsCoach } from "@/lib/billing/server";
 import { cleanSupersetId } from "@/lib/workouts/superset";
 import { compareLog, editableUntil, isStillEditable, parseLoggedEntries, parsePlanSnapshot } from "@/lib/workouts/completed";
 
@@ -381,6 +383,8 @@ export async function getPortalData(): Promise<PortalResult> {
         .maybeSingle(),
       supabase.from("workout_logs").select("performed_on").eq("client_id", client.id).gte("performed_on", trainingSince),
       supabase.from("food_logs").select("eaten_on").eq("client_id", client.id).gte("eaten_on", foodSince),
+      // prstence a úroveň (gamifikácia) — surové súčty, jeden súbeh dopytov; chyba = null
+      loadGamificationRaw(supabase, { clientId: client.id, activePlanId: client.active_plan_id ?? null }, isoDate),
     ]);
 
     // "Aktívny" plán = clients.active_plan_id (volí ho klient v Tréningu / na Dnes, alebo
@@ -573,7 +577,7 @@ export async function getPortalData(): Promise<PortalResult> {
       }
     }
 
-    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }] =
+    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }, gamiRaw] =
       await sideData;
 
     // Série sú len motivačná dekorácia — chyba ich dopytu (data = null) nesmie
@@ -582,6 +586,15 @@ export async function getPortalData(): Promise<PortalResult> {
       training: computeTrainingStreak((streakTrainRows ?? []).map((r) => r.performed_on as string), isoDate),
       food: computeFoodStreak((streakFoodRows ?? []).map((r) => r.eaten_on as string), isoDate),
     };
+    // týždenný cieľ prstenca = počet dní aktívneho plánu (rovnaké pravidlo ako reporty)
+    const gamification = gamiRaw
+      ? buildGamificationHome(gamiRaw, {
+          planDays: planChoice?.plans.find((p) => p.id === planChoice.activePlanId)?.dayCount ?? null,
+          trainedDates: (streakTrainRows ?? []).map((r) => r.performed_on as string),
+          foodDates: (streakFoodRows ?? []).map((r) => r.eaten_on as string),
+          today: isoDate,
+        })
+      : null;
 
 
     // ---------- odkaz trénera ----------
@@ -604,6 +617,7 @@ export async function getPortalData(): Promise<PortalResult> {
       hasTrainer: Boolean(client.trainer_id),
       week,
       streaks,
+      gamification,
       deletionNotice: client.deletion_requested_at
         ? { requestedBy: client.deletion_requested_by as "trainer" | "client", requestedAt: client.deletion_requested_at }
         : null,
@@ -1254,6 +1268,8 @@ export async function getPortalAiChat(): Promise<PortalAiChatResult> {
     if (clientErr) return { state: "error", message: await dbErr(clientErr, "data") };
     if (!client) return { state: "unlinked", firstName };
     if (!client.trainer_id) return { state: "no_trainer" };
+    // AI Kouč klienta je súčasťou tarify trénera (Pro/Business) — viď lib/billing
+    if (!(await trainerAllowsCoach(client.trainer_id))) return { state: "coach_locked" };
 
     // Správy cez konverzáciu klienta jedným dopytom (predtým konverzácia → správy
     // za sebou). Konverzácia sa zakladá až pri prvej správe — bez nej je výsledok [].

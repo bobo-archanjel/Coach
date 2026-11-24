@@ -22,5 +22,7 @@
   "trainerMetaTitle": "FitPilot — Dashboard",
   "mealPlansMetaTitle": "FitPilot — Jídelníčky",
   "portalMetaTitle": "FitPilot — Portál",
-  "portalMetaDescription": "Tvůj dnešní trénink a plán týdne na jednom místě."
+  "portalMetaDescription": "Tvůj dnešní trénink a plán týdne na jednom místě.",
+  "challenges": "Výzvy",
+  "leads": "Zájemci"
 }

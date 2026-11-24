@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +21,8 @@ const ok: ActionState = { error: null };
 
 /** "Uložiť ako šablónu" na detaile tréningového plánu (`/dashboard/treningy/[planId]`). */
 export async function saveWorkoutTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,6 +42,8 @@ export async function saveWorkoutTemplateAction(_prevState: ActionState, formDat
 
 /** "Uložiť ako šablónu" na detaile jedálničku (`/dashboard/jedalnicky/jedalnicek/[planId]`). */
 export async function saveMealTemplateAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -73,6 +78,8 @@ export async function applyTemplateToClientsAction(
   templateId: string,
   clientIds: string[],
 ): Promise<ApplyToClientsResult> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked, href: null };
   const fail = (error: string): ApplyToClientsResult => ({ error, href: null });
   const supabase = await createClient();
   const {
@@ -108,6 +115,7 @@ export async function applyTemplateToClientsAction(
 }
 
 export async function deleteWorkoutTemplateAction(templateId: string): Promise<void> {
+  if (await trainerBlock()) return;
   const supabase = await createClient();
   const {
     data: { user },
@@ -118,6 +126,7 @@ export async function deleteWorkoutTemplateAction(templateId: string): Promise<v
 }
 
 export async function deleteMealTemplateAction(templateId: string): Promise<void> {
+  if (await trainerBlock()) return;
   const supabase = await createClient();
   const {
     data: { user },

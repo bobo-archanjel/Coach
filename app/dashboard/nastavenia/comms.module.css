@@ -1,0 +1,60 @@
+/* Nastavenia → „Komunikácia s klientmi“ (uvítacia správa, pozvánka e-mailom). Doplnok k branding.module.css. */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid var(--hairline);
+}
+.block:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.chatPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+}
+.bubble {
+  align-self: flex-start;
+  max-width: 92%;
+  padding: 9px 13px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--accent-soft);
+  color: var(--paper);
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubbleEmpty {
+  color: var(--paper-faint);
+  font-size: 13px;
+}
+.inviteRow {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 700px) {
+  .inviteRow {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+}
+.statusNote {
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}

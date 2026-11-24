@@ -1,11 +1,12 @@
 // i18n-ignore-file: právní text — celý dokument v češtině (slovenský je v content.sk.tsx)
+// TODO(právnik): texty (zásady, podmienky, cookies) sú pracovný návrh — pred spustením pre skutočných zákazníkov a platieb potrebujú právnu kontrolu (24. 11. 2026).
 import styles from "@/app/legal.module.css";
 
 export default function CookiesCs() {
   return (
     <>
       <h1>Zásady používání cookies</h1>
-      <p className={styles.updated}>Poslední aktualizace: 12. listopadu 2026</p>
+      <p className={styles.updated}>Poslední aktualizace: 24. listopadu 2026</p>
 
       <div className={styles.draftNotice}>
         <strong>Toto je pracovní návrh (draft).</strong> Nejde o právně závazný text schválený právníkem.
@@ -44,6 +45,11 @@ export default function CookiesCs() {
             <td>fitpilot_tour_seen</td>
             <td>Aby se úvodní průvodce aplikací nespouštěl znovu</td>
             <td>1 rok nebo do odhlášení</td>
+          </tr>
+          <tr>
+            <td>fp_invite</td>
+            <td>Zapamatování pozvánky od trenéra po návštěvě zvací stránky, aby tě po registraci šlo spárovat s trenérem (httpOnly — JavaScript ji nečte)</td>
+            <td>7 dní</td>
           </tr>
         </tbody>
       </table>

@@ -193,5 +193,26 @@
     "progressFile": "pokrok",
     "mealPlanFallback": "jidelnicek",
     "planFallback": "plan"
+  },
+  "billing": {
+    "readOnly": {
+      "no_subscription": "Tvůj účet je jen pro čtení — předplatné se nenašlo. Aktivuj ho v sekci Předplatné.",
+      "trial_ended": "Zkušební doba skončila — účet je jen pro čtení. Vyber si tarif v sekci Předplatné a můžeš pokračovat.",
+      "subscription_ended": "Předplatné je zrušené nebo nezaplacené — účet je jen pro čtení. Obnov ho v sekci Předplatné.",
+      "past_due_expired": "Platba za předplatné selhala a odklad vypršel — účet je jen pro čtení. Uhraď platbu v sekci Předplatné.",
+      "over_limit": "Máš více aktivních klientů, než dovoluje tvůj tarif — účet je jen pro čtení. Ukonči spolupráci s částí klientů nebo přejdi na vyšší tarif."
+    },
+    "featureLocked": "Tato funkce je dostupná od tarifu {tier}. Změň tarif v sekci Předplatné.",
+    "clientLimit": "Dosáhl jsi limitu {limit} aktivních klientů svého tarifu. Přejdi na vyšší tarif v sekci Předplatné.",
+    "coachLocked": "AI Kouč je momentálně nedostupný — tvůj trenér ho nemá zapnutý.",
+    "notConfigured": "Platby ještě nejsou nastavené. Zkus to později.",
+    "checkoutFailed": "Platbu se nepodařilo založit. Zkus to prosím znovu.",
+    "portalFailed": "Správu předplatného se nepodařilo otevřít. Zkus to prosím znovu.",
+    "comped": "Tvůj účet má přístup zdarma — předplatné nepotřebuješ.",
+    "noCustomer": "Zatím nemáš žádné předplatné, které by šlo spravovat.",
+    "invalidTier": "Neplatný tarif.",
+    "trainerOnly": "Předplatné je jen pro trenéry.",
+    "readOnlyGeneric": "Účet je jen pro čtení — obnov předplatné v sekci Předplatné.",
+    "clientLimitGeneric": "Dosáhl jsi limitu aktivních klientů svého tarifu. Přejdi na vyšší tarif v sekci Předplatné."
   }
 }

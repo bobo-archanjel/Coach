@@ -1,0 +1,203 @@
+{
+  "tabLabel": "Reporty",
+  "retry": "Skúsiť znova",
+  "periods": {
+    "label": "Obdobie reportu",
+    "4": "4 týždne",
+    "12": "12 týždňov",
+    "26": "26 týždňov",
+    "all": "Celá história"
+  },
+  "errors": {
+    "notSignedIn": "Nie si prihlásený.",
+    "trainerOnly": "Reporty sú dostupné len pre trénera.",
+    "locked": "Pokročilé reporty sú dostupné od tarify Pro. Zmeň tarifu v sekcii Predplatné.",
+    "clientNotFound": "Klient sa nenašiel.",
+    "loadFailed": "Report sa nepodarilo načítať. Skús to znova.",
+    "invalidMonth": "Neplatný mesiac. Použi tvar RRRR-MM, nie v budúcnosti."
+  },
+  "client": {
+    "range": "{from} – {to}"
+  },
+  "risk": {
+    "ok": "Klient je aktívny — bez upozornení.",
+    "title": "Klient potrebuje pozornosť",
+    "reasons": {
+      "inactive": "Žiadny tréning ani zápis jedla už {days, plural, one {# deň} few {# dni} other {# dní}}.",
+      "trainingDrop": "Tréningov v posledných 14 dňoch je výrazne menej ako v predošlých 14.",
+      "lowAdherence": "Celková adherencia (tréning a strava) je za 30 dní v pásme Riziko."
+    },
+    "short": {
+      "inactive": "bez aktivity {days, plural, one {# deň} few {# dni} other {# dní}}",
+      "trainingDrop": "pokles tréningov",
+      "lowAdherence": "nízka adherencia"
+    }
+  },
+  "compare": {
+    "start": "Začiatok",
+    "end": "Koniec",
+    "notEnough": "Na porovnanie začiatku a konca treba aspoň dva záznamy v období."
+  },
+  "measures": {
+    "weight": "Váha",
+    "waist": "Pás",
+    "chest": "Hrudník",
+    "hips": "Boky",
+    "arm": "Paža",
+    "thigh": "Stehno"
+  },
+  "progress": {
+    "title": "Progres v čase",
+    "body": "Telo",
+    "noBody": "V tomto období nie sú žiadne merania. Pridaj ich v karte Analytika.",
+    "strength": "Sila",
+    "noStrength": "V tomto období nie sú zapísané žiadne série s váhou.",
+    "chooseExercise": "Vybrať cvik",
+    "e1rmHint": "Graf ukazuje odhad jednoopakovacieho maxima (Epley, série do 12 opakovaní). Najťažšia pracovná váha v období: {best} kg."
+  },
+  "adherence": {
+    "title": "Adherencia",
+    "training": "Tréning podľa plánu",
+    "planned": "Splnenie plánu",
+    "weeksMet": "{met} z {counted} týždňov splnených",
+    "sessions": "Odcvičené tréningy",
+    "target": "cieľ {target}× týždenne",
+    "streak": "Séria",
+    "streakValue": "{count, plural, one {# týždeň} few {# týždne} other {# týždňov}}",
+    "last": "posledný {date}",
+    "never": "zatiaľ necvičil",
+    "chartAria": "Splnenie týždenného cieľa tréningov po týždňoch v percentách",
+    "goalLine": "cieľ",
+    "empty": "V tomto období nie sú žiadne týždne na zobrazenie.",
+    "noPlan": "Klient nemá aktívny plán s dňami — použitý predvolený cieľ {target}× týždenne.",
+    "weekOf": "Týždeň od {date}",
+    "weekLine": "{done} z {target} tréningov ({pct} %)",
+    "ongoing": "prebieha"
+  },
+  "nutrition": {
+    "title": "Strava oproti cieľom",
+    "empty": "V tomto období nie sú zapísané žiadne jedlá.",
+    "logged": "Dni so zápisom",
+    "loggedSub": "{pct} % dní v období",
+    "avgKcal": "Priemer kcal",
+    "vsTarget": "{pct} % cieľa ({target})",
+    "noGoal": "bez makro cieľa",
+    "within": "V pásme ±10 %",
+    "withinSub": "{days} z {logged} dní so zápisom",
+    "protein": "Priemer bielkovín",
+    "chartAria": "Priemerný denný príjem kcal po týždňoch oproti cieľu",
+    "targetLine": "cieľ {kcal} kcal",
+    "weekLine": "{kcal} kcal ({days, plural, one {# deň} few {# dni} other {# dní}} so zápisom)",
+    "weekNone": "bez zápisu",
+    "hint": "Priemery sa rátajú len z dní so zapísaným jedlom. Pásmo ±10 % znamená príjem v rozsahu 90–110 % denného cieľa."
+  },
+  "export": {
+    "title": "Export",
+    "month": "Mesiac",
+    "pdf": "Mesačný report (PDF)",
+    "csv": "Dáta (CSV)",
+    "hint": "PDF zhrnie vybraný mesiac s grafmi. CSV obsahuje dáta za zvolené obdobie hore."
+  },
+  "locked": {
+    "upgrade": "Zobraziť tarify",
+    "portfolio": {
+      "title": "Pokročilé reporty — od tarify {tier}",
+      "text": "Prehľad portfólia, nové a ukončené spolupráce po mesiacoch, rebríček aktívnych a ohrozených klientov a export do CSV."
+    },
+    "client": {
+      "title": "Reporty klienta — od tarify {tier}",
+      "text": "Progres v čase (váha, miery, sila), adherencia tréningu a stravy, upozornenie na rizikových klientov a mesačný report v PDF."
+    }
+  },
+  "portfolio": {
+    "title": "Pokročilé reporty — portfólio",
+    "empty": "Zatiaľ nemáš žiadnych aktívnych klientov, reporty sa objavia po pridaní prvého.",
+    "active": "Aktívni klienti",
+    "endedTotal": "{count} ukončených spoluprác",
+    "newMonth": "Noví v mesiaci",
+    "endedMonth": "Ukončení v mesiaci",
+    "thisMonth": "tento mesiac",
+    "atRisk": "V riziku",
+    "atRiskSub": "bez aktivity alebo klesá",
+    "cooperations": "Nové a ukončené spolupráce po mesiacoch",
+    "started": "Nové",
+    "ended": "Ukončené",
+    "startedLine": "Nové: {count}",
+    "endedLine": "Ukončené: {count}",
+    "cooperationsAria": "Počet nových a ukončených spoluprác za posledných 12 mesiacov",
+    "cooperationsHint": "Nová spolupráca = dátum spárovania klienta, ukončená = dátum ukončenia. Obnovená spolupráca sa ráta ako aktívna.",
+    "activity": "Aktivita klientov po týždňoch",
+    "activityAria": "Počet odcvičených tréningov všetkých klientov za týždeň, posledných 12 týždňov",
+    "weekLine": "{workouts} tréningov, cvičilo {clients} klientov",
+    "workouts": "Tréningy",
+    "mostActive": "Najaktívnejší (posledných 14 dní)",
+    "noActive": "Nikto zatiaľ necvičil.",
+    "sessions14": "{count, plural, one {# tréning} few {# tréningy} other {# tréningov}}",
+    "atRiskList": "Klienti v riziku",
+    "noRisk": "Nikto nie je v riziku.",
+    "csv": "Súhrn portfólia (CSV)"
+  },
+  "csv": {
+    "client": "Klient",
+    "period": "Obdobie",
+    "sections": {
+      "weekly": "Adherencia tréningu po týždňoch",
+      "body": "Telesné merania",
+      "strength": "Sila (najťažšia séria a odhad 1RM)",
+      "nutrition": "Strava po týždňoch"
+    },
+    "weekStart": "Týždeň od",
+    "sessions": "Tréningy",
+    "target": "Cieľ",
+    "pct": "Splnenie %",
+    "date": "Dátum",
+    "exercise": "Cvik",
+    "weightKg": "Váha (kg)",
+    "reps": "Opakovania",
+    "e1rm": "Odhad 1RM (kg)",
+    "avgKcal": "Priemer kcal",
+    "daysLogged": "Dni so zápisom",
+    "targetKcal": "Cieľ kcal",
+    "reportFile": "report",
+    "clientFallback": "klient",
+    "portfolioFile": "portfolio",
+    "pairedOn": "Spárovaný od",
+    "training30": "Tréning 30 dní %",
+    "nutrition30": "Strava 30 dní %",
+    "plan30": "Splnenie plánu 30 dní %",
+    "score": "Skóre",
+    "status": "Stav",
+    "lastWorkout": "Posledný tréning",
+    "lastFood": "Posledný zápis jedla",
+    "sessions14": "Tréningy za 14 dní",
+    "weightDelta": "Zmena váhy za 90 dní (kg)",
+    "atRisk": "V riziku",
+    "reasons": "Dôvody",
+    "yes": "áno",
+    "no": "nie"
+  },
+  "pdf": {
+    "kind": "Mesačný report",
+    "subtitle": "Mesačný report — {month}",
+    "range": "Obdobie: {from} – {to}",
+    "tiles": {
+      "sessions": "Tréningy",
+      "plan": "Splnenie plánu",
+      "nutrition": "Strava v pásme ±10 %",
+      "weight": "Zmena váhy"
+    },
+    "noMeasurements": "V tomto období nie sú žiadne merania.",
+    "attention": "Dôvod",
+    "weightTitle": "Váha",
+    "weeklyTitle": "Splnenie plánu po týždňoch",
+    "weeklyNote": "Percento splnenia cieľa {target}× týždenne; týždne sú kalendárne (pondelok až nedeľa).",
+    "nutritionTitle": "Strava po dňoch",
+    "nutritionNote": "Zapísané dni: {logged} z {total}, v pásme ±10 % cieľa: {within}.",
+    "exercise": "Cvik",
+    "change": "Zmena",
+    "strengthTitle": "Sila — začiatok a koniec mesiaca",
+    "e1rm": "odhad 1RM",
+    "measuresTitle": "Telesné miery — začiatok a koniec mesiaca",
+    "measure": "Miera"
+  }
+}

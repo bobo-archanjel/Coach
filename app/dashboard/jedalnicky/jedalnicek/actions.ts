@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { getTranslations } from "next-intl/server";
 import { randomUUID } from "crypto";
@@ -35,6 +36,8 @@ export interface MealEntry {
 }
 
 export async function createMealPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -81,6 +84,8 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
 
 /** Zverejnenie jedálnička — kým je koncept, klient ho v portáli nevidí (0044). */
 export async function publishMealPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -117,6 +122,8 @@ export async function publishMealPlanAction(_prevState: ActionState, formData: F
  * UI pýta dvojkrokové potvrdenie. meal_days zmaže kaskáda.
  */
 export async function deleteMealPlanAction(planId: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId) return { error: await tErr("meals.missingId") };
 
   const supabase = await createClient();
@@ -143,6 +150,8 @@ export async function deleteMealPlanAction(planId: string): Promise<ActionState>
 
 /** Rovnaký podpis ako tréningový renamePlanAction — volá ho zdieľaná ceruzka PlanTitle. */
 export async function renameMealPlanAction(planId: string, rawName: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId) return { error: await tErr("meals.missingId") };
   const name = rawName.trim();
   if (!name) return { error: await tErr("meals.nameRequired") };
@@ -227,6 +236,8 @@ const portionFood = (f: FoodRow): PortionFood => ({
  * food_id (snapshot ako pri pôvodnom pridaní), nie z prehliadača.
  */
 export async function saveMealPlanDaysAction(planId: string, days: MealDayDraft[]): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId) return { error: await tErr("meals.missingId") };
   if (!Array.isArray(days) || days.length > MAX_DAYS) return { error: await tErr("meals.maxDays", { max: MAX_DAYS }) };
 

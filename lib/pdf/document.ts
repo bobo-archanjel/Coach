@@ -84,6 +84,19 @@ function pdfTranslator(locale: Locale) {
   return createTranslator({ locale, messages: { pdf: PDF_MESSAGES[locale] }, namespace: "pdf" });
 }
 
+/** Značka trénera do hlavičky PDF (branding, Business) — farby sú už prepočítané na kontrast (lib/branding). */
+export interface PdfBrand {
+  name: string;
+  /** výplň / bodky (#rrggbb) */
+  accent: string;
+  /** text v akcentovej farbe — kontrast ≥ 4.5:1 voči svetlému povrchu */
+  accentText: string;
+  /** jemné pozadie štítkov (#rrggbb) */
+  accentSoft: string;
+  /** logo ako PNG bajty (z úložiska znovu zakódované) alebo null */
+  logoPng: Uint8Array | null;
+}
+
 export interface PdfContext {
   /** jazyk a texty dokumentu (messages/<jazyk>/pdf.json) — podľa jazyka používateľa */
   locale: Locale;
@@ -93,9 +106,13 @@ export interface PdfContext {
   semibold: PDFFont;
   bold: PDFFont;
   logo: PDFImage | null;
+  /** farby dokumentu — predvolené FitPilot, pri značke trénera s jeho akcentom */
+  colors: typeof COLORS;
+  /** značka trénera (hlavička + pätička) alebo null = FitPilot */
+  brand: { name: string } | null;
 }
 
-export async function createPdfContext(locale: Locale = "sk"): Promise<PdfContext> {
+export async function createPdfContext(locale: Locale = "sk", brand: PdfBrand | null = null): Promise<PdfContext> {
   const t = pdfTranslator(locale);
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
@@ -107,10 +124,13 @@ export async function createPdfContext(locale: Locale = "sk"): Promise<PdfContex
     // then(): readFileSync hádže synchrónne — bez neho by .catch chýbajúce logo nezachytil
     // a padol by celý export namiesto PDF bez loga
     Promise.resolve()
-      .then(() => doc.embedPng(assetBytes("public", "brand", "logo-mark.png")))
+      .then(() => (brand?.logoPng ? doc.embedPng(brand.logoPng) : doc.embedPng(assetBytes("public", "brand", "logo-mark.png"))))
+      // logo trénera sa nepodarilo vložiť → predvolená značka FitPilot (nikdy nepadnúť celý export)
+      .catch(() => Promise.resolve().then(() => doc.embedPng(assetBytes("public", "brand", "logo-mark.png"))))
       .catch(() => null),
   ]);
-  return { locale, t, doc, regular, semibold, bold, logo };
+  const colors = brand ? { ...COLORS, accent: hex(brand.accent), accentText: hex(brand.accentText), accentSoft: hex(brand.accentSoft), glowA: hex(brand.accent) } : COLORS;
+  return { locale, t, doc, regular, semibold, bold, logo, colors, brand: brand ? { name: brand.name } : null };
 }
 
 export interface TableColumn {
@@ -234,8 +254,8 @@ export class PdfWriter {
     const layers = 28;
     for (let i = 0; i < layers; i++) {
       const t = 1 - i / layers;
-      p.drawEllipse({ x: PAGE_WIDTH + 10, y: PAGE_HEIGHT + 30, xScale: 310 * t, yScale: 240 * t, color: COLORS.glowA, opacity: 0.0075 });
-      p.drawEllipse({ x: -40, y: -20, xScale: 270 * t, yScale: 210 * t, color: COLORS.glowA, opacity: 0.0055 });
+      p.drawEllipse({ x: PAGE_WIDTH + 10, y: PAGE_HEIGHT + 30, xScale: 310 * t, yScale: 240 * t, color: this.ctx.colors.glowA, opacity: 0.0075 });
+      p.drawEllipse({ x: -40, y: -20, xScale: 270 * t, yScale: 210 * t, color: this.ctx.colors.glowA, opacity: 0.0055 });
     }
 
     // hlavička: značka + FitPilot vľavo (ako bočný panel v6), druh dokumentu vpravo
@@ -246,7 +266,7 @@ export class PdfWriter {
       p.drawImage(this.ctx.logo, { x, y: top - logoSize / 2, width: logoSize, height: logoSize });
       x += logoSize + 8;
     }
-    p.drawText("FitPilot", { x, y: top - 5.5, size: 15, font: this.ctx.bold, color: COLORS.text });
+    p.drawText(fitText(this.ctx.brand?.name || "FitPilot", this.ctx.bold, 15, 300), { x, y: top - 5.5, size: 15, font: this.ctx.bold, color: COLORS.text });
     // na prvej strane je druh dokumentu v štítku nad názvom — vpravo až od druhej strany
     if (this.ctx.doc.getPageCount() > 1) this.label(this.kind.toUpperCase(), PAGE_WIDTH - MARGIN, top - 3.5, 8, COLORS.faint, "right");
 
@@ -295,7 +315,7 @@ export class PdfWriter {
 
   /** Úvod dokumentu: štítok druhu, veľký názov (max. 2 riadky) a metadáta pod ním. */
   title(input: { title: string; meta: string[] }) {
-    this.pill(this.kind.toUpperCase(), MARGIN, this.y, { fill: COLORS.accentSoft, color: COLORS.accentText, size: 8, upper: true });
+    this.pill(this.kind.toUpperCase(), MARGIN, this.y, { fill: this.ctx.colors.accentSoft, color: this.ctx.colors.accentText, size: 8, upper: true });
     this.y -= 18 + 30;
     const lines = wrapText(input.title, this.ctx.bold, 25, CONTENT_W, 2);
     for (const line of lines) {
@@ -417,6 +437,29 @@ export class PdfWriter {
     }
   }
 
+  /**
+   * Karta s vlastným kreslením (vektorové grafy reportov — lib/pdf/reportCharts.ts). `draw` dostane
+   * stranu a obdĺžnik obsahu pod nadpisom (`yTop` = horná hrana, kreslí sa smerom nadol). Karta sa
+   * nerozdeľuje — keď sa nezmestí, začne sa nová strana.
+   */
+  chartCard(input: {
+    title: string;
+    aside?: string;
+    subtitle?: string;
+    height: number;
+    draw: (page: PDFPage, box: { x: number; yTop: number; width: number; height: number }) => void;
+  }) {
+    const innerW = CONTENT_W - CARD_PAD * 2;
+    const subtitleLines = input.subtitle ? wrapText(input.subtitle, this.ctx.regular, 9, innerW, 3) : [];
+    const h = CARD_PAD + TITLE_ROW_H + subtitleLines.length * 13 + input.height + CARD_PAD;
+    this.ensureSpace(h + CARD_GAP);
+    this.card(this.y, h);
+    this.drawCardTitle(input.title, input.aside, false);
+    const y = this.drawSubtitle(subtitleLines, this.y - CARD_PAD - TITLE_ROW_H);
+    input.draw(this.page, { x: MARGIN + CARD_PAD, yTop: y - 2, width: innerW, height: input.height - 2 });
+    this.y -= h + CARD_GAP;
+  }
+
   private drawCardTitle(title: string, aside: string | undefined, continued: boolean) {
     const x = MARGIN + CARD_PAD;
     const baseline = this.y - CARD_PAD - 13;
@@ -460,8 +503,8 @@ export class PdfWriter {
     if ("group" in row) {
       // podnadpis skupiny — terakotová bodka + popisok (ako jedlá dňa v builderi)
       const baseline = y - GROUP_ROW_H + 8;
-      this.page.drawCircle({ x: left + 3, y: baseline + 2.8, size: 2.6, color: COLORS.accent });
-      this.label(row.group.toUpperCase(), left + 11, baseline, 7.5, COLORS.accentText, "left", 0.5);
+      this.page.drawCircle({ x: left + 3, y: baseline + 2.8, size: 2.6, color: this.ctx.colors.accent });
+      this.label(row.group.toUpperCase(), left + 11, baseline, 7.5, this.ctx.colors.accentText, "left", 0.5);
       return y - GROUP_ROW_H;
     }
     if (separator) {
@@ -490,8 +533,8 @@ export class PdfWriter {
     const top = y - 10;
     for (const chip of footer.chips) {
       x += this.pill(chip.text, x, top, {
-        fill: chip.accent ? COLORS.accentSoft : COLORS.fill,
-        color: chip.accent ? COLORS.accentText : COLORS.text,
+        fill: chip.accent ? this.ctx.colors.accentSoft : COLORS.fill,
+        color: chip.accent ? this.ctx.colors.accentText : COLORS.text,
         dot: chip.dot,
         size: 9,
       });
@@ -508,7 +551,9 @@ export class PdfWriter {
     const pages = this.ctx.doc.getPages();
     pages.forEach((p, i) => {
       const generatedOn = new Date().toLocaleDateString(intlLocale(this.ctx.locale), { timeZone: "Europe/Bratislava" });
-      const left = this.ctx.t("generated", { date: generatedOn });
+      const left = this.ctx.brand
+        ? this.ctx.t("generatedBranded", { brand: this.ctx.brand.name, date: generatedOn })
+        : this.ctx.t("generated", { date: generatedOn });
       p.drawText(left, { x: MARGIN, y: 28, size: 8, font: this.ctx.regular, color: COLORS.faint });
       const right = this.ctx.t("page", { page: i + 1, total: pages.length });
       const w = this.ctx.regular.widthOfTextAtSize(right, 8);
