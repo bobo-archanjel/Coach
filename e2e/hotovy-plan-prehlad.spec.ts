@@ -40,6 +40,8 @@ test.describe("hotový plán — prehľad dní (náhľad)", () => {
     await page.goto("/dashboard/treningy/x?preview=builder_done");
     const tabs = page.getByRole("group", { name: /dni/i }).getByRole("button");
     await expect(tabs).toHaveCount(4);
+    // hotový plán sa dá zmazať (odcvičené tréningy ostanú) — dole vedľa PDF
+    await expect(page.getByRole("button", { name: "Zmazať", exact: true })).toBeVisible();
     await expect(page.locator("[data-done='true']")).toHaveCount(4);
     await expectReadOnlyPlan(page);
 
@@ -126,8 +128,9 @@ test.describe("hotový plán — reálna DB", () => {
 
     // detail klienta: hotový plán má „Hotovo“ a nedá sa nastaviť ako aktívny
     await page.goto(`/dashboard/klienti/${client!.id}`);
-    const row = page.locator(`a[href="/dashboard/treningy/${planId}"]`).locator("..");
-    await expect(row).toContainText("Hotovo");
+    const row = page.locator(`#plan-${planId}`);
+    await expect(row.locator("header")).toContainText("Hotovo");
+    await expect(row.getByRole("link", { name: "Otvoriť plán" })).toHaveAttribute("href", `/dashboard/treningy/${planId}`);
     await expect(page.getByRole("button", { name: new RegExp(`^Nastaviť „E2E hotový plán`) })).toHaveCount(0);
 
     // klient: hotový plán má „Hotovo“, v Tréningu ani v prepínači na Dnes sa nedá nastaviť ako aktívny.
@@ -149,14 +152,14 @@ test.describe("hotový plán — reálna DB", () => {
 
     const doneName = (await admin.from("workout_plans").select("name").eq("id", planId).single()).data!.name as string;
     await page.goto("/portal/trening");
-    const head = page.getByRole("button", { name: new RegExp(doneName) });
+    const head = page.locator(`#plan-${planId} header`);
+    await expect(head).toContainText(doneName);
     await expect(head).toContainText("Hotovo");
-    await head.click();
     await expect(page.locator(`#plan-${planId}`)).toContainText("Celý plán máš odcvičený");
     await expect(page.locator(`#plan-${planId}`).getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
 
     await page.goto("/portal");
-    await page.getByRole("button", { name: "Zmeniť", exact: true }).click();
+    await page.getByRole("button", { name: "Zmeniť plán", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Aktívny tréningový plán" });
     await expect(sheet.getByRole("button", { name: new RegExp(doneName) })).toBeDisabled();
     await expect(sheet.getByRole("button", { name: new RegExp(doneName) })).toContainText("Hotovo");

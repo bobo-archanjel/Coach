@@ -13,6 +13,12 @@ const CloseIcon = () => (
     <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
+// „Zmeniť plán“ v oranžovom poli karty Dnes — prepnúť plán
+const SwapIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true">
+    <path d="M7 7h12m0 0-3.5-3.5M19 7l-3.5 3.5M17 17H5m0 0 3.5 3.5M5 17l3.5-3.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
     <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -26,7 +32,16 @@ const CheckIcon = () => (
  * spustenia tréningu). Rozbehnutý tréning (príznak z workoutSession) sa prepnutím
  * preruší — rozpísané hodnoty ostávajú uložené pri svojom dni.
  */
-export function PlanSwitch({ choice, dayId = null }: { choice: PortalPlanChoice; dayId?: string | null }) {
+export function PlanSwitch({
+  choice,
+  dayId = null,
+  variant = "row",
+}: {
+  choice: PortalPlanChoice;
+  dayId?: string | null;
+  /** "hero" — len „Zmeniť“ v oranžovom poli karty ďalšieho tréningu („Plán <názov>“ vypíše karta) */
+  variant?: "row" | "hero";
+}) {
   const t = useTranslations("today.planSwitch");
   const [open, setOpen] = useState(false);
   const changeRef = useRef<HTMLButtonElement>(null);
@@ -37,20 +52,22 @@ export function PlanSwitch({ choice, dayId = null }: { choice: PortalPlanChoice;
     changeRef.current?.focus();
   };
 
+  const hero = variant === "hero";
   return (
     <>
-      <div className={s.psRow}>
-        <span className={s.psLabel}>{t("plan")}</span>
-        <span className={s.psName}>{choice.activePlanName}</span>
+      <div className={hero ? s.heroPlanSwitch : s.psRow}>
+        {!hero && <span className={s.psLabel}>{t("plan")}</span>}
+        {!hero && <span className={s.psName}>{choice.activePlanName}</span>}
         {canChange && (
           <button
             ref={changeRef}
             type="button"
-            className={s.psChange}
+            className={hero ? s.heroPlanChange : s.psChange}
             onClick={() => setOpen(true)}
             aria-haspopup="dialog"
           >
-            {t("change")}
+            {hero && <SwapIcon />}
+            {hero ? t("changePlan") : t("change")}
           </button>
         )}
       </div>

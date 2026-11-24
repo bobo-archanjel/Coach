@@ -152,20 +152,40 @@ export function ReviewOverview({
 }
 
 /** Karty cvikov vybraného tréningu: graf najťažšej série, objem posledného tréningu, detail sérií. */
-export function DayReview({ compare, review }: { compare: CompletedCompare | null; review: PlanReview | null }) {
+export function DayReview({
+  compare,
+  review,
+  voice = "client",
+}: {
+  compare: CompletedCompare | null;
+  review: PlanReview | null;
+  /** tréner (náhľad plánu) — texty o klientovi, nie „spravíš“ */
+  voice?: ReviewVoice;
+}) {
   const t = useTranslations("clientBuilder");
   if (!compare || compare.exercises.length === 0) return <p className={styles.trHint}>{t("dayNoValues")}</p>;
   return (
     <div className={styles.rvCards}>
       {compare.exercises.map((ex) => (
-        <ExerciseReviewCard key={ex.key} ex={ex} hasPlan={compare.hasPlan} review={review} />
+        <ExerciseReviewCard key={ex.key} ex={ex} hasPlan={compare.hasPlan} review={review} voice={voice} />
       ))}
     </div>
   );
 }
 
-function ExerciseReviewCard({ ex, hasPlan, review }: { ex: CompareExercise; hasPlan: boolean; review: PlanReview | null }) {
+function ExerciseReviewCard({
+  ex,
+  hasPlan,
+  review,
+  voice,
+}: {
+  ex: CompareExercise;
+  hasPlan: boolean;
+  review: PlanReview | null;
+  voice: ReviewVoice;
+}) {
   const t = useTranslations("clientBuilder");
+  const tv = useReviewT(voice);
   const { locale, nf } = useFormat();
   const [open, setOpen] = useState(false);
   const name = review?.names[ex.planned?.entryId ?? ex.key] ?? ex.name;
@@ -194,7 +214,7 @@ function ExerciseReviewCard({ ex, hasPlan, review }: { ex: CompareExercise; hasP
               label={name}
               nf={nf}
               locale={locale}
-              texts={{ chartAria: t("chartAria", { name, count: points.length }), single: t("chartSingle") }}
+              texts={{ chartAria: t("chartAria", { name, count: points.length }), single: tv("chartSingle") }}
             />
             {lastVolume > 0 && <p className={styles.rvSub}>{t("lastVolume", { kg: nf.format(Math.round(lastVolume)) })}</p>}
           </>
