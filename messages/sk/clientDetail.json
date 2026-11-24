@@ -19,7 +19,7 @@
   "createdOn": "Vytvorený {date} · {count, plural, one {# deň} few {# dni} other {# dní}}",
   "kcalPerDay": "≈ {kcal} kcal/deň",
   "noMeals": "bez jedál",
-  "archived": "Archivovaný",
+  "archived": "Neaktívny",
   "noMealPlans": "Klient zatiaľ nemá žiadny jedálniček.",
   "defaultMealPlanName": "Jedálniček {date}",
   "infoTitle": "Informácie",
