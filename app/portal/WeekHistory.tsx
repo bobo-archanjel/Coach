@@ -1,11 +1,12 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { intlLocale, type Locale } from "@/lib/i18n/locales";
+import type { Locale } from "@/lib/i18n/locales";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteClientEventAction, getPortalWeekAction, saveClientEventAction } from "./actions";
 import type { CalendarEvent, WeekDay, WeekView } from "@/lib/portal/types";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
+import { dayTitle } from "@/lib/calendar/month";
 import styles from "./portal.module.css";
 
 /* Kalendár na karte Dnes (feature/kalendar-klient; predtým pás „Tento týždeň“) — 2 týždne
@@ -44,14 +45,10 @@ function shiftIso(mondayIso: string, deltaDays: number): string {
   return new Date(d.getTime() + deltaDays * 86_400_000).toISOString().slice(0, 10);
 }
 
+/** „Utorok 25. augusta“ — ručné tabuľky (lib/calendar/month.ts), rovnaký text na serveri aj
+ *  v Safari; toLocaleDateString sa v Safari líšil od servera → nesúlad pri hydratácii. */
 function fullDate(iso: string, locale: Locale): string {
-  const label = new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  });
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  return dayTitle(iso, locale);
 }
 
 const timeRange = (e: CalendarEvent) => (e.endTime ? `${e.time} – ${e.endTime}` : e.time);
