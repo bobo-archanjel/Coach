@@ -1,7 +1,12 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { saveNutritionProfileAction, type ActionState } from "@/app/dashboard/jedalnicky/actions";
+import { useActionState, useMemo, useState, useTransition } from "react";
+import {
+  resetMacrosAction,
+  saveManualMacrosAction,
+  saveNutritionProfileAction,
+  type ActionState,
+} from "@/app/dashboard/jedalnicky/actions";
 import { useTranslations } from "next-intl";
 import {
   ACTIVITY_LABELS,
@@ -63,18 +68,39 @@ export function NutritionForm({
     return calculateNutrition({ sex, age: a, weightKg: w, heightCm: h, activityLevel, goal });
   }, [sex, age, weightKg, heightCm, activityLevel, goal]);
 
-  const result =
-    preview ??
-    (profile
-      ? {
-          bmr: profile.bmr,
-          tdee: profile.tdee,
-          caloriesTarget: profile.calories_target,
-          proteinG: profile.protein_g,
-          carbsG: profile.carbs_g,
-          fatG: profile.fat_g,
-        }
-      : null);
+  const stored: NutritionResult | null = profile
+    ? {
+        bmr: Number(profile.bmr),
+        tdee: Number(profile.tdee),
+        caloriesTarget: Number(profile.calories_target),
+        proteinG: Number(profile.protein_g),
+        carbsG: Number(profile.carbs_g),
+        fatG: Number(profile.fat_g),
+      }
+    : null;
+  // automatický výpočet z ULOŽENÝCH údajov — iné uložené makrá = tréner ich upravil ručne
+  const storedAuto = useMemo(
+    () =>
+      profile
+        ? calculateNutrition({
+            sex: profile.sex,
+            age: Number(profile.age),
+            weightKg: Number(profile.weight_kg),
+            heightCm: Number(profile.height_cm),
+            activityLevel: profile.activity_level,
+            goal: profile.goal,
+          })
+        : null,
+    [profile],
+  );
+  const isManual = Boolean(
+    stored &&
+      storedAuto &&
+      (stored.proteinG !== storedAuto.proteinG ||
+        stored.carbsG !== storedAuto.carbsG ||
+        stored.fatG !== storedAuto.fatG ||
+        stored.caloriesTarget !== storedAuto.caloriesTarget),
+  );
 
   // isUnsavedPreview predtým znamenalo len "dá sa spočítať náhľad" (preview !== null),
   // čo bolo pravda takmer vždy hneď ako profil existoval (polia sú pred-vyplnené jeho
@@ -90,6 +116,49 @@ export function NutritionForm({
     activityLevel !== profile.activity_level ||
     goal !== profile.goal;
   const isUnsavedPreview = preview !== null && isDirty;
+  // nezmenené údaje → uložené hodnoty (aj ručne upravené), inak živý náhľad výpočtu
+  const result = profile && !isDirty ? stored : (preview ?? stored);
+
+  // ručná úprava makier (len pri uloženom profile a nezmenených údajoch)
+  const [editing, setEditing] = useState(false);
+  const [macroP, setMacroP] = useState("");
+  const [macroC, setMacroC] = useState("");
+  const [macroF, setMacroF] = useState("");
+  const [macroError, setMacroError] = useState<string | null>(null);
+  const [macroPending, startMacro] = useTransition();
+  const canEdit = Boolean(profile && !isDirty && stored);
+  const toInt = (v: string) => (v.trim() === "" ? NaN : Number(v));
+  const editKcal = [toInt(macroP), toInt(macroC), toInt(macroF)].every(Number.isFinite)
+    ? Math.round(toInt(macroP) * 4 + toInt(macroC) * 4 + toInt(macroF) * 9)
+    : null;
+  const startEdit = () => {
+    if (!stored) return;
+    setMacroP(String(stored.proteinG));
+    setMacroC(String(stored.carbsG));
+    setMacroF(String(stored.fatG));
+    setMacroError(null);
+    setEditing(true);
+  };
+  const saveMacros = () => {
+    setMacroError(null);
+    startMacro(async () => {
+      const res = await saveManualMacrosAction(clientId, {
+        proteinG: toInt(macroP),
+        carbsG: toInt(macroC),
+        fatG: toInt(macroF),
+      });
+      if (res.error) setMacroError(res.error);
+      else setEditing(false);
+    });
+  };
+  const resetMacros = () => {
+    setMacroError(null);
+    startMacro(async () => {
+      const res = await resetMacrosAction(clientId);
+      if (res.error) setMacroError(res.error);
+      else setEditing(false);
+    });
+  };
   const totalMacroKcal = result ? result.proteinG * 4 + result.carbsG * 4 + result.fatG * 9 : 0;
 
   return (
@@ -203,6 +272,8 @@ export function NutritionForm({
                 rows={2}
               />
             </label>
+            {/* ručne upravené makrá — uloženie údajov ich nahradí automatickým výpočtom */}
+            {isManual && isDirty && <p className={`${styles.macroManualHint} ${styles.fieldGridFull}`}>{t("manualOverwriteHint")}</p>}
             <button type="submit" className={`btn btn-primary btn-sm ${styles.fieldGridFull}`} disabled={pending}>
               {pending ? t("saving") : profile ? t("update") : t("save")}
             </button>
@@ -212,11 +283,67 @@ export function NutritionForm({
       </div>
 
       <div className={styles.card}>
-        <h3>
-          {t("result")}
-          {isUnsavedPreview && profile ? t("unsavedPreview") : isUnsavedPreview ? t("preview") : ""}
-        </h3>
-        {result ? (
+        <div className={styles.macroResultHead}>
+          <h3>
+            {t("result")}
+            {isUnsavedPreview && profile ? t("unsavedPreview") : isUnsavedPreview ? t("preview") : ""}
+          </h3>
+          {isManual && !isDirty && (
+            <span className={styles.macroManualBadge} data-testid="macro-manual">
+              {t("manualBadge")}
+            </span>
+          )}
+        </div>
+        {editing && stored ? (
+          // ručná úprava: makrá v gramoch, kalorický cieľ = ich súčet (živo)
+          <div className={styles.macroEdit} data-testid="macro-edit">
+            {(
+              [
+                ["protein", macroP, setMacroP, storedAuto?.proteinG],
+                ["carbs", macroC, setMacroC, storedAuto?.carbsG],
+                ["fat", macroF, setMacroF, storedAuto?.fatG],
+              ] as const
+            ).map(([key, value, set, autoG]) => (
+              <label key={key} className={styles.macroEditRow}>
+                <span className={styles.macroEditLabel}>{t(key)}</span>
+                <span className={styles.macroEditInput}>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    value={value}
+                    onChange={(e) => set(e.target.value)}
+                    className={styles.addClientInput}
+                    disabled={macroPending}
+                    aria-label={t("macroAria", { name: t(key) })}
+                  />
+                  <span>g</span>
+                </span>
+                {autoG != null && <span className={styles.macroEditAuto}>{t("autoValue", { g: autoG })}</span>}
+              </label>
+            ))}
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>{t("calorieGoal")}</span>
+              <span className={styles.infoValue} data-testid="macro-edit-kcal">
+                {editKcal != null ? t("kcalFromMacros", { kcal: editKcal }) : "—"}
+              </span>
+            </div>
+            {macroError && (
+              <p className={styles.addClientError} role="alert">
+                {macroError}
+              </p>
+            )}
+            <div className={styles.macroEditActions}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={saveMacros} disabled={macroPending}>
+                {macroPending ? t("saving") : t("saveValues")}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)} disabled={macroPending}>
+                {t("cancel")}
+              </button>
+            </div>
+          </div>
+        ) : result ? (
           <>
             <div className={styles.infoRow}>
               <span className={styles.infoLabel}>BMR</span>
@@ -269,6 +396,23 @@ export function NutritionForm({
                 </div>
               </div>
             </div>
+            {canEdit && (
+              <div className={styles.macroEditActions}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={startEdit} disabled={macroPending}>
+                  {t("editValues")}
+                </button>
+                {isManual && (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={resetMacros} disabled={macroPending}>
+                    {macroPending ? t("saving") : t("resetAuto")}
+                  </button>
+                )}
+              </div>
+            )}
+            {!editing && macroError && (
+              <p className={styles.addClientError} role="alert">
+                {macroError}
+              </p>
+            )}
           </>
         ) : (
           <p className={styles.noWorkouts}>{t("fillHint")}</p>

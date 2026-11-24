@@ -97,7 +97,10 @@
     "needDay": "Pridaj aspoň jeden deň.",
     "nameMax": "Názov môže mať najviac {max} znakov.",
     "invalidFood": "Potravina „{name}“ má neplatné hodnoty.",
-    "notReady": "Vlastný jedálniček sa ešte zapína — skús to o chvíľu."
+    "notReady": "Vlastný jedálniček sa ešte zapína — skús to o chvíľu.",
+    "invalidMacros": "Zadaj makrá v celých gramoch (bielkoviny 0–500, sacharidy 0–1500, tuky 0–400).",
+    "macroKcalRange": "Súčet makier musí byť medzi 800 a 8000 kcal.",
+    "macroProfileMissing": "Najprv ulož vstupné údaje klienta."
   },
   "calendar": {
     "titleTooLong": "Názov je príliš dlhý (max 200 znakov).",

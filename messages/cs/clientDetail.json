@@ -84,7 +84,16 @@
     "protein": "Bílkoviny",
     "carbs": "Sacharidy",
     "fat": "Tuky",
-    "fillHint": "Vyplň věk, váhu a výšku — výsledek se dopočítá automaticky."
+    "fillHint": "Vyplň věk, váhu a výšku — výsledek se dopočítá automaticky.",
+    "editValues": "Upravit hodnoty",
+    "saveValues": "Uložit hodnoty",
+    "cancel": "Zrušit",
+    "resetAuto": "Obnovit automatický výpočet",
+    "manualBadge": "Upraveno ručně",
+    "kcalFromMacros": "{kcal} kcal/den — součet maker",
+    "autoValue": "výpočet: {g} g",
+    "macroAria": "{name} v gramech",
+    "manualOverwriteHint": "Makra jsou upravená ručně — uložením údajů se nahradí automatickým výpočtem."
   },
   "danger": {
     "coopTitle": "Spolupráce",
