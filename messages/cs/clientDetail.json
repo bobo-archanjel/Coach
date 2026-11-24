@@ -10,7 +10,7 @@
   "draft": "Koncept",
   "active": "Aktivní",
   "planTrainings": "{count, plural, =0 {Zatím bez tréninků} one {# trénink} few {# tréninky} other {# tréninků}}",
-  "planProgress": "Odcvičeno {done}/{total}",
+  "planProgress": "Odcvičeno {done} z {total}",
   "planNoDays": "Plán zatím nemá žádný trénink.",
   "openPlan": "Upravit plán",
   "noPlans": "Klient zatím nemá vytvořený tréninkový plán — přidej ho v sekci <link>Tréninky</link>.",
@@ -150,5 +150,9 @@
     "clientNote": "Poznámka klienta"
   },
   "tabsAria": "Sekce klienta",
-  "previewPlan": "Report"
+  "previewPlan": "Report",
+  "doneOn": "Odcvičeno {date}",
+  "doneRpe": "Náročnost {rpe}/10",
+  "doneDayAria": "Zobrazit odcvičený trénink {name}",
+  "doneNoValues": "Klient trénink ukončil bez zapsaných hodnot."
 }

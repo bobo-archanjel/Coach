@@ -1,9 +1,8 @@
 import pc from "./planCard.module.css";
 
 /**
- * Oranžový sklenený pás karty tréningového plánu: názov, počet tréningov vpravo a čipy
- * (Aktívny biely, ✓ Hotovo, činka Od trénera, Vlastný, Koncept). Aktívny plán má pás do
- * červena. Zdieľané klientom (Tréning) aj trénerom (detail klienta → Tréningy) — bez
+ * Horná časť karty tréningového plánu: vľavo názov a pod ním zdroj (Od trénera / Vlastný)
+ * ako tlmený text, vpravo počet tréningov a pod ním malý stav (Aktívny, ✓ Hotovo, Koncept). Zdieľané klientom (Tréning) aj trénerom (detail klienta → Tréningy) — bez
  * hookov, funguje v server aj client komponentoch.
  */
 export type PlanBandChip = { kind: "done" | "trainer" | "client" | "draft"; label: string };
@@ -26,32 +25,46 @@ export function PlanBand({
   chips,
 }: {
   name: string;
-  /** „3 tréningy“ — odznak vedľa názvu */
+  /** „3 tréningy“ — tlmene vpravo vedľa názvu */
   countLabel: string;
-  /** text bielej pilulky „Aktívny“; null = plán nie je aktívny (pás oranžový) */
+  /** štítok „Aktívny“; null = plán nie je aktívny */
   activeLabel: string | null;
   chips: PlanBandChip[];
 }) {
+  // stav (Aktívny, Hotovo, Koncept) = farebné štítky; zdroj (Od trénera / Vlastný) = tlmený text
+  const status = chips.filter((c) => c.kind === "done" || c.kind === "draft");
+  const source = chips.find((c) => c.kind === "trainer" || c.kind === "client");
   return (
     <header className={`${pc.band} ${activeLabel ? pc.bandActive : ""}`}>
       <div className={pc.titleRow}>
-        <h3 className={pc.name}>{name}</h3>
-        <span className={pc.count} data-testid="plan-count">
-          {countLabel}
-        </span>
-      </div>
-      {(activeLabel || chips.length > 0) && (
-        <span className={pc.chips}>
-          {activeLabel && <span className={pc.activePill}>{activeLabel}</span>}
-          {chips.map((c) => (
-            <span key={c.kind} className={pc.chip} data-kind={c.kind}>
-              {c.kind === "done" && <CheckIcon />}
-              {c.kind === "trainer" && <DumbbellIcon />}
-              {c.label}
+        {/* vľavo názov a pod ním zdroj (tlmený text) */}
+        <div className={pc.titleMain}>
+          <h3 className={pc.name}>{name}</h3>
+          {source && (
+            <span className={pc.source} data-kind={source.kind}>
+              {source.kind === "trainer" && <DumbbellIcon />}
+              {source.label}
             </span>
-          ))}
-        </span>
-      )}
+          )}
+        </div>
+        {/* vpravo počet tréningov a pod ním malý stav (Aktívny / Hotovo / Koncept) */}
+        <div className={pc.titleSide}>
+          <span className={pc.count} data-testid="plan-count">
+            {countLabel}
+          </span>
+          {(activeLabel || status.length > 0) && (
+            <span className={pc.chips}>
+              {activeLabel && <span className={pc.activePill}>{activeLabel}</span>}
+              {status.map((c) => (
+                <span key={c.kind} className={pc.chip} data-kind={c.kind}>
+                  {c.kind === "done" && <CheckIcon />}
+                  {c.label}
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+      </div>
     </header>
   );
 }

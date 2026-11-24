@@ -157,7 +157,7 @@ test.describe("hotový plán — reálna DB", () => {
     const head = page.locator(`#plan-${planId} header`);
     await expect(head).toContainText(doneName);
     await expect(head).toContainText("Hotovo");
-    await expect(page.locator(`#plan-${planId}`)).toContainText("Celý plán máš odcvičený");
+    await expect(page.locator(`#plan-${planId}`)).toContainText("Odcvičené 2 z 2");
     await expect(page.locator(`#plan-${planId}`).getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
 
     await page.goto("/portal");

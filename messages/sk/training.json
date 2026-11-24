@@ -17,7 +17,6 @@
   "planTrainings": "{count, plural, =0 {Zatiaľ bez tréningov} one {# tréning} few {# tréningy} other {# tréningov}}",
   "setActive": "Nastaviť ako aktívny",
   "showsOnToday": "Zobrazí sa na karte Dnes.",
-  "planDoneHint": "Celý plán máš odcvičený — ako aktívny sa už nastaviť nedá.",
   "noDays": "Tento tréning nemá žiadne dni.",
   "allDays": "Všetky dni",
   "noExercises": "Žiadne cviky.",
@@ -82,5 +81,7 @@
   "close": "Zavrieť",
   "useTemplate": "Použiť šablónu",
   "tplDayEmpty": "Tento tréning zatiaľ nemá cviky.",
-  "tplPreview": "Náhľad"
+  "tplPreview": "Náhľad",
+  "progressDone": "Odcvičené {done} z {total}",
+  "nextUp": "Na rade"
 }

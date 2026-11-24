@@ -14,6 +14,9 @@ import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { ActivePlanButton } from "./ActivePlanButton";
 import { PlanCardDelete } from "./PlanCardDelete";
 import { PlanBand } from "@/app/components/PlanBand";
+import { PlanProgress } from "@/app/components/PlanProgress";
+import { buildDoneDays } from "@/lib/dashboard/planDoneDays";
+import { DoneDayItem } from "./DoneDayItem";
 import { ActionEditIcon, ActionPreviewIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import { CreateMealPlanButton } from "./CreateMealPlanButton";
@@ -158,20 +161,30 @@ export default async function ClientDetailPage({
     // skrytá kópia rozpracovaných úprav zverejneného plánu (0071) nie je samostatný plán
     .is("edit_of", null)
     .order("created_at", { ascending: false })
-    .then(async ({ data: plans }) => ({
-      plans,
-      planCompletion: await getPlanCompletion(
+    .then(async ({ data: plans }) => {
+      const planCompletion = await getPlanCompletion(
         supabase,
         (plans ?? []).map((p) => ({
           id: p.id,
           dayIds: ((p.workout_days as unknown as { id: string }[] | null) ?? []).map((d) => d.id),
         })),
-      ),
-    }));
+      );
+      // odcvičené dni (posledný zápis) — okno s cvikmi a zapísanými váhami pri klik na deň
+      const doneDayIds = [...planCompletion.values()].flatMap((c) => c.doneDayIds);
+      const { data: doneLogs } = doneDayIds.length
+        ? await supabase
+            .from("workout_logs")
+            .select("id, workout_day_id, completed_at, performed_on, plan_snapshot, entries, rpe, note, edited_at")
+            .in("workout_day_id", doneDayIds)
+            .eq("status", "completed")
+            .order("completed_at", { ascending: false })
+        : { data: [] };
+      return { plans, planCompletion, doneDays: buildDoneDays(doneLogs ?? []) };
+    });
 
   const [
     { data: client },
-    { plans, planCompletion },
+    { plans, planCompletion, doneDays },
     { data: nutrition },
     { data: privateNote },
     { data: mealPlans },
@@ -263,7 +276,6 @@ export default async function ClientDetailPage({
                   const done = planCompletion.get(plan.id);
                   const doneSet = new Set(done?.doneDayIds ?? []);
                   const isActive = plan.published && plan.id === activePlanId;
-                  const pct = days.length > 0 ? Math.round(((done?.completedDays ?? 0) / days.length) * 100) : 0;
                   return (
                     <article
                       key={plan.id}
@@ -281,23 +293,37 @@ export default async function ClientDetailPage({
                       />
                       <div className={styles.cpBody}>
                         {days.length > 0 && (
-                          <div className={styles.cpProgress}>
-                            <span>{t("planProgress", { done: done?.completedDays ?? 0, total: days.length })}</span>
-                            <span className={styles.cpBar} aria-hidden="true">
-                              <span style={{ width: `${pct}%` }} />
-                            </span>
-                          </div>
+                          <PlanProgress
+                            done={done?.completedDays ?? 0}
+                            total={days.length}
+                            label={t("planProgress", { done: done?.completedDays ?? 0, total: days.length })}
+                          />
                         )}
                         {days.length === 0 ? (
                           <p className={styles.cpEmpty}>{t("planNoDays")}</p>
                         ) : (
                           <ul className={styles.cpDays} data-scroll={days.length > 3 || undefined}>
-                            {days.map((d) => (
-                              <li key={d.id} className={styles.cpDay}>
+                            {days.map((d, i) =>
+                              doneDays[d.id] ? (
+                                // odcvičený deň — klik otvorí okno s cvikmi a zapísanými váhami
+                                <DoneDayItem key={d.id} name={d.name} done={doneDays[d.id]} />
+                              ) : (
+                              <li key={d.id} className={styles.cpDay} data-done={doneSet.has(d.id) || undefined}>
+                                {/* poradie dňa v krúžku, odcvičený = zelená fajka (ako u klienta) */}
+                                <span className={styles.cpDayMark} aria-hidden="true">
+                                  {doneSet.has(d.id) ? (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                      <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  ) : (
+                                    i + 1
+                                  )}
+                                </span>
                                 <span className={styles.cpDayName}>{d.name}</span>
-                                {doneSet.has(d.id) && <span className={styles.planDoneBadge}>{t("done")}</span>}
+                                {doneSet.has(d.id) && <span className={styles.cpSrOnly}>{t("done")}</span>}
                               </li>
-                            ))}
+                              ),
+                            )}
                           </ul>
                         )}
                         <div className={styles.cpFoot}>

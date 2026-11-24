@@ -95,8 +95,9 @@ export default async function PlanReportPage({ params }: { params: Promise<{ pla
         {planDays.map((d) => {
           const done = doneDays[d.id];
           return (
-            <section key={d.id} className={rv.rvBox} data-testid="preview-day" data-done={done ? "true" : "false"}>
-              <h3 className={rv.rvBoxTitle}>
+            // deň bez orámovania — karty cvikov idú na celú šírku
+            <section key={d.id} className={styles.reportDay} data-testid="preview-day" data-done={done ? "true" : "false"}>
+              <h3 className={`${rv.rvBoxTitle} ${styles.reportDayTitle}`}>
                 {d.name}
                 {done && <span className={`${styles.planDoneBadge} ${styles.previewDayBadge}`}>{t("doneBadge")}</span>}
               </h3>
