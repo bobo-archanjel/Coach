@@ -1,0 +1,141 @@
+/* Karta plánu — oranžový sklenený pás s názvom, počtom tréningov a farebnými čipmi.
+   Zdieľané: klient (Tréning → Tréningové plány) aj tréner (detail klienta → Tréningy),
+   komponent PlanBand. Aktívny plán má pás do červena. */
+/* oranžový pás hore s názvom plánu a čipmi — sklenená „kvapka“ vsadená do karty: priesvitný
+   terakotový gradient, zrkadlový odlesk zhora, svetlá horná hrana; vždy oranžový */
+.band {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin: 7px 7px 0;
+  padding: 15px 16px 14px;
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 90% at 18% -20%, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(140deg, rgba(236, 143, 112, 0.94) 0%, rgba(217, 105, 74, 0.9) 50%, rgba(189, 80, 52, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -8px 16px -10px rgba(120, 40, 20, 0.45),
+    0 10px 22px -14px rgba(189, 80, 52, 0.75);
+  color: var(--on-accent);
+  text-shadow: 0 1px 1px rgba(120, 40, 20, 0.25);
+}
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* počet tréningov vedľa názvu — sklenený odznak vpravo */
+.count {
+  flex: none;
+  margin-top: -1px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  font-size: 12.5px;
+  font-weight: 750;
+  white-space: nowrap;
+  text-shadow: none;
+}
+.name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 740;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* aktívny plán — pás do červena (ostatné sú oranžové), aby bol na prvý pohľad odlíšený */
+.band.bandActive {
+  background:
+    radial-gradient(120% 90% at 18% -20%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(140deg, rgba(232, 104, 86, 0.96) 0%, rgba(204, 66, 52, 0.94) 50%, rgba(164, 40, 34, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -8px 16px -10px rgba(100, 20, 14, 0.5),
+    0 10px 22px -14px rgba(164, 40, 34, 0.8);
+}
+.bandActive .activePill {
+  color: #a8302a;
+}
+.chip,
+.activePill {
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chip {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  backdrop-filter: blur(8px) saturate(150%);
+  color: var(--on-accent);
+}
+/* farebné odlíšenie čipov (jemné, pastelové sklo): Hotovo mätové, Od trénera krémovo-jantárové,
+   Vlastný tmavšie sklo
+   Koncept priehľadný s prerušovaným okrajom, Aktívny biely — farby sú pevné (pás je vždy farebný) */
+.chip[data-kind] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-shadow: none;
+}
+/* Hotovo má fajku a Od trénera činku (svg v TSX), Vlastný bodku */
+.chip[data-kind] svg {
+  flex: none;
+}
+.chip[data-kind="client"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+.chip[data-kind="done"] {
+  background: rgba(232, 248, 238, 0.82);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #2b7a50;
+}
+.chip[data-kind="trainer"] {
+  background: rgba(255, 244, 222, 0.82);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #8a5a12;
+}
+.chip[data-kind="draft"] {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+.chip[data-kind="client"] {
+  background: rgba(70, 34, 20, 0.2);
+  border-color: rgba(255, 255, 255, 0.26);
+  color: #fff;
+}
+.activePill {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 10px -4px rgba(120, 40, 20, 0.45);
+  color: #bd5034;
+  text-shadow: none;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}

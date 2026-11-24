@@ -1189,63 +1189,129 @@ select.addClientInputSm {
    jedného accentu). Zhodné s .publishBadge + .publishBadgeLive; jeden zdroj
    pravdy je lib/dashboard/planCompletion.ts, zdieľaný zoznamom Tréningy aj
    detailom klienta. */
-/* plán v detaile klienta — odkaz na builder + vpravo stav/akcia aktívneho plánu (0056).
-   Tlačidlo nesmie byť vnorené v odkaze, preto riadok = karta s dvoma časťami. */
-.planRow {
+/* karty tréningových plánov v detaile klienta → Tréningy — rovnaký pás ako u klienta
+   (PlanBand, app/components/planCard.module.css), sklenená karta, dni s ✓, odcvičenosť,
+   Otvoriť plán + Nastaviť ako aktívny (0056). Na širšom displeji vedľa seba, rovnako vysoké. */
+.cpGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  background: var(--card-bg);
-  border: 1px solid var(--surface-border);
-  border-radius: 22px;
-  box-shadow: var(--card-shadow);
-  transition: border-color 0.15s ease;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+  gap: 14px;
 }
-.planRow:has(.planRowLink:hover) {
-  border-color: var(--paper-faint);
+.cpCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  scroll-margin-top: 84px;
+  /* liquid glass bez backdrop-filter — odlesk zhora + priehľadná karta */
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 38%), var(--card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 28px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hl), inset 0 -1px 0 var(--glass-sheen);
+  overflow: hidden;
 }
-.planRowActive,
-.planRowActive:has(.planRowLink:hover) {
-  border-color: color-mix(in srgb, var(--moss) 45%, transparent);
+/* aktívny plán — jemný terakotový okraj (pás má do červena) */
+.cpCardActive {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--glass-border));
 }
-.planRowLink {
+.cpBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 14px;
+}
+.cpProgress {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 18px;
-  color: inherit;
-  text-decoration: none;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-dim);
 }
-.planRowSide {
+.cpBar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--fill);
+  overflow: hidden;
+}
+.cpBar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-grad);
+}
+.cpEmpty {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.cpDays {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cpDay {
+  /* v posúvanom zozname sa riadok nesmie stláčať (dlhý názov by pretiekol) */
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding-right: 16px;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 46px;
+  padding: 8px 12px 8px 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 70%), var(--fill);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-hl);
+}
+.cpDayName {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 680;
+  overflow-wrap: anywhere;
+}
+.cpFoot {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+.cpFoot > a {
+  text-decoration: none;
+}
+/* širší displej — viac ako 3 tréningy sa posúvajú v karte, spodok sa stráca */
+@media (min-width: 720px) {
+  .cpDays {
+    max-height: calc(3 * 46px + 2 * 6px + 4px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .cpDays[data-scroll] {
+    padding-bottom: 20px;
+    max-height: calc(3 * 46px + 2 * 6px + 24px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  }
 }
 .activePlanAction {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 4px;
 }
 .activePlanAction .publishError {
   width: auto;
   max-width: 220px;
-  text-align: right;
-}
-@media (max-width: 560px) {
-  .planRow {
-    grid-template-columns: 1fr;
-  }
-  .planRowSide {
-    padding: 0 18px 14px;
-  }
-  .activePlanAction {
-    align-items: flex-start;
-  }
-  .activePlanAction .publishError {
-    text-align: left;
-  }
+  text-align: left;
 }
 .planDoneBadge {
   font-size: 11.5px;
