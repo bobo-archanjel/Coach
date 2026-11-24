@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Klient: kalendár na 2 týždne na karte Dnes** (`feature/kalendar-klient`, **migrácia `0072_client_events.sql`**).
+  - Namiesto „Tento týždeň“ kalendár s 2 riadkami Po–Ne (tento a budúci týždeň, listovanie po 2 týždňoch dozadu aj dopredu, „Späť na dnešok“).
+  - Bodky: zelená = odcvičený tréning, červená = termín od trénera (`appointments`), oranžová = vlastná udalosť klienta; legenda.
+  - Ťuk na deň: odcvičené tréningy (plán vs. skutočnosť), termíny od trénera, vlastné udalosti (upraviť / zmazať) a „+ Pridať udalosť“ (názov, čas od–do, poznámka).
+  - Vlastné udalosti sú súkromné (`client_events`, RLS len klient) — tréner ich nevidí.
 - **2026-11-24** — **Klienti u trénera: moderné karty** (`feature/klienti-karty`, bez migrácie).
   - Mriežka kariet (1/2/3 stĺpce): avatar s iniciálami, stav (aktívny / N dní bez tréningu / bez plánu / ukončený / na zmazanie), odznak správ, počet tréningových plánov (bez kópií úprav) a jedálničkov, posledný tréning, postup aktívneho plánu („5 / 8 tréningov“, hotový → „čas na nový plán“), „Klient od … · N mesiacov“.
   - Filtre stavov s počtami (Všetci · Aktívni · Bez tréningu · Bez plánu · Ukončení) vedľa hľadania.
