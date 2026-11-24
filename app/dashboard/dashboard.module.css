@@ -3544,3 +3544,48 @@ select.addClientInputSm {
 .ccDuration {
   color: var(--paper-dim);
 }
+
+/* odcvičený deň na karte plánu — klikateľný riadok → okno s cvikmi a zapísanými váhami */
+.cpDayClickable {
+  padding: 0;
+  transition: border-color 0.15s ease;
+}
+.cpDayClickable:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--glass-border));
+}
+.cpDayBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 8px 12px 8px 10px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cpDayChevron {
+  flex: none;
+  display: grid;
+  color: var(--paper-faint);
+}
+.doneDayDialog {
+  display: grid;
+  gap: 12px;
+}
+.doneDayMeta {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--paper-dim);
+}
+.doneDayNote {
+  margin: 0;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--paper-dim);
+}

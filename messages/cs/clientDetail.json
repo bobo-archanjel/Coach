@@ -150,5 +150,9 @@
     "clientNote": "Poznámka klienta"
   },
   "tabsAria": "Sekce klienta",
-  "previewPlan": "Report"
+  "previewPlan": "Report",
+  "doneOn": "Odcvičeno {date}",
+  "doneRpe": "Náročnost {rpe}/10",
+  "doneDayAria": "Zobrazit odcvičený trénink {name}",
+  "doneNoValues": "Klient trénink ukončil bez zapsaných hodnot."
 }

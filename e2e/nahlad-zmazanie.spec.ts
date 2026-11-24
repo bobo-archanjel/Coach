@@ -129,6 +129,16 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     expect(Math.abs(e!.y - d!.y)).toBeLessThan(2);
     expect(a!.width).toBeGreaterThan(d!.x + d!.width - r!.x - 4);
     expect(a!.height).toBeLessThan(r!.height);
+    // odcvičený deň → okno s cvikmi a zapísanými váhami; neodcvičený nie je tlačidlo
+    await wipCard.getByRole("button", { name: "Zobraziť odcvičený tréning E2E Deň A" }).click();
+    const dayDialog = page.getByRole("dialog", { name: "E2E Deň A" });
+    await expect(dayDialog.getByTestId("done-day-dialog")).toContainText("Odcvičené");
+    await expect(dayDialog).toContainText("E2E Drep");
+    await expect(dayDialog).toContainText("30 kg");
+    await page.keyboard.press("Escape");
+    await expect(dayDialog).toHaveCount(0);
+    await expect(wipCard.getByRole("button", { name: /E2E Deň B/ })).toHaveCount(0);
+
     await wipCard.getByRole("link", { name: "Report" }).click();
     await expect(page).toHaveURL(new RegExp(`/dashboard/treningy/${wip.planId}/report`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: `E2E rozpracovaný náhľad ${stamp}` })).toBeVisible();
