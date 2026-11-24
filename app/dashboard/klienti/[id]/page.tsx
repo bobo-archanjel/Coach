@@ -308,10 +308,14 @@ export default async function ClientDetailPage({
                               {t("previewPlan")}
                             </Link>
                           )}
-                          <Link href={`/dashboard/treningy/${plan.id}`} className={`${pa.action} ${pa.small}`}>
-                            <ActionEditIcon />
-                            {t("openPlan")}
-                          </Link>
+                          {/* hotový plán: Report ukáže to isté (dni s výsledkami) — „Otvoriť plán“ netreba;
+                              detail plánu (PDF, šablóna) je dostupný z Reportu */}
+                          {!done?.allDone && (
+                            <Link href={`/dashboard/treningy/${plan.id}`} className={`${pa.action} ${pa.small}`}>
+                              <ActionEditIcon />
+                              {t("openPlan")}
+                            </Link>
+                          )}
                           {/* aktívny = riadi klientovu kartu Dnes (0056); koncept klient nevidí; hotový sa nedá */}
                           {plan.published && !isActive && !done?.allDone && (
                             <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} />

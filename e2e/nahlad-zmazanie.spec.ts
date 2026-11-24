@@ -149,6 +149,9 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     // ---------- hotový plán sa tiež zmaže ----------
     const doneCard = card(page, done.planId);
     await expect(doneCard.locator("header")).toContainText("Hotovo");
+    // hotový plán: Report áno, „Otvoriť plán“ nie (Report ukáže to isté)
+    await expect(doneCard.getByRole("link", { name: "Report" })).toBeVisible();
+    await expect(doneCard.getByRole("link", { name: "Otvoriť plán" })).toHaveCount(0);
     await doneCard.getByRole("button", { name: `Zmazať plán E2E hotový zmazať ${stamp}` }).click();
     await doneCard.getByRole("button", { name: "Áno, zmazať" }).click();
     await expect(doneCard).toHaveCount(0, { timeout: 15_000 });
