@@ -101,10 +101,9 @@ export default async function PortalLayout({ children }: { children: React.React
   // vzhľad (klient bez trénera, tréner bez Business, značka nenastavená). Zahriate v loadPortalShell (request-cache).
   const branding = await loadBrandingForTrainer(trainerId);
   const tb = branding ? await getTranslations("branding") : null;
-  // v2: rámik avatara a farebná téma z odmien za úrovne. Téma mení farby portálu LEN bez značky trénera
-  // (značka vždy vyhráva); so značkou téma farbí iba rámik avatara.
+  // v2: rámik avatara, farebná téma a štýl osláv z odmien za úrovne. Téma mení farby portálu LEN bez značky trénera
+  // (značka vždy vyhráva); klient so značkou témy nemá (namiesto nich animované rámiky, tituly a štýly osláv).
   const themeActive = !branding && cosmetics.theme !== "default";
-  const tinted = Boolean(branding) && cosmetics.theme !== "default" && cosmetics.frame !== "none";
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
