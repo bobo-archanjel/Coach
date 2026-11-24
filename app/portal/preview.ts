@@ -1,5 +1,5 @@
 /* DEV náhľady karty Dnes (?preview=…). */
-import type { PortalData, PortalExercise, PortalPlanChoice, PortalResult, TodaySession } from "@/lib/portal/types";
+import type { CalendarEvent, PortalData, PortalExercise, PortalPlanChoice, PortalResult, TodaySession, WeekDay } from "@/lib/portal/types";
 import { previewCompare } from "./previewCompare";
 
 /** Tento týždeň → pondelok: plán dňa a čo klient naozaj odcvičil (náhľad s porovnaním). */
@@ -77,35 +77,9 @@ const PREVIEW_DATA: PortalData = {
   hasTrainer: true,
   week: {
     mondayIso: "2026-08-24",
-    rangeLabel: "24. – 30. aug",
+    rangeLabel: "24. aug – 6. sep",
     isCurrentWeek: true,
-    days: [
-      {
-        label: "Po",
-        dayNum: 24,
-        iso: "2026-08-24",
-        state: "done",
-        sessions: [
-          {
-            dayName: "Deň A — Tlak",
-            planName: "Silový 3× týždenne",
-            compare: previewCompare(WEEK_MON_PLAN, WEEK_MON_ENTRIES),
-          },
-        ],
-      },
-      { label: "Ut", dayNum: 25, iso: "2026-08-25", state: "none", sessions: [] },
-      {
-        label: "St",
-        dayNum: 26,
-        iso: "2026-08-26",
-        state: "done",
-        sessions: [{ dayName: "Deň B — Ťah", planName: "Silový 3× týždenne", compare: previewCompare(null, []) }],
-      },
-      { label: "Št", dayNum: 27, iso: "2026-08-27", state: "none", sessions: [] },
-      { label: "Pi", dayNum: 28, iso: "2026-08-28", state: "today", sessions: [] },
-      { label: "So", dayNum: 29, iso: "2026-08-29", state: "future", sessions: [] },
-      { label: "Ne", dayNum: 30, iso: "2026-08-30", state: "future", sessions: [] },
-    ],
+    days: previewCalendarDays(),
   },
   streaks: {
     training: { count: 5, atRisk: false, thisWeekDays: 1, needThisWeek: 1 },
@@ -127,6 +101,38 @@ const PREVIEW_DATA: PortalData = {
   })),
 };
 
+/** Kalendár na 2 týždne (24. 8. – 6. 9., dnes piatok 28.): tréningy, termín od trénera, vlastné udalosti. */
+function previewCalendarDays(): WeekDay[] {
+  const labels = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
+  const ev = (id: string, kind: CalendarEvent["kind"], title: string, isoDate: string, time: string, endTime: string | null, note: string | null = null): CalendarEvent => ({
+    id,
+    kind,
+    title,
+    startsAt: `${isoDate}T${time}:00+02:00`,
+    endsAt: endTime ? `${isoDate}T${endTime}:00+02:00` : null,
+    time,
+    endTime,
+    note,
+  });
+  const sessions: Record<string, WeekDay["sessions"]> = {
+    "2026-08-24": [{ dayName: "Deň A — Tlak", planName: "Silový 3× týždenne", compare: previewCompare(WEEK_MON_PLAN, WEEK_MON_ENTRIES) }],
+    "2026-08-26": [{ dayName: "Deň B — Ťah", planName: "Silový 3× týždenne", compare: previewCompare(null, []) }],
+  };
+  const events: Record<string, CalendarEvent[]> = {
+    "2026-08-26": [ev("pv-own-1", "own", "Beh s Petrom", "2026-08-26", "07:00", "07:45")],
+    "2026-08-27": [ev("pv-tr-1", "trainer", "Konzultácia — technika drepu", "2026-08-27", "18:00", "18:45", "Vezmi si tenisky na drep.")],
+    "2026-08-31": [ev("pv-own-2", "own", "Plávanie", "2026-08-31", "19:30", null)],
+    "2026-09-03": [ev("pv-tr-2", "trainer", "Meranie pokroku", "2026-09-03", "17:00", "17:30")],
+  };
+  return Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(Date.UTC(2026, 7, 24 + i));
+    const iso = d.toISOString().slice(0, 10);
+    const s = sessions[iso] ?? [];
+    const state: WeekDay["state"] = iso === "2026-08-28" ? "today" : s.length ? "done" : iso > "2026-08-28" ? "future" : "none";
+    return { label: labels[i % 7], dayNum: d.getUTCDate(), iso, state, sessions: s, events: events[iso] ?? [] };
+  });
+}
+
 /** Nový klient bez plánu: Dnes ukáže prázdnu kartu plánu, prehľad a týždeň s nulami. */
 const NEW_CLIENT_DATA: PortalData = {
   ...PREVIEW_DATA,
@@ -137,7 +143,7 @@ const NEW_CLIENT_DATA: PortalData = {
   streaks: { training: { count: 0, atRisk: false, thisWeekDays: 0, needThisWeek: 1 }, food: { count: 0, atRisk: false } },
   week: {
     ...PREVIEW_DATA.week,
-    days: PREVIEW_DATA.week.days.map((d) => ({ ...d, state: d.state === "done" ? "none" : d.state, sessions: [] })),
+    days: PREVIEW_DATA.week.days.map((d) => ({ ...d, state: d.state === "done" ? "none" : d.state, sessions: [], events: [] })),
   },
   bodyMetrics: [],
 };
