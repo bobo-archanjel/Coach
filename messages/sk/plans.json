@@ -195,7 +195,7 @@
     "progressBadge": "Odcvičené {done}/{total}",
     "daysTitle": "Tréningy plánu",
     "dayNotDone": "Tento tréning klient ešte neodcvičil.",
-    "openPlan": "Otvoriť plán",
-    "chartSingle": "Graf sa ukáže, keď klient cvik spraví aspoň na dvoch tréningoch."
+    "chartSingle": "Graf sa ukáže, keď klient cvik spraví aspoň na dvoch tréningoch.",
+    "exportPdf": "Export PDF"
   }
 }

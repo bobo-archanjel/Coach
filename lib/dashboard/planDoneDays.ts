@@ -1,6 +1,6 @@
 // Odcvičené dni plánu na strane trénera — posledný dokončený zápis každého dňa ako
-// plán vs. skutočnosť. Zdieľané detailom plánu (builder: zamknuté dni) aj náhľadom
-// plánu (/dashboard/treningy/[planId]/nahlad: karty cvikov pri odcvičených dňoch).
+// plán vs. skutočnosť. Zdieľané detailom plánu (builder: zamknuté dni) aj reportom
+// plánu (/dashboard/treningy/[planId]/report: karty cvikov pri odcvičených dňoch).
 
 import type { createClient } from "@/lib/supabase/server";
 import { compareLog, type CompletedCompare } from "@/lib/workouts/completed";

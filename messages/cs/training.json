@@ -29,7 +29,7 @@
   "exercises": "{count, plural, one {# cvik} few {# cviky} other {# cviků}}",
   "deleteWorkout": "Opravdu smazat tento trénink?",
   "edit": "Upravit",
-  "viewPlan": "Náhled",
+  "viewPlan": "Report",
   "saveTemplate": "Uložit jako šablonu",
   "hint": "Vyber si den v plánu — „Začít trénink“ ho nastaví jako aktivní na kartě Dnes.",
   "trainerHint": "Pokud máš trenéra, tvůj plán se tu objeví hned, jak ti ho přidá.",
@@ -81,5 +81,6 @@
   "draftDiscard": "Zahodit",
   "close": "Zavřít",
   "useTemplate": "Použít šablonu",
-  "tplDayEmpty": "Tento trénink zatím nemá cviky."
+  "tplDayEmpty": "Tento trénink zatím nemá cviky.",
+  "tplPreview": "Náhled"
 }
