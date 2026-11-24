@@ -45,5 +45,7 @@
     "saving": "Ukladám…",
     "save": "Uložiť ako šablónu",
     "saved": "Uložené — pozri v <link>Šablónach</link>."
-  }
+  },
+  "exercisesTotal": "{count, plural, =0 {Zatiaľ bez cvikov} one {# cvik spolu} few {# cviky spolu} other {# cvikov spolu}}",
+  "itemsTotal": "{count, plural, =0 {Zatiaľ bez jedál} one {# položka spolu} few {# položky spolu} other {# položiek spolu}}"
 }
