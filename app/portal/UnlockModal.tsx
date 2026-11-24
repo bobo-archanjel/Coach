@@ -5,14 +5,16 @@ import { AppLink as Link } from "../components/AppLink";
 import { BadgeIcon } from "../components/BadgeIcon";
 import type { BadgeIcon as BadgeIconKey } from "@/lib/gamification/badges";
 import { ShareButton } from "../components/ShareButton";
+import type { CelebrationId } from "@/lib/gamification/rewards";
+import { CelebrationBurst } from "./CelebrationBurst";
 import { markAchievementsSeenAction } from "./gamificationActions";
 import g from "../components/gamification.module.css";
 import g2 from "../components/gamificationV2.module.css";
 
 /* Oslava nového rekordu / odznaku (lib/gamification). Texty prichádzajú hotové zo servera
    (AchievementHost). Ukáže sa raz: hneď po zobrazení sa úspechy označia ako videné
-   (client_achievements.seen_at), takže obnovenie stránky ich už nezopakuje. Konfety sú čisté
-   CSS a bežia len pri prefers-reduced-motion: no-preference — inak ostane statická karta. */
+   (client_achievements.seen_at), takže obnovenie stránky ich už nezopakuje. Oslava (konfety / hviezdy /
+   ohňostroj podľa voľby klienta) je čisté CSS; pri prefers-reduced-motion len jemné zjavenie svetla. */
 
 export interface UnlockItem {
   id: string;
@@ -26,18 +28,14 @@ export interface UnlockItem {
 }
 
 
-const CONFETTI = Array.from({ length: 16 }, (_, i) => ({
-  x: `${6 + ((i * 37) % 88)}%`,
-  d: `${(i % 6) * 90}ms`,
-  r: `${(i % 2 ? 1 : -1) * (200 + ((i * 53) % 260))}deg`,
-  c: ["var(--accent)", "var(--moss)", "var(--plate-yellow)", "var(--info)"][i % 4],
-}));
-
 export function UnlockModal({
   items,
   labels,
+  celebration = "confetti",
 }: {
   items: UnlockItem[];
+  /** zvolený štýl oslavy (rewards.ts); pri prefers-reduced-motion jednoduché zjavenie svetla */
+  celebration?: CelebrationId;
   labels: { close: string; next: string; aria: string; viewAll: string; positions: string[] };
 }) {
   const [index, setIndex] = useState(0);
@@ -77,11 +75,7 @@ export function UnlockModal({
         aria-label={labels.aria}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={g.confetti} aria-hidden="true">
-          {CONFETTI.map((c, i) => (
-            <i key={i} style={{ ["--x" as string]: c.x, ["--d" as string]: c.d, ["--r" as string]: c.r, ["--c" as string]: c.c }} />
-          ))}
-        </div>
+        <CelebrationBurst style={celebration} />
         <div className={g.dialogIcon} aria-hidden="true">
           <BadgeIcon icon={item.icon} />
         </div>

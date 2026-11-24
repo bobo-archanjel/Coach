@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { getUser } from "@/lib/supabase/server";
 import { readFinishSummary } from "@/lib/gamification/finishServer";
+import { loadCosmetics } from "@/lib/gamification/cosmeticsServer";
 import { XP_MISSION_BONUS } from "@/lib/gamification/xp";
 import { FinishSummaryModal, type FinishVM } from "./FinishSummaryModal";
 
@@ -16,6 +17,7 @@ export async function FinishSummaryHost() {
 
   const t = await getTranslations("gamification.finish");
   const tm = await getTranslations("gamification.missions");
+  const cosmetics = await loadCosmetics(user.id);
   const vm: FinishVM = {
     durationText: summary.durationMin != null ? t("durationValue", { min: summary.durationMin }) : null,
     volumeText: t("volumeValue", { kg: summary.volumeKg }),
@@ -34,6 +36,8 @@ export async function FinishSummaryHost() {
     freezeText: summary.freezeUsed ? t("freezeUsed") : null,
     levelText: summary.levelUp != null ? t("levelUp", { n: summary.levelUp }) : null,
     shareHref: `/api/gamification/share?w=${summary.weekStart}`,
+    celebration: cosmetics.celebration,
+    celebrate: summary.prs > 0 || summary.levelUp != null || summary.bonus || summary.missions.some((m) => m.justDone),
   };
   return (
     <FinishSummaryModal

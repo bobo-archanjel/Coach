@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import { createClient, getMyClient, getUser } from "@/lib/supabase/server";
 import { badgeById, canonicalBadgeId } from "@/lib/gamification/badges";
+import { loadBrandingForTrainer } from "@/lib/branding/server";
+import { loadCosmetics } from "@/lib/gamification/cosmeticsServer";
 import { rewardsBetween } from "@/lib/gamification/rewards";
 import { loadUnseenAchievements } from "@/lib/gamification/server";
 import { UnlockModal, type UnlockItem } from "./UnlockModal";
@@ -21,6 +23,9 @@ export async function AchievementHost() {
   if (unseen.length === 0) return null;
 
   const t = await getTranslations("gamification");
+  // klient so značkou trénera nedostáva oznam o témach (tie nemá); ostatné odmeny áno
+  const [cosmetics, branding] = await Promise.all([loadCosmetics(user.id), loadBrandingForTrainer(client.trainer_id ?? null)]);
+  const branded = Boolean(branding);
   const items: UnlockItem[] = [];
   for (const a of unseen) {
     if (a.kind === "pr" && a.exerciseName && a.value != null) {
@@ -32,10 +37,12 @@ export async function AchievementHost() {
         shareHref: `/api/gamification/share?a=${a.id}`,
       });
     } else if (a.kind === "level" && a.level != null) {
-      const r = rewardsBetween(a.levelFrom ?? a.level - 1, a.level);
+      const r = rewardsBetween(a.levelFrom ?? a.level - 1, a.level, branded);
       const chips = [
         ...r.frames.map((f) => t("rewards.item.frame", { name: t(`frames.${f}` as never) })),
         ...r.themes.map((th) => t("rewards.item.theme", { name: t(`themes.${th}` as never) })),
+        ...r.celebrations.map((c) => t("rewards.item.celebration", { name: t(`celebrations.${c}` as never) })),
+        ...(r.titles.length > 0 ? [t("rewards.item.title", { name: t(`levelTitles.${r.titles[r.titles.length - 1]}` as never) })] : []),
         ...Array.from({ length: r.freezes }, () => t("rewards.item.freeze")),
       ];
       items.push({
@@ -71,6 +78,7 @@ export async function AchievementHost() {
     <UnlockModal
       key={items.map((i) => i.id).join(",")}
       items={items}
+      celebration={cosmetics.celebration}
       labels={{
         close: t("unlock.close"),
         next: t("unlock.next"),

@@ -82,7 +82,7 @@ async function Gallery({
 }: {
   data: GalleryData;
   locale: Locale;
-  cosmetics: { frame: import("@/lib/gamification/rewards").FrameId; theme: import("@/lib/gamification/rewards").ThemeId };
+  cosmetics: import("@/lib/gamification/cosmeticsServer").Cosmetics;
   branded: boolean;
   initial: string;
 }) {
@@ -94,13 +94,15 @@ async function Gallery({
   const title = t(`levelTitles.${detail.n}` as never);
 
   // text najbližšej odmeny: „rámik Žeravý, zmrazenie série 🧊“
-  const nr = nextReward(detail.n);
+  const nr = nextReward(detail.n, branded);
   const nextRewardText = nr
     ? t("rewards.next", {
         level: nr.level,
         text: [
           ...nr.rewards.frames.map((f) => t("rewards.item.frame", { name: t(`frames.${f}` as never) })),
           ...nr.rewards.themes.map((th) => t("rewards.item.theme", { name: t(`themes.${th}` as never) })),
+          ...nr.rewards.celebrations.map((c) => t("rewards.item.celebration", { name: t(`celebrations.${c}` as never) })),
+          ...(nr.rewards.titles.length > 0 ? [t("rewards.item.title", { name: t(`levelTitles.${nr.rewards.titles[nr.rewards.titles.length - 1]}` as never) })] : []),
           ...Array.from({ length: nr.rewards.freezes }, () => t("rewards.item.freeze")),
         ].join(", "),
       })
@@ -181,6 +183,9 @@ async function Gallery({
         level={detail.n}
         frame={cosmetics.frame}
         theme={cosmetics.theme}
+        celebration={cosmetics.celebration}
+        titleLevel={cosmetics.titleLevel}
+        flameHot={cosmetics.flameHot}
         branded={branded}
         initial={initial}
         freezeUses={freezeUses}

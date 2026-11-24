@@ -479,12 +479,19 @@
   "frames": {
     "none": "Bez rámika",
     "ember": "Žeravý",
+    "glow": "Žiara",
     "mint": "Mätový",
     "steel": "Oceľový",
     "gold": "Zlatý",
     "aurora": "Polárna žiara",
     "prism": "Dúhový",
+    "flame": "Plameň",
     "olympus": "Olymp"
+  },
+  "celebrations": {
+    "confetti": "Konfety",
+    "stars": "Hviezdy",
+    "fireworks": "Ohňostroj"
   },
   "themes": {
     "default": "Terakota",
@@ -497,10 +504,14 @@
   "rewards": {
     "title": "Odmeny za úrovne",
     "framesTitle": "Rámik avatara",
+    "celebrationsTitle": "Štýl osláv",
+    "titlesTitle": "Titul v rebríčku",
+    "titlesHint": "Pri svojej prezývke v celoappkovom rebríčku sa zobrazí malý štítok s vybraným titulom. Nič iné osobné sa nezobrazuje.",
+    "titlesLocked": "Titul si budeš môcť zvoliť od úrovne {level}.",
+    "titleNone": "Bez titulu",
     "themesTitle": "Farba portálu",
     "lockedAt": "Od úrovne {level}",
     "active": "Aktívne",
-    "brandedNote": "Tvoj tréner má vlastnú značku, preto zostávajú farby portálu podľa značky. Vybraná farba tu zafarbí len rámik avatara.",
     "next": "Ďalšia odmena na úrovni {level}: {text}",
     "allUnlocked": "Všetky odmeny máš odomknuté. Skvelá práca!",
     "failed": "Výber sa nepodarilo uložiť. Skús to znova.",
@@ -508,6 +519,8 @@
     "item": {
       "frame": "rámik {name}",
       "theme": "farba {name}",
+      "celebration": "štýl osláv {name}",
+      "title": "titul {name}",
       "freeze": "zmrazenie série 🧊"
     },
     "avatarAria": "Tvoj avatar s rámikom {name}"

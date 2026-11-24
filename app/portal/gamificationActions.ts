@@ -11,7 +11,8 @@ import { cookies } from "next/headers";
 import { todayIso, weekStartOf } from "@/lib/reports/period";
 import { loadXpBreakdown } from "@/lib/gamification/server";
 import { levelDetail } from "@/lib/gamification/xp";
-import { frameUnlocked, isFrameId, isThemeId, themeUnlocked } from "@/lib/gamification/rewards";
+import { celebrationUnlocked, frameUnlocked, isCelebrationId, isFrameId, isThemeId, normalizeTitleLevel, themeUnlocked, titleUnlocked } from "@/lib/gamification/rewards";
+import { loadBrandingForTrainer } from "@/lib/branding/server";
 import { validateNickname } from "@/lib/gamification/nickname";
 import { FINISH_COOKIE } from "@/lib/gamification/finishSummary";
 
@@ -127,6 +128,14 @@ async function currentLevel(clientId: string): Promise<number | null> {
   return xp ? levelDetail(xp.total).n : null;
 }
 
+/** Má tréner klienta aktívnu značku (Business)? Vtedy sa témy portálu nezobrazujú ani neukladajú. */
+async function isBrandedClient(clientId: string): Promise<boolean> {
+  const admin = tryCreateAdminClient();
+  if (!admin) return false;
+  const { data } = await admin.from("clients").select("trainer_id").eq("id", clientId).maybeSingle();
+  return Boolean(await loadBrandingForTrainer((data?.trainer_id as string | null | undefined) ?? null));
+}
+
 export async function setFrameAction(frame: string): Promise<SettingsResult> {
   if (!isFrameId(frame)) return { ok: false, error: "invalid" };
   const clientId = await myClientId();
@@ -148,6 +157,8 @@ export async function setThemeAction(theme: string): Promise<SettingsResult> {
   if (!isThemeId(theme)) return { ok: false, error: "invalid" };
   const clientId = await myClientId();
   if (!clientId) return { ok: false, error: "failed" };
+  // klient so značkou trénera témy nemá (značka vyhráva) — server to vynúti aj keď by UI niekto obišiel
+  if (await isBrandedClient(clientId)) return { ok: false, error: "locked" };
   const level = await currentLevel(clientId);
   if (level == null) return { ok: false, error: "failed" };
   if (!themeUnlocked(theme, level)) return { ok: false, error: "locked" };
@@ -158,6 +169,44 @@ export async function setThemeAction(theme: string): Promise<SettingsResult> {
     .upsert({ client_id: clientId, portal_theme: theme, updated_at: new Date().toISOString() }, { onConflict: "client_id" });
   if (error) return { ok: false, error: "failed" };
   revalidatePath("/portal", "layout");
+  return { ok: true };
+}
+
+/** Štýl osláv (konfety / hviezdy / ohňostroj): server overí, že ho úroveň klienta odomkla. */
+export async function setCelebrationAction(style: string): Promise<SettingsResult> {
+  if (!isCelebrationId(style)) return { ok: false, error: "invalid" };
+  const clientId = await myClientId();
+  if (!clientId) return { ok: false, error: "failed" };
+  const level = await currentLevel(clientId);
+  if (level == null) return { ok: false, error: "failed" };
+  if (!celebrationUnlocked(style, level)) return { ok: false, error: "locked" };
+  const admin = tryCreateAdminClient();
+  if (!admin) return { ok: false, error: "failed" };
+  const { error } = await admin
+    .from("gamification_settings")
+    .upsert({ client_id: clientId, celebration_style: style, updated_at: new Date().toISOString() }, { onConflict: "client_id" });
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/portal", "layout");
+  return { ok: true };
+}
+
+/** Titul vedľa prezývky v rebríčku = číslo úrovne 10–20 nepresahujúce aktuálnu úroveň; null = bez titulu. */
+export async function setTitleAction(titleLevel: number | null): Promise<SettingsResult> {
+  if (titleLevel !== null && normalizeTitleLevel(titleLevel) == null) return { ok: false, error: "invalid" };
+  const clientId = await myClientId();
+  if (!clientId) return { ok: false, error: "failed" };
+  if (titleLevel !== null) {
+    const level = await currentLevel(clientId);
+    if (level == null) return { ok: false, error: "failed" };
+    if (!titleUnlocked(titleLevel, level)) return { ok: false, error: "locked" };
+  }
+  const admin = tryCreateAdminClient();
+  if (!admin) return { ok: false, error: "failed" };
+  const { error } = await admin
+    .from("gamification_settings")
+    .upsert({ client_id: clientId, leaderboard_title: titleLevel, updated_at: new Date().toISOString() }, { onConflict: "client_id" });
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/portal/uspechy");
   return { ok: true };
 }
 
