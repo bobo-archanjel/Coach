@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { apiSession, sessionLogin } from "./helpers/sessionLogin";
 
 /**
  * Šablóny trénera (/dashboard/sablony, nový dizajn v6): záložky Tréningy / Jedálničky,
@@ -23,17 +24,13 @@ const env = {
   // tréner klienta zmazať nemôže (mazanie ide cez GDPR proces) — dočasného klienta zmaže service role
   serviceRole: process.env.SUPABASE_SERVICE_ROLE_KEY,
   trainerEmail: process.env.E2E_TRAINER_EMAIL,
-  trainerPassword: process.env.E2E_TRAINER_PASSWORD,
   clientEmail: process.env.E2E_CLIENT_EMAIL,
-  clientPassword: process.env.E2E_CLIENT_PASSWORD,
 };
 const hasEnv = Object.values(env).every(Boolean);
 
-async function apiSignIn(email: string, password: string): Promise<{ api: SupabaseClient; userId: string }> {
-  const api = createClient(env.url!, env.anon!, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await api.auth.signInWithPassword({ email, password });
-  if (error || !data.user) throw new Error(`Prihlásenie ${email} zlyhalo: ${error?.message}`);
-  return { api, userId: data.user.id };
+// bez signInWithPassword (CAPTCHA v Supabase) — session cez magic link (e2e/helpers/sessionLogin.ts)
+async function apiSignIn(email: string): Promise<{ api: SupabaseClient; userId: string }> {
+  return apiSession(email);
 }
 
 test.describe("šablóny trénera (reálna DB, dizajn v6)", () => {
@@ -63,8 +60,8 @@ test.describe("šablóny trénera (reálna DB, dizajn v6)", () => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(150_000);
 
-    trainer = await apiSignIn(env.trainerEmail!, env.trainerPassword!);
-    const client = await apiSignIn(env.clientEmail!, env.clientPassword!);
+    trainer = await apiSignIn(env.trainerEmail!);
+    const client = await apiSignIn(env.clientEmail!);
     const { data: clientRow } = await client.api
       .from("clients")
       .select("id, full_name, trainer_id")
@@ -106,11 +103,7 @@ test.describe("šablóny trénera (reálna DB, dizajn v6)", () => {
       .from("meal_template_days")
       .insert({ template_id: mt!.id, day_number: 1, name: "Pondelok", meals: [{ food_name: "Ovsené vločky", grams: 80 }] });
 
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.trainerEmail!);
-    await page.locator("#login-password").fill(env.trainerPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    await sessionLogin(page, env.trainerEmail!, test.info().project.use.baseURL!);
     await page.goto("/dashboard/sablony");
     const tabs = page.getByRole("navigation", { name: "Druh šablón" });
 

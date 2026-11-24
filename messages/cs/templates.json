@@ -45,5 +45,7 @@
     "saving": "Ukládám…",
     "save": "Uložit jako šablonu",
     "saved": "Uloženo — najdeš v <link>Šablonách</link>."
-  }
+  },
+  "exercisesTotal": "{count, plural, =0 {Zatím bez cviků} one {# cvik celkem} few {# cviky celkem} other {# cviků celkem}}",
+  "itemsTotal": "{count, plural, =0 {Zatím bez jídel} one {# položka celkem} few {# položky celkem} other {# položek celkem}}"
 }
