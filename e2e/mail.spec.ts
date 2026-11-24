@@ -1,7 +1,8 @@
 // i18n-ignore-file: testy e-mailov a uvítacej správy — čisté testy bez siete, SMTP a DB (vymyslené mená a texty)
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { cleanHeaderText, cleanRecipientName, escapeHtml, hashRecipient, normalizeEmail } from "../lib/mail/sanitize";
+import { cleanHeaderText, cleanRecipientName, escapeHtml, normalizeEmail } from "../lib/mail/sanitize";
+import { hashRecipient } from "../lib/mail/recipientHash";
 import { buildFrom, buildMessage, buildReplyTo, deliver, formatAddress, senderDisplayName, type MailMessage, type MailTransport } from "../lib/mail/message";
 import { INVITE_LIMITS, decideInviteSend, remainingInvites } from "../lib/mail/limits";
 import { signUnsubToken, verifyUnsubToken } from "../lib/mail/token";

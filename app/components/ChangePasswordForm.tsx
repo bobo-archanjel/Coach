@@ -8,7 +8,6 @@
 // pri citlivých akciách inde v appke).
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { checkPassword } from "@/lib/passwordStrength";
 import { PasswordRequirements } from "./PasswordRequirements";
 import styles from "./ChangePasswordForm.module.css";
@@ -33,7 +32,6 @@ const EyeIcon = () => (
 
 export function ChangePasswordForm({ email }: { email: string }) {
   const t = useTranslations("password");
-  const [supabase] = useState(() => createClient());
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -68,6 +66,8 @@ export function ChangePasswordForm({ email }: { email: string }) {
     }
 
     setStatus("loading");
+    // klient sa sťahuje až pri odoslaní formulára — nie s prvým načítaním profilu / nastavení
+    const supabase = await import("@/lib/supabase/client").then((m) => m.createClient());
     const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: current });
     if (reauthError) {
       setStatus("idle");
