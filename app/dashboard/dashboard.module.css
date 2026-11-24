@@ -1211,7 +1211,11 @@ select.addClientInputSm {
 }
 /* aktívny plán — jemný terakotový okraj (pás má do červena) */
 .cpCardActive {
-  border-color: color-mix(in srgb, var(--accent) 34%, var(--glass-border));
+  border-color: color-mix(in srgb, #d2463a 42%, var(--glass-border));
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-hl),
+    0 18px 40px -22px color-mix(in srgb, #d2463a 70%, transparent);
 }
 .cpBody {
   flex: 1;

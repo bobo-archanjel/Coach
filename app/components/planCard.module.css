@@ -1,26 +1,39 @@
-/* Karta plánu — oranžový sklenený pás s názvom, počtom tréningov a farebnými čipmi.
-   Zdieľané: klient (Tréning → Tréningové plány) aj tréner (detail klienta → Tréningy),
-   komponent PlanBand. Aktívny plán má pás do červena. */
-/* oranžový pás hore s názvom plánu a čipmi — sklenená „kvapka“ vsadená do karty: priesvitný
-   terakotový gradient, zrkadlový odlesk zhora, svetlá horná hrana; vždy oranžový */
+/* Karta plánu — horná časť s názvom, počtom tréningov a farebnými čipmi, jemne podfarbená
+   prechodom zhora nadol (ako karty klientov u trénera). Zdieľané: klient (Tréning →
+   Tréningové plány) aj tréner (detail klienta → Tréningy), komponent PlanBand.
+   Bežný plán terakotový odtieň, aktívny do červena. */
 .band {
+  --tone: var(--accent);
   position: relative;
   display: grid;
   gap: 10px;
+  /* oddelený blok vsadený do karty (okraj + zaoblenie), vnútri prechod zhora nadol */
   margin: 7px 7px 0;
   padding: 15px 16px 14px;
   border-radius: 22px;
-  background:
-    radial-gradient(120% 90% at 18% -20%, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(140deg, rgba(236, 143, 112, 0.94) 0%, rgba(217, 105, 74, 0.9) 50%, rgba(189, 80, 52, 0.94) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.38);
+  border: 1px solid color-mix(in srgb, var(--tone) 26%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tone) 32%, transparent) 0,
+    color-mix(in srgb, var(--tone) 15%, transparent) 60%,
+    color-mix(in srgb, var(--tone) 3%, transparent) 100%
+  );
+  color: var(--paper);
+}
+/* aktívny plán — odtieň do červena, aby bol na prvý pohľad odlíšený */
+.band.bandActive {
+  --tone: #d2463a;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tone) 50%, transparent) 0,
+    color-mix(in srgb, var(--tone) 26%, transparent) 60%,
+    color-mix(in srgb, var(--tone) 9%, transparent) 100%
+  );
+  border-color: color-mix(in srgb, var(--tone) 48%, transparent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -8px 16px -10px rgba(120, 40, 20, 0.45),
-    0 10px 22px -14px rgba(189, 80, 52, 0.75);
-  color: var(--on-accent);
-  text-shadow: 0 1px 1px rgba(120, 40, 20, 0.25);
+    inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent),
+    0 10px 22px -16px color-mix(in srgb, var(--tone) 85%, transparent);
 }
 .titleRow {
   display: flex;
@@ -28,19 +41,18 @@
   justify-content: space-between;
   gap: 10px;
 }
-/* počet tréningov vedľa názvu — sklenený odznak vpravo */
+/* počet tréningov vedľa názvu — odznak v odtieni plánu */
 .count {
   flex: none;
   margin-top: -1px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.24);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: color-mix(in srgb, var(--tone) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 24%, transparent);
+  color: color-mix(in srgb, var(--tone) 78%, var(--paper));
   font-size: 12.5px;
   font-weight: 750;
   white-space: nowrap;
-  text-shadow: none;
 }
 .name {
   margin: 0;
@@ -51,20 +63,6 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
-/* aktívny plán — pás do červena (ostatné sú oranžové), aby bol na prvý pohľad odlíšený */
-.band.bandActive {
-  background:
-    radial-gradient(120% 90% at 18% -20%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(140deg, rgba(232, 104, 86, 0.96) 0%, rgba(204, 66, 52, 0.94) 50%, rgba(164, 40, 34, 0.96) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -8px 16px -10px rgba(100, 20, 14, 0.5),
-    0 10px 22px -14px rgba(164, 40, 34, 0.8);
-}
-.bandActive .activePill {
-  color: #a8302a;
-}
 .chip,
 .activePill {
   font-size: 11.5px;
@@ -74,21 +72,16 @@
   white-space: nowrap;
 }
 .chip {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  -webkit-backdrop-filter: blur(8px) saturate(150%);
-  backdrop-filter: blur(8px) saturate(150%);
-  color: var(--on-accent);
+  background: var(--fill);
+  border: 1px solid transparent;
+  color: var(--paper-dim);
 }
-/* farebné odlíšenie čipov (jemné, pastelové sklo): Hotovo mätové, Od trénera krémovo-jantárové,
-   Vlastný tmavšie sklo
-   Koncept priehľadný s prerušovaným okrajom, Aktívny biely — farby sú pevné (pás je vždy farebný) */
+/* farebné odlíšenie čipov (jemné): Hotovo zelené, Od trénera jantárové, Vlastný neutrálny,
+   Koncept s prerušovaným okrajom, Aktívny plný terakotový */
 .chip[data-kind] {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  text-shadow: none;
 }
 /* Hotovo má fajku a Od trénera činku (svg v TSX), Vlastný bodku */
 .chip[data-kind] svg {
@@ -103,35 +96,30 @@
   opacity: 0.85;
 }
 .chip[data-kind="done"] {
-  background: rgba(232, 248, 238, 0.82);
-  border-color: rgba(255, 255, 255, 0.7);
-  color: #2b7a50;
+  background: var(--moss-soft);
+  color: var(--moss);
 }
 .chip[data-kind="trainer"] {
-  background: rgba(255, 244, 222, 0.82);
-  border-color: rgba(255, 255, 255, 0.7);
-  color: #8a5a12;
+  background: var(--amber-soft);
+  color: var(--plate-yellow);
 }
 .chip[data-kind="draft"] {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px dashed rgba(255, 255, 255, 0.6);
-  color: #fff;
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--paper) 35%, transparent);
+  color: var(--paper-dim);
 }
 .chip[data-kind="client"] {
-  background: rgba(70, 34, 20, 0.2);
-  border-color: rgba(255, 255, 255, 0.26);
-  color: #fff;
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+  color: color-mix(in srgb, var(--tone) 70%, var(--paper));
 }
 .activePill {
   font-size: 10.5px;
   font-weight: 750;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.86) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 10px -4px rgba(120, 40, 20, 0.45);
-  color: #bd5034;
-  text-shadow: none;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--tone) 85%, #fff), var(--tone));
+  color: #fff;
+  box-shadow: 0 4px 10px -5px color-mix(in srgb, var(--tone) 80%, transparent);
 }
 .chips {
   display: flex;
