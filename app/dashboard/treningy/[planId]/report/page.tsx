@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlanReview } from "@/lib/portal/planReviewData";
 import { buildDoneDays, fetchPlanLogs, toProgressionDays } from "@/lib/dashboard/planDoneDays";
 import { DayReview } from "@/app/portal/trening/PlanReviewView";
-import { ActionEditIcon } from "@/app/components/ActionIcons";
+import { ActionDownloadIcon } from "@/app/components/ActionIcons";
 import { PlanReviewPanel } from "../PlanReviewPanel";
 import pa from "@/app/components/planActions.module.css";
 import rv from "@/app/portal/portal.module.css";
@@ -17,7 +17,8 @@ import styles from "@/app/dashboard/dashboard.module.css";
  * rozpracovaného plánu: rátajú sa len odcvičené tréningy (buildPlanReview berie len zápisy
  * dní plánu). Pod súhrnom každý deň: odcvičený → karty cvikov (plán vs. skutočnosť, graf),
  * neodcvičený → krátka veta. „Zopakovať s progresiou“ len pri celom odcvičenom pláne.
- * Nič sa tu neupravuje — úpravy sú v detaile plánu („Otvoriť plán“).
+ * Nič sa tu neupravuje. Hore „Export PDF“ — celý report (vyhodnotenie, odcvičené tréningy
+ * plán vs. skutočnosť, zostávajúce tréningy) — app/api/export/plan/[planId]/report/pdf.
  */
 export default async function PlanReportPage({ params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
@@ -57,6 +58,11 @@ export default async function PlanReportPage({ params }: { params: Promise<{ pla
           </div>
         </div>
         <div className={styles.detailHeadStatus}>
+          {/* súborový download (Route Handler) — obyčajný <a>, nie klientska navigácia */}
+          <a href={`/api/export/plan/${planId}/report/pdf`} className={`${pa.action} ${pa.small} ${styles.reportExport}`}>
+            <ActionDownloadIcon />
+            {t("exportPdf")}
+          </a>
           {allDone ? (
             <span className={styles.planDoneBadge}>{t("doneBadge")}</span>
           ) : (
@@ -104,12 +110,6 @@ export default async function PlanReportPage({ params }: { params: Promise<{ pla
         })}
       </section>
 
-      <div className={styles.planFooterActions}>
-        <Link href={`/dashboard/treningy/${planId}`} className={`${pa.action} ${styles.previewOpenPlan}`}>
-          <ActionEditIcon />
-          {t("openPlan")}
-        </Link>
-      </div>
     </SwipeBack>
   );
 }

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { PDFDocument } from "pdf-lib";
 import { sessionLogin, userIdByEmail } from "./helpers/sessionLogin";
 
 /**
@@ -129,6 +130,15 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     await expect(previewDays.nth(0)).toHaveAttribute("data-done", "true");
     await expect(previewDays.nth(0).getByTestId("review-card").first()).toContainText("E2E Drep");
     await expect(previewDays.nth(1)).toContainText("Tento tréning klient ešte neodcvičil.");
+    // dole už nie je „Otvoriť plán“; hore „Export PDF“ — celý report na stiahnutie
+    await expect(page.getByRole("link", { name: "Otvoriť plán" })).toHaveCount(0);
+    const exportLink = page.getByRole("link", { name: "Export PDF" });
+    await expect(exportLink).toHaveAttribute("href", `/api/export/plan/${wip.planId}/report/pdf`);
+    const res = await page.request.get(`/api/export/plan/${wip.planId}/report/pdf`);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("application/pdf");
+    expect(res.headers()["content-disposition"]).toContain("report.pdf");
+    expect((await PDFDocument.load(await res.body())).getPageCount()).toBeGreaterThanOrEqual(1);
 
     // ---------- Zmazať rozpracovaný plán (karta zmizne, zápis tréningu ostane) ----------
     await page.goto(`/dashboard/klienti/${clientId}`);
