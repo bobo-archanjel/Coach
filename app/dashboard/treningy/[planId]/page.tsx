@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { PlanBuilder, type DoneDay } from "./PlanBuilder";
+import { buildDoneDays, fetchPlanLogs, toProgressionDays } from "@/lib/dashboard/planDoneDays";
 import { PlanRecipients } from "@/app/dashboard/PlanRecipients";
 import { listPlanRecipients } from "@/lib/planRecipients";
 import { PendingEditsActions, PublishActions, PublishBadge } from "./PublishControl";
@@ -103,17 +104,6 @@ function previewReview() {
     nameOf: (_entryId, storedName) => storedName,
   });
 }
-const toProgressionDays = (days: { id: string; name: string; exercises: unknown }[]) =>
-  days.map((d) => ({
-    id: d.id,
-    name: d.name,
-    exercises: ((Array.isArray(d.exercises) ? d.exercises : []) as WorkoutExerciseEntry[]).map((e) => ({
-      entryId: e.entry_id ?? null,
-      name: e.exercise_name,
-      loadKg: e.load_kg ?? null,
-    })),
-  }));
-
 const PREVIEW_LIBRARY = [
   { id: "lib1", name: "Barbell Hip Thrust", name_sk: "Hip thrust s činkou", muscle_group: "zadok", image_url: [], equipment: "barbell" },
   { id: "lib2", name: "Farmer's Walk", name_sk: "Farmárska chôdza", muscle_group: "predlaktia", image_url: [], equipment: "dumbbell" },
@@ -183,7 +173,7 @@ export default async function PlanDetailPage({
           locked={donePreview}
         />
         <div className={styles.planFooterActions} data-tour="plan-footer">
-          <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted canDelete={!donePreview} />
+          <PlanFooterActions planId={planId} planName="AI plán — hypertrofia" published={livePreview} hasCompleted />
         </div>
       </SwipeBack>
     );
@@ -221,13 +211,7 @@ export default async function PlanDetailPage({
     getTrainerExerciseLibrary(supabase),
     // Odcvičené tréningy z tohto plánu (snapshot 0048) — v builderi pri svojom dni
     // (plan vs. skutočnosť, RPE, poznámka). Plán má max. 14 dní, každý sa odcvičí raz.
-    supabase
-      .from("workout_logs")
-      .select("id, workout_day_id, completed_at, performed_on, plan_snapshot, entries, rpe, note, edited_at")
-      .eq("plan_snapshot->>plan_id", planId)
-      .eq("status", "completed")
-      .order("completed_at", { ascending: false })
-      .limit(50),
+    fetchPlanLogs(supabase, planId),
     // Rozpracované úpravy zverejneného plánu (0071) — skrytá kópia, klient ju nevidí.
     supabase
       .from("workout_plans")
@@ -247,26 +231,14 @@ export default async function PlanDetailPage({
   // Odcvičené dni (posledný záznam dňa; logy sú od najnovšieho) — v builderi zamknuté,
   // namiesto úprav plán vs. skutočnosť. Server to vynúti cez getDayForEdit (dayDone).
   // Tréning zo zmazaného dňa sa tu neukáže (záznam ostáva v DB, napr. pre analytiku).
-  const doneDays: Record<string, DoneDay> = {};
-  for (const log of completedLogs ?? []) {
-    const dayId = log.workout_day_id as string | null;
-    if (!dayId || doneDays[dayId]) continue;
-    doneDays[dayId] = {
-      logId: log.id as string,
-      completedAt: (log.completed_at as string | null) ?? `${log.performed_on}T12:00:00Z`,
-      compare: compareLog(log.plan_snapshot, log.entries),
-      rpe: (log.rpe as number | null) ?? null,
-      note: (log.note as string | null) ?? null,
-      editedAt: (log.edited_at as string | null) ?? null,
-    };
-  }
+  const doneDays = buildDoneDays(completedLogs ?? []);
   // Rozpracované úpravy: builder ukazuje kópiu (jej dni, názov), odcvičené dni podľa pôvodného
   // dňa (source_day_id). Akcie buildera dostávajú id živého plánu a zapisujú do kópie (editTarget).
   type DraftDay = { id: string; day_number: number; name: string; exercises: WorkoutExerciseEntry[]; source_day_id: string | null };
   const pendingDraft = plan.published && !locked && draft ? draft : null;
   const draftDays = ((pendingDraft?.workout_days ?? []) as DraftDay[]).slice().sort((a, b) => a.day_number - b.day_number);
   const viewDays = pendingDraft ? draftDays : (days ?? []);
-  const viewDoneDays: Record<string, DoneDay> = pendingDraft
+  const viewDoneDays: typeof doneDays = pendingDraft
     ? Object.fromEntries(draftDays.flatMap((d) => (d.source_day_id && doneDays[d.source_day_id] ? [[d.id, doneDays[d.source_day_id]]] : [])))
     : doneDays;
   const dayAliases: Record<string, string> = Object.fromEntries(
@@ -341,13 +313,12 @@ export default async function PlanDetailPage({
 
       {/* Menej časté akcie na spodku (prehľadnejší vrch stránky, hlavne na mobile). */}
       <div className={styles.planFooterActions} data-tour="plan-footer">
-        {/* Hotový plán sa nemaže — ostáva ako záznam (PDF + šablóna, bez „Zmazať“). */}
+        {/* PDF + šablóna + Zmazať (aj hotový plán — odcvičené tréningy ostanú). */}
         <PlanFooterActions
           planId={planId}
           planName={plan.name}
           published={plan.published}
           hasCompleted={(completedLogs?.length ?? 0) > 0}
-          canDelete={!locked}
         />
       </div>
     </SwipeBack>

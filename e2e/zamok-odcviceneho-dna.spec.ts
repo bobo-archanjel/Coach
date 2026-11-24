@@ -171,7 +171,8 @@ test.describe("zámok odcvičeného dňa — reálna DB", () => {
 
     await login(page, env.clientEmail!, env.clientPassword!, /\/portal/);
     await page.goto("/portal/trening");
-    await page.getByRole("button", { name: "Upraviť", exact: true }).first().click();
+    // všetky plány sú rozbalené — „Upraviť“ práve tohto plánu
+    await page.locator(`#plan-${plan!.id}`).getByRole("button", { name: "Upraviť", exact: true }).click();
     // deň 1 odcvičený: zamknutý
     await page.getByRole("button", { name: /E2E Deň 1/ }).click();
     await expect(page.getByTestId("day-done")).toBeVisible();

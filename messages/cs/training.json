@@ -14,7 +14,7 @@
   "active": "Aktivní",
   "fromTrainer": "Od trenéra",
   "own": "Vlastní",
-  "planDays": "{count, plural, =0 {Zatím bez dní} one {Plán na # den} few {Plán na # dny} other {Plán na # dní}}",
+  "planTrainings": "{count, plural, =0 {Zatím bez tréninků} one {# trénink} few {# tréninky} other {# tréninků}}",
   "setActive": "Nastavit jako aktivní",
   "showsOnToday": "Zobrazí se na kartě Dnes.",
   "planDoneHint": "Celý plán máš odcvičený — jako aktivní se už nastavit nedá.",
@@ -28,10 +28,10 @@
   "done": "Hotovo",
   "exercises": "{count, plural, one {# cvik} few {# cviky} other {# cviků}}",
   "deleteWorkout": "Opravdu smazat tento trénink?",
-  "edit": "Upravit",
-  "viewPlan": "Náhled",
+  "edit": "Upravit plán",
+  "viewPlan": "Report",
   "saveTemplate": "Uložit jako šablonu",
-  "hint": "Ťukni na trénink a vyber si den — „Začít trénink“ ho nastaví jako aktivní na kartě Dnes.",
+  "hint": "Vyber si den v plánu — „Začít trénink“ ho nastaví jako aktivní na kartě Dnes.",
   "trainerHint": "Pokud máš trenéra, tvůj plán se tu objeví hned, jak ti ho přidá.",
   "pageTitle": "Tréninkové plány",
   "pageSub": "Plány od trenéra i tvé vlastní — vyber den a začni.",
@@ -78,5 +78,9 @@
   "draftEditTitle": "Rozpracovaná úprava tréninku",
   "draftUnnamed": "Bez názvu",
   "draftContinue": "Pokračovat",
-  "draftDiscard": "Zahodit"
+  "draftDiscard": "Zahodit",
+  "close": "Zavřít",
+  "useTemplate": "Použít šablonu",
+  "tplDayEmpty": "Tento trénink zatím nemá cviky.",
+  "tplPreview": "Náhled"
 }

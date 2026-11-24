@@ -12,23 +12,14 @@ import { moveExerciseEntryAction, toggleSupersetLinkAction, type WorkoutExercise
 import { SupersetLink } from "@/app/components/SupersetLink";
 import { detachFromSuperset, isLinkedToNext, supersetPositions, toggleLinkWithNext } from "@/lib/workouts/superset";
 import type { ExerciseLibraryRow } from "@/lib/exercises";
-import { formatCompletedDate, type CompletedCompare } from "@/lib/workouts/completed";
+import { formatCompletedDate } from "@/lib/workouts/completed";
+import type { DoneDay } from "@/lib/dashboard/planDoneDays";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
 import styles from "@/app/components/workoutBuilder.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 
-/** Odcvičený deň (posledný záznam klienta) — v builderi zamknutý, ukáže plán vs. skutočnosť. */
-export interface DoneDay {
-  logId: string;
-  completedAt: string;
-  compare: CompletedCompare;
-  /** celková náročnosť a poznámka klienta k tréningu (workout_logs.rpe / note) */
-  rpe: number | null;
-  note: string | null;
-  /** klient hodnoty dodatočne opravil (24 h okno, 0049) */
-  editedAt: string | null;
-}
+export type { DoneDay };
 
 const CheckIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">

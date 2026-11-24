@@ -17,20 +17,19 @@ const planCard = (page: Page, id: string) => page.locator(`#plan-${id}`);
 test.describe("náhľad hotového plánu — náhľady", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
-  test("hotový vlastný plán: Náhľad bez úprav, rozpracovaný ostáva Upraviť", async ({ page }) => {
+  test("hotový vlastný plán: Report bez úprav, rozpracovaný ostáva Upraviť", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    await page.getByRole("button", { name: /Moje kardio \+ core/ }).click();
-    await expect(planCard(page, "plan-own").getByRole("button", { name: "Upraviť" })).toBeVisible();
-    await expect(planCard(page, "plan-own").getByRole("button", { name: "Náhľad" })).toHaveCount(0);
+    // rozpracovaný vlastný plán (1 z 2 odcvičený): Upraviť aj Náhľad (feature/treningy-karty)
+    await expect(planCard(page, "plan-own").getByRole("button", { name: "Upraviť plán" })).toBeVisible();
+    await expect(planCard(page, "plan-own").getByRole("button", { name: "Report" })).toBeVisible();
 
-    await page.getByRole("button", { name: /Moja jesenná sila/ }).click();
     const card = planCard(page, "plan-own-done");
-    await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);
-    await card.getByRole("button", { name: "Náhľad" }).click();
+    await expect(card.getByRole("button", { name: "Upraviť plán" })).toHaveCount(0);
+    await card.getByRole("button", { name: "Report" }).click();
 
-    const view = page.getByRole("region", { name: "Náhľad tréningu" });
+    const view = page.getByRole("region", { name: "Report tréningu" });
     await expect(view).toBeVisible();
     // bez hlavičky „Tréningové plány“ — nadpisom stránky je názov plánu
     await expect(page.getByRole("heading", { level: 1, name: "Tréningové plány" })).toHaveCount(0);
@@ -52,14 +51,13 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await expect(page.getByRole("button", { name: "Pokračovať" })).toHaveCount(0);
   });
 
-  test("hotový plán od trénera: Náhľad s vyhodnotením, bez Zopakovať s progresiou", async ({ page }) => {
+  test("hotový plán od trénera: Report s vyhodnotením, bez Zopakovať s progresiou", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    await page.getByRole("button", { name: /Letný plán — celé telo/ }).click();
     const card = planCard(page, "plan-done");
-    await expect(card.getByRole("button", { name: "Upraviť" })).toHaveCount(0);
-    await card.getByRole("button", { name: "Náhľad" }).click();
+    await expect(card.getByRole("button", { name: "Upraviť plán" })).toHaveCount(0);
+    await card.getByRole("button", { name: "Report" }).click();
 
-    const view = page.getByRole("region", { name: "Náhľad tréningu" });
+    const view = page.getByRole("region", { name: "Report tréningu" });
     await expect(view.getByRole("heading", { name: "Letný plán — celé telo" })).toBeVisible();
     await expect(view.getByTestId("review-stats")).toContainText(/Tréningy\s*1/);
     await expect(view.getByTestId("review-card").first()).toContainText("Bench press");
@@ -71,9 +69,8 @@ test.describe("náhľad hotového plánu — náhľady", () => {
 
   test("vyhodnotenie: súhrn, úspechy, zistenia, karty cvikov a ako sa cvičilo", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    await page.getByRole("button", { name: /Moja jesenná sila/ }).click();
-    await planCard(page, "plan-own-done").getByRole("button", { name: "Náhľad" }).click();
-    const view = page.getByRole("region", { name: "Náhľad tréningu" });
+    await planCard(page, "plan-own-done").getByRole("button", { name: "Report" }).click();
+    const view = page.getByRole("region", { name: "Report tréningu" });
 
     const stats = view.getByTestId("review-stats");
     await expect(stats).toContainText(/Tréningy\s*2/);
@@ -112,8 +109,7 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await page.goto("/portal/trening?preview=ok");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    await page.getByRole("button", { name: /Moja jesenná sila/ }).click();
-    await planCard(page, "plan-own-done").getByRole("button", { name: "Náhľad" }).click();
+    await planCard(page, "plan-own-done").getByRole("button", { name: "Report" }).click();
     await page.getByRole("button", { name: "Zopakovať s progresiou" }).click();
 
     // okno: predvolene +5 %, náhľad zmien; Esc zavrie bez zmeny
@@ -220,9 +216,8 @@ test.describe("náhľad hotového plánu — reálna DB", () => {
     await sessionLogin(page, env.clientEmail!, baseURL!);
     await page.goto("/portal/trening");
 
-    await page.getByRole("button", { name: new RegExp(`E2E Hotový vlastný ${stamp}`) }).click();
-    await planCard(page, done.planId).getByRole("button", { name: "Náhľad" }).click();
-    const view = page.getByRole("region", { name: "Náhľad tréningu" });
+    await planCard(page, done.planId).getByRole("button", { name: "Report" }).click();
+    const view = page.getByRole("region", { name: "Report tréningu" });
     await expect(view.getByRole("button", { name: "Uložiť", exact: true })).toHaveCount(0);
 
     const stats = view.getByTestId("review-stats");

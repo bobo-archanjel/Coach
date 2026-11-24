@@ -1,0 +1,129 @@
+/* Karta plánu — horná časť s názvom, počtom tréningov a farebnými čipmi, jemne podfarbená
+   prechodom zhora nadol (ako karty klientov u trénera). Zdieľané: klient (Tréning →
+   Tréningové plány) aj tréner (detail klienta → Tréningy), komponent PlanBand.
+   Bežný plán terakotový odtieň, aktívny do červena. */
+.band {
+  --tone: var(--accent);
+  position: relative;
+  display: grid;
+  gap: 10px;
+  /* oddelený blok vsadený do karty (okraj + zaoblenie), vnútri prechod zhora nadol */
+  margin: 7px 7px 0;
+  padding: 15px 16px 14px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--tone) 26%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tone) 32%, transparent) 0,
+    color-mix(in srgb, var(--tone) 15%, transparent) 60%,
+    color-mix(in srgb, var(--tone) 3%, transparent) 100%
+  );
+  color: var(--paper);
+}
+/* aktívny plán — odtieň do červena, aby bol na prvý pohľad odlíšený */
+.band.bandActive {
+  --tone: #d2463a;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tone) 50%, transparent) 0,
+    color-mix(in srgb, var(--tone) 26%, transparent) 60%,
+    color-mix(in srgb, var(--tone) 9%, transparent) 100%
+  );
+  border-color: color-mix(in srgb, var(--tone) 48%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent),
+    0 10px 22px -16px color-mix(in srgb, var(--tone) 85%, transparent);
+}
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* počet tréningov vedľa názvu — odznak v odtieni plánu */
+.count {
+  flex: none;
+  margin-top: -1px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 24%, transparent);
+  color: color-mix(in srgb, var(--tone) 78%, var(--paper));
+  font-size: 12.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 740;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.chip,
+.activePill {
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chip {
+  background: var(--fill);
+  border: 1px solid transparent;
+  color: var(--paper-dim);
+}
+/* farebné odlíšenie čipov (jemné): Hotovo zelené, Od trénera jantárové, Vlastný neutrálny,
+   Koncept s prerušovaným okrajom, Aktívny plný terakotový */
+.chip[data-kind] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+/* Hotovo má fajku a Od trénera činku (svg v TSX), Vlastný bodku */
+.chip[data-kind] svg {
+  flex: none;
+}
+.chip[data-kind="client"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+.chip[data-kind="done"] {
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+.chip[data-kind="trainer"] {
+  background: var(--amber-soft);
+  color: var(--plate-yellow);
+}
+.chip[data-kind="draft"] {
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--paper) 35%, transparent);
+  color: var(--paper-dim);
+}
+.chip[data-kind="client"] {
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+  color: color-mix(in srgb, var(--tone) 70%, var(--paper));
+}
+.activePill {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--tone) 85%, #fff), var(--tone));
+  color: #fff;
+  box-shadow: 0 4px 10px -5px color-mix(in srgb, var(--tone) 80%, transparent);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}

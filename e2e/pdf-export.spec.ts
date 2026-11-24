@@ -1,15 +1,19 @@
 import { test, expect } from "@playwright/test";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { PDFDocument } from "pdf-lib";
 import { generatePlanPdf } from "../lib/pdf/planReport";
 import { buildShoppingList, generateMealPlanPdf } from "../lib/pdf/mealPlanReport";
 import { generateProgressPdf } from "../lib/pdf/progressReport";
+import { generatePlanReviewPdf } from "../lib/pdf/planReviewReport";
+import { apiSession, sessionLogin } from "./helpers/sessionLogin";
+import { buildPlanReview } from "../lib/portal/planReview";
+import { compareLog } from "../lib/workouts/completed";
 
 /**
  * PDF exporty (lib/pdf, vzhľad v6): generovanie z ukážkových dát bez servera — diakritika,
  * dlhé názvy, prázdne dni, zalomenie na viac strán — a stiahnutie cez skutočné API
  * s prihláseným QA trénerom (route handlery /api/export/…/pdf).
- *   E2E_TRAINER_EMAIL, E2E_TRAINER_PASSWORD, E2E_CLIENT_EMAIL, E2E_CLIENT_PASSWORD
+ * Prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts.
+ *   E2E_TRAINER_EMAIL, E2E_CLIENT_EMAIL (+ SUPABASE_SERVICE_ROLE_KEY)
  */
 
 const ex = (exerciseName: string, sets = 3, restSeconds: number | null = 90) => ({
@@ -46,6 +50,42 @@ test.describe("PDF exporty — generovanie (bez servera)", () => {
       ],
     });
     expect(await pageCount(bytes)).toBeGreaterThanOrEqual(2);
+  });
+
+  test("report plánu: vyhodnotenie, odcvičené tréningy (plán vs. skutočnosť), zostávajúce", async () => {
+    const snapshot = {
+      exercises: [
+        { entry_id: "a", exercise_name: "Drep s veľkou činkou", sets: 3, reps: "8", load_kg: 80 },
+        { entry_id: "b", exercise_name: "Výpady", sets: 3, reps: "10", load_kg: 20 },
+      ],
+    };
+    const entries = [
+      { entryId: "a", name: "Drep s veľkou činkou", sets: [{ reps: 8, weight: 80 }, { reps: 8, weight: 82.5 }, { reps: 6, weight: 82.5 }] },
+      { entryId: null, name: "Plank", sets: [{ reps: null, weight: null, durationS: 60 }] },
+    ];
+    const review = buildPlanReview({
+      days: [
+        { id: "d1", name: "Deň 1 — Nohy", exercises: snapshot.exercises },
+        { id: "d2", name: "Deň 2 — Ťah", exercises: [] },
+      ],
+      logs: [
+        { id: "h", dayId: null, performedOn: "2026-10-01", completedAt: null, rpe: 7, note: null, entries: [{ entryId: "o", name: "Drep s veľkou činkou", sets: [{ reps: 8, weight: 75 }] }], planSnapshot: null },
+        { id: "l1", dayId: "d1", performedOn: "2026-11-10", completedAt: "2026-11-10T17:00:00Z", rpe: 8, note: "Ťažké, ale šlo to — ľavé koleno OK.", entries, planSnapshot: snapshot },
+      ],
+      nameOf: (_id, name) => name,
+    });
+    const bytes = await generatePlanReviewPdf({
+      planName: "Silový základ — žiarivá jeseň",
+      clientName: "Ľubica Šťastná",
+      totalDays: 2,
+      review,
+      doneDays: [{ name: "Deň 1 — Nohy", completedAt: "2026-11-10T17:00:00Z", rpe: 8, note: "Ťažké, ale šlo to.", exercises: compareLog(snapshot, entries).exercises }],
+      openDays: [{ name: "Deň 2 — Ťah", exercises: [{ exerciseName: "Zhyby", sets: 4, reps: "6-8", loadKg: null }] }],
+    });
+    expect(await pageCount(bytes)).toBeGreaterThanOrEqual(1);
+    // cs + prázdny report (bez vyhodnotenia aj tréningov) nepadne
+    const empty = await generatePlanReviewPdf({ planName: "Prázdny", clientName: "Jan", totalDays: 0, review: null, doneDays: [], openDays: [] }, "cs");
+    expect(await pageCount(empty)).toBe(1);
   });
 
   test("jedálniček: makro cieľ, dni s jedlami, prázdny deň, nákupný zoznam", async () => {
@@ -98,25 +138,22 @@ try {
 const env = {
   url: process.env.NEXT_PUBLIC_SUPABASE_URL,
   anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  serviceRole: process.env.SUPABASE_SERVICE_ROLE_KEY,
   trainerEmail: process.env.E2E_TRAINER_EMAIL,
-  trainerPassword: process.env.E2E_TRAINER_PASSWORD,
   clientEmail: process.env.E2E_CLIENT_EMAIL,
-  clientPassword: process.env.E2E_CLIENT_PASSWORD,
 };
 const hasEnv = Object.values(env).every(Boolean);
 
 test.describe("PDF exporty — stiahnutie cez API (reálna DB)", () => {
   test.skip(!hasEnv, "Chýbajú E2E_* údaje QA účtov alebo Supabase env.");
 
-  test("plán, jedálniček aj progres sa stiahnu ako platné PDF", async ({ page }, testInfo) => {
+  test("plán, report plánu, jedálniček aj progres sa stiahnu ako platné PDF", async ({ page, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Zápis do DB len raz (desktop).");
     test.setTimeout(90_000);
-    const opts = { auth: { persistSession: false, autoRefreshToken: false } };
-    const trainer: SupabaseClient = createClient(env.url!, env.anon!, opts);
-    const { data: auth } = await trainer.auth.signInWithPassword({ email: env.trainerEmail!, password: env.trainerPassword! });
-    const client = createClient(env.url!, env.anon!, opts);
-    const { data: cAuth } = await client.auth.signInWithPassword({ email: env.clientEmail!, password: env.clientPassword! });
-    const { data: row } = await client.from("clients").select("id").eq("user_id", cAuth.user!.id).limit(1).single();
+    const { api: trainer, userId: trainerId } = await apiSession(env.trainerEmail!);
+    const { api: client, userId: clientUserId } = await apiSession(env.clientEmail!);
+    const auth = { user: { id: trainerId } };
+    const { data: row } = await client.from("clients").select("id").eq("user_id", clientUserId).limit(1).single();
     const stamp = Date.now().toString().slice(-6);
 
     const { data: plan } = await trainer
@@ -143,13 +180,14 @@ test.describe("PDF exporty — stiahnutie cez API (reálna DB)", () => {
         meals: [{ entry_id: crypto.randomUUID(), food_id: crypto.randomUUID(), ...meal("Ovsené vločky", "ranajky", 80) }],
       });
 
-      await page.goto("/prihlasenie");
-      await page.locator("#login-email").fill(env.trainerEmail!);
-      await page.locator("#login-password").fill(env.trainerPassword!);
-      await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-      await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+      await sessionLogin(page, env.trainerEmail!, baseURL!);
 
-      for (const url of [`/api/export/plan/${plan!.id}/pdf`, `/api/export/meal-plan/${mealPlan!.id}/pdf`, `/api/export/progress/${row!.id}/pdf`]) {
+      for (const url of [
+        `/api/export/plan/${plan!.id}/pdf`,
+        `/api/export/plan/${plan!.id}/report/pdf`,
+        `/api/export/meal-plan/${mealPlan!.id}/pdf`,
+        `/api/export/progress/${row!.id}/pdf`,
+      ]) {
         const res = await page.request.get(url);
         expect(res.status(), url).toBe(200);
         expect(res.headers()["content-type"], url).toContain("application/pdf");

@@ -67,6 +67,21 @@ function ownDoneReview(): PlanReview {
   });
 }
 
+/** „Moje kardio + core“ — rozpracovaný: odcvičený len „Sila — horná časť“ (rátajú sa len odcvičené). */
+function ownWipReview(): PlanReview {
+  return buildPlanReview({
+    days: [
+      { id: "d3", name: "Rozcvička", exercises: [{ entry_id: "e5", exercise_name: "Plank", sets: 3, reps: "45 s", load_kg: null }] },
+      { id: "d8", name: "Sila — horná časť", exercises: snapshotOf(DAY_A).exercises },
+    ],
+    logs: [
+      { id: "h1", dayId: null, performedOn: "2026-10-20", completedAt: "2026-10-20T17:00:00Z", rpe: 7, note: null, entries: [{ entryId: "o1", name: "Bench press", sets: [{ reps: 6, weight: 75 }] }], planSnapshot: null },
+      { id: "log-d8", dayId: "d8", performedOn: "2026-11-18", completedAt: "2026-11-18T17:00:00Z", rpe: 7, note: null, entries: OWN_T1_ENTRIES, planSnapshot: snapshotOf(DAY_A) },
+    ],
+    nameOf: (_entryId, storedName) => storedName,
+  });
+}
+
 const PREVIEW: PortalTrainingData = {
   draftOwner: "preview",
   activePlanId: "plan-trainer",
@@ -119,6 +134,23 @@ const PREVIEW: PortalTrainingData = {
           exercises: [
             { idx: "1", name: "Plank", scheme: "3 × 45 s", load: "vlastná váha", rest: "45 s", entryId: "e5", plannedSets: 3, plannedReps: "45 s", exerciseId: null, loadKg: null, restSeconds: 45 },
           ],
+        },
+        {
+          // rozpracovaný plán s jedným odcvičeným tréningom — „Náhľad“ aj „Upraviť“
+          id: "d8",
+          name: "Sila — horná časť",
+          done: true,
+          doneToday: false,
+          lastLog: {
+            id: "log-d8",
+            completedAt: "2026-11-18T17:00:00Z",
+            editableUntil: null,
+            entries: OWN_T1_ENTRIES,
+            rpe: 7,
+            note: null,
+            compare: previewCompare(DAY_A, OWN_T1_ENTRIES),
+          },
+          exercises: DAY_A,
         },
       ],
     },
@@ -189,7 +221,7 @@ const PREVIEW: PortalTrainingData = {
       ],
     },
   ],
-  previewReview: { "plan-own-done": ownDoneReview() },
+  previewReview: { "plan-own-done": ownDoneReview(), "plan-own": ownWipReview() },
   templates: [
     {
       id: "tpl-own",

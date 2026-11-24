@@ -13,9 +13,11 @@ export interface PlanCompletion {
   completedDays: number;
   /** Plán má aspoň jeden deň a klient odcvičil všetky — badge "Hotovo". */
   allDone: boolean;
+  /** ID odcvičených dní (karta plánu v detaile klienta — ✓ pri dni). */
+  doneDayIds: string[];
 }
 
-const EMPTY: PlanCompletion = { totalDays: 0, completedDays: 0, allDone: false };
+const EMPTY: PlanCompletion = { totalDays: 0, completedDays: 0, allDone: false, doneDayIds: [] };
 
 /**
  * Odcvičenosť plánov z ich dní. Volajúci už `workout_days.id` má (obe stránky si
@@ -42,11 +44,13 @@ export async function getPlanCompletion(
   const completed = new Set((logs ?? []).map((l) => l.workout_day_id as string));
 
   for (const p of plans) {
-    const completedDays = p.dayIds.filter((id) => completed.has(id)).length;
+    const doneDayIds = p.dayIds.filter((id) => completed.has(id));
+    const completedDays = doneDayIds.length;
     result.set(p.id, {
       totalDays: p.dayIds.length,
       completedDays,
       allDone: p.dayIds.length > 0 && completedDays === p.dayIds.length,
+      doneDayIds,
     });
   }
   return result;

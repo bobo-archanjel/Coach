@@ -51,7 +51,7 @@
   "dayDoneHint": "Tento den je už odcvičený — nejde upravit.",
   "dayDoneNoValues": "Trénink byl ukončen bez zapsaných hodnot.",
   "defaultDayName": "Trénink {n}",
-  "previewAria": "Náhled tréninku",
+  "previewAria": "Report tréninku",
   "reviewPeriod": "{from} – {to}",
   "reviewLoading": "Načítám vyhodnocení…",
   "reviewError": "Vyhodnocení se nepodařilo načíst.",
@@ -105,5 +105,6 @@
   "discardEdits": "Zahodit úpravy",
   "discardEditsConfirm": "Opravdu zahodit neuložené úpravy?",
   "yesDelete": "Ano, smazat",
-  "yesDiscard": "Ano, zahodit"
+  "yesDiscard": "Ano, zahodit",
+  "dayNotDoneYet": "Tento trénink ještě není odcvičený."
 }

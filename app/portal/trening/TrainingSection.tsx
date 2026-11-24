@@ -14,13 +14,15 @@ import {
   setActivePlanAction,
 } from "./actions";
 import { ExercisePreviewList } from "../ExercisePreviewList";
+import { BuilderDialog } from "@/app/components/BuilderDialog";
+import { PlanBand } from "@/app/components/PlanBand";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { PlansTabs, type PlansTab } from "../PlansTabs";
 import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./builderDraft";
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import { ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import { ActionActivateIcon, ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import styles from "../portal.module.css";
 
@@ -97,6 +99,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   // Výsledok "Uložiť ako šablónu" pri konkrétnom tréningu (potvrdenie alebo chyba).
   const [templateNote, setTemplateNote] = useState<{ planId: string; text: string; error: boolean } | null>(null);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
+  // „Náhľad“ šablóny — okno s jej dňami a cvikmi (bez úprav)
+  const [previewTpl, setPreviewTpl] = useState<PortalTemplate | null>(null);
   // Tréningové plány / Moje šablóny — prepínač v hlavičke sekcie
   const [tab, setTab] = useState<PlansTab>("plans");
   // ?plan=<id> (odkaz z upozornenia „Nový tréningový plán“) rozbalí presne ten plán,
@@ -104,14 +108,14 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const searchParams = useSearchParams();
   const linkedPlanId = searchParams.get("plan");
   const linkedPlan = linkedPlanId && plans.some((p) => p.id === linkedPlanId) ? linkedPlanId : null;
-  const [expandedId, setExpandedId] = useState<string | null>(linkedPlan ?? data.activePlanId);
-  // Vybraný deň v rámci rozbaleného tréningu — samostatný krok pred zobrazením
-  // cvikov a tlačidla "Začať tréning" (predtým sa všetky dni so všetkými cvikmi
-  // vypísali naraz, pôsobilo to chaoticky).
-  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  // Všetky plány sú rozbalené (dni + akcie hneď viditeľné). Vybraný deň — samostatný krok
+  // pred zobrazením cvikov a tlačidla „Začať tréning“ — sa otvorí v karte svojho plánu.
+  const [selected, setSelected] = useState<{ planId: string; dayId: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // Odcvičený deň otvorený v editore "Upraviť hodnoty" (id záznamu workout_logs).
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  // builder otvorený ako náhľad (vyhodnotenie) — bez úprav
+  const [previewing, setPreviewing] = useState(false);
   // Odcvičený deň: posledný tréning (plán vs. skutočnosť) alebo plán dňa — prepínač.
   const [dayView, setDayView] = useState<"done" | "plan">("done");
   const [error, setError] = useState<string | null>(null);
@@ -129,8 +133,10 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     plan: PortalPlan | null,
     template: PortalTemplate | null = null,
     resume: PlanBuilderDraft | null = null,
+    preview = false,
   ) => {
     setEditing(plan);
+    setPreviewing(preview);
     setFromTemplate(template);
     setResumeDraft(resume);
     setError(null);
@@ -142,8 +148,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     }
     // Znova sa nepýta, ak už raz v tejto relácii prišla (zatvorenie a opätovné
     // otvorenie buildera v rámci tej istej návštevy /portal/trening).
-    const viewOnly = Boolean(plan && plan.days.length > 0 && plan.days.every((d) => d.done));
-    if (library.length === 0 && !viewOnly) {
+    if (library.length === 0 && !preview) {
       startLibraryTransition(async () => {
         setLibrary(await getExerciseLibraryAction());
       });
@@ -152,6 +157,7 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const closeBuilder = useCallback(() => {
     setMode("list");
     setEditing(null);
+    setPreviewing(false);
     setFromTemplate(null);
     setResumeDraft(null);
     // odchod bez uloženia → koncept ostal v prehliadači, karta „Pokračovať“ ho ponúkne
@@ -199,37 +205,27 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
 
   useEffect(() => {
     if (!linkedPlan) return;
-    setExpandedId(linkedPlan);
-    setSelectedDayId(null);
+    setSelected(null);
     setMode("list");
-    // po vykreslení rozbaleného plánu — posun naň (pod hlavičkou)
+    // po vykreslení zoznamu — posun na plán (pod hlavičkou)
     const t = window.setTimeout(() => {
       document.getElementById(`plan-${linkedPlan}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
     }, 60);
     return () => window.clearTimeout(t);
   }, [linkedPlan]);
 
-  // Ťuk na tréning len rozbalí/zbalí zoznam jeho dní — nemení, čo beží na karte
-  // Dnes. Aktívny plán sa mení „Nastaviť ako aktívny“ alebo „Začať tréning“ pri dni.
-  const tapPlan = (plan: PortalPlan) => {
+  const selectDay = (planId: string, dayId: string) => {
     setError(null);
     setActiveNote(null);
     setEditingLogId(null);
-    setSelectedDayId(null);
-    setExpandedId((id) => (id === plan.id ? null : plan.id));
-  };
-
-  const selectDay = (dayId: string) => {
-    setError(null);
-    setEditingLogId(null);
     setDayView("done");
-    setSelectedDayId(dayId);
+    setSelected({ planId, dayId });
   };
 
   const backToDays = () => {
     setError(null);
     setEditingLogId(null);
-    setSelectedDayId(null);
+    setSelected(null);
   };
 
   // „Nastaviť ako aktívny“ — len prepne plán na karte Dnes, tréning nespustí (0056).
@@ -309,8 +305,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   );
 
   if (mode === "build") {
-    // celý odcvičený plán = len náhľad s vyhodnotením (nič sa v ňom nedá zmeniť)
-    const viewOnly = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
+    // náhľad = vyhodnotenie (aj rozpracovaného plánu — rátajú sa odcvičené tréningy), nič sa nemení
+    const viewOnly = previewing && editing !== null;
+    const editingDone = Boolean(editing && editing.days.length > 0 && editing.days.every((d) => d.done));
     return (
       <ClientPlanBuilder
         // „Zopakovať s progresiou“ prepne z náhľadu na nový plán — builder začne odznova
@@ -324,8 +321,9 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
         resume={resumeDraft}
         readOnly={viewOnly}
         reviewPreview={viewOnly && editing ? (data.previewReview?.[editing.id] ?? null) : null}
-        // plán od trénera sa neopakuje — nový plán klientovi zostaví tréner (u neho „Zopakovať s progresiou“)
-        onRepeat={editing?.source === "client" ? (template) => openBuilder(null, template) : undefined}
+        // plán od trénera sa neopakuje — nový plán klientovi zostaví tréner (u neho „Zopakovať s progresiou“);
+        // rozpracovaný plán sa tiež neopakuje (ešte nie je čo stupňovať)
+        onRepeat={editing?.source === "client" && editingDone ? (template) => openBuilder(null, template) : undefined}
       />
     );
   }
@@ -416,7 +414,11 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                         </span>
                       </div>
                     ) : (
-                      <div className={pa.gridRow}>
+                      <div className={`${pa.gridRow} ${pa.gridRow3}`}>
+                        <button type="button" className={`${pa.action} ${pa.small}`} onClick={() => setPreviewTpl(t)}>
+                          <ActionPreviewIcon />
+                          {tr("tplPreview")}
+                        </button>
                         <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(null, t)}>
                           <ActionUseIcon />
                           {tr("use")}
@@ -431,6 +433,36 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                 );
               })}
             </ul>
+            {previewTpl && (
+              <BuilderDialog title={previewTpl.name} closeLabel={tr("close")} onClose={() => setPreviewTpl(null)} wide>
+                <div className={styles.tplPreview} data-testid="template-preview">
+                  {previewTpl.days.map((d, i) => (
+                    <section key={i} className={styles.tplPreviewDay}>
+                      <p className={styles.tplPreviewDayName}>
+                        {d.name}
+                        <span className={styles.chip}>{tr("exercises", { count: d.exercises.length })}</span>
+                      </p>
+                      {d.exercises.length > 0 ? (
+                        <ExercisePreviewList exercises={d.exercises} />
+                      ) : (
+                        <p className={styles.trEmptyDay}>{tr("tplDayEmpty")}</p>
+                      )}
+                    </section>
+                  ))}
+                  <button
+                    type="button"
+                    className={`btn btn-primary ${styles.startBtn}`}
+                    onClick={() => {
+                      const tpl = previewTpl;
+                      setPreviewTpl(null);
+                      openBuilder(null, tpl);
+                    }}
+                  >
+                    {tr("useTemplate")}
+                  </button>
+                </div>
+              </BuilderDialog>
+            )}
           </div>
         )
       ) : plans.length === 0 ? (
@@ -443,8 +475,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
       ) : (
         <ul className={styles.trPlanList} data-tour="training-plans">
           {plans.map((plan) => {
-            const expanded = expandedId === plan.id;
-            const selectedDay = expanded && selectedDayId ? (plan.days.find((d) => d.id === selectedDayId) ?? null) : null;
+            const selectedDay =
+              selected?.planId === plan.id ? (plan.days.find((d) => d.id === selected.dayId) ?? null) : null;
             // celý plán odcvičený — „Hotovo“, aktívnym sa už nastaviť nedá (callSetActivePlan to odmietne)
             const planDone = plan.days.length > 0 && plan.days.every((d) => d.done);
             return (
@@ -453,76 +485,54 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                 id={`plan-${plan.id}`}
                 className={`${styles.trPlan} ${plan.isActive ? styles.trPlanActive : ""}`}
               >
-                <button
-                  type="button"
-                  className={styles.trPlanHead}
-                  onClick={() => tapPlan(plan)}
-                  aria-expanded={expanded}
-                  disabled={pending}
-                >
-                  <span className={styles.trPlanTop}>
-                    <span className={styles.trPlanName}>{plan.name}</span>
-                    <ChevronIcon className={`${styles.trChev} ${expanded ? styles.trChevOpen : ""}`} />
-                  </span>
-                  <span className={styles.trPlanChips}>
-                    {plan.isActive && <span className={styles.trActivePill}>{tr("active")}</span>}
-                    {planDone && <span className={styles.trDoneBadge}>{tr("done")}</span>}
-                    <span className={styles.trSrcChip} data-src={plan.source}>
-                      {plan.source === "trainer" ? tr("fromTrainer") : tr("own")}
-                    </span>
-                    {/* „Plán na 3 dni" — samotné „3 dni" klienti nechápali (koľko dní v týždni? trvanie?). */}
-                    <span className={styles.chip}>
-                      {plan.days.length > 0
-                        ? tr("planDays", { count: plan.days.length })
-                        : tr("planDays", { count: 0 })}
-                    </span>
-                  </span>
-                </button>
+                {/* oranžový pás s názvom — plán je vždy rozbalený, pás je nadpis (nie tlačidlo) */}
+                <PlanBand
+                  name={plan.name}
+                  countLabel={tr("planTrainings", { count: plan.days.length })}
+                  activeLabel={plan.isActive ? tr("active") : null}
+                  chips={[
+                    ...(planDone ? [{ kind: "done" as const, label: tr("done") }] : []),
+                    plan.source === "trainer"
+                      ? { kind: "trainer" as const, label: tr("fromTrainer") }
+                      : { kind: "client" as const, label: tr("own") },
+                  ]}
+                />
 
-                {expanded && (
-                  <div className={styles.trPlanBody}>
-                    {!selectedDay && !plan.isActive && planDone && (
-                      <p className={`${styles.trHint} ${styles.trDoneHint}`}>{tr("planDoneHint")}</p>
-                    )}
-                    {!selectedDay && !plan.isActive && !planDone && plan.days.length > 0 && (
-                      <div className={styles.trActiveRow}>
-                        <button type="button" className={styles.trGhostBtn} onClick={() => makeActive(plan)} disabled={pending}>
-                          {tr("setActive")}
-                        </button>
-                        <span className={styles.trHint}>{tr("showsOnToday")}</span>
-                      </div>
-                    )}
-                    {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (
-                      <p className={styles.trActiveNote} role="status">
-                        {activeNote.text}
-                      </p>
-                    )}
-                    {plan.days.length === 0 ? (
-                      <p className={styles.trEmptyDay}>{tr("noDays")}</p>
-                    ) : selectedDay ? (
-                      <>
-                        <button type="button" className={styles.trDayBack} onClick={backToDays}>
-                          <ChevronIcon className={styles.trDayBackIcon} /> {tr("allDays")}
-                        </button>
-                        <div className={styles.trDay}>
-                          <p className={styles.panelLabel}>
-                            {selectedDay.name}
-                            {selectedDay.done && <span className={styles.trDoneBadge}>{tr("done")}</span>}
-                          </p>
-                          {selectedDay.lastLog &&
-                          editingLogId === selectedDay.lastLog.id &&
-                          isStillEditable(selectedDay.lastLog.editableUntil) ? (
-                            <LoggedWorkoutEditor
-                              logId={selectedDay.lastLog.id}
-                              exercises={selectedDay.exercises}
-                              logged={selectedDay.lastLog.entries}
-                              rpe={selectedDay.lastLog.rpe}
-                              note={selectedDay.lastLog.note}
-                              editableUntil={selectedDay.lastLog.editableUntil!}
-                              onClose={() => setEditingLogId(null)}
-                            />
-                          ) : selectedDay.lastLog ? (
-                            <>
+                <div className={styles.trPlanBody}>
+                  {!selectedDay && !plan.isActive && planDone && (
+                    <p className={`${styles.trHint} ${styles.trDoneHint}`}>{tr("planDoneHint")}</p>
+                  )}
+                  {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (
+                    <p className={styles.trActiveNote} role="status">
+                      {activeNote.text}
+                    </p>
+                  )}
+                  {plan.days.length === 0 ? (
+                    <p className={styles.trEmptyDay}>{tr("noDays")}</p>
+                  ) : selectedDay ? (
+                    <>
+                      <button type="button" className={styles.trDayBack} onClick={backToDays}>
+                        <ChevronIcon className={styles.trDayBackIcon} /> {tr("allDays")}
+                      </button>
+                      <div className={styles.trDay}>
+                        <p className={styles.panelLabel}>
+                          {selectedDay.name}
+                          {selectedDay.done && <span className={styles.trDoneBadge}>{tr("done")}</span>}
+                        </p>
+                        {selectedDay.lastLog &&
+                        editingLogId === selectedDay.lastLog.id &&
+                        isStillEditable(selectedDay.lastLog.editableUntil) ? (
+                          <LoggedWorkoutEditor
+                            logId={selectedDay.lastLog.id}
+                            exercises={selectedDay.exercises}
+                            logged={selectedDay.lastLog.entries}
+                            rpe={selectedDay.lastLog.rpe}
+                            note={selectedDay.lastLog.note}
+                            editableUntil={selectedDay.lastLog.editableUntil!}
+                            onClose={() => setEditingLogId(null)}
+                          />
+                        ) : selectedDay.lastLog ? (
+                          <>
                               <div
                                 className={`${styles.modeToggle} ${styles.mpTabs}`}
                                 role="radiogroup"
@@ -556,123 +566,142 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               ) : (
                                 <p className={styles.trEmptyDay}>{tr("doneNoValues")}</p>
                               )}
-                            </>
-                          ) : selectedDay.exercises.length > 0 ? (
-                            <ExercisePreviewList exercises={selectedDay.exercises} />
-                          ) : (
-                            <p className={styles.trEmptyDay}>{tr("noExercises")}</p>
-                          )}
-                        </div>
+                          </>
+                        ) : selectedDay.exercises.length > 0 ? (
+                          <ExercisePreviewList exercises={selectedDay.exercises} />
+                        ) : (
+                          <p className={styles.trEmptyDay}>{tr("noExercises")}</p>
+                        )}
+                      </div>
 
-                        {!selectedDay.done ? (
-                          <div className={styles.trPlanActions}>
+                      {!selectedDay.done ? (
+                        <div className={styles.trPlanActions}>
+                          <button
+                            type="button"
+                            className={styles.trStartBtn}
+                            onClick={() => startPlan(plan, selectedDay.id)}
+                            disabled={pending}
+                          >
+                            {tr("start")}
+                          </button>
+                        </div>
+                      ) : editingLogId === null &&
+                        selectedDay.lastLog &&
+                        isStillEditable(selectedDay.lastLog.editableUntil) ? (
+                        <div className={styles.trPlanActions}>
+                          <button
+                            type="button"
+                            className={styles.editValuesBtn}
+                            onClick={() => setEditingLogId(selectedDay.lastLog!.id)}
+                          >
+                            <PencilIcon /> {tr("editValues")}
+                          </button>
+                          <p className={styles.lockNote}>
+                            {tr("editUntil", { deadline: formatEditDeadline(selectedDay.lastLog.editableUntil!, undefined, locale) })}
+                          </p>
+                        </div>
+                      ) : editingLogId === null ? (
+                        <p className={styles.lockNote}>
+                          {tr("doneLocked", {
+                            date: selectedDay.lastLog?.completedAt
+                              ? ` ${formatCompletedDate(selectedDay.lastLog.completedAt, locale)}`
+                              : "",
+                          })}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <ul className={styles.trDayList} data-scroll={plan.days.length > 3 || undefined}>
+                        {plan.days.map((day) => (
+                          <li key={day.id}>
+                            <button type="button" className={styles.trDayBtn} onClick={() => selectDay(plan.id, day.id)}>
+                              <span className={styles.trDayBtnName}>{day.name}</span>
+                              <span className={styles.trDayBtnMeta}>
+                                <span className={`${styles.trDoneBadge} ${!day.done ? styles.trDoneBadgeHidden : ""}`}>
+                                  {tr("done")}
+                                </span>
+                                <span className={styles.chip}>
+                                  {tr("exercises", { count: day.exercises.length })}
+                                </span>
+                                <ChevronIcon className={styles.trDayBtnChevron} />
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* akcie pod plánom — rovnaký panel ako pod jedálničkom (mriežka tlačidiel
+                          s ikonami): vlastný tréning Upraviť / Uložiť ako šablónu / Zmazať, od
+                          trénera len Uložiť ako šablónu (klient si zaň platí — kópia mu ostane aj
+                          po zmene / zmazaní trénerom) */}
+                      <div className={styles.trPlanFoot}>
+                        {plan.source === "client" && confirmDelete === plan.id ? (
+                          <div className={pa.confirm}>
+                            <span className={pa.confirmText}>{tr("deleteWorkout")}</span>
+                            <span className={pa.confirmBtns}>
+                              <button
+                                type="button"
+                                className={pa.confirmNo}
+                                onClick={() => setConfirmDelete(null)}
+                                disabled={pending}
+                              >
+                                {tr("no")}
+                              </button>
+                              <button
+                                type="button"
+                                className={pa.confirmYes}
+                                onClick={() => removePlan(plan.id)}
+                                disabled={pending}
+                              >
+                                {tr("delete")}
+                              </button>
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                          {/* hore tenký rad: vľavo „Nastaviť ako aktívny“ (len neaktívny, nedokončený plán s dňami),
+                              vpravo „Uložiť ako šablónu“; dole dlaždice Report · Upraviť plán · Zmazať */}
+                          <div className={pa.rowThin}>
+                            {!plan.isActive && !planDone && plan.days.length > 0 && (
+                              <button
+                                type="button"
+                                className={`${pa.action} ${pa.wide}`}
+                                onClick={() => makeActive(plan)}
+                                disabled={pending}
+                                title={tr("showsOnToday")}
+                              >
+                                <ActionActivateIcon />
+                                {tr("setActive")}
+                              </button>
+                            )}
                             <button
                               type="button"
-                              className={styles.trStartBtn}
-                              onClick={() => startPlan(plan, selectedDay.id)}
+                              className={`${pa.action} ${pa.wide}`}
+                              onClick={() => saveTemplate(plan.id)}
                               disabled={pending}
                             >
-                              {tr("start")}
+                              <ActionTemplateIcon />
+                              {tr("saveTemplate")}
                             </button>
                           </div>
-                        ) : editingLogId === null &&
-                          selectedDay.lastLog &&
-                          isStillEditable(selectedDay.lastLog.editableUntil) ? (
-                          <div className={styles.trPlanActions}>
-                            <button
-                              type="button"
-                              className={styles.editValuesBtn}
-                              onClick={() => setEditingLogId(selectedDay.lastLog!.id)}
-                            >
-                              <PencilIcon /> {tr("editValues")}
-                            </button>
-                            <p className={styles.lockNote}>
-                              {tr("editUntil", { deadline: formatEditDeadline(selectedDay.lastLog.editableUntil!, undefined, locale) })}
-                            </p>
-                          </div>
-                        ) : editingLogId === null ? (
-                          <p className={styles.lockNote}>
-                            {tr("doneLocked", {
-                              date: selectedDay.lastLog?.completedAt
-                                ? ` ${formatCompletedDate(selectedDay.lastLog.completedAt, locale)}`
-                                : "",
-                            })}
-                          </p>
-                        ) : null}
-                      </>
-                    ) : (
-                      <>
-                        <ul className={styles.trDayList}>
-                          {plan.days.map((day) => (
-                            <li key={day.id}>
-                              <button type="button" className={styles.trDayBtn} onClick={() => selectDay(day.id)}>
-                                <span className={styles.trDayBtnName}>{day.name}</span>
-                                <span className={styles.trDayBtnMeta}>
-                                  <span className={`${styles.trDoneBadge} ${!day.done ? styles.trDoneBadgeHidden : ""}`}>
-                                    {tr("done")}
-                                  </span>
-                                  <span className={styles.chip}>
-                                    {tr("exercises", { count: day.exercises.length })}
-                                  </span>
-                                  <ChevronIcon className={styles.trDayBtnChevron} />
-                                </span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-
-                        {/* akcie pod plánom — rovnaký panel ako pod jedálničkom (mriežka tlačidiel
-                            s ikonami): vlastný tréning Upraviť / Uložiť ako šablónu / Zmazať, od
-                            trénera len Uložiť ako šablónu (klient si zaň platí — kópia mu ostane aj
-                            po zmene / zmazaní trénerom) */}
-                        <div className={styles.trPlanFoot}>
-                          {plan.source === "client" && confirmDelete === plan.id ? (
-                            <div className={pa.confirm}>
-                              <span className={pa.confirmText}>{tr("deleteWorkout")}</span>
-                              <span className={pa.confirmBtns}>
-                                <button
-                                  type="button"
-                                  className={pa.confirmNo}
-                                  onClick={() => setConfirmDelete(null)}
-                                  disabled={pending}
-                                >
-                                  {tr("no")}
-                                </button>
-                                <button
-                                  type="button"
-                                  className={pa.confirmYes}
-                                  onClick={() => removePlan(plan.id)}
-                                  disabled={pending}
-                                >
-                                  {tr("delete")}
-                                </button>
-                              </span>
-                            </div>
-                          ) : (
-                            <div className={pa.grid}>
-                              {planDone ? (
-                                // celý odcvičený plán (vlastný aj od trénera) — nič sa nemení, len vyhodnotenie
-                                <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                          {(plan.days.some((d) => d.done) || plan.source === "client") && (
+                            <div className={pa.row}>
+                              {/* Report = vyhodnotenie — hotový plán aj rozpracovaný s aspoň jedným
+                                  odcvičeným tréningom (rátajú sa len odcvičené) */}
+                              {plan.days.some((d) => d.done) && (
+                                <button type="button" className={pa.action} onClick={() => openBuilder(plan, null, null, true)}>
                                   <ActionPreviewIcon />
                                   {tr("viewPlan")}
                                 </button>
-                              ) : (
-                                plan.source === "client" && (
-                                  <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
-                                    <ActionEditIcon />
-                                    {tr("edit")}
-                                  </button>
-                                )
                               )}
-                              <button
-                                type="button"
-                                className={pa.action}
-                                onClick={() => saveTemplate(plan.id)}
-                                disabled={pending}
-                              >
-                                <ActionTemplateIcon />
-                                {tr("saveTemplate")}
-                              </button>
+                              {/* celý odcvičený plán sa už nemení — len Report */}
+                              {!planDone && plan.source === "client" && (
+                                <button type="button" className={pa.action} onClick={() => openBuilder(plan)}>
+                                  <ActionEditIcon />
+                                  {tr("edit")}
+                                </button>
+                              )}
                               {plan.source === "client" && (
                                 <button
                                   type="button"
@@ -685,19 +714,20 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                               )}
                             </div>
                           )}
-                          {templateNote?.planId === plan.id && (
-                            <p
-                              className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
-                              role="status"
-                            >
-                              {templateNote.text}
-                            </p>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
+                          </>
+                        )}
+                        {templateNote?.planId === plan.id && (
+                          <p
+                            className={`${styles.trTplNote} ${templateNote.error ? styles.trTplNoteError : ""}`}
+                            role="status"
+                          >
+                            {templateNote.text}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </li>
             );
           })}

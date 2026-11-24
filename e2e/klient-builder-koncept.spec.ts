@@ -65,8 +65,7 @@ test.describe("builder vlastného tréningu — chyba hore a rozpracovaný konce
 
   test("úprava vlastného plánu: Zahodiť úpravy", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    await page.getByRole("button", { name: /Moje kardio \+ core/ }).click();
-    await page.locator("#plan-plan-own").getByRole("button", { name: "Upraviť" }).click();
+    await page.locator("#plan-plan-own").getByRole("button", { name: "Upraviť plán" }).click();
     const builder = page.getByRole("region", { name: "Úprava vlastného tréningu" });
     await builder.getByRole("button", { name: "Zahodiť úpravy" }).click();
     await page.getByRole("button", { name: "Áno, zahodiť" }).click();
@@ -110,8 +109,7 @@ test.describe("builder vlastného tréningu — chyba hore a rozpracovaný konce
 
   test("úprava existujúceho tréningu: rozpracovaná úprava sa po návrate obnoví", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
-    await page.getByRole("button", { name: /Moje kardio \+ core/ }).first().click();
-    await page.getByRole("button", { name: "Upraviť", exact: true }).click();
+    await page.getByRole("button", { name: "Upraviť plán", exact: true }).click();
     await page.getByLabel("Názov tréningového plánu").fill("Kardio upravené");
 
     await page.goto("/portal?preview=ok");

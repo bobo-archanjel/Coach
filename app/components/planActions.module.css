@@ -56,6 +56,34 @@
     max-width: none;
   }
 }
+/* riadok s tromi akciami (šablóna: Náhľad · Použiť · Zmazať) */
+.gridRow3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 440px;
+  flex-basis: 320px;
+}
+
+/* akcie na karte plánu (klient aj tréner) — jeden rad rovnako širokých dlaždíc: ikona nad
+   krátkym popisom, aby sa zmestili vedľa seba aj v úzkej karte (3 stĺpce na desktope, mobil).
+   Potvrdenie zmazania (prvok s flex-basis 100 %) sa zalomí na vlastný riadok. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.row .action {
+  width: 100%;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 60px;
+  padding: 9px 6px;
+  border-radius: 16px;
+  font-size: 12.5px;
+}
 
 .action {
   display: inline-flex;
@@ -91,6 +119,35 @@
 .action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+/* tenké tlačidlo cez celú šírku (Nastaviť ako aktívny nad radom akcií na karte plánu) */
+.wide {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  gap: 6px;
+  border-radius: 13px;
+  font-size: 13px;
+}
+/* tenký rad nad dlaždicami (klient: Nastaviť ako aktívny | Uložiť ako šablónu) — rovnako široké */
+.rowThin {
+  display: flex;
+  gap: 8px;
+}
+.rowThin > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.rowThin .wide {
+  padding: 6px 6px;
+  gap: 5px;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.rowThin .wide svg {
+  width: 14px;
+  height: 14px;
 }
 /* menšia dlaždica (riadky a karty šablón) */
 .small {

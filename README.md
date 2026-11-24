@@ -75,6 +75,26 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Karty plánov: tlačidlá a fade, prehľad klientov vo farbe avatara** (`feature/karta-tlacidla`, bez migrácie).
+  - Tréner (detail klienta → Tréningy): „Nastaviť ako aktívny“ tenké cez celú šírku, pod ním Report · Upraviť plán · Zmazať; „Otvoriť plán“ → „Upraviť plán“.
+  - Klient (Tréning): hore Nastaviť ako aktívny | Uložiť ako šablónu, dole Report · Upraviť plán · Zmazať; „Upraviť“ → „Upraviť plán“.
+  - Karty plánov (klient aj tréner): horná časť s jemným prechodom zhora nadol namiesto plného oranžového pásu; aktívny plán výraznejšie do červena s jemnou žiarou.
+  - Prehľad klientov u trénera: horná časť karty s menom a avatarom jemne podfarbená farbou avatara.
+- **2026-11-24** — **Report plánu + Export PDF** (`feature/report-nazov`, bez migrácie).
+  - „Náhľad“ (vyhodnotenie plánu) sa volá **Report** — klient aj tréner; stránka trénera `/dashboard/treningy/[id]/report`. Náhľad šablón ostáva „Náhľad“.
+  - Tréner: hotový plán na karte bez „Otvoriť plán“ (Report ukáže to isté); na stránke Reportu hore **Export PDF** namiesto „Otvoriť plán“ dole.
+  - PDF reportu: súhrn, úspechy, čo z toho plynie, ako sa klientovi cvičilo, odcvičené tréningy (plán vs. skutočnosť po sériách, náročnosť, poznámka) a zostávajúce tréningy.
+- **2026-11-24** — **Tréningové plány: karty s oranžovým pásom, Náhľad aj rozpracovaného plánu, tréner maže plány** (`feature/treningy-karty`, bez migrácie).
+  - Klient (Tréning): plány vždy rozbalené; sklenený oranžový pás s názvom a počtom tréningov, farebné čipy (Aktívny, ✓ Hotovo, Od trénera, Vlastný); aktívny plán má pás do červena. Desktop 2–3 stĺpce, rovnako vysoké karty, viac ako 3 tréningy sa posúvajú. Akcie ako jeden rad dlaždíc.
+  - Karta Dnes: „Plán <názov>“ a „Zmeniť plán“ priamo v oranžovom poli (riadok nad kartou zmizol).
+  - Tréner (detail klienta → Tréningy): rovnaké karty — dni s ✓, odcvičenosť, Náhľad, Otvoriť plán, Nastaviť ako aktívny, **Zmazať** (aj hotový plán; odcvičené tréningy ostanú). Detail plánu: hotový plán sa tiež dá zmazať.
+  - **Náhľad** (vyhodnotenie) aj pre nehotový plán s aspoň jedným odcvičeným tréningom — rátajú sa len odcvičené. Klient v náhľade, tréner na stránke `/dashboard/treningy/[id]/nahlad` („Priebežné vyhodnotenie“, „Zopakovať s progresiou“ len pri hotovom).
+- **2026-11-24** — **Klient: × pri najbližšom termíne, náhľad šablón** (`feature/klient-termin-sablony`, bez migrácie).
+  - Karta Dnes: upozornenie „Najbližší termín“ má × — skryje ho (termín ostáva v kalendári); platí pre konkrétny termín (cookie s id), ďalší sa ukáže znova.
+  - Moje šablóny (Tréning aj Jedálniček): „Náhľad“ — dni s cvikmi / jedlami (kcal, makrá) a „Použiť šablónu“.
+- **2026-11-24** — **Oprava: kalendár klienta — polia času na mobile** (`fix/kalendar-cas-inputy`, bez migrácie).
+  - Pri pridávaní udalosti sa polia „Od“ a „Do“ na iPhone (Safari) prelínali — stĺpce sa už nenaťahujú podľa natívneho poľa času, na úzkom displeji sú pod sebou.
+  - Dátumy dní v kalendári rovnaké na serveri aj v Safari (bez nesúladu pri hydratácii).
 - **2026-11-24** — **Klient: kalendár na 2 týždne na karte Dnes** (`feature/kalendar-klient`, **migrácia `0072_client_events.sql`**).
   - Namiesto „Tento týždeň“ kalendár s 2 riadkami Po–Ne (tento a budúci týždeň, listovanie po 2 týždňoch dozadu aj dopredu, „Späť na dnešok“).
   - Bodky: zelená = odcvičený tréning, červená = termín od trénera (`appointments`), oranžová = vlastná udalosť klienta; legenda.

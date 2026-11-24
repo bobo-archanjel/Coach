@@ -711,8 +711,8 @@ export async function toggleSupersetLinkAction(input: { planId: string; dayId: s
 }
 
 /**
- * Zmazanie plánu — koncept ("Zmazať koncept" hore) aj už publikovaný plán
- * ("Zmazať" dole pri PDF). `workout_days` idú kaskádou (FK `on delete cascade`,
+ * Zmazanie plánu — koncept ("Zmazať koncept" hore), publikovaný aj hotový plán
+ * ("Zmazať" dole pri PDF; karta v detaile klienta má deleteTrainerPlanAction). `workout_days` idú kaskádou (FK `on delete cascade`,
  * 0002); odcvičené tréningy ostanú: `workout_logs.workout_day_id` sa nastaví na
  * null a záznam si drží vlastnú kópiu plánu (plan_snapshot, 0048 — zámok túto
  * zmenu povoľuje). `clients.active_plan_id`/`active_day_id` sa cez FK vynulujú,
@@ -724,8 +724,10 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
   if (!planId) return { error: await tErr("plans.missingPlanId") };
 
   const supabase = await createClient();
-  const [locked, { data: { user } }] = await Promise.all([isPlanLocked(supabase, planId), supabase.auth.getUser()]);
-  if (locked) return { error: await tErr("planLocked") };
+  // aj hotový (uzamknutý) plán — odcvičené tréningy prežijú (plan_snapshot, 0048)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { error: await tErr("notSignedIn") };
 
   const { data: deleted, error } = await supabase

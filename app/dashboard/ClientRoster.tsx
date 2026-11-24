@@ -198,10 +198,12 @@ export function ClientRoster({ items }: { items: RosterItem[] }) {
                 className={`${styles.ccCard} ${muted ? styles.ccCardMuted : ""} ${client.pending ? styles.clientCardPending : ""}`}
                 data-tour={client.pending ? undefined : "clients-card"}
                 data-category={category}
+                // odtieň avatara (podľa mena) — farbí aj jemný prechod v hornej časti karty
+                data-tone={toneOf(client.fullName)}
                 aria-busy={client.pending || undefined}
               >
                 <div className={styles.ccHead}>
-                  <span className={styles.ccAvatar} data-tone={toneOf(client.fullName)} aria-hidden="true">
+                  <span className={styles.ccAvatar} aria-hidden="true">
                     {initials(client.fullName)}
                   </span>
                   <div className={styles.ccIdentity}>

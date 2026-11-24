@@ -8,7 +8,9 @@ import { createPortal } from "react-dom";
 import type { PlanSource, PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
 import { usePortionLabel } from "@/app/components/food/usePortionLabel";
 import { FoodIcon } from "@/app/portal/icons";
-import { ActionDownloadIcon, ActionEditIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import { ActionDownloadIcon, ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import { BuilderDialog } from "@/app/components/BuilderDialog";
+import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros } from "@/lib/meals";
 import pa from "@/app/components/planActions.module.css";
 import { PlansTabs, type PlansTab } from "../PlansTabs";
 import {
@@ -107,6 +109,9 @@ export function NutritionSection({
   const plansBtnRef = useRef<HTMLButtonElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmTplDelete, setConfirmTplDelete] = useState<string | null>(null);
+  // „Náhľad“ šablóny — okno s jej dňami a jedlami (bez úprav)
+  const [previewTpl, setPreviewTpl] = useState<PortalMealTemplate | null>(null);
+  const tl = useTranslations("labels");
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -339,7 +344,11 @@ export function NutritionSection({
                         </span>
                       </div>
                     ) : (
-                      <div className={pa.gridRow}>
+                      <div className={`${pa.gridRow} ${pa.gridRow3}`}>
+                        <button type="button" className={`${pa.action} ${pa.small}`} onClick={() => setPreviewTpl(tpl)}>
+                          <ActionPreviewIcon />
+                          {t("preview")}
+                        </button>
                         <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={() => openBuilder(false, tpl)}>
                           <ActionUseIcon />
                           {t("use")}
@@ -353,6 +362,64 @@ export function NutritionSection({
                   </li>
                 ))}
               </ul>
+              {previewTpl && (
+                <BuilderDialog title={previewTpl.name} closeLabel={t("close")} onClose={() => setPreviewTpl(null)} wide>
+                  <div className={styles.tplPreview} data-testid="template-preview">
+                    {previewTpl.days.map((day, di) => {
+                      const total = sumMacros(day.meals.map((m) => scaleFoodMacros(m, m.grams)));
+                      return (
+                        <section key={di} className={`${styles.panel} ${styles.tplPreviewDay}`}>
+                          <div className={styles.mealDayHead}>
+                            <span className={styles.mealDayName}>{day.name}</span>
+                            <span className={styles.chip}>{total.kcal} kcal</span>
+                          </div>
+                          {day.meals.length === 0 ? (
+                            <p className={styles.trEmptyDay}>{t("noMeals")}</p>
+                          ) : (
+                            MEAL_SLOT_ORDER.map((slot) => {
+                              const entries = day.meals.filter((m) => m.meal_slot === slot);
+                              if (entries.length === 0) return null;
+                              return (
+                                <div key={slot}>
+                                  <p className={styles.mealSlot}>{tl(`mealSlot.${slot}`)}</p>
+                                  <ol className={styles.mealList}>
+                                    {entries.map((m) => {
+                                      const mac = scaleFoodMacros(m, m.grams);
+                                      return (
+                                        <li key={m.entry_id} className={styles.mealRow}>
+                                          <span>
+                                            <span className={styles.mealName}>{m.food_name}</span>
+                                            <span className={styles.mealMeta}>
+                                              {portionLabel({ grams: m.grams, unit: m.portion_unit, qty: m.portion_qty, base: m.portion_base })} ·{" "}
+                                              {mac.proteinG}g B · {mac.carbsG}g S · {mac.fatG}g T
+                                            </span>
+                                          </span>
+                                          <span className={styles.mealKcal}>{mac.kcal} kcal</span>
+                                        </li>
+                                      );
+                                    })}
+                                  </ol>
+                                </div>
+                              );
+                            })
+                          )}
+                        </section>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className={`btn btn-primary ${styles.startBtn}`}
+                      onClick={() => {
+                        const tpl = previewTpl;
+                        setPreviewTpl(null);
+                        openBuilder(false, tpl);
+                      }}
+                    >
+                      {t("useTemplate")}
+                    </button>
+                  </div>
+                </BuilderDialog>
+              )}
             </div>
           )
         ) : (
