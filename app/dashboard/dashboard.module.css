@@ -1224,31 +1224,6 @@ select.addClientInputSm {
   gap: 12px;
   padding: 14px 14px 14px;
 }
-.cpProgress {
-  display: grid;
-  gap: 6px;
-  padding: 0 4px;
-  font-size: 12.5px;
-  font-weight: 650;
-  color: var(--paper-dim);
-}
-.cpBar {
-  display: block;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--fill);
-  overflow: hidden;
-}
-.cpBar > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent-grad);
-}
-/* celý plán odcvičený — zelený postup (ako u klienta) */
-.cpProgress[data-complete] .cpBar > span {
-  background: var(--moss);
-}
 .cpEmpty {
   margin: 0;
   padding: 0 4px;

@@ -16,6 +16,7 @@ import {
 import { ExercisePreviewList } from "../ExercisePreviewList";
 import { BuilderDialog } from "@/app/components/BuilderDialog";
 import { PlanBand } from "@/app/components/PlanBand";
+import { PlanProgress } from "@/app/components/PlanProgress";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
 import { PlansTabs, type PlansTab } from "../PlansTabs";
 import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./builderDraft";
@@ -509,11 +510,12 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                 <div className={styles.trPlanBody}>
                   {/* postup plánu — koľko tréningov je odcvičených (celý = zelený) */}
                   {!selectedDay && plan.days.length > 0 && (
-                    <div className={styles.trProgress} data-complete={planDone || undefined}>
-                      <span>{tr("progressDone", { done: doneCount, total: plan.days.length })}</span>
-                      <span className={styles.trProgressBar} aria-hidden="true">
-                        <span style={{ width: `${Math.round((doneCount / plan.days.length) * 100)}%` }} />
-                      </span>
+                    <div className={styles.trProgress}>
+                      <PlanProgress
+                        done={doneCount}
+                        total={plan.days.length}
+                        label={tr("progressDone", { done: doneCount, total: plan.days.length })}
+                      />
                     </div>
                   )}
                   {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (

@@ -3822,30 +3822,9 @@
   font-weight: 600;
   white-space: nowrap;
 }
-/* postup plánu nad zoznamom dní */
+/* postup plánu nad zoznamom dní (koliesko PlanProgress) */
 .trProgress {
-  display: grid;
-  gap: 6px;
   padding: 14px 4px 0;
-  font-size: 12.5px;
-  font-weight: 650;
-  color: var(--paper-dim);
-}
-.trProgressBar {
-  display: block;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--fill);
-  overflow: hidden;
-}
-.trProgressBar > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent-grad);
-}
-.trProgress[data-complete] .trProgressBar > span {
-  background: var(--moss);
 }
 .trDayBtnMeta {
   display: flex;

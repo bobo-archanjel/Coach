@@ -1,9 +1,8 @@
 import pc from "./planCard.module.css";
 
 /**
- * Horná časť karty tréningového plánu (jemný prechod zhora nadol): názov, počet tréningov
- * vpravo, pod tým stav (Aktívny, ✓ Hotovo, Koncept) a zdroj (Od trénera / Vlastný) ako tlmený
- * text. Aktívny plán má odtieň do červena. Zdieľané klientom (Tréning) aj trénerom (detail klienta → Tréningy) — bez
+ * Horná časť karty tréningového plánu: vľavo názov a pod ním zdroj (Od trénera / Vlastný)
+ * ako tlmený text, vpravo počet tréningov a pod ním malý stav (Aktívny, ✓ Hotovo, Koncept). Zdieľané klientom (Tréning) aj trénerom (detail klienta → Tréningy) — bez
  * hookov, funguje v server aj client komponentoch.
  */
 export type PlanBandChip = { kind: "done" | "trainer" | "client" | "draft"; label: string };
@@ -38,20 +37,9 @@ export function PlanBand({
   return (
     <header className={`${pc.band} ${activeLabel ? pc.bandActive : ""}`}>
       <div className={pc.titleRow}>
-        <h3 className={pc.name}>{name}</h3>
-        <span className={pc.count} data-testid="plan-count">
-          {countLabel}
-        </span>
-      </div>
-      {(activeLabel || status.length > 0 || source) && (
-        <div className={pc.chips}>
-          {activeLabel && <span className={pc.activePill}>{activeLabel}</span>}
-          {status.map((c) => (
-            <span key={c.kind} className={pc.chip} data-kind={c.kind}>
-              {c.kind === "done" && <CheckIcon />}
-              {c.label}
-            </span>
-          ))}
+        {/* vľavo názov a pod ním zdroj (tlmený text) */}
+        <div className={pc.titleMain}>
+          <h3 className={pc.name}>{name}</h3>
           {source && (
             <span className={pc.source} data-kind={source.kind}>
               {source.kind === "trainer" && <DumbbellIcon />}
@@ -59,7 +47,24 @@ export function PlanBand({
             </span>
           )}
         </div>
-      )}
+        {/* vpravo počet tréningov a pod ním malý stav (Aktívny / Hotovo / Koncept) */}
+        <div className={pc.titleSide}>
+          <span className={pc.count} data-testid="plan-count">
+            {countLabel}
+          </span>
+          {(activeLabel || status.length > 0) && (
+            <span className={pc.chips}>
+              {activeLabel && <span className={pc.activePill}>{activeLabel}</span>}
+              {status.map((c) => (
+                <span key={c.kind} className={pc.chip} data-kind={c.kind}>
+                  {c.kind === "done" && <CheckIcon />}
+                  {c.label}
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+      </div>
     </header>
   );
 }

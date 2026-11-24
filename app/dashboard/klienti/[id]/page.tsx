@@ -14,6 +14,7 @@ import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { ActivePlanButton } from "./ActivePlanButton";
 import { PlanCardDelete } from "./PlanCardDelete";
 import { PlanBand } from "@/app/components/PlanBand";
+import { PlanProgress } from "@/app/components/PlanProgress";
 import { ActionEditIcon, ActionPreviewIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import { CreateMealPlanButton } from "./CreateMealPlanButton";
@@ -263,7 +264,6 @@ export default async function ClientDetailPage({
                   const done = planCompletion.get(plan.id);
                   const doneSet = new Set(done?.doneDayIds ?? []);
                   const isActive = plan.published && plan.id === activePlanId;
-                  const pct = days.length > 0 ? Math.round(((done?.completedDays ?? 0) / days.length) * 100) : 0;
                   return (
                     <article
                       key={plan.id}
@@ -281,12 +281,11 @@ export default async function ClientDetailPage({
                       />
                       <div className={styles.cpBody}>
                         {days.length > 0 && (
-                          <div className={styles.cpProgress} data-complete={done?.allDone || undefined}>
-                            <span>{t("planProgress", { done: done?.completedDays ?? 0, total: days.length })}</span>
-                            <span className={styles.cpBar} aria-hidden="true">
-                              <span style={{ width: `${pct}%` }} />
-                            </span>
-                          </div>
+                          <PlanProgress
+                            done={done?.completedDays ?? 0}
+                            total={days.length}
+                            label={t("planProgress", { done: done?.completedDays ?? 0, total: days.length })}
+                          />
                         )}
                         {days.length === 0 ? (
                           <p className={styles.cpEmpty}>{t("planNoDays")}</p>

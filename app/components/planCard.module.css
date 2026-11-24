@@ -1,76 +1,67 @@
-/* Karta plánu — horná časť s názvom, počtom tréningov a farebnými čipmi, jemne podfarbená
-   prechodom zhora nadol (ako karty klientov u trénera). Zdieľané: klient (Tréning →
-   Tréningové plány) aj tréner (detail klienta → Tréningy), komponent PlanBand.
-   Bežný plán terakotový odtieň, aktívny do červena. */
+/* Karta plánu — horná časť (oddelený blok s tenkým okrajom, bez prechodu): vľavo názov
+   a zdroj, vpravo počet tréningov a pod ním malý stav. Zdieľané: klient (Tréning →
+   Tréningové plány) aj tréner (detail klienta → Tréningy), komponent PlanBand. */
 .band {
   --tone: var(--accent);
   position: relative;
-  display: grid;
-  gap: 10px;
-  /* oddelený blok vsadený do karty (okraj + zaoblenie), vnútri prechod zhora nadol */
   margin: 7px 7px 0;
-  padding: 15px 16px 14px;
-  border-radius: 22px;
-  border: 1px solid color-mix(in srgb, var(--tone) 26%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--tone) 32%, transparent) 0,
-    color-mix(in srgb, var(--tone) 15%, transparent) 60%,
-    color-mix(in srgb, var(--tone) 3%, transparent) 100%
-  );
+  padding: 14px 16px 13px;
+  border-radius: 20px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--paper) 3%, transparent);
   color: var(--paper);
 }
-/* aktívny plán — odtieň do červena, aby bol na prvý pohľad odlíšený */
+/* aktívny plán — len okraj v odtieni (štítok Aktívny je pri počte tréningov) */
 .band.bandActive {
   --tone: #d2463a;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--tone) 50%, transparent) 0,
-    color-mix(in srgb, var(--tone) 26%, transparent) 60%,
-    color-mix(in srgb, var(--tone) 9%, transparent) 100%
-  );
-  border-color: color-mix(in srgb, var(--tone) 48%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent),
-    0 10px 22px -16px color-mix(in srgb, var(--tone) 85%, transparent);
+  border-color: color-mix(in srgb, var(--tone) 38%, transparent);
+  background: color-mix(in srgb, var(--tone) 5%, transparent);
 }
 .titleRow {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
-/* počet tréningov vedľa názvu — tlmený text (nie ďalší farebný odznak) */
-.count {
+.titleMain {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.titleSide {
   flex: none;
-  margin-top: 2px;
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  padding-top: 2px;
+}
+/* počet tréningov — tlmený text vpravo */
+.count {
   color: var(--paper-dim);
   font-size: 12.5px;
   font-weight: 650;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-/* zdroj plánu (Od trénera / Vlastný) — tlmený text s ikonou, nie štítok */
+/* zdroj plánu (Od trénera / Vlastný) — tlmený text s ikonou pod názvom */
 .source {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: 2px;
   color: var(--paper-dim);
   font-size: 12px;
   font-weight: 600;
 }
 .source svg {
   flex: none;
-  color: color-mix(in srgb, var(--tone) 70%, var(--paper));
+  color: color-mix(in srgb, var(--accent) 70%, var(--paper));
 }
 .source[data-kind="client"]::before {
   content: "";
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--tone) 70%, var(--paper));
+  background: color-mix(in srgb, var(--accent) 70%, var(--paper));
 }
 .name {
   margin: 0;
@@ -81,50 +72,40 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+/* malé stavové štítky pod počtom tréningov */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
 .chip,
 .activePill {
-  font-size: 11.5px;
-  font-weight: 650;
-  padding: 4px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.chip {
-  background: var(--fill);
-  border: 1px solid transparent;
-  color: var(--paper-dim);
-}
-/* stavové štítky (jemné): Hotovo zelené, Koncept s prerušovaným okrajom, Aktívny plný v odtieni plánu */
-.chip[data-kind] {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
-/* Hotovo má fajku (svg v TSX) */
-.chip[data-kind] svg {
+.chip svg {
   flex: none;
+  width: 10px;
+  height: 10px;
 }
 .chip[data-kind="done"] {
   background: var(--moss-soft);
   color: var(--moss);
 }
 .chip[data-kind="draft"] {
-  background: transparent;
   border: 1px dashed color-mix(in srgb, var(--paper) 35%, transparent);
   color: var(--paper-dim);
 }
 .activePill {
-  font-size: 10.5px;
-  font-weight: 750;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: linear-gradient(140deg, color-mix(in srgb, var(--tone) 85%, #fff), var(--tone));
+  background: var(--tone);
   color: #fff;
-  box-shadow: 0 4px 10px -5px color-mix(in srgb, var(--tone) 80%, transparent);
-}
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
 }
