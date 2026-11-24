@@ -36,32 +36,35 @@ export default async function NastaveniaPage() {
     tl,
   ] = await Promise.all([getUser(), getTranslations("settings"), getTranslations("language")]);
 
-  const tb = await getTranslations("branding");
-  const billing = user ? await getMyTrainerBilling(user.id) : null;
-  const brandingUnlocked = billing?.state.features.branding === true;
-  // uložená značka trénera (RLS: len vlastný riadok); pred migráciou 0075 tabuľka chýba → prázdne
-  // (0081 pridala tmavé logo a ikony; ak ešte nebehla, načíta sa starý tvar bez nich)
-  let brandingRow: Record<string, string | null> | null = null;
-  if (user && brandingUnlocked) {
-    const base = "brand_name, accent_color, welcome_text, logo_path, photo_path, invite_slug";
-    const full = await supabase
-      .from("trainer_branding")
-      .select(`${base}, logo_dark_path, icon_apple_path`)
-      .eq("trainer_id", user.id)
-      .maybeSingle();
-    const res = full.error ? await supabase.from("trainer_branding").select(base).eq("trainer_id", user.id).maybeSingle() : full;
-    brandingRow = (res.data as Record<string, string | null> | null) ?? null;
-  }
+  // Dopyty sú nezávislé okrem toho, že značka a verejná stránka čakajú na tarifu (Business) — predtým 6 stupňov
+  // round-tripov za sebou, teraz tarifa → všetko ostatné súbežne.
+  const billingP = user ? getMyTrainerBilling(user.id) : Promise.resolve(null);
 
-  // verejná stránka trénera (Business; 0083 — pred migráciou tabuľky chýbajú → prázdna stránka bez chyby)
-  let publicInitial: PublicPageInitial | null = null;
-  if (user && brandingUnlocked) {
-    const [prof, svc, gal, tst] = await Promise.all([
-      supabase.from("trainer_public_profiles").select("handle, published, headline, bio, location, online, specializations, socials").eq("trainer_id", user.id).maybeSingle(),
-      supabase.from("trainer_services").select("name, description, price_text").eq("trainer_id", user.id).order("position"),
-      supabase.from("trainer_gallery").select("id, path").eq("trainer_id", user.id).order("position"),
-      supabase.from("trainer_testimonials").select("author, body").eq("trainer_id", user.id).order("position"),
+  // uložená značka trénera + verejná stránka (Business; RLS: len vlastný riadok). Pred migráciou 0075 / 0083 tabuľky
+  // chýbajú → prázdne (0081 pridala tmavé logo a ikony; ak ešte nebehla, načíta sa starý tvar bez nich).
+  const brandingBlockP = billingP.then(async (billing) => {
+    const brandingUnlocked = billing?.state.features.branding === true;
+    let brandingRow: Record<string, string | null> | null = null;
+    let publicInitial: PublicPageInitial | null = null;
+    if (!user || !brandingUnlocked) return { brandingUnlocked, brandingRow, publicInitial };
+    const base = "brand_name, accent_color, welcome_text, logo_path, photo_path, invite_slug";
+    const [res, [prof, svc, gal, tst]] = await Promise.all([
+      (async () => {
+        const full = await supabase
+          .from("trainer_branding")
+          .select(`${base}, logo_dark_path, icon_apple_path`)
+          .eq("trainer_id", user.id)
+          .maybeSingle();
+        return full.error ? await supabase.from("trainer_branding").select(base).eq("trainer_id", user.id).maybeSingle() : full;
+      })(),
+      Promise.all([
+        supabase.from("trainer_public_profiles").select("handle, published, headline, bio, location, online, specializations, socials").eq("trainer_id", user.id).maybeSingle(),
+        supabase.from("trainer_services").select("name, description, price_text").eq("trainer_id", user.id).order("position"),
+        supabase.from("trainer_gallery").select("id, path").eq("trainer_id", user.id).order("position"),
+        supabase.from("trainer_testimonials").select("author, body").eq("trainer_id", user.id).order("position"),
+      ]),
     ]);
+    brandingRow = (res.data as Record<string, string | null> | null) ?? null;
     const pr = (prof.error ? null : prof.data) as { handle: string; published: boolean; headline: string; bio: string; location: string; online: boolean; specializations: string[]; socials: unknown } | null;
     publicInitial = {
       handle: pr?.handle ?? "",
@@ -80,8 +83,9 @@ export default async function NastaveniaPage() {
       }),
       saved: !!pr,
     };
-  }
-  const tp = await getTranslations("publicPage.settings");
+    return { brandingUnlocked, brandingRow, publicInitial };
+  });
+
   const siteHost = (() => {
     try {
       return new URL(mailSiteUrl()).host;
@@ -92,22 +96,26 @@ export default async function NastaveniaPage() {
 
   // komunikácia s klientmi (všetky tarify): uvítacia správa (RLS: len vlastný riadok; pred 0082 tabuľka chýba → prázdne)
   // a zostatok pozvánok e-mailom (len ak je na serveri nastavené SMTP)
-  let welcomeRow: { body: string; enabled: boolean } | null = null;
-  let invitesLeft: number | null = null;
   const smtpReady = mailConfigured();
-  if (user) {
-    const { data: w, error: wErr } = await supabase.from("trainer_welcome_messages").select("body, enabled").eq("trainer_id", user.id).maybeSingle();
-    if (!wErr) welcomeRow = (w as { body: string; enabled: boolean } | null) ?? null;
-    const adminForQuota = smtpReady ? tryCreateAdminClient() : null;
-    if (adminForQuota) invitesLeft = (await loadInviteQuota(adminForQuota, user.id)).now;
-  }
-  const tc = await getTranslations("branding.comms");
-  const tn = await getTranslations("nav");
+  const commsP = (async () => {
+    let welcomeRow: { body: string; enabled: boolean } | null = null;
+    let invitesLeft: number | null = null;
+    if (user) {
+      const adminForQuota = smtpReady ? tryCreateAdminClient() : null;
+      const [{ data: w, error: wErr }, quota] = await Promise.all([
+        supabase.from("trainer_welcome_messages").select("body, enabled").eq("trainer_id", user.id).maybeSingle(),
+        adminForQuota ? loadInviteQuota(adminForQuota, user.id) : Promise.resolve(null),
+      ]);
+      if (!wErr) welcomeRow = (w as { body: string; enabled: boolean } | null) ?? null;
+      if (quota) invitesLeft = quota.now;
+    }
+    return { welcomeRow, invitesLeft };
+  })();
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";
-  const [aiUsage, deletionRequestedAt] = user
-    ? await Promise.all([
+  const usageP = user
+    ? Promise.all([
         getTrainerAiUsageSummary(supabase, user.id),
         // samostatný dopyt — pred migráciou 0062 stĺpec neexistuje, chyba = žiadna žiadosť
         supabase
@@ -117,7 +125,18 @@ export default async function NastaveniaPage() {
           .maybeSingle()
           .then(({ data, error }) => (error ? null : ((data?.deletion_requested_at as string | null) ?? null))),
       ])
-    : [null, null];
+    : Promise.resolve([null, null] as const);
+
+  const [tb, tp, tc, tn, { brandingUnlocked, brandingRow, publicInitial }, { welcomeRow, invitesLeft }, [aiUsage, deletionRequestedAt]] =
+    await Promise.all([
+      getTranslations("branding"),
+      getTranslations("publicPage.settings"),
+      getTranslations("branding.comms"),
+      getTranslations("nav"),
+      brandingBlockP,
+      commsP,
+      usageP,
+    ]);
 
   return (
     <div className={styles.settingsPage}>

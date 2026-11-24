@@ -7,7 +7,7 @@ import { AddClientForm } from "./AddClientForm";
 import { ClientRoster, type RosterItem } from "./ClientRoster";
 import { ClientsBoard } from "./ClientsBoard";
 import { getLateStatusByClient } from "@/lib/dashboard/lateStatus";
-import { getPlanCompletion } from "@/lib/dashboard/planCompletion";
+import { completionFromLogCounts } from "@/lib/dashboard/planCompletion";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { getHealthDigest } from "@/lib/dashboard/healthDigest";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -24,13 +24,13 @@ import styles from "@/app/dashboard/dashboard.module.css";
  * rovnaká definícia ako badge „Hotovo“) — a počet jedálničkov. Dva dopyty pre všetkých klientov.
  */
 async function getCardStats(supabase: Awaited<ReturnType<typeof createClient>>, clientIds: string[]) {
-  const plansByClient = new Map<string, { id: string; name: string; published: boolean; dayIds: string[] }[]>();
+  const plansByClient = new Map<string, { id: string; name: string; published: boolean; dayIds: string[]; days: { id: string; logCount: number }[] }[]>();
   const mealPlanCount = new Map<string, number>();
-  if (clientIds.length === 0) return { plansByClient, mealPlanCount, completion: new Map() as Awaited<ReturnType<typeof getPlanCompletion>> };
+  if (clientIds.length === 0) return { plansByClient, mealPlanCount, completion: new Map() as ReturnType<typeof completionFromLogCounts> };
   const [{ data: planRows }, { data: mealRows }] = await Promise.all([
     supabase
       .from("workout_plans")
-      .select("id, name, client_id, published, created_at, workout_days(id)")
+      .select("id, name, client_id, published, created_at, workout_days(id, workout_logs(count))")
       .in("client_id", clientIds)
       .is("edit_of", null)
       .order("created_at", { ascending: false }),
@@ -43,14 +43,16 @@ async function getCardStats(supabase: Awaited<ReturnType<typeof createClient>>, 
       name: p.name as string,
       published: Boolean(p.published),
       dayIds: ((p.workout_days as { id: string }[] | null) ?? []).map((d) => d.id),
+      days: ((p.workout_days as unknown as { id: string; workout_logs: { count: number }[] | null }[] | null) ?? []).map((d) => ({
+        id: d.id,
+        logCount: d.workout_logs?.[0]?.count ?? 0,
+      })),
     });
     plansByClient.set(p.client_id as string, list);
   }
   for (const m of mealRows ?? []) mealPlanCount.set(m.client_id as string, (mealPlanCount.get(m.client_id as string) ?? 0) + 1);
-  const completion = await getPlanCompletion(
-    supabase,
-    [...plansByClient.values()].flat().filter((p) => p.published).map((p) => ({ id: p.id, dayIds: p.dayIds })),
-  );
+  // odcvičenosť z počtov logov na deň (jeden riadok na deň plánu) — nie riadok za každý log (viď completionFromLogCounts)
+  const completion = completionFromLogCounts([...plansByClient.values()].flat().filter((p) => p.published).map((p) => ({ id: p.id, days: p.days })));
   return { plansByClient, mealPlanCount, completion };
 }
 

@@ -80,22 +80,30 @@ export default async function PortalLayout({ children }: { children: React.React
   // loadPortalShell robí auth guard (redirect bez session/tréner) aj dopyty navigácie.
   // Tour: nezávislý dopyt na user.id s rovnakým cookie fast-pathom ako dashboard
   // (DB len keď cookie „tour videný“ chýba).
-  const [{ chatUnread, aiKoucVisible, displayName, trainerId }, cookieStore, {
-    data: { user },
-  }, tn] = await Promise.all([loadPortalShell(), cookies(), getUser(), getTranslations("nav")]);
+  // Cosmetics (rámik/téma) a tour (DB len bez cookie) potrebujú len user.id — štartujú súbežne s loadPortalShell
+  // (predtým čakali sekvenčne za značkou, 2 round-tripy navyše na každú navigáciu v portáli).
+  const userP = getUser();
+  const cosmeticsP = userP.then(({ data: { user } }) => loadCosmetics(user?.id ?? ""));
+  const tourSeenP = Promise.all([userP, hasTourSeenCookie()]).then(([{ data: { user } }, cookieSeen]) =>
+    user && !cookieSeen ? getTourSeen(user.id) : true,
+  );
+  const [{ chatUnread, aiKoucVisible, displayName, trainerId }, cookieStore, tn, cosmetics, tourSeen] = await Promise.all([
+    loadPortalShell(),
+    cookies(),
+    getTranslations("nav"),
+    cosmeticsP,
+    tourSeenP,
+  ]);
   // Branding trénera (Business): logo + názov + akcentová farba namiesto FitPilot. null = predvolený
-  // vzhľad (klient bez trénera, tréner bez Business, značka nenastavená).
+  // vzhľad (klient bez trénera, tréner bez Business, značka nenastavená). Zahriate v loadPortalShell (request-cache).
   const branding = await loadBrandingForTrainer(trainerId);
   const tb = branding ? await getTranslations("branding") : null;
-  // v2: rámik avatara, farebná téma a štýl osláv z odmien za úrovne. Téma mení farby portálu LEN bez značky trénera
-  // (značka vždy vyhráva); klient so značkou témy nemá (namiesto nich animované rámiky, tituly a štýly osláv).
-  const cosmetics = await loadCosmetics(user?.id ?? "");
+  // v2: rámik avatara a farebná téma z odmien za úrovne. Téma mení farby portálu LEN bez značky trénera
+  // (značka vždy vyhráva); so značkou téma farbí iba rámik avatara.
   const themeActive = !branding && cosmetics.theme !== "default";
+  const tinted = Boolean(branding) && cosmetics.theme !== "default" && cosmetics.frame !== "none";
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
-
-  let tourSeen = true;
-  if (user && !(await hasTourSeenCookie())) tourSeen = await getTourSeen(user.id);
 
   return (
     <div

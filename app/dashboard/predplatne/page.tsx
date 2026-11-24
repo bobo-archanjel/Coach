@@ -1,5 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { getUser } from "@/lib/supabase/server";
 import { getMyTrainerBilling } from "@/lib/billing/server";
 import { getStripe, isStripeConfigured } from "@/lib/billing/stripe";
@@ -24,27 +25,43 @@ const TIER_VARIANTS: Record<Tier, Variant[]> = {
   business: ["business"],
 };
 
-/** Ceny z objektov Price v Stripe (testovacie, kým nie je live režim); chyba = bez ceny, stránka funguje ďalej. */
+/** Ceny z objektov Price v Stripe (testovacie, kým nie je live režim); chyba = bez ceny, stránka funguje ďalej.
+ *  Cena sa mení raz za čas — `unstable_cache` (1 h) ušetrí 3–4 volania Stripe API (~200–400 ms každé) pri každom
+ *  otvorení stránky. Do cache ide len formátovaná cena; prázdny výsledok (chyba Stripe) sa neukladá dlho. */
+const loadPricesCached = unstable_cache(
+  async (locale: Locale): Promise<Partial<Record<Variant, string>>> => {
+    if (!isStripeConfigured()) return {};
+    const stripe = getStripe();
+    const out: Partial<Record<Variant, string>> = {};
+    await Promise.all(
+      VARIANTS.map(async (variant) => {
+        const id = priceIdForVariant(variant);
+        if (!id) return;
+        try {
+          const price = await stripe.prices.retrieve(id);
+          if (price.unit_amount == null) return;
+          out[variant] = new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency: price.currency.toUpperCase() }).format(
+            price.unit_amount / 100,
+          );
+        } catch (err) {
+          console.error("predplatne: prices.retrieve", err instanceof Error ? err.message : err);
+        }
+      }),
+    );
+    // neúplný výsledok (výpadok Stripe) sa nesmie na hodinu zacachovať — vyhodenie ho z cache vynechá
+    if (Object.keys(out).length < VARIANTS.filter((v) => priceIdForVariant(v)).length) throw new Error("incomplete prices");
+    return out;
+  },
+  ["billing-stripe-prices"],
+  { revalidate: 3600 },
+);
+
 async function loadPrices(locale: Locale): Promise<Partial<Record<Variant, string>>> {
-  if (!isStripeConfigured()) return {};
-  const stripe = getStripe();
-  const out: Partial<Record<Variant, string>> = {};
-  await Promise.all(
-    VARIANTS.map(async (variant) => {
-      const id = priceIdForVariant(variant);
-      if (!id) return;
-      try {
-        const price = await stripe.prices.retrieve(id);
-        if (price.unit_amount == null) return;
-        out[variant] = new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency: price.currency.toUpperCase() }).format(
-          price.unit_amount / 100,
-        );
-      } catch (err) {
-        console.error("predplatne: prices.retrieve", err instanceof Error ? err.message : err);
-      }
-    }),
-  );
-  return out;
+  try {
+    return await loadPricesCached(locale);
+  } catch {
+    return {};
+  }
 }
 
 export default async function PredplatnePage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
