@@ -1,9 +1,9 @@
 import pc from "./planCard.module.css";
 
 /**
- * Oranžový sklenený pás karty tréningového plánu: názov, počet tréningov vpravo a čipy
- * (Aktívny biely, ✓ Hotovo, činka Od trénera, Vlastný, Koncept). Aktívny plán má pás do
- * červena. Zdieľané klientom (Tréning) aj trénerom (detail klienta → Tréningy) — bez
+ * Horná časť karty tréningového plánu (jemný prechod zhora nadol): názov, počet tréningov
+ * vpravo, pod tým stav (Aktívny, ✓ Hotovo, Koncept) a zdroj (Od trénera / Vlastný) ako tlmený
+ * text. Aktívny plán má odtieň do červena. Zdieľané klientom (Tréning) aj trénerom (detail klienta → Tréningy) — bez
  * hookov, funguje v server aj client komponentoch.
  */
 export type PlanBandChip = { kind: "done" | "trainer" | "client" | "draft"; label: string };
@@ -26,12 +26,15 @@ export function PlanBand({
   chips,
 }: {
   name: string;
-  /** „3 tréningy“ — odznak vedľa názvu */
+  /** „3 tréningy“ — tlmene vpravo vedľa názvu */
   countLabel: string;
-  /** text bielej pilulky „Aktívny“; null = plán nie je aktívny (pás oranžový) */
+  /** štítok „Aktívny“; null = plán nie je aktívny */
   activeLabel: string | null;
   chips: PlanBandChip[];
 }) {
+  // stav (Aktívny, Hotovo, Koncept) = farebné štítky; zdroj (Od trénera / Vlastný) = tlmený text
+  const status = chips.filter((c) => c.kind === "done" || c.kind === "draft");
+  const source = chips.find((c) => c.kind === "trainer" || c.kind === "client");
   return (
     <header className={`${pc.band} ${activeLabel ? pc.bandActive : ""}`}>
       <div className={pc.titleRow}>
@@ -40,17 +43,22 @@ export function PlanBand({
           {countLabel}
         </span>
       </div>
-      {(activeLabel || chips.length > 0) && (
-        <span className={pc.chips}>
+      {(activeLabel || status.length > 0 || source) && (
+        <div className={pc.chips}>
           {activeLabel && <span className={pc.activePill}>{activeLabel}</span>}
-          {chips.map((c) => (
+          {status.map((c) => (
             <span key={c.kind} className={pc.chip} data-kind={c.kind}>
               {c.kind === "done" && <CheckIcon />}
-              {c.kind === "trainer" && <DumbbellIcon />}
               {c.label}
             </span>
           ))}
-        </span>
+          {source && (
+            <span className={pc.source} data-kind={source.kind}>
+              {source.kind === "trainer" && <DumbbellIcon />}
+              {source.label}
+            </span>
+          )}
+        </div>
       )}
     </header>
   );

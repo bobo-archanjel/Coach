@@ -41,18 +41,36 @@
   justify-content: space-between;
   gap: 10px;
 }
-/* počet tréningov vedľa názvu — odznak v odtieni plánu */
+/* počet tréningov vedľa názvu — tlmený text (nie ďalší farebný odznak) */
 .count {
   flex: none;
-  margin-top: -1px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--tone) 13%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tone) 24%, transparent);
-  color: color-mix(in srgb, var(--tone) 78%, var(--paper));
+  margin-top: 2px;
+  color: var(--paper-dim);
   font-size: 12.5px;
-  font-weight: 750;
+  font-weight: 650;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* zdroj plánu (Od trénera / Vlastný) — tlmený text s ikonou, nie štítok */
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 2px;
+  color: var(--paper-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+.source svg {
+  flex: none;
+  color: color-mix(in srgb, var(--tone) 70%, var(--paper));
+}
+.source[data-kind="client"]::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tone) 70%, var(--paper));
 }
 .name {
   margin: 0;
@@ -76,41 +94,24 @@
   border: 1px solid transparent;
   color: var(--paper-dim);
 }
-/* farebné odlíšenie čipov (jemné): Hotovo zelené, Od trénera jantárové, Vlastný neutrálny,
-   Koncept s prerušovaným okrajom, Aktívny plný terakotový */
+/* stavové štítky (jemné): Hotovo zelené, Koncept s prerušovaným okrajom, Aktívny plný v odtieni plánu */
 .chip[data-kind] {
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
-/* Hotovo má fajku a Od trénera činku (svg v TSX), Vlastný bodku */
+/* Hotovo má fajku (svg v TSX) */
 .chip[data-kind] svg {
   flex: none;
-}
-.chip[data-kind="client"]::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.85;
 }
 .chip[data-kind="done"] {
   background: var(--moss-soft);
   color: var(--moss);
 }
-.chip[data-kind="trainer"] {
-  background: var(--amber-soft);
-  color: var(--plate-yellow);
-}
 .chip[data-kind="draft"] {
   background: transparent;
   border: 1px dashed color-mix(in srgb, var(--paper) 35%, transparent);
   color: var(--paper-dim);
-}
-.chip[data-kind="client"] {
-  background: color-mix(in srgb, var(--tone) 10%, transparent);
-  color: color-mix(in srgb, var(--tone) 70%, var(--paper));
 }
 .activePill {
   font-size: 10.5px;

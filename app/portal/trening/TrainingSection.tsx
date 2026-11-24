@@ -62,6 +62,12 @@ const PlusIcon = () => (
   </svg>
 );
 
+const DayCheckIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const ChevronIcon = ({ className }: { className?: string }) => (
   <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -479,6 +485,8 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
               selected?.planId === plan.id ? (plan.days.find((d) => d.id === selected.dayId) ?? null) : null;
             // celý plán odcvičený — „Hotovo“, aktívnym sa už nastaviť nedá (callSetActivePlan to odmietne)
             const planDone = plan.days.length > 0 && plan.days.every((d) => d.done);
+            const doneCount = plan.days.filter((d) => d.done).length;
+            const nextDayId = plan.isActive ? (plan.days.find((d) => !d.done)?.id ?? null) : null;
             return (
               <li
                 key={plan.id}
@@ -499,8 +507,14 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                 />
 
                 <div className={styles.trPlanBody}>
-                  {!selectedDay && !plan.isActive && planDone && (
-                    <p className={`${styles.trHint} ${styles.trDoneHint}`}>{tr("planDoneHint")}</p>
+                  {/* postup plánu — koľko tréningov je odcvičených (celý = zelený) */}
+                  {!selectedDay && plan.days.length > 0 && (
+                    <div className={styles.trProgress} data-complete={planDone || undefined}>
+                      <span>{tr("progressDone", { done: doneCount, total: plan.days.length })}</span>
+                      <span className={styles.trProgressBar} aria-hidden="true">
+                        <span style={{ width: `${Math.round((doneCount / plan.days.length) * 100)}%` }} />
+                      </span>
+                    </div>
                   )}
                   {!selectedDay && plan.isActive && activeNote?.planId === plan.id && (
                     <p className={styles.trActiveNote} role="status">
@@ -613,22 +627,34 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                   ) : (
                     <>
                       <ul className={styles.trDayList} data-scroll={plan.days.length > 3 || undefined}>
-                        {plan.days.map((day) => (
-                          <li key={day.id}>
-                            <button type="button" className={styles.trDayBtn} onClick={() => selectDay(plan.id, day.id)}>
-                              <span className={styles.trDayBtnName}>{day.name}</span>
-                              <span className={styles.trDayBtnMeta}>
-                                <span className={`${styles.trDoneBadge} ${!day.done ? styles.trDoneBadgeHidden : ""}`}>
-                                  {tr("done")}
+                        {plan.days.map((day, i) => {
+                          // aktívny plán: najbližší neodcvičený tréning „Na rade“
+                          const next = day.id === nextDayId;
+                          return (
+                            <li key={day.id}>
+                              <button
+                                type="button"
+                                className={styles.trDayBtn}
+                                data-state={day.done ? "done" : next ? "next" : "todo"}
+                                onClick={() => selectDay(plan.id, day.id)}
+                              >
+                                {/* poradie dňa v krúžku, odcvičený = zelená fajka */}
+                                <span className={styles.trDayMark} aria-hidden="true">
+                                  {day.done ? <DayCheckIcon /> : i + 1}
                                 </span>
-                                <span className={styles.chip}>
-                                  {tr("exercises", { count: day.exercises.length })}
+                                <span className={styles.trDayBtnName}>
+                                  {day.name}
+                                  {next && <span className={styles.trNextTag}>{tr("nextUp")}</span>}
                                 </span>
-                                <ChevronIcon className={styles.trDayBtnChevron} />
-                              </span>
-                            </button>
-                          </li>
-                        ))}
+                                <span className={styles.trDayBtnMeta}>
+                                  {day.done && <span className={styles.srOnly}>{tr("done")}</span>}
+                                  <span className={styles.trDayCount}>{tr("exercises", { count: day.exercises.length })}</span>
+                                  <ChevronIcon className={styles.trDayBtnChevron} />
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
                       </ul>
 
                       {/* akcie pod plánom — rovnaký panel ako pod jedálničkom (mriežka tlačidiel

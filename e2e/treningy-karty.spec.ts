@@ -65,6 +65,26 @@ test.describe("tréningové plány — karty s pásom", () => {
     await expect(card(page, "plan-trainer").getByRole("button", { name: "Nastaviť ako aktívny" })).toHaveCount(0);
   });
 
+  test("postup plánu a dni: krúžok s poradím, odcvičený s fajkou, aktívny plán „Na rade“", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    const own = card(page, "plan-own");
+    await expect(own).toContainText("Odcvičené 1 z 2");
+    const days = own.getByRole("button", { name: /Rozcvička|Sila — horná časť/ });
+    await expect(days.nth(0)).toHaveAttribute("data-state", "todo");
+    await expect(days.nth(1)).toHaveAttribute("data-state", "done");
+    // zdroj ako tlmený text, nie štítok; počet tréningov pri názve
+    await expect(own.locator('header [data-kind="client"]')).toHaveText("Vlastný");
+    await expect(own.getByTestId("plan-count")).toHaveText("2 tréningy");
+    // aktívny vlastný plán (náhľad „own“): najbližší neodcvičený tréning je „Na rade“
+    await page.goto("/portal/trening?preview=own");
+    const active = card(page, "plan-own");
+    await expect(active.locator("header")).toContainText("Aktívny");
+    const next = active.getByRole("button", { name: /Rozcvička/ });
+    await expect(next).toHaveAttribute("data-state", "next");
+    await expect(next).toContainText("Na rade");
+    await expect(active.getByRole("button", { name: /Sila — horná časť/ })).not.toContainText("Na rade");
+  });
+
   test("výber dňa sa otvorí len v karte svojho plánu, Všetky dni ho vráti", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await card(page, "plan-own").getByRole("button", { name: /Rozcvička/ }).click();

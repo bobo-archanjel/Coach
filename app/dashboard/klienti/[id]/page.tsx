@@ -281,7 +281,7 @@ export default async function ClientDetailPage({
                       />
                       <div className={styles.cpBody}>
                         {days.length > 0 && (
-                          <div className={styles.cpProgress}>
+                          <div className={styles.cpProgress} data-complete={done?.allDone || undefined}>
                             <span>{t("planProgress", { done: done?.completedDays ?? 0, total: days.length })}</span>
                             <span className={styles.cpBar} aria-hidden="true">
                               <span style={{ width: `${pct}%` }} />
@@ -292,10 +292,20 @@ export default async function ClientDetailPage({
                           <p className={styles.cpEmpty}>{t("planNoDays")}</p>
                         ) : (
                           <ul className={styles.cpDays} data-scroll={days.length > 3 || undefined}>
-                            {days.map((d) => (
-                              <li key={d.id} className={styles.cpDay}>
+                            {days.map((d, i) => (
+                              <li key={d.id} className={styles.cpDay} data-done={doneSet.has(d.id) || undefined}>
+                                {/* poradie dňa v krúžku, odcvičený = zelená fajka (ako u klienta) */}
+                                <span className={styles.cpDayMark} aria-hidden="true">
+                                  {doneSet.has(d.id) ? (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                      <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  ) : (
+                                    i + 1
+                                  )}
+                                </span>
                                 <span className={styles.cpDayName}>{d.name}</span>
-                                {doneSet.has(d.id) && <span className={styles.planDoneBadge}>{t("done")}</span>}
+                                {doneSet.has(d.id) && <span className={styles.cpSrOnly}>{t("done")}</span>}
                               </li>
                             ))}
                           </ul>
