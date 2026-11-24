@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Karty tréningových plánov: nový dizajn, okno odcvičeného tréningu, Report bez rámikov** (`feature/karty-dizajn`, bez migrácie).
+  - Karty plánov (klient aj tréner): horná časť bez prechodu — vľavo názov a zdroj (Od trénera / Vlastný), vpravo počet tréningov a pod ním malý stav (Aktívny / Hotovo / Koncept); postup ako koliesko „1/2 · Odcvičené 1 z 2“ (celý = zelený).
+  - Dni: poradie v krúžku, odcvičený so zelenou fajkou; u klienta v aktívnom pláne najbližší tréning „Na rade“.
+  - Tréner: klik na odcvičený tréning na karte → okno s cvikmi a zapísanými váhami (plán vs. skutočnosť, dátum, náročnosť, poznámka).
+  - Report plánu (tréner): tréningy plánu bez orámovania dňa, karty cvikov na celú šírku.
 - **2026-11-24** — **Karty plánov: tlačidlá a fade, prehľad klientov vo farbe avatara** (`feature/karta-tlacidla`, bez migrácie).
   - Tréner (detail klienta → Tréningy): „Nastaviť ako aktívny“ tenké cez celú šírku, pod ním Report · Upraviť plán · Zmazať; „Otvoriť plán“ → „Upraviť plán“.
   - Klient (Tréning): hore Nastaviť ako aktívny | Uložiť ako šablónu, dole Report · Upraviť plán · Zmazať; „Upraviť“ → „Upraviť plán“.
