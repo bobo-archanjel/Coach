@@ -9,6 +9,7 @@ import { previewResult } from "@/app/portal/preview";
 import { DoneWorkoutView } from "@/app/portal/DoneWorkoutView";
 import { LogWorkoutButton } from "@/app/portal/LogWorkoutButton";
 import { CooperationNotice } from "@/app/portal/CooperationNotice";
+import { InvitePrompt } from "@/app/portal/InvitePrompt";
 import { RetryButton } from "@/app/portal/RetryButton";
 import { WorkoutStopwatch } from "@/app/portal/WorkoutStopwatch";
 import { WeekHistory } from "@/app/portal/WeekHistory";
@@ -120,15 +121,26 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
     );
   }
 
+  // pozvánka cez odkaz trénera (0077): „Pripojiť sa“ — len mimo dev náhľadov
+  const invite = preview ? null : <InvitePrompt />;
+
   if (result.state === "unlinked") {
     return (
-      <Notice icon={<ProfileIcon />} title={result.firstName ? t("welcomeName", { name: result.firstName }) : t("welcome")}>
-        {t("unlinked")}
-      </Notice>
+      <>
+        {invite}
+        <Notice icon={<ProfileIcon />} title={result.firstName ? t("welcomeName", { name: result.firstName }) : t("welcome")}>
+          {t("unlinked")}
+        </Notice>
+      </>
     );
   }
 
-  return <Today data={result.data} preview={Boolean(preview) && process.env.NODE_ENV === "development"} />;
+  return (
+    <>
+      {invite}
+      <Today data={result.data} preview={Boolean(preview) && process.env.NODE_ENV === "development"} />
+    </>
+  );
 }
 
 function Today({ data, preview = false }: { data: PortalData; preview?: boolean }) {

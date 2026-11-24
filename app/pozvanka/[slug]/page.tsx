@@ -16,8 +16,9 @@ import styles from "../invite.module.css";
    uvítací text, farba). Odkaz je tajný (80 bitov) a stránka je zámerne NEINDEXOVATEĽNÁ
    a bez referrera. Neplatný odkaz, tréner bez Business aj prekročený limit pokusov končia
    rovnako — generickým 404 (nedá sa rozlíšiť, čo z toho nastalo → žiadna enumerácia).
-   Samotné spárovanie klienta s trénerom sa tým NEMENÍ (klient po registrácii pošle trénerovi
-   svoj kód FP-…, ktorým ho tréner pridá — add_client_by_code). */
+   Návšteva platného odkazu si zapamätá pozvánku (cookie `fp_invite`, middleware.ts); po
+   registrácii/prihlásení portál ponúkne kartu „Pripojiť sa“ a klient sa jedným klikom spáruje
+   s trénerom (claim_invite, 0077). Nič sa nespáruje bez jeho súhlasu. */
 
 export const dynamic = "force-dynamic";
 

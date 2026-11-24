@@ -31,7 +31,7 @@
   "previewAsClient": "Podívat se jako klient",
   "invite": {
     "title": "Odkaz na pozvánku",
-    "hint": "Pošli ho novým klientům. Uvidí tvou značku a vytvoří si účet. Po registraci ti pošlou svůj kód a ty je přidáš.",
+    "hint": "Pošli ho novým klientům. Uvidí tvou značku, vytvoří si účet a po registraci se jedním klikem připojí k tobě.",
     "copy": "Kopírovat odkaz",
     "copied": "Zkopírováno",
     "regenerate": "Vytvořit nový odkaz",
@@ -68,9 +68,28 @@
     "cta": "Vytvořit účet",
     "haveAccount": "Už máš účet?",
     "login": "Přihlas se",
-    "steps": "Po registraci najdeš v Profilu svůj kód. Pošli ho trenérovi a ten tě přidá.",
+    "steps": "Po registraci se jedním klikem připojíš ke svému trenérovi — nic dalšího není potřeba.",
     "notFoundTitle": "Tato pozvánka neplatí",
     "notFoundText": "Odkaz je nesprávný nebo už není aktivní. Požádej svého trenéra o nový."
+  },
+  "invitePairing": {
+    "title": "Pozvánka od trenéra",
+    "heading": "{brand} tě zve",
+    "headingNoName": "Tvůj trenér tě zve",
+    "text": "Připojením se staneš jeho klientem a trenér uvidí tvoje tréninky a stravu. Propojení můžeš kdykoli zrušit v Profilu.",
+    "join": "Připojit se",
+    "joining": "Připojuji…",
+    "decline": "Ne, děkuji",
+    "success": "Hotovo, jsi připojen/a k trenérovi.",
+    "errors": {
+      "alreadyHasTrainer": "Už máš trenéra. Nejprve zruš propojení v Profilu.",
+      "trainerUnavailable": "K tomuto trenérovi se teď nelze připojit. Požádej ho o pomoc.",
+      "invalidInvite": "Pozvánka už neplatí. Požádej trenéra o nový odkaz.",
+      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli.",
+      "notAClient": "Připojit se k trenérovi může jen klientský účet.",
+      "notSignedIn": "Nejprve se přihlas.",
+      "failed": "Připojení se nepovedlo. Zkus to znovu."
+    }
   },
   "errors": {
     "notSignedIn": "Nejsi přihlášen.",
