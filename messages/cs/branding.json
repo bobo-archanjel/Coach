@@ -111,5 +111,52 @@
     "tooManyUploads": "Příliš mnoho nahrávání. Zkus to za několik minut.",
     "storageUnavailable": "Obrázek se nepodařilo uložit. Zkus to znovu.",
     "saveFirst": "Nejdřív ulož značku."
+  },
+  "comms": {
+    "title": "Komunikace s klienty",
+    "subtitle": "Uvítací zpráva v chatu a pozvánka e-mailem. Dostupné ve všech tarifech.",
+    "welcome": {
+      "title": "Uvítací zpráva v chatu",
+      "hint": "Když se klient spáruje s tebou (kódem nebo pozvánkou), dostane tuto zprávu v chatu — jako by ji napsal/a ty. Použij '{meno}' pro jeho křestní jméno.",
+      "placeholder": "Ahoj '{meno}'! Jsem rád/ráda, že budeme spolupracovat. Ozvi se mi kdykoli, když něco potřebuješ.",
+      "enabled": "Posílat uvítací zprávu novým klientům",
+      "previewTitle": "Takto ji klient uvidí v chatu",
+      "previewEmpty": "Napiš text a uvidíš náhled.",
+      "previewHint": "Náhled s ukázkovým jménem. Zpráva se pošle jednou při spárování, ne při obnovení spolupráce.",
+      "sampleName": "Jana Nováková",
+      "save": "Uložit uvítací zprávu",
+      "saving": "Ukládám…",
+      "saved": "Uloženo."
+    },
+    "invite": {
+      "title": "Pozvat klienta e-mailem",
+      "hintBranded": "Klient dostane e-mail s tvým logem, názvem a barvou a odkazem na tvou pozvánku. Po registraci se připojí jedním kliknutím.",
+      "hintDefault": "Klient dostane e-mail s odkazem na registraci a návodem, jak se k tobě připojí. S tarifem Business ho pošleš s vlastní značkou.",
+      "notConfigured": "Odesílání e-mailů zatím není na serveru nastaveno. Pozvi klienta odkazem nebo kódem.",
+      "email": "E-mail klienta",
+      "emailPlaceholder": "klient@example.com",
+      "name": "Jméno (nepovinné)",
+      "namePlaceholder": "Jana",
+      "send": "Poslat pozvánku",
+      "sending": "Posílám…",
+      "sent": "Pozvánka je odeslána.",
+      "remaining": "Zbývá ti {count, plural, one {# pozvánka} few {# pozvánky} other {# pozvánek}}.",
+      "limitsNote": "Z bezpečnostních důvodů je počet pozvánek omezen (za hodinu a za den) a stejnou adresu můžeš pozvat nejvýše jednou za 24 hodin. Odpověď klienta přijde na tvůj e-mail."
+    },
+    "errors": {
+      "notSignedIn": "Nejsi přihlášen.",
+      "notTrainer": "Tuto akci může provést jen trenér.",
+      "welcomeMessageTooLong": "Uvítací zpráva je příliš dlouhá (max. {max} znaků).",
+      "mailNotConfigured": "Odesílání e-mailů není na serveru nastaveno.",
+      "invalidEmail": "Zadej platnou e-mailovou adresu.",
+      "invalidName": "Jméno může obsahovat jen písmena (max. 40 znaků).",
+      "cooldown": "Této adrese jsi pozvánku už posílal/a. Zkus to znovu za 24 hodin.",
+      "hourLimit": "Dosáhl/a jsi hodinového limitu pozvánek. Zkus to později.",
+      "dayLimit": "Dosáhl/a jsi denního limitu pozvánek. Zkus to zítra.",
+      "globalLimit": "Odesílání pozvánek je dočasně omezeno. Zkus to později.",
+      "tooFast": "Příliš rychle. Počkej chvíli a zkus to znovu.",
+      "sendFailed": "Pozvánku se nepodařilo odeslat. Zkus to znovu.",
+      "unavailable": "Pozvánku se teď nedá odeslat. Zkus to později."
+    }
   }
 }

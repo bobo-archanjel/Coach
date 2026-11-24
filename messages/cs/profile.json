@@ -44,5 +44,12 @@
     "yes": "Ano, smazat",
     "no": "Ne",
     "request": "Požádat o smazání mých dat"
+  },
+  "emailPrefs": {
+    "title": "E-maily",
+    "weekly": "Týdenní shrnutí e-mailem",
+    "weeklyHint": "Každé pondělí ti pošleme krátké shrnutí tvého týdne (tréninky, rekordy, odznaky). Vypnout ho můžeš tady i odkazem v e-mailu.",
+    "saved": "Uloženo.",
+    "failed": "Nepodařilo se uložit. Zkus to znovu."
   }
 }
