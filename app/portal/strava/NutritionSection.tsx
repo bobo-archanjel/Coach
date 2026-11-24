@@ -19,6 +19,7 @@ import {
   saveOwnMealTemplateAction,
 } from "./actions";
 import styles from "../portal.module.css";
+import { clearMealDraft, loadMealDraft, type MealBuilderDraft } from "./mealDraft";
 
 /* /portal/strava — makro cieľ, aktívny jedálniček (od trénera alebo vlastný, prepínač
    „Zmeniť“), vlastné šablóny a builder vlastného jedálnička (0067). Vzor: TrainingSection —
@@ -93,6 +94,13 @@ export function NutritionSection({
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState(false);
   const [fromTemplate, setFromTemplate] = useState<PortalMealTemplate | null>(null);
+  // Rozpracovaný jedálniček v prehliadači (mealDraft.ts) — karta „Pokračovať“ v zozname;
+  // `resumeDraft` = koncept, s ktorým sa builder práve otvoril.
+  const [savedDraft, setSavedDraft] = useState<MealBuilderDraft | null>(null);
+  const [resumeDraft, setResumeDraft] = useState<MealBuilderDraft | null>(null);
+  useEffect(() => {
+    setSavedDraft(loadMealDraft(data.draftOwner));
+  }, [data.draftOwner]);
   // Jedálničky / Moje šablóny — prepínač v hlavičke sekcie
   const [tab, setTab] = useState<PlansTab>("plans");
   const [plansOpen, setPlansOpen] = useState(false);
@@ -107,9 +115,10 @@ export function NutritionSection({
   const [staples, setStaples] = useState<PortalFoodOption[]>(initialStaples);
   const [, startStaples] = useTransition();
 
-  const openBuilder = (edit: boolean, template: PortalMealTemplate | null = null) => {
+  const openBuilder = (edit: boolean, template: PortalMealTemplate | null = null, resume: MealBuilderDraft | null = null) => {
     setEditing(edit);
     setFromTemplate(template);
+    setResumeDraft(resume);
     setError(null);
     setNote(null);
     setMode("build");
@@ -124,7 +133,24 @@ export function NutritionSection({
     setMode("list");
     setEditing(false);
     setFromTemplate(null);
-  }, []);
+    setResumeDraft(null);
+    // odchod bez uloženia → koncept ostal v prehliadači, karta „Pokračovať“ ho ponúkne
+    setSavedDraft(loadMealDraft(data.draftOwner));
+  }, [data.draftOwner]);
+  const continueDraft = () => {
+    if (!savedDraft) return;
+    // úprava patrí aktívnemu vlastnému jedálničku — keď už nie je (zmazaný / prepnutý), koncept nemá k čomu patriť
+    if (savedDraft.planId && (savedDraft.planId !== mealPlanId || !editableDays)) {
+      clearMealDraft(data.draftOwner);
+      setSavedDraft(null);
+      return;
+    }
+    openBuilder(Boolean(savedDraft.planId), null, savedDraft);
+  };
+  const discardDraft = () => {
+    clearMealDraft(data.draftOwner);
+    setSavedDraft(null);
+  };
   const leaveBuilder = () => {
     if (new URLSearchParams(window.location.search).has(BUILDER_PARAM)) window.history.back();
     else closeBuilder();
@@ -182,6 +208,8 @@ export function NutritionSection({
         macroGoal={macroGoal}
         onCancel={leaveBuilder}
         onSaved={leaveBuilder}
+        draftOwner={data.draftOwner}
+        resume={resumeDraft}
       />
     );
   }
@@ -190,6 +218,11 @@ export function NutritionSection({
 
   return (
     <>
+      {/* hlavička len pri zozname — v builderi jedálnička nie je (klient vie, že je v Strave) */}
+      <header>
+        <h1 className={styles.pageTitle}>{t("title")}</h1>
+        <p className={styles.pageSub}>{t("sub")}</p>
+      </header>
       <div className={styles.panel} data-tour="nutrition-goal">
         <div className={styles.panelHead}>
           <p className={styles.panelLabel}>{t("macroGoal")}</p>
@@ -256,6 +289,25 @@ export function NutritionSection({
           <p className={styles.trError} role="alert">
             {error}
           </p>
+        )}
+
+        {savedDraft && (
+          <div className={styles.trDraft} role="status" data-testid="meal-builder-draft">
+            <p className={styles.trDraftText}>
+              <span className={styles.trDraftLabel}>{savedDraft.planId ? t("draftEditTitle") : t("draftTitle")}</span>
+              <span className={styles.trDraftName}>{savedDraft.name.trim() || t("draftUnnamed")}</span>
+            </p>
+            <div className={pa.gridRow}>
+              <button type="button" className={`${pa.action} ${pa.small} ${pa.primary}`} onClick={continueDraft}>
+                <ActionEditIcon />
+                {t("draftContinue")}
+              </button>
+              <button type="button" className={`${pa.action} ${pa.small} ${pa.danger}`} onClick={discardDraft}>
+                <ActionTrashIcon />
+                {t("draftDiscard")}
+              </button>
+            </div>
+          </div>
         )}
 
         {tab === "templates" ? (

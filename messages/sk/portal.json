@@ -37,8 +37,6 @@
     "builder": {
       "save": "Uložiť",
       "saving": "Ukladám…",
-      "saveChanges": "Uložiť zmeny",
-      "saveNew": "Uložiť jedálniček",
       "planName": "Názov jedálnička",
       "namePlaceholder": "napr. Môj týždeň",
       "nameRequired": "Zadaj názov jedálnička.",
@@ -46,7 +44,17 @@
       "editAria": "Úprava vlastného jedálnička",
       "newAria": "Nový vlastný jedálniček",
       "kcalOfGoal": "{kcal} / {goal} kcal",
-      "goalLine": "Cieľ: B {protein} g · S {carbs} g · T {fat} g"
+      "goalLine": "Cieľ: B {protein} g · S {carbs} g · T {fat} g",
+      "defaultPlanName": "Chudnutie – prvý týždeň",
+      "defaultDayName": "Deň {n}",
+      "saveEdits": "Uložiť úpravy",
+      "deleteDraft": "Zmazať koncept",
+      "deleteDraftConfirm": "Naozaj zmazať tento koncept?",
+      "discardEdits": "Zahodiť úpravy",
+      "discardEditsConfirm": "Naozaj zahodiť neuložené úpravy?",
+      "yesDelete": "Áno, zmazať",
+      "yesDiscard": "Áno, zahodiť",
+      "cancel": "Zrušiť"
     },
     "activeBadge": "Aktívny",
     "switchTo": "Prepnúť",
@@ -62,7 +70,12 @@
     "plansButtonAria": "Jedálničky ({count}) — vybrať iný",
     "tabPlans": "Jedálničky",
     "tabsSectionAria": "Jedálničky alebo moje šablóny",
-    "templatesEmpty": "Zatiaľ nemáš žiadnu šablónu. Jedálniček si ulož ako šablónu (tlačidlo pod jedálničkom) a neskôr z nej vytvoríš nový."
+    "templatesEmpty": "Zatiaľ nemáš žiadnu šablónu. Jedálniček si ulož ako šablónu (tlačidlo pod jedálničkom) a neskôr z nej vytvoríš nový.",
+    "draftTitle": "Rozpracovaný jedálniček",
+    "draftEditTitle": "Rozpracovaná úprava jedálnička",
+    "draftUnnamed": "Bez názvu",
+    "draftContinue": "Pokračovať",
+    "draftDiscard": "Zahodiť"
   },
   "chat": {
     "loadFailed": "Nepodarilo sa načítať chat",

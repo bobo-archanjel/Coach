@@ -63,7 +63,7 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await expect(view.getByRole("heading", { name: "Letný plán — celé telo" })).toBeVisible();
     await expect(view.getByTestId("review-stats")).toContainText(/Tréningy\s*1/);
     await expect(view.getByTestId("review-card").first()).toContainText("Bench press");
-    await expect(view.getByTestId("review-timeline")).toContainText("„Prvý tréning po dovolenke.“");
+    await expect(view.getByTestId("review-timeline")).toHaveCount(0);
     // nový plán od trénera zostaví tréner — klient ho neopakuje
     await expect(view.getByRole("button", { name: "Zopakovať s progresiou" })).toHaveCount(0);
     await expect(view.getByRole("button", { name: /Uložiť/ })).toHaveCount(0);
@@ -103,9 +103,9 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await expect(cards.nth(0)).toContainText("Rekord");
     await expect(cards.nth(1)).toContainText("Bez záťaže — najlepšia séria 10 opak.");
 
-    const timeline = view.getByTestId("review-timeline");
-    await expect(timeline.getByRole("listitem")).toHaveCount(2);
-    await expect(timeline).toContainText("„Bench išiel ľahko.“");
+    // „Ako sa ti cvičilo“ v náhľade klienta nie je; zistenia sú „Krátke zhrnutie“
+    await expect(view.getByTestId("review-timeline")).toHaveCount(0);
+    await expect(view.getByRole("heading", { name: "Krátke zhrnutie" })).toBeVisible();
   });
 
   test("Zopakovať s progresiou: voľba %, náhľad zmien, nový plán s vyššou záťažou", async ({ page }) => {
@@ -235,7 +235,7 @@ test.describe("náhľad hotového plánu — reálna DB", () => {
     await expect(view.getByTestId("review-insights")).toContainText(`${bwName}: robíš viac opakovaní`);
     const cards = view.getByTestId("review-card");
     await expect(cards.nth(0).getByRole("slider", { name: new RegExp(`Graf najťažšej série: ${exName}, 2 tréningy`) })).toBeVisible();
-    await expect(view.getByTestId("review-timeline")).toContainText("„E2E dobrý tréning“");
+    await expect(view.getByTestId("review-timeline")).toHaveCount(0);
 
     // Zopakovať s progresiou +10 % → builder nového plánu (neukladáme)
     await view.getByRole("button", { name: "Zopakovať s progresiou" }).click();

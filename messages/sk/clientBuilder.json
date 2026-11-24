@@ -63,7 +63,7 @@
   "recordsTitle": "Úspechy",
   "recordLine": "{name}: {kg} kg × {reps} — nový rekord",
   "recordGain": "+{kg} kg oproti predtým",
-  "insightsTitle": "Čo z toho plynie",
+  "insightsTitle": "Krátke zhrnutie",
   "insightProgress": "{name}: všetky série s {kg} kg splnené — pripravené na vyššiu záťaž.",
   "insightMoreReps": "{name}: robíš viac opakovaní, ako je v pláne — pridaj záťaž alebo opakovania.",
   "insightFewerSets": "{name}: naposledy {done} z {planned} sérií.",
