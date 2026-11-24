@@ -50,7 +50,8 @@
     "close": "Zavřít",
     "daysAria": "Dny jídelníčku",
     "quantity": "Množství ({unit})",
-    "qtyRange": "Zadej množství, které dává 0,1–5000 g."
+    "qtyRange": "Zadej množství, které dává 0,1–5000 g.",
+    "defaultDayName": "Den {n}"
   },
   "controls": {
     "draftBadge": "Koncept — klient ho ještě nevidí",
