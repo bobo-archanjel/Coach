@@ -25,6 +25,7 @@
   "trainerNamed": "Tréner {name}",
   "trainer": "Tréner",
   "nextAppointment": "Najbližší termín: <b>{title}</b> — {when}",
+  "hideAppointment": "Skryť termín (ostane v kalendári)",
   "overview": "Prehľad",
   "measurement": "Meranie",
   "planDone": "Tréningový plán hotový",
