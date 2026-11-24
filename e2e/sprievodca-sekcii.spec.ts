@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { apiSession, sessionLogin } from "./helpers/sessionLogin";
 import { GUIDES } from "../lib/onboarding/guides";
 import { CLIENT_TOUR_STEPS, TRAINER_TOUR_STEPS } from "../lib/onboarding/tourSteps";
 
@@ -41,12 +42,11 @@ const textAt = (root: Record<string, unknown>, path: string) =>
 const sk = messages("sk");
 const guideTitle = (id: string, key: string) => textAt(sk, `guides.${id}.${key}`)!.title;
 
-async function login(page: Page, email: string, password: string, to: RegExp) {
-  await page.goto("/prihlasenie");
-  await page.locator("#login-email").fill(email);
-  await page.locator("#login-password").fill(password);
-  await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-  await page.waitForURL(to, { timeout: 30_000 });
+// prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+async function login(page: Page, email: string, password?: string, to?: RegExp) {
+  void password;
+  void to;
+  await sessionLogin(page, email, test.info().project.use.baseURL!);
 }
 
 /** Stlmenie sprievodcu (aj počas čakania na stránku) a jeho bublina s krokom. */
@@ -298,10 +298,7 @@ test.describe("reálna DB (QA tréner a klient)", () => {
 
   test.beforeAll(async () => {
     admin = createClient(env.url!, env.serviceRole!, AUTH);
-    api = createClient(env.url!, env.anon!, AUTH);
-    const { data, error } = await api.auth.signInWithPassword({ email: env.trainerEmail!, password: env.trainerPassword! });
-    if (error || !data.user) throw new Error(`Prihlásenie trénera zlyhalo: ${error?.message}`);
-    trainerId = data.user.id;
+    ({ api, userId: trainerId } = await apiSession(env.trainerEmail!));
     const { data: row } = await admin.from("clients").select("id").eq("trainer_id", trainerId).not("user_id", "is", null).limit(1).single();
     qaClientId = row!.id;
     const seen = await api.rpc("get_guides_seen");

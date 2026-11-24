@@ -37,8 +37,6 @@
     "builder": {
       "save": "Uložit",
       "saving": "Ukládám…",
-      "saveChanges": "Uložit změny",
-      "saveNew": "Uložit jídelníček",
       "planName": "Název jídelníčku",
       "namePlaceholder": "např. Můj týden",
       "nameRequired": "Zadej název jídelníčku.",
@@ -46,7 +44,17 @@
       "editAria": "Úprava vlastního jídelníčku",
       "newAria": "Nový vlastní jídelníček",
       "kcalOfGoal": "{kcal} / {goal} kcal",
-      "goalLine": "Cíl: B {protein} g · S {carbs} g · T {fat} g"
+      "goalLine": "Cíl: B {protein} g · S {carbs} g · T {fat} g",
+      "defaultPlanName": "Hubnutí – první týden",
+      "defaultDayName": "Den {n}",
+      "saveEdits": "Uložit úpravy",
+      "deleteDraft": "Smazat koncept",
+      "deleteDraftConfirm": "Opravdu smazat tento koncept?",
+      "discardEdits": "Zahodit úpravy",
+      "discardEditsConfirm": "Opravdu zahodit neuložené úpravy?",
+      "yesDelete": "Ano, smazat",
+      "yesDiscard": "Ano, zahodit",
+      "cancel": "Zrušit"
     },
     "activeBadge": "Aktivní",
     "switchTo": "Přepnout",
@@ -62,7 +70,12 @@
     "plansButtonAria": "Jídelníčky ({count}) — vybrat jiný",
     "tabPlans": "Jídelníčky",
     "tabsSectionAria": "Jídelníčky nebo moje šablony",
-    "templatesEmpty": "Zatím nemáš žádnou šablonu. Jídelníček si ulož jako šablonu (tlačítko pod jídelníčkem) a později z něj vytvoříš nový."
+    "templatesEmpty": "Zatím nemáš žádnou šablonu. Jídelníček si ulož jako šablonu (tlačítko pod jídelníčkem) a později z něj vytvoříš nový.",
+    "draftTitle": "Rozpracovaný jídelníček",
+    "draftEditTitle": "Rozpracovaná úprava jídelníčku",
+    "draftUnnamed": "Bez názvu",
+    "draftContinue": "Pokračovat",
+    "draftDiscard": "Zahodit"
   },
   "chat": {
     "loadFailed": "Chat se nepodařilo načíst",

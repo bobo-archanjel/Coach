@@ -2,6 +2,7 @@
 
 import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
+import { getTranslations } from "next-intl/server";
 import { randomUUID } from "crypto";
 import { addPlanRecipients, areTrainerClients, deliverPlanToRecipients, MAX_PLAN_CLIENTS, uniqueClientIds } from "@/lib/planRecipients";
 import { revalidatePath } from "next/cache";
@@ -63,6 +64,11 @@ export async function createMealPlanAction(_prevState: ActionState, formData: Fo
     .single();
 
   if (error || !data) return { error: error?.message ?? await tErr("meals.createFailed") };
+
+  // Nový jedálniček má hneď prvý deň („Deň 1“) — tréner môže rovno pridávať jedlá (ako pri
+  // tréningu). Keby vloženie zlyhalo, ostane bez dní (deň sa dá pridať cez „+ deň“) — nie je fatálne.
+  const tb = await getTranslations("mealPlans.builder");
+  await supabase.from("meal_days").insert({ plan_id: data.id, day_number: 1, name: tb("defaultDayName", { n: 1 }), meals: [] });
 
   const recipientsError = await addPlanRecipients(supabase, user.id, "meal", data.id, others);
   if (recipientsError) {

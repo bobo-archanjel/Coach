@@ -10,6 +10,7 @@ import { splitExerciseRefs } from "@/lib/ai/exerciseSwap";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
+import { bratislavaToUtcIso, dateKeyInTz, timeInTz } from "@/lib/calendar/month";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
   computeFoodStreak,
@@ -56,6 +57,7 @@ import type {
   TodaySession,
   WeekDay,
   WeekView,
+  CalendarEvent,
 } from "./types";
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
@@ -148,9 +150,9 @@ function mondayOf(d: Date): Date {
   return addDays(d, -(isoWeekday(d) - 1));
 }
 
-/** „18. – 24. aug" (jeden mesiac) alebo „30. aug – 5. sep" (na prelome). */
-function weekRangeLabel(monday: Date, L: PortalLabels): string {
-  const sunday = addDays(monday, 6);
+/** „18. – 24. aug" (jeden mesiac) alebo „30. aug – 5. sep" (na prelome); `days` = dĺžka obdobia. */
+function weekRangeLabel(monday: Date, L: PortalLabels, days = 7): string {
+  const sunday = addDays(monday, days - 1);
   const m1 = MONTH_SHORT[L.locale][monday.getUTCMonth()];
   const m2 = MONTH_SHORT[L.locale][sunday.getUTCMonth()];
   const d1 = monday.getUTCDate();
@@ -219,11 +221,14 @@ export function isPlanFinished(days: { exercises: unknown; workout_logs?: { coun
   return withExercises.length > 0 && withExercises.every((d) => (d.workout_logs?.[0]?.count ?? 0) > 0);
 }
 
+/** dĺžka kalendára na karte Dnes — 2 týždne (feature/kalendar-klient) */
+export const CALENDAR_DAYS = 14;
+
 /**
- * Zostaví jeden týždeň pre pás „Tento týždeň" — Po–Ne, s odcvičenými tréningmi
- * v každom dni (na klik v UI, viď app/portal/WeekHistory.tsx). Počíta so **všetkými**
- * plánmi klienta (od trénera aj vlastnými), nie len s aktívnym. Žiadna migrácia —
- * číta workout_logs + workout_days, oboje má klient cez RLS z 0002/0003.
+ * Kalendár na karte Dnes — 14 dní od pondelka: odcvičené tréningy (na klik plán vs.
+ * skutočnosť, app/portal/WeekHistory.tsx), termíny od trénera (appointments, len čítanie) a
+ * vlastné udalosti klienta (client_events, 0072 — súkromné). Deň udalosti = dátum začiatku v
+ * Europe/Bratislava. Počíta so všetkými plánmi klienta (od trénera aj vlastnými).
  */
 async function buildWeekView(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -233,17 +238,35 @@ async function buildWeekView(
 ): Promise<WeekView> {
   const L = await portalLabels();
   const startIso = iso(monday);
-  const endIso = iso(addDays(monday, 6));
+  const endIso = iso(addDays(monday, CALENDAR_DAYS - 1));
+  const fromUtc = bratislavaToUtcIso(startIso, "00:00");
+  const toUtc = bratislavaToUtcIso(iso(addDays(monday, CALENDAR_DAYS)), "00:00");
 
-  // Názvy dňa + plánu embedom v tom istom dopyte (predtým druhý dopyt na
-  // workout_days až po logoch). Zmazaný deň (workout_day_id = null) → "Tréning".
-  const { data: logRows } = await supabase
-    .from("workout_logs")
-    .select("performed_on, entries, plan_snapshot, workout_days(name, workout_plans(name))")
-    .eq("client_id", clientId)
-    .gte("performed_on", startIso)
-    .lte("performed_on", endIso)
-    .order("performed_on", { ascending: true });
+  // Názvy dňa + plánu embedom v tom istom dopyte. Zmazaný deň (workout_day_id = null) → "Tréning".
+  const [{ data: logRows }, { data: apptRows }, { data: ownRows }] = await Promise.all([
+    supabase
+      .from("workout_logs")
+      .select("performed_on, entries, plan_snapshot, workout_days(name, workout_plans(name))")
+      .eq("client_id", clientId)
+      .gte("performed_on", startIso)
+      .lte("performed_on", endIso)
+      .order("performed_on", { ascending: true }),
+    supabase
+      .from("appointments")
+      .select("id, title, starts_at, ends_at, note")
+      .eq("client_id", clientId)
+      .gte("starts_at", fromUtc)
+      .lt("starts_at", toUtc)
+      .order("starts_at", { ascending: true }),
+    // pred migráciou 0072 tabuľka chýba — kalendár ide ďalej bez vlastných udalostí
+    supabase
+      .from("client_events")
+      .select("id, title, starts_at, ends_at, note")
+      .eq("client_id", clientId)
+      .gte("starts_at", fromUtc)
+      .lt("starts_at", toUtc)
+      .order("starts_at", { ascending: true }),
+  ]);
 
   const byDate = new Map<string, LoggedSessionView[]>();
   for (const l of logRows ?? []) {
@@ -257,20 +280,42 @@ async function buildWeekView(
     byDate.set(l.performed_on as string, list);
   }
 
-  const days: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
+  type EventRow = { id: string; title: string; starts_at: string; ends_at: string | null; note: string | null };
+  const eventsByDate = new Map<string, CalendarEvent[]>();
+  const addEvents = (rows: EventRow[] | null, kind: CalendarEvent["kind"]) => {
+    for (const r of rows ?? []) {
+      const key = dateKeyInTz(new Date(r.starts_at));
+      const list = eventsByDate.get(key) ?? [];
+      list.push({
+        id: r.id,
+        kind,
+        title: r.title,
+        startsAt: r.starts_at,
+        endsAt: r.ends_at,
+        time: timeInTz(r.starts_at),
+        endTime: r.ends_at ? timeInTz(r.ends_at) : null,
+        note: r.note,
+      });
+      eventsByDate.set(key, list);
+    }
+  };
+  addEvents(apptRows as EventRow[] | null, "trainer");
+  addEvents(ownRows as EventRow[] | null, "own");
+
+  const days: WeekDay[] = Array.from({ length: CALENDAR_DAYS }, (_, i) => {
     const date = addDays(monday, i);
     const dISO = iso(date);
     const sessions = byDate.get(dISO) ?? [];
     const state: DayCellState =
       dISO === todayIso ? "today" : sessions.length > 0 ? "done" : dISO > todayIso ? "future" : "none";
-    return { label: WEEKDAY_SHORT[L.locale][i], dayNum: date.getUTCDate(), iso: dISO, state, sessions };
+    const events = (eventsByDate.get(dISO) ?? []).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    return { label: WEEKDAY_SHORT[L.locale][i % 7], dayNum: date.getUTCDate(), iso: dISO, state, sessions, events };
   });
 
-  const currentMondayIso = iso(mondayOf(new Date(`${todayIso}T12:00:00Z`)));
   return {
     mondayIso: startIso,
-    rangeLabel: weekRangeLabel(monday, L),
-    isCurrentWeek: startIso === currentMondayIso,
+    rangeLabel: weekRangeLabel(monday, L, CALENDAR_DAYS),
+    isCurrentWeek: startIso <= todayIso && todayIso <= endIso,
     days,
   };
 }
@@ -626,8 +671,10 @@ export async function getPortalWeek(mondayIso: string): Promise<PortalWeekResult
     const currentMonday = mondayOf(base);
     const floor = addDays(currentMonday, -WEEK_HISTORY_FLOOR_DAYS);
 
+    // kalendár listuje dozadu aj dopredu (budúce udalosti) — strop ≈ 1 rok na obe strany
+    const ceiling = addDays(currentMonday, WEEK_HISTORY_FLOOR_DAYS);
     let monday = mondayOf(parsed);
-    if (iso(monday) > iso(currentMonday)) monday = currentMonday;
+    if (iso(monday) > iso(ceiling)) monday = mondayOf(ceiling);
     if (iso(monday) < iso(floor)) monday = floor;
 
     const week = await buildWeekView(supabase, client.id, monday, isoDate);
@@ -853,6 +900,7 @@ const EMPTY_NUTRITION: PortalNutritionData = {
   activeSource: null,
   editableDays: null,
   templates: [],
+  draftOwner: "",
 };
 
 /**
@@ -888,7 +936,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
 
     if (!client) {
       const { data: tplRows } = await templatesQuery;
-      return { state: "ok", data: { ...EMPTY_NUTRITION, templates: toMealTemplates(tplRows) } };
+      return { state: "ok", data: { ...EMPTY_NUTRITION, templates: toMealTemplates(tplRows), draftOwner: user.id } };
     }
 
     const [
@@ -1001,6 +1049,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
       activeSource: plan ? (plan.trainer_id ? "trainer" : "client") : null,
       editableDays,
       templates: toMealTemplates(tplRows),
+      draftOwner: user.id,
     };
     return { state: "ok", data };
   } catch (err) {

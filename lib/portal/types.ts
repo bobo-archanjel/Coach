@@ -1,6 +1,7 @@
 // Typy klientskeho portálu /portal. Naplnené reálnymi Supabase dátami v lib/portal/data.ts
 // (migrácia supabase/migrations/0002_workout_portal.sql). Viď DESIGN.md → Surfaces → Klientsky portál.
 
+import type { PlanReview } from "@/lib/portal/planReview";
 import type { MealSlot } from "@/lib/meals";
 import type { PortionUnit } from "@/lib/portions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
@@ -23,6 +24,20 @@ export interface LoggedSessionView {
   compare: CompletedCompare;
 }
 
+/** Udalosť v kalendári klienta: termín od trénera (appointments) alebo vlastná (client_events, 0072). */
+export interface CalendarEvent {
+  id: string;
+  kind: "trainer" | "own";
+  title: string;
+  /** začiatok/koniec v UTC (ISO) — pre úpravu */
+  startsAt: string;
+  endsAt: string | null;
+  /** čas v Europe/Bratislava, „18:30“ */
+  time: string;
+  endTime: string | null;
+  note: string | null;
+}
+
 export interface WeekDay {
   /** Po, Ut, St … */
   label: string;
@@ -32,14 +47,17 @@ export interface WeekDay {
   state: DayCellState;
   /** odcvičené tréningy v tento kalendárny deň (zvyčajne 0 – 1, zriedka viac) */
   sessions: LoggedSessionView[];
+  /** termíny od trénera a vlastné udalosti v tento deň, podľa času */
+  events: CalendarEvent[];
 }
 
-/** Týždeň pre pás „Tento týždeň" — aktuálny aj ktorýkoľvek minulý (WeekHistory). */
+/** Kalendár na karte Dnes — 2 týždne (14 dní) od pondelka (WeekHistory, feature/kalendar-klient). */
 export interface WeekView {
-  /** pondelok tohto týždňa, YYYY-MM-DD */
+  /** pondelok prvého týždňa, YYYY-MM-DD */
   mondayIso: string;
-  /** ľudský rozsah týždňa, napr. „18. – 24. aug" */
+  /** ľudský rozsah, napr. „24. aug – 6. sep" */
   rangeLabel: string;
+  /** zobrazené obdobie obsahuje dnešok */
   isCurrentWeek: boolean;
   days: WeekDay[];
 }
@@ -274,6 +292,8 @@ export interface PortalTrainingData {
   templates: PortalTemplate[];
   /** id prihláseného — rozpracovaný koncept buildera v prehliadači patrí len jemu (builderDraft.ts) */
   draftOwner: string;
+  /** len DEV náhľad (?preview=): vyhodnotenie hotového plánu bez servera, podľa id plánu */
+  previewReview?: Record<string, PlanReview>;
 }
 
 export interface ExerciseOption {
@@ -385,6 +405,8 @@ export interface PortalNutritionData {
   /** dni aktívneho jedálnička pre „Upraviť“ — len pri vlastnom (tréner ho upravuje sám) */
   editableDays: EditableMealDay[] | null;
   templates: PortalMealTemplate[];
+  /** id prihláseného — rozpracovaný jedálniček v prehliadači patrí len jemu (mealDraft.ts) */
+  draftOwner: string;
 }
 
 export type PortalNutritionResult =

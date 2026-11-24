@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { apiSession, sessionLogin } from "./helpers/sessionLogin";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { mealPlanAvgDayKcal } from "../lib/meals";
 
@@ -71,11 +72,10 @@ const env = {
 const hasEnv = Object.values(env).every(Boolean);
 const AUTH = { auth: { persistSession: false, autoRefreshToken: false } };
 
-async function apiSignIn(email: string, password: string): Promise<{ api: SupabaseClient; userId: string }> {
-  const api = createClient(env.url!, env.anon!, AUTH);
-  const { data, error } = await api.auth.signInWithPassword({ email, password });
-  if (error || !data.user) throw new Error(`Prihlásenie ${email} zlyhalo: ${error?.message}`);
-  return { api, userId: data.user.id };
+// bez signInWithPassword (CAPTCHA v Supabase) — session cez magic link (e2e/helpers/sessionLogin.ts)
+async function apiSignIn(email: string, password?: string): Promise<{ api: SupabaseClient; userId: string }> {
+  void password; // heslo už netreba — ostáva kvôli volaniam
+  return apiSession(email);
 }
 
 /** Záložky sekcií detailu klienta — rad hore, rovnaký na počítači aj na mobile. */
@@ -149,12 +149,9 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     }
   });
 
+  // prihlásenie bez formulára (CAPTCHA v Supabase)
   async function login(page: Page) {
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.trainerEmail!);
-    await page.locator("#login-password").fill(env.trainerPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    await sessionLogin(page, env.trainerEmail!, test.info().project.use.baseURL!);
   }
 
   test("vstupné údaje a výsledok makier + zoznam jedálničkov od najnovšieho so stavom, kcal a odkazom", async ({ page }) => {
@@ -230,8 +227,10 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await page.getByRole("button", { name: "Vytvoriť jedálniček" }).click();
     await page.waitForURL(/\/dashboard\/jedalnicky\/jedalnicek\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: /^Jedálniček \d/ })).toBeVisible();
-    const { data } = await trainer.api.from("meal_plans").select("published").eq("client_id", tempClientId);
-    expect(data).toEqual([{ published: false }]);
+    const { data } = await trainer.api.from("meal_plans").select("published, meal_days(name, day_number)").eq("client_id", tempClientId);
+    // nový jedálniček má hneď prvý deň „Deň 1“ — jedlá sa dajú pridávať bez „+ deň“
+    expect(data).toEqual([{ published: false, meal_days: [{ name: "Deň 1", day_number: 1 }] }]);
+    await expect(page.getByRole("button", { name: /Deň 1/ }).first()).toBeVisible();
   });
 
   test("Analytika → „Upraviť →“ pri makro cieli otvorí záložku Makro cieľ", async ({ page }, testInfo) => {
@@ -268,6 +267,8 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     await page.waitForURL(/\/dashboard\/jedalnicky\/jedalnicek\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     await expect(page.getByText("Pošle sa aj:")).toBeVisible();
     const planId = page.url().split("/").pop()!;
+    const { data: days } = await trainer.api.from("meal_days").select("name").eq("plan_id", planId);
+    expect(days).toEqual([{ name: "Deň 1" }]);
     const { data: recipients } = await trainer.api.from("plan_recipients").select("client_id").eq("meal_plan_id", planId);
     expect(recipients).toHaveLength(1);
     // odkaz „Späť na jedálničky“ zrušený (počítač: bočné menu, mobil: potiahnutie; e2e/swipe-back.spec.ts)

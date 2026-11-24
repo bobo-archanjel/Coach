@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { SwipeBack } from "@/app/components/SwipeBack";
 import { FoodPickerSheet } from "@/app/components/food/FoodPickerSheet";
 import { MealSlotSection } from "@/app/components/food/MealSlotSection";
@@ -23,6 +23,8 @@ import type { EditableMealDay, MealPlanEntryData, PortalFoodOption, PortalMacroG
 import { MEAL_PLAN_MAX_DAYS, MEAL_PLAN_NAME_MAX } from "@/lib/portal/ownMealPlan";
 import { saveClientMealPlanAction, type ClientMealDraft } from "./actions";
 import styles from "../portal.module.css";
+import pa from "@/app/components/planActions.module.css";
+import { clearMealDraft, mealDraftSignature, saveMealDraft, type MealBuilderDraft } from "./mealDraft";
 
 /* Builder vlastného jedálnička klienta (0067) — plne lokálny koncept, do DB ide jedným
    „Uložiť“ (saveClientMealPlanAction). Deň = 6 jedál (Raňajky … Iné) ako v Denníku;
@@ -54,6 +56,8 @@ export function ClientMealBuilder({
   macroGoal,
   onCancel,
   onSaved,
+  draftOwner,
+  resume = null,
 }: {
   /** úprava existujúceho vlastného jedálnička */
   initial: { id: string; name: string; days: EditableMealDay[] } | null;
@@ -63,12 +67,58 @@ export function ClientMealBuilder({
   macroGoal: PortalMacroGoal | null;
   onCancel: () => void;
   onSaved: () => void;
+  /** komu patrí rozpracovaný koncept v prehliadači (mealDraft.ts) */
+  draftOwner: string;
+  /** „Pokračovať“ — rozpracovaný koncept z prehliadača namiesto východiska */
+  resume?: MealBuilderDraft | null;
 }) {
   const t = useTranslations("portal.nutrition.builder");
   const tb = useTranslations("mealPlans.builder");
   const tl = useTranslations("labels");
-  const [name, setName] = useState(initial?.name ?? template?.name ?? "");
-  const [days, setDays] = useState<BDay[]>(() => (initial ? toDraft(initial.days, true) : toDraft(template?.days ?? [], false)));
+  // Východisko: úprava / šablóna / nový jedálniček s predvyplneným názvom a prvým dňom
+  // („Deň 1“) — jedlá sa dajú pridávať hneď.
+  const [fresh] = useState(() => ({
+    name: initial?.name ?? template?.name ?? t("defaultPlanName"),
+    days: initial
+      ? toDraft(initial.days, true)
+      : template
+        ? toDraft(template.days, false)
+        : [{ key: uid(), id: null, name: t("defaultDayName", { n: 1 }), meals: [] } as BDay],
+  }));
+  const [name, setName] = useState(resume?.name ?? fresh.name);
+  const [days, setDays] = useState<BDay[]>(() =>
+    resume ? resume.days.map((d) => ({ key: uid(), id: d.id, name: d.name, meals: d.meals })) : fresh.days,
+  );
+  // Rozpracovaný koncept v prehliadači: pri každej zmene oproti východisku sa uloží; keď sa
+  // klient vráti k východisku, zmaže. Samotné otvorenie buildera starší koncept neprepíše.
+  const stored = (list: BDay[]) => list.map((d) => ({ id: d.id, name: d.name, meals: d.meals }));
+  const [freshSignature] = useState(() => mealDraftSignature({ name: fresh.name, days: stored(fresh.days) }));
+  const touchedDraft = useRef(Boolean(resume));
+  useEffect(() => {
+    const list = stored(days);
+    if (mealDraftSignature({ name, days: list }) !== freshSignature) {
+      touchedDraft.current = true;
+      saveMealDraft(draftOwner, { planId: initial?.id ?? null, name, days: list });
+    } else if (touchedDraft.current) {
+      clearMealDraft(draftOwner);
+    }
+  }, [name, days, freshSignature, draftOwner, initial?.id]);
+
+  // „Zmazať koncept“ / „Zahodiť úpravy“ — potvrdenie v riadku tlačidiel (Esc = zrušiť)
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  useEffect(() => {
+    if (!confirmDiscard) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmDiscard(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmDiscard]);
+  const discard = () => {
+    touchedDraft.current = false;
+    clearMealDraft(draftOwner);
+    onCancel();
+  };
   const [activeKey, setActiveKey] = useState<string>(() => days[0]?.key ?? "");
   const [addingDay, setAddingDay] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<MealSlot>>(() => new Set());
@@ -159,7 +209,10 @@ export function ClientMealBuilder({
     startTransition(async () => {
       const res = await saveClientMealPlanAction(JSON.stringify(draft), initial?.id);
       if (res.error) setError(res.error);
-      else onSaved();
+      else {
+        clearMealDraft(draftOwner);
+        onSaved();
+      }
     });
   };
 
@@ -168,12 +221,6 @@ export function ClientMealBuilder({
     // (NutritionSection, ?tvorba) — ako builder vlastného tréningu.
     <SwipeBack onBack={onCancel}>
       <section aria-label={initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
-        <div className={styles.trBuilderTop}>
-          <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="mbuilder-save">
-            {pending ? t("saving") : t("save")}
-          </button>
-        </div>
-
         <label className={styles.trNameField} data-tour="mbuilder-name">
           <span className={styles.panelLabel}>{t("planName")}</span>
           <input
@@ -188,6 +235,39 @@ export function ClientMealBuilder({
             className={styles.trNameInput}
           />
         </label>
+
+        {/* Rozloženie ako pri tréningu: pod názvom Uložiť (úpravy) + Zmazať koncept / Zahodiť
+            úpravy, s potvrdením; dolné „Uložiť jedálniček“ už nie je. */}
+        {confirmDiscard ? (
+          <div className={pa.confirm} role="alertdialog" aria-labelledby="meal-discard-question">
+            <p id="meal-discard-question" className={pa.confirmText}>
+              {initial ? t("discardEditsConfirm") : t("deleteDraftConfirm")}
+            </p>
+            <span className={pa.confirmBtns}>
+              <button type="button" className={pa.confirmNo} onClick={() => setConfirmDiscard(false)}>
+                {t("cancel")}
+              </button>
+              <button type="button" className={pa.confirmYes} onClick={discard}>
+                {initial ? t("yesDiscard") : t("yesDelete")}
+              </button>
+            </span>
+          </div>
+        ) : (
+          <div className={styles.trActionsGrid}>
+            <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="mbuilder-save">
+              {pending ? t("saving") : initial ? t("saveEdits") : t("save")}
+            </button>
+            <button type="button" className={styles.trDiscardBtn} onClick={() => setConfirmDiscard(true)} disabled={pending}>
+              {initial ? t("discardEdits") : t("deleteDraft")}
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <p className={styles.trError} role="alert">
+            {error}
+          </p>
+        )}
 
         <div className={mb.canvas}>
           <div ref={tabsRef} className={wb.dayTabs} role="group" aria-label={tb("daysAria")} data-no-swipe data-tour="mbuilder-days">
@@ -286,15 +366,6 @@ export function ClientMealBuilder({
           </div>
         </div>
 
-        {error && (
-          <p className={styles.trError} role="alert">
-            {error}
-          </p>
-        )}
-
-        <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
-          {pending ? t("saving") : initial ? t("saveChanges") : t("saveNew")}
-        </button>
 
         {addSlot && activeDay && (
           <FoodPickerSheet

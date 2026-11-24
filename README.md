@@ -75,6 +75,28 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Klient: kalendár na 2 týždne na karte Dnes** (`feature/kalendar-klient`, **migrácia `0072_client_events.sql`**).
+  - Namiesto „Tento týždeň“ kalendár s 2 riadkami Po–Ne (tento a budúci týždeň, listovanie po 2 týždňoch dozadu aj dopredu, „Späť na dnešok“).
+  - Bodky: zelená = odcvičený tréning, červená = termín od trénera (`appointments`), oranžová = vlastná udalosť klienta; legenda.
+  - Ťuk na deň: odcvičené tréningy (plán vs. skutočnosť), termíny od trénera, vlastné udalosti (upraviť / zmazať) a „+ Pridať udalosť“ (názov, čas od–do, poznámka).
+  - Vlastné udalosti sú súkromné (`client_events`, RLS len klient) — tréner ich nevidí.
+- **2026-11-24** — **Klienti u trénera: moderné karty** (`feature/klienti-karty`, bez migrácie).
+  - Mriežka kariet (1/2/3 stĺpce): avatar s iniciálami, stav (aktívny / N dní bez tréningu / bez plánu / ukončený / na zmazanie), odznak správ, počet tréningových plánov (bez kópií úprav) a jedálničkov, posledný tréning, postup aktívneho plánu („5 / 8 tréningov“, hotový → „čas na nový plán“), „Klient od … · N mesiacov“.
+  - Filtre stavov s počtami (Všetci · Aktívni · Bez tréningu · Bez plánu · Ukončení) vedľa hľadania.
+  - Testy: `e2e/klienti-karty.spec.ts`; sprievodca prihlasuje bez formulára (CAPTCHA).
+- **2026-11-24** — **Jedálniček klienta ako tréning; „Deň 1“ u trénera; náhľad hotového plánu** (`feature/jedalnicek-builder`, bez migrácie).
+  - Klient — builder jedálnička: bez hlavičky „Jedálniček“, nový má názov „Chudnutie – prvý týždeň“ a hneď „Deň 1“; pod názvom Uložiť + Zmazať koncept / pri úprave Uložiť úpravy + Zahodiť úpravy (s potvrdením), dolné tlačidlo zrušené.
+  - Rozpracovaný jedálniček (nový aj úprava) sa ukladá v prehliadači (`app/portal/strava/mealDraft.ts`) — po návrate karta „Pokračovať“ / „Zahodiť“.
+  - Tréner: nový jedálniček má hneď prvý deň „Deň 1“.
+  - Náhľad hotového plánu u klienta: bez karty „Ako sa ti cvičilo“, „Krátke zhrnutie“ namiesto „Čo z toho plynie“.
+  - Testy: `apiSession` / `sessionLogin` (prihlásenie bez formulára kvôli CAPTCHA) aj v testoch jedálničkov.
+- **2026-11-23** — **Vyhodnotenie hotového plánu, progresia, úpravy zverejneného plánu až po uložení** (`feature/nahlad-analytika`, **migrácia `0071_plan_pending_edits.sql`**).
+  - Klient: celý odcvičený plán (vlastný aj od trénera) má „Náhľad“ namiesto „Upraviť“ — vyhodnotenie: súhrn (tréningy, splnené série, objem, náročnosť), úspechy (rekordy oproti obdobiu pred plánom), čo z toho plynie, karty cvikov s grafom najťažšej série, ako sa cvičilo (`lib/portal/planReview.ts`).
+  - „Zopakovať s progresiou“ (vlastný plán): okno s voľbou +2,5 / 5 / 7,5 / 10 % a náhľadom zmien → nový plán s vyššou záťažou tam, kde boli splnené všetky série (zaokrúhlené na 0,5 kg).
+  - Tréner: vyhodnotenie na detaile hotového plánu + „Zopakovať s progresiou“ → nový neodoslaný koncept pre klienta (`createProgressedPlanAction`).
+  - Tréning klienta: hlavička „Tréningové plány“ len pri zozname (nie v builderi ani v náhľade); nový plán má predvyplnený názov „Tréningový plán na týždeň“; v builderi pod názvom Uložiť + Zmazať koncept / Zahodiť úpravy (ako u trénera), dolné „Uložiť tréning“ zrušené.
+  - Tréner — zverejnený plán: úpravy idú do skrytej kópie (klient vidí pôvodnú verziu), „Uložiť úpravy“ ich prenesie naraz (dni na mieste, odcvičený deň bez zmeny), „Zahodiť úpravy“ ich zruší. Koncept sa ukladá hneď ako doteraz.
+  - Testy: `e2e/helpers/sessionLogin.ts` — prihlásenie bez formulára (CAPTCHA v Supabase); testy tejto vetvy naň prepnuté.
 - **2026-11-23** — **Klient: celý odcvičený plán sa nedá nastaviť ako aktívny** (`feature/klient-hotovy-plan`, bez migrácie).
   - Tréning: hotový plán má „Hotovo“ a namiesto „Nastaviť ako aktívny“ vysvetlenie; prepínač „Zmeniť“ na Dnes ho ukáže stlmený s „Hotovo“, zvoliť sa nedá.
   - Server (`callSetActivePlan`) hotový plán odmietne — `isPlanFinished` (lib/portal/data.ts): každý deň s cvikmi má zápis. Rovnaké pravidlo ako u trénera.

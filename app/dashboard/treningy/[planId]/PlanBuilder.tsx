@@ -49,6 +49,7 @@ export function PlanBuilder({
   library,
   doneDays = {},
   locked = false,
+  dayAliases = {},
 }: {
   planId: string;
   days: Day[];
@@ -57,6 +58,9 @@ export function PlanBuilder({
   doneDays?: Record<string, DoneDay>;
   /** celý plán odcvičený (isPlanLocked) — len prehľad dní, bez „+ deň“ */
   locked?: boolean;
+  /** rozpracované úpravy zverejneného plánu (0071): id dňa živého plánu → id dňa skrytej kópie.
+   *  Po prvej úprave sa id dní zmenia — vybraný deň ostane ten istý. */
+  dayAliases?: Record<string, string>;
 }) {
   const t = useTranslations("plans.builder");
   const tl = useTranslations("clientDetail.log");
@@ -88,7 +92,11 @@ export function PlanBuilder({
   useEffect(() => {
     // práve pridaný deň („+ deň“) — vyber ho, ako u klienta
     const known = knownDayIds.current;
-    const added = known ? localDays.find((d) => !known.has(d.id)) : undefined;
+    // deň kópie úprav je „známy“, ak bol známy jeho pôvodný deň
+    const sourceOf = (id: string) => Object.keys(dayAliases).find((live) => dayAliases[live] === id);
+    const added = known
+      ? localDays.find((d) => !known.has(d.id) && !known.has(sourceOf(d.id) ?? ""))
+      : undefined;
     if (added) {
       knownDayIds.current = null;
       if (activeDayId !== added.id) setActiveDayId(added.id);
@@ -106,9 +114,10 @@ export function PlanBuilder({
       return;
     }
     if (!localDays.some((d) => d.id === activeDayId)) {
-      setActiveDayId(localDays[0].id);
+      const alias = activeDayId ? dayAliases[activeDayId] : undefined;
+      setActiveDayId(alias && localDays.some((d) => d.id === alias) ? alias : localDays[0].id);
     }
-  }, [localDays, activeDayId]);
+  }, [localDays, activeDayId, dayAliases]);
 
   const activeDay = localDays.find((d) => d.id === activeDayId) ?? null;
   const activeDone = activeDay ? doneDays[activeDay.id] : undefined;

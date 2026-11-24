@@ -2,7 +2,7 @@
 
 import { SwipeBack } from "@/app/components/SwipeBack";
 import { useLocale, useTranslations } from "next-intl";
-import { Fragment, useEffect, useRef, useState, useTransition } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   clearBuilderDraft,
   draftSignature,
@@ -15,7 +15,9 @@ import type { ExerciseOption, PortalDayLog, PortalExercise, PortalPlan, PortalTe
 import { formatCompletedDate, type CompletedCompare } from "@/lib/workouts/completed";
 import type { Locale } from "@/lib/i18n/locales";
 import { CompletedExercises } from "@/app/components/CompletedExercises";
-import { saveClientPlanAction, getExerciseDetailAction, type PlanDraft } from "./actions";
+import { saveClientPlanAction, getExerciseDetailAction, getPlanReviewAction, type PlanDraft } from "./actions";
+import { progressLoad, type PlanReview } from "@/lib/portal/planReview";
+import { DayReview, ProgressionDialog, ReviewOverview } from "./PlanReviewView";
 import type { ExerciseDetail } from "@/lib/exercises";
 import { ExerciseThumb } from "@/app/components/ExerciseThumb";
 import { RepsOrTimeField } from "@/app/components/RepsOrTimeField";
@@ -23,6 +25,7 @@ import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
 import { ClientExerciseLibrary } from "./ClientExerciseLibrary";
 import b from "@/app/components/workoutBuilder.module.css";
 import styles from "../portal.module.css";
+import pa from "@/app/components/planActions.module.css";
 import { useActiveTabInView } from "@/app/components/useActiveTabInView";
 import { DayNameDialog } from "@/app/components/DayNameDialog";
 import { focusAddExercise } from "@/app/components/pendingEntryEdit";
@@ -161,6 +164,21 @@ function fromDraftDays(stored: DraftDay[], current: BDay[]): BDay[] {
   });
 }
 
+/** Nový plán z hotového: rovnaké tréningy a cviky, záťaž +pct % pri cvikoch so splnenými sériami. */
+function progressedTemplate(plan: PortalPlan, ready: Record<string, number>, pct: number, name: string): PortalTemplate {
+  return {
+    id: `repeat-${plan.id}`,
+    name: name.slice(0, 60),
+    days: plan.days.map((d) => ({
+      name: d.name,
+      exercises: d.exercises.map((e) => {
+        const base = e.entryId ? ready[e.entryId] : undefined;
+        return base != null ? { ...e, loadKg: progressLoad(base, pct) } : e;
+      }),
+    })),
+  };
+}
+
 export function ClientPlanBuilder({
   library,
   initial,
@@ -169,6 +187,9 @@ export function ClientPlanBuilder({
   onSaved,
   draftOwner,
   resume = null,
+  readOnly = false,
+  reviewPreview = null,
+  onRepeat,
 }: {
   library: ExerciseOption[];
   initial: PortalPlan | null;
@@ -180,13 +201,20 @@ export function ClientPlanBuilder({
   draftOwner: string;
   /** „Pokračovať“ — rozpracovaný koncept z prehliadača namiesto východiska */
   resume?: PlanBuilderDraft | null;
+  /** Náhľad celého odcvičeného plánu: nič sa nemení ani neukladá; hore „Analytika tréningu“ */
+  readOnly?: boolean;
+  /** DEV náhľad (?preview=) — vyhodnotenie bez servera */
+  reviewPreview?: PlanReview | null;
+  /** „Zopakovať s progresiou“ — nový plán predvyplnený z tohto (s návrhom vyššej záťaže) */
+  onRepeat?: (template: PortalTemplate) => void;
 }) {
   const t = useTranslations("clientBuilder");
   const locale = useLocale() as Locale;
   // Východisko: úprava / šablóna / nový tréning s jedným dňom „Deň 1“ (ako u trénera) —
   // cviky sa dajú pridávať hneď; ďalšie dni cez „+ deň“.
   const [fresh] = useState(() => ({
-    name: initial?.name ?? template?.name ?? "",
+    // nový plán má predvyplnený názov — klient ho môže prepísať
+    name: initial?.name ?? template?.name ?? t("defaultPlanName"),
     days:
       initial || template
         ? toDraftDays(initial?.days ?? template?.days ?? [])
@@ -195,13 +223,15 @@ export function ClientPlanBuilder({
   const [name, setName] = useState(resume?.name ?? fresh.name);
   // pri „Pokračovať“ koncept; odcvičenie dňa (`done`) sa berie z aktuálneho plánu, nie z konceptu
   const [days, setDays] = useState<BDay[]>(() =>
-    resume ? fromDraftDays(resume.days, fresh.days) : fresh.days,
+    resume && !readOnly ? fromDraftDays(resume.days, fresh.days) : fresh.days,
   );
   // Rozpracovaný koncept v prehliadači: pri každej zmene oproti východisku sa uloží; keď sa
   // klient vráti k východisku, zmaže. Samotné otvorenie buildera starší koncept neprepíše.
   const [freshSignature] = useState(() => draftSignature({ name: fresh.name, days: toStoredDays(fresh.days) }));
   const touchedDraft = useRef(Boolean(resume));
   useEffect(() => {
+    // náhľad sa nemení — koncept (karta „Pokračovať“) z neho nevzniká
+    if (readOnly) return;
     const stored = toStoredDays(days);
     if (draftSignature({ name, days: stored }) !== freshSignature) {
       touchedDraft.current = true;
@@ -209,7 +239,42 @@ export function ClientPlanBuilder({
     } else if (touchedDraft.current) {
       clearBuilderDraft(draftOwner);
     }
-  }, [name, days, freshSignature, draftOwner, initial?.id]);
+  }, [name, days, freshSignature, draftOwner, initial?.id, readOnly]);
+
+  // Vyhodnotenie plánu (len náhľad) — načíta sa pri otvorení náhľadu.
+  const [review, setReview] = useState<PlanReview | null>(reviewPreview);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [, startReviewTransition] = useTransition();
+  const loadReview = useCallback(() => {
+    if (!readOnly || !initial || reviewPreview) return;
+    setReviewError(null);
+    startReviewTransition(async () => {
+      const res = await getPlanReviewAction(initial.id).catch(() => ({ error: t("reviewError") }));
+      if ("error" in res) setReviewError(res.error);
+      else setReview(res.review);
+    });
+  }, [readOnly, initial, reviewPreview, t]);
+  useEffect(() => {
+    loadReview();
+  }, [loadReview]);
+  // „Zopakovať s progresiou“ — okno s voľbou % (ProgressionDialog), potom builder nového plánu
+  const [repeating, setRepeating] = useState(false);
+  // „Zmazať koncept“ / „Zahodiť úpravy“ — potvrdenie v riadku tlačidiel (Esc = zrušiť)
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  useEffect(() => {
+    if (!confirmDiscard) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmDiscard(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmDiscard]);
+  const discard = () => {
+    // koncept v prehliadači preč — po zatvorení sa nezobrazí karta „Pokračovať“
+    touchedDraft.current = false;
+    clearBuilderDraft(draftOwner);
+    onCancel();
+  };
   // "" = ešte nevybraný → activeDay spadne na prvý deň (nižšie).
   const [activeKey, setActiveKey] = useState<string>("");
   const [addingDay, setAddingDay] = useState(false);
@@ -390,13 +455,17 @@ export function ClientPlanBuilder({
     // Späť (zatvoriť builder bez uloženia): potiahnutie zľava doprava na mobile, späť v
     // prehliadači alebo „Tréning“ v menu (TrainingSection, ?tvorba) — tlačidlo „Späť“ tu nie je.
     <SwipeBack onBack={onCancel}>
-      <section aria-label={initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
-        <div className={styles.trBuilderTop}>
-          <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="cbuilder-save">
-            {pending ? t("saving") : t("save")}
-          </button>
-        </div>
-
+      <section aria-label={readOnly ? t("previewAria") : initial ? t("editAria") : t("newAria")} className={styles.trWrap}>
+        {readOnly ? (
+          <>
+            <div className={styles.trNameField}>
+              <span className={styles.panelLabel}>{t("planName")}</span>
+              {/* v náhľade nie je hlavička „Tréning“ — názov plánu je nadpis stránky */}
+            <h1 className={styles.trNameStatic}>{name}</h1>
+            </div>
+            <ReviewOverview review={review} error={reviewError} onRetry={loadReview} />
+          </>
+        ) : (
         <label className={styles.trNameField} data-tour="cbuilder-name">
           <span className={styles.panelLabel}>{t("planName")}</span>
           <input
@@ -414,9 +483,38 @@ export function ClientPlanBuilder({
             aria-invalid={error === t("planNameRequired") || undefined}
           />
         </label>
+        )}
 
-        {/* Chyba hore pod názvom (predtým až pod knižnicou cvikov — na mobile ju klient nevidel).
-            Pri ukladaní tlačidlom dole sa k nej stránka posunie. */}
+        {/* Rozloženie ako u trénera: pod názvom Uložiť + Zmazať koncept (nový plán) /
+            Zahodiť úpravy (úprava) — s potvrdením; dolné „Uložiť tréning“ už nie je. */}
+        {!readOnly &&
+          (confirmDiscard ? (
+            <div className={pa.confirm} role="alertdialog" aria-labelledby="discard-question">
+              <p id="discard-question" className={pa.confirmText}>
+                {initial ? t("discardEditsConfirm") : t("deleteDraftConfirm")}
+              </p>
+              <span className={pa.confirmBtns}>
+                <button type="button" className={pa.confirmNo} onClick={() => setConfirmDiscard(false)}>
+                  {t("cancel")}
+                </button>
+                <button type="button" className={pa.confirmYes} onClick={discard}>
+                  {initial ? t("yesDiscard") : t("yesDelete")}
+                </button>
+              </span>
+            </div>
+          ) : (
+            <div className={styles.trActionsGrid}>
+              <button type="button" className={styles.trSaveBtn} onClick={save} disabled={pending} data-tour="cbuilder-save">
+                {pending ? t("saving") : t("save")}
+              </button>
+              <button type="button" className={styles.trDiscardBtn} onClick={() => setConfirmDiscard(true)} disabled={pending}>
+                {initial ? t("discardEdits") : t("deleteDraft")}
+              </button>
+            </div>
+          ))}
+
+        {/* Chyba hore pod názvom (predtým až pod knižnicou cvikov — na mobile ju klient nevidel);
+            stránka sa k nej pri ukladaní posunie. */}
         {error && (
           <p ref={errorRef} className={styles.trError} role="alert">
             {error}
@@ -449,6 +547,7 @@ export function ClientPlanBuilder({
                   </span>
                 </button>
               ))}
+              {!readOnly && (
               <button
                 type="button"
                 className={b.addDayTab}
@@ -459,6 +558,7 @@ export function ClientPlanBuilder({
               >
                 {t("addDay")}
               </button>
+              )}
             </div>
 
             {addingDay && (
@@ -503,12 +603,12 @@ export function ClientPlanBuilder({
                       ? t("dayDone", { date: formatCompletedDate(activeDone.completedAt, locale) })
                       : t("dayDoneShort")}
                   </span>
-                  <span className={b.dayDoneHint}>{t("dayDoneHint")}</span>
+                  {!readOnly && <span className={b.dayDoneHint}>{t("dayDoneHint")}</span>}
                 </div>
               </div>
             )}
 
-            {activeDay && !activeDone && (
+            {activeDay && !activeDone && !readOnly && (
               // akcie vybraného dňa (názov aj počet cvikov sú v dráhe dní)
               <div className={b.dayHead}>
                 <div className={b.dayActionsRow}>
@@ -561,7 +661,9 @@ export function ClientPlanBuilder({
             )}
 
             <div className={b.dayPanel}>
-              {activeDay && activeDone ? (
+              {readOnly ? (
+                <DayReview compare={activeDone?.compare ?? null} review={review} />
+              ) : activeDay && activeDone ? (
                 activeDone.compare.exercises.length > 0 ? (
                   <CompletedExercises exercises={activeDone.compare.exercises} hasPlan={activeDone.compare.hasPlan} />
                 ) : (
@@ -675,14 +777,32 @@ export function ClientPlanBuilder({
 
           {/* Až za plátnom aj v DOM — poradie pre klávesnicu/čítačku = vizuálne */}
           {/* odcvičený deň sa nemení — pridávanie cvikov netreba (ako u trénera) */}
-          {!activeDone && (
+          {!activeDone && !readOnly && (
             <ClientExerciseLibrary library={library} hasDay={activeDay !== null} onAdd={addExercise} onDetail={openDetail} />
           )}
         </div>
 
-        <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={save} disabled={pending}>
-          {pending ? t("saving") : initial ? t("saveChanges") : t("saveWorkout")}
-        </button>
+        {readOnly && (
+          <>
+            {/* „Ako sa ti cvičilo“ v náhľade klienta nie je (poznámky a RPE vidí pri tréningoch) */}
+            {onRepeat && (
+              <div className={styles.rvRepeat}>
+                <button type="button" className={`btn btn-primary ${styles.startBtn}`} onClick={() => setRepeating(true)}>
+                  {t("repeat")}
+                </button>
+                <p className={styles.trHint}>{t("repeatHint")}</p>
+              </div>
+            )}
+            {repeating && initial && onRepeat && (
+              <ProgressionDialog
+                days={initial.days}
+                ready={review?.ready ?? {}}
+                onCreate={(pct) => onRepeat(progressedTemplate(initial, review?.ready ?? {}, pct, t("repeatName", { name: initial.name })))}
+                onClose={() => setRepeating(false)}
+              />
+            )}
+          </>
+        )}
 
         {detailFor && (
           <ExerciseDetailModal detail={detail} fallbackName={detailFor.name} onClose={() => setDetailFor(null)} />

@@ -12,7 +12,7 @@ test.describe("prepínač plány / moje šablóny", () => {
     const plansTab = page.getByRole("radio", { name: /Tréningové plány/ });
     const tplTab = page.getByRole("radio", { name: /Moje šablóny/ });
     await expect(plansTab).toHaveAttribute("aria-checked", "true");
-    await expect(plansTab).toContainText("3"); // vrátane celého odcvičeného „Letný plán“
+    await expect(plansTab).toContainText("4"); // vrátane odcvičených „Letný plán“ a „Moja jesenná sila“
     await expect(tplTab).toContainText("1");
     await expect(page.getByText("Silový plán — 3× týždenne").first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Použiť" })).toHaveCount(0);

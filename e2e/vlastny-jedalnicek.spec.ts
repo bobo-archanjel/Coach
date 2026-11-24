@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { sessionLogin, userIdByEmail } from "./helpers/sessionLogin";
 
 /**
  * Vlastný jedálniček klienta (0067, app/portal/strava/*):
@@ -113,23 +114,32 @@ test.describe("vlastný jedálniček — náhľady", () => {
     // 80 g vločiek + 150 g jogurtu + 180 g kuracieho + 200 g ryže + 120 g banánu
     await expect(page.getByText("973 / 2300 kcal")).toBeVisible();
     await expect(page.getByText("Cieľ: B 150 g · S 260 g · T 70 g")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Uložiť zmeny" })).toBeVisible();
+    // úprava: hore Uložiť úpravy + Zahodiť úpravy, dolné tlačidlo nie je; bez hlavičky „Jedálniček“
+    await expect(page.getByRole("button", { name: "Uložiť úpravy" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Zahodiť úpravy" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Uložiť zmeny|Uložiť jedálniček/ })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Jedálniček" })).toHaveCount(0);
 
     await page.goBack();
     await expect(page).not.toHaveURL(/tvorba=1/);
     await expect(page.getByRole("button", { name: "Upraviť", exact: true })).toBeVisible();
   });
 
-  test("nový: kontrola názvu a dňa, pridanie dňa a potraviny cez panel", async ({ page }) => {
+  test("nový: predvyplnený názov a „Deň 1“, kontrola názvu, pridanie dňa a potraviny cez panel", async ({ page }) => {
     await page.goto("/portal/strava?preview=empty");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
     await expect(page.getByText(/Zatiaľ nemáš jedálniček/)).toBeVisible();
     await page.getByRole("button", { name: "Vlastný jedálniček" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Jedálniček" })).toHaveCount(0);
+    await expect(page.getByLabel("Názov jedálnička")).toHaveValue("Chudnutie – prvý týždeň");
+    await expect(page.getByRole("group", { name: "Dni jedálnička" }).getByRole("button", { name: /Deň 1/ })).toHaveAttribute("aria-current", "true");
+    await expect(page.getByRole("button", { name: "Zmazať koncept" })).toBeVisible();
 
+    await page.getByLabel("Názov jedálnička").fill("");
     await page.getByRole("button", { name: "Uložiť", exact: true }).click();
     await expect(page.locator("p[role=alert]")).toHaveText("Zadaj názov jedálnička.");
     await page.getByLabel("Názov jedálnička").fill("Test týždeň");
-    await page.getByRole("button", { name: "Uložiť", exact: true }).click();
-    await expect(page.locator("p[role=alert]")).toHaveText("Pridaj aspoň jeden deň.");
 
     await page.getByRole("button", { name: "+ deň" }).click();
     const dayDialog = page.getByRole("dialog", { name: "Nový deň" });
@@ -151,7 +161,68 @@ test.describe("vlastný jedálniček — náhľady", () => {
     await page.getByRole("button", { name: "Použiť" }).click();
     await expect(page.getByLabel("Názov jedálnička")).toHaveValue("Rýchle raňajky");
     await expect(page.getByRole("group", { name: "Dni jedálnička" }).getByRole("button", { name: /Deň 1/ })).toContainText("2");
-    await expect(page.getByRole("button", { name: "Uložiť jedálniček" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Uložiť", exact: true })).toBeVisible();
+  });
+
+  test("rozpracovaná úprava vlastného jedálnička: Pokračovať, Zahodiť úpravy", async ({ page }) => {
+    await page.goto("/portal/strava?preview=own");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.getByRole("button", { name: "Upraviť", exact: true }).click();
+    await page.getByLabel("Názov jedálnička").fill("Môj týždeň 2");
+    await page.waitForTimeout(600);
+    await page.goBack();
+    const card = page.getByTestId("meal-builder-draft");
+    await expect(card).toContainText("Rozpracovaná úprava jedálnička");
+    await card.getByRole("button", { name: "Pokračovať" }).click();
+    await expect(page.getByLabel("Názov jedálnička")).toHaveValue("Môj týždeň 2");
+    await expect(page.getByRole("button", { name: "Uložiť úpravy" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Zahodiť úpravy" }).click();
+    await expect(page.getByText("Naozaj zahodiť neuložené úpravy?")).toBeVisible();
+    await page.getByRole("button", { name: "Áno, zahodiť" }).click();
+    await expect(page.getByLabel("Názov jedálnička")).toHaveCount(0);
+    await expect(page.getByTestId("meal-builder-draft")).toHaveCount(0);
+  });
+
+  test("rozpracovaný jedálniček: odchod a Pokračovať obnoví úpravy, Zmazať koncept ho zahodí", async ({ page }) => {
+    await page.goto("/portal/strava?preview=empty");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    // otvorenie a odchod bez zmeny koncept nevytvorí
+    await page.getByRole("button", { name: "Vlastný jedálniček" }).click();
+    await expect(page).toHaveURL(/tvorba=1/);
+    // „späť“ hneď po otvorení (< ~300 ms) predbehne Next.js zápis kroku do histórie — človek
+    // tak rýchlo nereaguje (rovnaké pri builderi tréningu)
+    await page.waitForTimeout(600);
+    await page.goBack();
+    await expect(page.getByLabel("Názov jedálnička")).toHaveCount(0);
+    await expect(page.getByTestId("meal-builder-draft")).toHaveCount(0);
+
+    await expect(page.getByRole("button", { name: "Vlastný jedálniček" })).toBeVisible();
+    await page.getByRole("button", { name: "Vlastný jedálniček" }).click();
+    await expect(page.getByLabel("Názov jedálnička")).toHaveValue("Chudnutie – prvý týždeň");
+    await page.getByLabel("Názov jedálnička").fill("Rozpracovaný týždeň");
+    await addFood(page, "Raňajky", "ovsen", /Ovsené vločky/, "80");
+    await expect(page).toHaveURL(/tvorba=1/);
+    await page.waitForTimeout(600);
+    await page.goBack();
+    const card = page.getByTestId("meal-builder-draft");
+    await expect(card).toContainText("Rozpracovaný jedálniček");
+    await expect(card).toContainText("Rozpracovaný týždeň");
+
+    // prežije aj refresh; Pokračovať vráti názov aj potravinu
+    await page.reload();
+    await page.getByTestId("meal-builder-draft").getByRole("button", { name: "Pokračovať" }).click();
+    await expect(page.getByLabel("Názov jedálnička")).toHaveValue("Rozpracovaný týždeň");
+    await expect(page.getByRole("group", { name: "Dni jedálnička" }).getByRole("button", { name: /Deň 1/ })).toContainText("1");
+
+    // Zmazať koncept (s potvrdením) → builder zavretý, karta preč
+    await page.getByRole("button", { name: "Zmazať koncept" }).click();
+    await page.getByRole("button", { name: "Áno, zmazať" }).click();
+    await expect(page.getByLabel("Názov jedálnička")).toHaveCount(0);
+    await expect(page.getByTestId("meal-builder-draft")).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Jedálniček" })).toBeVisible();
   });
 });
 
@@ -174,9 +245,8 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     });
     migrated = !(probe.error && /Could not find|does not exist|PGRST202/i.test(`${probe.error.message} ${probe.error.code}`));
     if (!migrated) return;
-    const api = createClient(env.url!, env.anon!, AUTH);
-    const { data } = await api.auth.signInWithPassword({ email: env.clientEmail!, password: env.clientPassword! });
-    userId = data.user!.id;
+    // bez signInWithPassword (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+    userId = await userIdByEmail(env.clientEmail!);
     const { data: row } = await admin
       .from("clients")
       .select("id, active_meal_plan_id")
@@ -195,26 +265,22 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     await admin.from("clients").update({ active_meal_plan_id: originalActive }).eq("id", clientRowId);
   });
 
-  test("uloženie, úprava, šablóna a zmazanie vlastného jedálnička", async ({ page }, testInfo) => {
+  test("uloženie, úprava, šablóna a zmazanie vlastného jedálnička", async ({ page, baseURL }, testInfo) => {
     test.skip(!migrated, "migrácia 0067 na tejto DB ešte nebežala");
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     test.setTimeout(180_000);
 
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.clientEmail!);
-    await page.locator("#login-password").fill(env.clientPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/portal/, { timeout: 30_000 });
+    // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+    await sessionLogin(page, env.clientEmail!, baseURL!);
     await page.goto("/portal/strava");
+    await page.evaluate(() => localStorage.clear());
 
     // nový
     await page.getByRole("button", { name: "Vlastný jedálniček" }).click();
     await page.getByLabel("Názov jedálnička").fill(planName);
-    await page.getByRole("button", { name: "+ deň" }).click();
-    await page.getByRole("dialog", { name: "Nový deň" }).getByLabel("Názov dňa").fill("E2E deň 1");
-    await page.getByRole("dialog", { name: "Nový deň" }).getByRole("button", { name: "Pridať", exact: true }).click();
+    // prvý deň („Deň 1“) je pridaný hneď
     await addFood(page, "Obed", "ryža", /Ryža/i, "200");
-    await page.getByRole("button", { name: "Uložiť jedálniček" }).click();
+    await page.getByRole("button", { name: "Uložiť", exact: true }).click();
 
     const row = page.locator('[data-tour="nutrition-active"]');
     await expect(row.getByText(planName)).toBeVisible({ timeout: 30_000 });
@@ -236,10 +302,10 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     await page.getByRole("button", { name: "+ deň" }).click();
     await page.getByRole("dialog", { name: "Nový deň" }).getByLabel("Názov dňa").fill("E2E deň 2");
     await page.getByRole("dialog", { name: "Nový deň" }).getByRole("button", { name: "Pridať", exact: true }).click();
-    await page.getByRole("button", { name: "Uložiť zmeny" }).click();
+    await page.getByRole("button", { name: "Uložiť úpravy" }).click();
     await expect(row.getByText(planName)).toBeVisible({ timeout: 30_000 });
     const { data: days2 } = await admin.from("meal_days").select("id, name, day_number").eq("plan_id", plan!.id).order("day_number");
-    expect(days2?.map((d) => d.name)).toEqual(["E2E deň 1", "E2E deň 2"]);
+    expect(days2?.map((d) => d.name)).toEqual(["Deň 1", "E2E deň 2"]);
     expect(days2?.[0].id).toBe(days1![0].id);
 
     // šablóna
@@ -260,7 +326,7 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     const { data: gone } = await admin.from("meal_plans").select("id").eq("id", plan!.id);
     expect(gone).toEqual([]);
   });
-  test("prepnutie v okne „Jedálničky“: z vlastného na trénerov", async ({ page }, testInfo) => {
+  test("prepnutie v okne „Jedálničky“: z vlastného na trénerov", async ({ page, baseURL }, testInfo) => {
     test.skip(!migrated, "migrácia 0067 na tejto DB ešte nebežala");
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     const { data: c } = await admin.from("clients").select("trainer_id").eq("id", clientRowId).single();
@@ -277,11 +343,8 @@ test.describe("vlastný jedálniček — reálna DB (QA klient)", () => {
     ]);
     await admin.from("clients").update({ active_meal_plan_id: op!.id }).eq("id", clientRowId);
 
-    await page.goto("/prihlasenie");
-    await page.locator("#login-email").fill(env.clientEmail!);
-    await page.locator("#login-password").fill(env.clientPassword!);
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
-    await page.waitForURL(/\/portal/, { timeout: 30_000 });
+    // prihlásenie bez formulára (CAPTCHA v Supabase) — e2e/helpers/sessionLogin.ts
+    await sessionLogin(page, env.clientEmail!, baseURL!);
     await page.goto("/portal/strava");
 
     const active = page.locator('[data-tour="nutrition-active"]');

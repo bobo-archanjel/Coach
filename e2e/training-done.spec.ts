@@ -588,8 +588,9 @@ test.describe("celý tok: odcvičený tréning je zamknutý (reálna DB)", () =>
     await expect(rows.nth(1)).toContainText("8 op. × 62,5 kg");
     await expect(trainerPage.getByTestId("day-done-edited")).toContainText("Klient hodnoty dodatočne upravil");
     await expect(ex.getByText("„Posledná séria ťažká“")).toBeVisible();
-    await expect(trainerPage.getByText("„E2E tréning“")).toBeVisible();
-    await expect(trainerPage.getByText("8/10")).toBeVisible();
+    // poznámka a RPE sú aj vo vyhodnotení hotového plánu nad prehľadom — tu tie pri dni (posledné)
+    await expect(trainerPage.getByText("„E2E tréning“").last()).toBeVisible();
+    await expect(trainerPage.getByText("8/10").last()).toBeVisible();
     await expect(trainerPage.getByRole("button", { name: /^Upraviť|Uložiť$|Zmazať deň|Odobrať|Premenovať/i })).toHaveCount(0);
 
     // --- 4. priame úpravy cez Supabase (obídenie UI): klient nezmení plán/stav ani nezmaže,
