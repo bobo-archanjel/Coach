@@ -636,11 +636,11 @@ export default async function LandingPage() {
             </span>
 
             <div data-reveal className={`${styles.pricingGrid} ${styles.reveal}`}>
-              <div className={styles.priceCard}>
+              <div className={`${styles.priceCard}`}>
                 <div className={styles.tier}>Starter</div>
                 <div className={styles.for}>{t("pricing.starterFor")}</div>
                 <div className={styles.priceRow}>
-                  <span className={styles.priceNum}>15–20&nbsp;€</span>
+                  <span className={styles.priceNum}>od&nbsp;15&nbsp;€</span>
                   <span className={styles.pricePer}>{t("pricing.perMonth")}</span>
                 </div>
                 <ul>
@@ -656,6 +656,14 @@ export default async function LandingPage() {
                     <CheckIcon color="var(--steel)" size={14} />
                     {t("pricing.starter3")}
                   </li>
+                  <li>
+                    <CheckIcon color="var(--steel)" size={14} />
+                    {t("pricing.starter4")}
+                  </li>
+                  <li>
+                    <CheckIcon color="var(--steel)" size={14} />
+                    {t("pricing.starter5")}
+                  </li>
                 </ul>
                 <Link href="/prihlasenie#register-trener" className={`btn btn-ghost ${styles.priceCta}`}>
                   {t("pricing.starterCta")}
@@ -665,7 +673,7 @@ export default async function LandingPage() {
                 <div className={styles.tier}>Pro</div>
                 <div className={styles.for}>{t("pricing.proFor")}</div>
                 <div className={styles.priceRow}>
-                  <span className={styles.priceNum}>40–50&nbsp;€</span>
+                  <span className={styles.priceNum}>30&nbsp;€</span>
                   <span className={styles.pricePer}>{t("pricing.perMonth")}</span>
                 </div>
                 <ul>
@@ -681,17 +689,21 @@ export default async function LandingPage() {
                     <CheckIcon color="var(--iron-red)" size={14} />
                     {t("pricing.pro3")}
                   </li>
+                  <li>
+                    <CheckIcon color="var(--iron-red)" size={14} />
+                    {t("pricing.pro4")}
+                  </li>
                 </ul>
                 <Link href="/prihlasenie#register-trener" className={`btn btn-primary ${styles.priceCta}`}>
                   {t("pricing.proCta")}
                   <ArrowIcon />
                 </Link>
               </div>
-              <div className={styles.priceCard}>
+              <div className={`${styles.priceCard}`}>
                 <div className={styles.tier}>Business</div>
                 <div className={styles.for}>{t("pricing.businessFor")}</div>
                 <div className={styles.priceRow}>
-                  <span className={styles.priceNum}>80–100&nbsp;€</span>
+                  <span className={styles.priceNum}>99&nbsp;€</span>
                   <span className={styles.pricePer}>{t("pricing.perMonth")}</span>
                 </div>
                 <ul>
@@ -702,10 +714,6 @@ export default async function LandingPage() {
                   <li>
                     <CheckIcon color="var(--steel)" size={14} />
                     {t("pricing.business2")}
-                  </li>
-                  <li>
-                    <CheckIcon color="var(--steel)" size={14} />
-                    {t("pricing.business3")}
                   </li>
                 </ul>
                 <Link href="/prihlasenie#register-trener" className={`btn btn-ghost ${styles.priceCta}`}>

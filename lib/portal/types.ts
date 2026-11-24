@@ -6,6 +6,7 @@ import type { MealSlot } from "@/lib/meals";
 import type { PortionUnit } from "@/lib/portions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 import type { PortalStreaks } from "./streak";
+import type { GamificationHome } from "@/lib/gamification/stats";
 import type { CompletedCompare } from "@/lib/workouts/completed";
 
 // Rotačný model (2026-08-28): plán nemá pevný rozvrh podľa dňa v týždni — klient
@@ -205,6 +206,8 @@ export interface PortalData {
   week: WeekView;
   /** série (týždne tréningu, dni zápisu jedla) — pravidlá v lib/portal/streak.ts */
   streaks: PortalStreaks;
+  /** týždenné prstence a úroveň (lib/gamification); null = nedostupné (pred migráciou 0078) */
+  gamification?: GamificationHome | null;
   /** null, kým nie je podaná žiadosť o zmazanie klienta (viď DeleteAccountSection na /portal/profil) */
   deletionNotice: PortalDeletionNotice | null;
   /** null, kým tréner neukončil spoluprácu (0020) — na rozdiel od deletionNotice dáta ostávajú */
@@ -542,4 +545,6 @@ export type PortalAiChatResult =
   | { state: "unlinked"; firstName: string | null }
   /** klient nemá prideleného trénera (self-klient) — AI Kouč zatiaľ funguje len s trénerom priradeným. */
   | { state: "no_trainer" }
+  /** tréner nemá tarifu s AI Koučom (Pro/Business) alebo mu predplatné vypršalo */
+  | { state: "coach_locked" }
   | { state: "error"; message?: string };

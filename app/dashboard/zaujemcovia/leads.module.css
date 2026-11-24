@@ -1,0 +1,213 @@
+/* /dashboard/zaujemcovia — zoznam a detail záujemcov. Tokeny dizajnu v6; mobile-first. */
+.filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  scrollbar-width: thin;
+}
+.filter {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.filterOn {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-text);
+}
+.filterCount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  color: inherit;
+  text-decoration: none;
+}
+.row:hover {
+  border-color: var(--accent);
+}
+.row:focus-visible,
+.filter:focus-visible,
+.statusBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rowName {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.rowMeta {
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.badge {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--fill-strong);
+  color: var(--paper-dim);
+}
+.s_new {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.s_contacted {
+  background: var(--amber-soft);
+  color: var(--plate-yellow);
+}
+.s_invited {
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+.empty {
+  margin: 0;
+  padding: 18px 4px;
+  color: var(--paper-dim);
+  font-size: 14.5px;
+}
+
+/* ---------- detail ---------- */
+.back {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--accent-text);
+  text-decoration: none;
+}
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .detail {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+}
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.facts {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+.facts dt {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.facts dd {
+  margin: 2px 0 0;
+  font-size: 15.5px;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.facts a {
+  color: var(--accent-text);
+}
+.sectionTitle {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 750;
+}
+.message {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--paper);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.consent {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+}
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+.statusBtn {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  color: var(--paper);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.statusBtn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.statusBtnOn {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-text);
+  opacity: 1 !important;
+}
+.actionRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 8px;
+}
+.hint {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+}
+.confirmText {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--paper);
+}

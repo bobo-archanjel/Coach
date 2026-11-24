@@ -1,6 +1,7 @@
 {
   "continued": "pokračovanie",
   "generated": "FitPilot · vygenerované {date}",
+  "generatedBranded": "{brand} · vygenerované {date} · beží na FitPilot",
   "page": "Strana {page} / {total}",
   "client": "Klient: {name}",
   "plan": {

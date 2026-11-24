@@ -5,6 +5,8 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { addClientAction, addClientByCodeAction, type AddClientState, type AddByCodeState } from "./actions";
 import type { RosterItem } from "./ClientRoster";
 import { InfoTip } from "@/app/components/InfoTip";
+import { useBilling } from "./BillingContext";
+import { ClientLimitNotice } from "./LockedFeature";
 import styles from "./dashboard.module.css";
 
 const initialState: AddClientState = { error: null };
@@ -35,6 +37,7 @@ function normalizeCode(raw: string): string {
 
 export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: RosterItem) => void }) {
   const t = useTranslations("clients.add");
+  const billing = useBilling();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"code" | "manual">("code");
   const [codeValue, setCodeValue] = useState("");
@@ -64,6 +67,9 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
   }, []);
 
   const codeDigitsLen = Math.max(0, codeValue.length - CODE_PREFIX.length);
+
+  // tarifa / read-only nepustí ďalšieho klienta — namiesto formulára vysvetlenie + odkaz na Predplatné
+  if (!billing.canAddClient) return <ClientLimitNotice />;
 
   if (!open) {
     return (

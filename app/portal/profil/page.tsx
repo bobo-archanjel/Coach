@@ -7,7 +7,8 @@ import { ActionResumeIcon } from "@/app/components/ActionIcons";
 import { DeleteAccountSection } from "@/app/portal/profil/DeleteAccountSection";
 import { TrainerConnection } from "@/app/portal/profil/TrainerConnection";
 import { loadProfilView } from "@/app/portal/profil/profilView";
-import { getUser } from "@/lib/supabase/server";
+import { createClient, getMyClient, getUser } from "@/lib/supabase/server";
+import { EmailPrefs } from "@/app/portal/profil/EmailPrefs";
 import { ThemeSwitch } from "@/app/v6design/ThemeSwitch";
 import { V6_THEME_COOKIE, parseV6Theme } from "@/app/v6design/theme";
 import { LanguageSelect } from "@/app/components/LanguageSelect";
@@ -29,6 +30,18 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const fullName = (userData.user?.user_metadata?.full_name as string | undefined)?.trim() || "—";
   const email = userData.user?.email ?? "—";
+
+  // „Týždenné zhrnutie e-mailom“ (0082; predvolene zapnuté). null = nedostupné (bez účtu/klienta, DEV náhľad
+  // alebo migrácia ešte nebehla) → prepínač sa neukáže.
+  let weeklyEnabled: boolean | null = null;
+  if (!preview && userData.user) {
+    const supabase = await createClient();
+    const { data: me } = await getMyClient(userData.user.id);
+    if (me?.id) {
+      const { data: pref, error: prefErr } = await supabase.from("client_email_prefs").select("weekly_summary").eq("client_id", me.id as string).maybeSingle();
+      if (!prefErr) weeklyEnabled = (pref?.weekly_summary as boolean | undefined) ?? true;
+    }
+  }
 
   return (
     <>
@@ -80,6 +93,8 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
             <ChangePasswordForm email={userData.user.email} />
           </div>
         )}
+
+        {weeklyEnabled !== null && <EmailPrefs weeklyEnabled={weeklyEnabled} />}
 
         <div className={s.panel}>
           <p className={s.panelLabel}>{t("personal")}</p>

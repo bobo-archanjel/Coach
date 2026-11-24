@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
+import { FeatureGate } from "../LockedFeature";
 import { AiMealGeneratorForm } from "./AiMealGeneratorForm";
 import styles from "@/app/dashboard/dashboard.module.css";
 
@@ -57,7 +58,9 @@ export default async function JedalnickyPage() {
 
       <div className={styles.card} data-tour="mealplans-ai">
         <h3>{t("ai.title")}</h3>
-        <AiMealGeneratorForm clients={aiClients} />
+        <FeatureGate feature="aiMealGenerator">
+          <AiMealGeneratorForm clients={aiClients} />
+        </FeatureGate>
       </div>
     </>
   );

@@ -13,6 +13,7 @@ import { sendAiChatMessage } from "@/lib/ai/chat";
 import { needsHealthEscalation } from "@/lib/ai/healthFilter";
 import { classifyTopic } from "@/lib/ai/topicClassify";
 import { dbErr } from "@/lib/dbError";
+import { trainerAllowsCoach } from "@/lib/billing/server";
 import { applySwapToEntries, splitExerciseRefs } from "@/lib/ai/exerciseSwap";
 
 export interface AiKoucActionState {
@@ -52,6 +53,8 @@ export async function sendAiKoucMessageAction(
   if (clientErr) return { error: await dbErr(clientErr, "actions") };
   if (!client) return { error: await tErr("client.notLinkedTrainer") };
   if (!client.trainer_id) return { error: await tErr("client.aiCoachTrainerOnly") };
+  // AI Kouč je súčasť tarify trénera (Pro/Business); pri vypršanom predplatnom je vypnutý
+  if (!(await trainerAllowsCoach(client.trainer_id))) return { error: await tErr("billing.coachLocked") };
 
   // Konverzácia aj jej história jedným dopytom (predtým dva za sebou); založí sa lazy
   // pri prvej správe (unique client_id). História = POSLEDNÝCH N správ (zostupne +

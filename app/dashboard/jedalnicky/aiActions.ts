@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { randomUUID } from "crypto";
 import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
@@ -74,6 +75,8 @@ function rowToResolution(row: OffFoodRowData): FoodResolution {
 }
 
 export async function generateMealPlanWithAiAction(_prev: MealAiState, formData: FormData): Promise<MealAiState> {
+  const blocked = await trainerBlock({ feature: "aiMealGenerator" });
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },

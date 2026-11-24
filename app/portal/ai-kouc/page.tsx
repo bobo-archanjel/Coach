@@ -14,7 +14,7 @@ import s from "../portal.module.css";
 export default async function AiKoucPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams;
   const result = preview === "ok" && process.env.NODE_ENV === "development" ? PREVIEW : await getPortalAiChat();
-  const [tp, t] = await Promise.all([getTranslations("portal"), getTranslations("portal.aiCoach")]);
+  const [tp, t, tb] = await Promise.all([getTranslations("portal"), getTranslations("portal.aiCoach"), getTranslations("billing.coachUnavailable")]);
 
   if (result.state === "error") {
     return (
@@ -28,6 +28,14 @@ export default async function AiKoucPage({ searchParams }: { searchParams: Promi
     return (
       <Notice icon={<ProfileIcon />} title={result.firstName ? tp("welcomeName", { name: result.firstName }) : tp("welcome")}>
         {tp("unlinkedShort")}
+      </Notice>
+    );
+  }
+
+  if (result.state === "coach_locked") {
+    return (
+      <Notice icon={<ProfileIcon />} title={tb("title")}>
+        {tb("text")}
       </Notice>
     );
   }

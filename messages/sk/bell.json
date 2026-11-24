@@ -24,14 +24,19 @@
     "messageCount": "{count, plural, one {# správa} few {# správy} other {# správ}}",
     "daysWithout": "{count, plural, one {# deň} few {# dni} other {# dní}} bez tréningu",
     "late": "{count, plural, one {# klient mešká} few {# klienti meškajú} other {# klientov mešká}} s tréningom",
-    "digest": "{count, plural, one {# klient klesol} few {# klienti klesli} other {# klientov kleslo}} zo „{from}“ do „{to}“ tento týždeň"
+    "digest": "{count, plural, one {# klient klesol} few {# klienti klesli} other {# klientov kleslo}} zo „{from}“ do „{to}“ tento týždeň",
+    "challengesDone": "{count, plural, one {# klient dokončil výzvu} few {# klienti dokončili výzvu} other {# klientov dokončilo výzvu}}",
+    "newLeads": "{count, plural, one {# nový záujemca} few {# noví záujemcovia} other {# nových záujemcov}} z verejnej stránky"
   },
   "client": {
     "unreadFromTrainer": "{count, plural, one {# neprečítaná správa} few {# neprečítané správy} other {# neprečítaných správ}} od trénera",
     "newPlan": "Nový tréningový plán: {name}",
     "newPlans": "{count, plural, one {# nový tréningový plán} few {# nové tréningové plány} other {# nových tréningových plánov}}",
     "newMealPlan": "Nový jedálniček: {name}",
-    "newMealPlans": "{count, plural, one {# nový jedálniček} few {# nové jedálničky} other {# nových jedálničkov}}"
+    "newMealPlans": "{count, plural, one {# nový jedálniček} few {# nové jedálničky} other {# nových jedálničkov}}",
+    "highFivePr": "🙌 Tvoj tréner ti dal high five za rekord: {exercise}",
+    "highFiveBadge": "🙌 Tvoj tréner ti dal high five za nový odznak",
+    "highFives": "{count, plural, one {# high five} few {# high fivy} other {# high fivov}} od trénera"
   },
   "bucket": {
     "ok": "V poriadku",

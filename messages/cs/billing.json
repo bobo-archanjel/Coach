@@ -1,0 +1,113 @@
+{
+  "title": "Předplatné",
+  "subtitle": "Tarif, zkušební doba a platby. Platíš jen ty jako trenér — klienti nikdy.",
+  "navLink": "Předplatné",
+  "currentPlan": "Aktuální tarif",
+  "plan": "Tarif",
+  "statusLabel": "Stav",
+  "status": {
+    "app_trial": "Zkušební doba",
+    "trialing": "Zkušební období",
+    "active": "Aktivní",
+    "past_due": "Platba selhala",
+    "canceled": "Zrušeno",
+    "unpaid": "Nezaplaceno",
+    "incomplete": "Čeká na platbu",
+    "incomplete_expired": "Platba nedokončena",
+    "paused": "Pozastaveno",
+    "none": "Bez předplatného",
+    "comped": "Zdarma (bez poplatku)"
+  },
+  "tiers": {
+    "starter": "Starter",
+    "pro": "Pro",
+    "business": "Business"
+  },
+  "tierBlurb": {
+    "starter": "Pro začínající trenéry — bez AI.",
+    "pro": "AI nástroje pro tebe i klienty.",
+    "business": "Bez limitu klientů a vlastní branding."
+  },
+  "features": {
+    "starter": {
+      "clients": "5 nebo 10 aktivních klientů (podle výběru)",
+      "builder": "Tréninkový builder",
+      "overview": "Přehled tréninkových plánů",
+      "meals": "Jídelníčky a jídelní deník",
+      "dashboard": "Základní dashboard",
+      "templates": "Vlastní šablony tréninků a jídelníčků",
+      "challenges": "1 výzva a týdenní žebříček"
+    },
+    "pro": {
+      "clients": "Do 30 aktivních klientů",
+      "base": "Vše ze Starter",
+      "aiGenerators": "AI generátor plánů a jídelníčků",
+      "aiCoach": "AI Kouč pro klienty",
+      "aiSummaries": "AI shrnutí progresu a portfolia",
+      "reports": "Pokročilé reporty",
+      "challenges": "Až 20 výzev najednou a celý žebříček"
+    },
+    "business": {
+      "clients": "Neomezený počet klientů",
+      "base": "Vše z Pro",
+      "branding": "Vlastní logo / branding aplikace"
+    }
+  },
+  "perMonth": "{price} / měsíc",
+  "priceUnknown": "Cena ve Stripe",
+  "testPriceNote": "Testovací ceny — reálně se nic nestrhává.",
+  "usage": "Aktivní klienti",
+  "usageValue": "{count} z {limit}",
+  "usageUnlimited": "{count} (bez limitu)",
+  "trialLeft": "{days, plural, =0 {Zkouška končí dnes} one {Zbývá # den zkoušky} few {Zbývají # dny zkoušky} other {Zbývá # dní zkoušky}}",
+  "trialEnds": "Zkouška končí {date}",
+  "renews": "Další obnovení: {date}",
+  "cancelsAt": "Předplatné skončí {date}",
+  "graceLeft": "Platbu uhraď do {days, plural, =0 {dnes} one {# dne} other {# dní}}, jinak se účet přepne jen na čtení.",
+  "currentBadge": "Aktuální",
+  "choose": "Vybrat {tier}",
+  "switchTo": "Přejít na {tier}",
+  "manage": "Spravovat předplatné",
+  "manageHint": "Změna tarifu, platební karta, faktury a zrušení předplatného se řeší v zabezpečeném portálu Stripe. Přechod na vyšší tarif platí hned (doplatí se poměrná část), přechod na nižší nastane až po konci zaplaceného období.",
+  "redirecting": "Přesměrování…",
+  "readOnlyTitle": "Účet je jen pro čtení",
+  "compedNote": "Tvůj účet má přístup zdarma — předplatné nepotřebuješ.",
+  "checkoutSuccess": "Děkujeme! Platbu zpracováváme — tarif se zapne během pár sekund. Stránku není třeba obnovovat.",
+  "checkoutCancel": "Platba byla zrušena. Nic se nestrhlo.",
+  "stripeMissing": "Platby ještě nejsou nastavené (chybí klíče Stripe).",
+  "banner": {
+    "cta": "Předplatné",
+    "trialEnding": "{days, plural, =0 {Zkušební doba končí dnes} one {Zkušební doba končí za # den} few {Zkušební doba končí za # dny} other {Zkušební doba končí za # dní}}. Vyber si tarif, abys mohl pokračovat bez přerušení.",
+    "pastDue": "Platbu za předplatné se nepodařilo stáhnout. {graceText}",
+    "title": {
+      "trialEnding": "Zkouška končí",
+      "pastDue": "Selhala platba",
+      "readOnly": "Účet je jen pro čtení",
+      "scheduledOverLimit": "Blíží se změna tarifu"
+    },
+    "readOnly": {
+      "no_subscription": "Předplatné se nenašlo. Aktivuj ho a můžeš pokračovat — všechna tvá data zůstávají.",
+      "trial_ended": "Zkušební doba skončila. Data vidíš, ale změny jsou vypnuté, dokud si nevybereš tarif. Tví klienti mohou portál dál používat.",
+      "subscription_ended": "Předplatné je zrušené nebo nezaplacené. Data vidíš, ale změny jsou vypnuté. Obnov ho a můžeš pokračovat.",
+      "past_due_expired": "Platba za předplatné selhala a odklad vypršel. Data vidíš, ale změny jsou vypnuté, dokud platbu neuhradíš.",
+      "over_limit": "Máš {count} aktivních klientů, ale tvůj tarif povoluje {limit}. Data vidíš, ale změny jsou vypnuté — ukonči spolupráci s částí klientů nebo přejdi na vyšší tarif."
+    },
+    "scheduledOverLimit": "Po přechodu na {plan} ({date}) budeš mít {count} klientů z {limit} — účet bude jen ke čtení, dokud je nesnížíš."
+  },
+  "lock": {
+    "badge": "od {tier}",
+    "upgrade": "Odemknout v sekci Předplatné",
+    "aiTitle": "Funkce tarifu {tier}",
+    "aiText": "AI nástroje jsou dostupné od tarifu {tier}. Změň tarif a odemkne se to hned.",
+    "readOnly": "Účet je jen pro čtení — nejdřív obnov předplatné.",
+    "clientLimit": "Limit {limit} aktivních klientů je naplněn. Přejdi na vyšší tarif.",
+    "addClientReadOnly": "Přidávání klientů je vypnuté, dokud je účet jen pro čtení."
+  },
+  "coachUnavailable": {
+    "title": "AI Kouč momentálně není dostupný",
+    "text": "Tvůj trenér ho má v tuto chvíli vypnutý. Ostatní části aplikace fungují jako dosud."
+  },
+  "variantClients": "Do {limit} klientů",
+  "scheduledChange": "{current} do {date}, potom {next}",
+  "scheduledOverLimit": "Po přechodu na {plan} ({date}) budeš mít {count} klientů z {limit} — účet bude jen ke čtení, dokud je nesnížíš."
+}

@@ -9,6 +9,7 @@ import { previewResult } from "@/app/portal/preview";
 import { DoneWorkoutView } from "@/app/portal/DoneWorkoutView";
 import { LogWorkoutButton } from "@/app/portal/LogWorkoutButton";
 import { CooperationNotice } from "@/app/portal/CooperationNotice";
+import { InvitePrompt } from "@/app/portal/InvitePrompt";
 import { RetryButton } from "@/app/portal/RetryButton";
 import { WorkoutStopwatch } from "@/app/portal/WorkoutStopwatch";
 import { WeekHistory } from "@/app/portal/WeekHistory";
@@ -21,6 +22,10 @@ import { AlertIcon, Notice } from "./Notice";
 import s from "./portal.module.css";
 import { LiveProgressRing, ProgressRing } from "./ProgressRing";
 import { OtherTodayWorkouts } from "./OtherTodayWorkouts";
+import { GamificationHome } from "./GamificationHome";
+import { Suspense } from "react";
+import { ChallengesHost } from "./ChallengesCard";
+import { WeeklySummaryHost } from "./WeeklySummaryHost";
 import { AppointmentNotice } from "./AppointmentNotice";
 import { HIDDEN_APPOINTMENT_COOKIE } from "@/lib/portal/appointmentNotice";
 import { cookies } from "next/headers";
@@ -124,21 +129,30 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
     );
   }
 
+  // pozvánka cez odkaz trénera (0077): „Pripojiť sa“ — len mimo dev náhľadov
+  const invite = preview ? null : <InvitePrompt />;
+
   if (result.state === "unlinked") {
     return (
-      <Notice icon={<ProfileIcon />} title={result.firstName ? t("welcomeName", { name: result.firstName }) : t("welcome")}>
-        {t("unlinked")}
-      </Notice>
+      <>
+        {invite}
+        <Notice icon={<ProfileIcon />} title={result.firstName ? t("welcomeName", { name: result.firstName }) : t("welcome")}>
+          {t("unlinked")}
+        </Notice>
+      </>
     );
   }
 
   const hiddenAppointmentId = decodeURIComponent((await cookies()).get(HIDDEN_APPOINTMENT_COOKIE)?.value ?? "");
   return (
-    <Today
-      data={result.data}
-      preview={Boolean(preview) && process.env.NODE_ENV === "development"}
-      hiddenAppointmentId={hiddenAppointmentId}
-    />
+    <>
+      {invite}
+      <Today
+        data={result.data}
+        preview={Boolean(preview) && process.env.NODE_ENV === "development"}
+        hiddenAppointmentId={hiddenAppointmentId}
+      />
+    </>
   );
 }
 
@@ -151,6 +165,7 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
     session,
     week,
     streaks,
+    gamification,
     deletionNotice,
     cooperationEndedNotice,
     bodyMetrics,
@@ -251,10 +266,27 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
           <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
 
-        <WeekHistory initial={week} footer={<StreakChips streaks={streaks} />} preview={preview} />
+        <WeekHistory initial={week} footer={
+            <>
+              {gamification && <GamificationHome home={gamification} />}
+              <StreakChips streaks={streaks} />
+            </>
+          } preview={preview} />
 
         <ProgressCard history={bodyMetrics} />
       </section>
+
+      {/* fáza B: týždenný súhrn (raz za týždeň) a výzvy od trénera — dostreamujú sa, nespomaľujú kartu Dnes */}
+      {!preview && (
+        <>
+          <Suspense fallback={null}>
+            <WeeklySummaryHost mode="due" />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ChallengesHost compact />
+          </Suspense>
+        </>
+      )}
     </>
   );
 }

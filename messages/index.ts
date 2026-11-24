@@ -40,6 +40,12 @@ import skPdf from "./sk/pdf.json";
 import skAi from "./sk/ai.json";
 import skSystem from "./sk/system.json";
 import skLegal from "./sk/legal.json";
+import skBilling from "./sk/billing.json";
+import skBranding from "./sk/branding.json";
+import skReports from "./sk/reports.json";
+import skGamification from "./sk/gamification.json";
+import skMail from "./sk/mail.json";
+import skPublicPage from "./sk/publicPage.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -77,6 +83,12 @@ import csPdf from "./cs/pdf.json";
 import csAi from "./cs/ai.json";
 import csSystem from "./cs/system.json";
 import csLegal from "./cs/legal.json";
+import csBilling from "./cs/billing.json";
+import csBranding from "./cs/branding.json";
+import csReports from "./cs/reports.json";
+import csGamification from "./cs/gamification.json";
+import csMail from "./cs/mail.json";
+import csPublicPage from "./cs/publicPage.json";
 
 export const sk = {
   common: skCommon,
@@ -115,6 +127,12 @@ export const sk = {
   ai: skAi,
   system: skSystem,
   legal: skLegal,
+  billing: skBilling,
+  branding: skBranding,
+  reports: skReports,
+  gamification: skGamification,
+  mail: skMail,
+  publicPage: skPublicPage,
 };
 
 export type Messages = typeof sk;
@@ -156,6 +174,12 @@ export const cs: Messages = {
   ai: csAi,
   system: csSystem,
   legal: csLegal,
+  billing: csBilling,
+  branding: csBranding,
+  reports: csReports,
+  gamification: csGamification,
+  mail: csMail,
+  publicPage: csPublicPage,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };

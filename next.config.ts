@@ -21,6 +21,19 @@ function supabaseConnectHosts(): string {
   return "https://*.supabase.co wss://*.supabase.co";
 }
 
+// Logo a fotka trénera (branding, Business) sa servírujú z verejného bucketu `branding` na
+// Supabase Storage — img-src smie pustiť LEN host nášho projektu (nie `*.supabase.co`).
+// Bez env premennej sa nepridá nič (obrázky značky sa potom nezobrazia, appka funguje).
+function supabaseImgHost(): string {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (url) return ` https://${new URL(url).host}`;
+  } catch {
+    // neplatná URL → nič nepridávať
+  }
+  return "";
+}
+
 const nextConfig: NextConfig = {
   // QA_DIST_DIR (test/qa-dual-agent): umožňuje spustiť viac `next dev` inštancií
   // nad tým istým repom bez toho, aby si navzájom kazili `.next` build cache
@@ -39,6 +52,10 @@ const nextConfig: NextConfig = {
   // skupín, čím sa táto duplicita neobjavuje.
   experimental: {
     cssChunking: "strict",
+    // Branding (nastavenia → Moja značka) nahráva logo + fotku (každé max. 1 MB) cez server action —
+    // predvolený limit 1 MB by požiadavku s dvoma súbormi odmietol. Veľkosť každého súboru
+    // kontroluje akcia sama (lib/branding/validation.ts MAX_UPLOAD_BYTES).
+    serverActions: { bodySizeLimit: "3mb" },
     // Klientska router cache pre dynamické stránky (feature/faster-app): návrat na tab,
     // kde používateľ bol pred chvíľou (Dnes ↔ Tréning ↔ Strava, Klienti ↔ detail), sa
     // vykreslí okamžite z pamäte namiesto nového server renderu. Default v Next 15 je 0.
@@ -58,6 +75,10 @@ const nextConfig: NextConfig = {
   // produkcii súbory chýbali a export padal (lokálne fungoval, disk tam je celý).
   outputFileTracingIncludes: {
     "/api/export/**": ["./assets/fonts/*.ttf", "./public/brand/logo-mark.png"],
+    // zdieľacie karty (gamifikácia, fáza B) — next/og potrebuje fonty Inter z disku
+    "/api/gamification/share": ["./assets/fonts/*.ttf", "./public/brand/logo-mark.png"],
+    // náhľadový obrázok verejnej stránky trénera (/t/<handle>/og, next/og) — fonty Inter z disku
+    "/t/[handle]/og": ["./assets/fonts/*.ttf"],
     // AI Kouč (lib/ai/foodSearch.ts) číta offline balík Open Food Facts z disku na serveri
     // (fs + zlib) pri hľadaní potravín. Server action beží v serverless funkcii stránky,
     // ktorá ju hostí — kľúč je preto route stránky, nie súbor akcie.
@@ -128,7 +149,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://raw.githubusercontent.com",
+      `img-src 'self' data: https://raw.githubusercontent.com${supabaseImgHost()}`,
       // app/v5's scroll-world engine (public/v5/scrub-engine.js) loads each
       // clip as a Blob and assigns it to <video src> for guaranteed
       // seekability regardless of byte-range support — that blob: URL falls
@@ -137,6 +158,10 @@ const nextConfig: NextConfig = {
       "media-src 'self' blob:",
       "font-src 'self' data:",
       "frame-src https://challenges.cloudflare.com",
+      // web app manifest (inštalácia na plochu) — len vlastná doména; ikony značky trénera ide
+      // cez img-src (Supabase host vyššie). Service worker zámerne nie je (viď docs v 0081/branding),
+      // preto žiadne worker-src.
+      "manifest-src 'self'",
       // wss:// je pre Supabase Realtime (ChatThread, NotificationBell) — `https://` v
       // connect-src WebSocket NEpokrýva; bez toho prehliadač spojenie ticho zablokuje.
       `connect-src 'self' ${supabaseConnectHosts()} https://plausible.io https://challenges.cloudflare.com`,

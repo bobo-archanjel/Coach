@@ -19,8 +19,9 @@ import type { Locale } from "@/lib/i18n/locales";
 export const planDismissKey = (planId: string) => `plan:${planId}`;
 export const mealDismissKey = (planId: string) => `meal:${planId}`;
 export const apptDismissKey = (appointmentId: string) => `appt:${appointmentId}`;
+export const highFiveDismissKey = (highFiveId: string) => `hf:${highFiveId}`;
 
-const KEY_PATTERN = /^(plan|meal|appt):[\w-]{1,80}$/;
+const KEY_PATTERN = /^(plan|meal|appt|hf):[\w-]{1,80}$/;
 /** Server action neprijme ľubovoľný reťazec — len kľúče v tvare, ktorý vyrábajú funkcie vyššie. */
 export function isValidClientDismissKey(key: unknown): key is string {
   return typeof key === "string" && key.length <= 120 && KEY_PATTERN.test(key);
@@ -52,6 +53,17 @@ export interface AttentionAppointment {
   key: string;
 }
 
+/** High five od trénera (gamifikácia, 0078) — zobrazí sa, kým ho klient neotvorí/neskryje. */
+export interface AttentionHighFive {
+  id: string;
+  key: string;
+  /** názov cviku pri rekorde, null pri odznaku */
+  exercise: string | null;
+}
+
+/** High five sa v zvončeku ukazuje len takto dlho od odoslania. */
+export const HIGH_FIVE_WINDOW_DAYS = 14;
+
 export interface PortalAttentionData {
   /** neprečítané správy od trénera ALEBO systémové (AI proaktívny check-in, GDPR notice...) */
   unread: number;
@@ -59,6 +71,8 @@ export interface PortalAttentionData {
   newMealPlans: AttentionNewPlan[];
   /** termín(y) do APPOINTMENT_REMINDER_HOURS hodín, najbližší prvý */
   appointments: AttentionAppointment[];
+  /** high five od trénera za rekord/odznak (voliteľné — chýba pred migráciou 0078) */
+  highFives?: AttentionHighFive[];
 }
 
 /** Odstráni skryté upozornenia — vstup pre odznak aj zoznam zvončeka. */
@@ -71,6 +85,7 @@ export function applyPortalDismissals(
     newPlans: data.newPlans.filter((p) => !dismissed.has(p.key)),
     newMealPlans: data.newMealPlans.filter((p) => !dismissed.has(p.key)),
     appointments: data.appointments.filter((a) => !dismissed.has(a.key)),
+    highFives: (data.highFives ?? []).filter((h) => !dismissed.has(h.key)),
   };
 }
 
@@ -82,7 +97,7 @@ export interface PortalAttentionLink {
 }
 
 export interface PortalAttentionItem {
-  id: "messages" | "plans" | "meals" | "appointments";
+  id: "messages" | "plans" | "meals" | "appointments" | "highFives";
   tone: "alert" | "watch";
   title: string;
   /** null = nadpis nie je odkaz (klikateľné sú len podpoložky) */
@@ -100,7 +115,7 @@ export const portalPlanHref = (planId: string) => `/portal/trening?plan=${encode
 
 /** Počet na odznaku zvončeka: neprečítané správy + nové plány/jedálničky + blížiace sa termíny. */
 export function portalAttentionTotal(data: PortalAttentionData): number {
-  return data.unread + data.newPlans.length + data.newMealPlans.length + data.appointments.length;
+  return data.unread + data.newPlans.length + data.newMealPlans.length + data.appointments.length + (data.highFives?.length ?? 0);
 }
 
 /**
@@ -138,6 +153,25 @@ export function buildPortalAttentionItems(data: PortalAttentionData, locale: Loc
       })),
       markRead: false,
       dismiss: { keys: data.appointments.map((a) => a.key), days: DISMISS_APPOINTMENT_DAYS },
+    });
+  }
+
+  const fives = data.highFives ?? [];
+  if (fives.length > 0) {
+    items.push({
+      id: "highFives",
+      tone: "watch",
+      title:
+        fives.length > 1
+          ? t("client.highFives", { count: fives.length })
+          : fives[0].exercise
+            ? t("client.highFivePr", { exercise: fives[0].exercise })
+            : t("client.highFiveBadge"),
+      href: "/portal/uspechy",
+      links: [],
+      markRead: false,
+      dismiss: { keys: fives.map((h) => h.key), days: null },
+      dismissOnOpen: true,
     });
   }
 

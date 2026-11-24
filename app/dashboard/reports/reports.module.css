@@ -1,0 +1,301 @@
+/* Pokročilé reporty (feature/Stripe) — doplnok k dashboard.module.css (karty, grafy, chipy sa
+   preberajú odtiaľ). Len tokeny v6, žiadne vlastné farby; farba nikdy nenesie význam sama
+   (vždy aj text/ikona), sériové farby: --accent (hlavná), --moss (splnené/pozitívne), --plate-yellow. */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- hlavička: obdobie + export ---------- */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.periodBar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+}
+.periodBtn {
+  min-height: 38px;
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--paper-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.periodBtn:hover {
+  color: var(--paper);
+}
+.periodBtn:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.periodBtnActive {
+  background: var(--surface-solid);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-1);
+}
+.rangeNote {
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- riziko ---------- */
+.risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--paper);
+}
+.riskIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.riskBody strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 760;
+  margin-bottom: 2px;
+}
+.riskBody ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  color: var(--paper-dim);
+  line-height: 1.5;
+}
+.okNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--moss);
+}
+
+/* ---------- dlaždice s číslami ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.tile {
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 11px 13px;
+  min-width: 0;
+}
+.tileLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.tileValue {
+  margin-top: 4px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.tileSub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.tone_ok {
+  color: var(--moss);
+}
+.tone_watch {
+  color: var(--plate-yellow);
+}
+.tone_risk {
+  color: var(--accent-text);
+}
+
+/* ---------- výber (chipy meraní) a porovnanie ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.chip {
+  min-height: 34px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--fill);
+  color: var(--paper-dim);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.chipActive {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.compare {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 13px;
+  color: var(--paper-dim);
+  font-variant-numeric: tabular-nums;
+}
+.compare strong {
+  color: var(--paper);
+}
+.deltaUp {
+  color: var(--moss);
+  font-weight: 760;
+}
+.deltaDown {
+  color: var(--accent-text);
+  font-weight: 760;
+}
+.deltaFlat {
+  color: var(--paper-faint);
+  font-weight: 700;
+}
+.hint {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--paper-faint);
+}
+
+/* ---------- export ---------- */
+.exportBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.exportLabel {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-dim);
+}
+
+/* ---------- portfólio ---------- */
+.rankGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.rankList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rankList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--hairline);
+  font-size: 13.5px;
+}
+.rankList li:first-child {
+  border-top: 0;
+}
+.rankList a {
+  color: var(--paper);
+  font-weight: 650;
+  text-decoration: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rankList a:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+.rankMeta {
+  flex: none;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.sectionGap {
+  margin-top: 14px;
+}
+
+/* ---------- zamknutý náhľad ---------- */
+.previewBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 54px;
+  margin-top: 10px;
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+.previewBars span {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-bottom: 0;
+}
+
+@media (max-width: 560px) {
+  .periodBar {
+    width: 100%;
+  }
+  .periodBtn {
+    flex: 1 1 auto;
+    padding: 6px 8px;
+  }
+}

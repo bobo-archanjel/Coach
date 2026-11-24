@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerAddClientBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +21,8 @@ export interface AddByCodeState {
  * Rate limit (8 pokusov / 15 min per tréner) je vnútri RPC.
  */
 export async function addClientByCodeAction(_prev: AddByCodeState, formData: FormData): Promise<AddByCodeState> {
+  const blocked = await trainerAddClientBlock();
+  if (blocked) return { error: blocked, addedName: null };
   const code = ((formData.get("code") as string | null) ?? "").trim();
   if (!code) return { error: await tErr("addClient.codeRequired"), addedName: null };
   if (code.length < 6) return { error: await tErr("addClient.codeTooShort"), addedName: null };
@@ -38,6 +41,9 @@ export async function addClientByCodeAction(_prev: AddByCodeState, formData: For
       already_has_trainer: "addClient.otherTrainer",
       too_many_attempts: "addClient.rateLimited",
       not_a_trainer: "addClient.trainerOnly",
+      // DB stráže predplatného (migrácia 0073) — druhá vrstva za trainerAddClientBlock
+      client_limit_reached: "billing.clientLimitGeneric",
+      billing_read_only: "billing.readOnlyGeneric",
     } as const;
     const key = (Object.keys(map) as (keyof typeof map)[]).find((k) => error.message.includes(k));
     return { error: await tErr(key ? map[key] : "addClient.failed"), addedName: null };
@@ -55,6 +61,8 @@ export async function addClientAction(
   _prevState: AddClientState,
   formData: FormData
 ): Promise<AddClientState> {
+  const blocked = await trainerAddClientBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },

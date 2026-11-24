@@ -8,6 +8,7 @@ import { getUserLocale } from "@/lib/i18n/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generatePlanPdf } from "@/lib/pdf/planReport";
+import { loadPdfBrand } from "@/lib/branding/pdf";
 
 // Tvar jsonb v workout_days.exercises (viď WorkoutExerciseEntry, treningy/actions.ts) — snake_case.
 interface RawExercise {
@@ -43,6 +44,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
 
+  // značka trénera (Business) v hlavičke; bez Business / bez značky ostáva FitPilot
+  const brand = await loadPdfBrand(plan.trainer_id);
+
   const pdfBytes = await generatePlanPdf({
     planName: plan.name,
     clientName,
@@ -58,7 +62,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
         superset: ex.superset ?? null,
       })),
     })),
-  }, await getUserLocale());
+  }, await getUserLocale(), brand);
 
   const fileName = `${plan.name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || "plan"}.pdf`;
   return new NextResponse(Buffer.from(pdfBytes), {

@@ -1,7 +1,7 @@
 // FitPilot — export tréningového plánu do PDF (feature/export-dat, vzhľad v6).
 
 import type { Locale } from "@/lib/i18n/locales";
-import { createPdfContext, PdfWriter, type TableColumn } from "./document";
+import { createPdfContext, PdfWriter, type PdfBrand, type TableColumn } from "./document";
 import { supersetPositions } from "@/lib/workouts/superset";
 
 export interface PlanReportExercise {
@@ -36,8 +36,8 @@ function restLabel(sec: number | null): string {
   return rest ? `${min} min ${rest} s` : `${min} min`;
 }
 
-export async function generatePlanPdf(input: PlanReportInput, locale: Locale = "sk"): Promise<Uint8Array> {
-  const ctx = await createPdfContext(locale);
+export async function generatePlanPdf(input: PlanReportInput, locale: Locale = "sk", brand: PdfBrand | null = null): Promise<Uint8Array> {
+  const ctx = await createPdfContext(locale, brand);
   const t = (key: Parameters<typeof ctx.t>[0], values?: Record<string, string | number>) => ctx.t(key, values);
   const COLUMNS: TableColumn[] = [
     { text: t("plan.exercise"), width: 170 },

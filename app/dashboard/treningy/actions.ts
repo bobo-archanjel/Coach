@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { addPlanRecipients, areTrainerClients, deliverPlanToRecipients, MAX_PLAN_CLIENTS, uniqueClientIds } from "@/lib/planRecipients";
@@ -59,6 +60,8 @@ export interface WorkoutExerciseEntry {
 }
 
 export async function createPlanAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -110,6 +113,8 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
  * rovnaký výpočet ako vyhodnotenie). Tréner ho potom upraví a odošle ako každý koncept.
  */
 export async function createProgressedPlanAction(planId: string, pct: number): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -171,6 +176,8 @@ export async function createProgressedPlanAction(planId: string, pct: number): P
  * workout_plans_update_own_trainer — cudzí plán vráti 0 riadkov, nie chybu.
  */
 export async function renamePlanAction(planId: string, rawName: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId) return { error: await tErr("plans.missingPlanId") };
   const name = rawName.trim();
   if (!name) return { error: await tErr("plans.planNameRequired") };
@@ -227,6 +234,8 @@ async function editTarget(
 
 /** „Uložiť úpravy“ zverejneného plánu — rozpracované úpravy z kópie do plánu, ktorý vidí klient. */
 export async function savePlanEditsAction(planId: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId) return { error: await tErr("plans.missingPlanId") };
   const supabase = await createClient();
   const { error } = await supabase.rpc("apply_plan_edits", { p_plan: planId });
@@ -254,6 +263,8 @@ export async function discardPlanEditsAction(planId: string): Promise<ActionStat
 
 /** Potvrdenie/koncept plánu — kým je `published: false`, klient ho v portáli nevidí. */
 export async function setPlanPublishedAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const planId = formData.get("plan_id") as string | null;
   const published = formData.get("published") === "true";
@@ -283,6 +294,8 @@ export async function setPlanPublishedAction(_prevState: ActionState, formData: 
 }
 
 export async function addDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const planId = formData.get("plan_id") as string | null;
   const name = (formData.get("name") as string | null)?.trim() ?? "";
@@ -315,6 +328,8 @@ export async function addDayAction(_prevState: ActionState, formData: FormData):
  * v builderi aj v rotácii portálu).
  */
 export async function deleteDayAction(planId: string, dayId: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId || !dayId) return { error: await tErr("plans.missingDayId") };
 
   const supabase = await createClient();
@@ -362,6 +377,8 @@ export async function deleteDayAction(planId: string, dayId: string): Promise<Ac
  * (pilulky dní v portáli); odcvičené tréningy si držia pôvodný názov v plan_snapshot (0048).
  */
 export async function renameDayAction(planId: string, dayId: string, rawName: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId || !dayId) return { error: await tErr("plans.missingDayId") };
   const name = rawName.trim();
   if (!name) return { error: await tErr("plans.dayNameRequired") };
@@ -394,6 +411,8 @@ export async function renameDayAction(planId: string, dayId: string, rawName: st
  * Uzamknutý (celý odcvičený) plán ani odcvičený deň sa nekopíruje; RLS — cudzí deň/plán sa nenájde.
  */
 export async function duplicateDayAction(planId: string, dayId: string): Promise<{ error: string | null; dayId: string | null }> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked, dayId: null };
   const fail = (error: string) => ({ error, dayId: null });
   if (!planId || !dayId) return fail(await tErr("plans.missingDayId"));
 
@@ -428,6 +447,8 @@ export async function duplicateDayAction(planId: string, dayId: string): Promise
 
 /** Klik na cvik v knižnici → pridá ho do aktívneho dňa s hodnotami posledného cviku a vráti jeho ID (builder ho hneď otvorí na úpravu). */
 export async function addExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
 
   const dayId = formData.get("day_id") as string | null;
@@ -487,6 +508,8 @@ export async function addExerciseToDayAction(_prevState: ActionState, formData: 
  * takže detail/obrázky sa preň jednoducho neponúkajú.
  */
 export async function addCustomExerciseToDayAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
 
   const dayId = formData.get("day_id") as string | null;
@@ -531,6 +554,8 @@ export async function addCustomExerciseToDayAction(_prevState: ActionState, form
 }
 
 export async function updateExerciseEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
 
   const dayId = formData.get("day_id") as string | null;
@@ -590,6 +615,8 @@ export async function moveExerciseEntryAction(input: {
   entryId: string;
   direction: "up" | "down";
 }): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const { planId, dayId, entryId, direction } = input;
   if (!planId || !dayId || !entryId) return { error: await tErr("plans.missingEntryId") };
 
@@ -622,6 +649,8 @@ export async function moveExerciseEntryAction(input: {
 }
 
 export async function removeExerciseEntryAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
 
   const dayId = formData.get("day_id") as string | null;
@@ -655,6 +684,8 @@ export async function removeExerciseEntryAction(_prevState: ActionState, formDat
  * ukáže optimisticky. lib/workouts/superset.ts.
  */
 export async function toggleSupersetLinkAction(input: { planId: string; dayId: string; entryId: string }): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const { planId, dayId, entryId } = input;
   if (!planId || !dayId || !entryId) return { error: await tErr("plans.missingEntryId") };
 
@@ -688,6 +719,8 @@ export async function toggleSupersetLinkAction(input: { planId: string; dayId: s
  * portál klienta potom spadne na najnovší zostávajúci plán.
  */
 export async function deletePlanAction(planId: string): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   if (!planId) return { error: await tErr("plans.missingPlanId") };
 
   const supabase = await createClient();
@@ -712,6 +745,8 @@ export async function deletePlanAction(planId: string): Promise<ActionState> {
 }
 
 export async function addCustomExerciseAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -954,6 +989,8 @@ async function devAiPlanFixture(
  * z prehliadača po jednom cez generateAiPlanForClientAction (priebeh „Generujem 2/5…“).
  */
 export async function generatePlanWithAiAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const blocked = await trainerBlock({ feature: "aiPlanGenerator" });
+  if (blocked) return { error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
@@ -997,6 +1034,8 @@ export interface AiPlanForClientResult {
  * po klientovi (priebeh v UI, chyba jedného nezastaví ostatných). Bez presmerovania.
  */
 export async function generateAiPlanForClientAction(raw: AiPlanParams, clientId: string): Promise<AiPlanForClientResult> {
+  const blocked = await trainerBlock({ feature: "aiPlanGenerator" });
+  if (blocked) return { error: blocked, planId: null, warnings: [] };
   const fail = (error: string): AiPlanForClientResult => ({ error, planId: null, warnings: [] });
   const supabase = await createClient();
   const {

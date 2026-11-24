@@ -8,12 +8,15 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { getLateStatusByClient } from "@/lib/dashboard/lateStatus";
 import { getHealthDigest } from "@/lib/dashboard/healthDigest";
 import { getActiveDismissals } from "@/lib/dashboard/dismissals";
+import { challengeNameOf } from "@/lib/gamification/kinds";
 import {
   APPOINTMENT_REMINDER_HOURS,
   applyDismissals,
   apptDismissKey,
   digestDismissKey,
   lateDismissKey,
+  challengeDismissKey,
+  CHALLENGE_DONE_WINDOW_DAYS,
   type AttentionData,
 } from "@/lib/dashboard/attention";
 
@@ -64,6 +67,8 @@ export async function loadAttention(): Promise<AttentionData | null> {
     { clients, active, lateStatus, clientsErr },
     { data: unreadRows, error: unreadErr },
     { data: apptRows, error: apptErr },
+    { data: chalRows, error: chalErr },
+    { count: leadsCount, error: leadsErr },
     digest,
     dismissed,
   ] = await Promise.all([
@@ -89,6 +94,17 @@ export async function loadAttention(): Promise<AttentionData | null> {
       .gte("starts_at", nowIso)
       .lte("starts_at", reminderUntilIso)
       .order("starts_at", { ascending: true }),
+    // dokončené výzvy klientov (0079) — pred migráciou dopyt zlyhá a len sa vynechá
+    supabase
+      .from("client_achievements")
+      .select("id, client_id, meta")
+      .eq("kind", "challenge")
+      .eq("backfilled", false)
+      .gte("achieved_at", new Date(Date.now() - CHALLENGE_DONE_WINDOW_DAYS * 86_400_000).toISOString())
+      .order("achieved_at", { ascending: false })
+      .limit(20),
+    // noví záujemcovia z verejnej stránky (0083, RLS: len vlastní) — pred migráciou dopyt zlyhá a len sa vynechá
+    supabase.from("trainer_leads").select("id", { count: "exact", head: true }).eq("trainer_id", user.id).eq("status", "new"),
     getHealthDigest(supabase, user.id),
     getActiveDismissals(supabase, user.id),
   ]);
@@ -109,6 +125,18 @@ export async function loadAttention(): Promise<AttentionData | null> {
     key: apptDismissKey(a.id as string),
   }));
 
+  const activeIds = new Set(active.map((c) => c.id));
+  const challengesDone = (chalErr ? [] : (chalRows ?? []))
+    .filter((r) => activeIds.has(r.client_id as string))
+    .map((r) => ({
+      id: r.id as string,
+      clientId: r.client_id as string,
+      clientName: nameOf.get(r.client_id as string) ?? "Klient",
+      challengeName: challengeNameOf(r.meta) ?? "",
+      key: challengeDismissKey(r.id as string),
+    }))
+    .filter((c) => c.challengeName);
+
   const late = active
     .map((c) => ({ id: c.id, name: c.full_name, status: lateStatus.get(c.id) }))
     .filter((c): c is { id: string; name: string; status: NonNullable<typeof c.status> } => c.status?.tone === "late")
@@ -118,8 +146,10 @@ export async function loadAttention(): Promise<AttentionData | null> {
   return applyDismissals(
     {
       unread: unreadRows?.length ?? 0,
+      newLeads: leadsErr ? 0 : (leadsCount ?? 0),
       unreadByClient,
       appointments,
+      challengesDone,
       late,
       digest: digest
         ? { from: digest.from, to: digest.to, count: digest.count, key: digestDismissKey(digest.weekStart) }

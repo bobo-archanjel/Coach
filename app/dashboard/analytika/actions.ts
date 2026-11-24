@@ -1,5 +1,6 @@
 "use server";
 
+import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getClientAnalyticsOverview } from "@/lib/dashboard/analytics";
@@ -21,6 +22,8 @@ const empty: RosterSummaryState = { summary: null, error: null };
  * (isRosterSummaryRateLimited) je vnútri `generateRosterSummary`.
  */
 export async function generateRosterSummaryAction(): Promise<RosterSummaryState> {
+  const blocked = await trainerBlock({ feature: "aiSummaries" });
+  if (blocked) return { ...empty, error: blocked };
   const supabase = await createClient();
   const {
     data: { user },
