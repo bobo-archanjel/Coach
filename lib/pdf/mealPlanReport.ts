@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n/locales";
 import { createTranslator } from "next-intl";
 import skLabels from "@/messages/sk/labels.json";
 import csLabels from "@/messages/cs/labels.json";
-import { createPdfContext, MACRO_COLORS, PdfWriter, signed, type TableColumn, type TableRow } from "./document";
+import { createPdfContext, MACRO_COLORS, PdfWriter, signed, type PdfBrand, type TableColumn, type TableRow } from "./document";
 import { formatPortion } from "@/lib/portions";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 
@@ -69,8 +69,8 @@ export function buildShoppingList(days: MealPlanReportDay[]): { name: string; gr
   return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, "sk"));
 }
 
-export async function generateMealPlanPdf(input: MealPlanReportInput, locale: Locale = "sk"): Promise<Uint8Array> {
-  const ctx = await createPdfContext(locale);
+export async function generateMealPlanPdf(input: MealPlanReportInput, locale: Locale = "sk", brand: PdfBrand | null = null): Promise<Uint8Array> {
+  const ctx = await createPdfContext(locale, brand);
   const t = (key: Parameters<typeof ctx.t>[0], values?: Record<string, string | number>) => ctx.t(key, values);
   const tl = createTranslator({
     locale,

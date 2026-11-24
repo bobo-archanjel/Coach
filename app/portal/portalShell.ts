@@ -21,6 +21,8 @@ export type PortalShell = {
   aiKoucVisible: boolean;
   /** celé meno klienta (profil, inak záznam klienta) — iniciála v hlavičke portálu */
   displayName: string | null;
+  /** aktuálny tréner klienta (null = bez trénera) — z neho sa odvodí branding (Business) */
+  trainerId: string | null;
 };
 
 export async function loadPortalShell(): Promise<PortalShell> {
@@ -31,7 +33,7 @@ export async function loadPortalShell(): Promise<PortalShell> {
 
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
-    return { chatUnread: false, aiKoucVisible: false, displayName: null };
+    return { chatUnread: false, aiKoucVisible: false, displayName: null, trainerId: null };
   }
 
   // Nezávislé dopyty — všetky tri naraz (predtým počet a klient čakali na profil,
@@ -62,5 +64,6 @@ export async function loadPortalShell(): Promise<PortalShell> {
     // AI Kouč je funkcia tarify trénera (Pro/Business) — bez nej sa záložka skryje
     aiKoucVisible: Boolean(clientRow?.trainer_id) && (await trainerAllowsCoach(clientRow?.trainer_id)),
     displayName: profile?.full_name ?? clientRow?.full_name ?? null,
+    trainerId: clientRow?.trainer_id ?? null,
   };
 }

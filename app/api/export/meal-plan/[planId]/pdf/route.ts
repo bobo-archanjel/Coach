@@ -13,6 +13,7 @@ import { getUserLocale } from "@/lib/i18n/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateMealPlanPdf, type MealPlanReportEntry } from "@/lib/pdf/mealPlanReport";
+import { loadPdfBrand } from "@/lib/branding/pdf";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
@@ -24,7 +25,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
 
   const { data: plan } = await supabase
     .from("meal_plans")
-    .select("id, name, client_id, clients!meal_plans_client_id_fkey(full_name)")
+    .select("id, name, client_id, trainer_id, clients!meal_plans_client_id_fkey(full_name)")
     .eq("id", planId)
     .maybeSingle();
   if (!plan) return NextResponse.json({ error: await tErr("api.mealPlanNotFound") }, { status: 404 });
@@ -39,6 +40,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
   ]);
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
+
+  // značka trénera, ktorý jedálniček vytvoril (Business) — aj keď si PDF sťahuje klient
+  const brand = await loadPdfBrand(plan.trainer_id as string | null);
 
   const pdfBytes = await generateMealPlanPdf({
     planName: plan.name,
@@ -55,7 +59,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
       name: d.name,
       meals: Array.isArray(d.meals) ? (d.meals as MealPlanReportEntry[]) : [],
     })),
-  }, await getUserLocale());
+  }, await getUserLocale(), brand);
 
   const fileName = `${plan.name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || (await getTranslations("errors.csv"))("mealPlanFallback")}.pdf`;
   return new NextResponse(Buffer.from(pdfBytes), {

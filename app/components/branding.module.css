@@ -1,0 +1,66 @@
+/* Branding trénera (Business) — prepíše LEN akcentové tokeny dizajnu v6. Vlastné premenné
+   --brand-l-* (svetlá) a --brand-d-* (tmavá téma) nastavuje inline `style` z lib/branding/colors.ts
+   (kontrast je spočítaný na serveri, viď brandCssVars), tu sa len priradia k tokenom podľa témy.
+   Dvojitá trieda (.branded.branded) = vyššia špecifickosť než .root[data-theme] v tokens.module.css,
+   takže pravidlo vyhrá nezávisle od poradia načítania CSS. Pracuje na koreni portálu (data-theme
+   na tom istom prvku) aj na vnorenom prvku (náhľad v nastaveniach — téma zo stromu nad ním). */
+
+.branded.branded {
+  --accent: var(--brand-l-accent);
+  --accent-text: var(--brand-l-text);
+  --accent-soft: var(--brand-l-soft);
+  --accent-grad: linear-gradient(var(--brand-l-accent), var(--brand-l-accent));
+  --accent-glow: var(--brand-l-glow);
+  --on-accent: var(--brand-l-on);
+  --iron-red: var(--brand-l-accent);
+  --iron-red-dim: var(--brand-l-dim);
+  --iron-red-deep: var(--brand-l-deep);
+}
+
+.branded.branded:global([data-theme="dark"]),
+:global([data-theme="dark"]) .branded.branded {
+  --accent: var(--brand-d-accent);
+  --accent-text: var(--brand-d-text);
+  --accent-soft: var(--brand-d-soft);
+  --accent-grad: linear-gradient(var(--brand-d-accent), var(--brand-d-accent));
+  --accent-glow: var(--brand-d-glow);
+  --on-accent: var(--brand-d-on);
+  --iron-red: var(--brand-d-accent);
+  --iron-red-dim: var(--brand-d-dim);
+  --iron-red-deep: var(--brand-d-deep);
+}
+
+@media (prefers-color-scheme: dark) {
+  .branded.branded:global([data-theme="auto"]),
+  :global([data-theme="auto"]) .branded.branded {
+    --accent: var(--brand-d-accent);
+    --accent-text: var(--brand-d-text);
+    --accent-soft: var(--brand-d-soft);
+    --accent-grad: linear-gradient(var(--brand-d-accent), var(--brand-d-accent));
+    --accent-glow: var(--brand-d-glow);
+    --on-accent: var(--brand-d-on);
+    --iron-red: var(--brand-d-accent);
+    --iron-red-dim: var(--brand-d-dim);
+    --iron-red-deep: var(--brand-d-deep);
+  }
+}
+
+/* logo značky v hlavičke — rovnaká veľkosť ako značka FitPilot, pomer strán sa drží */
+.brandLogo {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  object-fit: contain;
+  flex: none;
+}
+
+/* „Beží na FitPilot“ — nenápadne pod obsahom */
+.poweredBy {
+  align-self: center;
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--paper-faint);
+  text-align: center;
+}

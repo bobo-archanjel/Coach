@@ -11,6 +11,11 @@ import { ActionResumeIcon } from "@/app/components/ActionIcons";
 import { ChangePasswordForm } from "@/app/components/ChangePasswordForm";
 import { LanguageSelect } from "@/app/components/LanguageSelect";
 import { DeleteTrainerAccount } from "./DeleteTrainerAccount";
+import { BrandingForm } from "./BrandingForm";
+import { getMyTrainerBilling } from "@/lib/billing/server";
+import { brandingPublicUrl } from "@/lib/branding/server";
+import billingStyles from "../billing.module.css";
+import brandingStyles from "./branding.module.css";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
 
@@ -23,6 +28,19 @@ export default async function NastaveniaPage() {
     t,
     tl,
   ] = await Promise.all([getUser(), getTranslations("settings"), getTranslations("language")]);
+
+  const tb = await getTranslations("branding");
+  const billing = user ? await getMyTrainerBilling(user.id) : null;
+  const brandingUnlocked = billing?.state.features.branding === true;
+  // uložená značka trénera (RLS: len vlastný riadok); pred migráciou 0075 tabuľka chýba → prázdne
+  const { data: brandingRow } =
+    user && brandingUnlocked
+      ? await supabase
+          .from("trainer_branding")
+          .select("brand_name, accent_color, welcome_text, logo_path, photo_path, invite_slug")
+          .eq("trainer_id", user.id)
+          .maybeSingle()
+      : { data: null };
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? "—";
   const email = user?.email ?? "—";
@@ -122,6 +140,46 @@ export default async function NastaveniaPage() {
             {t("billingOpen")}
           </Link>
         </div>
+
+        {user && (
+          <div className={`${styles.card} ${brandingStyles.wide}`} data-testid="branding-card">
+            <div className={brandingStyles.head}>
+              <h3>{tb("title")}</h3>
+              <span className={brandingStyles.badge}>{tb("badge")}</span>
+            </div>
+            {brandingUnlocked ? (
+              <>
+                <p className={brandingStyles.sub}>{tb("subtitle")}</p>
+                <BrandingForm
+                  initial={{
+                    brandName: brandingRow?.brand_name ?? "",
+                    welcomeText: brandingRow?.welcome_text ?? "",
+                    accent: brandingRow?.accent_color ?? null,
+                    logoUrl: brandingPublicUrl(brandingRow?.logo_path),
+                    photoUrl: brandingPublicUrl(brandingRow?.photo_path),
+                    invitePath: brandingRow?.invite_slug ? `/pozvanka/${brandingRow.invite_slug}` : null,
+                  }}
+                />
+              </>
+            ) : (
+              <div className={billingStyles.locked} role="note" data-testid="feature-locked" data-feature="branding">
+                <span className={billingStyles.lockIcon} aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="11" width="16" height="9" rx="2.5" />
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </span>
+                <div className={billingStyles.lockBody}>
+                  <strong>{tb("locked.title")}</strong>
+                  <p>{tb("locked.text")}</p>
+                  <Link href="/dashboard/predplatne" className={billingStyles.lockLink}>
+                    {tb("locked.upgrade")}
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={styles.card} data-tour="settings-guide">
           <h3>{t("tour")}</h3>

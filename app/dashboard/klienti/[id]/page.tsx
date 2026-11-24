@@ -18,6 +18,7 @@ import styles from "@/app/dashboard/dashboard.module.css";
 import { mealPlanAvgDayKcal } from "@/lib/meals";
 import { resolveActivePlanId, resolveTrainerActiveMealPlanId } from "@/lib/portal/activePlan";
 import { getActiveMealPlanIds } from "@/lib/dashboard/activeMealPlan";
+import { ClientReportsTab } from "@/app/dashboard/reports/ClientReportsTab";
 
 // DEV náhľad Progresu bez session (?preview=progress) — váha/sila/objem + rozšírená adherencia.
 function daysAgoIso(n: number): string {
@@ -122,7 +123,7 @@ export default async function ClientDetailPage({
 
   // i18n-ignore-end
   const supabase = await createClient();
-  const [t, locale] = await Promise.all([getTranslations("clientDetail"), getLocale()]);
+  const [t, tReports, locale] = await Promise.all([getTranslations("clientDetail"), getTranslations("reports"), getLocale()]);
   const dateLocale = intlLocale(locale);
 
   // Analytika (adherencia, merania, celá história sily) je najpomalšia časť stránky —
@@ -353,6 +354,15 @@ export default async function ClientDetailPage({
       content: (
         <Suspense fallback={<AnalyticsSkeleton />}>
           <ClientAnalytics clientId={id} nutrition={nutrition} data={analyticsData} />
+        </Suspense>
+      ),
+    },
+    {
+      id: "reporty",
+      label: tReports("tabLabel"),
+      content: (
+        <Suspense fallback={<AnalyticsSkeleton />}>
+          <ClientReportsTab clientId={id} />
         </Suspense>
       ),
     },

@@ -1,0 +1,397 @@
+/* Nastavenia → „Moja značka“ (branding, Business). Používa tokeny dizajnu v6. */
+.wide {
+  grid-column: 1 / -1;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.head h3 {
+  margin: 0;
+}
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.sub {
+  color: var(--paper-dim);
+  font-size: 13.5px;
+  margin: 8px 0 18px;
+}
+.layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    align-items: start;
+  }
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--paper);
+}
+.hint {
+  font-size: 12.5px;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.input,
+.textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--paper);
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+.input:focus-visible,
+.textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.count {
+  font-size: 11.5px;
+  color: var(--paper-faint);
+  align-self: flex-end;
+}
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fileThumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  object-fit: contain;
+  flex: none;
+}
+.filePhoto {
+  border-radius: 999px;
+  object-fit: cover;
+}
+.thumbEmpty {
+  display: grid;
+  place-items: center;
+  color: var(--paper-faint);
+  font-size: 11px;
+}
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--hairline);
+  cursor: pointer;
+  padding: 0;
+}
+.swatchOn {
+  border-color: var(--paper);
+}
+.swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.picker {
+  width: 40px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+.hex {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+.linkBtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-text);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ok {
+  color: var(--moss);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.err {
+  color: var(--error);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.previewCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.previewLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+/* náhľad = zmenšená hlavička portálu s tlačidlom a štítkom (tokeny prepíše .branded) */
+.phone {
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  background: var(--sheet-bg-strong);
+  overflow: hidden;
+}
+.phoneTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--hairline);
+}
+.phoneBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.phoneName {
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--paper);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phoneAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex: none;
+}
+.phoneBody {
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.phoneHello {
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+  margin: 0;
+}
+.phoneBtn {
+  align-self: flex-start;
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  box-shadow: var(--accent-glow);
+}
+.phoneLink {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--accent-text);
+}
+.phoneFoot {
+  text-align: center;
+  font-size: 11px;
+  color: var(--paper-faint);
+  padding: 0 14px 12px;
+}
+.previewLinkBtn {
+  align-self: flex-start;
+}
+.inviteBox {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.inviteUrl {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+/* ---------- náhľad portálu klienta (/dashboard/nastavenia/nahlad) ---------- */
+.pvPage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+.pvBanner {
+  max-width: 420px;
+  width: 100%;
+  font-size: 13px;
+  color: var(--paper-dim);
+  text-align: center;
+}
+.pvBack {
+  align-self: flex-start;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--accent-text);
+}
+.pvFrame {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--hairline);
+  border-radius: 28px;
+  background: var(--ink-3);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* hlavička a obsah sú len ukážka — nič sa tu nedá kliknúť */
+  pointer-events: none;
+  user-select: none;
+}
+.pvMain {
+  padding: 16px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pvCard {
+  background: var(--card-bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--card-shadow);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pvCardLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.pvCardTitle {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+  margin: 0;
+}
+.pvCardText {
+  font-size: 13px;
+  color: var(--paper-dim);
+  margin: 0;
+}
+.pvBar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bar-off);
+  overflow: hidden;
+}
+.pvBarFill {
+  display: block;
+  height: 100%;
+  width: 75%;
+  border-radius: 999px;
+  background: var(--accent-grad);
+}
+.pvNav {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 8px 12px;
+  border-top: 1px solid var(--hairline);
+  background: var(--sheet-bg-strong);
+}
+.pvNavItem {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pvNavDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: var(--fill-strong);
+}
+.pvNavOn {
+  color: var(--accent-text);
+}
+.pvNavOn .pvNavDot {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}

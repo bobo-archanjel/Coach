@@ -10,6 +10,7 @@ import { useLiveUnread } from "@/app/components/liveUnread";
 import { NotificationBellSlot } from "./NotificationBell";
 import { TodayIcon, TrainingIcon, FoodIcon, DiaryIcon, ChatIcon, AiIcon } from "@/app/portal/icons";
 import s from "./portal.module.css";
+import brandStyles from "@/app/components/branding.module.css";
 
 const BASE = "/portal";
 
@@ -33,10 +34,15 @@ export function PortalNav({
   chatUnread = false,
   aiKoucVisible = true,
   displayName = null,
+  brandName = null,
+  brandLogoUrl = null,
 }: {
   chatUnread?: boolean;
   aiKoucVisible?: boolean;
   displayName?: string | null;
+  /** značka trénera (branding, Business) — null = FitPilot */
+  brandName?: string | null;
+  brandLogoUrl?: string | null;
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
@@ -63,8 +69,13 @@ export function PortalNav({
     <aside className={s.v6Side}>
       <div className={s.v6SideTopRow}>
         <Link href={BASE} className={s.v6SideBrand}>
-          <LogoMark className={s.v6BrandMark} />
-          <span className={s.v6BrandText}>FitPilot</span>
+          {brandLogoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brandLogoUrl} alt="" className={brandStyles.brandLogo} />
+          ) : (
+            <LogoMark className={s.v6BrandMark} />
+          )}
+          <span className={s.v6BrandText}>{brandName || "FitPilot"}</span>
         </Link>
         <NotificationBellSlot placement="side" />
       </div>

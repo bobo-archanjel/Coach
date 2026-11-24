@@ -10,6 +10,8 @@ import { getRecentPRs, type StrengthPR } from "@/lib/dashboard/bodyMetrics";
 import { getAiTopicInsights, type AiTopicInsight } from "@/lib/dashboard/aiInsights";
 import { FeatureGate } from "../LockedFeature";
 import { RosterSummaryCard } from "./RosterSummaryCard";
+import { PortfolioReportSection } from "../reports/PortfolioReportSection";
+import { ReportsSkeleton } from "../reports/ReportsSkeleton";
 import { InfoTip } from "@/app/components/InfoTip";
 import styles from "@/app/dashboard/dashboard.module.css";
 
@@ -180,6 +182,13 @@ export default async function AnalytikaPage({ searchParams }: { searchParams: Pr
               </div>
             )}
           </div>
+
+          {/* Pokročilé reporty (Pro/Business) — portfólio; Starter vidí zamknutý náhľad. DEV náhľad dáta nemá. */}
+          {!isPreview && (
+            <Suspense fallback={<ReportsSkeleton />}>
+              <PortfolioReportSection />
+            </Suspense>
+          )}
 
           <Suspense fallback={null}>
             <RecentPRPanel clients={activeClients} data={recentPRs} />

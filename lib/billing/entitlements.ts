@@ -199,3 +199,13 @@ export function coachAvailableForClients(row: SubscriptionRow | null, now: Date 
   const tier = effectiveTier(row, now);
   return tier ? PLANS[tier].features.aiCoach : false;
 }
+
+/**
+ * Smie sa klientom ukazovať značka (branding) trénera? Rovnako ako pri AI Koučovi rozhoduje
+ * len tarifa trénera (nie read-only nad limitom klientov) — pri strate Business sa značka
+ * ticho prestane zobrazovať, dáta ostávajú. Zrkadlo SQL: billing_effective_tier(...) = 'business'.
+ */
+export function brandingAvailableForClients(row: SubscriptionRow | null, now: Date = new Date()): boolean {
+  const tier = effectiveTier(row, now);
+  return tier ? PLANS[tier].features.branding : false;
+}

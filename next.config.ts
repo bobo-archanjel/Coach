@@ -21,6 +21,19 @@ function supabaseConnectHosts(): string {
   return "https://*.supabase.co wss://*.supabase.co";
 }
 
+// Logo a fotka trénera (branding, Business) sa servírujú z verejného bucketu `branding` na
+// Supabase Storage — img-src smie pustiť LEN host nášho projektu (nie `*.supabase.co`).
+// Bez env premennej sa nepridá nič (obrázky značky sa potom nezobrazia, appka funguje).
+function supabaseImgHost(): string {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (url) return ` https://${new URL(url).host}`;
+  } catch {
+    // neplatná URL → nič nepridávať
+  }
+  return "";
+}
+
 const nextConfig: NextConfig = {
   // QA_DIST_DIR (test/qa-dual-agent): umožňuje spustiť viac `next dev` inštancií
   // nad tým istým repom bez toho, aby si navzájom kazili `.next` build cache
@@ -39,6 +52,10 @@ const nextConfig: NextConfig = {
   // skupín, čím sa táto duplicita neobjavuje.
   experimental: {
     cssChunking: "strict",
+    // Branding (nastavenia → Moja značka) nahráva logo + fotku (každé max. 1 MB) cez server action —
+    // predvolený limit 1 MB by požiadavku s dvoma súbormi odmietol. Veľkosť každého súboru
+    // kontroluje akcia sama (lib/branding/validation.ts MAX_UPLOAD_BYTES).
+    serverActions: { bodySizeLimit: "3mb" },
     // Klientska router cache pre dynamické stránky (feature/faster-app): návrat na tab,
     // kde používateľ bol pred chvíľou (Dnes ↔ Tréning ↔ Strava, Klienti ↔ detail), sa
     // vykreslí okamžite z pamäte namiesto nového server renderu. Default v Next 15 je 0.
@@ -128,7 +145,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://raw.githubusercontent.com",
+      `img-src 'self' data: https://raw.githubusercontent.com${supabaseImgHost()}`,
       // app/v5's scroll-world engine (public/v5/scrub-engine.js) loads each
       // clip as a Blob and assigns it to <video src> for guaranteed
       // seekability regardless of byte-range support — that blob: URL falls

@@ -41,6 +41,8 @@ import skAi from "./sk/ai.json";
 import skSystem from "./sk/system.json";
 import skLegal from "./sk/legal.json";
 import skBilling from "./sk/billing.json";
+import skBranding from "./sk/branding.json";
+import skReports from "./sk/reports.json";
 
 import csCommon from "./cs/common.json";
 import csMeta from "./cs/meta.json";
@@ -79,6 +81,8 @@ import csAi from "./cs/ai.json";
 import csSystem from "./cs/system.json";
 import csLegal from "./cs/legal.json";
 import csBilling from "./cs/billing.json";
+import csBranding from "./cs/branding.json";
+import csReports from "./cs/reports.json";
 
 export const sk = {
   common: skCommon,
@@ -118,6 +122,8 @@ export const sk = {
   system: skSystem,
   legal: skLegal,
   billing: skBilling,
+  branding: skBranding,
+  reports: skReports,
 };
 
 export type Messages = typeof sk;
@@ -160,6 +166,8 @@ export const cs: Messages = {
   system: csSystem,
   legal: csLegal,
   billing: csBilling,
+  branding: csBranding,
+  reports: csReports,
 };
 
 export const MESSAGES: Record<Locale, Messages> = { sk, cs };
