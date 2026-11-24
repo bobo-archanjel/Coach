@@ -75,6 +75,10 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Klienti u trénera: moderné karty** (`feature/klienti-karty`, bez migrácie).
+  - Mriežka kariet (1/2/3 stĺpce): avatar s iniciálami, stav (aktívny / N dní bez tréningu / bez plánu / ukončený / na zmazanie), odznak správ, počet tréningových plánov (bez kópií úprav) a jedálničkov, posledný tréning, postup aktívneho plánu („5 / 8 tréningov“, hotový → „čas na nový plán“), „Klient od … · N mesiacov“.
+  - Filtre stavov s počtami (Všetci · Aktívni · Bez tréningu · Bez plánu · Ukončení) vedľa hľadania.
+  - Testy: `e2e/klienti-karty.spec.ts`; sprievodca prihlasuje bez formulára (CAPTCHA).
 - **2026-11-24** — **Jedálniček klienta ako tréning; „Deň 1“ u trénera; náhľad hotového plánu** (`feature/jedalnicek-builder`, bez migrácie).
   - Klient — builder jedálnička: bez hlavičky „Jedálniček“, nový má názov „Chudnutie – prvý týždeň“ a hneď „Deň 1“; pod názvom Uložiť + Zmazať koncept / pri úprave Uložiť úpravy + Zahodiť úpravy (s potvrdením), dolné tlačidlo zrušené.
   - Rozpracovaný jedálniček (nový aj úprava) sa ukladá v prehliadači (`app/portal/strava/mealDraft.ts`) — po návrate karta „Pokračovať“ / „Zahodiť“.
