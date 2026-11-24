@@ -7,7 +7,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { cookies } from "next/headers";
 import { todayIso, weekStartOf } from "@/lib/reports/period";
+import { loadXpBreakdown } from "@/lib/gamification/server";
+import { levelDetail } from "@/lib/gamification/xp";
+import { frameUnlocked, isFrameId, isThemeId, themeUnlocked } from "@/lib/gamification/rewards";
+import { validateNickname } from "@/lib/gamification/nickname";
+import { FINISH_COOKIE } from "@/lib/gamification/finishSummary";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,7 +79,7 @@ export async function setLeaderboardVisibleAction(visible: boolean): Promise<{ o
 
 /** Týždenný súhrn „Tvoj týždeň“ sa už videl — ukáže sa až ďalší týždeň. Akceptuje len pondelok, nie budúci. */
 export async function markWeeklySummarySeenAction(weekStart: string): Promise<{ ok: boolean }> {
-  if (typeof weekStart !== "string" || !/^d{4}-d{2}-d{2}$/.test(weekStart) || weekStartOf(weekStart) !== weekStart || weekStart > todayIso()) {
+  if (typeof weekStart !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(weekStart) || weekStartOf(weekStart) !== weekStart || weekStart > todayIso()) {
     return { ok: false };
   }
   const clientId = await myClientId();
@@ -87,4 +93,76 @@ export async function markWeeklySummarySeenAction(weekStart: string): Promise<{ 
     .from("gamification_settings")
     .upsert({ client_id: clientId, summary_seen_week: weekStart, updated_at: new Date().toISOString() }, { onConflict: "client_id" });
   return { ok: !error };
+}
+
+// ---------- v2: prezývka v rebríčku, rámik avatara, téma, „Tréning v číslach“ ----------
+// Všetko zapisuje výlučne server po overení session; úroveň odomykajúca rámik/tému sa počíta z dát
+// (XP nikdy neprichádza od klienta), prezývka sa validuje (lib/gamification/nickname.ts).
+
+export type SettingsResult = { ok: true } | { ok: false; error: "invalid" | "length" | "chars" | "blocked" | "locked" | "failed" };
+
+export async function setNicknameAction(raw: string | null): Promise<SettingsResult> {
+  const clientId = await myClientId();
+  if (!clientId) return { ok: false, error: "failed" };
+  const admin = tryCreateAdminClient();
+  if (!admin) return { ok: false, error: "failed" };
+  // null alebo prázdny reťazec = vrátiť predvolenú prezývku („Meno P.“)
+  let value: string | null = null;
+  if (raw != null && raw.trim() !== "") {
+    const v = validateNickname(raw);
+    if (!v.ok) return { ok: false, error: v.error };
+    value = v.value;
+  }
+  const { error } = await admin
+    .from("gamification_settings")
+    .upsert({ client_id: clientId, nickname: value, updated_at: new Date().toISOString() }, { onConflict: "client_id" });
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/portal/uspechy");
+  return { ok: true };
+}
+
+async function currentLevel(clientId: string): Promise<number | null> {
+  const supabase = await createClient();
+  const xp = await loadXpBreakdown(supabase, clientId);
+  return xp ? levelDetail(xp.total).n : null;
+}
+
+export async function setFrameAction(frame: string): Promise<SettingsResult> {
+  if (!isFrameId(frame)) return { ok: false, error: "invalid" };
+  const clientId = await myClientId();
+  if (!clientId) return { ok: false, error: "failed" };
+  const level = await currentLevel(clientId);
+  if (level == null) return { ok: false, error: "failed" };
+  if (!frameUnlocked(frame, level)) return { ok: false, error: "locked" };
+  const admin = tryCreateAdminClient();
+  if (!admin) return { ok: false, error: "failed" };
+  const { error } = await admin
+    .from("gamification_settings")
+    .upsert({ client_id: clientId, avatar_frame: frame, updated_at: new Date().toISOString() }, { onConflict: "client_id" });
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/portal", "layout");
+  return { ok: true };
+}
+
+export async function setThemeAction(theme: string): Promise<SettingsResult> {
+  if (!isThemeId(theme)) return { ok: false, error: "invalid" };
+  const clientId = await myClientId();
+  if (!clientId) return { ok: false, error: "failed" };
+  const level = await currentLevel(clientId);
+  if (level == null) return { ok: false, error: "failed" };
+  if (!themeUnlocked(theme, level)) return { ok: false, error: "locked" };
+  const admin = tryCreateAdminClient();
+  if (!admin) return { ok: false, error: "failed" };
+  const { error } = await admin
+    .from("gamification_settings")
+    .upsert({ client_id: clientId, portal_theme: theme, updated_at: new Date().toISOString() }, { onConflict: "client_id" });
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/portal", "layout");
+  return { ok: true };
+}
+
+/** „Tréning v číslach“ sa už videl — zmaže krátkodobú cookie (inak by sa po obnovení ukázal znova). */
+export async function clearFinishSummaryAction(): Promise<{ ok: boolean }> {
+  (await cookies()).set(FINISH_COOKIE, "", { path: "/portal", maxAge: 0, httpOnly: true, sameSite: "lax" });
+  return { ok: true };
 }

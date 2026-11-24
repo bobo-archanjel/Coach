@@ -3699,3 +3699,18 @@ select.addClientInputSm {
   gap: 8px;
   margin-top: 14px;
 }
+
+/* Karta len pre mobil (Nastavenia → Ďalšie sekcie): na počítači sú tieto odkazy v bočnom menu. */
+.mobileOnly {
+  display: none;
+}
+@media (max-width: 880px) {
+  .mobileOnly {
+    display: block;
+  }
+}
+.settingsMoreLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

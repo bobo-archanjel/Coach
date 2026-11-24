@@ -117,8 +117,8 @@ export default function PrivacyCs() {
             <td>Oprávněný zájem (čl. 6 odst. 1 písm. f) GDPR)</td>
           </tr>
           <tr>
-            <td>Gamifikace: úspěchy, osobní rekordy, odznaky, úrovně a žebříček mezi klienty jednoho trenéra</td>
-            <td>Plnění smlouvy (výpočet z tvých tréninkových údajů); zobrazení v žebříčku — oprávněný zájem s možností kdykoli se skrýt (opt-out)</td>
+            <td>Gamifikace: úspěchy, osobní rekordy, odznaky, úrovně, týdenní mise, odměny (rámeček avataru, barva portálu, zmrazení série) a celoaplikační žebříček všech klientů aplikace</td>
+            <td>Plnění smlouvy (výpočet z tvých tréninkových údajů); zobrazení v celoaplikačním žebříčku pod přezdívkou — oprávněný zájem (čl. 6 odst. 1 písm. f) GDPR) s možností kdykoli se skrýt (opt-out)</td>
           </tr>
           <tr>
             <td>Zveřejnění veřejné stránky a značky trenéra</td>
@@ -226,8 +226,16 @@ export default function PrivacyCs() {
       <h2>10. Gamifikace a žebříček</h2>
       <p>
         Úspěchy, osobní rekordy, odznaky a úrovně se počítají automaticky z tvých tréninkových údajů.
-        V žebříčku se tvé křestní jméno a iniciála příjmení zobrazí ostatním klientům{" "}
-        <strong>stejného trenéra</strong>. Ze žebříčku se můžeš kdykoli skrýt (opt-out) — pak žebříček
+        Týdenní mise, odměny a úrovně se také počítají z tvých tréninkových údajů (tréninky, zápisy jídla,
+        měření); výběr rámečku avataru, barvy portálu a přezdívky se ukládá k tvému účtu.
+      </p>
+      <p>
+        Žebříček je <strong>celoaplikační</strong>: zobrazuje pořadí všech klientů aplikace (nejen klientů jednoho
+        trenéra) podle počtu tréninků, série týdnů a rekordů. Ostatním klientům se zobrazí{" "}
+        <strong>pouze tvá přezdívka</strong> (výchozí je křestní jméno a iniciála příjmení, např. „Jana N.“; vlastní
+        přezdívku si můžeš kdykoli změnit) a číslo — nikdy příjmení, tvůj trenér, fotka ani údaje o váze či
+        kaloriích. Právním základem je oprávněný zájem (motivace a srovnání výkonu mezi uživateli) a máš právo
+        kdykoli vznést námitku: ze žebříčku se můžeš jedním klepnutím skrýt (opt-out) — pak v pořadí nejsi a žebříček
         ostatních nevidíš ani ty. Sdílecí karty (obrázky s tvými výsledky) se generují jen na tvou žádost;
         o jejich dalším šíření rozhoduješ ty.
       </p>

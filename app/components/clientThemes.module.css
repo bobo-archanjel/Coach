@@ -1,0 +1,85 @@
+/* FitPilot — farebné témy portálu klienta (odmena za úrovne, gamifikácia v2). Prepíšu LEN akcentové tokeny
+   dizajnu v6, rovnako ako značka trénera (branding.module.css), a používajú sa LEN keď tréner nemá aktívnu značku —
+   značka vždy vyhráva (vtedy téma farbí iba rámik avatara). Dvojitá trieda = vyššia špecifickosť než
+   .root[data-theme] v tokens.module.css, takže pravidlo vyhrá nezávisle od poradia načítania CSS.
+   Každá téma má tmavší odtieň pre svetlú tému portálu (--t-l) a jasnejší pre tmavú (--t-d); biely text na akcente
+   má kontrast ≥ 4,5 : 1 v oboch. */
+
+.themed.themed:global([data-fp-theme="ocean"]) {
+  --t-l: #226aa0;
+  --t-lt: #1a5683;
+  --t-lr: 34, 106, 160;
+  --t-d: #3a7db6;
+  --t-dt: #8cc3ec;
+  --t-dr: 58, 125, 182;
+}
+.themed.themed:global([data-fp-theme="forest"]) {
+  --t-l: #2c7549;
+  --t-lt: #215c38;
+  --t-lr: 44, 117, 73;
+  --t-d: #38845a;
+  --t-dt: #8fd2a9;
+  --t-dr: 56, 132, 90;
+}
+.themed.themed:global([data-fp-theme="sunset"]) {
+  --t-l: #a85a14;
+  --t-lt: #84460d;
+  --t-lr: 168, 90, 20;
+  --t-d: #a9611c;
+  --t-dt: #f0b26b;
+  --t-dr: 169, 97, 28;
+}
+.themed.themed:global([data-fp-theme="violet"]) {
+  --t-l: #6648b3;
+  --t-lt: #51389a;
+  --t-lr: 102, 72, 179;
+  --t-d: #7256bd;
+  --t-dt: #bda8f0;
+  --t-dr: 114, 86, 189;
+}
+.themed.themed:global([data-fp-theme="graphite"]) {
+  --t-l: #4a5360;
+  --t-lt: #38404b;
+  --t-lr: 74, 83, 96;
+  --t-d: #5a6572;
+  --t-dt: #b4bdc9;
+  --t-dr: 90, 101, 114;
+}
+
+/* svetlá téma (predvolená) */
+.themed.themed:global([data-fp-theme]) {
+  --accent: var(--t-l);
+  --accent-text: var(--t-lt);
+  --accent-soft: rgba(var(--t-lr), 0.13);
+  --accent-grad: linear-gradient(140deg, color-mix(in srgb, var(--t-l) 82%, #fff), var(--t-l) 46%, color-mix(in srgb, var(--t-l) 82%, #000));
+  --accent-glow: 0 12px 24px -12px rgba(var(--t-lr), 0.7);
+  --on-accent: #ffffff;
+  --iron-red: var(--t-l);
+  --iron-red-dim: var(--t-lt);
+  --iron-red-deep: color-mix(in srgb, var(--t-l) 80%, #000);
+}
+
+/* tmavá téma */
+.themed.themed:global([data-fp-theme][data-theme="dark"]) {
+  --accent: var(--t-d);
+  --accent-text: var(--t-dt);
+  --accent-soft: rgba(var(--t-dr), 0.18);
+  --accent-grad: linear-gradient(140deg, color-mix(in srgb, var(--t-d) 82%, #fff), var(--t-d) 46%, color-mix(in srgb, var(--t-d) 82%, #000));
+  --accent-glow: 0 12px 26px -12px rgba(var(--t-dr), 0.55);
+  --iron-red: var(--t-d);
+  --iron-red-dim: var(--t-dt);
+  --iron-red-deep: color-mix(in srgb, var(--t-d) 80%, #000);
+}
+
+@media (prefers-color-scheme: dark) {
+  .themed.themed:global([data-fp-theme][data-theme="auto"]) {
+    --accent: var(--t-d);
+    --accent-text: var(--t-dt);
+    --accent-soft: rgba(var(--t-dr), 0.18);
+    --accent-grad: linear-gradient(140deg, color-mix(in srgb, var(--t-d) 82%, #fff), var(--t-d) 46%, color-mix(in srgb, var(--t-d) 82%, #000));
+    --accent-glow: 0 12px 26px -12px rgba(var(--t-dr), 0.55);
+    --iron-red: var(--t-d);
+    --iron-red-dim: var(--t-dt);
+    --iron-red-deep: color-mix(in srgb, var(--t-d) 80%, #000);
+  }
+}

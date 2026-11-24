@@ -3,12 +3,14 @@
 import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PortalExercise } from "@/lib/portal/types";
+import type { ExerciseHistory } from "@/lib/gamification/progression";
 import { finishWorkoutAction, type ActionState } from "./actions";
 import { publishWorkoutProgress } from "./workoutProgress";
 import styles from "./portal.module.css";
 import {
   WORKOUT_STARTED_EVENT,
   clearWorkoutDraft,
+  getWorkoutStartedAt,
   isWorkoutStarted,
   loadWorkoutDraft,
   markWorkoutStarted,
@@ -55,7 +57,16 @@ function subscribeStarted(onChange: () => void): () => void {
  * ukončenie (lib/workouts/setInput.ts). Po ukončení sa hodnoty dajú ešte 24 h
  * opraviť cez "Upraviť hodnoty" (0049), potom je záznam zamknutý.
  */
-export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercises: PortalExercise[] }) {
+export function LogWorkoutButton({
+  dayId,
+  exercises,
+  hints,
+}: {
+  dayId: string;
+  exercises: PortalExercise[];
+  /** história cvikov dňa pre nápovedu „Minule … skús …“ a kontrolu rekordu (gamifikácia v2) */
+  hints?: Record<string, ExerciseHistory>;
+}) {
   const t = useTranslations("workout");
   // "Tréning začatý" čítame z localStorage UŽ pri prvom vykreslení (useSyncExternalStore),
   // nie až v useEffect — inak karta Dnes po "Začať tréning" v sekcii Tréning na okamih
@@ -164,8 +175,10 @@ export function LogWorkoutButton({ dayId, exercises }: { dayId: string; exercise
       <input type="hidden" name="entries" value={JSON.stringify(entries)} readOnly />
       <input type="hidden" name="rpe" value={values.rpe} readOnly />
       <input type="hidden" name="note" value={values.sessionNote} readOnly />
+      {/* čas štartu pre „Tréning v číslach“ (server ho overí: 1–360 min) */}
+      <input type="hidden" name="started_at" value={getWorkoutStartedAt(dayId) ?? ""} readOnly />
 
-      <WorkoutSetsFields exercises={exercises} values={values} onChange={setValues} showInvalid={showInvalid} checkable />
+      <WorkoutSetsFields exercises={exercises} values={values} onChange={setValues} showInvalid={showInvalid} checkable hints={hints} />
 
       <button
         type="button"

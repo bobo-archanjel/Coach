@@ -601,8 +601,9 @@ test.describe("bezpečnosť (statické kontroly zdrojov)", () => {
   test("trénerské akcie: stráž predplatného s funkciou a zápis cez service role", () => {
     const actions = readFileSync("app/dashboard/vyzvy/actions.ts", "utf8");
     expect(actions).toContain('trainerBlock({ feature: "challenges" })');
-    expect(actions).toContain('trainerBlock({ feature: "leaderboard" })');
-    expect(actions.match(/trainerBlock\(/g)!.length).toBeGreaterThanOrEqual(4);
+    // v2: nastavenie „rebríček zap/vyp“ na úrovni trénera sa zrušilo (rebríček je celoappkový)
+    expect(actions).not.toContain("setLeaderboardEnabledAction");
+    expect(actions.match(/trainerBlock\(/g)!.length).toBeGreaterThanOrEqual(3);
     expect(actions).toContain("tryCreateAdminClient()");
     // cieľoví klienti sa overujú proti vlastným klientom trénera
     expect(actions).toContain('.eq("trainer_id", auth.userId)');
@@ -612,13 +613,14 @@ test.describe("bezpečnosť (statické kontroly zdrojov)", () => {
     expect(actions).toContain("checkChallengeAgainstLimits(limits");
   });
 
-  test("rebríček: bez RLS rozšírenia, kontrola tarify a nastavení, skrytí sa filtrujú", () => {
+  test("rebríček (v2, celoappkový): poradie počíta DB, záložky podľa tarify trénera, skrytý klient rebríček nevidí", () => {
     const lb = readFileSync("lib/gamification/leaderboardServer.ts", "utf8");
-    expect(lb).toContain('trainerHasFeatureForClients(trainerId, "leaderboard")');
+    expect(lb).toContain("gamification_global_leaderboard");
     expect(lb).toContain("allowedLeaderboardMetrics(");
-    expect(lb).toContain("leaderboard_enabled");
     expect(lb).toContain("leaderboard_visible");
-    expect(lb).toContain("group.some((c) => c.id === clientId)");
+    // nastavenie trénera sa už nečíta
+    expect(lb).not.toContain("leaderboard_enabled");
+    expect(lb).not.toContain("trainer_gamification_settings");
   });
 });
 

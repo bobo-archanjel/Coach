@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
 import { TRAINING_WEEK_TARGET, computeTrainingStreak } from "@/lib/portal/streak";
 import { addDaysIso } from "@/lib/reports/period";
+import { loadFreezes } from "./freezesServer";
 import { challengeNameOf } from "./kinds";
 import { proteinMet } from "./rings";
 import { ringTarget } from "./stats";
@@ -84,10 +85,12 @@ export async function loadWeeklySummary(supabase: Sb, ctx: WeeklyCtx, weekStart:
       meta: unknown;
     }[];
     const asOf = today < weekEnd ? today : weekEnd;
+    const freezes = await loadFreezes(supabase, ctx.clientId);
     const streak = computeTrainingStreak(
       (datesRes.data ?? []).map((r) => r.performed_on as string),
       asOf,
       TRAINING_WEEK_TARGET,
+      freezes.frozenWeeks,
     );
 
     return buildWeeklySummary({
