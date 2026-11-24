@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Makro cieľ: ručná úprava makier, „Neaktívny“ jedálniček** (`feature/makra-rucne`, bez migrácie).
+  - Tréner (detail klienta → Makro cieľ): „Upraviť hodnoty“ pri Výsledku — bielkoviny / sacharidy / tuky v gramoch (pri každom hodnota z výpočtu), kalorický cieľ = súčet makier; štítok „Upravené ručne“. Návrat k výpočtu = „Aktualizovať makro cieľ“.
+  - Jedálničky v detaile klienta: štítok „Archivovaný“ → „Neaktívny“ (zverejnený, ale nie aktívny).
 - **2026-11-24** — **Karty plánov: tlačidlá a fade, prehľad klientov vo farbe avatara** (`feature/karta-tlacidla`, bez migrácie).
   - Tréner (detail klienta → Tréningy): „Nastaviť ako aktívny“ tenké cez celú šírku, pod ním Report · Upraviť plán · Zmazať; „Otvoriť plán“ → „Upraviť plán“.
   - Klient (Tréning): hore Nastaviť ako aktívny | Uložiť ako šablónu, dole Report · Upraviť plán · Zmazať; „Upraviť“ → „Upraviť plán“.
