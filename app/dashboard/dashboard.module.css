@@ -1277,15 +1277,16 @@ select.addClientInputSm {
 }
 .cpFoot {
   margin-top: auto;
-  align-items: stretch;
+  display: grid;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--hairline);
 }
-.cpFoot > a {
+.cpFoot a {
   text-decoration: none;
 }
 /* potvrdenie zmazania — na celú šírku pätičky (vlastný riadok pod dlaždicami) */
-.cpFoot > .cpConfirm {
+.cpFoot .cpConfirm {
   flex: 1 1 100%;
 }
 .cpConfirm {
@@ -1321,6 +1322,9 @@ select.addClientInputSm {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+}
+.activePlanWide {
+  align-items: stretch;
 }
 .activePlanAction .publishError {
   width: auto;

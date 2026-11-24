@@ -120,6 +120,14 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* tenké tlačidlo cez celú šírku (Nastaviť ako aktívny nad radom akcií na karte plánu) */
+.wide {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: 13px;
+  font-size: 13px;
+}
 /* menšia dlaždica (riadky a karty šablón) */
 .small {
   min-height: 42px;
