@@ -13,16 +13,16 @@ const card = (page: Page, id: string) => page.locator(`#plan-${id}`);
 test.describe("náhľad rozpracovaného plánu — klient (náhľad)", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
-  test("Náhľad aj Upraviť; vyhodnotenie len z odcvičených, bez Zopakovať s progresiou", async ({ page }) => {
+  test("Report aj Upraviť; vyhodnotenie len z odcvičených, bez Zopakovať s progresiou", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     const own = card(page, "plan-own");
     await expect(own.getByRole("button", { name: "Upraviť" })).toBeVisible();
     // plán bez odcvičeného tréningu by Náhľad nemal — tu je 1 z 2 odcvičený
-    await own.getByRole("button", { name: "Náhľad" }).click();
+    await own.getByRole("button", { name: "Report" }).click();
 
-    const view = page.getByRole("region", { name: "Náhľad tréningu" });
+    const view = page.getByRole("region", { name: "Report tréningu" });
     await expect(view).toBeVisible();
     await expect(view.getByTestId("review-stats")).toContainText(/Tréningy\s*1/);
     await expect(view.getByRole("button", { name: "Zopakovať s progresiou" })).toHaveCount(0);
@@ -36,10 +36,10 @@ test.describe("náhľad rozpracovaného plánu — klient (náhľad)", () => {
     await expect(view.getByTestId("review-card")).toHaveCount(0);
   });
 
-  test("plán bez odcvičeného tréningu Náhľad nemá; hotový ho má ako doteraz", async ({ page }) => {
+  test("plán bez odcvičeného tréningu Report nemá; hotový ho má ako doteraz", async ({ page }) => {
     await page.goto("/portal/trening?preview=own");
     // „own“ náhľad: len vlastné plány — hotový „Moja jesenná sila“ má Náhľad, nie Upraviť
-    await expect(card(page, "plan-own-done").getByRole("button", { name: "Náhľad" })).toBeVisible();
+    await expect(card(page, "plan-own-done").getByRole("button", { name: "Report" })).toBeVisible();
     await expect(card(page, "plan-own-done").getByRole("button", { name: "Upraviť" })).toHaveCount(0);
   });
 });
@@ -68,7 +68,7 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     if (admin && plans.length) await admin.from("workout_plans").delete().in("id", plans);
   });
 
-  test("rozpracovaný plán: Náhľad (1 z 2) → Zmazať; hotový plán sa zmaže tiež", async ({ page, baseURL }, testInfo) => {
+  test("rozpracovaný plán: Report (1 z 2) → Zmazať; hotový plán sa zmaže tiež", async ({ page, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     test.setTimeout(150_000);
     admin = createClient(env.url!, env.serviceRole!, AUTH);
@@ -116,8 +116,8 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     // ---------- Náhľad rozpracovaného plánu ----------
     const wipCard = card(page, wip.planId);
     await expect(wipCard.locator("header")).toContainText("2 tréningy");
-    await wipCard.getByRole("link", { name: "Náhľad" }).click();
-    await expect(page).toHaveURL(new RegExp(`/dashboard/treningy/${wip.planId}/nahlad`), { timeout: 30_000 });
+    await wipCard.getByRole("link", { name: "Report" }).click();
+    await expect(page).toHaveURL(new RegExp(`/dashboard/treningy/${wip.planId}/report`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: `E2E rozpracovaný náhľad ${stamp}` })).toBeVisible();
     await expect(page.getByTestId("preview-progress")).toHaveText("Odcvičené 1/2");
     const panel = page.getByTestId("trainer-plan-review");

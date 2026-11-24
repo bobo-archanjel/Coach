@@ -51,7 +51,7 @@
   "dayDoneHint": "Tento den je už odcvičený — nejde upravit.",
   "dayDoneNoValues": "Trénink byl ukončen bez zapsaných hodnot.",
   "defaultDayName": "Trénink {n}",
-  "previewAria": "Náhled tréninku",
+  "previewAria": "Report tréninku",
   "reviewPeriod": "{from} – {to}",
   "reviewLoading": "Načítám vyhodnocení…",
   "reviewError": "Vyhodnocení se nepodařilo načíst.",

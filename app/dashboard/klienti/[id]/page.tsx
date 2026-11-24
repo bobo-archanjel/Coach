@@ -301,9 +301,9 @@ export default async function ClientDetailPage({
                           </ul>
                         )}
                         <div className={`${styles.cpFoot} ${pa.row}`}>
-                          {/* náhľad = vyhodnotenie, aj rozpracovaného plánu (rátajú sa odcvičené tréningy) */}
+                          {/* Report = vyhodnotenie, aj rozpracovaného plánu (rátajú sa odcvičené tréningy) */}
                           {(done?.completedDays ?? 0) > 0 && (
-                            <Link href={`/dashboard/treningy/${plan.id}/nahlad`} className={`${pa.action} ${pa.small}`}>
+                            <Link href={`/dashboard/treningy/${plan.id}/report`} className={`${pa.action} ${pa.small}`}>
                               <ActionPreviewIcon />
                               {t("previewPlan")}
                             </Link>
