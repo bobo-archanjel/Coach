@@ -2,7 +2,6 @@
 
 import { useActionState, useMemo, useState, useTransition } from "react";
 import {
-  resetMacrosAction,
   saveManualMacrosAction,
   saveNutritionProfileAction,
   type ActionState,
@@ -147,14 +146,6 @@ export function NutritionForm({
         carbsG: toInt(macroC),
         fatG: toInt(macroF),
       });
-      if (res.error) setMacroError(res.error);
-      else setEditing(false);
-    });
-  };
-  const resetMacros = () => {
-    setMacroError(null);
-    startMacro(async () => {
-      const res = await resetMacrosAction(clientId);
       if (res.error) setMacroError(res.error);
       else setEditing(false);
     });
@@ -406,13 +397,6 @@ export function NutritionForm({
                 </div>
               </div>
             </div>
-            {canEdit && isManual && (
-              <div className={styles.macroEditActions}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={resetMacros} disabled={macroPending}>
-                  {macroPending ? t("saving") : t("resetAuto")}
-                </button>
-              </div>
-            )}
             {!editing && macroError && (
               <p className={styles.addClientError} role="alert">
                 {macroError}

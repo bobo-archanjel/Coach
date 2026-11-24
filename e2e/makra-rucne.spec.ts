@@ -6,7 +6,7 @@ import { sessionLogin, userIdByEmail } from "./helpers/sessionLogin";
 /**
  * Makro cieľ — tréner vie prepísať automatický výpočet (detail klienta → Makro cieľ):
  * „Upraviť hodnoty“ → bielkoviny / sacharidy / tuky v gramoch, kalorický cieľ = ich súčet,
- * štítok „Upravené ručne“, „Obnoviť automatický výpočet“ a kontrola rozsahu.
+ * štítok „Upravené ručne“, návrat k výpočtu uložením údajov a kontrola rozsahu.
  * Reálna DB (QA tréner a klient, prihlásenie bez formulára); pôvodný profil klienta sa vráti.
  */
 try {
@@ -34,7 +34,7 @@ test.describe("makro cieľ — ručná úprava hodnôt (reálna DB)", () => {
     else await admin.from("nutrition_profiles").delete().eq("client_id", clientId);
   });
 
-  test("Upraviť hodnoty → Upravené ručne → Obnoviť automatický výpočet", async ({ page, baseURL }, testInfo) => {
+  test("Upraviť hodnoty → Upravené ručne → Aktualizovať makro cieľ vráti výpočet", async ({ page, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     test.setTimeout(120_000);
     admin = createClient(env.url!, env.serviceRole!, { auth: { persistSession: false } });
@@ -94,8 +94,9 @@ test.describe("makro cieľ — ručná úprava hodnôt (reálna DB)", () => {
     await expect(panel).toContainText("Makrá sú upravené ručne — uložením údajov sa nahradia automatickým výpočtom.");
     await panel.getByLabel("Váha (kg)").fill("80");
 
-    // späť na automatický výpočet
-    await panel.getByRole("button", { name: "Obnoviť automatický výpočet" }).click();
+    // späť na automatický výpočet — uloženie vstupných údajov makrá prepočíta
+    await expect(panel.getByRole("button", { name: "Obnoviť automatický výpočet" })).toHaveCount(0);
+    await panel.getByRole("button", { name: "Aktualizovať makro cieľ" }).click();
     await expect(panel.getByTestId("macro-manual")).toHaveCount(0, { timeout: 15_000 });
     const { data: reset } = await admin.from("nutrition_profiles").select("protein_g, carbs_g, fat_g, calories_target").eq("client_id", clientId).single();
     expect(reset).toEqual({ protein_g: auto.proteinG, carbs_g: auto.carbsG, fat_g: auto.fatG, calories_target: auto.caloriesTarget });
