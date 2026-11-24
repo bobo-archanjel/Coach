@@ -28,6 +28,7 @@ export async function AchievementHost() {
         icon: "trophy",
         title: t("unlock.prTitle", { exercise: a.exerciseName, weight: a.value }),
         sub: t("unlock.prSub", { weight: a.value, reps: a.reps ?? 1 }),
+        shareHref: `/api/gamification/share?a=${a.id}`,
       });
     } else if (a.kind === "badge" && a.badgeId) {
       const def = badgeById(a.badgeId);
@@ -37,6 +38,15 @@ export async function AchievementHost() {
         icon: def.icon,
         title: t("unlock.badgeTitle", { name: t(`badges.${def.id}.name` as never) }),
         sub: t(`badges.${def.id}.desc` as never),
+        shareHref: `/api/gamification/share?a=${a.id}`,
+      });
+    } else if (a.kind === "challenge" && a.challengeName) {
+      items.push({
+        id: a.id,
+        icon: "trophy",
+        title: t("unlock.challengeTitle", { name: a.challengeName }),
+        sub: t("unlock.challengeSub"),
+        shareHref: `/api/gamification/share?a=${a.id}`,
       });
     }
   }

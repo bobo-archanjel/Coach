@@ -22,6 +22,9 @@ import s from "./portal.module.css";
 import { LiveProgressRing, ProgressRing } from "./ProgressRing";
 import { OtherTodayWorkouts } from "./OtherTodayWorkouts";
 import { GamificationHome } from "./GamificationHome";
+import { Suspense } from "react";
+import { ChallengesHost } from "./ChallengesCard";
+import { WeeklySummaryHost } from "./WeeklySummaryHost";
 
 /* /portal — "Dnes": dáta z getPortalData, pozdrav, odkaz trénera, terakotová karta
    dňa s prstencom postupu (začatie/zápis tréningu, stopky), prehľad týždňa s grafom. */
@@ -257,6 +260,18 @@ function Today({ data, preview = false }: { data: PortalData; preview?: boolean 
 
         <ProgressCard history={bodyMetrics} />
       </section>
+
+      {/* fáza B: týždenný súhrn (raz za týždeň) a výzvy od trénera — dostreamujú sa, nespomaľujú kartu Dnes */}
+      {!preview && (
+        <>
+          <Suspense fallback={null}>
+            <WeeklySummaryHost mode="due" />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ChallengesHost compact />
+          </Suspense>
+        </>
+      )}
     </>
   );
 }

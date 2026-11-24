@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { challengeNameOf, type AchievementKind } from "./kinds";
 
 // FitPilot — feed úspechov klientov pre trénera (dashboard + detail klienta).
 // Čítanie cez bežný klient (RLS 0078: tréner vidí len svojich súčasných klientov) a navyše
@@ -10,7 +11,8 @@ export interface FeedItem {
   id: string;
   clientId: string;
   clientName: string;
-  kind: "pr" | "badge";
+  kind: AchievementKind;
+  challengeName: string | null;
   badgeId: string | null;
   exerciseName: string | null;
   value: number | null;
@@ -22,7 +24,8 @@ export interface FeedItem {
 interface FeedRow {
   id: string;
   client_id: string;
-  kind: "pr" | "badge";
+  kind: AchievementKind;
+  meta: unknown;
   badge_id: string | null;
   exercise_name: string | null;
   value: number | string | null;
@@ -44,7 +47,7 @@ export async function loadAchievementsFeed(
   let q = supabase
     .from("client_achievements")
     .select(
-      "id, client_id, kind, badge_id, exercise_name, value, reps, achieved_at, clients!inner(full_name, trainer_id, ended_at, deletion_requested_at), high_fives(id)",
+      "id, client_id, kind, meta, badge_id, exercise_name, value, reps, achieved_at, clients!inner(full_name, trainer_id, ended_at, deletion_requested_at), high_fives(id)",
     )
     .eq("backfilled", false)
     .eq("clients.trainer_id", trainerId)
@@ -61,6 +64,7 @@ export async function loadAchievementsFeed(
       clientId: r.client_id,
       clientName: r.clients!.full_name,
       kind: r.kind,
+      challengeName: challengeNameOf(r.meta),
       badgeId: r.badge_id,
       exerciseName: r.exercise_name,
       value: r.value != null ? Number(r.value) : null,
@@ -69,3 +73,4 @@ export async function loadAchievementsFeed(
       highFived: Array.isArray(r.high_fives) ? r.high_fives.length > 0 : Boolean(r.high_fives),
     }));
 }
+

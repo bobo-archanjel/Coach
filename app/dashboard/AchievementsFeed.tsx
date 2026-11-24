@@ -28,6 +28,7 @@ export async function AchievementsFeed({ clientId, hideTitle = false }: { client
     if (i.kind === "pr" && i.exerciseName && i.value != null) {
       return i.reps ? t("trainer.prReps", { exercise: i.exerciseName, weight: i.value, reps: i.reps }) : t("trainer.pr", { exercise: i.exerciseName, weight: i.value });
     }
+    if (i.kind === "challenge") return i.challengeName ? t("trainer.challenge", { name: i.challengeName }) : "";
     const def = i.badgeId ? badgeById(i.badgeId) : undefined;
     return def ? t("trainer.badge", { badge: t(`badges.${def.id}.name` as never) }) : "";
   };

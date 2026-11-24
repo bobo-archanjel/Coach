@@ -19,6 +19,8 @@ export const FEATURES = [
   "aiSummaries", // AI zhrnutia (progres klienta, týždenný digest portfólia)
   "advancedReports", // pokročilé reporty (funkcia príde pred spustením — viď docs/billing)
   "branding", // vlastný branding (funkcia príde pred spustením, zatiaľ len príznak)
+  "challenges", // výzvy trénera pre klientov (gamifikácia, fáza B)
+  "leaderboard", // rebríček klientov jedného trénera (gamifikácia, fáza B)
 ] as const;
 export type Feature = (typeof FEATURES)[number];
 
@@ -36,10 +38,14 @@ const NO_FEATURES: FeatureFlags = {
   aiSummaries: false,
   advancedReports: false,
   branding: false,
+  challenges: false,
+  leaderboard: false,
 };
 
 const PRO_FEATURES: FeatureFlags = {
   ...NO_FEATURES,
+  challenges: true,
+  leaderboard: true,
   aiCoach: true,
   aiPlanGenerator: true,
   aiMealGenerator: true,

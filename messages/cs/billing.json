@@ -43,7 +43,8 @@
       "aiGenerators": "AI generátor plánů a jídelníčků",
       "aiCoach": "AI Kouč pro klienty",
       "aiSummaries": "AI shrnutí progresu a portfolia",
-      "reports": "Pokročilé reporty"
+      "reports": "Pokročilé reporty",
+      "challenges": "Výzvy a žebříček pro klienty"
     },
     "business": {
       "clients": "Neomezený počet klientů",

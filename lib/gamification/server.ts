@@ -14,7 +14,9 @@ import {
   type GamificationRaw,
   type StatsLog,
 } from "./stats";
+import { challengeNameOf, type AchievementKind } from "./kinds";
 import { computeXp, levelFor, type LevelInfo, type XpBreakdown } from "./xp";
+import { syncChallenges } from "./challengesServer";
 
 // FitPilot — gamifikácia, serverová časť (fáza A).
 //
@@ -79,12 +81,15 @@ export async function syncGamification(
   trigger: BadgeTrigger,
   opts: { logId?: string | null } = {},
 ): Promise<number> {
+  let fresh = 0;
   try {
-    return await run(supabase, ctx, trigger, opts.logId ?? null);
+    fresh = await run(supabase, ctx, trigger, opts.logId ?? null);
   } catch (err) {
     console.error("syncGamification:", err instanceof Error ? err.message : err);
-    return 0;
   }
+  // výzvy trénera (fáza B): po tréningu / zápise jedla; chyba nikdy nezhodí zápis
+  if (trigger === "workout" || trigger === "food") fresh += await syncChallenges(supabase, ctx.clientId, todayIso());
+  return fresh;
 }
 
 /** Vráti počet NOVÝCH (nie tichých) úspechov — akcia podľa toho vie, či má obnoviť layout s oslavou. */
@@ -298,7 +303,9 @@ export type { GamificationHome, GamificationRaw };
 
 export interface UnseenAchievement {
   id: string;
-  kind: "pr" | "badge";
+  kind: AchievementKind;
+  /** názov výzvy (kind 'challenge') */
+  challengeName: string | null;
   badgeId: string | null;
   exerciseName: string | null;
   value: number | null;
@@ -309,7 +316,7 @@ export interface UnseenAchievement {
 export async function loadUnseenAchievements(supabase: Sb, clientId: string): Promise<UnseenAchievement[]> {
   const { data, error } = await supabase
     .from("client_achievements")
-    .select("id, kind, badge_id, exercise_name, value, reps")
+    .select("id, kind, badge_id, exercise_name, value, reps, meta")
     .eq("client_id", clientId)
     .is("seen_at", null)
     .order("achieved_at", { ascending: true })
@@ -317,7 +324,8 @@ export async function loadUnseenAchievements(supabase: Sb, clientId: string): Pr
   if (error) return [];
   return (data ?? []).map((r) => ({
     id: r.id as string,
-    kind: r.kind as "pr" | "badge",
+    kind: r.kind as AchievementKind,
+    challengeName: challengeNameOf(r.meta),
     badgeId: (r.badge_id as string | null) ?? null,
     exerciseName: (r.exercise_name as string | null) ?? null,
     value: r.value != null ? Number(r.value) : null,
@@ -329,7 +337,8 @@ export async function loadUnseenAchievements(supabase: Sb, clientId: string): Pr
 
 export interface GalleryRecentItem {
   id: string;
-  kind: "pr" | "badge";
+  kind: AchievementKind;
+  challengeName: string | null;
   badgeId: string | null;
   exerciseName: string | null;
   value: number | null;
@@ -348,7 +357,8 @@ export interface GalleryData {
 
 interface AchievementRow {
   id: string;
-  kind: "pr" | "badge";
+  kind: AchievementKind;
+  meta: unknown;
   badge_id: string | null;
   exercise_key: string | null;
   exercise_name: string | null;
@@ -366,7 +376,7 @@ export async function loadGalleryData(supabase: Sb, ctx: SyncContext, today: str
   if (!raw) return null;
   const { data, error } = await supabase
     .from("client_achievements")
-    .select("id, kind, badge_id, exercise_key, exercise_name, value, reps, e1rm, achieved_on, backfilled, high_fives(id)")
+    .select("id, kind, meta, badge_id, exercise_key, exercise_name, value, reps, e1rm, achieved_on, backfilled, high_fives(id)")
     .eq("client_id", ctx.clientId)
     .order("achieved_at", { ascending: false })
     .limit(1500);
@@ -402,6 +412,7 @@ export async function loadGalleryData(supabase: Sb, ctx: SyncContext, today: str
       .map((r) => ({
         id: r.id,
         kind: r.kind,
+        challengeName: challengeNameOf(r.meta),
         badgeId: r.badge_id,
         exerciseName: r.exercise_name,
         value: r.value != null ? Number(r.value) : null,

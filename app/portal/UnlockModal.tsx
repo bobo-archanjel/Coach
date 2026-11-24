@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { BadgeIcon } from "../components/BadgeIcon";
 import type { BadgeIcon as BadgeIconKey } from "@/lib/gamification/badges";
+import { ShareButton } from "../components/ShareButton";
 import { markAchievementsSeenAction } from "./gamificationActions";
 import g from "../components/gamification.module.css";
 
@@ -17,6 +18,8 @@ export interface UnlockItem {
   icon: BadgeIconKey;
   title: string;
   sub: string;
+  /** adresa zdieľacej karty (/api/gamification/share?a=…) */
+  shareHref?: string;
 }
 
 
@@ -83,6 +86,11 @@ export function UnlockModal({
           {item.title}
         </h2>
         <p className={g.dialogSub}>{item.sub}</p>
+        {item.shareHref && (
+          <div className={g.shareRow} style={{ justifyContent: "center", marginBottom: 12 }}>
+            <ShareButton href={item.shareHref} fileName="fitpilot-uspech.png" />
+          </div>
+        )}
         <div className={g.dialogActions}>
           <button
             ref={primary}

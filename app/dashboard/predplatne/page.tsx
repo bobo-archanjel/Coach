@@ -13,7 +13,7 @@ import { ChooseTierButton, CheckoutRefresh, ManageButton } from "./PlanActions";
 
 const FEATURE_KEYS: Record<Tier, string[]> = {
   starter: ["clients", "builder", "overview", "meals", "dashboard", "templates"],
-  pro: ["clients", "base", "aiGenerators", "aiCoach", "aiSummaries", "reports"],
+  pro: ["clients", "base", "aiGenerators", "aiCoach", "aiSummaries", "reports", "challenges"],
   business: ["clients", "base", "branding"],
 };
 

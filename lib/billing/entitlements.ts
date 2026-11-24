@@ -209,3 +209,13 @@ export function brandingAvailableForClients(row: SubscriptionRow | null, now: Da
   const tier = effectiveTier(row, now);
   return tier ? PLANS[tier].features.branding : false;
 }
+
+/**
+ * Je funkcia trénera dostupná jeho KLIENTOM (výzvy, rebríček)? Rovnako ako AI Kouč a branding
+ * rozhoduje len tarifa trénera (nie read-only nad limitom klientov) — pri strate tarify sa
+ * funkcia klientom ticho skryje, dáta ostávajú.
+ */
+export function featureAvailableForClients(row: SubscriptionRow | null, feature: Feature, now: Date = new Date()): boolean {
+  const tier = effectiveTier(row, now);
+  return tier ? PLANS[tier].features[feature] : false;
+}

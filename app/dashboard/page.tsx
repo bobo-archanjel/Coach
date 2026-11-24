@@ -1,6 +1,7 @@
 import { AppLink as Link } from "../components/AppLink";
 import { Suspense } from "react";
 import { AchievementsFeed } from "./AchievementsFeed";
+import { TeamWeekCard } from "./TeamWeekCard";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { AddClientForm } from "./AddClientForm";
@@ -415,6 +416,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         </DismissibleNotice>
       )}
       <LateAlertPanel clients={lateClients} />
+
+      {/* „Tím tento týždeň“ — súhrn týždňa pre trénera (všetky tarify), dostreamuje sa */}
+      <Suspense fallback={null}>
+        <TeamWeekCard totalClients={(clients ?? []).filter((c) => !c.ended_at && !c.deletion_requested_at).length} needAttention={lateClients.length} />
+      </Suspense>
 
       {/* úspechy klientov (rekordy, odznaky) s high five — dostreamuje sa, nespomaľuje zoznam */}
       <Suspense fallback={null}>

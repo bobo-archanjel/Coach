@@ -26,11 +26,15 @@ export const ONBOARDING_DISMISS_KEY = "onboarding";
 export const lateDismissKey = (clientId: string, since: string) => `late:${clientId}:${since}`;
 export const digestDismissKey = (weekStart: string) => `digest:${weekStart}`;
 export const apptDismissKey = (appointmentId: string) => `appt:${appointmentId}`;
+/** Klient dokončil výzvu (gamifikácia, fáza B) — kľúč nesie id odznaku výzvy. */
+export const challengeDismissKey = (achievementId: string) => `chal:${achievementId}`;
+/** Dokončené výzvy sa vo zvončeku ukazujú len takto dlho. */
+export const CHALLENGE_DONE_WINDOW_DAYS = 7;
 
 /** Termín sa ukáže vo zvončeku trénera (aj klienta) deň vopred — od tohto počtu hodín pred začiatkom. */
 export const APPOINTMENT_REMINDER_HOURS = 24;
 
-const KEY_PATTERN = /^(late:[\w-]{1,64}:\d{4}-\d{2}-\d{2}|digest:\d{4}-\d{2}-\d{2}|appt:[\w-]{1,64}|onboarding)$/;
+const KEY_PATTERN = /^(late:[\w-]{1,64}:\d{4}-\d{2}-\d{2}|digest:\d{4}-\d{2}-\d{2}|appt:[\w-]{1,64}|chal:[\w-]{1,64}|onboarding)$/;
 /** Server action neprijme ľubovoľný reťazec — len kľúče v tvare, ktorý vyrábajú funkcie vyššie. */
 export function isValidDismissKey(key: unknown): key is string {
   return typeof key === "string" && key.length <= 120 && KEY_PATTERN.test(key);
@@ -61,7 +65,19 @@ export interface AttentionAppointment {
   key: string;
 }
 
+/** Klient dokončil výzvu. */
+export interface AttentionChallengeDone {
+  id: string;
+  clientId: string;
+  clientName: string;
+  challengeName: string;
+  /** kľúč skrytia (challengeDismissKey) */
+  key: string;
+}
+
 export interface AttentionData {
+  /** dokončené výzvy klientov (voliteľné — chýba pred migráciou 0079) */
+  challengesDone?: AttentionChallengeDone[];
   /** neprečítané správy od klientov */
   unread: number;
   /** rozpis neprečítaných správ po klientoch (najviac správ prvý); bez neho všeobecný text */
@@ -80,6 +96,7 @@ export function applyDismissals(data: AttentionData, dismissed: ReadonlySet<stri
     unread: data.unread,
     unreadByClient: data.unreadByClient,
     appointments: data.appointments?.filter((a) => !dismissed.has(a.key)),
+    challengesDone: data.challengesDone?.filter((c) => !dismissed.has(c.key)),
     late: data.late.filter((c) => !dismissed.has(c.key)),
     digest: data.digest && !dismissed.has(data.digest.key) ? data.digest : null,
   };
@@ -94,7 +111,7 @@ export interface AttentionLink {
 }
 
 export interface AttentionItem {
-  id: "messages" | "appointments" | "late" | "digest";
+  id: "messages" | "appointments" | "late" | "digest" | "challenges";
   tone: "alert" | "watch";
   title: string;
   /** null = nadpis nie je odkaz (klikateľné sú len podpoložky, napr. konkrétni meškajúci klienti) */
@@ -115,7 +132,7 @@ const MAX_LINKS = 4;
 
 /** Počet na odznaku zvončeka: neprečítané správy + blížiace sa termíny + meškajúci klienti + klienti so zhoršením. */
 export function attentionTotal(data: AttentionData): number {
-  return data.unread + (data.appointments?.length ?? 0) + data.late.length + (data.digest?.count ?? 0);
+  return data.unread + (data.appointments?.length ?? 0) + data.late.length + (data.digest?.count ?? 0) + (data.challengesDone?.length ?? 0);
 }
 
 /**
@@ -223,6 +240,29 @@ export function buildAttentionItems(data: AttentionData, locale: Locale = "sk"):
       links,
       markRead: false,
       dismiss: { keys: data.late.map((c) => c.key), days: DISMISS_LATE_DAYS },
+    });
+  }
+
+  const done = data.challengesDone ?? [];
+  if (done.length > 0) {
+    const shown = done.slice(0, MAX_LINKS);
+    const links: AttentionLink[] = shown.map((c) => ({
+      label: c.clientName,
+      meta: c.challengeName,
+      href: "/dashboard/vyzvy",
+      dismissKey: c.key,
+    }));
+    if (done.length > shown.length) {
+      links.push({ label: t("andMore", { count: done.length - shown.length }), meta: "", href: "/dashboard/vyzvy" });
+    }
+    items.push({
+      id: "challenges",
+      tone: "watch",
+      title: t("trainer.challengesDone", { count: done.length }),
+      href: null,
+      links,
+      markRead: false,
+      dismiss: { keys: done.map((c) => c.key), days: null },
     });
   }
 

@@ -75,6 +75,8 @@ const nextConfig: NextConfig = {
   // produkcii súbory chýbali a export padal (lokálne fungoval, disk tam je celý).
   outputFileTracingIncludes: {
     "/api/export/**": ["./assets/fonts/*.ttf", "./public/brand/logo-mark.png"],
+    // zdieľacie karty (gamifikácia, fáza B) — next/og potrebuje fonty Inter z disku
+    "/api/gamification/share": ["./assets/fonts/*.ttf", "./public/brand/logo-mark.png"],
     // AI Kouč (lib/ai/foodSearch.ts) číta offline balík Open Food Facts z disku na serveri
     // (fs + zlib) pri hľadaní potravín. Server action beží v serverless funkcii stránky,
     // ktorá ju hostí — kľúč je preto route stránky, nie súbor akcie.

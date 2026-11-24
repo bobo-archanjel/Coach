@@ -78,7 +78,8 @@
     "empty": "Nové rekordy a odznaky se ukážou tady.",
     "pr": "Rekord: {exercise}, {weight} kg",
     "badge": "Odznak: {name}",
-    "highFive": "Tvůj trenér ti dal high five"
+    "highFive": "Tvůj trenér ti dal high five",
+    "challenge": "Výzva splněna: {name}"
   },
   "unlock": {
     "prTitle": "Nový osobní rekord na {exercise}: {weight} kg 🎉",
@@ -89,31 +90,99 @@
     "next": "Další",
     "position": "{index} z {total}",
     "aria": "Nový úspěch",
-    "viewAll": "Všechny odznaky"
+    "viewAll": "Všechny odznaky",
+    "challengeTitle": "Výzva splněna: {name}",
+    "challengeSub": "Skvělá práce, dotáhl/a jsi to do konce. Trenér o tom ví."
   },
   "badges": {
-    "first_workout": { "name": "První krok", "desc": "Dokonči svůj první trénink." },
-    "workouts_10": { "name": "Rozběhnutý", "desc": "Dokonči 10 tréninků." },
-    "workouts_25": { "name": "Stálice", "desc": "Dokonči 25 tréninků." },
-    "workouts_50": { "name": "Padesátka", "desc": "Dokonči 50 tréninků." },
-    "workouts_100": { "name": "Stovkař", "desc": "Dokonči 100 tréninků." },
-    "workouts_250": { "name": "Legenda", "desc": "Dokonči 250 tréninků." },
-    "streak_4w": { "name": "Měsíc v kole", "desc": "Cvič 4 týdny v řadě. Jedno vynechání se toleruje." },
-    "streak_12w": { "name": "Čtvrtletí", "desc": "Cvič 12 týdnů v řadě. Jedno vynechání se toleruje." },
-    "streak_26w": { "name": "Půl roku", "desc": "Cvič 26 týdnů v řadě. Jedno vynechání se toleruje." },
-    "streak_52w": { "name": "Celý rok", "desc": "Cvič 52 týdnů v řadě. Jedno vynechání se toleruje." },
-    "first_pr": { "name": "První rekord", "desc": "Překonej svou dosavadní nejlepší váhu nebo odhad 1RM v nějakém cviku." },
-    "prs_10": { "name": "Lámač rekordů", "desc": "Získej 10 osobních rekordů." },
-    "volume_1t": { "name": "Tuna železa", "desc": "Zvedni celkem 1 tunu (kilogramy krát opakování)." },
-    "volume_10t": { "name": "Slon", "desc": "Zvedni celkem 10 tun, to je váha slona." },
-    "volume_50t": { "name": "Lokomotiva", "desc": "Zvedni celkem 50 tun." },
-    "volume_100t": { "name": "Modrá velryba", "desc": "Zvedni celkem 100 tun." },
-    "food_streak_7": { "name": "Týden v deníku", "desc": "Zapiš jídlo 7 dní v řadě. Jedno vynechání se toleruje." },
-    "food_streak_30": { "name": "Měsíc v deníku", "desc": "Zapiš jídlo 30 dní v řadě. Jedno vynechání se toleruje." },
-    "protein_week": { "name": "Bílkovinový týden", "desc": "Splň cíl bílkovin alespoň 5 dní v jednom týdnu." },
-    "first_measurement": { "name": "První měření", "desc": "Zapiš své první měření váhy nebo obvodů." },
-    "plan_all_days": { "name": "Celý plán", "desc": "Odcvič každý den jednoho plánu alespoň jednou (plán má alespoň 2 dny)." },
-    "new_year": { "name": "Silvestr a Nový rok", "desc": "Zacvič si 31. prosince nebo 1. ledna." }
+    "first_workout": {
+      "name": "První krok",
+      "desc": "Dokonči svůj první trénink."
+    },
+    "workouts_10": {
+      "name": "Rozběhnutý",
+      "desc": "Dokonči 10 tréninků."
+    },
+    "workouts_25": {
+      "name": "Stálice",
+      "desc": "Dokonči 25 tréninků."
+    },
+    "workouts_50": {
+      "name": "Padesátka",
+      "desc": "Dokonči 50 tréninků."
+    },
+    "workouts_100": {
+      "name": "Stovkař",
+      "desc": "Dokonči 100 tréninků."
+    },
+    "workouts_250": {
+      "name": "Legenda",
+      "desc": "Dokonči 250 tréninků."
+    },
+    "streak_4w": {
+      "name": "Měsíc v kole",
+      "desc": "Cvič 4 týdny v řadě. Jedno vynechání se toleruje."
+    },
+    "streak_12w": {
+      "name": "Čtvrtletí",
+      "desc": "Cvič 12 týdnů v řadě. Jedno vynechání se toleruje."
+    },
+    "streak_26w": {
+      "name": "Půl roku",
+      "desc": "Cvič 26 týdnů v řadě. Jedno vynechání se toleruje."
+    },
+    "streak_52w": {
+      "name": "Celý rok",
+      "desc": "Cvič 52 týdnů v řadě. Jedno vynechání se toleruje."
+    },
+    "first_pr": {
+      "name": "První rekord",
+      "desc": "Překonej svou dosavadní nejlepší váhu nebo odhad 1RM v nějakém cviku."
+    },
+    "prs_10": {
+      "name": "Lámač rekordů",
+      "desc": "Získej 10 osobních rekordů."
+    },
+    "volume_1t": {
+      "name": "Tuna železa",
+      "desc": "Zvedni celkem 1 tunu (kilogramy krát opakování)."
+    },
+    "volume_10t": {
+      "name": "Slon",
+      "desc": "Zvedni celkem 10 tun, to je váha slona."
+    },
+    "volume_50t": {
+      "name": "Lokomotiva",
+      "desc": "Zvedni celkem 50 tun."
+    },
+    "volume_100t": {
+      "name": "Modrá velryba",
+      "desc": "Zvedni celkem 100 tun."
+    },
+    "food_streak_7": {
+      "name": "Týden v deníku",
+      "desc": "Zapiš jídlo 7 dní v řadě. Jedno vynechání se toleruje."
+    },
+    "food_streak_30": {
+      "name": "Měsíc v deníku",
+      "desc": "Zapiš jídlo 30 dní v řadě. Jedno vynechání se toleruje."
+    },
+    "protein_week": {
+      "name": "Bílkovinový týden",
+      "desc": "Splň cíl bílkovin alespoň 5 dní v jednom týdnu."
+    },
+    "first_measurement": {
+      "name": "První měření",
+      "desc": "Zapiš své první měření váhy nebo obvodů."
+    },
+    "plan_all_days": {
+      "name": "Celý plán",
+      "desc": "Odcvič každý den jednoho plánu alespoň jednou (plán má alespoň 2 dny)."
+    },
+    "new_year": {
+      "name": "Silvestr a Nový rok",
+      "desc": "Zacvič si 31. prosince nebo 1. ledna."
+    }
   },
   "trainer": {
     "feedTitle": "Úspěchy klientů",
@@ -129,12 +198,191 @@
     "sentAria": "High five klientovi {client} už byl odeslán",
     "clientTitle": "Úspěchy",
     "clientEmpty": "Klient zatím nemá nové úspěchy.",
-    "readOnly": "Při pozastaveném předplatném se high five neodesílá."
+    "readOnly": "Při pozastaveném předplatném se high five neodesílá.",
+    "challenge": "Dokončil/a výzvu: {name}"
   },
   "errors": {
     "invalid": "Neplatný úspěch.",
     "notSignedIn": "Nejsi přihlášen.",
     "notFound": "Úspěch se nenašel nebo nepatří tvému klientovi.",
     "failed": "High five se nepodařilo odeslat. Zkus to znovu."
+  },
+  "challenges": {
+    "title": "Výzvy od trenéra",
+    "progress": "{value} z {target}",
+    "barAria": "{name}: {percent} %",
+    "done": "Splněno",
+    "startsOn": "Začíná {date}",
+    "endsOn": "Do {date}",
+    "more": "{count, plural, one {Další výzvu} few {Další # výzvy} other {Dalších # výzev}} najdeš v Úspěších.",
+    "seeAll": "Všechny výzvy",
+    "metric": {
+      "workouts": "{target, plural, one {Dokonči # trénink} few {Dokonči # tréninky} other {Dokonči # tréninků}} během výzvy.",
+      "food_days": "{target, plural, one {Zapiš jídlo # den} few {Zapiš jídlo # dny} other {Zapiš jídlo # dní}} během výzvy.",
+      "streak_weeks": "{target, plural, one {# týden} few {# týdny po sobě} other {# týdnů po sobě}}: v každém alespoň 2 tréninkové dny.",
+      "prs": "{target, plural, one {Překonej # osobní rekord} few {Překonej # osobní rekordy} other {Překonej # osobních rekordů}}.",
+      "volume_kg": "Zvedni dohromady {target} kg objemu (váha × opakování)."
+    },
+    "metricName": {
+      "workouts": "Počet tréninků",
+      "food_days": "Dny se zápisem jídla",
+      "streak_weeks": "Série tréninkových týdnů",
+      "prs": "Osobní rekordy",
+      "volume_kg": "Zvednutý objem (kg)"
+    },
+    "metricHint": {
+      "workouts": "Počítá se každý dokončený trénink v období výzvy.",
+      "food_days": "Počítá se den, ve kterém klient zapíše alespoň jednu položku jídla.",
+      "streak_weeks": "Týdny po sobě (pondělí až neděle), v každém alespoň 2 tréninkové dny.",
+      "prs": "Počítá se každý nový osobní rekord (váha nebo odhad 1RM).",
+      "volume_kg": "Součet váha × opakování ze všech sérií v období výzvy."
+    },
+    "phase": {
+      "upcoming": "Připravuje se",
+      "active": "Běží",
+      "over": "Skončila",
+      "ended": "Ukončená"
+    },
+    "page": {
+      "title": "Výzvy a žebříček",
+      "subtitle": "Motivuj klienty společným cílem. Pokrok se počítá sám z jejich tréninků a zápisů."
+    },
+    "locked": {
+      "title": "Výzvy a žebříček jsou od tarifu {tier}",
+      "text": "S tarifem {tier} vytvoříš klientům výzvy a zapneš žebříček v rámci svých klientů."
+    },
+    "form": {
+      "name": "Název výzvy",
+      "namePlaceholder": "Např. Listopadová osmička",
+      "metric": "Typ výzvy",
+      "target": "Cíl",
+      "targetHint": "Od {min} do {max}",
+      "startsOn": "Začátek",
+      "endsOn": "Konec",
+      "description": "Popis (volitelné)",
+      "who": "Pro koho",
+      "everyone": "Pro všechny klienty (i nové)",
+      "selected": "Jen pro vybrané",
+      "create": "Vytvořit výzvu",
+      "creating": "Vytvářím…",
+      "created": "Výzva je vytvořena. Klienti ji uvidí na kartě Dnes i v Úspěších."
+    },
+    "trainer": {
+      "leaderboardTitle": "Žebříček",
+      "newTitle": "Nová výzva",
+      "listTitle": "Tvoje výzvy",
+      "empty": "Zatím nemáš žádnou výzvu.",
+      "noClients": "Nejdřív přidej klienta, pak mu můžeš vytvořit výzvu.",
+      "unavailable": "Výzvy se teď nepodařilo načíst. Zkus to znovu za chvíli.",
+      "targetOf": "cíl {target}",
+      "doneOf": "Splnilo {done} z {total}",
+      "progress": "Pokrok klientů",
+      "partDone": "Splněno",
+      "end": "Ukončit",
+      "delete": "Smazat",
+      "deleteConfirm": "Opravdu smazat",
+      "cancel": "Zrušit"
+    },
+    "errors": {
+      "name": "Zadej název výzvy (nejvýše 80 znaků).",
+      "description": "Popis může mít nejvýše 300 znaků.",
+      "metric": "Vyber typ výzvy.",
+      "target": "Cíl je mimo povolený rozsah pro tento typ výzvy.",
+      "dates": "Zkontroluj data: konec nemůže být před začátkem.",
+      "startPast": "Výzva může začít nejvýše 7 dní do minulosti.",
+      "endPast": "Výzva už skončila. Vyber konec od dnešního dne.",
+      "tooLong": "Výzva může trvat nejvýše 120 dní.",
+      "clients": "Vyber alespoň jednoho svého klienta.",
+      "limit": "Najednou můžeš mít nejvýše {max} aktivních výzev. Ukonči nebo smaž některou.",
+      "notSignedIn": "Nejsi přihlášen.",
+      "invalid": "Neplatný požadavek.",
+      "failed": "Nepodařilo se uložit. Zkus to znovu."
+    }
+  },
+  "leaderboard": {
+    "title": "Žebříček",
+    "metricsAria": "Metrika žebříčku",
+    "metrics": {
+      "workoutsWeek": "Tento týden",
+      "workoutsMonth": "Tento měsíc",
+      "streakWeeks": "Série",
+      "prsMonth": "Rekordy"
+    },
+    "unit": {
+      "workoutsWeek": "{count, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
+      "workoutsMonth": "{count, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
+      "streakWeeks": "{count, plural, one {# týden} few {# týdny} other {# týdnů}}",
+      "prsMonth": "{count, plural, one {# rekord} few {# rekordy} other {# rekordů}}"
+    },
+    "you": "ty",
+    "yourRank": "Tvoje místo: {rank}. z {total}",
+    "yourRankShort": "Tvoje místo: {rank}.",
+    "noRank": "Zatím jsi bez umístění. Pár tréninků a jsi ve hře.",
+    "empty": "Zatím tu nikdo není. První trénink žebříček rozjede.",
+    "hide": "Skrýt mě v žebříčku",
+    "show": "Zobrazit žebříček",
+    "hiddenText": "Skryl/a ses v žebříčku, proto ho nevidíš ani ty. Kdykoli ho můžeš znovu zapnout.",
+    "privacy": "Vidět je jen křestní jméno a iniciála. Počítá se jen aktivita u tvého trenéra, nikdy váha ani kalorie.",
+    "failed": "Nastavení se nepodařilo uložit. Zkus to znovu.",
+    "trainer": {
+      "label": "Zobrazit žebříček klientům",
+      "hint": "Klienti uvidí pořadí podle tréninků, série a rekordů (jen jméno a iniciála). Každý se v něm může sám skrýt."
+    }
+  },
+  "weekly": {
+    "title": "Tvůj týden",
+    "range": "{from} – {to}",
+    "close": "Zavřít",
+    "goalMet": "Týdenní cíl splněn. Skvělá práce!",
+    "goalProgress": "Tento týden {done} z {target} tréninkových dnů. Každý trénink se počítá.",
+    "workouts": "Tréninkové dny",
+    "foodDays": "Dny se zápisem jídla",
+    "proteinDays": "Dny s bílkovinami",
+    "prs": "Nové rekordy",
+    "badges": "Nové odznaky a výzvy",
+    "volume": "Zvednutý objem",
+    "volumeUp": "Objem, o {pct} % více než minule",
+    "volumePrev": "Objem, minulý týden {kg} kg",
+    "streak": "Týdnů v sérii",
+    "topPrs": "Rekordy: {list}."
+  },
+  "share": {
+    "title": "Můj úspěch ve FitPilot",
+    "button": "Sdílet",
+    "preparing": "Připravuji…",
+    "saved": "Obrázek je stažen.",
+    "failed": "Kartu se nepodařilo vytvořit.",
+    "pr": {
+      "kicker": "Nový osobní rekord",
+      "headline": "{weight} kg",
+      "subReps": "{exercise}, {reps} opakování"
+    },
+    "badge": {
+      "kicker": "Nový odznak"
+    },
+    "challenge": {
+      "kicker": "Výzva splněna"
+    },
+    "weekly": {
+      "kicker": "Můj týden",
+      "headline": "{done, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
+      "workouts": "Tréninkové dny",
+      "prs": "Nové rekordy",
+      "volume": "Zvednutý objem",
+      "streak": "Týdnů v sérii"
+    },
+    "footerDefault": "Vytvořeno ve FitPilot",
+    "footerBranded": "Pohání FitPilot"
+  },
+  "team": {
+    "title": "Tým tento týden",
+    "workouts": "{clients, plural, =0 {tréninků} one {tréninků od 1 klienta} few {tréninků od # klientů} other {tréninků od # klientů}}",
+    "prs": "nových rekordů",
+    "badges": "nových odznaků",
+    "challenges": "splněných výzev",
+    "attention": "klientů potřebuje pozornost",
+    "summary": "Celkem {total, plural, one {# aktivní klient} few {# aktivní klienti} other {# aktivních klientů}}. Týden jde od pondělí.",
+    "quiet": "Tento týden je zatím klidný. Rekordy a odznaky se ukážou tady.",
+    "challengesLink": "Výzvy a žebříček"
   }
 }

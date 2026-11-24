@@ -7,6 +7,11 @@ import { BADGE_CATEGORIES, badgeById, type BadgeView } from "@/lib/gamification/
 import { loadGalleryData, type GalleryData } from "@/lib/gamification/server";
 import { todayIso } from "@/lib/reports/period";
 import { BadgeIcon, LockIcon } from "@/app/components/BadgeIcon";
+import { ShareButton } from "@/app/components/ShareButton";
+import { Suspense } from "react";
+import { ChallengesHost } from "../ChallengesCard";
+import { LeaderboardHost } from "../LeaderboardHost";
+import { WeeklySummaryHost } from "../WeeklySummaryHost";
 import g from "@/app/components/gamification.module.css";
 import s from "../portal.module.css";
 
@@ -36,7 +41,22 @@ export default async function UspechyPage() {
         <h1 className={s.pageTitle}>{t("title")}</h1>
         <p className={s.pageSub}>{t("subtitle")}</p>
       </header>
-      {data ? <Gallery data={data} locale={locale} /> : <p className={g.empty}>{t("unavailable")}</p>}
+      {data ? (
+        <div className={g.stack}>
+          <Suspense fallback={null}>
+            <WeeklySummaryHost mode="always" />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ChallengesHost />
+          </Suspense>
+          <Suspense fallback={null}>
+            <LeaderboardHost />
+          </Suspense>
+          <Gallery data={data} locale={locale} />
+        </div>
+      ) : (
+        <p className={g.empty}>{t("unavailable")}</p>
+      )}
     </>
   );
 }
@@ -99,11 +119,16 @@ async function Gallery({ data, locale }: { data: GalleryData; locale: Locale }) 
                 <span>
                   {r.kind === "pr" && r.exerciseName && r.value != null
                     ? t("recent.pr", { exercise: r.exerciseName, weight: r.value })
-                    : r.badgeId && badgeById(r.badgeId)
-                      ? t("recent.badge", { name: t(`badges.${r.badgeId}.name` as never) })
-                      : null}
+                    : r.kind === "challenge" && r.challengeName
+                      ? t("recent.challenge", { name: r.challengeName })
+                      : r.badgeId && badgeById(r.badgeId)
+                        ? t("recent.badge", { name: t(`badges.${r.badgeId}.name` as never) })
+                        : null}
                 </span>
-                {r.highFived && <span className={g.hf}>🙌 {t("recent.highFive")}</span>}
+                <span className={g.shareRow}>
+                  {r.highFived && <span className={g.hf}>🙌 {t("recent.highFive")}</span>}
+                  <ShareButton href={`/api/gamification/share?a=${r.id}`} fileName="fitpilot-uspech.png" />
+                </span>
               </li>
             ))}
           </ul>

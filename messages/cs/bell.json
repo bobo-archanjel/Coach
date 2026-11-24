@@ -24,7 +24,8 @@
     "messageCount": "{count, plural, one {# zpráva} few {# zprávy} other {# zpráv}}",
     "daysWithout": "{count, plural, one {# den} few {# dny} other {# dní}} bez tréninku",
     "late": "{count, plural, one {# klient se opožďuje} few {# klienti se opožďují} other {# klientů se opožďuje}} s tréninkem",
-    "digest": "{count, plural, one {# klient klesl} few {# klienti klesli} other {# klientů kleslo}} ze „{from}“ do „{to}“ tento týden"
+    "digest": "{count, plural, one {# klient klesl} few {# klienti klesli} other {# klientů kleslo}} ze „{from}“ do „{to}“ tento týden",
+    "challengesDone": "{count, plural, one {# klient dokončil výzvu} few {# klienti dokončili výzvu} other {# klientů dokončilo výzvu}}"
   },
   "client": {
     "unreadFromTrainer": "{count, plural, one {# nepřečtená zpráva} few {# nepřečtené zprávy} other {# nepřečtených zpráv}} od trenéra",
