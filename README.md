@@ -75,6 +75,12 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-24** — **Jedálniček klienta ako tréning; „Deň 1“ u trénera; náhľad hotového plánu** (`feature/jedalnicek-builder`, bez migrácie).
+  - Klient — builder jedálnička: bez hlavičky „Jedálniček“, nový má názov „Chudnutie – prvý týždeň“ a hneď „Deň 1“; pod názvom Uložiť + Zmazať koncept / pri úprave Uložiť úpravy + Zahodiť úpravy (s potvrdením), dolné tlačidlo zrušené.
+  - Rozpracovaný jedálniček (nový aj úprava) sa ukladá v prehliadači (`app/portal/strava/mealDraft.ts`) — po návrate karta „Pokračovať“ / „Zahodiť“.
+  - Tréner: nový jedálniček má hneď prvý deň „Deň 1“.
+  - Náhľad hotového plánu u klienta: bez karty „Ako sa ti cvičilo“, „Krátke zhrnutie“ namiesto „Čo z toho plynie“.
+  - Testy: `apiSession` / `sessionLogin` (prihlásenie bez formulára kvôli CAPTCHA) aj v testoch jedálničkov.
 - **2026-11-23** — **Vyhodnotenie hotového plánu, progresia, úpravy zverejneného plánu až po uložení** (`feature/nahlad-analytika`, **migrácia `0071_plan_pending_edits.sql`**).
   - Klient: celý odcvičený plán (vlastný aj od trénera) má „Náhľad“ namiesto „Upraviť“ — vyhodnotenie: súhrn (tréningy, splnené série, objem, náročnosť), úspechy (rekordy oproti obdobiu pred plánom), čo z toho plynie, karty cvikov s grafom najťažšej série, ako sa cvičilo (`lib/portal/planReview.ts`).
   - „Zopakovať s progresiou“ (vlastný plán): okno s voľbou +2,5 / 5 / 7,5 / 10 % a náhľadom zmien → nový plán s vyššou záťažou tam, kde boli splnené všetky série (zaokrúhlené na 0,5 kg).
