@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/locales";
+import { siteUrl, jsonLdString } from "@/lib/site";
+import { VARIANT_PRICE_EUR, type Variant } from "@/lib/billing/plans";
 import { LogoMark } from "./components/LogoMark";
 import { RevealOnScroll } from "./components/RevealOnScroll";
 import { StickyMobileCta } from "./components/StickyMobileCta";
@@ -66,34 +68,59 @@ const CheckIcon = ({ color, size = 16 }: { color: string; size?: number }) => (
 // zverejnený cenník, preto sa sem nevymýšľa konkrétna suma.
 async function StructuredData() {
   const [t, locale] = await Promise.all([getTranslations("landing"), getLocale()]);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
+  const base = siteUrl();
+  const offer = (name: string, variant: Variant) => ({
+    "@type": "Offer",
+    name,
+    price: VARIANT_PRICE_EUR[variant].toFixed(2),
+    priceCurrency: "EUR",
+    url: `${base}/#cennik`,
+    priceSpecification: {
+      "@type": "UnitPriceSpecification",
+      price: VARIANT_PRICE_EUR[variant].toFixed(2),
+      priceCurrency: "EUR",
+      unitCode: "MON",
+    },
+  });
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "FitPilot",
-    url: siteUrl,
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    description: t("ldDescription"),
-    inLanguage: intlLocale(locale),
-    audience: {
-      "@type": "Audience",
-      audienceType: t("ldAudience"),
-    },
-    areaServed: ["SK", "CZ"],
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "EUR",
-      description: t("ldOffer"),
-    },
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${base}/#organization`,
+        name: "FitPilot",
+        url: base,
+        logo: `${base}/brand/logo-mark.png`,
+        description: t("ldDescription"),
+        areaServed: ["SK", "CZ"],
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${base}/#software`,
+        name: "FitPilot",
+        url: base,
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        description: t("ldDescription"),
+        inLanguage: intlLocale(locale),
+        audience: { "@type": "Audience", audienceType: t("ldAudience") },
+        areaServed: ["SK", "CZ"],
+        publisher: { "@id": `${base}/#organization` },
+        // ceny zo zdroja pravdy (lib/billing/plans.ts); Starter 5 / Starter 10 / Pro / Business
+        offers: [
+          offer("Starter 5", "starter5"),
+          offer("Starter 10", "starter10"),
+          offer("Pro", "pro"),
+          offer("Business", "business"),
+        ],
+      },
+    ],
   };
   return (
     <script
       type="application/ld+json"
-      // JSON.stringify je tu bezpečný — objekt je statický literál definovaný
-      // vyššie, žiadny užívateľský vstup doň nevstupuje.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      // `<` sa escapuje (jsonLdString), takže hodnoty z messages nemôžu ukončiť <script>.
+      dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
     />
   );
 }

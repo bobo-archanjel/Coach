@@ -4,6 +4,7 @@ import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { siteUrl } from "@/lib/site";
 import { ogLocale } from "@/lib/i18n/locales";
 import { MESSAGES } from "@/messages";
 import { clientMessages } from "@/lib/i18n/clientMessages";
@@ -23,12 +24,12 @@ const inter = Inter({
 // právne stránky) môžu prebiť vlastným `export const metadata` — dashboard/
 // portal (za loginom) sa o SEO nestarajú, dedia len title (kartička v
 // prehliadači), nič viac netreba.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
+const base = siteUrl();
 
 export async function generateMetadata(): Promise<Metadata> {
   const [locale, t] = await Promise.all([getLocale(), getTranslations("meta")]);
   return {
-    metadataBase: new URL(siteUrl),
+    metadataBase: new URL(base),
     // predvolený manifest FitPilot; portál má vlastný so značkou trénera (app/portal/layout.tsx)
     manifest: "/manifest.webmanifest",
     appleWebApp: { capable: true, title: "FitPilot", statusBarStyle: "default" },

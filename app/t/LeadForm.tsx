@@ -6,7 +6,6 @@
 
 import { startTransition, useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
 import { TurnstileScript, useTurnstile } from "@/app/components/Turnstile";
 import { LEAD_EXPERIENCE, LEAD_GOALS, LEAD_LIMITS_TEXT } from "@/lib/publicPage/leads";
 import { charLength } from "@/lib/branding/validation";
@@ -15,7 +14,7 @@ import styles from "./publicPage.module.css";
 
 const initial: LeadFormState = { error: null, sent: false };
 
-export function LeadForm({ handle, disabled = false }: { handle: string; disabled?: boolean }) {
+export function LeadForm({ handle, disabled = false, privacyHref }: { handle: string; disabled?: boolean; privacyHref: string }) {
   const t = useTranslations("publicPage.lead");
   const [state, formAction, pending] = useActionState(submitLeadAction, initial);
   const [message, setMessage] = useState("");
@@ -133,9 +132,9 @@ export function LeadForm({ handle, disabled = false }: { handle: string; disable
           <input type="checkbox" name="consent" value="1" required disabled={disabled} />
           <span>
             {t("consent")}{" "}
-            <Link href="/ochrana-sukromia" className={styles.privacy} target="_blank">
+            <a href={privacyHref} className={styles.privacy} target="_blank" rel="noopener">
               {t("privacyLink")}
-            </Link>
+            </a>
           </span>
         </label>
 

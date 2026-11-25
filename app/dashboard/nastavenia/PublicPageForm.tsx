@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { AppLink as Link } from "@/app/components/AppLink";
 import { charLength } from "@/lib/branding/validation";
 import { LIMITS } from "@/lib/publicPage/profile";
+import { buildTrainerPublicUrl } from "@/lib/publicPage/subdomain";
 import { HANDLE_MAX, normalizeHandle } from "@/lib/publicPage/handle";
 import { SOCIAL_KINDS, type SocialKind } from "@/lib/publicPage/socials";
 import {
@@ -58,7 +59,7 @@ async function shrinkPhoto(file: File): Promise<File> {
   }
 }
 
-export function PublicPageForm({ initial, host, businessReady }: { initial: PublicPageInitial; host: string; businessReady: boolean }) {
+export function PublicPageForm({ initial, host, siteOrigin, subdomainBase, businessReady }: { initial: PublicPageInitial; host: string; siteOrigin: string; subdomainBase: string | null; businessReady: boolean }) {
   const t = useTranslations("publicPage.settings");
   const [state, formAction, pending] = useActionState(savePublicPageAction, initialState);
   const [handle, setHandle] = useState(initial.handle);
@@ -101,11 +102,11 @@ export function PublicPageForm({ initial, host, businessReady }: { initial: Publ
           {live ? t("stateLive") : t("stateDraft")}
         </span>
         <span className={b.hint}>
-          {host}/t/{savedHandle ?? "…"}
+          {subdomainBase ? `${savedHandle ?? "…"}.${subdomainBase}` : `${host}/t/${savedHandle ?? "…"}`}
         </span>
         <span className={p.statusLinks}>
           {live && savedHandle && (
-            <a href={`/t/${savedHandle}`} target="_blank" rel="noopener noreferrer" className={`${pa.action} ${pa.small} ${pa.inline}`} data-testid="public-page-view">
+            <a href={buildTrainerPublicUrl(savedHandle, subdomainBase, siteOrigin)} target="_blank" rel="noopener noreferrer" className={`${pa.action} ${pa.small} ${pa.inline}`} data-testid="public-page-view">
               {t("view")}
             </a>
           )}

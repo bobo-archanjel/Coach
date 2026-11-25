@@ -33,6 +33,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("nav");
   return {
   title: t("trainerMetaTitle"),
+  // appka za loginom do indexu nepatrí
+  robots: { index: false, follow: false },
   };
 }
 

@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/locales";
-import { mailSiteUrl } from "@/lib/mail/config";
+import { siteUrl, jsonLdString, trainerPublicUrl } from "@/lib/site";
 import { isHandleShape } from "@/lib/publicPage/handle";
 import { loadPublicPage } from "@/lib/publicPage/server";
-import { buildPageMetadata } from "@/lib/publicPage/seo";
+import { buildPageMetadata, buildPageJsonLd } from "@/lib/publicPage/seo";
 import { TrainerPublicPage } from "../TrainerPublicPage";
 
 /* /t/<handle> — verejná stránka trénera s Business. Žiadna session a žiadne dáta konkrétneho
@@ -24,7 +24,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!page) return { title: "404", robots: { index: false, follow: false } };
   const [t, locale] = await Promise.all([getTranslations("publicPage"), getLocale()]);
   return buildPageMetadata(page, {
-    site: mailSiteUrl(),
+    site: siteUrl(),
+    pageUrl: trainerPublicUrl(handle),
     locale: intlLocale(locale as "sk" | "cs").replace("-", "_"),
     descriptionFallback: t("metaFallback"),
     siteName: t("siteName"),
@@ -45,5 +46,15 @@ export default async function TrainerPage({ params }: Params) {
   if (!isHandleShape(handle)) notFound();
   const page = await loadPublicPage(handle);
   if (!page) notFound();
-  return <TrainerPublicPage page={page} />;
+  const jsonLd = buildPageJsonLd(page, siteUrl(), trainerPublicUrl(handle));
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        // `<` sa escapuje (jsonLdString) — texty trénera nemôžu ukončiť <script>
+        dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
+      />
+      <TrainerPublicPage page={page} />
+    </>
+  );
 }

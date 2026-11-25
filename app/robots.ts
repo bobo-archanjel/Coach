@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/site";
 
 // feature/security#2 — appka nemala robots.txt vôbec. Disallow /dashboard a
 // /portal nie je bezpečnostné opatrenie (sú aj tak za loginom, RLS ich chráni
@@ -6,7 +7,7 @@ import type { MetadataRoute } from "next";
 // nezaťažujú appku indexovaním stránok, ktoré rovnako nikdy nezobrazia bez
 // prihlásenia. Sitemap (app/sitemap.ts) obsahuje len skutočne verejné cesty.
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
+  const base = siteUrl();
   return {
     rules: {
       userAgent: "*",

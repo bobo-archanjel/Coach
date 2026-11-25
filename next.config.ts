@@ -44,7 +44,7 @@ const nextConfig: NextConfig = {
   // dev požiadavky (HMR, /_next) z iného originu než localhost. Len dev, produkcia ignoruje.
   // *.trycloudflare.com — HTTPS tunel (`cloudflared tunnel --url http://localhost:3000`),
   // kamera skenera čiarových kódov na telefóne funguje len cez HTTPS.
-  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.trycloudflare.com"],
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.trycloudflare.com", "*.localhost"],
   // Default ("loose") CSS chunking duplikoval celý portal.module.css (64 kB)
   // do KAŽDÉHO page-level CSS chunku popri layout.css, ktorý ho už obsahuje —
   // /portal/trening tak sťahoval 128 kB CSS namiesto 64 kB (viď commit). "strict"
@@ -150,11 +150,7 @@ const nextConfig: NextConfig = {
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
       `img-src 'self' data: https://raw.githubusercontent.com${supabaseImgHost()}`,
-      // app/v5's scroll-world engine (public/v5/scrub-engine.js) loads each
-      // clip as a Blob and assigns it to <video src> for guaranteed
-      // seekability regardless of byte-range support — that blob: URL falls
-      // under media-src (default-src 'self' has no blob: exception on its
-      // own, confirmed via a real CSP violation while wiring this in).
+      // blob: pre lokálne náhľady médií (URL.createObjectURL) pred nahraním.
       "media-src 'self' blob:",
       "font-src 'self' data:",
       "frame-src https://challenges.cloudflare.com",
