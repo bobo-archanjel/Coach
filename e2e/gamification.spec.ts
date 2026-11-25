@@ -164,15 +164,20 @@ test.describe("prstence týždňa", () => {
     expect(weekDates("2026-09-14")).toHaveLength(7);
   });
 
-  test("buildGamificationHome: dni mimo aktuálneho týždňa sa nerátajú, viac tréningov v ten istý deň = jeden deň", () => {
+  test("buildGamificationHome: týždenný riadok počíta dni mimo týždňa správne, viac tréningov v ten istý deň = jeden deň", () => {
     // 2026-09-16 = streda, týždeň 14.–20. 9.
     const home = buildGamificationHome(
-      { workouts: 3, foodDays: 5, prCount: 1, badgeIds: ["first_workout"], proteinTarget: 140, weekFood: [{ date: "2026-09-15", protein: 150 }, { date: "2026-09-16", protein: 50 }] },
-      { planDays: 3, trainedDates: ["2026-09-13", "2026-09-14", "2026-09-14", "2026-09-16"], foodDates: ["2026-09-13", "2026-09-15", "2026-09-16"], today: "2026-09-16" },
+      { workouts: 3, foodDays: 5, prCount: 1, badgeIds: ["first_workout"] },
+      {
+        planDays: 3,
+        trainedDates: ["2026-09-13", "2026-09-14", "2026-09-14", "2026-09-16"],
+        today: "2026-09-16",
+        daily: null,
+      },
     );
-    expect(home.rings[0]).toMatchObject({ value: 2, goal: 3 });
-    expect(home.rings[1]).toMatchObject({ value: 2, goal: 7 });
-    expect(home.rings[2]).toMatchObject({ value: 1, goal: 7 });
+    expect(home.week).toEqual({ done: 2, target: 3 });
+    expect(home.rings).toEqual([]); // dnešné dáta sa nenačítali → prstence sa neukážu
+    expect(home.rest).toEqual({ available: false, active: false, workoutToday: false });
     expect(home.badgeCount).toBe(1);
     expect(home.xp.total).toBe(3 * XP_WORKOUT + 5 * XP_FOOD_DAY + XP_PR + XP_BADGE.common);
   });

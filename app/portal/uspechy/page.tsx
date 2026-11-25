@@ -156,6 +156,12 @@ async function Gallery({
               <span>{xp.missions}</span>
             </li>
           )}
+          {xp.rings > 0 && (
+            <li>
+              <span>{t("xpBreakdown.rings")}</span>
+              <span>{xp.rings}</span>
+            </li>
+          )}
         </ul>
       </section>
 

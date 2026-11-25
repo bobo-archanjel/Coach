@@ -23,7 +23,8 @@
     "food": "Dny se zápisem jídla",
     "prs": "Osobní rekordy",
     "badges": "Odznaky",
-    "missions": "Mise týdne"
+    "missions": "Mise týdne",
+    "rings": "Dny s uzavřenými kruhy"
   },
   "home": {
     "title": "Tento týden",
@@ -41,6 +42,31 @@
     "trainingHint": "dny s tréninkem, cíl podle plánu",
     "foodHint": "dny se zapsaným jídlem",
     "proteinHint": "dny s cílem bílkovin"
+  },
+  "daily": {
+    "ringsAria": "Dnešní kruhy",
+    "meals": "Strava",
+    "protein": "Bílkoviny",
+    "move": "Pohyb",
+    "value": "{value}/{goal}",
+    "aria": "{label}: {value} z {goal}",
+    "proteinValue": "{percent} %",
+    "proteinAria": "Bílkoviny: {value} z {goal} g",
+    "mealsHint": "{left, plural, =0 {Všechna jídla zapsána} one {Ještě # jídlo} few {Ještě # jídla} other {Ještě # jídel}}",
+    "proteinHint": "{value} z {goal} g",
+    "proteinDone": "Cíl bílkovin splněn",
+    "moveWorkout": "Trénink hotový",
+    "moveRest": "Odpočinkový den",
+    "moveOpen": "Trénink nebo odpočinek",
+    "weekLine": "Tento týden: {done}/{target} {target, plural, one {trénink} few {tréninky} other {tréninků}}",
+    "restButton": "Dnes odpočívám 😴",
+    "restActive": "Dnes odpočíváš 😴",
+    "restUndo": "Vrátit zpět",
+    "restWorkout": "Dnes už máš trénink, odpočinek není potřeba.",
+    "restError": "Odpočinek se nepodařilo uložit, zkus to znovu.",
+    "celebrate": "Všechny kruhy uzavřeny! 🎉",
+    "celebrateXp": "+{xp} XP",
+    "celebrateClose": "Zavřít"
   },
   "categories": {
     "endurance": "Vytrvalost",

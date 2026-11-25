@@ -62,6 +62,7 @@ import type {
 import { dbErr, isMissingColumn } from "@/lib/dbError";
 import { isPortionUnit } from "@/lib/portions";
 import { buildGamificationHome, loadGamificationRaw } from "@/lib/gamification/server";
+import { loadTodayRingsCached } from "@/lib/gamification/ringsServer";
 import { resolveFreezes } from "@/lib/gamification/freezesServer";
 import { loadWorkoutHints } from "@/lib/gamification/hintsServer";
 import { trainerAllowsCoach } from "@/lib/billing/server";
@@ -387,6 +388,8 @@ export async function getPortalData(): Promise<PortalResult> {
       supabase.from("food_logs").select("eaten_on").eq("client_id", client.id).gte("eaten_on", foodSince),
       // prstence a úroveň (gamifikácia) — surové súčty, jeden súbeh dopytov; chyba = null
       loadGamificationRaw(supabase, { clientId: client.id, activePlanId: client.active_plan_id ?? null }, isoDate),
+      // denné prstence (Strava, Bielkoviny, Pohyb) — stav dnešného dňa; chyba = null (prstence sa neukážu)
+      loadTodayRingsCached(client.id, isoDate),
     ]);
 
     // "Aktívny" plán = clients.active_plan_id (volí ho klient v Tréningu / na Dnes, alebo
@@ -579,7 +582,7 @@ export async function getPortalData(): Promise<PortalResult> {
       }
     }
 
-    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }, gamiRaw] =
+    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }, gamiRaw, todayRings] =
       await sideData;
 
     // Série sú len motivačná dekorácia — chyba ich dopytu (data = null) nesmie
@@ -599,13 +602,13 @@ export async function getPortalData(): Promise<PortalResult> {
       session && session.kind === "training" && session.exercises.length > 0
         ? await loadWorkoutHints(supabase, client.id, session.exercises.map((e) => e.name), isoDate)
         : undefined;
-    // týždenný cieľ prstenca = počet dní aktívneho plánu (rovnaké pravidlo ako reporty)
+    // denné prstence + riadok „Tento týždeň: x/y tréningy“ (cieľ týždňa = počet dní aktívneho plánu, rovnaké pravidlo ako reporty)
     const gamification = gamiRaw
       ? buildGamificationHome(gamiRaw, {
           planDays: planChoice?.plans.find((p) => p.id === planChoice.activePlanId)?.dayCount ?? null,
           trainedDates: (streakTrainRows ?? []).map((r) => r.performed_on as string),
-          foodDates: (streakFoodRows ?? []).map((r) => r.eaten_on as string),
           today: isoDate,
+          daily: todayRings,
         })
       : null;
 

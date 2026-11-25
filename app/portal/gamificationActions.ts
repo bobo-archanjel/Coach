@@ -15,6 +15,9 @@ import { celebrationUnlocked, frameUnlocked, isCelebrationId, isFrameId, isTheme
 import { loadBrandingForTrainer } from "@/lib/branding/server";
 import { validateNickname } from "@/lib/gamification/nickname";
 import { FINISH_COOKIE } from "@/lib/gamification/finishSummary";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { canMarkRest } from "@/lib/gamification/rings";
+import { claimRingsCelebration, type ClaimResult } from "@/lib/gamification/ringsServer";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -214,4 +217,52 @@ export async function setTitleAction(titleLevel: number | null): Promise<Setting
 export async function clearFinishSummaryAction(): Promise<{ ok: boolean }> {
   (await cookies()).set(FINISH_COOKIE, "", { path: "/portal", maxAge: 0, httpOnly: true, sameSite: "lax" });
   return { ok: true };
+}
+
+// ---------- denné prstence: „Dnes oddychujem“ a oslava uzavretých prstencov ----------
+// Klient smie označiť len DNEŠNÝ deň a len keď dnes nemá dokončený tréning; zápis robí service role po overení
+// session (tabuľka client_rest_days nemá write práva, 0087). Odpočinok zatvára len prstenec Pohyb — nie je to
+// tréning a nikde inde sa nepočíta (série, misie, odznaky, reporty čítajú workout_logs).
+
+export type RestResult = { ok: true } | { ok: false; error: "workout" | "unavailable" | "failed" };
+
+export async function setRestDayAction(rest: boolean): Promise<RestResult> {
+  if (typeof rest !== "boolean") return { ok: false, error: "failed" };
+  const clientId = await myClientId();
+  if (!clientId) return { ok: false, error: "failed" };
+  const admin = tryCreateAdminClient();
+  if (!admin) return { ok: false, error: "failed" };
+  const today = todayIso();
+  if (rest) {
+    const supabase = await createClient();
+    const { data, error: wErr } = await supabase
+      .from("workout_logs")
+      .select("id")
+      .eq("client_id", clientId)
+      .eq("performed_on", today)
+      .eq("status", "completed")
+      .limit(1);
+    if (wErr) return { ok: false, error: "failed" };
+    if (!canMarkRest((data ?? []).length > 0)) return { ok: false, error: "workout" };
+    // jeden riadok na deň (PRIMARY KEY); opakovaný klik nič nezdvojí
+    const { error } = await admin.from("client_rest_days").upsert({ client_id: clientId, day: today }, { onConflict: "client_id,day", ignoreDuplicates: true });
+    if (error) return { ok: false, error: "unavailable" };
+  } else {
+    // vrátenie späť len pre dnešok — staršie dni sa nemenia
+    const { error } = await admin.from("client_rest_days").delete().eq("client_id", clientId).eq("day", today);
+    if (error) return { ok: false, error: "unavailable" };
+  }
+  revalidatePath("/portal", "layout");
+  return { ok: true };
+}
+
+/** Oslava „Všetky kruhy uzavreté!“: server prepočíta prstence z dát a deň zapíše (raz za deň, +XP). */
+export async function claimRingsCelebrationAction(): Promise<ClaimResult> {
+  const clientId = await myClientId();
+  if (!clientId) return { status: "open" };
+  const admin = tryCreateAdminClient();
+  if (!admin) return { status: "open" };
+  const result = await claimRingsCelebration(await createClient(), admin as unknown as SupabaseClient, clientId, todayIso());
+  if (result.status === "celebrate" && result.persisted) revalidatePath("/portal/uspechy");
+  return result;
 }

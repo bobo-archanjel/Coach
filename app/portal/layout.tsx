@@ -25,6 +25,7 @@ import { PortalSkeletonOverlay } from "./PortalSkeletonOverlay";
 import { NotificationBellSlot } from "./NotificationBell";
 import { AchievementHost } from "./AchievementHost";
 import { FinishSummaryHost } from "./FinishSummaryHost";
+import { RingsHost } from "./RingsHost";
 import { loadCosmetics } from "@/lib/gamification/cosmeticsServer";
 import { frameClassName } from "./frameClass";
 import themes from "@/app/components/clientThemes.module.css";
@@ -177,6 +178,9 @@ export default async function PortalLayout({ children }: { children: React.React
         </Suspense>
         <Suspense fallback={null}>
           <FinishSummaryHost />
+        </Suspense>
+        <Suspense fallback={null}>
+          <RingsHost />
         </Suspense>
         <Suspense fallback={null}>
           <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} home="/portal" />

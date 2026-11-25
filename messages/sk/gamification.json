@@ -23,7 +23,8 @@
     "food": "Dni so zápisom jedla",
     "prs": "Osobné rekordy",
     "badges": "Odznaky",
-    "missions": "Misie týždňa"
+    "missions": "Misie týždňa",
+    "rings": "Dni s uzavretými kruhmi"
   },
   "home": {
     "title": "Tento týždeň",
@@ -41,6 +42,31 @@
     "trainingHint": "dni s tréningom, cieľ podľa plánu",
     "foodHint": "dni so zapísaným jedlom",
     "proteinHint": "dni s cieľom bielkovín"
+  },
+  "daily": {
+    "ringsAria": "Dnešné kruhy",
+    "meals": "Strava",
+    "protein": "Bielkoviny",
+    "move": "Pohyb",
+    "value": "{value}/{goal}",
+    "aria": "{label}: {value} z {goal}",
+    "proteinValue": "{percent} %",
+    "proteinAria": "Bielkoviny: {value} z {goal} g",
+    "mealsHint": "{left, plural, =0 {Všetky jedlá zapísané} one {Ešte # jedlo} few {Ešte # jedlá} other {Ešte # jedál}}",
+    "proteinHint": "{value} z {goal} g",
+    "proteinDone": "Cieľ bielkovín splnený",
+    "moveWorkout": "Tréning hotový",
+    "moveRest": "Oddychový deň",
+    "moveOpen": "Tréning alebo oddych",
+    "weekLine": "Tento týždeň: {done}/{target} {target, plural, one {tréning} few {tréningy} other {tréningov}}",
+    "restButton": "Dnes oddychujem 😴",
+    "restActive": "Dnes oddychuješ 😴",
+    "restUndo": "Vrátiť späť",
+    "restWorkout": "Dnes už máš tréning, oddych netreba.",
+    "restError": "Oddych sa nepodarilo uložiť, skús to znova.",
+    "celebrate": "Všetky kruhy uzavreté! 🎉",
+    "celebrateXp": "+{xp} XP",
+    "celebrateClose": "Zavrieť"
   },
   "categories": {
     "endurance": "Vytrvalosť",

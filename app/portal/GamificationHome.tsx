@@ -2,30 +2,49 @@ import { useTranslations } from "next-intl";
 import type { CSSProperties } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import type { GamificationHome as HomeData } from "@/lib/gamification/stats";
-import type { Ring } from "@/lib/gamification/rings";
+import type { DailyRing } from "@/lib/gamification/rings";
+import { RestDayControl } from "./RestDayControl";
 import { displayAmount } from "@/lib/gamification/badges";
 import g from "../components/gamification.module.css";
 import g2 from "../components/gamificationV2.module.css";
 
-/* Týždenné prstence + úroveň pod týždňom na karte Dnes (lib/gamification, fáza A + v2).
-   Server komponent bez stavu: prstence sú SVG s role="img" a textovým popisom
-   („Tréningy: 1 z 3“), farba nenesie význam sama — hodnota je vždy aj ako číslo.
+/* Denné prstence + úroveň pod týždňom na karte Dnes (lib/gamification, denné prstence: Strava, Bielkoviny, Pohyb).
+   Server komponent (tlačidlo „Dnes oddychujem“ je malý klientský ostrovček): prstence sú SVG s role="img"
+   a textovým popisom („Strava: 2 z 3“), farba nenesie význam sama — hodnota je vždy aj ako číslo a stav ako text.
+   Týždenný pohľad (série sú týždenné) ostáva ako malý riadok pod prstencami.
    v2: úroveň má titul (1–20), pod ňou riadok „Ešte N do odznaku …“ a počet zmrazení série. */
 
 const R = 26;
 const CIRC = 2 * Math.PI * R;
-const ARC_CLASS = { training: g.ringTraining, food: g.ringFood, protein: g.ringProtein } as const;
+const ARC_CLASS = { meals: g.ringFood, protein: g.ringProtein, move: g.ringTraining } as const;
+const EMOJI = { meals: "🍽️", protein: "🥩", move: "🏃" } as const;
 
-function RingItem({ ring }: { ring: Ring }) {
-  const t = useTranslations("gamification.rings");
+function RingItem({ ring }: { ring: DailyRing }) {
+  const t = useTranslations("gamification.daily");
   const label = t(ring.id);
+  // bielkoviny: v kruhu percentá cieľa (gramy by sa nezmestili), presné gramy v popise a pod kruhom
+  const isProtein = ring.id === "protein";
+  const center = isProtein ? t("proteinValue", { percent: Math.round((ring.value / Math.max(1, ring.goal)) * 100) }) : t("value", { value: ring.value, goal: ring.goal });
+  const aria = isProtein ? t("proteinAria", { value: ring.value, goal: ring.goal }) : t("aria", { label, value: ring.value, goal: ring.goal });
+  const hint =
+    ring.id === "meals"
+      ? t("mealsHint", { left: ring.goal - ring.value })
+      : ring.id === "protein"
+        ? ring.done
+          ? t("proteinDone")
+          : t("proteinHint", { value: ring.value, goal: ring.goal })
+        : ring.via === "workout"
+          ? t("moveWorkout")
+          : ring.via === "rest"
+            ? t("moveRest")
+            : t("moveOpen");
   return (
-    <li className={g.ringItem}>
+    <li className={g.ringItem} data-done={ring.done ? "" : undefined}>
       <svg
         className={g.ringSvg}
         viewBox="0 0 68 68"
         role="img"
-        aria-label={t("aria", { label, value: ring.value, goal: ring.goal })}
+        aria-label={aria}
         style={{ ["--ring-circ" as string]: `${CIRC}` }}
         data-testid={`ring-${ring.id}`}
         data-value={ring.value}
@@ -43,11 +62,14 @@ function RingItem({ ring }: { ring: Ring }) {
           />
         )}
         <text className={g.ringNum} x="34" y="34" textAnchor="middle" dominantBaseline="central">
-          {t("value", { value: ring.value, goal: ring.goal })}
+          {center}
         </text>
       </svg>
-      <span className={g.ringLabel}>{label}</span>
-      <span className={g.ringHint}>{t(`${ring.id}Hint`)}</span>
+      <span className={g.ringLabel}>
+        <span aria-hidden="true">{EMOJI[ring.id]} </span>
+        {label}
+      </span>
+      <span className={g.ringHint}>{hint}</span>
     </li>
   );
 }
@@ -60,11 +82,17 @@ export function GamificationHome({ home, freezes = null }: { home: HomeData; fre
   const next = home.next[0];
   return (
     <div className={g.homeBlock} data-testid="gamification-home">
-      <ul className={g.rings} aria-label={t("home.ringsAria")}>
-        {home.rings.map((r) => (
-          <RingItem key={r.id} ring={r} />
-        ))}
-      </ul>
+      {home.rings.length > 0 && (
+        <ul className={g.rings} style={{ ["--ring-count" as string]: home.rings.length }} aria-label={t("daily.ringsAria")} data-testid="daily-rings">
+          {home.rings.map((r) => (
+            <RingItem key={r.id} ring={r} />
+          ))}
+        </ul>
+      )}
+      <RestDayControl rest={home.rest} />
+      <p className={g.weekLine} data-testid="week-line">
+        {t("daily.weekLine", { done: home.week.done, target: home.week.target })}
+      </p>
 
       <div className={g.level}>
         <div className={g.levelHead}>
