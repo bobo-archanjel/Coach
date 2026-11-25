@@ -75,6 +75,8 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-25** — **Oslava úspechu bez Zdieľať** (`feature/oslava-bez-zdielania`, bez migrácie).
+  - Okno nového rekordu / odznaku / výzvy / úrovne: bez tlačidla „Zdieľať“; odkaz „Zobraziť úspechy“ (predtým „Všetky odznaky“) otvorí Úspechy a oslavu zavrie.
 - **2026-11-25** — **Prstenec Strava: 10 potravín za deň** (priamo v `dev`, bez migrácie).
   - Strava na karte Dnes sa ráta ako počet zapísaných potravín voči cieľu 10 (predtým 3 rôzne jedlá dňa — splnilo sa príliš rýchlo); text „Ešte N potravín“.
 - **2026-11-25** — **Karta Dnes: úrovne nad tréningom, všetky dnešné tréningy, úspechy rátajú každý tréning, oprava osláv** (`feature/dnes-uprava`, bez migrácie).
