@@ -333,7 +333,7 @@ export function renderWeeklyMail(i: WeeklyMailInput): RenderedMail {
     doc.stats = weeklyStats(i.summary, i.locale);
     const top = i.summary.prs.top;
     if (top.length > 0) {
-      const list = top.map((p) => `${cleanLine(p.exerciseName)} ${p.weightKg} kg${p.reps ? ` × ${p.reps}` : ""}`).join(", ");
+      const list = top.map((p) => `${cleanLine(p.exerciseName)} ${new Intl.NumberFormat(intlLocale(i.locale)).format(p.weightKg)} kg${p.reps ? ` × ${p.reps}` : ""}`).join(", ");
       doc.paragraphs.push(fmt(m.topPrs, { list }));
     }
   }

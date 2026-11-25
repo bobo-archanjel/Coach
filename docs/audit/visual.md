@@ -69,3 +69,14 @@ Overené dočasnými stránkami s ukážkovými dátami (po použití zmazané) 
 - **Nastavenia**: odznak „Business“ a popisky náhľadu bez veľkých písmen; zaškrtávacie políčko v Komunikácii v akcentovej farbe.
 - **Záujemcovia**: bez zmeny vzhľadu (už zodpovedal v6); len zdieľaná zamknutá karta.
 - Bez zásahu: `gamification*.module.css` (iný agent), kód iných autorov, dáta a logika.
+
+### Finálny dizajn — verejné stránky, e-maily, zdieľanie: druhé kolo (plná revízia)
+
+Kritika (impeccable critique/layout/typeset/craft-floor): verejná stránka bola stĺpec rovnakých sklenených kariet s vnorenými škatuľkami (služby, referencie) — „karty v kartách“. Opravené:
+- **Služby** sú riadky oddelené hairline čiarou, cena vpravo (tabular-nums), popis pod názvom; **referencie** sú čistá typografia (17px citát, podpis), bez boxov. Meno trénera väčšie (až 46px) s `text-wrap: balance`.
+- **Prvky prehliadača z palety značky:** `::selection` v akcente, `caret-color`, hover ohraničenia polí.
+- **Formulár (a11y):** počítadlo znakov prepojené cez `aria-describedby`, `spellCheck=false` na e-maile, úspešný stav s ikonou a okrajom v moss farbe (text + ikona, nielen farba).
+- **PDF report klienta:** stĺpce grafov majú max. šírku 30 pt (predtým široké bloky pri 5 týždňoch), hodnota stĺpca sa vynechá, ak by prekryla popisok vodiacej čiary (kolízia „1 881“ × „cieľ 1 900 kcal“); dlaždice nemajú orezané popisky („Strava v cieli“, „3 z 4 týždňov“). Vyrenderované v Chrome PDF vieweri a porovnané s ostatnými PDF (rovnaké karty, pilulka druhu reportu, hlavička) — konzistentné.
+- **Cenník na landingi:** naše položky (Starter 5, Pro 4, Business 2) mriežka natiahla na výšku najdlhšieho zoznamu (diera medzi položkami Business) — nové pravidlo `align-content: start`, existujúce bloky nezmenené.
+- **Prihlásenie:** naše hunky (lazy Supabase klient) sú bez vizuálnej zmeny; overené `/prihlasenie?preview=code` aj panel „Zabudnuté heslo“ s Turnstile (svetlá a tmavá, 390/1280) — bez zásahu.
+- **Týždenný e-mail:** vzorové dáta opravené, vyrenderuje sa; kg v rekordoch sa formátujú podľa jazyka (82,5, nie 82.5).

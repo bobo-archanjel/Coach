@@ -46,7 +46,7 @@ export async function generateClientReportPdf(input: ClientReportPdfInput, local
     {
       label: t("pdf.tiles.plan"),
       value: training.summary.pct != null ? `${training.summary.pct} %` : "—",
-      sub: t("adherence.weeksMet", { met: training.summary.weeksMet, counted: training.summary.weeksCounted }),
+      sub: t("pdf.tiles.planSub", { met: training.summary.weeksMet, counted: training.summary.weeksCounted }),
     },
     {
       label: t("pdf.tiles.nutrition"),
