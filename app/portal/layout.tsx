@@ -159,6 +159,7 @@ export default async function PortalLayout({ children }: { children: React.React
           brandName={branding?.brandName || null}
           brandLogoUrl={branding?.logoUrl ?? null}
           brandLogoDarkUrl={branding?.logoDarkUrl ?? null}
+          avatarFrameClass={frameClassName(cosmetics.frame, cosmetics.flameHot)}
         />
         <div className={s.v6Frame}>
           {/* pozicionovaný obal len okolo obsahu — overlay skeleton pri navigácii
