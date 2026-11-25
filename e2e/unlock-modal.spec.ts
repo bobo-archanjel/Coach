@@ -53,6 +53,21 @@ test.describe("UnlockModal", () => {
     if (rowId) await admin.from("client_achievements").delete().eq("id", rowId);
   });
 
+  test("bez tlačidla Zdieľať; „Zobraziť úspechy“ presmeruje na Úspechy a oslavu zavrie", async ({ page, baseURL }) => {
+    await insertBadge();
+    await sessionLogin(page, clientEmail!, baseURL!);
+    await page.goto("/portal");
+    const modal = page.getByTestId("unlock-modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.getByRole("button", { name: "Zdieľať" })).toHaveCount(0);
+    await modal.getByRole("link", { name: "Zobraziť úspechy" }).click();
+    await expect(page).toHaveURL(/\/portal\/uspechy/, { timeout: 30_000 });
+    await expect(page.getByTestId("unlock-modal")).toHaveCount(0);
+    await expect.poll(async () => (await admin.from("client_achievements").select("seen_at").eq("id", rowId!).single()).data?.seen_at, { timeout: 10_000 }).not.toBeNull();
+    await admin.from("client_achievements").delete().eq("id", rowId!);
+    rowId = null;
+  });
+
   test("ostane po obnovení a po 5 s, zavrie sa len akciou; po zavretí sa nevráti", async ({ page, baseURL }) => {
     await insertBadge();
     await sessionLogin(page, clientEmail!, baseURL!);

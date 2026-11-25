@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { BadgeIcon } from "../components/BadgeIcon";
 import type { BadgeIcon as BadgeIconKey } from "@/lib/gamification/badges";
-import { ShareButton } from "../components/ShareButton";
 import type { CelebrationId } from "@/lib/gamification/rewards";
 import { CelebrationBurst } from "./CelebrationBurst";
 import { markAchievementsSeenAction } from "./gamificationActions";
@@ -22,8 +21,6 @@ export interface UnlockItem {
   icon: BadgeIconKey;
   title: string;
   sub: string;
-  /** adresa zdieľacej karty (/api/gamification/share?a=…) */
-  shareHref?: string;
   /** odomknuté odmeny (postup na vyššiu úroveň) */
   chips?: string[];
 }
@@ -121,7 +118,6 @@ export function UnlockModal({
             {last ? labels.close : labels.next}
           </button>
           <div className={g.dialogSecondary}>
-            {item.shareHref && <ShareButton href={item.shareHref} fileName="fitpilot-uspech.png" />}
             <Link href="/portal/uspechy" className={g.moreLink} onClick={() => close()}>
               {labels.viewAll}
             </Link>
