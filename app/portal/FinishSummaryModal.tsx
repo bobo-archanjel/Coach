@@ -117,7 +117,7 @@ export function FinishSummaryModal({
             <span className={g2.fsLab}>{labels.sets}</span>
           </li>
           <li className={g2.fsTile}>
-            <span className={g2.fsNum}>{vm.prs > 0 ? `🔥 ${vm.prs}` : vm.prs}</span>
+            <span className={`${g2.fsNum} ${vm.prs > 0 ? g2.fsNumHot : ""}`}>{vm.prs}</span>
             <span className={g2.fsLab}>{labels.prs}</span>
           </li>
           <li className={`${g2.fsTile} ${g2.fsXpTile}`}>

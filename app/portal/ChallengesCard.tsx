@@ -73,9 +73,11 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
         })}
       </ul>
       {compact ? (
-        <p className={g.chDesc}>
-          {total > items.length ? `${t("more", { count: total - items.length })} ` : ""}
-          <Link href="/portal/uspechy">{t("seeAll")}</Link>
+        <p className={g.chMore}>
+          <span>{total > items.length ? t("more", { count: total - items.length }) : null}</span>
+          <Link href="/portal/uspechy" className={`${g.moreLink} ${g.moreLinkChev}`}>
+            {t("seeAll")}
+          </Link>
         </p>
       ) : null}
     </section>

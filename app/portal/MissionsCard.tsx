@@ -75,7 +75,7 @@ export function MissionsCard({
 
   const doneCount = missions.filter((m) => m.done).length;
   return (
-    <section className={`${compact ? g2.msCard : `${g.card} ${g2.msCard}`}`} aria-label={labels.title} data-testid={compact ? "missions-compact" : "missions"} data-done={doneCount}>
+    <section className={`${g.card} ${g2.msCard}`} aria-label={labels.title} data-testid={compact ? "missions-compact" : "missions"} data-done={doneCount}>
       <div className={g2.msHead}>
         <h2 className={g2.msTitle}>{labels.title}</h2>
         {compact && (

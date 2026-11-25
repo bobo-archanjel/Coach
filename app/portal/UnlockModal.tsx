@@ -90,11 +90,6 @@ export function UnlockModal({
             ))}
           </ul>
         )}
-        {item.shareHref && (
-          <div className={g.shareRow} style={{ justifyContent: "center", marginBottom: 12 }}>
-            <ShareButton href={item.shareHref} fileName="fitpilot-uspech.png" />
-          </div>
-        )}
         <div className={g.dialogActions}>
           <button
             ref={primary}
@@ -104,10 +99,13 @@ export function UnlockModal({
           >
             {last ? labels.close : labels.next}
           </button>
+          <div className={g.dialogSecondary}>
+            {item.shareHref && <ShareButton href={item.shareHref} fileName="fitpilot-uspech.png" />}
+            <Link href="/portal/uspechy" className={g.moreLink} onClick={() => setOpen(false)}>
+              {labels.viewAll}
+            </Link>
+          </div>
           {items.length > 1 && <span className={g.dialogPos}>{labels.positions[Math.min(index, items.length - 1)]}</span>}
-          <Link href="/portal/uspechy" className={g.moreLink} onClick={() => setOpen(false)}>
-            {labels.viewAll}
-          </Link>
         </div>
       </div>
     </div>

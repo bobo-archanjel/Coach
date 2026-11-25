@@ -16,8 +16,12 @@ import g2 from "../components/gamificationV2.module.css";
 
 const R = 26;
 const CIRC = 2 * Math.PI * R;
-const ARC_CLASS = { meals: g.ringFood, protein: g.ringProtein, move: g.ringTraining } as const;
-const EMOJI = { meals: "🍽️", protein: "🥩", move: "🏃" } as const;
+
+const Snowflake = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5" />
+  </svg>
+);
 
 function RingItem({ ring }: { ring: DailyRing }) {
   const t = useTranslations("gamification.daily");
@@ -53,7 +57,7 @@ function RingItem({ ring }: { ring: DailyRing }) {
         <circle className={g.ringTrack} cx="34" cy="34" r={R} />
         {ring.fraction > 0 && (
           <circle
-            className={`${g.ringArc} ${ARC_CLASS[ring.id]}`}
+            className={g.ringArc}
             cx="34"
             cy="34"
             r={R}
@@ -65,10 +69,7 @@ function RingItem({ ring }: { ring: DailyRing }) {
           {center}
         </text>
       </svg>
-      <span className={g.ringLabel}>
-        <span aria-hidden="true">{EMOJI[ring.id]} </span>
-        {label}
-      </span>
+      <span className={g.ringLabel}>{label}</span>
       <span className={g.ringHint}>{hint}</span>
     </li>
   );
@@ -89,10 +90,12 @@ export function GamificationHome({ home, freezes = null }: { home: HomeData; fre
           ))}
         </ul>
       )}
-      <RestDayControl rest={home.rest} />
-      <p className={g.weekLine} data-testid="week-line">
-        {t("daily.weekLine", { done: home.week.done, target: home.week.target })}
-      </p>
+      <div className={g.dayFoot}>
+        <p className={g.weekLine} data-testid="week-line">
+          {t("daily.weekLine", { done: home.week.done, target: home.week.target })}
+        </p>
+        <RestDayControl rest={home.rest} />
+      </div>
 
       <div className={g.level}>
         <div className={g.levelHead}>
@@ -117,22 +120,27 @@ export function GamificationHome({ home, freezes = null }: { home: HomeData; fre
               ? t("levelDetail.toNext", { count: detail.toNext, n: detail.nextN })
               : t("level.max")}
           </span>
-          <Link href="/portal/uspechy" className={g.moreLink} aria-label={t("home.openAria")}>
-            {t("home.badges", { count: home.badgeCount, total: home.badgeTotal })} · {t("home.open")}
+          <Link href="/portal/uspechy" className={`${g.moreLink} ${g.moreLinkChev}`} aria-label={t("home.openAria")}>
+            {t("home.badges", { count: home.badgeCount, total: home.badgeTotal })}
           </Link>
         </div>
-        {next && (
-          <p className={g2.nextCompact} data-testid="next-badge">
-            {t("next.line", {
-              amount: t(`next.units.${next.unit}` as never, { count: displayAmount(next.unit, next.remaining) } as never),
-              name: t(`badges.${next.id}.name` as never),
-            })}
-          </p>
-        )}
-        {freezes != null && freezes > 0 && (
-          <span className={g2.freezeChip} aria-label={t("freeze.chipAria", { count: freezes })} data-testid="freeze-count">
-            {t("freeze.chip", { count: freezes })}
-          </span>
+        {(next || (freezes != null && freezes > 0)) && (
+          <div className={g.levelMeta}>
+            {next && (
+              <p className={g2.nextCompact} data-testid="next-badge">
+                {t("next.line", {
+                  amount: t(`next.units.${next.unit}` as never, { count: displayAmount(next.unit, next.remaining) } as never),
+                  name: t(`badges.${next.id}.name` as never),
+                })}
+              </p>
+            )}
+            {freezes != null && freezes > 0 && (
+              <span className={g2.freezeChip} aria-label={t("freeze.chipAria", { count: freezes })} data-testid="freeze-count">
+                <Snowflake />
+                {t("freeze.chip", { count: freezes })}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>
