@@ -20,9 +20,17 @@ export async function AchievementHost() {
   if (!client) return null;
   const supabase = await createClient();
   const unseen = await loadUnseenAchievements(supabase, client.id);
-  if (unseen.length === 0) return null;
-
   const t = await getTranslations("gamification");
+  const labels = {
+    close: t("unlock.close"),
+    next: t("unlock.next"),
+    aria: t("unlock.aria"),
+    viewAll: t("unlock.viewAll"),
+    position: t("unlock.position", { index: "{index}", total: "{total}" }),
+  };
+  // Klientský modal sa vykresľuje vždy (aj s prázdnym zoznamom): drží si už prijaté úspechy, takže obnovenie
+  // layoutu (napr. po zatvorení súhrnu tréningu) otvorený modal nezruší. Pozri UnlockModal.
+  if (unseen.length === 0) return <UnlockModal items={[]} labels={labels} />;
   // klient so značkou trénera nedostáva oznam o témach (tie nemá); ostatné odmeny áno
   const [cosmetics, branding] = await Promise.all([loadCosmetics(user.id), loadBrandingForTrainer(client.trainer_id ?? null)]);
   const branded = Boolean(branding);
@@ -72,20 +80,5 @@ export async function AchievementHost() {
       });
     }
   }
-  if (items.length === 0) return null;
-
-  return (
-    <UnlockModal
-      key={items.map((i) => i.id).join(",")}
-      items={items}
-      celebration={cosmetics.celebration}
-      labels={{
-        close: t("unlock.close"),
-        next: t("unlock.next"),
-        aria: t("unlock.aria"),
-        viewAll: t("unlock.viewAll"),
-        positions: items.map((_, i) => t("unlock.position", { index: i + 1, total: items.length })),
-      }}
-    />
-  );
+  return <UnlockModal items={items} celebration={cosmetics.celebration} labels={labels} />;
 }
