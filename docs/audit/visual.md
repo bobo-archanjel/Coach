@@ -47,3 +47,15 @@ Rozsah: len naše súbory (`app/t/**`, `app/pozvanka/**`, `lib/mail/templates.ts
 - E-maily: tlačidlo pilulka (999px ako v docs/email-templates), preč farebný `border-left` na citáte (porušoval pravidlo DESIGN.md), `bgcolor` atribúty a `color-scheme: light only` pre odolnosť voči tmavému režimu klientov, údaje záujemcu v jednom bloku namiesto voľných odsekov.
 - Zdieľacia karta: jemný akcentový žiar na pozadí, hairline nad podpisom, ohraničené štatistiky, väčšie rozostupy kickera.
 - Nezmenené zámerne: logika, dáta, PDF (clientReport/reportCharts) a pozadie stránky.
+
+## Finálny dizajn — portál klienta
+
+Rozsah: len naše hunky (`app/portal/**` gamifikácia, `gamification.module.css`, `gamificationV2.module.css`). Overené dočasným harnessom s reálnymi vzorkami (390 px hlavne, 1280 px, svetlá a tmavá téma; harness zmazaný). Screenshoty pred/po: `C:\Users\rosiv\AppData\Local\Temp\claude\b6e7a55a9af047c2\7bc62ec2-a6fc-4e03-8f4e-56b8f7e295a8\scratchpad\design-final\portal\{before,after}\`.
+
+- Karta Dnes: prstence majú jednu farbu postupu (coral) a hotový stav moss (predtým tri rôzne farby + emoji v popiskoch). Týždenný riadok a „Dnes oddychujem“ sú jeden päticový riadok (pilulka s výplňou namiesto obrysu), úroveň je oddelená hairline-om, odkaz „Odznaky 7 z 28 ›“ bez duplicitného textu, zmrazenie série má nakreslenú ikonu namiesto emoji.
+- Poradie pod kalendárom: týždenný súhrn (raz za týždeň) → misie → výzvy. Misie majú aj na Dnes kartu rovnako ako ostatné bloky; nadpisy kariet jedným štýlom (13 px / 650, ako `.panelLabel`).
+- Týždenný súhrn: hustejšia mriežka 3 stĺpce, „Zavrieť“ ako tichý textový prvok. Výzvy: menšie tlačidlo Zdieľať, odkaz „Všetky výzvy ›“.
+- Úspechy: poradie úroveň → čo ťa čaká → misie → týždeň → výzvy → rebríček → odmeny → posledné → rekordy → odznaky (predtým bola úroveň až po ~1700 px); rozpis XP v rozbaľovači; opravené rozbité názvy v Rekordoch (písmeno na riadok); odznaky v 2 stĺpcoch, ikona + stupeň v jednej hlavičke, vzácnosť sa neopakuje pri stupňoch, preč duplicitné „Zatiaľ zamknuté“ pri postupe.
+- Rebríček: záložky metrík v jednom posuvnom riadku, „Tvoja pozícia“ výraznejšie. Dialóg odznaku: primárne tlačidlo, pod ním Zdieľať + Všetky úspechy. Oslava prstencov: nepriehľadné sklo namiesto priesvitnej karty (text presvitá cez hlavičku). Profil: prepínač e-mailov namiesto natívneho checkboxu.
+- Texty (SK aj CS): preč emoji a výkričníky z bežných textov (misie, nápoveda pri sérii, séria, bonus, rekord), ostali len v štýloch osláv.
+- Nezmenené: dáta, logika, `tc*` triedy trénerskej strany, pozadie a kostra portálu.
