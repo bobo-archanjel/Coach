@@ -86,7 +86,7 @@ const publicEntries = [
   "app/layout.tsx",
   "app/page.tsx",
   "app/not-found.tsx",
-  ...["app/prihlasenie", "app/t", "app/cookies", "app/obchodne-podmienky", "app/ochrana-sukromia", "app/pozvanka", "app/auth", "app/v2", "app/v3", "app/v4", "app/v5", "app/v6design"].flatMap((d) => walk(d)),
+  ...["app/prihlasenie", "app/t", "app/cookies", "app/obchodne-podmienky", "app/ochrana-sukromia", "app/pozvanka", "app/auth", "app/v6design"].flatMap((d) => walk(d)),
 ].filter((f) => fs.existsSync(path.join(ROOT, f)));
 
 const pub = closure(publicEntries);
