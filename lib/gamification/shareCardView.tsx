@@ -39,7 +39,7 @@ export function shareCardElement(kind: ShareKind, text: ShareCardText, brand: Sh
         flexDirection: "column",
         justifyContent: "space-between",
         padding: "120px 88px 112px",
-        background: `linear-gradient(165deg, ${BG} 0%, #231a16 62%, ${BG} 100%)`,
+        background: `radial-gradient(circle at 85% 18%, ${accent}38 0%, ${accent}00 55%), linear-gradient(165deg, ${BG} 0%, #231a16 62%, ${BG} 100%)`,
         color: INK,
         fontFamily: "Inter",
       }}
@@ -88,7 +88,7 @@ export function shareCardElement(kind: ShareKind, text: ShareCardText, brand: Sh
             <path d={ICONS[kind]} />
           </svg>
         </div>
-        <div style={{ display: "flex", fontSize: 44, fontWeight: 600, color: accent, letterSpacing: 1, textTransform: "uppercase" }}>{text.kicker}</div>
+        <div style={{ display: "flex", fontSize: 44, fontWeight: 600, color: accent, letterSpacing: 3, textTransform: "uppercase" }}>{text.kicker}</div>
         <div style={{ display: "flex", fontSize: 96, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2 }}>{text.headline}</div>
         {text.sub ? <div style={{ display: "flex", fontSize: 44, color: INK_DIM, lineHeight: 1.3 }}>{text.sub}</div> : null}
         {text.stats.length > 0 ? (
@@ -103,6 +103,7 @@ export function shareCardElement(kind: ShareKind, text: ShareCardText, brand: Sh
                   padding: "26px 34px",
                   borderRadius: 28,
                   background: "rgba(255,255,255,0.07)",
+                  border: "2px solid rgba(255,255,255,0.08)",
                 }}
               >
                 <div style={{ display: "flex", fontSize: 40, color: INK_DIM }}>{label}</div>
@@ -114,7 +115,7 @@ export function shareCardElement(kind: ShareKind, text: ShareCardText, brand: Sh
       </div>
 
       {/* podpis */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 40, borderTop: "2px solid rgba(255,255,255,0.1)" }}>
         <div style={{ display: "flex", fontSize: 48, fontWeight: 600 }}>{text.who}</div>
         <div style={{ display: "flex", fontSize: 32, color: INK_DIM }}>{text.footer}</div>
       </div>

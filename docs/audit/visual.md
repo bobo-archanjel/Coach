@@ -37,3 +37,13 @@ Metóda: statický prechod CSS modulov (tokeny, farby, rádiusy, písma, dotykov
 - `ReportBarChart`: popisky osí, hodnoty nad stĺpcami a popis cieľovej čiary sú teraz HTML (11,5 px fixne, nezávisle od šírky SVG); SVG nesie len stĺpce a čiary. Šírka sa meria (`ResizeObserver`) a na úzkom displeji sa rieďou popisky osí a skrývajú hodnoty nad stĺpcami, ak by sa neprekrývali. Skrytá tabuľka, `role=img` a API komponentu sú nezmenené.
 - Overené dočasnou stránkou (po použití zmazaná) v 390 a 1280 px, svetlá/tmavá: bez horizontálneho pretekania. Screenshoty: `...\scratchpad\visual3\`.
 - Známe: ak je stĺpec tesne pri cieľovej čiare, jeho hodnota sa môže vizuálne dotknúť popisu čiary (kcal graf, posledný stĺpec).
+
+## Finálny dizajn — verejné stránky, e-maily, zdieľanie
+
+Rozsah: len naše súbory (`app/t/**`, `app/pozvanka/**`, `lib/mail/templates.ts`, `lib/gamification/shareCardView.tsx`). Overené cez dočasný harness (1280 a 390 px, svetlá a tmavá, s fotkou/logom aj bez, značková farba), harness zmazaný.
+
+- Verejná stránka trénera: logo značky sedí ako odznak na rohu fotky (predtým plávalo vedľa fotky); tieň fotky, dôraz na cenu služby, čitateľná šírka biografie (62ch) a `text-wrap: balance/pretty` na nadpisoch; referencie majú oddelený podpis; polia reagujú na hover; prázdny kontajner Turnstile už nerobí medzeru pred tlačidlom; stlačenie CTA (scale .97) a jemný hover; tlačidlo Odoslať má minimálnu šírku na desktope; galéria 4:3 na desktope.
+- Pozvánka: rovnaké CTA správanie, tieň fotky, oddelená päta „Beží na FitPilot“ hairline-om, vyvážené zalamovanie nadpisu.
+- E-maily: tlačidlo pilulka (999px ako v docs/email-templates), preč farebný `border-left` na citáte (porušoval pravidlo DESIGN.md), `bgcolor` atribúty a `color-scheme: light only` pre odolnosť voči tmavému režimu klientov, údaje záujemcu v jednom bloku namiesto voľných odsekov.
+- Zdieľacia karta: jemný akcentový žiar na pozadí, hairline nad podpisom, ohraničené štatistiky, väčšie rozostupy kickera.
+- Nezmenené zámerne: logika, dáta, PDF (clientReport/reportCharts) a pozadie stránky.
