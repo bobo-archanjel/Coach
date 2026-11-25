@@ -44,7 +44,7 @@ const nextConfig: NextConfig = {
   // dev požiadavky (HMR, /_next) z iného originu než localhost. Len dev, produkcia ignoruje.
   // *.trycloudflare.com — HTTPS tunel (`cloudflared tunnel --url http://localhost:3000`),
   // kamera skenera čiarových kódov na telefóne funguje len cez HTTPS.
-  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.trycloudflare.com"],
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.trycloudflare.com", "*.localhost"],
   // Default ("loose") CSS chunking duplikoval celý portal.module.css (64 kB)
   // do KAŽDÉHO page-level CSS chunku popri layout.css, ktorý ho už obsahuje —
   // /portal/trening tak sťahoval 128 kB CSS namiesto 64 kB (viď commit). "strict"

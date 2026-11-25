@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { siteUrl } from "@/lib/site";
+import { siteUrl, trainerPublicUrl } from "@/lib/site";
 import { listPublicPages } from "@/lib/publicPage/server";
 
 // Verejné stránky trénerov (/t/<handle>, Business) sa do sitemap dopĺňajú z DB; sitemap sa obnovuje raz za hodinu.
@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: base, lastModified: now, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/prihlasenie`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     ...trainers.map((p) => ({
-      url: `${base}/t/${p.handle}`,
+      url: trainerPublicUrl(p.handle),
       lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
       changeFrequency: "weekly" as const,
       priority: 0.6,

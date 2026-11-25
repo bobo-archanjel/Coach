@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
+import { siteUrl } from "@/lib/site";
 import { LogoMark } from "@/app/components/LogoMark";
 import { BrandLogo } from "@/app/components/BrandLogo";
 import brand from "@/app/components/branding.module.css";
@@ -145,7 +145,7 @@ export async function TrainerPublicPage({ page, preview = false, previewBanner }
 
         <section id="kontakt" className={`${styles.card} ${styles.section} ${styles.contact}`} aria-labelledby="sec-contact">
           <h2 id="sec-contact">{t("sections.contact")}</h2>
-          <LeadForm handle={page.handle} disabled={preview} />
+          <LeadForm handle={page.handle} disabled={preview} privacyHref={`${siteUrl()}/ochrana-sukromia`} />
         </section>
 
         {hasSocials && (
@@ -167,9 +167,9 @@ export async function TrainerPublicPage({ page, preview = false, previewBanner }
           {preview ? (
             <span>{t("poweredLink")}</span>
           ) : (
-            <Link href="/?utm_source=trainer-page&utm_medium=referral&utm_campaign=powered-by" data-testid="powered-by-link">
+            <a href={`${siteUrl()}/?utm_source=trainer-page&utm_medium=referral&utm_campaign=powered-by`} data-testid="powered-by-link">
               {t("poweredLink")}
-            </Link>
+            </a>
           )}
         </p>
       </main>

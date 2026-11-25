@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/locales";
-import { siteUrl, jsonLdString } from "@/lib/site";
+import { siteUrl, jsonLdString, trainerPublicUrl } from "@/lib/site";
 import { isHandleShape } from "@/lib/publicPage/handle";
 import { loadPublicPage } from "@/lib/publicPage/server";
 import { buildPageMetadata, buildPageJsonLd } from "@/lib/publicPage/seo";
@@ -25,6 +25,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const [t, locale] = await Promise.all([getTranslations("publicPage"), getLocale()]);
   return buildPageMetadata(page, {
     site: siteUrl(),
+    pageUrl: trainerPublicUrl(handle),
     locale: intlLocale(locale as "sk" | "cs").replace("-", "_"),
     descriptionFallback: t("metaFallback"),
     siteName: t("siteName"),
@@ -45,7 +46,7 @@ export default async function TrainerPage({ params }: Params) {
   if (!isHandleShape(handle)) notFound();
   const page = await loadPublicPage(handle);
   if (!page) notFound();
-  const jsonLd = buildPageJsonLd(page, siteUrl());
+  const jsonLd = buildPageJsonLd(page, siteUrl(), trainerPublicUrl(handle));
   return (
     <>
       <script

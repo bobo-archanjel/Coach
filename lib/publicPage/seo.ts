@@ -38,11 +38,12 @@ export interface PageMetadata {
 
 export function buildPageMetadata(
   page: Pick<PublicPageData, "handle" | "displayName" | "headline" | "bio">,
-  opts: { site: string; locale: string; descriptionFallback: string; siteName: string },
+  opts: { site: string; locale: string; descriptionFallback: string; siteName: string; pageUrl?: string },
 ): PageMetadata {
   const title = page.headline ? `${page.displayName} — ${page.headline}` : page.displayName;
   const description = pageDescription(page, opts.descriptionFallback);
-  const url = pageCanonical(opts.site, page.handle);
+  const ogBase = pageCanonical(opts.site, page.handle); // náhľadový obrázok vždy z hlavnej domény (absolútny, funguje stále)
+  const url = opts.pageUrl ?? ogBase;
   return {
     title,
     description,
@@ -56,7 +57,7 @@ export function buildPageMetadata(
       type: "profile",
       siteName: opts.siteName,
       locale: opts.locale,
-      images: [{ url: `${url}/og`, width: 1200, height: 630, alt: page.displayName }],
+      images: [{ url: `${ogBase}/og`, width: 1200, height: 630, alt: page.displayName }],
     },
     twitter: { card: "summary_large_image", title, description },
   };
@@ -66,8 +67,9 @@ export function buildPageMetadata(
 export function buildPageJsonLd(
   page: Pick<PublicPageData, "handle" | "displayName" | "headline" | "bio" | "location" | "photoUrl" | "logoUrl" | "socials">,
   site: string,
+  pageUrl?: string,
 ): Record<string, unknown> {
-  const url = pageCanonical(site, page.handle);
+  const url = pageUrl ?? pageCanonical(site, page.handle);
   const description = (page.bio || page.headline || "").replace(/\s+/g, " ").trim();
   const sameAs = Object.values(page.socials).filter((u): u is string => typeof u === "string" && /^https?:\/\//.test(u));
   return {

@@ -431,7 +431,7 @@ test.describe("SEO", () => {
   test("sitemap a robots: sitemap dopĺňa publikované stránky, robots nezakazuje /t/", () => {
     const sm = readFileSync("app/sitemap.ts", "utf8");
     expect(sm).toContain("listPublicPages");
-    expect(sm).toContain("/t/${p.handle}");
+    expect(sm).toContain("trainerPublicUrl(p.handle)");
     const rb = readFileSync("app/robots.ts", "utf8");
     expect(rb).not.toMatch(/disallow:[^\]]*"\/t/);
   });

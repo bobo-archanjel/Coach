@@ -20,6 +20,8 @@ import { getMyTrainerBilling } from "@/lib/billing/server";
 import { brandingPublicUrl } from "@/lib/branding/server";
 import { PublicPageForm, type PublicPageInitial } from "./PublicPageForm";
 import { mailSiteUrl } from "@/lib/mail/config";
+import { siteUrl } from "@/lib/site";
+import { trainerSubdomainBase } from "@/lib/publicPage/subdomain";
 import { readSocials } from "@/lib/publicPage/socials";
 import { LockedNotice } from "../LockedFeature";
 import brandingStyles from "./branding.module.css";
@@ -289,7 +291,7 @@ export default async function NastaveniaPage() {
             {publicInitial ? (
               <>
                 <p className={brandingStyles.sub}>{tp("subtitle")}</p>
-                <PublicPageForm initial={publicInitial} host={siteHost} businessReady={brandingUnlocked} />
+                <PublicPageForm initial={publicInitial} host={siteHost} siteOrigin={siteUrl()} subdomainBase={trainerSubdomainBase()} businessReady={brandingUnlocked} />
               </>
             ) : (
               <LockedNotice testId="public-page-locked" feature="publicPage" title={tp("locked.title")} text={tp("locked.text")} linkLabel={tp("locked.upgrade")} />
