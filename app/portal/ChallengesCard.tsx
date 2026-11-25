@@ -15,6 +15,9 @@ import g from "@/app/components/gamification.module.css";
 const dateShort = (iso: string, locale: Locale) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", timeZone: "UTC" });
 
+const whenShort = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleString(intlLocale(locale), { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" });
+
 export async function ChallengesHost({ compact = false }: { compact?: boolean }) {
   const {
     data: { user },
@@ -64,7 +67,10 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
                 ) : c.state === "upcoming" ? (
                   <span>{t("startsOn", { date: dateShort(c.startsOn, locale) })}</span>
                 ) : (
-                  <span>{t("endsOn", { date: dateShort(c.endsOn, locale) })}</span>
+                  <span>
+                    {t("endsOn", { date: dateShort(c.endsOn, locale) })}
+                    {compact ? null : ` · ${t("countsFrom", { when: whenShort(c.countsFrom, locale) })}`}
+                  </span>
                 )}
               </div>
             </li>

@@ -104,7 +104,8 @@ export function ChallengeForm({
         </label>
         <label className={g.tcField}>
           {t("form.startsOn")}
-          <input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} required />
+          <input type="date" value={startsOn} min={today} onChange={(e) => setStartsOn(e.target.value)} required />
+          <span className={g.tcHint}>{t("form.startsOnHint")}</span>
         </label>
         <label className={g.tcField}>
           {t("form.endsOn")}

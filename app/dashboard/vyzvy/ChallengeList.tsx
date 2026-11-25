@@ -24,6 +24,9 @@ export function ChallengeList({ items }: { items: TrainerChallenge[] }) {
   const fmt = (iso: string) =>
     new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
 
+  const when = (iso: string) =>
+    new Date(iso).toLocaleString(intlLocale(locale), { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" });
+
   const run = (fn: () => Promise<{ error: string | null }>) =>
     start(async () => {
       setError(null);
@@ -46,6 +49,8 @@ export function ChallengeList({ items }: { items: TrainerChallenge[] }) {
               <div className={g.tcItemName}>{c.name}</div>
               <div className={g.tcItemMeta}>
                 {t(`metricName.${c.metric}`)} · {t("trainer.targetOf", { target: c.target })} · {fmt(c.startsOn)} – {fmt(c.endsOn)}
+                {" · "}
+                {t("countsFrom", { when: when(c.countsFrom) })}
               </div>
             </div>
             <span className={g.tcChip}>{t(`phase.${c.phase}`)}</span>
