@@ -61,7 +61,8 @@ export async function sendHighFiveAction(achievementId: string): Promise<HighFiv
   // 23505 = tento úspech už high five má (dvojklik, druhé zariadenie) — pre trénera je to úspech
   if (error && error.code !== "23505") return { error: t("failed") };
 
-  revalidatePath("/dashboard");
+  // /dashboard sa zámerne nerevaliduje: riadok ostane s „Odoslané“ ako potvrdenie a z prehľadu
+  // zmizne pri ďalšom načítaní (vybavené úspechy sa na dashboarde nezobrazujú)
   revalidatePath(`/dashboard/klienti/${client.id}`);
   return { error: null, ok: true };
 }

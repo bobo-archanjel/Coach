@@ -16,11 +16,14 @@ export async function AchievementsFeed({ clientId, hideTitle = false }: { client
   } = await getUser();
   if (!user) return null;
   const supabase = await createClient();
-  const [items, t, locale] = await Promise.all([
-    loadAchievementsFeed(supabase, user.id, { clientId, limit: clientId ? 10 : 8 }),
+  const [loaded, t, locale] = await Promise.all([
+    // na dashboarde sa úspechy, ku ktorým už tréner poslal high five, nezobrazujú (vybavené) —
+    // načíta sa viac a po odfiltrovaní sa zobrazí najviac 8; v detaile klienta ostáva celá história
+    loadAchievementsFeed(supabase, user.id, { clientId, limit: clientId ? 10 : 24 }),
     getTranslations("gamification"),
     getLocale(),
   ]);
+  const items = clientId ? loaded : loaded.filter((i) => !i.highFived).slice(0, 8);
   // na dashboarde bez úspechov sekciu nezobrazíme vôbec (nie je to prvotná akcia trénera)
   if (items.length === 0 && !clientId) return null;
 
@@ -36,7 +39,7 @@ export async function AchievementsFeed({ clientId, hideTitle = false }: { client
     new Date(iso).toLocaleDateString(intlLocale(locale as "sk" | "cs"), { day: "numeric", month: "numeric", timeZone: "Europe/Bratislava" });
 
   return (
-    <section className={styles.card} aria-label={t("trainer.feedTitle")} data-testid="achievements-feed">
+    <section className={`${styles.card} ${clientId ? "" : g.feedSection}`} aria-label={t("trainer.feedTitle")} data-testid="achievements-feed">
       {!hideTitle && <h3>{clientId ? t("trainer.clientTitle") : t("trainer.feedTitle")}</h3>}
       {items.length === 0 ? (
         <p className={g.empty}>{t("trainer.clientEmpty")}</p>

@@ -584,6 +584,10 @@
 }
 
 /* ---------- feed trénera ---------- */
+/* sekcia na dashboarde — rovnaký odstup od nasledujúceho bloku ako panel meškajúcich (20px) */
+.feedSection {
+  margin-bottom: 20px;
+}
 .feed {
   display: grid;
   gap: 8px;
