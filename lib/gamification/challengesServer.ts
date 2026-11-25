@@ -76,7 +76,7 @@ export async function loadProgressData(
     supabase.rpc("challenge_food_days_at", { p_client_ids: clientIds, p_from: foodSince, p_to: to }),
     supabase.from("client_achievements").select("client_id, achieved_on, achieved_at").in("client_id", clientIds).eq("kind", "pr").gte("achieved_on", since).lte("achieved_on", to).limit(LOG_LIMIT),
   ]);
-  // fallback, kým nebeží migrácia 0085: bez času zápisu — deň sa počíta len od začiatku dňa (konzervatívne)
+  // fallback, kým nebeží migrácia 0088: bez času zápisu — deň sa počíta len od začiatku dňa (konzervatívne)
   let foodRows = (food.data ?? []) as { client_id: string; eaten_on: string; last_logged_at?: string | null }[];
   if (food.error) {
     const old = await supabase.rpc("challenge_food_days", { p_client_ids: clientIds, p_from: foodSince, p_to: to });

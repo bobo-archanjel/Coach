@@ -1,5 +1,5 @@
 -- FitPilot — jednorazová oprava výziev nesprávne splnených hneď po vytvorení.
--- NIE JE migrácia: spúšťa ju owner VEDOME v Supabase SQL Editore (po nasadení kódu a migrácie 0085).
+-- NIE JE migrácia: spúšťa ju owner VEDOME v Supabase SQL Editore (po nasadení kódu a migrácie 0088).
 --
 -- Chyba: výzva sa počítala aj z tréningov/jedla/rekordov spred jej vytvorenia, takže niektorí klienti
 -- ju mali splnenú hneď po vytvorení. Tento skript znovu OTVORÍ dokončenia, ktoré vznikli do 10 minút
