@@ -14,6 +14,8 @@
 //  - per e-mail + IP (nízka hranica) — cieľový útočník z jednej adresy,
 //  - per IP (vysoká hranica) — credential stuffing naprieč mnohými účtami.
 // Zámok jednej IP+e-mailu tak nezamkne obeť pred jej vlastnou adresou.
+// Rovnaký zámok (login_attempts) chráni aj registráciu (per IP / per e-mail — bráni
+// vyčerpaniu projektového limitu e-mailov), overenie a znovuposlanie kódu a sync jazyka.
 //
 // Pozn.: IP sa berie z x-forwarded-for/x-real-ip (za reverzným proxy dôveryhodné,
 // inak spoofovateľné) a ukladá sa len ako skrátený SHA-256 (žiadne surové IP),
@@ -110,6 +112,10 @@ function isCaptchaFailure(error: { code?: string; message?: string } | null): bo
 const MAX_PER_EMAIL = 10;
 const MAX_PER_EMAIL_AND_IP = 5;
 const MAX_PER_IP = 30;
+// Registrácia: IP limit nie je nižší — klienti sa registrujú aj spoločne (Wi-Fi v posilňovni).
+const MAX_SIGNUP_PER_IP = 10;
+const MAX_SIGNUP_PER_EMAIL = 3;
+const MAX_RECOVERY_LOCALE_PER_IP = 10;
 /** Rozumný strop dĺžky vstupov — nezahlcuje DB ani hashovanie zbytočne dlhými reťazcami. */
 const MAX_INPUT_LENGTH = 320;
 
@@ -229,6 +235,9 @@ async function afterSignIn(supabase: SupabaseClient, user: User): Promise<string
  * nevedel, takže sa nedala chrániť Turnstile/honeypotom rovnako ako prihlásenie.
  * Kontrola sily hesla beží aj tu (nielen na klientovi) — priame volanie tejto
  * akcie (mimo formulára) by inak vedelo obísť klientskú kontrolu úplne.
+ * Pred signUp sa počíta každý pokus (per IP a per e-mail) — CAPTCHA samotná nezabráni
+ * rozposielaniu overovacích e-mailov na náhodné adresy a vyčerpaniu e-mailového limitu
+ * projektu. Best effort: bez service role kľúča sa registrácia neblokuje.
  */
 export async function registerAction(_prevState: RegisterState, formData: FormData): Promise<RegisterState> {
   const { REGISTER_GENERIC_ERROR, CAPTCHA_ERROR, EMAIL_IN_USE_ERROR, t } = await authErrors();
@@ -257,6 +266,30 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
       redirectTo: null,
       needsConfirm: false,
     };
+  }
+
+  const admin = tryCreateAdminClient();
+  if (admin) {
+    const ids = {
+      ip: `signup-ip:${shortHash(await clientIp())}`,
+      email: `signup-email:${shortHash(email.toLowerCase())}`,
+    };
+    const [ipLimit, emailLimit] = await Promise.all([
+      admin.rpc("check_login_lockout", { p_identifier: ids.ip, p_max: MAX_SIGNUP_PER_IP }),
+      admin.rpc("check_login_lockout", { p_identifier: ids.email, p_max: MAX_SIGNUP_PER_EMAIL }),
+    ]);
+    if (ipLimit.error || emailLimit.error) {
+      console.error("registerAction: kontrola limitu zlyhala:", ipLimit.error?.message ?? emailLimit.error?.message);
+    }
+    if (ipLimit.data === true || emailLimit.data === true) {
+      return { error: t("registerRateLimit"), redirectTo: null, needsConfirm: false };
+    }
+    // pokus sa zapíše ešte pred signUp (aj úspešný/CAPTCHA-neúspešný), po úspechu sa nemaže
+    const records = await Promise.all(
+      [ids.ip, ids.email].map((id) => admin.rpc("record_failed_login", { p_identifier: id })),
+    );
+    const recordError = records.find((r) => r.error)?.error;
+    if (recordError) console.error("registerAction: zápis pokusu zlyhal:", recordError.message);
   }
 
   const supabase = await createClient();
@@ -385,6 +418,8 @@ export async function resendSignupCodeAction(rawEmail: string, rawCaptchaToken?:
  * webe (prepínač SK/CZ), nie ten, s ktorým sa účet kedysi registroval. Šablóna Reset
  * Password vyberá text podľa user_metadata.locale (docs/email-templates), tak ho tu
  * zosúladíme s jazykom webu. Nič nevracia — neprezrádza, či účet s e-mailom existuje.
+ * Je verejne volateľná bez CAPTCHA a so service role hľadá profil a prepisuje metadáta,
+ * preto má per-IP limit (pri prekročení ticho skončí).
  */
 export async function syncRecoveryLocaleAction(rawEmail: unknown): Promise<void> {
   if (typeof rawEmail !== "string") return;
@@ -392,6 +427,16 @@ export async function syncRecoveryLocaleAction(rawEmail: unknown): Promise<void>
   if (!email || email.length > MAX_INPUT_LENGTH) return;
   const admin = tryCreateAdminClient();
   if (!admin) return;
+
+  const limitKey = `recovery-locale-ip:${shortHash(await clientIp())}`;
+  const { data: limited, error: limitError } = await admin.rpc("check_login_lockout", {
+    p_identifier: limitKey,
+    p_max: MAX_RECOVERY_LOCALE_PER_IP,
+  });
+  if (limitError) console.error("syncRecoveryLocaleAction: kontrola limitu zlyhala:", limitError.message);
+  if (limited === true) return;
+  const { error: recordError } = await admin.rpc("record_failed_login", { p_identifier: limitKey });
+  if (recordError) console.error("syncRecoveryLocaleAction: zápis pokusu zlyhal:", recordError.message);
 
   const [locale, { data: profile }] = await Promise.all([
     getUserLocale(),
