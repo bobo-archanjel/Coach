@@ -211,3 +211,11 @@
   font-weight: 650;
   color: var(--paper);
 }
+
+/* dotykové ciele ≥ 44 px na telefóne */
+@media (max-width: 640px), (pointer: coarse) {
+  .filter,
+  .statusBtn {
+    min-height: 44px;
+  }
+}

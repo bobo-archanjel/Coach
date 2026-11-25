@@ -1053,3 +1053,8 @@
     transition: none;
   }
 }
+
+/* cenník: položky držia pri sebe (inak ich mriežka natiahne podľa najdlhšieho zoznamu) */
+.priceCard ul {
+  align-content: start;
+}

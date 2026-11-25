@@ -4,6 +4,9 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
+import { BrandLogo } from "../components/BrandLogo";
+import brandStyles from "../components/branding.module.css";
+import type { DashboardBrand } from "@/lib/branding/dashboard";
 import { NavLinkPendingSignal } from "../components/NavigationProgress";
 import { useLiveUnread } from "../components/liveUnread";
 import { NotificationBell } from "./NotificationBell";
@@ -87,7 +90,7 @@ function ChallengesIcon() {
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M8 4.5h8v4.2a4 4 0 0 1-8 0V4.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M8 6.2H5.5a2.3 2.3 0 0 0 2.6 3.4M16 6.2h2.5a2.3 2.3 0 0 1-2.6 3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M8 6.2H5.5a2.3 2.3 0 0 0 2.6 3.4M16 6.2h2.5a2.3 2.3 0 0 1-2.6 3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M12 12.7v3.6M8.8 19.5h6.4M10 16.3h4l.6 3.2H9.4l.6-3.2Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -96,9 +99,8 @@ function ChallengesIcon() {
 function LeadsIcon() {
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4 3v-3H6.5A2.5 2.5 0 0 1 4 14.5v-8Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <circle cx="12" cy="9.2" r="1.7" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8.8 14c.4-1.4 1.6-2.2 3.2-2.2s2.8.8 3.2 2.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M4 13.5l2-6.6A2 2 0 0 1 7.9 5.5h8.2a2 2 0 0 1 1.9 1.4l2 6.6V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17v-3.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M4 13.5h4.3l.9 2h5.6l.9-2H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -123,7 +125,19 @@ const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "cal
  * (na mobile v hornej lište, na počítači avatar s menom dole v bočnom paneli). Avatar vedie
  * do Nastavení, kde je aj „Odhlásiť sa“ — Nastavenia preto nie sú medzi položkami menu.
  */
-export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCount?: number; displayName?: string | null }) {
+export function DashboardNav({
+  unreadCount = 0,
+  displayName = null,
+  brand = null,
+  poweredBy = null,
+}: {
+  unreadCount?: number;
+  displayName?: string | null;
+  /** značka trénera (Business) namiesto FitPilot; null = predvolený vzhľad */
+  brand?: DashboardBrand | null;
+  /** text „Beží na FitPilot“ (len keď je značka zapnutá) */
+  poweredBy?: string | null;
+}) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const settingsActive = pathname.startsWith("/dashboard/nastavenia");
@@ -135,8 +149,17 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
       <div className={styles.sidebarTop}>
         <Link href="/dashboard" className={styles.sidebarBrand}>
           {/* značka + text (wordmark je raster so svetlým textom — na svetlom skle by zmizol) */}
-          <LogoMark className={styles.brandMark} />
-          <span className={styles.brandText}>FitPilot</span>
+          {brand ? (
+            <>
+              {brand.logoUrl || brand.logoDarkUrl ? <BrandLogo src={brand.logoUrl} darkSrc={brand.logoDarkUrl} /> : <LogoMark className={styles.brandMark} />}
+              <span className={`${styles.brandText} ${styles.brandTextBranded}`}>{brand.name || "FitPilot"}</span>
+            </>
+          ) : (
+            <>
+              <LogoMark className={styles.brandMark} />
+              <span className={styles.brandText}>FitPilot</span>
+            </>
+          )}
         </Link>
         <NotificationBell initialUnread={unreadCount} />
       </div>
@@ -181,6 +204,7 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
         </span>
         <span className={styles.userName}>{displayName || t("settings")}</span>
       </Link>
+      {poweredBy && <p className={`${brandStyles.poweredBy} ${styles.sidebarPowered}`}>{poweredBy}</p>}
     </aside>
   );
 }

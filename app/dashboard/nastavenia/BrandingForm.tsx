@@ -306,8 +306,10 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
             placeholder={t("welcomePlaceholder")}
             maxLength={WELCOME_TEXT_MAX}
           />
-          <span className={styles.count}>{charLength(welcome)} / {WELCOME_TEXT_MAX}</span>
-          <p className={styles.hint}>{t("welcomeHint", { max: WELCOME_TEXT_MAX })}</p>
+          <div className={styles.hintRow}>
+            <p className={styles.hint}>{t("welcomeHint", { max: WELCOME_TEXT_MAX })}</p>
+            <span className={styles.count}>{charLength(welcome)} / {WELCOME_TEXT_MAX}</span>
+          </div>
         </div>
 
         <div className={styles.actions}>

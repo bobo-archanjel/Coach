@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import g from "../components/gamification.module.css";
@@ -74,7 +75,7 @@ export function MissionsCard({
 
   const doneCount = missions.filter((m) => m.done).length;
   return (
-    <section className={`${compact ? g2.msCard : `${g.card} ${g2.msCard}`}`} aria-label={labels.title} data-testid={compact ? "missions-compact" : "missions"} data-done={doneCount}>
+    <section className={`${g.card} ${g2.msCard}`} aria-label={labels.title} data-testid={compact ? "missions-compact" : "missions"} data-done={doneCount}>
       <div className={g2.msHead}>
         <h2 className={g2.msTitle}>{labels.title}</h2>
         {compact && (
@@ -105,7 +106,7 @@ export function MissionsCard({
                 aria-valuenow={pct}
                 aria-label={m.aria}
               >
-                <span className={g2.msBarFill} style={{ width: `${pct}%` }} />
+                <span className={g2.msBarFill} style={{ "--p": pct / 100 } as CSSProperties} />
               </div>
               {!compact && (
                 <div className={g2.msFoot}>

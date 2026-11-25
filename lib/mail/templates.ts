@@ -134,7 +134,7 @@ export function renderMailHtml(doc: MailDoc, brand: MailBrand, poweredBy: string
   // značka s logom: názov ostáva v alt a v päte; značka bez loga: text v hlavičke (vyššie)
 
   const p = (html: string, style = "") =>
-    `<p style="margin:0 0 14px; color:#574d47; font-family:${FONT}; font-size:15px; line-height:1.55;${style}">${html}</p>`;
+    `<p style="margin:0 0 14px; color:#574d47; font-family:${FONT}; font-size:15px; line-height:1.55; white-space:pre-line;${style}">${html}</p>`;
 
   const body: string[] = [];
   body.push(
@@ -145,15 +145,15 @@ export function renderMailHtml(doc: MailDoc, brand: MailBrand, poweredBy: string
   if (doc.quote) {
     body.push(
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;"><tr>` +
-        `<td bgcolor="${brand.tint}" style="background:${brand.tint}; border-left:4px solid ${brand.accent}; border-radius:12px; padding:12px 16px; color:#1f1a17; font-family:${FONT}; font-size:15px; line-height:1.55; white-space:pre-line;">${escapeHtml(doc.quote)}</td></tr></table>`,
+        `<td bgcolor="${brand.tint}" style="background:${brand.tint}; border-radius:16px; padding:14px 18px; color:#1f1a17; font-family:${FONT}; font-size:15px; line-height:1.55; white-space:pre-line;">${escapeHtml(doc.quote)}</td></tr></table>`,
     );
   }
   if (doc.stats && doc.stats.length > 0) body.push(renderStats(doc.stats, brand));
   if (doc.cta) {
     body.push(
       `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 16px;"><tr>` +
-        `<td align="center" bgcolor="${brand.accent}" style="background:${brand.accent}; border-radius:14px;">` +
-        `<a href="${escapeHtml(safeUrl(doc.cta.url))}" style="display:inline-block; padding:13px 26px; color:${brand.on}; font-family:${FONT}; font-size:15px; font-weight:700; text-decoration:none;">${escapeHtml(doc.cta.label)}</a>` +
+        `<td align="center" bgcolor="${brand.accent}" style="background:${brand.accent}; border-radius:999px;">` +
+        `<a href="${escapeHtml(safeUrl(doc.cta.url))}" style="display:inline-block; padding:14px 30px; color:${brand.on}; font-family:${FONT}; font-size:15px; font-weight:700; text-decoration:none;">${escapeHtml(doc.cta.label)}</a>` +
         `</td></tr></table>`,
     );
   }
@@ -176,15 +176,16 @@ export function renderMailHtml(doc: MailDoc, brand: MailBrand, poweredBy: string
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light only" />
+    <meta name="supported-color-schemes" content="light only" />
     <title>${escapeHtml(doc.heading)}</title>
   </head>
-  <body style="margin:0; padding:0; background:#f2ece6;">
+  <body bgcolor="#f2ece6" style="margin:0; padding:0; background:#f2ece6;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">${escapeHtml(doc.preheader)}</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2ece6;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f2ece6" style="background:#f2ece6;">
       <tr>
         <td align="center" style="padding:32px 16px;">
-          <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px; width:100%; background:${SURFACE}; border:1px solid #efe6dd; border-radius:28px; overflow:hidden;">
+          <table role="presentation" width="520" cellpadding="0" cellspacing="0" bgcolor="${SURFACE}" style="max-width:520px; width:100%; background:${SURFACE}; border:1px solid #efe6dd; border-radius:28px; overflow:hidden;">
             <tr>
               <td align="center" style="padding:30px 32px 6px;">
                 <table role="presentation" cellpadding="0" cellspacing="0"><tr>${header}</tr></table>
@@ -332,7 +333,7 @@ export function renderWeeklyMail(i: WeeklyMailInput): RenderedMail {
     doc.stats = weeklyStats(i.summary, i.locale);
     const top = i.summary.prs.top;
     if (top.length > 0) {
-      const list = top.map((p) => `${cleanLine(p.exerciseName)} ${p.weightKg} kg${p.reps ? ` × ${p.reps}` : ""}`).join(", ");
+      const list = top.map((p) => `${cleanLine(p.exerciseName)} ${new Intl.NumberFormat(intlLocale(i.locale)).format(p.weightKg)} kg${p.reps ? ` × ${p.reps}` : ""}`).join(", ");
       doc.paragraphs.push(fmt(m.topPrs, { list }));
     }
   }
@@ -366,7 +367,7 @@ export function renderLeadMail(i: LeadMailInput, siteUrl: string): RenderedMail 
     preheader: l.preheader,
     heading: l.heading,
     greeting: fmt(l.greeting, { name: cleanLine(i.trainerName) || brand.name }),
-    paragraphs: [fmt(l.intro, { lead: i.lead.name }), ...lines],
+    paragraphs: [fmt(l.intro, { lead: i.lead.name }), lines.join("\n")],
     quote: i.lead.message ? i.lead.message : undefined,
     cta: { label: l.cta, url: i.link },
     afterCta: [l.hint],

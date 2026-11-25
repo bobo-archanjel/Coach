@@ -57,6 +57,29 @@ export async function getPlanCompletion(
 }
 
 
+/**
+ * Odcvičenosť z agregovaných počtov logov (embed `workout_days(id, workout_logs(count))`) — pre zoznamy
+ * naprieč MNOHÝMI klientmi. `getPlanCompletion` ťahá riadok za každý log cez `.in(workout_day_id, …)`: pri desiatkach
+ * klientov to je (a) priamo úmerné histórii tréningov, (b) strop PostgREST 1000 riadkov by tichom odrezal logy
+ * (dni by sa tvárili ako neodcvičené) a (c) zoznam stoviek ID v URL môže prekročiť limit dĺžky požiadavky.
+ * Počty na deň sú vždy jeden riadok na deň plánu, takže nič z toho nehrozí.
+ */
+export function completionFromLogCounts(
+  plans: { id: string; days: { id: string; logCount: number }[] }[],
+): Map<string, PlanCompletion> {
+  const result = new Map<string, PlanCompletion>();
+  for (const p of plans) {
+    const doneDayIds = p.days.filter((d) => d.logCount > 0).map((d) => d.id);
+    result.set(p.id, {
+      totalDays: p.days.length,
+      completedDays: doneDayIds.length,
+      allDone: p.days.length > 0 && doneDayIds.length === p.days.length,
+      doneDayIds,
+    });
+  }
+  return result;
+}
+
 type DayLogCount = { id: string; workout_logs: { count: number }[] | null };
 
 /** Rovnaká definícia ako getPlanCompletion: každý deň plánu má aspoň jeden záznam. */

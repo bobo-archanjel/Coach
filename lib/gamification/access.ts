@@ -13,7 +13,7 @@ const SUB_COLUMNS =
   "trainer_id, stripe_customer_id, stripe_subscription_id, tier, status, trial_ends_at, current_period_end, cancel_at_period_end, past_due_since, comped, client_limit, scheduled_tier, scheduled_client_limit, scheduled_change_at";
 
 /** Riadok predplatného trénera (service role); null = chýba alebo chyba (fail-closed). */
-const loadRow = cache(async (trainerId: string): Promise<SubscriptionRow | null> => {
+export const loadTrainerSubscriptionRow = cache(async (trainerId: string): Promise<SubscriptionRow | null> => {
   const admin = tryCreateAdminClient();
   if (!admin) return null;
   const { data, error } = await admin.from("trainer_subscriptions").select(SUB_COLUMNS).eq("trainer_id", trainerId).maybeSingle();
@@ -26,11 +26,11 @@ const loadRow = cache(async (trainerId: string): Promise<SubscriptionRow | null>
 
 export const trainerHasFeatureForClients = cache(async (trainerId: string | null | undefined, feature: Feature): Promise<boolean> => {
   if (!trainerId) return false;
-  return featureAvailableForClients(await loadRow(trainerId), feature);
+  return featureAvailableForClients(await loadTrainerSubscriptionRow(trainerId), feature);
 });
 
 /** Tarifa trénera, ktorá teraz platí (pre limity rebríčka); null = bez prístupu. */
 export const trainerTierForClients = cache(async (trainerId: string | null | undefined): Promise<Tier | null> => {
   if (!trainerId) return null;
-  return effectiveTier(await loadRow(trainerId));
+  return effectiveTier(await loadTrainerSubscriptionRow(trainerId));
 });

@@ -23,7 +23,8 @@
     "food": "Dni so zápisom jedla",
     "prs": "Osobné rekordy",
     "badges": "Odznaky",
-    "missions": "Misie týždňa"
+    "missions": "Misie týždňa",
+    "rings": "Dni s uzavretými kruhmi"
   },
   "home": {
     "title": "Tento týždeň",
@@ -41,6 +42,31 @@
     "trainingHint": "dni s tréningom, cieľ podľa plánu",
     "foodHint": "dni so zapísaným jedlom",
     "proteinHint": "dni s cieľom bielkovín"
+  },
+  "daily": {
+    "ringsAria": "Dnešné kruhy",
+    "meals": "Strava",
+    "protein": "Bielkoviny",
+    "move": "Pohyb",
+    "value": "{value}/{goal}",
+    "aria": "{label}: {value} z {goal}",
+    "proteinValue": "{percent} %",
+    "proteinAria": "Bielkoviny: {value} z {goal} g",
+    "mealsHint": "{left, plural, =0 {Všetky jedlá zapísané} one {Ešte # jedlo} few {Ešte # jedlá} other {Ešte # jedál}}",
+    "proteinHint": "{value} z {goal} g",
+    "proteinDone": "Cieľ bielkovín splnený",
+    "moveWorkout": "Tréning hotový",
+    "moveRest": "Oddychový deň",
+    "moveOpen": "Tréning alebo oddych",
+    "weekLine": "Tento týždeň: {done}/{target} {target, plural, one {tréning} few {tréningy} other {tréningov}}",
+    "restButton": "Dnes oddychujem",
+    "restActive": "Dnes oddychuješ",
+    "restUndo": "Vrátiť späť",
+    "restWorkout": "Dnes už máš tréning, oddych netreba.",
+    "restError": "Oddych sa nepodarilo uložiť, skús to znova.",
+    "celebrate": "Všetky kruhy uzavreté",
+    "celebrateXp": "+{xp} XP",
+    "celebrateClose": "Zavrieť"
   },
   "categories": {
     "endurance": "Vytrvalosť",
@@ -86,7 +112,7 @@
     "level": "Nová úroveň: {n}. {title}"
   },
   "unlock": {
-    "prTitle": "Nový osobný rekord na {exercise}: {weight} kg 🎉",
+    "prTitle": "Nový osobný rekord na {exercise}: {weight} kg",
     "prSub": "Séria {weight} kg × {reps}. Takto sa buduje sila.",
     "badgeTitle": "Nový odznak: {name}",
     "badgeSub": "{desc}",
@@ -256,7 +282,7 @@
     "done": "Splnené",
     "startsOn": "Začína {date}",
     "endsOn": "Do {date}",
-    "more": "{count, plural, one {Ďalšia výzva} few {Ďalšie # výzvy} other {Ďalších # výziev}} nájdeš v Úspechoch.",
+    "more": "{count, plural, one {Ďalšiu výzvu} few {Ďalšie # výzvy} other {Ďalších # výziev}} nájdeš v Úspechoch.",
     "seeAll": "Všetky výzvy",
     "metric": {
       "workouts": "{target, plural, one {Dokonči # tréning} few {Dokonči # tréningy} other {Dokonči # tréningov}} počas výzvy.",
@@ -479,12 +505,19 @@
   "frames": {
     "none": "Bez rámika",
     "ember": "Žeravý",
+    "glow": "Žiara",
     "mint": "Mätový",
     "steel": "Oceľový",
     "gold": "Zlatý",
     "aurora": "Polárna žiara",
     "prism": "Dúhový",
+    "flame": "Plameň",
     "olympus": "Olymp"
+  },
+  "celebrations": {
+    "confetti": "Konfety",
+    "stars": "Hviezdy",
+    "fireworks": "Ohňostroj"
   },
   "themes": {
     "default": "Terakota",
@@ -497,10 +530,14 @@
   "rewards": {
     "title": "Odmeny za úrovne",
     "framesTitle": "Rámik avatara",
+    "celebrationsTitle": "Štýl osláv",
+    "titlesTitle": "Titul v rebríčku",
+    "titlesHint": "Pri svojej prezývke v celoappkovom rebríčku sa zobrazí malý štítok s vybraným titulom. Nič iné osobné sa nezobrazuje.",
+    "titlesLocked": "Titul si budeš môcť zvoliť od úrovne {level}.",
+    "titleNone": "Bez titulu",
     "themesTitle": "Farba portálu",
     "lockedAt": "Od úrovne {level}",
     "active": "Aktívne",
-    "brandedNote": "Tvoj tréner má vlastnú značku, preto zostávajú farby portálu podľa značky. Vybraná farba tu zafarbí len rámik avatara.",
     "next": "Ďalšia odmena na úrovni {level}: {text}",
     "allUnlocked": "Všetky odmeny máš odomknuté. Skvelá práca!",
     "failed": "Výber sa nepodarilo uložiť. Skús to znova.",
@@ -508,20 +545,22 @@
     "item": {
       "frame": "rámik {name}",
       "theme": "farba {name}",
-      "freeze": "zmrazenie série 🧊"
+      "celebration": "štýl osláv {name}",
+      "title": "titul {name}",
+      "freeze": "zmrazenie série"
     },
     "avatarAria": "Tvoj avatar s rámikom {name}"
   },
   "freeze": {
     "title": "Zmrazenia série",
     "text": "Zmrazenie automaticky ochráni tvoju sériu, keď by sa po dvoch vynechaných týždňoch za sebou (pri jedle po dvoch dňoch) mala pretrhnúť. Nikto ťa za pauzu nekritizuje.",
-    "count": "{count, plural, one {# zmrazenie} few {# zmrazenia} other {# zmrazení}} 🧊 (max. {max})",
+    "count": "{count, plural, one {# zmrazenie} few {# zmrazenia} other {# zmrazení}} (max. {max})",
     "earn": "Nové získaš za každú 4. úroveň a za týždeň, v ktorom splníš všetky tri misie.",
-    "used": "🧊 Zmrazenie použité",
+    "used": "Zmrazenie použité",
     "usedWeek": "Týždeň od {date}",
     "usedDay": "Deň {date}",
     "none": "Zatiaľ si žiadne nepoužil/a.",
-    "chip": "🧊 {count}",
+    "chip": "Zmrazenie série: {count}",
     "chipAria": "Zmrazenia série: {count}"
   },
   "missions": {
@@ -543,19 +582,19 @@
     "progressKg": "{value, number} z {goal, number} kg",
     "done": "Splnené",
     "aria": "{title}: {value} z {goal}",
-    "bonusPending": "Splň všetky tri a získaš bonus +{xp} XP a zmrazenie série 🧊.",
-    "bonusDone": "Všetky tri splnené, bonus +{xp} XP a zmrazenie série 🧊",
-    "allDoneTitle": "Týždeň misií splnený! 🎉",
+    "bonusPending": "Splň všetky tri a získaš bonus +{xp} XP a zmrazenie série.",
+    "bonusDone": "Všetky tri splnené, bonus +{xp} XP a zmrazenie série",
+    "allDoneTitle": "Týždeň misií splnený",
     "celebrate": "Skvelý týždeň, všetky misie máš za sebou.",
     "viewAll": "Všetky misie",
     "unavailable": "Misie sa práve nepodarilo načítať."
   },
   "hints": {
-    "weight": "Minule: {lastWeight} kg × {lastReps} · skús {nextWeight} kg 💪",
-    "reps": "Minule: {lastWeight} kg × {lastReps} · skús {nextReps} opak. 💪",
-    "bodyweight": "Minule: {lastReps} opak. · skús {nextReps} 💪",
-    "time": "Minule: {last} s · skús {next} s 💪",
-    "newRecord": "🔥 Nový rekord!"
+    "weight": "Minule: {lastWeight} kg × {lastReps} · skús {nextWeight} kg",
+    "reps": "Minule: {lastWeight} kg × {lastReps} · skús {nextReps} opak.",
+    "bodyweight": "Minule: {lastReps} opak. · skús {nextReps}",
+    "time": "Minule: {last} s · skús {next} s",
+    "newRecord": "Nový rekord"
   },
   "finish": {
     "title": "Tréning v číslach",
@@ -571,18 +610,18 @@
     "xpValue": "+{xp}",
     "missions": "Misie týždňa",
     "justDone": "Splnené!",
-    "bonus": "Bonus týždňa +{xp} XP 🎉",
-    "streak": "Séria: {count, plural, one {# týždeň} few {# týždne} other {# týždňov}} 🔥",
+    "bonus": "Bonus týždňa +{xp} XP",
+    "streak": "Séria: {count, plural, one {# týždeň} few {# týždne} other {# týždňov}}",
     "streakNeed": "Do splnenia týždňa ešte {count, plural, one {# tréning} few {# tréningy} other {# tréningov}}.",
     "streakDone": "Tento týždeň je splnený. Skvelé tempo.",
-    "freezeUsed": "🧊 Zmrazenie použité, séria ostala",
-    "levelUp": "Nová úroveň: {n} 🚀",
+    "freezeUsed": "Zmrazenie použité, séria ostala",
+    "levelUp": "Nová úroveň: {n}",
     "share": "Zdieľať týždeň",
     "close": "Pokračovať"
   },
   "next": {
     "title": "Čo ťa čaká",
-    "line": "Ešte {amount} do odznaku {name} 🎯",
+    "line": "Ešte {amount} do odznaku {name}",
     "units": {
       "workouts": "{count, plural, one {# tréning} few {# tréningy} other {# tréningov}}",
       "weeks": "{count, plural, one {# týždeň} few {# týždne} other {# týždňov}}",

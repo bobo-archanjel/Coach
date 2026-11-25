@@ -152,6 +152,19 @@ test.describe("preklad — úplnosť", () => {
     }
     expect(failed, output).toBe(false);
   });
+
+  test("klientske texty sú v správnom rozsahu — verejné / dashboard / portál (scripts/i18n-scopes.mjs)", () => {
+    let output = "";
+    let failed = false;
+    try {
+      output = execFileSync("node", [path.join(ROOT, "scripts/i18n-scopes.mjs"), "--check"], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    } catch (e) {
+      failed = true;
+      const err = e as { stdout?: string; stderr?: string };
+      output = `${err.stdout ?? ""}${err.stderr ?? ""}` || String(e);
+    }
+    expect(failed, output).toBe(false);
+  });
 });
 
 test.describe("jazyk z hlavičky Accept-Language", () => {

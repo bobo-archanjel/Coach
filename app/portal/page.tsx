@@ -286,14 +286,14 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
         <ProgressCard history={bodyMetrics} />
       </section>
 
-      {/* fáza B: týždenný súhrn (raz za týždeň) a výzvy od trénera — dostreamujú sa, nespomaľujú kartu Dnes */}
+      {/* týždenný súhrn (raz za týždeň), misie a výzvy od trénera — dostreamujú sa, nespomaľujú kartu Dnes */}
       {!preview && (
         <>
           <Suspense fallback={null}>
-            <MissionsHost compact />
+            <WeeklySummaryHost mode="due" />
           </Suspense>
           <Suspense fallback={null}>
-            <WeeklySummaryHost mode="due" />
+            <MissionsHost compact />
           </Suspense>
           <Suspense fallback={null}>
             <ChallengesHost compact />

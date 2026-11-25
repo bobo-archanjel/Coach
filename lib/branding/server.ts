@@ -1,16 +1,14 @@
 import "server-only";
 import { cache } from "react";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
-import { brandingAvailableForClients, type SubscriptionRow } from "@/lib/billing/entitlements";
+import { brandingAvailableForClients } from "@/lib/billing/entitlements";
+import { loadTrainerSubscriptionRow } from "@/lib/gamification/access";
 import { deriveBrandTheme } from "./colors";
 import { cleanLine, cleanMultiline } from "./validation";
 import { isOwnBrandPath, isOwnIconPath, type BrandImageKind, type IconVariant } from "./image";
 import type { BrandingRow, PublicBranding } from "./types";
 
 export const BRANDING_BUCKET = "branding";
-
-const SUB_COLUMNS =
-  "trainer_id, stripe_customer_id, stripe_subscription_id, tier, status, trial_ends_at, current_period_end, cancel_at_period_end, past_due_since, comped, client_limit, scheduled_tier, scheduled_client_limit, scheduled_change_at";
 
 /** Verejná URL objektu v buckete `branding` (bucket je public, viď 0075). */
 export function brandingPublicUrl(path: string | null | undefined): string | null {
@@ -64,20 +62,18 @@ export const loadBrandingForTrainer = cache(async (trainerId: string | null | un
   const admin = tryCreateAdminClient();
   if (!admin) return null;
   const readRow = (columns: string) => admin.from("trainer_branding").select(columns).eq("trainer_id", trainerId).maybeSingle();
-  const [{ data: sub, error: subErr }, first] = await Promise.all([
-    admin.from("trainer_subscriptions").select(SUB_COLUMNS).eq("trainer_id", trainerId).maybeSingle(),
-    readRow(BRANDING_COLUMNS),
-  ]);
+  // riadok predplatného je request-cache-ovaný (zdieľa ho AI Kouč v layoute, výzvy a rebríček) — bez duplicitného dopytu
+  const [sub, first] = await Promise.all([loadTrainerSubscriptionRow(trainerId), readRow(BRANDING_COLUMNS)]);
   // 0081 ešte nebehla (neznámy stĺpec) → zopakovať so starými stĺpcami, značka sa ukáže bez ikon
   const second = first.error ? await readRow(LEGACY_COLUMNS) : null;
   const rowErr = second ? second.error : first.error;
   const row = (second ? second.data : first.data) as unknown as BrandingFields | null;
-  if (subErr || rowErr) {
+  if (rowErr) {
     // tabuľka ešte neexistuje (0075 nebehla) alebo výpadok → predvolený vzhľad
-    console.error("branding.loadBrandingForTrainer:", (subErr ?? rowErr)?.message);
+    console.error("branding.loadBrandingForTrainer:", rowErr?.message);
     return null;
   }
-  if (!row || !brandingAvailableForClients((sub as SubscriptionRow | null) ?? null)) return null;
+  if (!row || !brandingAvailableForClients(sub)) return null;
   const branding = toPublicBranding(row, trainerId);
   // prázdna značka (nič nenastavené) = predvolený FitPilot
   if (!branding.brandName && !branding.logoUrl && !branding.theme) return null;

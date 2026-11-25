@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import { loadTrainerSubscriptionRow } from "@/lib/gamification/access";
 import { tErr, type ErrorKey } from "@/lib/i18n/serverErrors";
 import { computeBilling, coachAvailableForClients, TRIAL_DAYS, type BillingState, type SubscriptionRow } from "./entitlements";
 import { TRIAL_CLIENT_LIMIT, minTierFor, type Feature } from "./plans";
@@ -128,14 +129,8 @@ export async function clientLimitMessage(limit: number | null): Promise<string> 
  */
 export async function trainerAllowsCoach(trainerId: string | null | undefined): Promise<boolean> {
   if (!trainerId) return false;
-  const admin = tryCreateAdminClient();
-  if (!admin) return false;
-  const { data, error } = await admin.from("trainer_subscriptions").select(SUB_COLUMNS).eq("trainer_id", trainerId).maybeSingle();
-  if (error) {
-    console.error("billing.trainerAllowsCoach:", error.message);
-    return false;
-  }
-  return coachAvailableForClients((data as SubscriptionRow | null) ?? null);
+  // riadok predplatného je request-cache-ovaný (rovnaký ako pre výzvy, rebríček a značku) — bez ďalšieho round-tripu
+  return coachAvailableForClients(await loadTrainerSubscriptionRow(trainerId));
 }
 
 /**

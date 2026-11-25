@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { CSSProperties } from "react";
 import { AppLink as Link } from "@/app/components/AppLink";
 import { createClient, getMyClient, getUser } from "@/lib/supabase/server";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
@@ -49,7 +50,7 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
                 aria-valuenow={percent}
                 aria-label={t("barAria", { name: c.name, percent })}
               >
-                <span className={g.barFill} style={{ width: `${percent}%` }} />
+                <span className={g.barFill} style={{ "--p": percent / 100 } as CSSProperties} />
               </div>
               <p className={g.chDesc}>
                 {(t as unknown as (k: string, v: { target: number }) => string)(`metric.${c.metric}`, { target: c.target })}
@@ -72,9 +73,11 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
         })}
       </ul>
       {compact ? (
-        <p className={g.chDesc}>
-          {total > items.length ? `${t("more", { count: total - items.length })} ` : ""}
-          <Link href="/portal/uspechy">{t("seeAll")}</Link>
+        <p className={g.chMore}>
+          <span>{total > items.length ? t("more", { count: total - items.length }) : null}</span>
+          <Link href="/portal/uspechy" className={`${g.moreLink} ${g.moreLinkChev}`}>
+            {t("seeAll")}
+          </Link>
         </p>
       ) : null}
     </section>

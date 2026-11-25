@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
@@ -6,6 +6,9 @@ import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import { getTourSeen, hasTourSeenCookie } from "@/lib/onboarding/actions";
 import { tourStepsFor } from "@/lib/onboarding/tourSteps";
+import { MESSAGES } from "@/messages";
+import { scopedMessages } from "@/lib/i18n/clientMessages";
+import { ScopedMessages } from "@/app/components/ScopedMessages";
 import { LogoMark } from "@/app/components/LogoMark";
 import { OnboardingTour } from "@/app/components/OnboardingTour";
 import { SectionGuide } from "@/app/components/SectionGuide";
@@ -22,9 +25,9 @@ import { PortalSkeletonOverlay } from "./PortalSkeletonOverlay";
 import { NotificationBellSlot } from "./NotificationBell";
 import { AchievementHost } from "./AchievementHost";
 import { FinishSummaryHost } from "./FinishSummaryHost";
+import { RingsHost } from "./RingsHost";
 import { loadCosmetics } from "@/lib/gamification/cosmeticsServer";
-import { THEME_SWATCH } from "@/lib/gamification/rewards";
-import { FRAME_TINTED_CLASS, frameClassName } from "./frameClass";
+import { frameClassName } from "./frameClass";
 import themes from "@/app/components/clientThemes.module.css";
 import { V6_THEME_COOKIE, parseV6Theme, v6ThemeColor } from "@/app/v6design/theme";
 import t from "@/app/v6design/styles/tokens.module.css";
@@ -81,30 +84,39 @@ export default async function PortalLayout({ children }: { children: React.React
   // loadPortalShell robí auth guard (redirect bez session/tréner) aj dopyty navigácie.
   // Tour: nezávislý dopyt na user.id s rovnakým cookie fast-pathom ako dashboard
   // (DB len keď cookie „tour videný“ chýba).
-  const [{ chatUnread, aiKoucVisible, displayName, trainerId }, cookieStore, {
-    data: { user },
-  }, tn] = await Promise.all([loadPortalShell(), cookies(), getUser(), getTranslations("nav")]);
+  // Cosmetics (rámik/téma) a tour (DB len bez cookie) potrebujú len user.id — štartujú súbežne s loadPortalShell
+  // (predtým čakali sekvenčne za značkou, 2 round-tripy navyše na každú navigáciu v portáli).
+  const userP = getUser();
+  const cosmeticsP = userP.then(({ data: { user } }) => loadCosmetics(user?.id ?? ""));
+  const tourSeenP = Promise.all([userP, hasTourSeenCookie()]).then(([{ data: { user } }, cookieSeen]) =>
+    user && !cookieSeen ? getTourSeen(user.id) : true,
+  );
+  const [{ chatUnread, aiKoucVisible, displayName, trainerId }, cookieStore, tn, cosmetics, tourSeen] = await Promise.all([
+    loadPortalShell(),
+    cookies(),
+    getTranslations("nav"),
+    cosmeticsP,
+    tourSeenP,
+  ]);
   // Branding trénera (Business): logo + názov + akcentová farba namiesto FitPilot. null = predvolený
-  // vzhľad (klient bez trénera, tréner bez Business, značka nenastavená).
+  // vzhľad (klient bez trénera, tréner bez Business, značka nenastavená). Zahriate v loadPortalShell (request-cache).
   const branding = await loadBrandingForTrainer(trainerId);
   const tb = branding ? await getTranslations("branding") : null;
-  // v2: rámik avatara a farebná téma z odmien za úrovne. Téma mení farby portálu LEN bez značky trénera
-  // (značka vždy vyhráva); so značkou téma farbí iba rámik avatara.
-  const cosmetics = await loadCosmetics(user?.id ?? "");
+  // v2: rámik avatara, farebná téma a štýl osláv z odmien za úrovne. Téma mení farby portálu LEN bez značky trénera
+  // (značka vždy vyhráva); klient so značkou témy nemá (namiesto nich animované rámiky, tituly a štýly osláv).
   const themeActive = !branding && cosmetics.theme !== "default";
-  const tinted = Boolean(branding) && cosmetics.theme !== "default" && cosmetics.frame !== "none";
   const theme = parseV6Theme(cookieStore.get(V6_THEME_COOKIE)?.value);
   const initial = displayName?.trim().charAt(0).toUpperCase() || "?";
 
-  let tourSeen = true;
-  if (user && !(await hasTourSeenCookie())) tourSeen = await getTourSeen(user.id);
-
+  // ScopedMessages: texty oblasti portálu (koreňový layout posiela len verejné — lib/i18n/clientMessages.ts)
   return (
+    <ScopedMessages extra={scopedMessages(MESSAGES[await getLocale()], "portal")}>
     <div
       className={`${t.root} ${branding?.theme ? brand.branded : ""} ${themeActive ? themes.themed : ""}`}
       style={brandStyle(branding?.theme)}
       data-theme={theme}
       data-fp-theme={themeActive ? cosmetics.theme : undefined}
+      data-celebration={cosmetics.celebration}
       data-v6-root=""
       data-branded={branding ? "" : undefined}
     >
@@ -131,8 +143,7 @@ export default async function PortalLayout({ children }: { children: React.React
               <NotificationBellSlot placement="header" />
               <Link
                 href="/portal/profil"
-                className={`${s.v6Avatar} ${frameClassName(cosmetics.frame)} ${tinted ? FRAME_TINTED_CLASS : ""}`}
-                style={tinted ? ({ ["--tint" as string]: THEME_SWATCH[cosmetics.theme] } as React.CSSProperties) : undefined}
+                className={`${s.v6Avatar} ${frameClassName(cosmetics.frame, cosmetics.flameHot)}`}
                 data-frame={cosmetics.frame}
                 aria-label={tn("profile")}
                 data-tour="nav-profil"
@@ -149,6 +160,7 @@ export default async function PortalLayout({ children }: { children: React.React
           brandName={branding?.brandName || null}
           brandLogoUrl={branding?.logoUrl ?? null}
           brandLogoDarkUrl={branding?.logoDarkUrl ?? null}
+          avatarFrameClass={frameClassName(cosmetics.frame, cosmetics.flameHot)}
         />
         <div className={s.v6Frame}>
           {/* pozicionovaný obal len okolo obsahu — overlay skeleton pri navigácii
@@ -168,10 +180,14 @@ export default async function PortalLayout({ children }: { children: React.React
           <FinishSummaryHost />
         </Suspense>
         <Suspense fallback={null}>
+          <RingsHost />
+        </Suspense>
+        <Suspense fallback={null}>
           <OnboardingTour steps={await tourStepsFor("client")} tourSeen={tourSeen} home="/portal" />
           <SectionGuide role="client" />
         </Suspense>
       </NavigationProgressProvider>
     </div>
+    </ScopedMessages>
   );
 }

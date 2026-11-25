@@ -79,7 +79,7 @@
   "settings": {
     "title": "Veřejná stránka",
     "badge": "Business",
-    "subtitle": "Vlastní stránka s tvým jménem, službami a formulářem pro nové klienty — ke sdílení na Instagramu či vizitce.",
+    "subtitle": "Vlastní stránka s tvým jménem, službami a formulářem pro nové klienty. Hodí se na Instagram nebo vizitku.",
     "locked": {
       "title": "Veřejná stránka je součástí tarifu Business",
       "text": "Získej vlastní adresu, na které najdou noví klienti tvé služby, ceny i kontaktní formulář.",
@@ -100,7 +100,7 @@
     "handleTaken": "Tato adresa je už obsazená.",
     "handleOwn": "Toto je tvoje současná adresa.",
     "publish": "Zveřejnit stránku",
-    "publishHint": "Nezveřejněná stránka je pro všechny kromě tebe neviditelná (404).",
+    "publishHint": "Dokud stránku nezveřejníš, vidíš ji jen ty. Ostatním se zobrazí chyba 404.",
     "headline": "Nadpis",
     "headlinePlaceholder": "Osobní trenér pro ženy po těhotenství",
     "headlineHint": "Jedna věta pod jménem. Max. {max} znaků.",
@@ -125,7 +125,7 @@
     "addService": "Přidat službu",
     "removeService": "Odebrat službu {n}",
     "testimonialsTitle": "Reference od klientů",
-    "testimonialsHint": "Max. {max}. Zadáváš je ty — na stránce jsou označené jako reference od klientů. Přidej je jen se souhlasem klienta, bez hodnocení hvězdičkami.",
+    "testimonialsHint": "Max. {max}. Na stránce jsou označené jako reference od klientů. Přidej je jen se souhlasem klienta, bez hodnocení hvězdičkami.",
     "testimonialAuthor": "Jméno nebo iniciály",
     "testimonialAuthorPlaceholder": "Jana K.",
     "testimonialBody": "Text reference",

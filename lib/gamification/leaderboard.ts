@@ -66,6 +66,8 @@ export interface BoardRow {
   name: string;
   value: number;
   isMe: boolean;
+  /** zvolený titul = číslo úrovne 10–20 (text titulu je v i18n); len titul, nič osobné */
+  title?: number | null;
 }
 
 export interface Board {

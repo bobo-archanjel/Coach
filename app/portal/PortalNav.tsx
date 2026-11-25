@@ -37,6 +37,7 @@ export function PortalNav({
   brandName = null,
   brandLogoUrl = null,
   brandLogoDarkUrl = null,
+  avatarFrameClass = "",
 }: {
   chatUnread?: boolean;
   aiKoucVisible?: boolean;
@@ -46,6 +47,8 @@ export function PortalNav({
   brandLogoUrl?: string | null;
   /** logo pre tmavú tému (ak ho tréner nahral) */
   brandLogoDarkUrl?: string | null;
+  /** rámik avatara z odmien za úrovne (gamifikácia v2) — na počítači je avatar tu, hlavička je skrytá */
+  avatarFrameClass?: string;
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
@@ -114,7 +117,7 @@ export function PortalNav({
         data-tour="nav-profil"
         aria-current={pathname.startsWith(`${BASE}/profil`) ? "page" : undefined}
       >
-        <span className={s.v6SideAvatar} aria-hidden="true">
+        <span className={`${s.v6SideAvatar} ${avatarFrameClass}`} aria-hidden="true">
           {displayName?.trim().charAt(0).toUpperCase() || "?"}
         </span>
         <span className={s.v6SideName}>{displayName?.trim() || t("profile")}</span>

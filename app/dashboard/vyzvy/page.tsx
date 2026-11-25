@@ -9,6 +9,7 @@ import { ChallengeForm } from "./ChallengeForm";
 import { ChallengeList } from "./ChallengeList";
 import styles from "@/app/dashboard/dashboard.module.css";
 import g from "@/app/components/gamification.module.css";
+import v from "./vyzvy.module.css";
 
 /* /dashboard/vyzvy — výzvy pre klientov a nastavenie rebríčka (všetky tarify). Starter a skúška:
    1 aktívna výzva, 2 typy, len všetci klienti (limity v lib/billing/plans.ts); zápisy a limity
@@ -42,25 +43,27 @@ export default async function VyzvyPage() {
   return (
     <>
       {head}
-      <div className={g.tcStack}>
+      <div className={v.stack}>
         {challenges === null && <p className={g.empty}>{t("trainer.unavailable")}</p>}
 
         <section className={styles.card} aria-label={t("trainer.newTitle")}>
-          <h3>{t("trainer.newTitle")}</h3>
-          <p className={g.tcHint} data-testid="challenge-counter" data-active={activeCount} data-max={limits.maxActiveChallenges}>
-            {t("trainer.counter", { active: activeCount, max: limits.maxActiveChallenges })}
-          </p>
+          <div className={v.cardHead}>
+            <h3>{t("trainer.newTitle")}</h3>
+            <span className={v.counter} data-testid="challenge-counter" data-active={activeCount} data-max={limits.maxActiveChallenges}>
+              {t("trainer.counter", { active: activeCount, max: limits.maxActiveChallenges })}
+            </span>
+          </div>
           {activeCount > limits.maxActiveChallenges && (
-            <p className={g.empty} data-testid="challenge-over-limit">
+            <p className={v.notice} data-testid="challenge-over-limit">
               {t("trainer.overLimit", { active: activeCount, max: limits.maxActiveChallenges })}
             </p>
           )}
           {activeCount >= limits.maxActiveChallenges ? (
-            <p className={g.empty} data-testid="challenge-limit-reached">
+            <p className={v.notice} data-testid="challenge-limit-reached">
               {limited ? t("errors.limitOne") : t("errors.limit", { max: limits.maxActiveChallenges })}
             </p>
           ) : clients.length === 0 ? (
-            <p className={g.empty}>{t("trainer.noClients")}</p>
+            <p className={v.notice}>{t("trainer.noClients")}</p>
           ) : (
             <ChallengeForm
               clients={clients}

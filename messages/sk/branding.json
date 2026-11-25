@@ -1,14 +1,14 @@
 {
   "title": "Moja značka",
   "badge": "Business",
-  "subtitle": "Tvoji klienti uvidia v appke tvoje logo, názov a farbu — ako tvoju vlastnú aplikáciu.",
+  "subtitle": "Klienti uvidia v appke tvoje logo, názov a farbu, akoby to bola tvoja vlastná aplikácia.",
   "brandName": "Názov značky",
   "brandNamePlaceholder": "Fit s Majom",
   "brandNameHint": "Zobrazí sa v hlavičke appky klienta a v PDF. Max. {max} znakov.",
   "logo": "Logo",
   "logoHint": "PNG, JPG alebo WebP do 1 MB. Najlepšie štvorcové s priehľadným pozadím.",
   "logoDark": "Logo na tmavé pozadie (nepovinné)",
-  "logoDarkHint": "Použije sa v tmavej téme appky namiesto bežného loga — hodí sa, ak je tvoje logo tmavé alebo čierne. PNG, JPG alebo WebP do 1 MB.",
+  "logoDarkHint": "Zobrazí sa v tmavej téme namiesto bežného loga. Hodí sa, ak je tvoje logo tmavé alebo čierne.",
   "photo": "Tvoja fotka (nepovinné)",
   "photoHint": "Ukáže sa na pozvánke pre nových klientov.",
   "choose": "Vybrať súbor",
@@ -16,7 +16,7 @@
   "remove": "Odstrániť",
   "noFile": "Žiadny súbor",
   "accent": "Farba značky",
-  "accentHint": "Z farby sa odvodia tlačidlá aj texty. Ak je príliš svetlá alebo tmavá, jas sa automaticky upraví, aby bol text vždy čitateľný.",
+  "accentHint": "Z farby sa odvodia tlačidlá a texty. Príliš svetlú alebo tmavú farbu appka upraví tak, aby text zostal čitateľný.",
   "accentPicker": "Vlastná farba",
   "accentReset": "Predvolená farba FitPilot",
   "paletteTitle": "Farby z tvojho loga",
@@ -117,7 +117,7 @@
     "subtitle": "Uvítacia správa v chate a pozvánka e-mailom. Dostupné vo všetkých tarifách.",
     "welcome": {
       "title": "Uvítacia správa v chate",
-      "hint": "Keď sa klient spáruje s tebou (kódom alebo pozvánkou), dostane túto správu v chate — ako keby si ju napísal/-a ty. Použi '{meno}' pre jeho krstné meno.",
+      "hint": "Klient ju dostane v chate po spárovaní s tebou (kódom alebo pozvánkou), akoby ju napísal/-a ty. '{meno}' nahradí jeho krstné meno.",
       "placeholder": "Ahoj '{meno}'! Som rád/rada, že budeme spolu pracovať. Ozvi sa mi kedykoľvek, keď niečo potrebuješ.",
       "enabled": "Posielať uvítaciu správu novým klientom",
       "previewTitle": "Takto ju klient uvidí v chate",
@@ -141,7 +141,7 @@
       "sending": "Posielam…",
       "sent": "Pozvánka je odoslaná.",
       "remaining": "Zostáva ti {count, plural, one {# pozvánka} few {# pozvánky} other {# pozvánok}}.",
-      "limitsNote": "Z bezpečnostných dôvodov je počet pozvánok obmedzený (za hodinu a za deň) a tú istú adresu môžeš pozvať najviac raz za 24 hodín. Odpoveď klienta príde na tvoj e-mail."
+      "limitsNote": "Počet pozvánok je obmedzený (za hodinu a za deň) a tú istú adresu môžeš pozvať najviac raz za 24 hodín. Odpoveď klienta príde na tvoj e-mail."
     },
     "errors": {
       "notSignedIn": "Nie si prihlásený.",

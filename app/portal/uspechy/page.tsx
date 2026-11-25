@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getMyClient, getUser } from "@/lib/supabase/server";
 import { getUserLocale } from "@/lib/i18n/server";
@@ -11,7 +12,7 @@ import { loadBrandingForTrainer } from "@/lib/branding/server";
 import { todayIso } from "@/lib/reports/period";
 import { BadgeIcon, LockIcon } from "@/app/components/BadgeIcon";
 import { ShareButton } from "@/app/components/ShareButton";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { ChallengesHost } from "../ChallengesCard";
 import { LeaderboardHost } from "../LeaderboardHost";
 import { MissionsHost } from "../MissionsHost";
@@ -51,21 +52,29 @@ export default async function UspechyPage() {
         <p className={s.pageSub}>{t("subtitle")}</p>
       </header>
       {data ? (
-        <div className={g.stack}>
-          <Suspense fallback={null}>
-            <WeeklySummaryHost mode="always" />
-          </Suspense>
-          <Suspense fallback={null}>
-            <MissionsHost />
-          </Suspense>
-          <Suspense fallback={null}>
-            <ChallengesHost />
-          </Suspense>
-          <Suspense fallback={null}>
-            <LeaderboardHost />
-          </Suspense>
-          <Gallery data={data} locale={locale} cosmetics={cosmetics} branded={branded} initial={initial} />
-        </div>
+        <Gallery
+          data={data}
+          locale={locale}
+          cosmetics={cosmetics}
+          branded={branded}
+          initial={initial}
+          lead={
+            <>
+              <Suspense fallback={null}>
+                <MissionsHost />
+              </Suspense>
+              <Suspense fallback={null}>
+                <WeeklySummaryHost mode="always" />
+              </Suspense>
+              <Suspense fallback={null}>
+                <ChallengesHost />
+              </Suspense>
+              <Suspense fallback={null}>
+                <LeaderboardHost />
+              </Suspense>
+            </>
+          }
+        />
       ) : (
         <p className={g.empty}>{t("unavailable")}</p>
       )}
@@ -79,10 +88,13 @@ async function Gallery({
   cosmetics,
   branded,
   initial,
+  lead,
 }: {
+  /** misie, týždenný súhrn, výzvy a rebríček — hneď pod úrovňou a „Čo ťa čaká“ */
+  lead: ReactNode;
   data: GalleryData;
   locale: Locale;
-  cosmetics: { frame: import("@/lib/gamification/rewards").FrameId; theme: import("@/lib/gamification/rewards").ThemeId };
+  cosmetics: import("@/lib/gamification/cosmeticsServer").Cosmetics;
   branded: boolean;
   initial: string;
 }) {
@@ -94,13 +106,15 @@ async function Gallery({
   const title = t(`levelTitles.${detail.n}` as never);
 
   // text najbližšej odmeny: „rámik Žeravý, zmrazenie série 🧊“
-  const nr = nextReward(detail.n);
+  const nr = nextReward(detail.n, branded);
   const nextRewardText = nr
     ? t("rewards.next", {
         level: nr.level,
         text: [
           ...nr.rewards.frames.map((f) => t("rewards.item.frame", { name: t(`frames.${f}` as never) })),
           ...nr.rewards.themes.map((th) => t("rewards.item.theme", { name: t(`themes.${th}` as never) })),
+          ...nr.rewards.celebrations.map((c) => t("rewards.item.celebration", { name: t(`celebrations.${c}` as never) })),
+          ...(nr.rewards.titles.length > 0 ? [t("rewards.item.title", { name: t(`levelTitles.${nr.rewards.titles[nr.rewards.titles.length - 1]}` as never) })] : []),
           ...Array.from({ length: nr.rewards.freezes }, () => t("rewards.item.freeze")),
         ].join(", "),
       })
@@ -125,12 +139,14 @@ async function Gallery({
           aria-valuenow={percent}
           aria-label={detail.nextN ? t("level.progressAria", { next: t(`levelTitles.${detail.nextN}` as never), percent }) : t("level.maxAria")}
         >
-          <span className={g.barFill} style={{ width: `${percent}%` }} />
+          <span className={g.barFill} style={{ "--p": percent / 100 } as CSSProperties} />
         </div>
         <p className={g.levelFoot}>
           {detail.nextN != null && detail.toNext != null ? t("levelDetail.toNext", { count: detail.toNext, n: detail.nextN }) : t("level.max")}
         </p>
-        <ul className={g.xpList} aria-label={t("xpBreakdown.title")}>
+        <details className={g.xpDetails}>
+          <summary>{t("xpBreakdown.title")}</summary>
+        <ul className={g.xpList}>
           <li>
             <span>{t("xpBreakdown.workouts")}</span>
             <span>{xp.workouts}</span>
@@ -153,7 +169,14 @@ async function Gallery({
               <span>{xp.missions}</span>
             </li>
           )}
+          {xp.rings > 0 && (
+            <li>
+              <span>{t("xpBreakdown.rings")}</span>
+              <span>{xp.rings}</span>
+            </li>
+          )}
         </ul>
+        </details>
       </section>
 
       {data.next.length > 0 && (
@@ -177,10 +200,15 @@ async function Gallery({
         </section>
       )}
 
+      {lead}
+
       <RewardsCard
         level={detail.n}
         frame={cosmetics.frame}
         theme={cosmetics.theme}
+        celebration={cosmetics.celebration}
+        titleLevel={cosmetics.titleLevel}
+        flameHot={cosmetics.flameHot}
         branded={branded}
         initial={initial}
         freezeUses={freezeUses}
@@ -225,12 +253,10 @@ async function Gallery({
             {data.records.map((r) => (
               <li key={r.exerciseKey} className={g.recordRow}>
                 <span className={g.recordName}>{r.exerciseName}</span>
-                <span className={g.recordVal}>
-                  {t("records.best", { weight: r.bestWeightKg, reps: r.bestWeightReps })}
-                  <span className={g.recordSub}>
-                    {r.bestE1rm != null ? `${t("records.e1rm", { value: r.bestE1rm })} · ` : ""}
-                    {t("records.last", { date: dateLabel(r.lastOn, locale) })}
-                  </span>
+                <span className={g.recordVal}>{t("records.best", { weight: r.bestWeightKg, reps: r.bestWeightReps })}</span>
+                <span className={g.recordSub}>
+                  {r.bestE1rm != null ? `${t("records.e1rm", { value: r.bestE1rm })} · ` : ""}
+                  {t("records.last", { date: dateLabel(r.lastOn, locale) })}
                 </span>
               </li>
             ))}
@@ -280,12 +306,14 @@ async function BadgeCard({ badge, locale }: { badge: BadgeView & { backfilled: b
   const goal = prog ? (inTons ? displayAmount("tons", prog.goal) : prog.goal) : 0;
   return (
     <li className={cls} data-badge={badge.id} data-earned={badge.earned ? "1" : "0"} data-revealed={badge.revealed ? "1" : "0"} data-tier={badge.tier ?? undefined}>
+      <span className={g2.badgeHead}>
       <span className={`${g.badgeIcon} ${badge.tier && badge.revealed ? TIER_RING[badge.tier] : ""}`}>{badge.revealed ? <BadgeIcon icon={badge.icon} /> : <LockIcon />}</span>
       <span className={g2.badgePills}>
         {badge.tier && <span className={`${g2.tierPill} ${TIER_PILL[badge.tier]}`}>{t(`tiers.${badge.tier}`)}</span>}
-        {badge.revealed && (
+        {badge.revealed && !badge.tier && badge.rarity !== "common" && (
           <span className={`${g2.rarityPill} ${badge.rarity === "epic" ? g2.rarityEpic : badge.rarity === "rare" ? g2.rarityRare : ""}`}>{t(`rarity.${badge.rarity}`)}</span>
         )}
+      </span>
       </span>
       <span className={g.badgeName}>{badge.revealed ? t(`badges.${badge.id}.name` as never) : t("hidden.name")}</span>
       <span className={g.badgeDesc}>{badge.revealed ? t(`badges.${badge.id}.desc` as never) : t("hidden.desc")}</span>
@@ -302,7 +330,9 @@ async function BadgeCard({ badge, locale }: { badge: BadgeView & { backfilled: b
           ? badge.backfilled
             ? t("gallery.fromHistory")
             : t("gallery.earnedOn", { date: dateLabel(badge.earnedOn, locale) })
-          : t("gallery.locked")}
+          : prog
+            ? null
+            : t("gallery.locked")}
       </span>
     </li>
   );

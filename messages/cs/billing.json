@@ -98,8 +98,8 @@
     "badge": "od {tier}",
     "upgrade": "Odemknout v sekci Předplatné",
     "aiTitle": "Funkce tarifu {tier}",
-    "aiText": "AI nástroje jsou dostupné od tarifu {tier}. Změň tarif a odemkne se to hned.",
-    "readOnly": "Účet je jen pro čtení — nejdřív obnov předplatné.",
+    "aiText": "AI nástroje jsou v tarifu {tier} a vyšším. Po změně tarifu je můžeš používat hned.",
+    "readOnly": "Účet je jen pro čtení. Nejdřív obnov předplatné.",
     "clientLimit": "Limit {limit} aktivních klientů je naplněn. Přejdi na vyšší tarif.",
     "addClientReadOnly": "Přidávání klientů je vypnuté, dokud je účet jen pro čtení."
   },
