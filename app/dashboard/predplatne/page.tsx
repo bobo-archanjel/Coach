@@ -198,10 +198,10 @@ export default async function PredplatnePage({ searchParams }: { searchParams: P
                 {variants.map((v) => {
                   const label = planName(tier, VARIANT_PLANS[v].clientLimit);
                   return (
-                    <div key={v} data-testid={`variant-${v}`} style={{ marginTop: 12 }}>
+                    <div key={v} data-testid={`variant-${v}`} className={b.tierVariant}>
                       <div className={b.tierPrice}>
                         {variants.length > 1 && (
-                          <span style={{ fontSize: 13.5, display: "block" }}>
+                          <span className={b.tierVariantLabel}>
                             {t("variantClients", { limit: VARIANT_PLANS[v].clientLimit ?? 0 })}
                             {isCurrent(v) && <span className={b.tierBadge}> {t("currentBadge")}</span>}
                           </span>
@@ -224,7 +224,7 @@ export default async function PredplatnePage({ searchParams }: { searchParams: P
       {!state.comped && (isPaid || state.status === "canceled" || state.status === "unpaid") && (
         <div className={styles.card}>
           <h3>{t("manage")}</h3>
-          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginBottom: 14 }}>{t("manageHint")}</p>
+          <p className={b.manageHint}>{t("manageHint")}</p>
           <ManageButton />
         </div>
       )}

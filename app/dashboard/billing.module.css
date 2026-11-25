@@ -42,7 +42,7 @@
   align-items: center;
   min-height: 40px;
   padding: 8px 16px;
-  border-radius: 15px;
+  border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
   background: var(--surface-solid);
   color: var(--accent-text);
@@ -76,6 +76,8 @@
   color: var(--accent-text);
 }
 .lockBody {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -96,14 +98,12 @@
 }
 .tierBadge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 /* ---------- stránka Predplatné ---------- */
@@ -122,15 +122,14 @@
   gap: 3px;
 }
 .summaryLabel {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12.5px;
+  font-weight: 650;
   color: var(--paper-faint);
 }
 .summaryValue {
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 720;
+  letter-spacing: -0.015em;
   color: var(--paper);
 }
 .summaryNote {
@@ -158,6 +157,7 @@
   border-radius: var(--radius-m);
   border: 1px solid var(--surface-border);
   background: var(--card-bg);
+  box-shadow: var(--card-shadow);
   font-size: 13.5px;
   color: var(--paper);
 }
@@ -210,14 +210,39 @@
 .tierPrice {
   font-size: 1.35rem;
   font-weight: 760;
+  letter-spacing: -0.02em;
   color: var(--paper);
+}
+.tierVariant {
+  margin-top: 12px;
+}
+.tierVariantLabel {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--paper-dim);
+  letter-spacing: 0;
+}
+.manageHint {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+.fieldError {
+  margin: 8px 0 0;
+  color: var(--danger);
+}
+.fullWidth {
+  width: 100%;
 }
 .tierList {
   margin: 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 7px;
+  gap: 8px;
+  align-content: start;
   font-size: 13.5px;
   flex: 1;
 }

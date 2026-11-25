@@ -41,8 +41,7 @@ export function ChooseTierButton({ variant, tierName, label, disabled }: { varia
     <div>
       <button
         type="button"
-        className={`${pa.action} ${pa.primary}`}
-        style={{ width: "100%" }}
+        className={`${pa.action} ${pa.primary} ${styles.fullWidth}`}
         disabled={busy || disabled}
         onClick={() => run(() => createCheckoutSessionAction(variant))}
         data-testid={`choose-${variant}`}
@@ -50,7 +49,7 @@ export function ChooseTierButton({ variant, tierName, label, disabled }: { varia
         {busy ? t("redirecting") : t(label, { tier: tierName })}
       </button>
       {error && (
-        <p className={styles.note} role="alert" style={{ color: "var(--danger)", marginTop: 8 }}>
+        <p className={`${styles.note} ${styles.fieldError}`} role="alert">
           {error}
         </p>
       )}
@@ -67,7 +66,7 @@ export function ManageButton() {
         {busy ? t("redirecting") : t("manage")}
       </button>
       {error && (
-        <p className={styles.note} role="alert" style={{ color: "var(--danger)", marginTop: 8 }}>
+        <p className={`${styles.note} ${styles.fieldError}`} role="alert">
           {error}
         </p>
       )}
