@@ -15,6 +15,21 @@ nastavujú ručne v Supabase dashboarde (Authentication / Project Settings) a be
       cestu cez našu server action, ale priamy POST na Supabase Auth API ide mimo nej — tam pomôže len toto.
 - [ ] Skontrolovať **Rate Limits** (sign-ups/sign-ins, e-maily za hodinu, OTP) — nastaviť konzervatívne.
 
+## Authentication → Sessions
+- [ ] **Access token (JWT expiry)**: nechať predvolených 3600 s alebo kratšie (Project Settings → JWT Keys /
+      Auth → Sessions). Dlhší by predĺžil platnosť ukradnutého tokenu; refresh v middleware ho aj tak potichu obnovuje.
+- [ ] **Detect and revoke potentially compromised refresh tokens** (refresh token rotation + reuse detection): **ON**,
+      reuse interval ponechať krátky (default 10 s).
+- [ ] **Time-box user sessions** a **Inactivity timeout** — zvážiť (napr. inactivity 30 dní). Cookie má Max-Age
+      400 dní (default @supabase/ssr), takže skutočnú dĺžku prihlásenia určuje len toto nastavenie Supabase
+      (vyžaduje Pro plán).
+- [ ] **Single session per user** — nezapínať (klient aj tréner používajú mobil aj počítač).
+
+**Ako je session uložená:** cookie `sb-…-auth-token`, SameSite=Lax, Secure v produkcii
+(`lib/supabase/cookieOptions.ts`), nie httpOnly (prehliadačový klient ju potrebuje pre Realtime) — hlavná obrana
+proti krádeži tokenu je preto CSP v `next.config.ts`. Odhlásenie `signOutAction` volá `auth.signOut()` bez
+parametra; predvolený scope v auth-js je `global`, takže zruší refresh tokeny na všetkých zariadeniach.
+
 ## Authentication → URL Configuration
 - [ ] **Site URL** = produkčná doména; **Redirect URLs** len presné adresy (`/prihlasenie/nove-heslo`, …),
       žiadne wildcardy na cudzie domény.
