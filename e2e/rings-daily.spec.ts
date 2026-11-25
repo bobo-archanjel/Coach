@@ -209,6 +209,6 @@ test.describe("denné prstence: karta Dnes a odpočinok mimo tréningov", () => 
       for (const k of keys) expect(m.daily[k], `${lang} daily.${k}`).toBeTruthy();
       expect(m.xpBreakdown.rings, `${lang} xpBreakdown.rings`).toBeTruthy();
     }
-    expect(JSON.parse(readFileSync("messages/sk/gamification.json", "utf8")).daily.celebrate).toBe("Všetky kruhy uzavreté! 🎉");
+    expect(JSON.parse(readFileSync("messages/sk/gamification.json", "utf8")).daily.celebrate).toBe("Všetky kruhy uzavreté");
   });
 });

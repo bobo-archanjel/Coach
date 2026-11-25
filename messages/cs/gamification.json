@@ -59,12 +59,12 @@
     "moveRest": "Odpočinkový den",
     "moveOpen": "Trénink nebo odpočinek",
     "weekLine": "Tento týden: {done}/{target} {target, plural, one {trénink} few {tréninky} other {tréninků}}",
-    "restButton": "Dnes odpočívám 😴",
-    "restActive": "Dnes odpočíváš 😴",
+    "restButton": "Dnes odpočívám",
+    "restActive": "Dnes odpočíváš",
     "restUndo": "Vrátit zpět",
     "restWorkout": "Dnes už máš trénink, odpočinek není potřeba.",
     "restError": "Odpočinek se nepodařilo uložit, zkus to znovu.",
-    "celebrate": "Všechny kruhy uzavřeny! 🎉",
+    "celebrate": "Všechny kruhy uzavřeny",
     "celebrateXp": "+{xp} XP",
     "celebrateClose": "Zavřít"
   },
@@ -112,7 +112,7 @@
     "level": "Nová úroveň: {n}. {title}"
   },
   "unlock": {
-    "prTitle": "Nový osobní rekord na {exercise}: {weight} kg 🎉",
+    "prTitle": "Nový osobní rekord na {exercise}: {weight} kg",
     "prSub": "Série {weight} kg × {reps}. Takhle se buduje síla.",
     "badgeTitle": "Nový odznak: {name}",
     "badgeSub": "{desc}",
@@ -547,20 +547,20 @@
       "theme": "barva {name}",
       "celebration": "styl oslav {name}",
       "title": "titul {name}",
-      "freeze": "zmrazení série 🧊"
+      "freeze": "zmrazení série"
     },
     "avatarAria": "Tvůj avatar s rámečkem {name}"
   },
   "freeze": {
     "title": "Zmrazení série",
     "text": "Zmrazení automaticky ochrání tvou sérii, když by se po dvou vynechaných týdnech za sebou (u jídla po dvou dnech) měla přerušit. Nikdo tě za pauzu nekritizuje.",
-    "count": "{count, plural, one {# zmrazení} few {# zmrazení} other {# zmrazení}} 🧊 (max. {max})",
+    "count": "{count, plural, one {# zmrazení} few {# zmrazení} other {# zmrazení}} (max. {max})",
     "earn": "Nové získáš za každou 4. úroveň a za týden, ve kterém splníš všechny tři mise.",
-    "used": "🧊 Zmrazení použito",
+    "used": "Zmrazení použito",
     "usedWeek": "Týden od {date}",
     "usedDay": "Den {date}",
     "none": "Zatím jsi žádné nepoužil/a.",
-    "chip": "🧊 {count}",
+    "chip": "Zmrazení série: {count}",
     "chipAria": "Zmrazení série: {count}"
   },
   "missions": {
@@ -582,19 +582,19 @@
     "progressKg": "{value, number} z {goal, number} kg",
     "done": "Splněno",
     "aria": "{title}: {value} z {goal}",
-    "bonusPending": "Splň všechny tři a získáš bonus +{xp} XP a zmrazení série 🧊.",
-    "bonusDone": "Všechny tři splněné, bonus +{xp} XP a zmrazení série 🧊",
-    "allDoneTitle": "Týden misí splněn! 🎉",
+    "bonusPending": "Splň všechny tři a získáš bonus +{xp} XP a zmrazení série.",
+    "bonusDone": "Všechny tři splněné, bonus +{xp} XP a zmrazení série",
+    "allDoneTitle": "Týden misí splněn",
     "celebrate": "Skvělý týden, všechny mise máš za sebou.",
     "viewAll": "Všechny mise",
     "unavailable": "Mise se právě nepodařilo načíst."
   },
   "hints": {
-    "weight": "Minule: {lastWeight} kg × {lastReps} · zkus {nextWeight} kg 💪",
-    "reps": "Minule: {lastWeight} kg × {lastReps} · zkus {nextReps} opak. 💪",
-    "bodyweight": "Minule: {lastReps} opak. · zkus {nextReps} 💪",
-    "time": "Minule: {last} s · zkus {next} s 💪",
-    "newRecord": "🔥 Nový rekord!"
+    "weight": "Minule: {lastWeight} kg × {lastReps} · zkus {nextWeight} kg",
+    "reps": "Minule: {lastWeight} kg × {lastReps} · zkus {nextReps} opak.",
+    "bodyweight": "Minule: {lastReps} opak. · zkus {nextReps}",
+    "time": "Minule: {last} s · zkus {next} s",
+    "newRecord": "Nový rekord"
   },
   "finish": {
     "title": "Trénink v číslech",
@@ -610,18 +610,18 @@
     "xpValue": "+{xp}",
     "missions": "Mise týdne",
     "justDone": "Splněno!",
-    "bonus": "Bonus týdne +{xp} XP 🎉",
-    "streak": "Série: {count, plural, one {# týden} few {# týdny} other {# týdnů}} 🔥",
+    "bonus": "Bonus týdne +{xp} XP",
+    "streak": "Série: {count, plural, one {# týden} few {# týdny} other {# týdnů}}",
     "streakNeed": "Do splnění týdne ještě {count, plural, one {# trénink} few {# tréninky} other {# tréninků}}.",
     "streakDone": "Tento týden je splněný. Skvělé tempo.",
-    "freezeUsed": "🧊 Zmrazení použito, série zůstala",
-    "levelUp": "Nová úroveň: {n} 🚀",
+    "freezeUsed": "Zmrazení použito, série zůstala",
+    "levelUp": "Nová úroveň: {n}",
     "share": "Sdílet týden",
     "close": "Pokračovat"
   },
   "next": {
     "title": "Co tě čeká",
-    "line": "Ještě {amount} do odznaku {name} 🎯",
+    "line": "Ještě {amount} do odznaku {name}",
     "units": {
       "workouts": "{count, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
       "weeks": "{count, plural, one {# týden} few {# týdny} other {# týdnů}}",
