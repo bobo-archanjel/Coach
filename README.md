@@ -79,6 +79,7 @@ _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
   - Denný cron zmaže účty, ktorých e-mail nikto neoveril do 7 dní (a nikdy sa neprihlásili). Registrácia na cudzí e-mail tak nenechá v databáze cudzie meno a e-mail (GDPR) a e-mail sa uvoľní.
   - Nemaže pozvaných, Google účty, účty s klientmi ani klientov spárovaných s trénerom; max 200 za beh. Záznam o súhlase s podmienkami ostáva.
   - Bezpečné overenie v produkcii: `/api/cron/unconfirmed-purge?dry=1` (s `CRON_SECRET`) len vráti počty, nič nemaže.
+  - Zásady ochrany súkromia (SK/CZ, časť 7) to uvádzajú: neoverené účty po 7 dňoch automaticky mažeme.
 - **2026-11-25** — **Bezpečnosť prihlásenia: Secure session cookie, limity registrácie** (`feature/session-cookie-secure`, bez migrácie).
   - Supabase session cookie má v produkcii príznak Secure (`lib/supabase/cookieOptions.ts`).
   - Registrácia: max 10 pokusov / IP a 3 / e-mail za 15 min; sync jazyka pri obnove hesla max 10 / IP.

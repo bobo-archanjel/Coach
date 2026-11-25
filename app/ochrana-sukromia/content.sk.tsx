@@ -7,7 +7,7 @@ export default function PrivacySk() {
   return (
     <>
       <h1>Zásady ochrany osobných údajov</h1>
-      <p className={styles.updated}>Posledná aktualizácia: 24. november 2026</p>
+      <p className={styles.updated}>Posledná aktualizácia: 25. november 2026</p>
 
       <div className={styles.draftNotice}>
         <strong>Toto je pracovný návrh (draft).</strong> Nie je to právne záväzný text schválený
@@ -177,6 +177,10 @@ export default function PrivacySk() {
         <li>
           Ak požiadaš o vymazanie účtu (tréner aj klient majú túto možnosť priamo v appke), dáta
           natrvalo vymažeme do 30 dní (ochranná lehota, počas ktorej vieš žiadosť zrušiť).
+        </li>
+        <li>
+          Účty, ktorých e-mail nebol do 7 dní overený a nikdy sa do nich nikto neprihlásil, automaticky
+          mažeme.
         </li>
         <li>
           <strong>Dopyty záujemcov</strong> z verejných stránok sa automaticky mažú po 12 mesiacoch od
