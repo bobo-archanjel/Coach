@@ -5,6 +5,8 @@ nastavujú ručne v Supabase dashboarde (Authentication / Project Settings) a be
 
 ## Authentication → Providers → Email
 - [ ] **Confirm email: ON** — bez toho sa dá zaregistrovať cudzí e-mail a účet je hneď aktívny.
+      Neoverené účty staršie ako 7 dní maže denný cron `/api/cron/unconfirmed-purge` (potrebuje
+      `CRON_SECRET` a `SUPABASE_SERVICE_ROLE_KEY`; overiť cez `?dry=1`).
 - [ ] **Minimum password length ≥ 10** a **Password requirements** (malé/veľké/číslo/symbol). Kontrola v
       `app/prihlasenie/page.tsx` beží len v prehliadači — server ju musí vynútiť sám.
 - [ ] **Leaked password protection: ON** (HaveIBeenPwned).

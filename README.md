@@ -75,6 +75,14 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-25** — **Mazanie neoverených účtov** (`feature/unconfirmed-purge`, bez migrácie).
+  - Denný cron zmaže účty, ktorých e-mail nikto neoveril do 7 dní (a nikdy sa neprihlásili). Registrácia na cudzí e-mail tak nenechá v databáze cudzie meno a e-mail (GDPR) a e-mail sa uvoľní.
+  - Nemaže pozvaných, Google účty, účty s klientmi ani klientov spárovaných s trénerom; max 200 za beh. Záznam o súhlase s podmienkami ostáva.
+  - Bezpečné overenie v produkcii: `/api/cron/unconfirmed-purge?dry=1` (s `CRON_SECRET`) len vráti počty, nič nemaže.
+- **2026-11-25** — **Bezpečnosť prihlásenia: Secure session cookie, limity registrácie** (`feature/session-cookie-secure`, bez migrácie).
+  - Supabase session cookie má v produkcii príznak Secure (`lib/supabase/cookieOptions.ts`).
+  - Registrácia: max 10 pokusov / IP a 3 / e-mail za 15 min; sync jazyka pri obnove hesla max 10 / IP.
+  - `SUPABASE_HARDENING.md` doplnený o Sessions, platnosť OTP a rate limity (treba nastaviť ručne v Supabase).
 - **2026-11-24** — **Šablóny: karty v štýle tréningových plánov, Uložiť ako šablónu na karte u trénera** (`feature/sablony-dizajn`, bez migrácie).
   - Klient (Tréning aj Jedálniček → Moje šablóny): karty ako plány — názov + počet tréningov / dní, súhrn (cviky spolu / priemer kcal na deň), dni v krúžkoch, rad Náhľad · Použiť · Zmazať.
   - Tréner (Šablóny): rovnaké karty; Náhľad rozbalí cviky / potraviny pri každom dni priamo v karte. Funkcie bez zmeny.
