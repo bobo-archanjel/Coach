@@ -8,10 +8,12 @@ import {
   challengeProgress,
   challengeStatus,
   dataSince,
+  effectiveStartMs,
   isChallengeMetric,
   newlyCompleted,
   type ChallengeMetric,
   type ChallengeProgress,
+  type FoodDay,
   type ProgressData,
 } from "./challenges";
 
@@ -40,9 +42,12 @@ interface ChallengeRow {
   ends_on: string;
   all_clients: boolean;
   status: "active" | "ended";
+  created_at: string | null;
 }
 
-const CH_COLS = "id, trainer_id, name, description, metric, target, starts_on, ends_on, all_clients, status";
+const CH_COLS = "id, trainer_id, name, description, metric, target, starts_on, ends_on, all_clients, status, created_at";
+
+const winOf = (r: ChallengeRow) => ({ startsOn: r.starts_on, endsOn: r.ends_on, createdAt: r.created_at });
 
 // ---------- načítanie dát pre progres ----------
 
@@ -62,25 +67,32 @@ export async function loadProgressData(
   const [logs, food, prs] = await Promise.all([
     supabase
       .from("workout_logs")
-      .select(opts.entries ? "client_id, performed_on, entries" : "client_id, performed_on")
+      .select(opts.entries ? "client_id, performed_on, completed_at, entries" : "client_id, performed_on, completed_at")
       .in("client_id", clientIds)
       .eq("status", "completed")
       .gte("performed_on", since)
       .lte("performed_on", to)
       .limit(LOG_LIMIT),
-    supabase.rpc("challenge_food_days", { p_client_ids: clientIds, p_from: foodSince, p_to: to }),
-    supabase.from("client_achievements").select("client_id, achieved_on").in("client_id", clientIds).eq("kind", "pr").gte("achieved_on", since).lte("achieved_on", to).limit(LOG_LIMIT),
+    supabase.rpc("challenge_food_days_at", { p_client_ids: clientIds, p_from: foodSince, p_to: to }),
+    supabase.from("client_achievements").select("client_id, achieved_on, achieved_at").in("client_id", clientIds).eq("kind", "pr").gte("achieved_on", since).lte("achieved_on", to).limit(LOG_LIMIT),
   ]);
-  if (logs.error || food.error || prs.error) return null;
+  // fallback, kým nebeží migrácia 0088: bez času zápisu — deň sa počíta len od začiatku dňa (konzervatívne)
+  let foodRows = (food.data ?? []) as { client_id: string; eaten_on: string; last_logged_at?: string | null }[];
+  if (food.error) {
+    const old = await supabase.rpc("challenge_food_days", { p_client_ids: clientIds, p_from: foodSince, p_to: to });
+    if (old.error) return null;
+    foodRows = (old.data ?? []) as { client_id: string; eaten_on: string }[];
+  }
+  if (logs.error || prs.error) return null;
 
-  for (const r of (logs.data ?? []) as unknown as { client_id: string; performed_on: string; entries?: unknown }[]) {
-    out.get(r.client_id)?.logs.push({ performedOn: r.performed_on, entries: r.entries });
+  for (const r of (logs.data ?? []) as unknown as { client_id: string; performed_on: string; completed_at: string | null; entries?: unknown }[]) {
+    out.get(r.client_id)?.logs.push({ performedOn: r.performed_on, completedAt: r.completed_at, entries: r.entries });
   }
-  for (const r of (food.data ?? []) as { client_id: string; eaten_on: string }[]) {
-    (out.get(r.client_id)?.foodDates as string[] | undefined)?.push(r.eaten_on);
+  for (const r of foodRows) {
+    (out.get(r.client_id)?.foodDates as FoodDay[] | undefined)?.push({ day: r.eaten_on, at: r.last_logged_at ?? null });
   }
-  for (const r of (prs.data ?? []) as { client_id: string; achieved_on: string }[]) {
-    (out.get(r.client_id)?.prDates as string[] | undefined)?.push(r.achieved_on);
+  for (const r of (prs.data ?? []) as { client_id: string; achieved_on: string; achieved_at: string | null }[]) {
+    (out.get(r.client_id)?.prDates as string[] | undefined)?.push(r.achieved_at ?? r.achieved_on);
   }
   return out;
 }
@@ -89,7 +101,7 @@ const needsEntries = (rows: ChallengeRow[]) => rows.some((r) => r.metric === "vo
 
 function minSince(rows: ChallengeRow[]): string {
   return rows.reduce((m, r) => {
-    const s = dataSince({ startsOn: r.starts_on, endsOn: r.ends_on });
+    const s = dataSince(winOf(r));
     return s < m ? s : m;
   }, "9999-12-31");
 }
@@ -126,6 +138,8 @@ export interface ClientChallenge {
   target: number;
   startsOn: string;
   endsOn: string;
+  /** okamih, od ktorého sa počíta aktivita (ISO) */
+  countsFrom: string;
   state: ClientChallengeState;
   progress: ChallengeProgress;
   completedAt: string | null;
@@ -181,8 +195,8 @@ export async function loadClientChallenges(supabase: Sb, clientId: string, train
     return rows
       .map(({ completedAt, c }): ClientChallenge => {
         const metric = c.metric as ChallengeMetric;
-        const p = challengeProgress({ startsOn: c.starts_on, endsOn: c.ends_on, metric, target: c.target }, mine, today);
-        const st = challengeStatus({ startsOn: c.starts_on, endsOn: c.ends_on, status: c.status }, today);
+        const p = challengeProgress({ ...winOf(c), metric, target: c.target }, mine, today);
+        const st = challengeStatus({ ...winOf(c), status: c.status }, today);
         const state: ClientChallengeState = completedAt ? "done" : st === "upcoming" ? "upcoming" : st === "active" ? "active" : "over";
         return {
           id: c.id,
@@ -192,6 +206,7 @@ export async function loadClientChallenges(supabase: Sb, clientId: string, train
           target: c.target,
           startsOn: c.starts_on,
           endsOn: c.ends_on,
+          countsFrom: new Date(effectiveStartMs(winOf(c))).toISOString(),
           state,
           progress: completedAt ? { ...p, done: true, fraction: 1, value: Math.max(p.value, c.target) } : p,
           completedAt,
@@ -224,7 +239,7 @@ export async function syncChallenges(supabase: Sb, clientId: string, today: stri
 
     const rows = ((data ?? []) as unknown as ParticipantRow[])
       .map((p) => (Array.isArray(p.challenges) ? p.challenges[0] : p.challenges))
-      .filter((c): c is ChallengeRow => Boolean(c) && isChallengeMetric(c!.metric) && canComplete({ startsOn: c!.starts_on, endsOn: c!.ends_on, status: c!.status }, today));
+      .filter((c): c is ChallengeRow => Boolean(c) && isChallengeMetric(c!.metric) && canComplete({ ...winOf(c!), status: c!.status }, today));
     if (rows.length === 0) return 0;
 
     // tarifa trénera (po jej strate sa výzvy nevyhodnocujú)
@@ -240,7 +255,7 @@ export async function syncChallenges(supabase: Sb, clientId: string, today: stri
     if (!mine) return 0;
 
     const doneIds = newlyCompleted(
-      live.map((c) => ({ id: c.id, startsOn: c.starts_on, endsOn: c.ends_on, metric: c.metric as ChallengeMetric, target: c.target, status: c.status })),
+      live.map((c) => ({ id: c.id, ...winOf(c), metric: c.metric as ChallengeMetric, target: c.target, status: c.status })),
       live.map((c) => ({ challengeId: c.id, completedAt: null })),
       () => mine,
       today,
@@ -295,6 +310,8 @@ export interface TrainerChallenge {
   target: number;
   startsOn: string;
   endsOn: string;
+  /** okamih, od ktorého sa počíta aktivita (ISO) */
+  countsFrom: string;
   allClients: boolean;
   status: "active" | "ended";
   /** upcoming / active / over (podľa dátumov) alebo ended (ručne ukončená) */
@@ -349,7 +366,7 @@ export async function loadTrainerChallenges(supabase: Sb, trainerId: string, tod
         .filter((x) => x.c && !x.c.ended_at && !x.c.deletion_requested_at)
         .map(({ p, c }): TrainerChallengeClient => {
           const pr = challengeProgress(
-            { startsOn: r.starts_on, endsOn: r.ends_on, metric, target: r.target },
+            { ...winOf(r), metric, target: r.target },
             progress.get(p.client_id) ?? { logs: [], foodDates: [], prDates: [] },
             today,
           );
@@ -372,9 +389,10 @@ export async function loadTrainerChallenges(supabase: Sb, trainerId: string, tod
         target: r.target,
         startsOn: r.starts_on,
         endsOn: r.ends_on,
+        countsFrom: new Date(effectiveStartMs(winOf(r))).toISOString(),
         allClients: r.all_clients,
         status: r.status,
-        phase: challengeStatus({ startsOn: r.starts_on, endsOn: r.ends_on, status: r.status }, today),
+        phase: challengeStatus({ ...winOf(r), status: r.status }, today),
         participants,
         doneCount: participants.filter((p) => p.done).length,
       };

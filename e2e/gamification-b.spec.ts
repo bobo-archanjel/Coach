@@ -8,6 +8,7 @@ import {
   challengeStatus,
   challengeValue,
   longestWeekRun,
+  effectiveStartMs,
   newlyCompleted,
   targetBounds,
   validateChallenge,
@@ -142,6 +143,91 @@ test.describe("detekcia dokončenia výzvy", () => {
   });
 });
 
+// ---------------------------------------------------------------- výzvy: počíta sa len od vytvorenia
+test.describe("výzva počíta len aktivitu po vytvorení", () => {
+  // vytvorená v stredu 25.11.2026 o 10:00 (CET = 09:00Z), začiatok dnes
+  const C = { startsOn: TODAY, endsOn: "2026-12-20", createdAt: "2026-11-25T09:00:00Z" };
+  const before = "2026-11-25T08:00:00Z"; // 09:00 miestne — pred vytvorením
+  const after = "2026-11-25T11:30:00Z";
+
+  test("efektívny začiatok: neskorší z vytvorenia a začiatku dňa; budúci začiatok = 00:00 toho dňa", () => {
+    expect(new Date(effectiveStartMs(C)).toISOString()).toBe("2026-11-25T09:00:00.000Z");
+    const future = { startsOn: "2026-12-01", endsOn: "2026-12-20", createdAt: "2026-11-25T09:00:00Z" };
+    expect(new Date(effectiveStartMs(future)).toISOString()).toBe("2026-11-30T23:00:00.000Z"); // 00:00 CET
+    expect(new Date(effectiveStartMs({ startsOn: "2026-07-01", endsOn: "2026-07-30" })).toISOString()).toBe("2026-06-30T22:00:00.000Z"); // CEST
+  });
+
+  test("workouts: tréning pred vytvorením (aj v ten istý deň) sa nepočíta", () => {
+    const d = data({
+      logs: [
+        { performedOn: "2026-11-20", completedAt: "2026-11-20T10:00:00Z" },
+        { performedOn: TODAY, completedAt: before },
+        { performedOn: TODAY, completedAt: after },
+        { performedOn: TODAY, completedAt: null }, // bez času: deň začiatku sa nepočíta
+        { performedOn: "2026-11-26", completedAt: null }, // neskorší deň bez času áno, ale je po dnešku
+      ],
+    });
+    expect(challengeValue("workouts", C, d, TODAY)).toBe(1);
+    expect(challengeValue("workouts", C, d, "2026-11-26")).toBe(2);
+  });
+
+  test("volume_kg: objem pred vytvorením sa nezarátava", () => {
+    const d = data({
+      logs: [
+        { performedOn: "2026-11-24", completedAt: "2026-11-24T17:00:00Z", entries: sets([100, 15]) },
+        { performedOn: TODAY, completedAt: before, entries: sets([100, 10]) },
+        { performedOn: TODAY, completedAt: after, entries: sets([50, 4]) },
+      ],
+    });
+    expect(challengeValue("volume_kg", C, d, TODAY)).toBe(200);
+    expect(challengeProgress({ ...C, metric: "volume_kg", target: 1500 }, d, TODAY).done).toBe(false);
+  });
+
+  test("food_days: deň sa počíta, len ak má zápis vytvorený po vytvorení výzvy", () => {
+    const d = data({
+      foodDates: [
+        { day: "2026-11-24", at: "2026-11-24T18:00:00Z" },
+        { day: TODAY, at: before }, // zápis pred vytvorením
+        "2026-11-25", // holý dátum = začiatok dňa → pred vytvorením
+      ],
+    });
+    expect(challengeValue("food_days", C, d, TODAY)).toBe(0);
+    expect(challengeValue("food_days", C, data({ foodDates: [{ day: TODAY, at: after }] }), TODAY)).toBe(1);
+    // spätne zapísané jedlo z minulého dňa sa nepočíta, aj keď zápis vznikol po vytvorení
+    expect(challengeValue("food_days", C, data({ foodDates: [{ day: "2026-11-24", at: after }] }), TODAY)).toBe(0);
+  });
+
+  test("prs: rekord pred vytvorením sa nepočíta", () => {
+    const d = data({ prDates: ["2026-11-25", "2026-11-20", before, after] });
+    expect(challengeValue("prs", C, d, TODAY)).toBe(1);
+  });
+
+  test("budúci začiatok: počíta od začiatku dňa začiatku", () => {
+    const F = { startsOn: "2026-12-01", endsOn: "2026-12-20", createdAt: "2026-11-25T09:00:00Z" };
+    const d = data({
+      logs: [
+        { performedOn: "2026-11-30", completedAt: "2026-11-30T22:30:00Z" }, // 23:30 CET, deň pred
+        { performedOn: "2026-12-01", completedAt: "2026-11-30T23:30:00Z" }, // 00:30 CET
+        { performedOn: "2026-12-01", completedAt: null }, // bez času = začiatok dňa → počíta
+      ],
+    });
+    expect(challengeValue("workouts", F, d, "2026-12-05")).toBe(2);
+  });
+
+  test("streak_weeks: prvý týždeň len z dní po vytvorení", () => {
+    // vytvorené v stredu 25.11. (týždeň od 23.11.); pondelok a utorok pred vytvorením sa nepočítajú
+    const mk = (day: string, at: string) => ({ performedOn: day, completedAt: at });
+    const early = [mk("2026-11-23", "2026-11-23T10:00:00Z"), mk("2026-11-24", "2026-11-24T10:00:00Z")];
+    const d1 = data({ logs: [...early, mk("2026-11-25", after)] });
+    expect(challengeValue("streak_weeks", C, d1, "2026-11-29")).toBe(0); // po vytvorení len 1 deň
+    const d2 = data({ logs: [...early, mk("2026-11-25", after), mk("2026-11-27", "2026-11-27T10:00:00Z")] });
+    expect(challengeValue("streak_weeks", C, d2, "2026-11-29")).toBe(1);
+    // ďalší týždeň 30.11.–6.12. sa pripočíta
+    const d3 = data({ logs: [...d2.logs, mk("2026-12-01", "2026-12-01T10:00:00Z"), mk("2026-12-03", "2026-12-03T10:00:00Z")] });
+    expect(challengeValue("streak_weeks", C, d3, "2026-12-06")).toBe(2);
+  });
+});
+
 // ---------------------------------------------------------------- výzvy: validácia vstupu
 test.describe("validateChallenge", () => {
   const ok = { name: "Osmička", description: "", metric: "workouts" as const, target: 8, startsOn: TODAY, endsOn: "2026-12-20" };
@@ -157,7 +243,10 @@ test.describe("validateChallenge", () => {
     expect(validateChallenge({ ...ok, metric: "weight_loss" as never }, TODAY)).toBe("metric");
     expect(validateChallenge({ ...ok, endsOn: "2026-11-20" }, TODAY)).toBe("dates");
     expect(validateChallenge({ ...ok, startsOn: "2026-11-01", endsOn: "2026-12-01" }, TODAY)).toBe("startPast");
-    expect(validateChallenge({ ...ok, startsOn: "2026-11-20", endsOn: "2026-11-24" }, TODAY)).toBe("endPast");
+    // začiatok v minulosti už nie je povolený ani o deň (výzva sa počíta od vytvorenia)
+    expect(validateChallenge({ ...ok, startsOn: "2026-11-24" }, TODAY)).toBe("startPast");
+    expect(validateChallenge({ ...ok, startsOn: "2026-11-26" }, TODAY)).toBeNull();
+    expect(validateChallenge({ ...ok, startsOn: "2026-11-20", endsOn: "2026-11-24" }, TODAY)).toBe("startPast");
     expect(validateChallenge({ ...ok, endsOn: "2027-06-01" }, TODAY)).toBe("tooLong");
     expect(validateChallenge({ ...ok, target: 0 }, TODAY)).toBe("target");
     expect(validateChallenge({ ...ok, target: 2.5 }, TODAY)).toBe("target");
