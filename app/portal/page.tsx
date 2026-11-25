@@ -248,6 +248,13 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
           „Plán <názov>“ priamo v oranžovom poli karty, nad ňou len pri prázdnom pláne */}
       {planChoice && !session && <PlanSwitch choice={planChoice} dayId={null} />}
 
+      {/* úrovne, denné prstence a odznaky — samostatná karta nad tréningom */}
+      {gamification && (
+        <div className={s.panel} data-tour="today-levels">
+          <GamificationHome home={gamification} freezes={freezes?.available ?? null} card />
+        </div>
+      )}
+
       {/* ďalší tréning — alebo prázdna karta plánu (nový klient, prázdny plán) */}
       {session ? (
         <NextWorkout
@@ -278,7 +285,6 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
 
         <WeekHistory initial={week} footer={
             <>
-              {gamification && <GamificationHome home={gamification} freezes={freezes?.available ?? null} />}
               <StreakChips streaks={streaks} freezeUsed={freezes?.recentUse ?? false} />
             </>
           } preview={preview} />

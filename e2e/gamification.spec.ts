@@ -164,7 +164,7 @@ test.describe("prstence týždňa", () => {
     expect(weekDates("2026-09-14")).toHaveLength(7);
   });
 
-  test("buildGamificationHome: týždenný riadok počíta dni mimo týždňa správne, viac tréningov v ten istý deň = jeden deň", () => {
+  test("buildGamificationHome: týždenný riadok počíta dni mimo týždňa správne, viac tréningov v ten istý deň = každý sa rátá", () => {
     // 2026-09-16 = streda, týždeň 14.–20. 9.
     const home = buildGamificationHome(
       { workouts: 3, foodDays: 5, prCount: 1, badgeIds: ["first_workout"] },
@@ -175,7 +175,7 @@ test.describe("prstence týždňa", () => {
         daily: null,
       },
     );
-    expect(home.week).toEqual({ done: 2, target: 3 });
+    expect(home.week).toEqual({ done: 3, target: 3 });
     expect(home.rings).toEqual([]); // dnešné dáta sa nenačítali → prstence sa neukážu
     expect(home.rest).toEqual({ available: false, active: false, workoutToday: false });
     expect(home.badgeCount).toBe(1);

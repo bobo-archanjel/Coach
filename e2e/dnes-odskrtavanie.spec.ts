@@ -123,13 +123,13 @@ test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", (
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     // náhľad: 4 zapísané cviky z 8 (6 plánu + 2 pridané), 9 sérií, objem 4 594 kg, RPE 8
-    const stats = page.getByTestId("done-stats");
+    const stats = page.getByTestId("done-stats").first();
     await expect(stats).toContainText("4/8");
     await expect(stats).toContainText(/série\s*9/);
     await expect(stats).toContainText(/4\s?594 kg/);
     await expect(stats).toContainText("8/10");
 
-    const toggle = page.getByTestId("done-toggle");
+    const toggle = page.getByTestId("done-toggle").first();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
     await expect(page.getByText("„Dobrý tréning, koleno OK.“")).toBeVisible();
@@ -144,9 +144,9 @@ test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", (
     await expect(page.getByText("Tento tréning máš hotový — upraviť hodnoty môžeš kedykoľvek počas dnešného dňa")).toBeVisible();
 
     await page.reload();
-    await expect(page.getByTestId("done-toggle")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("done-toggle").first()).toHaveAttribute("aria-expanded", "false");
     await expect(page.getByTestId("completed-exercise")).toHaveCount(0);
-    await page.getByTestId("done-toggle").click();
+    await page.getByTestId("done-toggle").first().click();
     await expect(page.getByTestId("completed-exercise").first()).toBeVisible();
   });
 });
@@ -154,7 +154,7 @@ test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", (
 test.describe("karta Dnes — viac tréningov za deň", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
-  test("ďalší dnešný tréning ako samostatná karta pod aktuálnym, rozbalí sa so súhrnom a úpravou", async ({ page }) => {
+  test("ďalší dnešný tréning ako samostatná karta pod aktuálnym, súhrn hneď, cviky a úprava po „Zobraziť cviky“", async ({ page }) => {
     await page.goto("/portal?preview=done");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
@@ -162,15 +162,19 @@ test.describe("karta Dnes — viac tréningov za deň", () => {
     await expect(other).toContainText("Ďalší dnešný tréning");
     // samostatná karta pod kartou aktuálneho tréningu, nie vnorená v nej
     await expect(page.locator('[data-tour="today-hero"] [data-testid="other-today"]')).toHaveCount(0);
-    const head = other.getByRole("button", { name: "Zobraziť tréning Deň A — Tlak" });
-    await expect(head).toHaveAttribute("aria-expanded", "false");
-    await expect(other).toContainText("Cviky 2/2 · série 5");
-    await expect(other.getByTestId("done-stats")).toHaveCount(0);
+    // súhrn (cviky / série / objem) je vidno hneď, cviky až po „Zobraziť cviky“
+    const stats = other.getByTestId("done-stats");
+    await expect(stats).toContainText("2/2");
+    await expect(stats).toContainText("7/10");
+    await expect(other.getByTestId("completed-exercise")).toHaveCount(0);
+    await expect(other.getByRole("button", { name: /Upraviť hodnoty/ })).toHaveCount(0);
+    const toggle = other.getByTestId("done-toggle");
+    await expect(toggle).toHaveText(/Zobraziť cviky/);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-    await head.click();
-    await expect(other.getByRole("button", { name: "Skryť tréning Deň A — Tlak" })).toHaveAttribute("aria-expanded", "true");
-    await expect(other.getByTestId("done-stats")).toContainText("2/2");
-    await expect(other.getByTestId("done-stats")).toContainText("7/10");
+    await toggle.click();
+    await expect(toggle).toHaveText(/Skryť cviky/);
+    await expect(other.getByTestId("completed-exercise").first()).toBeVisible();
     await expect(other.getByText("„Ranný tréning pred prácou.“")).toBeVisible();
     await expect(other.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
     // hlavný (posledný) tréning ostáva hore ako doteraz

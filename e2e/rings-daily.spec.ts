@@ -23,10 +23,10 @@ const base: DailyRingInput = { mealSlots: 0, mealTarget: 3, proteinG: 0, protein
 const ring = (rings: ReturnType<typeof computeDailyRings>, id: string) => rings.find((r) => r.id === id)!;
 
 test.describe("denné prstence: matematika", () => {
-  test("poradie Strava, Bielkoviny, Pohyb; bielkoviny sa bez cieľa skryjú", () => {
-    expect(computeDailyRings(base).map((r) => r.id)).toEqual(["meals", "protein", "move"]);
-    expect(computeDailyRings({ ...base, proteinTarget: null }).map((r) => r.id)).toEqual(["meals", "move"]);
-    expect(computeDailyRings({ ...base, proteinTarget: 0 }).map((r) => r.id)).toEqual(["meals", "move"]);
+  test("poradie Pohyb, Bielkoviny, Strava; bielkoviny sa bez cieľa skryjú", () => {
+    expect(computeDailyRings(base).map((r) => r.id)).toEqual(["move", "protein", "meals"]);
+    expect(computeDailyRings({ ...base, proteinTarget: null }).map((r) => r.id)).toEqual(["move", "meals"]);
+    expect(computeDailyRings({ ...base, proteinTarget: 0 }).map((r) => r.id)).toEqual(["move", "meals"]);
   });
 
   test("Strava: počet rôznych jedál voči cieľu, uzavretá pri >= cieľ, hodnota sa orezáva", () => {
@@ -144,7 +144,7 @@ test.describe("denné prstence: karta Dnes a odpočinok mimo tréningov", () => 
         daily: { rings, restAvailable: true, restToday: true, workoutToday: false },
       },
     );
-    expect(home.rings.map((r) => r.id)).toEqual(["meals", "protein", "move"]);
+    expect(home.rings.map((r) => r.id)).toEqual(["move", "protein", "meals"]);
     expect(home.week).toEqual({ done: 1, target: 3 });
     expect(home.rest).toEqual({ available: true, active: true, workoutToday: false });
     expect(home.xp.rings).toBe(20);

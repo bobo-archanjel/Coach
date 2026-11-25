@@ -75,14 +75,14 @@ function RingItem({ ring }: { ring: DailyRing }) {
   );
 }
 
-export function GamificationHome({ home, freezes = null }: { home: HomeData; freezes?: number | null }) {
+export function GamificationHome({ home, freezes = null, card = false }: { home: HomeData; freezes?: number | null; card?: boolean }) {
   const t = useTranslations("gamification");
   const { level, detail } = home;
   const percent = Math.round(detail.fraction * 100);
   const title = t(`levelTitles.${detail.n}` as never);
   const next = home.next[0];
   return (
-    <div className={g.homeBlock} data-testid="gamification-home">
+    <div className={`${g.homeBlock} ${card ? g.homeBlockCard : ""}`} data-testid="gamification-home">
       {home.rings.length > 0 && (
         <ul className={g.rings} style={{ ["--ring-count" as string]: home.rings.length }} aria-label={t("daily.ringsAria")} data-testid="daily-rings">
           {home.rings.map((r) => (
@@ -120,7 +120,7 @@ export function GamificationHome({ home, freezes = null }: { home: HomeData; fre
               ? t("levelDetail.toNext", { count: detail.toNext, n: detail.nextN })
               : t("level.max")}
           </span>
-          <Link href="/portal/uspechy" className={`${g.moreLink} ${g.moreLinkChev}`} aria-label={t("home.openAria")}>
+          <Link href="/portal/uspechy" className={g.badgesBtn} aria-label={t("home.openAria")}>
             {t("home.badges", { count: home.badgeCount, total: home.badgeTotal })}
           </Link>
         </div>

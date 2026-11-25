@@ -114,11 +114,11 @@ test.describe("portál — dokončený tréning na karte Dnes (?preview=done)", 
     await expect(page.getByText("6 op. × 92 kg").first()).toBeVisible();
     await expect(page.getByText(/Posledná séria ťažká na úchop/)).toBeVisible();
     // RPE v súhrne tréningu (cviky / série / objem / náročnosť)
-    await expect(page.getByTestId("done-stats")).toContainText("8/10");
-    await expect(page.getByText(/Zabudnuté hodnoty môžeš opraviť do (dnes|zajtra) \d/)).toBeVisible();
+    await expect(page.getByTestId("done-stats").first()).toContainText("8/10");
+    await expect(page.getByText(/Zabudnuté hodnoty môžeš opraviť do (dnes|zajtra) \d/).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Začať tréning" })).toHaveCount(0);
 
-    await page.getByRole("button", { name: /Upraviť hodnoty/ }).click();
+    await page.getByRole("button", { name: /Upraviť hodnoty/ }).first().click();
     await expect(page.getByLabel("Drep s veľkou činkou, séria 1, opakovania")).toHaveValue("6");
     await expect(page.getByLabel("Drep s veľkou činkou, séria 1, váha v kg")).toHaveValue("92");
     await expect(page.getByLabel("Poznámka k cviku Rumunský mŕtvy ťah")).toHaveValue("Posledná séria ťažká na úchop");

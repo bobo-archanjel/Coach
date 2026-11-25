@@ -285,7 +285,7 @@ test.describe("týždenné misie", () => {
       logs: [
         { performedOn: "2026-11-22", entries: sets("Drep", [100, 5]) }, // minulý týždeň — nepočíta sa
         { performedOn: "2026-11-23", entries: sets("Drep", [100, 5], [100, 5]) },
-        { performedOn: "2026-11-23", entries: sets("Bench", [60, 10]) }, // druhý tréning v ten istý deň = jeden deň
+        { performedOn: "2026-11-23", entries: sets("Bench", [60, 10]) }, // druhý tréning v ten istý deň sa rátá tiež
         { performedOn: "2026-11-25", entries: sets("Drep", [100, 5]) },
       ],
       foodDates: ["2026-11-22", "2026-11-23", "2026-11-24"],
@@ -293,8 +293,8 @@ test.describe("týždenné misie", () => {
       prEvents: [{ exerciseKey: "drep", achievedOn: "2026-11-24" }],
       bodyMetricDates: ["2026-11-20"],
     };
-    expect(missionProgress(row("workouts", 3), data)).toEqual({ value: 2, goal: 3, done: false });
-    expect(missionProgress(row("workouts", 2), data).done).toBe(true);
+    expect(missionProgress(row("workouts", 4), data)).toEqual({ value: 3, goal: 4, done: false });
+    expect(missionProgress(row("workouts", 3), data).done).toBe(true);
     expect(missionProgress(row("food_days", 3), data)).toEqual({ value: 2, goal: 3, done: false }); // 22. 11. je minulý týždeň
     expect(missionProgress(row("protein_days", 1), data).done).toBe(true);
     expect(missionProgress(row("pr_exercise", 1, { exerciseKey: "drep" }), data).done).toBe(true);

@@ -120,10 +120,11 @@ export function buildMissionContext(i: MissionContextInput): MissionContext {
   const weekOf = (d: string) => weekStartOf(d);
   const idx = new Map(prevStarts.map((w, k) => [w, k]));
 
-  const days = [0, 1, 2, 3].map(() => new Set<string>());
+  // počty tréningov (každý dokončený tréning sa rátá, aj viac za deň)
+  const counts = [0, 0, 0, 0];
   const volume = [0, 0, 0, 0];
   const sets = [0, 0, 0, 0];
-  const thisWeekDays = new Set<string>();
+  let thisWeekCount = 0;
   const sessions = new Map<string, { name: string; n: number }>();
   const sixty = addDaysIso(i.today, -60);
 
@@ -131,11 +132,11 @@ export function buildMissionContext(i: MissionContextInput): MissionContext {
     const w = weekOf(log.performedOn);
     const k = idx.get(w);
     if (k !== undefined) {
-      days[k].add(log.performedOn);
+      counts[k]++;
       volume[k] += totalVolumeKg([log]);
       sets[k] += setsInLog(log.entries);
     }
-    if (w === weekStart) thisWeekDays.add(log.performedOn);
+    if (w === weekStart) thisWeekCount++;
     if (log.performedOn >= sixty) {
       const seen = new Set<string>();
       for (const e of Array.isArray(log.entries) ? (log.entries as LoggedEntry[]) : []) {
@@ -173,7 +174,7 @@ export function buildMissionContext(i: MissionContextInput): MissionContext {
     weekStart,
     today: i.today,
     planTarget: Math.min(7, Math.max(1, Math.round(i.planTarget))),
-    last4: { workouts: days.map((s) => s.size), foodDays, proteinDays, volumeKg: volume.map(Math.round), sets },
+    last4: { workouts: counts, foodDays, proteinDays, volumeKg: volume.map(Math.round), sets },
     proteinTarget: i.proteinTarget,
     topExercises: [...sessions]
       .map(([key, v]) => ({ key, name: v.name, sessions: v.n }))
@@ -181,7 +182,7 @@ export function buildMissionContext(i: MissionContextInput): MissionContext {
       .sort((a, b) => b.sessions - a.sessions || a.key.localeCompare(b.key))
       .slice(0, 5),
     daysSinceMeasurement: i.lastMeasurementOn ? Math.max(0, diffDays(i.lastMeasurementOn, i.today)) : null,
-    doneThisWeek: { workoutDays: thisWeekDays.size, foodDays: foodNow, proteinDays: proteinNow },
+    doneThisWeek: { workoutDays: thisWeekCount, foodDays: foodNow, proteinDays: proteinNow },
   };
 }
 
@@ -331,7 +332,7 @@ export function missionProgress(m: Pick<MissionRow, "kind" | "target" | "params"
   let value = 0;
   switch (m.kind) {
     case "workouts":
-      value = new Set(weekLogs.map((l) => l.performedOn)).size;
+      value = weekLogs.length; // každý dokončený tréning, aj viac za deň
       break;
     case "food_days":
       value = new Set(d.foodDates.filter(inWeek)).size;

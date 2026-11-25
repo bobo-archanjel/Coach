@@ -117,9 +117,6 @@
     "removedTitle": "Tréner ťa odstránil zo svojho portfólia",
     "removedText": "Tvoje tréningové plány, jedálničky, makro cieľ aj zápisy ostali v appke a môžeš ju používať samostatne. S novým trénerom sa prepojíš kódom v Profile."
   },
-  "otherTodayMeta": "Cviky {done}/{total} · série {sets}",
-  "otherTodayShow": "Zobraziť tréning {name}",
-  "otherTodayHide": "Skryť tréning {name}",
   "otherTodayKicker": "Ďalší dnešný tréning",
   "calendar": {
     "title": "Kalendár",
