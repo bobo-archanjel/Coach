@@ -8,7 +8,8 @@ import { DEFAULT_ACCENT } from "@/lib/branding/colors";
 
 /* GET /t/<handle>/og — náhľadový obrázok 1200×630 pre zdieľanie odkazu (OpenGraph/Twitter).
    Verejný, bez session: vykreslí len verejné polia publikovanej stránky (názov, nadpis, miesto, logo/fotka
-   z verejného bucketu). Nepublikovaná / bez Business / neplatný handle = 404 (rovnako ako stránka). */
+   z verejného bucketu, bez nich iniciály). Nepublikovaná / bez Business / neplatný handle = jednoduchý
+   generický FitPilot obrázok (nie 404 — odkaz so zlým handle sa zdieľa aj tak a nemá ostať bez náhľadu). */
 
 export const runtime = "nodejs";
 
@@ -41,11 +42,29 @@ async function imageDataUrl(url: string | null, size: number): Promise<string | 
   }
 }
 
+/** Generický FitPilot náhľad (neexistujúca / nepublikovaná stránka). Krátka cache, nech sa po publikovaní rýchlo obnoví. */
+async function genericImage() {
+  return new ImageResponse(
+    (
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, background: "#14100e", color: "#f6f1ec", fontFamily: "Inter" }}>
+        <div style={{ fontSize: 120, fontWeight: 700, letterSpacing: -4 }}>FitPilot</div>
+        <div style={{ fontSize: 34, color: DEFAULT_ACCENT, fontWeight: 700 }}>myfitpilot.sk</div>
+      </div>
+    ),
+    { width: 1200, height: 630, fonts: await fonts(), headers: { "Cache-Control": "public, max-age=60, s-maxage=300" } },
+  );
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = (parts.length > 1 ? [parts[0], parts[parts.length - 1]] : [parts[0] ?? "F"]).map((p) => Array.from(p)[0] ?? "");
+  return letters.join("").toUpperCase();
+}
+
 export async function GET(_req: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  if (!isHandleShape(handle)) return new Response("not found", { status: 404 });
-  const page = await loadPublicPage(handle);
-  if (!page) return new Response("not found", { status: 404 });
+  const page = isHandleShape(handle) ? await loadPublicPage(handle) : null;
+  if (!page) return genericImage();
 
   const accent = page.theme?.dark.accent ?? DEFAULT_ACCENT;
   const [photo, logo, fontList] = await Promise.all([imageDataUrl(page.photoUrl, 260), imageDataUrl(page.logoUrl ?? page.logoDarkUrl, 120), fonts()]);
@@ -56,6 +75,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ handle:
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 64, background: "#14100e", color: "#f6f1ec", fontFamily: "Inter" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 48 }}>
+          {!photo && !logo && (
+            <div style={{ width: 200, height: 200, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: accent, color: "#14100e", fontSize: 84, fontWeight: 700 }}>
+              {initials(page.displayName)}
+            </div>
+          )}
           {photo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photo} width={260} height={260} alt="" style={{ borderRadius: 999, objectFit: "cover", border: `6px solid ${accent}` }} />

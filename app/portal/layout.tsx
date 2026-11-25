@@ -46,6 +46,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("portalMetaTitle"),
     description: t("portalMetaDescription"),
+    // appka za loginom do indexu nepatrí
+    robots: { index: false, follow: false },
     manifest: null,
     appleWebApp: { capable: true, title: branding?.brandName || "FitPilot", statusBarStyle: "default" },
     ...(branding?.icons

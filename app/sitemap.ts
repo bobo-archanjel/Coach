@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/site";
 import { listPublicPages } from "@/lib/publicPage/server";
 
 // Verejné stránky trénerov (/t/<handle>, Business) sa do sitemap dopĺňajú z DB; sitemap sa obnovuje raz za hodinu.
@@ -8,7 +9,7 @@ export const revalidate = 3600;
 // za loginom (RLS aj auth guard v layout.tsx) — vyhľadávač by tam aj tak
 // nikdy nič neuvidel, zaradenie do sitemap by bolo len zavádzajúce.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://myfitpilot.sk";
+  const base = siteUrl();
   const now = new Date();
 
   // Ochrana súkromia / obchodné podmienky zámerne CHÝBAJÚ — obe stránky majú

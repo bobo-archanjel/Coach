@@ -142,6 +142,17 @@ export const VARIANT_PLANS: Record<Variant, Plan> = {
   business: { variant: "business", tier: "business", clientLimit: null },
 };
 
+/**
+ * Mesačné ceny variantov v EUR (zdroj pravdy pre JSON-LD na landing page). Musia sedieť so sumami
+ * v scripts/stripe-setup.mjs (PRICES, v centoch) — pri zmene ceny upraviť OBE miesta.
+ */
+export const VARIANT_PRICE_EUR: Record<Variant, number> = {
+  starter5: 15,
+  starter10: 20,
+  pro: 30,
+  business: 99,
+};
+
 export function isVariant(value: unknown): value is Variant {
   return typeof value === "string" && (VARIANTS as readonly string[]).includes(value);
 }

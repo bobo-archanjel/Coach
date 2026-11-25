@@ -61,3 +61,23 @@ export function buildPageMetadata(
     twitter: { card: "summary_large_image", title, description },
   };
 }
+
+/** JSON-LD (schema.org ProfessionalService) verejnej stránky trénera — len verejné polia, prázdne sa vynechajú. */
+export function buildPageJsonLd(
+  page: Pick<PublicPageData, "handle" | "displayName" | "headline" | "bio" | "location" | "photoUrl" | "logoUrl" | "socials">,
+  site: string,
+): Record<string, unknown> {
+  const url = pageCanonical(site, page.handle);
+  const description = (page.bio || page.headline || "").replace(/\s+/g, " ").trim();
+  const sameAs = Object.values(page.socials).filter((u): u is string => typeof u === "string" && /^https?:\/\//.test(u));
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    name: page.displayName,
+    url,
+    ...(description ? { description } : {}),
+    ...(page.photoUrl || page.logoUrl ? { image: page.photoUrl ?? page.logoUrl } : {}),
+    ...(page.location ? { address: { "@type": "PostalAddress", addressLocality: page.location } } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
+  };
+}
