@@ -10,13 +10,22 @@ import { test, expect } from "@playwright/test";
 test.describe("Progres na karte Dnes", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
-  test("pod týždňom, váha s grafom, výber merania šípkami aj ťukom", async ({ page }) => {
+  test("pod meraním, váha s grafom, výber merania šípkami aj ťukom", async ({ page }) => {
     await page.goto("/portal?preview=ok");
     const order = await page
       .getByRole("region", { name: "Prehľad" })
       .locator("[data-tour]")
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-tour")));
-    expect(order).toEqual(["today-measure", "today-week", "today-progress"]);
+    expect(order).toEqual(["today-week", "today-measure", "today-progress"]);
+    // meranie pod kalendárom: viditeľné posledné 3 merania, staršie sa posúvajú
+    const hist = await page.getByTestId("metric-history").evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      const rows = [...el.children].map((r) => r.getBoundingClientRect());
+      return { total: rows.length, visible: rows.filter((r) => r.bottom <= box.bottom + 1).length, scrolls: el.scrollHeight > el.clientHeight };
+    });
+    expect(hist.total).toBeGreaterThan(3);
+    expect(hist.visible).toBe(3);
+    expect(hist.scrolls).toBe(true);
 
     const card = page.locator('[data-tour="today-progress"]');
     // veľké číslo hore (os grafu má popisky s rovnakými hodnotami)

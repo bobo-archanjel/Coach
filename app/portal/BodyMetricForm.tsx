@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
-import { startTransition, useActionState, useEffect, useMemo, useOptimistic, useState, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useLayoutEffect, useMemo, useOptimistic, useRef, useState, type FormEvent } from "react";
 import { addOwnBodyMetricAction } from "./actions";
 import type { BodyMetricEntry } from "@/lib/dashboard/bodyMetrics";
 import styles from "./portal.module.css";
@@ -43,6 +43,9 @@ function extrasSummary(e: BodyMetricEntry, label: (k: (typeof EXTRA_FIELDS)[numb
  * všetky" prepínanie dĺžky) — nad 3 záznamy `.metricHistoryList` interne
  * skroluje (max-height), aby karta Dnes nerástla donekonečna.
  */
+/** viditeľné posledné merania; staršie sa posúvajú v zozname */
+const VISIBLE_ROWS = 3;
+
 export function BodyMetricForm({ today, history }: { today: string; history: BodyMetricEntry[] }) {
   const t = useTranslations("today.metric");
   const locale = useLocale();
@@ -111,6 +114,24 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
   const recent = useMemo(() => [...optimisticHistory].reverse(), [optimisticHistory]);
   const kg = (n: number) => n.toLocaleString(intlLocale(locale), { maximumFractionDigits: 1 });
 
+  // výška zoznamu = presne posledné 3 merania (riadky majú rôznu výšku — s obvodmi aj bez)
+  const listRef = useRef<HTMLDivElement>(null);
+  const [listMax, setListMax] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rows = el.children;
+      if (rows.length <= VISIBLE_ROWS) return setListMax(null);
+      const last = rows[VISIBLE_ROWS - 1] as HTMLElement;
+      setListMax(last.offsetTop - el.offsetTop + last.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [recent]);
+
   return (
     <>
       {open ? (
@@ -165,7 +186,13 @@ export function BodyMetricForm({ today, history }: { today: string; history: Bod
 
       {recent.length > 0 && (
         <div className={styles.metricHistory}>
-          <div className={styles.metricHistoryList}>
+          <div
+            ref={listRef}
+            className={styles.metricHistoryList}
+            style={listMax != null ? { maxHeight: listMax } : undefined}
+            data-scroll={recent.length > VISIBLE_ROWS || undefined}
+            data-testid="metric-history"
+          >
             {recent.map((e) => {
               const extras = extrasSummary(e, (k) => t(k));
               return (

@@ -2826,8 +2826,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* presnú výšku (posledné 3 merania) nastaví BodyMetricForm; staršie sa posúvajú */
   max-height: 210px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.metricHistoryList > * {
+  flex-shrink: 0;
 }
 .metricHistoryRow {
   padding: 11px 14px;

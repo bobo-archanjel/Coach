@@ -271,8 +271,16 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
         />
       )}
 
-      {/* meranie, týždeň so sériami a Progres (graf zo záznamov meraní) */}
+      {/* týždeň so sériami, meranie a Progres (graf zo záznamov meraní) */}
       <section className={s.after} aria-label={t("overview")}>
+
+        <WeekHistory initial={week} footer={
+            <>
+              <StreakChips streaks={streaks} freezeUsed={freezes?.recentUse ?? false} />
+            </>
+          } preview={preview} />
+
+        {/* meranie pod kalendárom — posledné 3 merania, staršie sa posúvajú */}
         <div className={s.panel} data-tour="today-measure">
           <div className={s.panelHead}>
             <p className={s.panelLabel}>{t("measurement")}</p>
@@ -282,12 +290,6 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
           </div>
           <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
-
-        <WeekHistory initial={week} footer={
-            <>
-              <StreakChips streaks={streaks} freezeUsed={freezes?.recentUse ?? false} />
-            </>
-          } preview={preview} />
 
         <ProgressCard history={bodyMetrics} />
       </section>
