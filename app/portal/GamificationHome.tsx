@@ -38,7 +38,9 @@ function RingItem({ ring }: { ring: DailyRing }) {
           ? t("proteinDone")
           : t("proteinHint", { value: ring.value, goal: ring.goal })
         : ring.via === "workout"
-          ? t("moveWorkout")
+          ? ring.value > 1
+            ? t("moveWorkouts", { count: ring.value })
+            : t("moveWorkout")
           : ring.via === "rest"
             ? t("moveRest")
             : t("moveOpen");

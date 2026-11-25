@@ -66,7 +66,8 @@
     "restError": "Oddych sa nepodarilo uložiť, skús to znova.",
     "celebrate": "Všetky kruhy uzavreté",
     "celebrateXp": "+{xp} XP",
-    "celebrateClose": "Zavrieť"
+    "celebrateClose": "Zavrieť",
+    "moveWorkouts": "{count, plural, few {# tréningy dnes} other {# tréningov dnes}}"
   },
   "categories": {
     "endurance": "Vytrvalosť",

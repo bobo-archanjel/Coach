@@ -64,7 +64,8 @@ export async function loadTodayRings(supabase: Sb, clientId: string, today: stri
     const [food, profile, workout, rest, celebrated, mealTarget] = await Promise.all([
       supabase.from("food_logs").select("meal_slot, grams, protein_100g").eq("client_id", clientId).eq("eaten_on", today).limit(500),
       supabase.from("nutrition_profiles").select("protein_g").eq("client_id", clientId).maybeSingle(),
-      supabase.from("workout_logs").select("id").eq("client_id", clientId).eq("performed_on", today).eq("status", "completed").limit(1),
+      // počet dnešných tréningov — Pohyb ukáže 2/1, 3/1 pri viacerých tréningoch za deň
+      supabase.from("workout_logs").select("id").eq("client_id", clientId).eq("performed_on", today).eq("status", "completed").limit(20),
       supabase.from("client_rest_days").select("day").eq("client_id", clientId).eq("day", today).maybeSingle(),
       supabase.from("client_ring_days").select("day").eq("client_id", clientId).eq("day", today).maybeSingle(),
       loadMealTarget(supabase, clientId),
@@ -72,10 +73,11 @@ export async function loadTodayRings(supabase: Sb, clientId: string, today: stri
     if (food.error || workout.error) return null;
     const { mealSlots, proteinG } = summarizeTodayFood((food.data ?? []) as { meal_slot: string; grams: number; protein_100g: number }[]);
     const proteinTarget = profile.data?.protein_g != null ? Number(profile.data.protein_g) : null;
-    const workoutToday = (workout.data ?? []).length > 0;
+    const workoutsToday = (workout.data ?? []).length;
+    const workoutToday = workoutsToday > 0;
     const restToday = !rest.error && Boolean(rest.data);
     return {
-      rings: computeDailyRings({ mealSlots, mealTarget, proteinG, proteinTarget, workoutToday, restToday }),
+      rings: computeDailyRings({ mealSlots, mealTarget, proteinG, proteinTarget, workoutToday, workoutsToday, restToday }),
       mealTarget,
       workoutToday,
       restToday,

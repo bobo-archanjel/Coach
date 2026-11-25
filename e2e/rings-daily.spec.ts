@@ -29,6 +29,16 @@ test.describe("denné prstence: matematika", () => {
     expect(computeDailyRings({ ...base, proteinTarget: 0 }).map((r) => r.id)).toEqual(["move", "meals"]);
   });
 
+  test("Pohyb: viac tréningov za deň → 2/1, 3/1 (prstenec plný už pri prvom); oddych 1/1", () => {
+    const two = ring(computeDailyRings({ ...base, workoutToday: true, workoutsToday: 2 }), "move");
+    expect(two).toMatchObject({ value: 2, goal: 1, fraction: 1, done: true, via: "workout" });
+    expect(ring(computeDailyRings({ ...base, workoutToday: true, workoutsToday: 3 }), "move").value).toBe(3);
+    // bez počtu (starší volajúci) = 1
+    expect(ring(computeDailyRings({ ...base, workoutToday: true }), "move").value).toBe(1);
+    expect(ring(computeDailyRings({ ...base, restToday: true }), "move")).toMatchObject({ value: 1, done: true, via: "rest" });
+    expect(ring(computeDailyRings({ ...base }), "move")).toMatchObject({ value: 0, done: false });
+  });
+
   test("Strava: počet rôznych jedál voči cieľu, uzavretá pri >= cieľ, hodnota sa orezáva", () => {
     expect(ring(computeDailyRings({ ...base, mealSlots: 2 }), "meals")).toMatchObject({ value: 2, goal: 3, done: false });
     expect(ring(computeDailyRings({ ...base, mealSlots: 2 }), "meals").fraction).toBeCloseTo(2 / 3);
