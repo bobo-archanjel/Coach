@@ -4,6 +4,9 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "../components/LogoMark";
+import { BrandLogo } from "../components/BrandLogo";
+import brandStyles from "../components/branding.module.css";
+import type { DashboardBrand } from "@/lib/branding/dashboard";
 import { NavLinkPendingSignal } from "../components/NavigationProgress";
 import { useLiveUnread } from "../components/liveUnread";
 import { NotificationBell } from "./NotificationBell";
@@ -122,7 +125,19 @@ const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "cal
  * (na mobile v hornej lište, na počítači avatar s menom dole v bočnom paneli). Avatar vedie
  * do Nastavení, kde je aj „Odhlásiť sa“ — Nastavenia preto nie sú medzi položkami menu.
  */
-export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCount?: number; displayName?: string | null }) {
+export function DashboardNav({
+  unreadCount = 0,
+  displayName = null,
+  brand = null,
+  poweredBy = null,
+}: {
+  unreadCount?: number;
+  displayName?: string | null;
+  /** značka trénera (Business) namiesto FitPilot; null = predvolený vzhľad */
+  brand?: DashboardBrand | null;
+  /** text „Beží na FitPilot“ (len keď je značka zapnutá) */
+  poweredBy?: string | null;
+}) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const settingsActive = pathname.startsWith("/dashboard/nastavenia");
@@ -134,8 +149,17 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
       <div className={styles.sidebarTop}>
         <Link href="/dashboard" className={styles.sidebarBrand}>
           {/* značka + text (wordmark je raster so svetlým textom — na svetlom skle by zmizol) */}
-          <LogoMark className={styles.brandMark} />
-          <span className={styles.brandText}>FitPilot</span>
+          {brand ? (
+            <>
+              {brand.logoUrl || brand.logoDarkUrl ? <BrandLogo src={brand.logoUrl} darkSrc={brand.logoDarkUrl} /> : <LogoMark className={styles.brandMark} />}
+              <span className={`${styles.brandText} ${styles.brandTextBranded}`}>{brand.name || "FitPilot"}</span>
+            </>
+          ) : (
+            <>
+              <LogoMark className={styles.brandMark} />
+              <span className={styles.brandText}>FitPilot</span>
+            </>
+          )}
         </Link>
         <NotificationBell initialUnread={unreadCount} />
       </div>
@@ -180,6 +204,7 @@ export function DashboardNav({ unreadCount = 0, displayName = null }: { unreadCo
         </span>
         <span className={styles.userName}>{displayName || t("settings")}</span>
       </Link>
+      {poweredBy && <p className={`${brandStyles.poweredBy} ${styles.sidebarPowered}`}>{poweredBy}</p>}
     </aside>
   );
 }

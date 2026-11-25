@@ -17,6 +17,12 @@ import { DashboardSkeletonOverlay } from "./DashboardSkeletonOverlay";
 import { BillingProvider } from "./BillingContext";
 import { BillingBanner } from "./BillingBanner";
 import { getMyTrainerBilling } from "@/lib/billing/server";
+import { loadBrandingForTrainer } from "@/lib/branding/server";
+import { dashboardBrand } from "@/lib/branding/dashboard";
+import { brandStyle } from "@/lib/branding/theme";
+import type { PublicBranding } from "@/lib/branding/types";
+import brandCss from "@/app/components/branding.module.css";
+import { BrandPoweredMobile } from "./BrandPoweredMobile";
 import type { BillingState } from "@/lib/billing/entitlements";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { v6Theme } from "@/app/dashboard/dashTheme";
@@ -59,6 +65,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let displayName: string | null = null;
   // stav predplatného (banner, zamknuté funkcie) — null = DEV bez session / klient (presmeruje sa)
   let billing: BillingState | null = null;
+  // vlastná značka trénera (Business) — logo, názov a akcent aj v jeho dashboarde; null = predvolený FitPilot
+  let branding: PublicBranding | null = null;
   if (!user) {
     if (!DEV_OPEN) redirect("/prihlasenie");
   } else {
@@ -70,7 +78,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // je klient omylom na /dashboard URL (redirect), čo je vzácny okrajový prípad
     // oproti bežnému toku (tréner, žiadny redirect).
     const supabase = await createClient();
-    const [{ data: profile }, { count }, dbTourSeen, trainerBilling] = await Promise.all([
+    const [{ data: profile }, { count }, dbTourSeen, trainerBilling, trainerBranding] = await Promise.all([
       // Symetrický guard k app/portal/layout.tsx (ten posiela trénera na /dashboard) —
       // klient sa sem doteraz vedel dostať priamou URL bez presmerovania na svoj portál.
       getProfile(user.id),
@@ -80,6 +88,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       // tourSeen z DB sa dopytuje LEN keď cookie chýba (prvá návšteva/iný prehliadač).
       tourSeenCookie ? Promise.resolve(true) : getTourSeen(user.id),
       getMyTrainerBilling(user.id),
+      // request-cache-ovaný loader (rovnaký ako portál) — súbežne, bez ďalšieho kola; oprávnenie (Business) rieši on
+      loadBrandingForTrainer(user.id),
     ]);
     if (profile?.role === "client") {
       redirect("/portal");
@@ -89,25 +99,36 @@ export default async function DashboardLayout({ children }: { children: React.Re
       redirect("/prihlasenie/suhlas");
     }
     billing = trainerBilling.state;
+    branding = trainerBranding;
     unreadCount = count ?? 0;
     tourSeen = dbTourSeen;
     displayName = profile?.full_name?.trim() || (user.user_metadata?.full_name as string | undefined)?.trim() || null;
   }
 
+  const brand = dashboardBrand(branding);
+  const poweredBy = branding ? (await getTranslations("branding"))("poweredBy") : null;
+
   // koreň s tokenmi a témou dizajnu v6 (data-v6-root — sem idú aj okná cez createPortal)
   // ScopedMessages: texty oblasti dashboardu (koreňový layout posiela len verejné — lib/i18n/clientMessages.ts)
   return (
     <ScopedMessages extra={scopedMessages(MESSAGES[await getLocale()], "dashboard")}>
-    <div className={tokens.root} data-theme={await v6Theme()} data-v6-root="">
+    <div
+      className={`${tokens.root} ${branding?.theme ? brandCss.branded : ""}`}
+      style={brandStyle(branding?.theme)}
+      data-theme={await v6Theme()}
+      data-v6-root=""
+      data-branded={branding ? "" : undefined}
+    >
       <NavigationProgressProvider>
         <div className={styles.shell}>
-          <DashboardNav unreadCount={unreadCount} displayName={displayName} />
+          <DashboardNav unreadCount={unreadCount} displayName={displayName} brand={brand} poweredBy={poweredBy} />
           <main className={styles.content}>
             <div className={styles.wrap}>
               <BillingProvider state={billing}>
                 {billing && <BillingBanner state={billing} />}
                 {children}
               </BillingProvider>
+              {poweredBy && <BrandPoweredMobile text={poweredBy} />}
             </div>
             <DashboardSkeletonOverlay />
           </main>
