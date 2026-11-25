@@ -21,7 +21,7 @@ import { brandingPublicUrl } from "@/lib/branding/server";
 import { PublicPageForm, type PublicPageInitial } from "./PublicPageForm";
 import { mailSiteUrl } from "@/lib/mail/config";
 import { readSocials } from "@/lib/publicPage/socials";
-import billingStyles from "../billing.module.css";
+import { LockedNotice } from "../LockedFeature";
 import brandingStyles from "./branding.module.css";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
@@ -275,21 +275,7 @@ export default async function NastaveniaPage() {
                 />
               </>
             ) : (
-              <div className={billingStyles.locked} role="note" data-testid="feature-locked" data-feature="branding">
-                <span className={billingStyles.lockIcon} aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="4" y="11" width="16" height="9" rx="2.5" />
-                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-                  </svg>
-                </span>
-                <div className={billingStyles.lockBody}>
-                  <strong>{tb("locked.title")}</strong>
-                  <p>{tb("locked.text")}</p>
-                  <Link href="/dashboard/predplatne" className={billingStyles.lockLink}>
-                    {tb("locked.upgrade")}
-                  </Link>
-                </div>
-              </div>
+              <LockedNotice testId="feature-locked" feature="branding" title={tb("locked.title")} text={tb("locked.text")} linkLabel={tb("locked.upgrade")} />
             )}
           </div>
         )}
@@ -306,21 +292,7 @@ export default async function NastaveniaPage() {
                 <PublicPageForm initial={publicInitial} host={siteHost} businessReady={brandingUnlocked} />
               </>
             ) : (
-              <div className={billingStyles.locked} role="note" data-testid="public-page-locked" data-feature="publicPage">
-                <span className={billingStyles.lockIcon} aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="4" y="11" width="16" height="9" rx="2.5" />
-                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-                  </svg>
-                </span>
-                <div className={billingStyles.lockBody}>
-                  <strong>{tp("locked.title")}</strong>
-                  <p>{tp("locked.text")}</p>
-                  <Link href="/dashboard/predplatne" className={billingStyles.lockLink}>
-                    {tp("locked.upgrade")}
-                  </Link>
-                </div>
-              </div>
+              <LockedNotice testId="public-page-locked" feature="publicPage" title={tp("locked.title")} text={tp("locked.text")} linkLabel={tp("locked.upgrade")} />
             )}
           </div>
         )}

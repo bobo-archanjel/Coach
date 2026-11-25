@@ -12,6 +12,9 @@
   margin-top: 0;
   border-top: 0;
 }
+.checkRow input {
+  accent-color: var(--accent);
+}
 .checkRow {
   display: flex;
   align-items: center;

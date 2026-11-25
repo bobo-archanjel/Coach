@@ -59,3 +59,13 @@ Rozsah: len naše hunky (`app/portal/**` gamifikácia, `gamification.module.css`
 - Rebríček: záložky metrík v jednom posuvnom riadku, „Tvoja pozícia“ výraznejšie. Dialóg odznaku: primárne tlačidlo, pod ním Zdieľať + Všetky úspechy. Oslava prstencov: nepriehľadné sklo namiesto priesvitnej karty (text presvitá cez hlavičku). Profil: prepínač e-mailov namiesto natívneho checkboxu.
 - Texty (SK aj CS): preč emoji a výkričníky z bežných textov (misie, nápoveda pri sérii, séria, bonus, rekord), ostali len v štýloch osláv.
 - Nezmenené: dáta, logika, `tc*` triedy trénerskej strany, pozadie a kostra portálu.
+
+## Finálny dizajn — tréner
+Overené dočasnými stránkami s ukážkovými dátami (po použití zmazané) v 1280 a 390 px, svetlá/tmavá. Screenshoty: `C:\Users\rosiv\AppData\Local\Temp\claude\b6e7a55a9af047c2\7bc62ec2-a6fc-4e03-8f4e-56b8f7e295a8\scratchpad\design-final\dashboard\{before,after}\`. Upravené len naše bloky (blame po 394c508).
+- **Predplatné** (`billing.module.css`, `predplatne/*`): zoznam funkcií v karte tarify sa na desktope roztiahol na celú výšku karty (veľké medzery medzi riadkami) — `align-content: start`. Popisky súhrnu a odznaky bez veľkých písmen (rovnako ako `.cardSubhead` v dizajne v6), inline štýly nahradené triedami, karta oznámení dostala tieň ako ostatné karty, CTA v pruhu je pilulka.
+- **Zamknuté karty**: päť rovnakých kópií ikony zámku a markupu (FeatureGate, limit klientov, Reporty, Záujemcovia, Nastavenia — značka, verejná stránka) nahradené jedným `LockedNotice` v `LockedFeature.tsx`. Preč dekoratívne „falošné“ stĺpce v zamknutých Reportoch.
+- **Reporty** (`reports.module.css`): dlaždice s číslami v sentence case, rádius `--radius-s`, jemnejšia váha čísel.
+- **Výzvy**: formulár a zoznam mali vlastné `tc*` štýly z gamifikácie (nezarovnané polia — „Cieľ“ vyššie ako ostatné, počítadlo nalepené na popisky, modré rádiá). Nový `vyzvy/vyzvy.module.css`: polia v jazyku „Pridať klienta“, zarovnaná mriežka, počítadlo v hlavičke karty, karty výziev ako zoznam klientov, rádiá v akcentovej farbe, aktívna výzva s coral čipom.
+- **Nastavenia**: odznak „Business“ a popisky náhľadu bez veľkých písmen; zaškrtávacie políčko v Komunikácii v akcentovej farbe.
+- **Záujemcovia**: bez zmeny vzhľadu (už zodpovedal v6); len zdieľaná zamknutá karta.
+- Bez zásahu: `gamification*.module.css` (iný agent), kód iných autorov, dáta a logika.
