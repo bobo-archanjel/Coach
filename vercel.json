@@ -2,6 +2,7 @@
   "crons": [
     { "path": "/api/cron/weekly-summary", "schedule": "0 6 * * 1" },
     { "path": "/api/cron/weekly-summary?pass=2", "schedule": "30 6 * * 1" },
-    { "path": "/api/cron/leads-purge", "schedule": "0 3 * * 0" }
+    { "path": "/api/cron/leads-purge", "schedule": "0 3 * * 0" },
+    { "path": "/api/cron/unconfirmed-purge", "schedule": "15 3 * * *" }
   ]
 }
