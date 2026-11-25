@@ -40,10 +40,25 @@
   text-align: center;
 }
 .identity {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
+}
+/* fotka + logo: logo sedí ako odznak na okraji fotky, nie vedľa nej */
+.photo ~ img,
+.photo ~ svg {
+  position: absolute;
+  right: -6px;
+  bottom: -2px;
+  width: 44px;
+  height: 44px;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--sheet-bg-strong);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
 .photo {
   width: 112px;
@@ -52,6 +67,7 @@
   object-fit: cover;
   border: 3px solid var(--accent-soft);
   background: var(--fill);
+  box-shadow: 0 14px 28px -16px rgba(40, 24, 14, 0.5);
 }
 .logo {
   width: 56px;
@@ -61,6 +77,7 @@
 }
 .name {
   margin: 0;
+  text-wrap: balance;
   font-size: clamp(26px, 6.5vw, 38px);
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -70,6 +87,7 @@
 }
 .headline {
   margin: 0;
+  text-wrap: balance;
   max-width: 34em;
   font-size: clamp(16px, 3.6vw, 19px);
   line-height: 1.45;
@@ -118,10 +136,14 @@
   text-decoration: none;
   box-shadow: var(--accent-glow);
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: transform 0.16s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.16s ease, filter 0.16s ease;
 }
 .cta:hover {
   transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+.cta:active {
+  transform: scale(0.97);
 }
 .cta:disabled {
   opacity: 0.6;
@@ -162,6 +184,9 @@
   .cta {
     width: auto;
   }
+  .form .cta {
+    min-width: 220px;
+  }
 }
 @media (max-width: 719px) {
   .heroText {
@@ -184,13 +209,16 @@
   font-size: clamp(19px, 4.4vw, 23px);
   font-weight: 800;
   letter-spacing: -0.025em;
+  line-height: 1.2;
   color: var(--paper);
 }
 .bio {
   margin: 0;
+  max-width: 62ch;
   font-size: 16px;
   line-height: 1.65;
   color: var(--paper-dim);
+  text-wrap: pretty;
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
@@ -237,8 +265,9 @@
 }
 .servicePrice {
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
+  letter-spacing: -0.01em;
   color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
@@ -300,6 +329,8 @@
 }
 .author {
   margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
   font-size: 13px;
   font-weight: 700;
   color: var(--paper-dim);
@@ -318,6 +349,9 @@
   .gallery {
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
+  }
+  .galleryItem {
+    aspect-ratio: 4 / 3;
   }
 }
 
@@ -360,6 +394,12 @@
   color: var(--paper);
   font: inherit;
   font-size: 16px; /* 16px = iOS nezoomuje pri focuse */
+  transition: border-color 0.16s ease;
+}
+.input:hover:not(:disabled),
+.select:hover:not(:disabled),
+.textarea:hover:not(:disabled) {
+  border-color: var(--fill-strong);
 }
 .textarea {
   min-height: 110px;
@@ -400,6 +440,9 @@
 .captcha {
   min-height: 0;
 }
+.captcha:empty {
+  display: none;
+}
 /* honeypot: mimo obrazovky, nie display:none (niektoré boty také polia preskočia) */
 .trap {
   position: absolute;
@@ -423,6 +466,7 @@
   border-radius: 18px;
   background: var(--moss-soft);
   color: var(--moss);
+  border: 1px solid color-mix(in srgb, var(--moss) 28%, transparent);
   font-size: 15px;
   font-weight: 650;
   line-height: 1.5;
@@ -487,7 +531,8 @@
   .cta {
     transition: none;
   }
-  .cta:hover {
+  .cta:hover,
+  .cta:active {
     transform: none;
   }
 }
