@@ -118,6 +118,9 @@
     "removedText": "Tvoje tréningové plány, jedálničky, makro cieľ aj zápisy ostali v appke a môžeš ju používať samostatne. S novým trénerom sa prepojíš kódom v Profile."
   },
   "otherTodayKicker": "Ďalší dnešný tréning",
+  "otherPlanKicker": "Dnešný tréning z iného plánu",
+  "todayWorkoutKicker": "Dnešný tréning",
+  "otherPlanName": "Plán {name}",
   "calendar": {
     "title": "Kalendár",
     "prev": "Predchádzajúce 2 týždne",

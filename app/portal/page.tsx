@@ -181,6 +181,7 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
     hasTrainer,
     freezes,
     workoutHints,
+    todayWorkouts,
   } = data;
   const t = useTranslations("today");
   const locale = useLocale();
@@ -270,6 +271,9 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
           hasTrainer={hasTrainer}
         />
       )}
+
+      {/* dnes odcvičené tréningy mimo aktívneho plánu (iný plán, zmazaný deň) — aj bez aktívneho tréningu */}
+      {todayWorkouts && todayWorkouts.length > 0 && <OtherTodayWorkouts workouts={todayWorkouts} standalone={!session} />}
 
       {/* týždeň so sériami, meranie a Progres (graf zo záznamov meraní) */}
       <section className={s.after} aria-label={t("overview")}>

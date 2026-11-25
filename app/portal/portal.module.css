@@ -1643,6 +1643,14 @@
   font-weight: 760;
   letter-spacing: -0.02em;
 }
+.otherTodayPlan {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.3;
+  color: var(--paper-dim);
+  overflow-wrap: anywhere;
+}
 .otherTodayBody {
   padding: 0 18px 18px;
 }

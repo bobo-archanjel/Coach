@@ -154,12 +154,30 @@ test.describe("karta Dnes — odcvičený tréning: súhrn a zbalenie cvikov", (
 test.describe("karta Dnes — viac tréningov za deň", () => {
   test.skip(process.env.NODE_ENV === "production", "DEV náhľady len v next dev");
 
+  test("tréning z iného plánu: kicker „z iného plánu“, názov plánu, po aktívnom pláne", async ({ page }) => {
+    await page.goto("/portal?preview=done");
+    const cards = page.getByTestId("other-today");
+    await expect(cards).toHaveCount(2);
+    // najprv tréning z aktívneho plánu, potom z iného
+    await expect(cards.nth(0)).toContainText("Ďalší dnešný tréning");
+    await expect(cards.nth(0).getByTestId("other-today-plan")).toHaveText("Plán Silový 3× týždenne");
+    const foreign = cards.nth(1);
+    await expect(foreign).toContainText("Dnešný tréning z iného plánu");
+    await expect(foreign).toContainText("Rozcvička");
+    await expect(foreign.getByTestId("other-today-plan")).toHaveText("Plán Moje kardio + core");
+    await expect(foreign.getByTestId("done-stats")).toBeVisible();
+    await foreign.getByTestId("done-toggle").click();
+    await expect(foreign.getByTestId("completed-exercise").first()).toBeVisible();
+    await expect(foreign.getByRole("button", { name: /Upraviť hodnoty/ })).toBeVisible();
+  });
+
   test("ďalší dnešný tréning ako samostatná karta pod aktuálnym, súhrn hneď, cviky a úprava po „Zobraziť cviky“", async ({ page }) => {
     await page.goto("/portal?preview=done");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    const other = page.getByTestId("other-today");
-    await expect(other).toContainText("Ďalší dnešný tréning");
+    const other = page.getByTestId("other-today").filter({ hasText: "Ďalší dnešný tréning" });
+    await expect(other).toHaveCount(1);
+    await expect(other.getByTestId("other-today-plan")).toHaveText("Plán Silový 3× týždenne");
     // samostatná karta pod kartou aktuálneho tréningu, nie vnorená v nej
     await expect(page.locator('[data-tour="today-hero"] [data-testid="other-today"]')).toHaveCount(0);
     // súhrn (cviky / série / objem) je vidno hneď, cviky až po „Zobraziť cviky“

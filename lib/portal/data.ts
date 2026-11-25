@@ -55,6 +55,7 @@ import type {
   PortalTrainingDay,
   PortalTrainingResult,
   TodaySession,
+  TodayOtherWorkout,
   WeekDay,
   WeekView,
   CalendarEvent,
@@ -390,6 +391,18 @@ export async function getPortalData(): Promise<PortalResult> {
       loadGamificationRaw(supabase, { clientId: client.id, activePlanId: client.active_plan_id ?? null }, isoDate),
       // denné prstence (Strava, Bielkoviny, Pohyb) — stav dnešného dňa; chyba = null (prstence sa neukážu)
       loadTodayRingsCached(client.id, isoDate),
+      // dnes dokončené tréningy z akéhokoľvek plánu (aj iného, aj zmazaného dňa) — z nich sa na
+      // Dnes ukážu tie, čo nepatria do aktívneho plánu. Embed workout_days → workout_plans je
+      // jednoznačný (jediná FK); nič, čo by išlo cez clients.
+      supabase
+        .from("workout_logs")
+        .select(
+          "id, workout_day_id, performed_on, completed_at, rpe, note, entries, plan_snapshot, workout_days(name, exercises, plan_id, workout_plans(name))",
+        )
+        .eq("client_id", client.id)
+        .eq("performed_on", isoDate)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false }),
     ]);
 
     // "Aktívny" plán = clients.active_plan_id (volí ho klient v Tréningu / na Dnes, alebo
@@ -569,6 +582,8 @@ export async function getPortalData(): Promise<PortalResult> {
               return {
                 logId: l.id as string,
                 title: day?.name ?? (parsePlanSnapshot(l.plan_snapshot)?.dayName ?? L.t("workout")),
+                planName: plan.name,
+                fromOtherPlan: false,
                 completedAt: (l.completed_at as string | null) ?? null,
                 editableUntil: editableUntil(l.completed_at as string | null),
                 rpe: (l.rpe as number | null) ?? null,
@@ -582,8 +597,44 @@ export async function getPortalData(): Promise<PortalResult> {
       }
     }
 
-    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }, gamiRaw, todayRings] =
+    const [week, { data: note }, bodyMetrics, { data: nextAppt }, { data: streakTrainRows }, { data: streakFoodRows }, gamiRaw, todayRings, { data: todayLogRows }] =
       await sideData;
+
+    // Dnešné tréningy mimo aktívneho plánu (iný plán trénera, vlastný plán klienta, zmazaný deň).
+    // Logy aktívneho plánu (hero + otherToday vyššie) sa nezdvájajú. Najnovší prvý.
+    const activePlanLogIds = new Set(
+      (planRow?.workout_days ?? []).flatMap((d) => d.workout_logs ?? []).map((l) => l.id as string),
+    );
+    const LT = await portalLabels();
+    const todayWorkouts: TodayOtherWorkout[] =
+      (todayLogRows ?? [])
+        .filter((l) => !activePlanLogIds.has(l.id as string))
+        .map((l) => {
+          const L = LT;
+          const day = l.workout_days as unknown as {
+            name: string | null;
+            exercises: unknown;
+            plan_id: string | null;
+            workout_plans: { name: string | null } | null;
+          } | null;
+          const snap = parsePlanSnapshot(l.plan_snapshot);
+          const entries = parseLoggedEntries(l.entries);
+          const sourcePlanId = day?.plan_id ?? snap?.planId ?? null;
+          return {
+            logId: l.id as string,
+            title: day?.name?.trim() || snap?.dayName || L.t("workout"),
+            planName: day?.workout_plans?.name ?? snap?.planName ?? null,
+            // bez aktívneho plánu nie je od čoho odlišovať — karta sa označí len „Dnešný tréning“
+            fromOtherPlan: plan ? sourcePlanId !== plan.id : false,
+            completedAt: (l.completed_at as string | null) ?? null,
+            editableUntil: editableUntil(l.completed_at as string | null),
+            rpe: (l.rpe as number | null) ?? null,
+            note: (l.note as string | null) ?? null,
+            loggedExercises: entries.length > 0 ? entries : null,
+            compare: compareLog(l.plan_snapshot, l.entries),
+            exercises: day ? parseEntries(day.exercises).map((e, i) => toPortalExercise(e, i, L)) : [],
+          };
+        });
 
     // Série sú len motivačná dekorácia — chyba ich dopytu (data = null) nesmie
     // zhodiť celú kartu Dnes, len sa ukážu prázdne (žiadna séria).
@@ -630,6 +681,7 @@ export async function getPortalData(): Promise<PortalResult> {
       hour,
       coachNote,
       session,
+      todayWorkouts,
       hasTrainer: Boolean(client.trainer_id),
       week,
       streaks,

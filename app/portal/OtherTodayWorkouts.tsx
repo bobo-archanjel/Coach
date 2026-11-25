@@ -13,8 +13,11 @@ import styles from "./portal.module.css";
  */
 export function OtherTodayWorkouts({
   workouts,
+  standalone = false,
 }: {
   workouts: TodayOtherWorkout[];
+  /** karta nestojí pod hlavnou kartou tréningu (prázdny plán) — kicker nesmie hovoriť „ďalší“ */
+  standalone?: boolean;
 }) {
   const t = useTranslations("today");
   if (workouts.length === 0) return null;
@@ -30,9 +33,14 @@ export function OtherTodayWorkouts({
         >
           <div className={styles.otherTodayHead}>
             <span className={styles.otherTodayKicker}>
-              {t("otherTodayKicker")}
+              {w.fromOtherPlan ? t("otherPlanKicker") : standalone ? t("todayWorkoutKicker") : t("otherTodayKicker")}
             </span>
             <span className={styles.otherTodayName}>{w.title}</span>
+            {w.planName && (
+              <span className={styles.otherTodayPlan} data-testid="other-today-plan">
+                {t("otherPlanName", { name: w.planName })}
+              </span>
+            )}
           </div>
           <div className={styles.otherTodayBody}>
             <DoneWorkoutView
