@@ -8,6 +8,7 @@ import {
   canMarkRest,
   celebrationDue,
   computeDailyRings,
+  FOOD_ITEMS_TARGET,
   distinctMealSlots,
   mealTargetFromPlan,
   ringsXp,
@@ -39,7 +40,17 @@ test.describe("denné prstence: matematika", () => {
     expect(ring(computeDailyRings({ ...base }), "move")).toMatchObject({ value: 0, done: false });
   });
 
-  test("Strava: počet rôznych jedál voči cieľu, uzavretá pri >= cieľ, hodnota sa orezáva", () => {
+  test("Strava: počet zapísaných potravín voči 10, uzavretá pri >= 10, hodnota sa orezáva", () => {
+    expect(ring(computeDailyRings({ ...base, foodItems: 3 }), "meals")).toMatchObject({ value: 3, goal: FOOD_ITEMS_TARGET, done: false });
+    expect(FOOD_ITEMS_TARGET).toBe(10);
+    expect(ring(computeDailyRings({ ...base, foodItems: 10 }), "meals")).toMatchObject({ value: 10, goal: 10, fraction: 1, done: true });
+    expect(ring(computeDailyRings({ ...base, foodItems: 14 }), "meals")).toMatchObject({ value: 10, done: true });
+    // počet potravín = počet zápisov (aj viac v jednom jedle)
+    const rows = Array.from({ length: 4 }, () => ({ meal_slot: "obed", grams: 100, protein_100g: 10 }));
+    expect(summarizeTodayFood(rows)).toMatchObject({ foodItems: 4, mealSlots: 1, proteinG: 40 });
+  });
+
+  test("Strava (bez foodItems, starší volajúci): počet rôznych jedál voči cieľu, uzavretá pri >= cieľ, hodnota sa orezáva", () => {
     expect(ring(computeDailyRings({ ...base, mealSlots: 2 }), "meals")).toMatchObject({ value: 2, goal: 3, done: false });
     expect(ring(computeDailyRings({ ...base, mealSlots: 2 }), "meals").fraction).toBeCloseTo(2 / 3);
     expect(ring(computeDailyRings({ ...base, mealSlots: 3 }), "meals")).toMatchObject({ value: 3, goal: 3, fraction: 1, done: true });
@@ -74,7 +85,7 @@ test.describe("denné prstence: matematika", () => {
       { meal_slot: "ranajky", grams: "100", protein_100g: "20" },
       { meal_slot: "obed", grams: 150, protein_100g: 20 },
     ]);
-    expect(sum).toEqual({ mealSlots: 2, proteinG: 70 });
+    expect(sum).toEqual({ mealSlots: 2, foodItems: 3, proteinG: 70 });
   });
 
   test("Bielkoviny: uzavreté od 90 % cieľa, pod nie; kruh je plný presne pri uzavretí", () => {

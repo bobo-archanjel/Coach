@@ -93,6 +93,8 @@ export interface DailyRing {
   via?: "workout" | "rest" | null;
 }
 
+/** Strava: cieľ počtu zapísaných potravín za deň (každý zápis jedla = 1 potravina). */
+export const FOOD_ITEMS_TARGET = 10;
 /** Predvolený počet jedál za deň, keď klient nemá jedálniček. */
 export const DEFAULT_MEAL_TARGET = 3;
 /** meal_slot má 6 hodnôt (raňajky … iné) — viac jedál za deň sa nedá zapísať ako rôzne. */
@@ -116,6 +118,8 @@ export interface DailyRingInput {
   /** počet rôznych jedál (meal_slot) zapísaných dnes */
   mealSlots: number;
   mealTarget?: number | null;
+  /** počet dnes zapísaných potravín — Strava sa ráta voči FOOD_ITEMS_TARGET (10); bez neho podľa rôznych jedál */
+  foodItems?: number;
   proteinG: number;
   proteinTarget: number | null | undefined;
   workoutToday: boolean;
@@ -126,8 +130,11 @@ export interface DailyRingInput {
 
 /** Denné prstence v poradí Pohyb, Bielkoviny (len pri cieli), Strava. */
 export function computeDailyRings(i: DailyRingInput): DailyRing[] {
-  const mealGoal = Math.min(MAX_MEAL_TARGET, Math.max(1, Math.floor(i.mealTarget ?? DEFAULT_MEAL_TARGET)));
-  const mealValue = Math.min(mealGoal, Math.max(0, Math.floor(i.mealSlots)));
+  // Strava: počet zapísaných potravín voči 10 (3 rôzne jedlá sa splnili príliš rýchlo);
+  // bez foodItems (starší volajúci) pôvodne podľa rôznych jedál dňa voči cieľu z jedálnička
+  const byItems = i.foodItems != null;
+  const mealGoal = byItems ? FOOD_ITEMS_TARGET : Math.min(MAX_MEAL_TARGET, Math.max(1, Math.floor(i.mealTarget ?? DEFAULT_MEAL_TARGET)));
+  const mealValue = Math.min(mealGoal, Math.max(0, Math.floor(byItems ? (i.foodItems ?? 0) : i.mealSlots)));
   const moved = i.workoutToday || i.restToday;
   // viac tréningov za deň: hodnota = počet tréningov (2/1, 3/1), prstenec je plný už pri prvom
   const workouts = i.workoutToday ? Math.max(1, Math.floor(i.workoutsToday ?? 1)) : 0;
@@ -189,9 +196,13 @@ export function distinctMealSlots(items: unknown): number {
   return slots.size;
 }
 
-/** Dnešné zápisy jedla → počet jedál a súčet bielkovín (gramáž × bielkoviny na 100 g). */
-export function summarizeTodayFood(rows: { meal_slot: string; grams: number | string; protein_100g: number | string }[]): { mealSlots: number; proteinG: number } {
+/** Dnešné zápisy jedla → počet jedál, počet potravín (zápisov) a súčet bielkovín (gramáž × bielkoviny na 100 g). */
+export function summarizeTodayFood(rows: { meal_slot: string; grams: number | string; protein_100g: number | string }[]): {
+  mealSlots: number;
+  foodItems: number;
+  proteinG: number;
+} {
   let protein = 0;
   for (const r of rows) protein += (Number(r.grams) * Number(r.protein_100g)) / 100 || 0;
-  return { mealSlots: distinctMealSlots(rows), proteinG: protein };
+  return { mealSlots: distinctMealSlots(rows), foodItems: rows.length, proteinG: protein };
 }

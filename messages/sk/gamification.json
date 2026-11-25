@@ -52,7 +52,7 @@
     "aria": "{label}: {value} z {goal}",
     "proteinValue": "{percent} %",
     "proteinAria": "Bielkoviny: {value} z {goal} g",
-    "mealsHint": "{left, plural, =0 {Všetky jedlá zapísané} one {Ešte # jedlo} few {Ešte # jedlá} other {Ešte # jedál}}",
+    "mealsHint": "{left, plural, =0 {Všetky potraviny zapísané} one {Ešte # potravina} few {Ešte # potraviny} other {Ešte # potravín}}",
     "proteinHint": "{value} z {goal} g",
     "proteinDone": "Cieľ bielkovín splnený",
     "moveWorkout": "Tréning hotový",

@@ -71,13 +71,13 @@ export async function loadTodayRings(supabase: Sb, clientId: string, today: stri
       loadMealTarget(supabase, clientId),
     ]);
     if (food.error || workout.error) return null;
-    const { mealSlots, proteinG } = summarizeTodayFood((food.data ?? []) as { meal_slot: string; grams: number; protein_100g: number }[]);
+    const { mealSlots, foodItems, proteinG } = summarizeTodayFood((food.data ?? []) as { meal_slot: string; grams: number; protein_100g: number }[]);
     const proteinTarget = profile.data?.protein_g != null ? Number(profile.data.protein_g) : null;
     const workoutsToday = (workout.data ?? []).length;
     const workoutToday = workoutsToday > 0;
     const restToday = !rest.error && Boolean(rest.data);
     return {
-      rings: computeDailyRings({ mealSlots, mealTarget, proteinG, proteinTarget, workoutToday, workoutsToday, restToday }),
+      rings: computeDailyRings({ mealSlots, mealTarget, foodItems, proteinG, proteinTarget, workoutToday, workoutsToday, restToday }),
       mealTarget,
       workoutToday,
       restToday,
