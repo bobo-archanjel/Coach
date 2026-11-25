@@ -420,8 +420,8 @@
     "range": "{from} – {to}",
     "close": "Zavrieť",
     "goalMet": "Týždenný cieľ splnený. Skvelá práca!",
-    "goalProgress": "Tento týždeň {done} z {target} tréningových dní. Každý tréning sa počíta.",
-    "workouts": "Tréningové dni",
+    "goalProgress": "Tento týždeň {done} z {target, plural, one {# tréningu} other {# tréningov}}. Každý tréning sa počíta.",
+    "workouts": "Tréningy",
     "foodDays": "Dni so zápisom jedla",
     "proteinDays": "Dni s bielkovinami",
     "prs": "Nové rekordy",
@@ -452,7 +452,7 @@
     "weekly": {
       "kicker": "Môj týždeň",
       "headline": "{done, plural, one {# tréning} few {# tréningy} other {# tréningov}}",
-      "workouts": "Tréningové dni",
+      "workouts": "Tréningy",
       "prs": "Nové rekordy",
       "volume": "Zdvihnutý objem",
       "streak": "Týždňov v sérii"
