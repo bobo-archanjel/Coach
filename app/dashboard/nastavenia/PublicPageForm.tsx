@@ -182,10 +182,12 @@ export function PublicPageForm({ initial, host, businessReady }: { initial: Publ
             {t("bio")}
           </label>
           <textarea id="pp-bio" className={b.textarea} rows={7} value={bio} maxLength={LIMITS.bio} placeholder={t("bioPlaceholder")} onChange={(e) => setBio(e.target.value)} />
-          <span className={b.count}>
-            {charLength(bio)} / {LIMITS.bio}
-          </span>
-          <p className={b.hint}>{t("bioHint", { max: LIMITS.bio })}</p>
+          <div className={b.hintRow}>
+            <p className={b.hint}>{t("bioHint", { max: LIMITS.bio })}</p>
+            <span className={b.count}>
+              {charLength(bio)} / {LIMITS.bio}
+            </span>
+          </div>
         </div>
 
         <div className={p.grid2}>
@@ -208,15 +210,15 @@ export function PublicPageForm({ initial, host, businessReady }: { initial: Publ
           </div>
         </div>
 
-        <fieldset className={p.group} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-          <legend className={p.groupTitle}>{t("servicesTitle")}</legend>
+        <div className={p.group} role="group" aria-labelledby="pp-g-services">
+          <h4 id="pp-g-services" className={p.groupTitle}>{t("servicesTitle")}</h4>
           <p className={b.hint}>{t("servicesHint", { max: LIMITS.services })}</p>
           {services.map((s, i) => (
             <div key={i} className={p.item}>
               <div className={p.itemHead}>
-                <span>{i + 1}</span>
-                <button type="button" className={b.linkBtn} aria-label={t("removeService", { n: i + 1 })} onClick={() => setServices(services.filter((_, j) => j !== i))}>
-                  ✕
+                <span className={p.itemNum}>{i + 1}</span>
+                <button type="button" className={p.itemRemove} aria-label={t("removeService", { n: i + 1 })} onClick={() => setServices(services.filter((_, j) => j !== i))}>
+                  <CloseIcon />
                 </button>
               </div>
               <div className={p.grid2}>
@@ -263,21 +265,21 @@ export function PublicPageForm({ initial, host, businessReady }: { initial: Publ
             </div>
           ))}
           {services.length < LIMITS.services && (
-            <button type="button" className={`${pa.action} ${pa.small} ${pa.inline}`} onClick={() => setServices([...services, { name: "", description: "", priceText: "" }])}>
+            <button type="button" className={`${pa.action} ${pa.small} ${pa.inline} ${p.addBtn}`} onClick={() => setServices([...services, { name: "", description: "", priceText: "" }])}>
               {t("addService")}
             </button>
           )}
-        </fieldset>
+        </div>
 
-        <fieldset className={p.group} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-          <legend className={p.groupTitle}>{t("testimonialsTitle")}</legend>
+        <div className={p.group} role="group" aria-labelledby="pp-g-testimonials">
+          <h4 id="pp-g-testimonials" className={p.groupTitle}>{t("testimonialsTitle")}</h4>
           <p className={b.hint}>{t("testimonialsHint", { max: LIMITS.testimonials })}</p>
           {testimonials.map((r, i) => (
             <div key={i} className={p.item}>
               <div className={p.itemHead}>
-                <span>{i + 1}</span>
-                <button type="button" className={b.linkBtn} aria-label={t("removeTestimonial", { n: i + 1 })} onClick={() => setTestimonials(testimonials.filter((_, j) => j !== i))}>
-                  ✕
+                <span className={p.itemNum}>{i + 1}</span>
+                <button type="button" className={p.itemRemove} aria-label={t("removeTestimonial", { n: i + 1 })} onClick={() => setTestimonials(testimonials.filter((_, j) => j !== i))}>
+                  <CloseIcon />
                 </button>
               </div>
               <div className={b.field}>
@@ -309,14 +311,14 @@ export function PublicPageForm({ initial, host, businessReady }: { initial: Publ
             </div>
           ))}
           {testimonials.length < LIMITS.testimonials && (
-            <button type="button" className={`${pa.action} ${pa.small} ${pa.inline}`} onClick={() => setTestimonials([...testimonials, { author: "", body: "" }])}>
+            <button type="button" className={`${pa.action} ${pa.small} ${pa.inline} ${p.addBtn}`} onClick={() => setTestimonials([...testimonials, { author: "", body: "" }])}>
               {t("addTestimonial")}
             </button>
           )}
-        </fieldset>
+        </div>
 
-        <fieldset className={p.group} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-          <legend className={p.groupTitle}>{t("socials")}</legend>
+        <div className={p.group} role="group" aria-labelledby="pp-g-socials">
+          <h4 id="pp-g-socials" className={p.groupTitle}>{t("socials")}</h4>
           <p className={b.hint}>{t("socialsHint")}</p>
           <div className={p.grid2}>
             {SOCIAL_KINDS.map((k) => (
@@ -338,12 +340,12 @@ export function PublicPageForm({ initial, host, businessReady }: { initial: Publ
               </div>
             ))}
           </div>
-        </fieldset>
+        </div>
 
         <p className={b.hint}>{t("needBranding")}</p>
 
         <div className={b.actions}>
-          <button type="submit" className={`${pa.action} ${pa.primary}`} disabled={pending || !businessReady} data-testid="public-page-save">
+          <button type="submit" className={`${pa.action} ${pa.small} ${pa.inline}`} disabled={pending || !businessReady} data-testid="public-page-save">
             {pending ? t("saving") : t("save")}
           </button>
           {state.saved && !state.error && (
@@ -361,6 +363,14 @@ export function PublicPageForm({ initial, host, businessReady }: { initial: Publ
 
       <GalleryManager gallery={initial.gallery} />
     </div>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
   );
 }
 

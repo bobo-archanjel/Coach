@@ -12,6 +12,13 @@
   margin-top: 0;
   border-top: 0;
 }
+/* názov bloku (uvítacia správa, pozvánka) — rovnaký stupeň ako názvy skupín vo Verejnej stránke */
+.blockTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--paper);
+}
 .checkRow input {
   accent-color: var(--accent);
 }

@@ -80,3 +80,12 @@ Kritika (impeccable critique/layout/typeset/craft-floor): verejná stránka bola
 - **Cenník na landingi:** naše položky (Starter 5, Pro 4, Business 2) mriežka natiahla na výšku najdlhšieho zoznamu (diera medzi položkami Business) — nové pravidlo `align-content: start`, existujúce bloky nezmenené.
 - **Prihlásenie:** naše hunky (lazy Supabase klient) sú bez vizuálnej zmeny; overené `/prihlasenie?preview=code` aj panel „Zabudnuté heslo“ s Turnstile (svetlá a tmavá, 390/1280) — bez zásahu.
 - **Týždenný e-mail:** vzorové dáta opravené, vyrenderuje sa; kg v rekordoch sa formátujú podľa jazyka (82,5, nie 82.5).
+
+## Finálny dizajn — tréner (dokončenie)
+Overené dočasnými stránkami s ukážkovými dátami (po použití zmazané) v 1280 a 390 px, svetlá/tmavá. Screenshoty: `C:\Users\rosiv\AppData\Local\Temp\claude\b6e7a55a9af047c2\7bc62ec2-a6fc-4e03-8f4e-56b8f7e295a8\scratchpad\design-final\dashboard2\{before,after}\`. Upravené len naše bloky.
+- **Nastavenia — Verejná stránka**: „Uložiť stránku“ je ako ostatné uloženie v Nastaveniach (biele malé tlačidlo, nie coral výplň); „Pridať službu/referenciu“ majú šírku obsahu, nie celej karty. Skupiny (Služby, Referencie, Odkazy, Galéria) majú všetky rovnaký horný delič (predtým `fieldset` s vypnutým rámom, Galéria ho mala navyše). Odstránenie položky je ikonové tlačidlo (✕ znak s podčiarknutím preč), číslo položky v malej pilulke.
+- **Nápoveda a počítadlo**: počítadlo znakov je v jednom riadku s nápovedou (vpravo), nie samostatný riadok medzi poľom a nápovedou (Moja značka, Verejná stránka).
+- **Komunikácia s klientmi**: názvy blokov (Uvítacia správa, Pozvať e-mailom) majú stupeň 15/750 ako skupiny vo Verejnej stránke, nie len popisok poľa.
+- **Úspechy / High five** (`gamification.module.css`): tlačidlo je sekundárne ako ostatné akcie (nie coral pilulka), bez emoji; „Odoslané“ je rovnako vysoká pilulka s ikonou zatrhnutia (predtým posunutá o výšku).
+- **Navigácia**: ikona Záujemcov (kópia bubliny Správ) nahradená schránkou, rovnaká hrúbka čiary ako ostatné ikony.
+- **Texty SK + CS**: pokojnejšie a presnejšie nápovedy v Mojej značke, Verejnej stránke, Komunikácii a v zámku AI nástrojov (bez „odomkne sa to hneď“, bez zbytočných pomlčiek).

@@ -29,7 +29,10 @@ export function HighFiveButton({
   if (sent) {
     return (
       <span className={`${g.fiveBtn} ${g.fiveDone}`} role="status" aria-label={t("sentAria", { client: clientName })}>
-        🙌 {t("sent")}
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {t("sent")}
       </span>
     );
   }
@@ -50,7 +53,7 @@ export function HighFiveButton({
           })
         }
       >
-        🙌 {pending ? t("sending") : t("send")}
+        {pending ? t("sending") : t("send")}
       </button>
       {error && (
         <span className={g.fiveError} role="alert">

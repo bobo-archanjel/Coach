@@ -621,20 +621,29 @@
 }
 .fiveBtn {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   min-height: 36px;
   padding: 0 14px;
-  border: 0;
+  border: 1px solid var(--hairline);
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
   font: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 720;
+  white-space: nowrap;
   cursor: pointer;
+  transition: border-color 0.15s ease;
 }
 .fiveBtn:hover:not(:disabled) {
-  background: var(--accent);
-  color: var(--on-accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.fiveBtn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 .fiveBtn:focus-visible {
   outline: 2px solid var(--accent);
@@ -645,8 +654,11 @@
   opacity: 0.7;
 }
 .fiveDone {
+  border-color: transparent;
   background: var(--moss-soft);
+  box-shadow: none;
   color: var(--moss);
+  cursor: default;
 }
 .fiveError {
   margin-top: 6px;

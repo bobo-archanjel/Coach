@@ -80,6 +80,18 @@
   font-size: 11.5px;
   color: var(--paper-faint);
   align-self: flex-end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* nápoveda vľavo, počítadlo znakov vpravo na jednom riadku pod poľom */
+.hintRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hintRow .count {
+  flex: none;
 }
 .fileRow {
   display: flex;

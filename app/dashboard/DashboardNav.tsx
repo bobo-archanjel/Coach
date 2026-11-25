@@ -87,7 +87,7 @@ function ChallengesIcon() {
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M8 4.5h8v4.2a4 4 0 0 1-8 0V4.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M8 6.2H5.5a2.3 2.3 0 0 0 2.6 3.4M16 6.2h2.5a2.3 2.3 0 0 1-2.6 3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M8 6.2H5.5a2.3 2.3 0 0 0 2.6 3.4M16 6.2h2.5a2.3 2.3 0 0 1-2.6 3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M12 12.7v3.6M8.8 19.5h6.4M10 16.3h4l.6 3.2H9.4l.6-3.2Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -96,9 +96,8 @@ function ChallengesIcon() {
 function LeadsIcon() {
   return (
     <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4 3v-3H6.5A2.5 2.5 0 0 1 4 14.5v-8Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <circle cx="12" cy="9.2" r="1.7" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8.8 14c.4-1.4 1.6-2.2 3.2-2.2s2.8.8 3.2 2.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M4 13.5l2-6.6A2 2 0 0 1 7.9 5.5h8.2a2 2 0 0 1 1.9 1.4l2 6.6V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17v-3.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M4 13.5h4.3l.9 2h5.6l.9-2H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
