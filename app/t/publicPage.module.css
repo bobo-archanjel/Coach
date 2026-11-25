@@ -78,10 +78,10 @@
 .name {
   margin: 0;
   text-wrap: balance;
-  font-size: clamp(26px, 6.5vw, 38px);
+  font-size: clamp(28px, 7vw, 46px);
   font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   color: var(--paper);
   overflow-wrap: anywhere;
 }
@@ -239,22 +239,27 @@
   font-weight: 700;
 }
 
+/* služby: riadky oddelené čiarou (cena vpravo) — nie škatuľky v škatuli */
 .services {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   list-style: none;
+  border-top: 1px solid var(--hairline);
 }
 .service {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: var(--surface-solid);
-  border: 1px solid var(--hairline);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 20px;
+  row-gap: 4px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.serviceDesc {
+  grid-column: 1 / -1;
+  max-width: 56ch;
 }
 .serviceName {
   margin: 0;
@@ -265,6 +270,10 @@
 }
 .servicePrice {
   margin: 0;
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+  white-space: nowrap;
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -304,7 +313,7 @@
 .testimonials {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 22px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -313,24 +322,20 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 18px;
-  border-radius: 20px;
-  background: var(--surface-solid);
-  border: 1px solid var(--hairline);
+  gap: 8px;
 }
 .quote {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
   color: var(--paper);
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
 .author {
   margin: 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline);
   font-size: 13px;
   font-weight: 700;
   color: var(--paper-dim);
@@ -342,9 +347,9 @@
 }
 
 @media (min-width: 720px) {
-  .services,
   .testimonials {
     grid-template-columns: repeat(2, 1fr);
+    column-gap: 36px;
   }
   .gallery {
     grid-template-columns: repeat(3, 1fr);
@@ -461,6 +466,9 @@
   font-weight: 600;
 }
 .success {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin: 0;
   padding: 16px 18px;
   border-radius: 18px;
@@ -565,4 +573,19 @@
   .social {
     min-height: 44px;
   }
+}
+
+/* prvky prehliadača z palety značky: výber textu, kurzor, zaškrtávacie pole */
+.page ::selection {
+  background: var(--accent-soft);
+  color: var(--paper);
+}
+.input,
+.select,
+.textarea {
+  caret-color: var(--accent-text);
+}
+.successIcon {
+  flex: none;
+  margin-top: 1px;
 }

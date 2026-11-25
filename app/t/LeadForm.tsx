@@ -24,7 +24,11 @@ export function LeadForm({ handle, disabled = false }: { handle: string; disable
   if (state.sent) {
     return (
       <p className={styles.success} role="status" data-testid="lead-success">
-        {t("success")}
+        <svg className={styles.successIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="m8 12.4 2.6 2.6L16 9.6" />
+        </svg>
+        <span>{t("success")}</span>
       </p>
     );
   }
@@ -61,7 +65,7 @@ export function LeadForm({ handle, disabled = false }: { handle: string; disable
           <label className={styles.label} htmlFor="lead-email">
             {t("email")}
           </label>
-          <input id="lead-email" name="email" type="email" className={styles.input} required maxLength={254} autoComplete="email" inputMode="email" disabled={disabled} />
+          <input id="lead-email" name="email" type="email" className={styles.input} required maxLength={254} autoComplete="email" inputMode="email" spellCheck={false} disabled={disabled} />
         </div>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="lead-phone">
@@ -117,9 +121,10 @@ export function LeadForm({ handle, disabled = false }: { handle: string; disable
             placeholder={t("messagePlaceholder")}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            aria-describedby="lead-count"
             disabled={disabled}
           />
-          <span className={styles.count}>
+          <span id="lead-count" className={styles.count}>
             {charLength(message)} / {LEAD_LIMITS_TEXT.messageMax}
           </span>
         </div>
