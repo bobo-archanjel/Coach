@@ -119,15 +119,27 @@ export interface DailyRingInput {
   proteinG: number;
   proteinTarget: number | null | undefined;
   workoutToday: boolean;
+  /** počet dnešných dokončených tréningov (Pohyb ukáže 2/1, 3/1); bez neho 1 pri workoutToday */
+  workoutsToday?: number;
   restToday: boolean;
 }
 
-/** Denné prstence v poradí Strava, Bielkoviny (len pri cieli), Pohyb. */
+/** Denné prstence v poradí Pohyb, Bielkoviny (len pri cieli), Strava. */
 export function computeDailyRings(i: DailyRingInput): DailyRing[] {
   const mealGoal = Math.min(MAX_MEAL_TARGET, Math.max(1, Math.floor(i.mealTarget ?? DEFAULT_MEAL_TARGET)));
   const mealValue = Math.min(mealGoal, Math.max(0, Math.floor(i.mealSlots)));
+  const moved = i.workoutToday || i.restToday;
+  // viac tréningov za deň: hodnota = počet tréningov (2/1, 3/1), prstenec je plný už pri prvom
+  const workouts = i.workoutToday ? Math.max(1, Math.floor(i.workoutsToday ?? 1)) : 0;
   const rings: DailyRing[] = [
-    { id: "meals", value: mealValue, goal: mealGoal, fraction: mealValue / mealGoal, done: mealValue >= mealGoal },
+    {
+      id: "move",
+      value: workouts > 0 ? workouts : moved ? 1 : 0,
+      goal: 1,
+      fraction: moved ? 1 : 0,
+      done: moved,
+      via: i.workoutToday ? "workout" : i.restToday ? "rest" : null,
+    },
   ];
   const target = i.proteinTarget;
   if (target != null && target > 0) {
@@ -140,15 +152,7 @@ export function computeDailyRings(i: DailyRingInput): DailyRing[] {
       done: proteinMet(protein, target),
     });
   }
-  const moved = i.workoutToday || i.restToday;
-  rings.push({
-    id: "move",
-    value: moved ? 1 : 0,
-    goal: 1,
-    fraction: moved ? 1 : 0,
-    done: moved,
-    via: i.workoutToday ? "workout" : i.restToday ? "rest" : null,
-  });
+  rings.push({ id: "meals", value: mealValue, goal: mealGoal, fraction: mealValue / mealGoal, done: mealValue >= mealGoal });
   return rings;
 }
 

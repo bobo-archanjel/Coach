@@ -23,10 +23,20 @@ const base: DailyRingInput = { mealSlots: 0, mealTarget: 3, proteinG: 0, protein
 const ring = (rings: ReturnType<typeof computeDailyRings>, id: string) => rings.find((r) => r.id === id)!;
 
 test.describe("denné prstence: matematika", () => {
-  test("poradie Strava, Bielkoviny, Pohyb; bielkoviny sa bez cieľa skryjú", () => {
-    expect(computeDailyRings(base).map((r) => r.id)).toEqual(["meals", "protein", "move"]);
-    expect(computeDailyRings({ ...base, proteinTarget: null }).map((r) => r.id)).toEqual(["meals", "move"]);
-    expect(computeDailyRings({ ...base, proteinTarget: 0 }).map((r) => r.id)).toEqual(["meals", "move"]);
+  test("poradie Pohyb, Bielkoviny, Strava; bielkoviny sa bez cieľa skryjú", () => {
+    expect(computeDailyRings(base).map((r) => r.id)).toEqual(["move", "protein", "meals"]);
+    expect(computeDailyRings({ ...base, proteinTarget: null }).map((r) => r.id)).toEqual(["move", "meals"]);
+    expect(computeDailyRings({ ...base, proteinTarget: 0 }).map((r) => r.id)).toEqual(["move", "meals"]);
+  });
+
+  test("Pohyb: viac tréningov za deň → 2/1, 3/1 (prstenec plný už pri prvom); oddych 1/1", () => {
+    const two = ring(computeDailyRings({ ...base, workoutToday: true, workoutsToday: 2 }), "move");
+    expect(two).toMatchObject({ value: 2, goal: 1, fraction: 1, done: true, via: "workout" });
+    expect(ring(computeDailyRings({ ...base, workoutToday: true, workoutsToday: 3 }), "move").value).toBe(3);
+    // bez počtu (starší volajúci) = 1
+    expect(ring(computeDailyRings({ ...base, workoutToday: true }), "move").value).toBe(1);
+    expect(ring(computeDailyRings({ ...base, restToday: true }), "move")).toMatchObject({ value: 1, done: true, via: "rest" });
+    expect(ring(computeDailyRings({ ...base }), "move")).toMatchObject({ value: 0, done: false });
   });
 
   test("Strava: počet rôznych jedál voči cieľu, uzavretá pri >= cieľ, hodnota sa orezáva", () => {
@@ -144,7 +154,7 @@ test.describe("denné prstence: karta Dnes a odpočinok mimo tréningov", () => 
         daily: { rings, restAvailable: true, restToday: true, workoutToday: false },
       },
     );
-    expect(home.rings.map((r) => r.id)).toEqual(["meals", "protein", "move"]);
+    expect(home.rings.map((r) => r.id)).toEqual(["move", "protein", "meals"]);
     expect(home.week).toEqual({ done: 1, target: 3 });
     expect(home.rest).toEqual({ available: true, active: true, workoutToday: false });
     expect(home.xp.rings).toBe(20);

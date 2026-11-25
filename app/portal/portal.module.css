@@ -1626,27 +1626,10 @@
   overflow: hidden;
 }
 .otherTodayHead {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 16px 18px;
-  border: 0;
-  background: transparent;
-  color: var(--paper);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.otherTodayHead:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-.otherTodayText {
   display: grid;
   gap: 3px;
-  min-width: 0;
+  padding: 16px 18px 0;
+  color: var(--paper);
 }
 .otherTodayKicker {
   font-size: 11px;
@@ -1660,19 +1643,13 @@
   font-weight: 760;
   letter-spacing: -0.02em;
 }
-.otherTodayMeta {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--paper-faint);
-  font-variant-numeric: tabular-nums;
-}
-.otherTodayChevron {
-  flex: none;
-  color: var(--accent-text);
-  transition: transform 0.2s ease;
-}
-.otherTodayChevronOpen {
-  transform: rotate(180deg);
+.otherTodayPlan {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.3;
+  color: var(--paper-dim);
+  overflow-wrap: anywhere;
 }
 .otherTodayBody {
   padding: 0 18px 18px;
@@ -2857,8 +2834,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* presnú výšku (posledné 3 merania) nastaví BodyMetricForm; staršie sa posúvajú */
   max-height: 210px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.metricHistoryList > * {
+  flex-shrink: 0;
 }
 .metricHistoryRow {
   padding: 11px 14px;

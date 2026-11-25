@@ -181,6 +181,7 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
     hasTrainer,
     freezes,
     workoutHints,
+    todayWorkouts,
   } = data;
   const t = useTranslations("today");
   const locale = useLocale();
@@ -248,6 +249,13 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
           „Plán <názov>“ priamo v oranžovom poli karty, nad ňou len pri prázdnom pláne */}
       {planChoice && !session && <PlanSwitch choice={planChoice} dayId={null} />}
 
+      {/* úrovne, denné prstence a odznaky — samostatná karta nad tréningom */}
+      {gamification && (
+        <div className={s.panel} data-tour="today-levels">
+          <GamificationHome home={gamification} freezes={freezes?.available ?? null} card />
+        </div>
+      )}
+
       {/* ďalší tréning — alebo prázdna karta plánu (nový klient, prázdny plán) */}
       {session ? (
         <NextWorkout
@@ -264,8 +272,19 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
         />
       )}
 
-      {/* meranie, týždeň so sériami a Progres (graf zo záznamov meraní) */}
+      {/* dnes odcvičené tréningy mimo aktívneho plánu (iný plán, zmazaný deň) — aj bez aktívneho tréningu */}
+      {todayWorkouts && todayWorkouts.length > 0 && <OtherTodayWorkouts workouts={todayWorkouts} standalone={!session} />}
+
+      {/* týždeň so sériami, meranie a Progres (graf zo záznamov meraní) */}
       <section className={s.after} aria-label={t("overview")}>
+
+        <WeekHistory initial={week} footer={
+            <>
+              <StreakChips streaks={streaks} freezeUsed={freezes?.recentUse ?? false} />
+            </>
+          } preview={preview} />
+
+        {/* meranie pod kalendárom — posledné 3 merania, staršie sa posúvajú */}
         <div className={s.panel} data-tour="today-measure">
           <div className={s.panelHead}>
             <p className={s.panelLabel}>{t("measurement")}</p>
@@ -275,13 +294,6 @@ function Today({ data, preview = false, hiddenAppointmentId = "" }: { data: Port
           </div>
           <BodyMetricForm today={today} history={bodyMetrics} />
         </div>
-
-        <WeekHistory initial={week} footer={
-            <>
-              {gamification && <GamificationHome home={gamification} freezes={freezes?.available ?? null} />}
-              <StreakChips streaks={streaks} freezeUsed={freezes?.recentUse ?? false} />
-            </>
-          } preview={preview} />
 
         <ProgressCard history={bodyMetrics} />
       </section>

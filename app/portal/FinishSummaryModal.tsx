@@ -5,6 +5,7 @@ import { ShareButton } from "../components/ShareButton";
 import type { CelebrationId } from "@/lib/gamification/rewards";
 import { CelebrationBurst } from "./CelebrationBurst";
 import { clearFinishSummaryAction } from "./gamificationActions";
+import { useOverlayActive } from "./overlayGate";
 import g from "../components/gamification.module.css";
 import g2 from "../components/gamificationV2.module.css";
 
@@ -75,6 +76,7 @@ export function FinishSummaryModal({
   const [open, setOpen] = useState(true);
   const closeBtn = useRef<HTMLButtonElement>(null);
   const xp = useCountUp(vm.xp);
+  useOverlayActive("finish", open);
 
   const close = () => {
     setOpen(false);

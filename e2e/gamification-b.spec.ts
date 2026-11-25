@@ -386,12 +386,12 @@ test.describe("týždenný súhrn", () => {
       ...base,
       logsWeek: [
         { performedOn: "2026-11-23", entries: sets([100, 5]) },
-        { performedOn: "2026-11-23", entries: sets([50, 10]) }, // druhý tréning v ten istý deň = jeden deň
+        { performedOn: "2026-11-23", entries: sets([50, 10]) }, // druhý tréning v ten istý deň sa rátá tiež
         { performedOn: "2026-11-25", entries: sets([100, 5]) },
       ],
       logsPrev: [{ performedOn: "2026-11-17", entries: sets([100, 5]) }],
     });
-    expect(s.workouts).toEqual({ done: 2, target: 3, met: false });
+    expect(s.workouts).toEqual({ done: 3, target: 3, met: true });
     expect(s.weekEnd).toBe("2026-11-29");
     const food = s.rings.find((r) => r.id === "food")!;
     expect(food.value).toBe(2); // 30. 11. je mimo týždňa

@@ -66,7 +66,8 @@
     "restError": "Odpočinek se nepodařilo uložit, zkus to znovu.",
     "celebrate": "Všechny kruhy uzavřeny",
     "celebrateXp": "+{xp} XP",
-    "celebrateClose": "Zavřít"
+    "celebrateClose": "Zavřít",
+    "moveWorkouts": "{count, plural, few {# tréninky dnes} other {# tréninků dnes}}"
   },
   "categories": {
     "endurance": "Vytrvalost",
@@ -420,8 +421,8 @@
     "range": "{from} – {to}",
     "close": "Zavřít",
     "goalMet": "Týdenní cíl splněn. Skvělá práce!",
-    "goalProgress": "Tento týden {done} z {target} tréninkových dnů. Každý trénink se počítá.",
-    "workouts": "Tréninkové dny",
+    "goalProgress": "Tento týden {done} z {target, plural, one {# tréninku} other {# tréninků}}. Každý trénink se počítá.",
+    "workouts": "Tréninky",
     "foodDays": "Dny se zápisem jídla",
     "proteinDays": "Dny s bílkovinami",
     "prs": "Nové rekordy",
@@ -452,7 +453,7 @@
     "weekly": {
       "kicker": "Můj týden",
       "headline": "{done, plural, one {# trénink} few {# tréninky} other {# tréninků}}",
-      "workouts": "Tréninkové dny",
+      "workouts": "Tréninky",
       "prs": "Nové rekordy",
       "volume": "Zvednutý objem",
       "streak": "Týdnů v sérii"

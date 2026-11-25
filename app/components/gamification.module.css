@@ -9,6 +9,37 @@
   padding-top: 16px;
   border-top: 1px solid var(--hairline);
 }
+/* samostatná karta (Dnes, nad tréningom): bez deliacej čiary a odsadenia hore */
+.homeBlockCard {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.badgesBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--steel-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.badgesBtn::after {
+  content: "›";
+  font-size: 15px;
+  line-height: 1;
+}
+.badgesBtn:hover,
+.badgesBtn:focus-visible {
+  border-color: var(--paper-dim);
+  background: var(--ink-2);
+}
 .rings {
   display: grid;
   grid-template-columns: repeat(var(--ring-count, 3), minmax(0, 1fr));
@@ -236,6 +267,7 @@
 /* ---------- stránka Úspechy ---------- */
 .stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 .card {
@@ -803,6 +835,12 @@
   list-style: none;
   margin: 0;
   padding: 0;
+}
+/* úzky mobil — 2 stĺpce, aby sa zmestil objem („33 560 kg“) aj „67/2“ */
+@media (max-width: 400px) {
+  .wkGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .wkTile {
   display: grid;

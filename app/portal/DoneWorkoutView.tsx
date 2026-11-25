@@ -97,6 +97,7 @@ export function DoneWorkoutView({
   editableUntil,
   exercises,
   compare,
+  startCollapsed = false,
 }: {
   loggedExercises: LoggedExercise[] | null;
   compare?: CompletedCompare | null;
@@ -106,6 +107,8 @@ export function DoneWorkoutView({
   logId?: string | null;
   editableUntil?: string | null;
   exercises: PortalExercise[];
+  /** Cviky sú na začiatku zbalené (súhrn + „Zobraziť cviky“) a voľba sa si nepamätá — ďalšie dnešné tréningy. */
+  startCollapsed?: boolean;
 }) {
   const t = useTranslations("workout");
   const locale = useLocale();
@@ -113,8 +116,8 @@ export function DoneWorkoutView({
   const canEdit = !!logId && isStillEditable(editableUntil);
   // Cviky odcvičeného tréningu sa dajú zbaliť (hore ostane súhrn) — voľba pre tento záznam
   // v prehliadači; po načítaní najprv rozbalené (server nevie, čo si klient zvolil).
-  const [open, setOpen] = useState(true);
-  const collapseKey = logId ? `fitpilot.done.collapsed.v1:${logId}` : null;
+  const [open, setOpen] = useState(!startCollapsed);
+  const collapseKey = logId && !startCollapsed ? `fitpilot.done.collapsed.v1:${logId}` : null;
   useEffect(() => {
     if (!collapseKey) return;
     try {

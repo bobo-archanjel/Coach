@@ -11,7 +11,6 @@ import { MAX_STORED_FREEZES, nextReward } from "@/lib/gamification/rewards";
 import { loadBrandingForTrainer } from "@/lib/branding/server";
 import { todayIso } from "@/lib/reports/period";
 import { BadgeIcon, LockIcon } from "@/app/components/BadgeIcon";
-import { ShareButton } from "@/app/components/ShareButton";
 import { Suspense, type ReactNode } from "react";
 import { ChallengesHost } from "../ChallengesCard";
 import { LeaderboardHost } from "../LeaderboardHost";
@@ -236,7 +235,6 @@ async function Gallery({
                 </span>
                 <span className={g.shareRow}>
                   {r.highFived && <span className={g.hf}>🙌 {t("recent.highFive")}</span>}
-                  {r.kind !== "level" && <ShareButton href={`/api/gamification/share?a=${r.id}`} fileName="fitpilot-uspech.png" />}
                 </span>
               </li>
             ))}

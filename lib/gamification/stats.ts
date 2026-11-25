@@ -144,7 +144,7 @@ export interface GamificationHome {
   next: NextBadge[];
 }
 
-/** Karta Dnes: denné prstence + týždenný riadok tréningov + úroveň. Dni tréningu berie z dátumov, ktoré portál načítal pre série. */
+/** Karta Dnes: denné prstence + týždenný riadok tréningov + úroveň. Tréningy berie z dátumov (jeden na tréning, duplicity sú zámerné), ktoré portál načítal pre série. */
 export function buildGamificationHome(
   raw: GamificationRaw,
   ctx: { planDays: number | null | undefined; trainedDates: Iterable<string>; today: string; daily: TodayRings | null },
@@ -152,7 +152,8 @@ export function buildGamificationHome(
   const monday = weekStartOf(ctx.today);
   const sunday = addDaysIso(monday, 6);
   const inWeek = (d: string) => d >= monday && d <= sunday;
-  const workoutDays = new Set([...ctx.trainedDates].filter(inWeek)).size;
+  // každý dokončený tréning sa rátá (aj viac za deň, aj z vlastného plánu) — preto počet záznamov, nie unikátne dni
+  const workoutDays = [...ctx.trainedDates].filter(inWeek).length;
   const xp = computeXp({ workouts: raw.workouts, foodDays: raw.foodDays, prs: raw.prCount, badgeIds: raw.badgeIds, missionXp: raw.missionXp, ringXp: raw.ringXp });
   return {
     rings: ctx.daily?.rings ?? [],

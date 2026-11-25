@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CelebrationId } from "@/lib/gamification/rewards";
 import { CelebrationBurst } from "./CelebrationBurst";
 import { claimRingsCelebrationAction } from "./gamificationActions";
+import { useOverlayBlocked } from "./overlayGate";
 import g2 from "../components/gamificationV2.module.css";
 
 /* Oslava uzavretých denných prstencov: po načítaní server (claimRingsCelebrationAction) sám prepočíta prstence
@@ -25,6 +26,8 @@ export function RingsCelebration({
 }) {
   const [shown, setShown] = useState<{ xp: number } | null>(null);
   const started = useRef(false);
+  // toast počká na súhrn tréningu a oslavu úspechov (overlayGate.ts)
+  const blocked = useOverlayBlocked("rings");
 
   useEffect(() => {
     if (started.current) return;
@@ -48,12 +51,12 @@ export function RingsCelebration({
   }, [today]);
 
   useEffect(() => {
-    if (!shown) return;
+    if (!shown || blocked) return;
     const id = window.setTimeout(() => setShown(null), VISIBLE_MS);
     return () => window.clearTimeout(id);
-  }, [shown]);
+  }, [shown, blocked]);
 
-  if (!shown) return null;
+  if (!shown || blocked) return null;
   return (
     <div className={g2.ringsCelebrate} data-testid="rings-celebration">
       <CelebrationBurst style={style} />
