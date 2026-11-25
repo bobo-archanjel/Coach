@@ -75,6 +75,13 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-25** — **Karta Dnes: úrovne nad tréningom, všetky dnešné tréningy, úspechy rátajú každý tréning, oprava osláv** (`feature/dnes-uprava`, bez migrácie).
+  - Úrovne a denné prstence v samostatnej karte nad tréningom; poradie Pohyb → Bielkoviny → Strava; „Odznaky X z Y“ ako tlačidlo. Pohyb pri viacerých tréningoch za deň 2/1, 3/1 („2 tréningy dnes“).
+  - Dnešné tréningy zo všetkých plánov (aj z iného plánu, aj bez aktívneho plánu) s „Plán <názov>“; dlaždice cviky / série / objem / náročnosť hneď, pod nimi „Zobraziť cviky“.
+  - Meranie pod kalendárom, viditeľné posledné 3 merania (staršie sa posúvajú).
+  - Úspechy: týždenný riadok, misie a týždenný súhrn rátajú každý odcvičený tréning (aj viac za deň, aj z vlastného plánu); popis „Tréningy“.
+  - Oslava úspechov po tréningu („Výzva splnená“ …) už nezmizne sama — ukáže sa po súhrne tréningu a ostane, kým ju klient nezavrie.
+  - Úspechy: správna šírka na mobile; bez „Zdieľať“ pri Posledných úspechoch.
 - **2026-11-24** — **Šablóny: karty v štýle tréningových plánov, Uložiť ako šablónu na karte u trénera** (`feature/sablony-dizajn`, bez migrácie).
   - Klient (Tréning aj Jedálniček → Moje šablóny): karty ako plány — názov + počet tréningov / dní, súhrn (cviky spolu / priemer kcal na deň), dni v krúžkoch, rad Náhľad · Použiť · Zmazať.
   - Tréner (Šablóny): rovnaké karty; Náhľad rozbalí cviky / potraviny pri každom dni priamo v karte. Funkcie bez zmeny.
