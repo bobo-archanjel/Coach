@@ -74,9 +74,8 @@ export interface WeeklySummary {
 
 export function buildWeeklySummary(i: WeeklyInput): WeeklySummary {
   const weekEnd = addDaysIso(i.weekStart, 6);
-  const trainDays = new Set(i.logsWeek.map((l) => l.performedOn));
   const foodDays = new Set([...i.foodDates].filter((d) => d >= i.weekStart && d <= weekEnd));
-  const done = trainDays.size;
+  const done = i.logsWeek.length; // každý dokončený tréning (aj viac za deň)
   const target = Math.max(1, i.workoutTarget);
 
   const thisKg = totalVolumeKg(i.logsWeek.map((l) => ({ entries: l.entries })));

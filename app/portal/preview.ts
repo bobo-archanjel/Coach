@@ -54,6 +54,16 @@ const PREVIEW_MORNING_ENTRIES = [
   { entryId: "m2", name: "Príťahy v predklone", sets: [{ reps: 10, weight: 50 }, { reps: 10, weight: 50 }] },
 ];
 
+/** ?preview=done — tréning z iného plánu („Moje kardio + core“) odcvičený dnes. */
+const PREVIEW_OTHER_PLAN: PortalExercise[] = [
+  { idx: "1", name: "Švihadlo", scheme: "3 × 60 s", load: "vlastná váha", rest: "30 s", entryId: "o1", plannedSets: 3, plannedReps: "60 s", exerciseId: null, loadKg: null, restSeconds: 30 },
+  { idx: "2", name: "Mŕtvy chrobák", scheme: "3 × 12", load: "vlastná váha", rest: "30 s", entryId: "o2", plannedSets: 3, plannedReps: "12", exerciseId: null, loadKg: null, restSeconds: 30 },
+];
+const PREVIEW_OTHER_ENTRIES = [
+  { entryId: "o1", name: "Švihadlo", sets: [{ reps: null, weight: null, durationS: 60 }, { reps: null, weight: null, durationS: 60 }, { reps: null, weight: null, durationS: 45 }] },
+  { entryId: "o2", name: "Mŕtvy chrobák", sets: [{ reps: 12, weight: null }, { reps: 12, weight: null }, { reps: 10, weight: null }] },
+];
+
 /** Karta Dnes po odcvičení (?preview=done): čo klient naozaj zapísal. */
 const PREVIEW_DONE_ENTRIES = [
   { entryId: "p1", name: "Drep s veľkou činkou", sets: [{ reps: 6, weight: 92 }, { reps: 6, weight: 92 }, { reps: 6, weight: 90 }, { reps: 5, weight: 90 }] },
@@ -193,6 +203,21 @@ export function previewResult(kind: string): PortalResult | null {
         state: "ok",
         data: {
           ...PREVIEW_DATA,
+          todayWorkouts: [
+            {
+              logId: "preview-log-other-plan",
+              title: "Rozcvička",
+              planName: "Moje kardio + core",
+              fromOtherPlan: true,
+              completedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+              editableUntil: new Date(Date.now() + 21 * 60 * 60 * 1000).toISOString(),
+              rpe: 5,
+              note: null,
+              loggedExercises: PREVIEW_OTHER_ENTRIES,
+              compare: previewCompare(PREVIEW_OTHER_PLAN, PREVIEW_OTHER_ENTRIES),
+              exercises: PREVIEW_OTHER_PLAN,
+            },
+          ],
           session: {
             ...PREVIEW_SESSION,
             kind: "done",
@@ -203,6 +228,8 @@ export function previewResult(kind: string): PortalResult | null {
               {
                 logId: "preview-log-morning",
                 title: "Deň A — Tlak",
+                planName: "Silový 3× týždenne",
+                fromOtherPlan: false,
                 completedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
                 editableUntil: new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString(),
                 rpe: 7,

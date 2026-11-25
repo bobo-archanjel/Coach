@@ -68,3 +68,141 @@ export function computeRings(input: RingInput): Ring[] {
 export function weekDates(monday: string): string[] {
   return Array.from({ length: 7 }, (_, i) => addDaysIso(monday, i));
 }
+
+// ---------- denné prstence (karta Dnes) ----------
+// Reset každý deň (hranica dňa Europe/Bratislava — dátum dňa dodáva volajúci, tu sa nerátajú časové pásma).
+//  1. Strava      — počet RÔZNYCH jedál dňa (meal_slot) / cieľ = počet jedál za deň v aktívnom jedálničku
+//                   (bez neho 3); uzavretý pri value >= cieľ,
+//  2. Bielkoviny  — bielkoviny dnes / cieľ z nutrition_profiles; uzavretý od 90 % (viac je v poriadku).
+//                   Bez cieľa sa prstenec skryje,
+//  3. Pohyb       — uzavretý, ak klient dnes dokončil tréning ALEBO klikol „Dnes oddychujem“ (aktívny odpočinok).
+//                   Odpočinok je zámerne len vstup tohto jedného prstenca: do sérií, misií, odznakov ani reportov
+//                   nevstupuje (tie čítajú workout_logs, nie client_rest_days).
+// Žiadne odmeny za trafenie kalórií, len pozitívne správy.
+
+export type DailyRingId = "meals" | "protein" | "move";
+
+export interface DailyRing {
+  id: DailyRingId;
+  value: number;
+  goal: number;
+  /** 0–1 (orezané); bielkoviny sa plnia voči 90 % cieľa, aby bol prstenec plný presne pri uzavretí */
+  fraction: number;
+  done: boolean;
+  /** len Pohyb: čo ho zatvorilo */
+  via?: "workout" | "rest" | null;
+}
+
+/** Strava: cieľ počtu zapísaných potravín za deň (každý zápis jedla = 1 potravina). */
+export const FOOD_ITEMS_TARGET = 10;
+/** Predvolený počet jedál za deň, keď klient nemá jedálniček. */
+export const DEFAULT_MEAL_TARGET = 3;
+/** meal_slot má 6 hodnôt (raňajky … iné) — viac jedál za deň sa nedá zapísať ako rôzne. */
+export const MAX_MEAL_TARGET = 6;
+/** XP za deň s uzavretými všetkými viditeľnými prstencami (raz za deň). */
+export const XP_RINGS_DAY = 10;
+
+/**
+ * Cieľ jedál za deň z aktívneho jedálnička: `slotCounts` = počet rôznych jedál (slotov) v každom dni plánu.
+ * Berie sa dolný medián neprázdnych dní (klient nevie, ktorý deň plánu práve drží, takže cieľ nesmie byť
+ * nesplniteľný kvôli najhustejšiemu dňu); bez jedálnička 3. Orezané na 1–6.
+ */
+export function mealTargetFromPlan(slotCounts: readonly number[] | null | undefined): number {
+  const counts = (slotCounts ?? []).filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+  if (counts.length === 0) return DEFAULT_MEAL_TARGET;
+  const median = counts[Math.floor((counts.length - 1) / 2)];
+  return Math.min(MAX_MEAL_TARGET, Math.max(1, Math.floor(median)));
+}
+
+export interface DailyRingInput {
+  /** počet rôznych jedál (meal_slot) zapísaných dnes */
+  mealSlots: number;
+  mealTarget?: number | null;
+  /** počet dnes zapísaných potravín — Strava sa ráta voči FOOD_ITEMS_TARGET (10); bez neho podľa rôznych jedál */
+  foodItems?: number;
+  proteinG: number;
+  proteinTarget: number | null | undefined;
+  workoutToday: boolean;
+  /** počet dnešných dokončených tréningov (Pohyb ukáže 2/1, 3/1); bez neho 1 pri workoutToday */
+  workoutsToday?: number;
+  restToday: boolean;
+}
+
+/** Denné prstence v poradí Pohyb, Bielkoviny (len pri cieli), Strava. */
+export function computeDailyRings(i: DailyRingInput): DailyRing[] {
+  // Strava: počet zapísaných potravín voči 10 (3 rôzne jedlá sa splnili príliš rýchlo);
+  // bez foodItems (starší volajúci) pôvodne podľa rôznych jedál dňa voči cieľu z jedálnička
+  const byItems = i.foodItems != null;
+  const mealGoal = byItems ? FOOD_ITEMS_TARGET : Math.min(MAX_MEAL_TARGET, Math.max(1, Math.floor(i.mealTarget ?? DEFAULT_MEAL_TARGET)));
+  const mealValue = Math.min(mealGoal, Math.max(0, Math.floor(byItems ? (i.foodItems ?? 0) : i.mealSlots)));
+  const moved = i.workoutToday || i.restToday;
+  // viac tréningov za deň: hodnota = počet tréningov (2/1, 3/1), prstenec je plný už pri prvom
+  const workouts = i.workoutToday ? Math.max(1, Math.floor(i.workoutsToday ?? 1)) : 0;
+  const rings: DailyRing[] = [
+    {
+      id: "move",
+      value: workouts > 0 ? workouts : moved ? 1 : 0,
+      goal: 1,
+      fraction: moved ? 1 : 0,
+      done: moved,
+      via: i.workoutToday ? "workout" : i.restToday ? "rest" : null,
+    },
+  ];
+  const target = i.proteinTarget;
+  if (target != null && target > 0) {
+    const protein = Math.max(0, i.proteinG);
+    rings.push({
+      id: "protein",
+      value: Math.round(protein),
+      goal: Math.round(target),
+      fraction: Math.min(1, protein / (target * PROTEIN_MET_RATIO)),
+      done: proteinMet(protein, target),
+    });
+  }
+  rings.push({ id: "meals", value: mealValue, goal: mealGoal, fraction: mealValue / mealGoal, done: mealValue >= mealGoal });
+  return rings;
+}
+
+/** Všetky viditeľné prstence uzavreté (aspoň jeden musí existovať). */
+export function allRingsClosed(rings: readonly { done: boolean }[]): boolean {
+  return rings.length > 0 && rings.every((r) => r.done);
+}
+
+/** Oslava „Všetky kruhy uzavreté!“ sa ukáže raz za deň: zatvorené a ešte neoslávené dnes. */
+export function celebrationDue(rings: readonly { done: boolean }[], celebratedOn: string | null | undefined, today: string): boolean {
+  return allRingsClosed(rings) && celebratedOn !== today;
+}
+
+/** XP za uzavreté dni (deterministicky z počtu dní, nikdy z klienta). */
+export function ringsXp(closedDays: number): number {
+  return Math.max(0, Math.floor(closedDays)) * XP_RINGS_DAY;
+}
+
+/** Zatvorí odpočinok prstenec Pohyb? Odpočinok platí len bez dnešného tréningu (tlačidlo sa inak neukazuje). */
+export function canMarkRest(workoutToday: boolean): boolean {
+  return !workoutToday;
+}
+
+const KNOWN_SLOTS = new Set(["ranajky", "desiata", "obed", "olovrant", "vecera", "ine"]);
+
+/** Počet rôznych jedál (meal_slot) v zozname položiek dňa — pre jedálniček aj dnešné zápisy. Neznáme sloty sa ignorujú. */
+export function distinctMealSlots(items: unknown): number {
+  if (!Array.isArray(items)) return 0;
+  const slots = new Set<string>();
+  for (const it of items) {
+    const slot = (it as { meal_slot?: unknown } | null)?.meal_slot;
+    if (typeof slot === "string" && KNOWN_SLOTS.has(slot)) slots.add(slot);
+  }
+  return slots.size;
+}
+
+/** Dnešné zápisy jedla → počet jedál, počet potravín (zápisov) a súčet bielkovín (gramáž × bielkoviny na 100 g). */
+export function summarizeTodayFood(rows: { meal_slot: string; grams: number | string; protein_100g: number | string }[]): {
+  mealSlots: number;
+  foodItems: number;
+  proteinG: number;
+} {
+  let protein = 0;
+  for (const r of rows) protein += (Number(r.grams) * Number(r.protein_100g)) / 100 || 0;
+  return { mealSlots: distinctMealSlots(rows), foodItems: rows.length, proteinG: protein };
+}

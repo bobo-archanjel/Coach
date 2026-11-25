@@ -6,7 +6,7 @@ import { getMyTrainerBilling } from "@/lib/billing/server";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { LEAD_STATUSES, isLeadStatus, type LeadStatus } from "@/lib/publicPage/leads";
 import styles from "@/app/dashboard/dashboard.module.css";
-import billingStyles from "../billing.module.css";
+import { LockedNotice } from "../LockedFeature";
 import l from "./leads.module.css";
 
 /* /dashboard/zaujemcovia — záujemcovia z verejnej stránky trénera. Číta sa cez RLS (len vlastní). Bez Business
@@ -57,21 +57,7 @@ export default async function ZaujemcoviaPage({ searchParams }: { searchParams: 
       </div>
 
       {!business && all.length === 0 ? (
-        <div className={billingStyles.locked} role="note" data-testid="leads-locked">
-          <span className={billingStyles.lockIcon} aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="4" y="11" width="16" height="9" rx="2.5" />
-              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-            </svg>
-          </span>
-          <div className={billingStyles.lockBody}>
-            <strong>{t("locked.title")}</strong>
-            <p>{t("locked.text")}</p>
-            <Link href="/dashboard/predplatne" className={billingStyles.lockLink}>
-              {t("locked.upgrade")}
-            </Link>
-          </div>
-        </div>
+        <LockedNotice testId="leads-locked" title={t("locked.title")} text={t("locked.text")} linkLabel={t("locked.upgrade")} />
       ) : (
         <section className={styles.card} aria-label={t("title")} data-testid="leads-list">
           {error && <p className={l.empty}>{t("unavailable")}</p>}

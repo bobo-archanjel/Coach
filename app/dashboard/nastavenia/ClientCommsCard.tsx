@@ -48,7 +48,7 @@ function WelcomeEditor({ body, enabled }: { body: string; enabled: boolean }) {
   return (
     <form action={formAction} className={c.block} data-testid="welcome-form">
       <div className={b.field}>
-        <label className={b.label} htmlFor="welcome_message">
+        <label className={c.blockTitle} htmlFor="welcome_message">
           {t("title")}
         </label>
         <p className={b.hint}>{t("hint")}</p>
@@ -62,7 +62,7 @@ function WelcomeEditor({ body, enabled }: { body: string; enabled: boolean }) {
           maxLength={WELCOME_MESSAGE_MAX}
           rows={5}
         />
-        <span className={b.count}>
+        <span className={`${b.count}`}>
           {charLength(text)} / {WELCOME_MESSAGE_MAX}
         </span>
       </div>
@@ -114,7 +114,7 @@ function InviteEmail({ mailConfigured, invitesLeft, business }: { mailConfigured
   return (
     <form action={formAction} className={c.block} data-testid="invite-email-form">
       <div className={b.field}>
-        <span className={b.label}>{t("title")}</span>
+        <h4 className={c.blockTitle}>{t("title")}</h4>
         <p className={b.hint}>{business ? t("hintBranded") : t("hintDefault")}</p>
       </div>
       {!mailConfigured && (

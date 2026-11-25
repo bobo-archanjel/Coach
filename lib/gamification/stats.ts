@@ -25,8 +25,16 @@ import {
 } from "./badges";
 import { exerciseKeyOf, totalVolumeKg } from "./records";
 import type { LoggedEntry } from "@/lib/reports/aggregate";
-import { computeRings, proteinMet, type Ring } from "./rings";
+import { proteinMet, type DailyRing } from "./rings";
 import { computeXp, levelDetail, levelFor, type LevelDetail, type LevelInfo, type XpBreakdown } from "./xp";
+
+/** Čo karta Dnes potrebuje zo stavu dňa (podmnožina TodayRingState z ringsServer.ts — štruktúrne zhodná). */
+export interface TodayRings {
+  rings: DailyRing[];
+  restAvailable: boolean;
+  restToday: boolean;
+  workoutToday: boolean;
+}
 
 export interface StatsLog {
   id: string;
@@ -97,21 +105,34 @@ export function ringTarget(planDays: number | null | undefined): number {
 
 // ---------- karta Dnes ----------
 
-/** Surové čísla z DB pre kartu Dnes (server → čistá funkcia nižšie). */
+/** Surové čísla z DB pre kartu Dnes (XP a odznaky; denné prstence idú zo stavu dňa — lib/gamification/ringsServer.ts). */
 export interface GamificationRaw {
   workouts: number;
   foodDays: number;
   prCount: number;
   badgeIds: string[];
-  proteinTarget: number | null;
-  /** zápisy jedla aktuálneho týždňa po dňoch */
-  weekFood: { date: string; protein: number }[];
   /** XP zo splnených týždenných misií vrátane bonusov (0 bez migrácie 0084) */
   missionXp?: number;
+  /** XP za dni s uzavretými denými prstencami (0 bez migrácie 0087) */
+  ringXp?: number;
+}
+
+/** Stav tlačidla „Dnes oddychujem“ na karte Dnes. */
+export interface RestState {
+  /** tabuľka client_rest_days existuje (0087) */
+  available: boolean;
+  /** dnes je označený odpočinok */
+  active: boolean;
+  /** dnes je dokončený tréning — tlačidlo sa neukazuje */
+  workoutToday: boolean;
 }
 
 export interface GamificationHome {
-  rings: Ring[];
+  /** denné prstence (Strava, Bielkoviny, Pohyb); prázdne, keď sa dnešné dáta nepodarilo načítať */
+  rings: DailyRing[];
+  /** týždenný pohľad pod prstencami („Tento týždeň: 2/3 tréningy“) — série sú týždenné */
+  week: { done: number; target: number };
+  rest: RestState;
   xp: XpBreakdown;
   /** skupina Bronz…Diamant (kompatibilita) */
   level: LevelInfo;
@@ -123,28 +144,21 @@ export interface GamificationHome {
   next: NextBadge[];
 }
 
-/** Karta Dnes: prstence týždňa + úroveň. Dni tréningu/jedla berie z dátumov, ktoré portál načítal pre série. */
+/** Karta Dnes: denné prstence + týždenný riadok tréningov + úroveň. Tréningy berie z dátumov (jeden na tréning, duplicity sú zámerné), ktoré portál načítal pre série. */
 export function buildGamificationHome(
   raw: GamificationRaw,
-  ctx: { planDays: number | null | undefined; trainedDates: Iterable<string>; foodDates: Iterable<string>; today: string },
+  ctx: { planDays: number | null | undefined; trainedDates: Iterable<string>; today: string; daily: TodayRings | null },
 ): GamificationHome {
   const monday = weekStartOf(ctx.today);
   const sunday = addDaysIso(monday, 6);
   const inWeek = (d: string) => d >= monday && d <= sunday;
-  const workoutDays = new Set([...ctx.trainedDates].filter(inWeek)).size;
-  const foodDays = new Set([...ctx.foodDates].filter(inWeek)).size;
-  const proteinDays = new Set(
-    raw.weekFood.filter((d) => inWeek(d.date) && proteinMet(d.protein, raw.proteinTarget)).map((d) => d.date),
-  ).size;
-  const xp = computeXp({ workouts: raw.workouts, foodDays: raw.foodDays, prs: raw.prCount, badgeIds: raw.badgeIds, missionXp: raw.missionXp });
+  // každý dokončený tréning sa rátá (aj viac za deň, aj z vlastného plánu) — preto počet záznamov, nie unikátne dni
+  const workoutDays = [...ctx.trainedDates].filter(inWeek).length;
+  const xp = computeXp({ workouts: raw.workouts, foodDays: raw.foodDays, prs: raw.prCount, badgeIds: raw.badgeIds, missionXp: raw.missionXp, ringXp: raw.ringXp });
   return {
-    rings: computeRings({
-      workoutDays,
-      workoutTarget: ringTarget(ctx.planDays),
-      foodDays,
-      proteinDays,
-      proteinTarget: raw.proteinTarget,
-    }),
+    rings: ctx.daily?.rings ?? [],
+    week: { done: workoutDays, target: ringTarget(ctx.planDays) },
+    rest: { available: ctx.daily?.restAvailable ?? false, active: ctx.daily?.restToday ?? false, workoutToday: ctx.daily?.workoutToday ?? false },
     xp,
     level: levelFor(xp.total),
     detail: levelDetail(xp.total),

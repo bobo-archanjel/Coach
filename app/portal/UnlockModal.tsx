@@ -4,72 +4,88 @@ import { useEffect, useRef, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { BadgeIcon } from "../components/BadgeIcon";
 import type { BadgeIcon as BadgeIconKey } from "@/lib/gamification/badges";
-import { ShareButton } from "../components/ShareButton";
+import type { CelebrationId } from "@/lib/gamification/rewards";
+import { CelebrationBurst } from "./CelebrationBurst";
 import { markAchievementsSeenAction } from "./gamificationActions";
+import { useOverlayActive, useOverlayBlocked } from "./overlayGate";
 import g from "../components/gamification.module.css";
 import g2 from "../components/gamificationV2.module.css";
 
 /* Oslava nového rekordu / odznaku (lib/gamification). Texty prichádzajú hotové zo servera
-   (AchievementHost). Ukáže sa raz: hneď po zobrazení sa úspechy označia ako videné
-   (client_achievements.seen_at), takže obnovenie stránky ich už nezopakuje. Konfety sú čisté
-   CSS a bežia len pri prefers-reduced-motion: no-preference — inak ostane statická karta. */
+   (AchievementHost). Ukáže sa po zatvorení súhrnu tréningu a ostane, kým ho klient nezavrie; až
+   vtedy sa úspechy označia ako videné (client_achievements.seen_at), takže obnovenie ich už nezopakuje. Oslava (konfety / hviezdy /
+   ohňostroj podľa voľby klienta) je čisté CSS; pri prefers-reduced-motion len jemné zjavenie svetla. */
 
 export interface UnlockItem {
   id: string;
   icon: BadgeIconKey;
   title: string;
   sub: string;
-  /** adresa zdieľacej karty (/api/gamification/share?a=…) */
-  shareHref?: string;
   /** odomknuté odmeny (postup na vyššiu úroveň) */
   chips?: string[];
 }
 
 
-const CONFETTI = Array.from({ length: 16 }, (_, i) => ({
-  x: `${6 + ((i * 37) % 88)}%`,
-  d: `${(i % 6) * 90}ms`,
-  r: `${(i % 2 ? 1 : -1) * (200 + ((i * 53) % 260))}deg`,
-  c: ["var(--accent)", "var(--moss)", "var(--plate-yellow)", "var(--info)"][i % 4],
-}));
-
 export function UnlockModal({
-  items,
+  items: incoming,
   labels,
+  celebration: incomingCelebration = "confetti",
 }: {
+  /** úspechy zo servera; prázdne pole = nič nové (už prijaté sa v modale držia ďalej) */
   items: UnlockItem[];
-  labels: { close: string; next: string; aria: string; viewAll: string; positions: string[] };
+  /** zvolený štýl oslavy (rewards.ts); pri prefers-reduced-motion jednoduché zjavenie svetla */
+  celebration?: CelebrationId;
+  labels: { close: string; next: string; aria: string; viewAll: string; position: string };
 }) {
   const [index, setIndex] = useState(0);
-  const [open, setOpen] = useState(true);
+  // „záchytka“: prijaté úspechy ostávajú v stave, kým ich klient nezavrie — obnovenie layoutu (server už vráti
+  // prázdny zoznam, lebo úspechy sú označené ako videné) modal nezruší
+  const [items, setItems] = useState<UnlockItem[]>(incoming);
+  const [celebration, setCelebration] = useState<CelebrationId>(incomingCelebration);
+  const dismissed = useRef<Set<string>>(new Set());
   const primary = useRef<HTMLButtonElement>(null);
-  const sent = useRef(false);
+
+  const fresh = incoming.filter((i) => !dismissed.current.has(i.id) && !items.some((x) => x.id === i.id));
+  if (fresh.length > 0) {
+    setItems([...items, ...fresh]);
+    setCelebration(incomingCelebration);
+  }
+
+  // ukáže sa až po zatvorení súhrnu tréningu (overlayGate.ts)
+  const blocked = useOverlayBlocked("unlock");
+  const open = items.length > 0;
+  const visible = open && !blocked;
+  useOverlayActive("unlock", open);
+
+  const close = () => {
+    if (items.length === 0) return;
+    const ids = items.map((i) => i.id);
+    ids.forEach((id) => dismissed.current.add(id));
+    setItems([]);
+    setIndex(0);
+    void markAchievementsSeenAction(ids);
+  };
 
   useEffect(() => {
-    if (sent.current) return;
-    sent.current = true;
-    void markAchievementsSeenAction(items.map((i) => i.id));
-  }, [items]);
+    if (visible) primary.current?.focus();
+  }, [visible, index]);
 
   useEffect(() => {
-    if (open) primary.current?.focus();
-  }, [open, index]);
-
-  useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, items]);
 
-  if (!open || items.length === 0) return null;
+  if (!visible) return null;
   const item = items[Math.min(index, items.length - 1)];
   const last = index >= items.length - 1;
 
   return (
-    <div className={g.scrim} onClick={() => setOpen(false)} data-testid="unlock-modal">
+    <div className={g.scrim} onClick={() => close()} data-testid="unlock-modal">
       <div
         className={g.dialog}
         role="dialog"
@@ -77,11 +93,7 @@ export function UnlockModal({
         aria-label={labels.aria}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={g.confetti} aria-hidden="true">
-          {CONFETTI.map((c, i) => (
-            <i key={i} style={{ ["--x" as string]: c.x, ["--d" as string]: c.d, ["--r" as string]: c.r, ["--c" as string]: c.c }} />
-          ))}
-        </div>
+        <CelebrationBurst style={celebration} />
         <div className={g.dialogIcon} aria-hidden="true">
           <BadgeIcon icon={item.icon} />
         </div>
@@ -96,24 +108,21 @@ export function UnlockModal({
             ))}
           </ul>
         )}
-        {item.shareHref && (
-          <div className={g.shareRow} style={{ justifyContent: "center", marginBottom: 12 }}>
-            <ShareButton href={item.shareHref} fileName="fitpilot-uspech.png" />
-          </div>
-        )}
         <div className={g.dialogActions}>
           <button
             ref={primary}
             type="button"
             className="btn btn-primary"
-            onClick={() => (last ? setOpen(false) : setIndex(index + 1))}
+            onClick={() => (last ? close() : setIndex(index + 1))}
           >
             {last ? labels.close : labels.next}
           </button>
-          {items.length > 1 && <span className={g.dialogPos}>{labels.positions[Math.min(index, items.length - 1)]}</span>}
-          <Link href="/portal/uspechy" className={g.moreLink} onClick={() => setOpen(false)}>
-            {labels.viewAll}
-          </Link>
+          <div className={g.dialogSecondary}>
+            <Link href="/portal/uspechy" className={g.moreLink} onClick={() => close()}>
+              {labels.viewAll}
+            </Link>
+          </div>
+          {items.length > 1 && <span className={g.dialogPos}>{labels.position.replace("{index}", String(Math.min(index, items.length - 1) + 1)).replace("{total}", String(items.length))}</span>}
         </div>
       </div>
     </div>

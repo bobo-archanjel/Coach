@@ -7,7 +7,7 @@ export default function PrivacyCs() {
   return (
     <>
       <h1>Zásady ochrany osobních údajů</h1>
-      <p className={styles.updated}>Poslední aktualizace: 24. listopadu 2026</p>
+      <p className={styles.updated}>Poslední aktualizace: 25. listopadu 2026</p>
 
       <div className={styles.draftNotice}>
         <strong>Toto je pracovní návrh (draft).</strong> Nejde o právně závazný text schválený právníkem.
@@ -177,6 +177,10 @@ export default function PrivacyCs() {
         <li>
           Pokud požádáš o smazání účtu (trenér i klient mají tuto možnost přímo v aplikaci), data natrvalo
           smažeme do 30 dní (ochranná lhůta, během které můžeš žádost zrušit).
+        </li>
+        <li>
+          Účty, jejichž e-mail nebyl do 7 dnů ověřen a nikdo se do nich nikdy nepřihlásil, automaticky
+          mažeme.
         </li>
         <li>
           <strong>Poptávky zájemců</strong> z veřejných stránek se automaticky mažou po 12 měsících od

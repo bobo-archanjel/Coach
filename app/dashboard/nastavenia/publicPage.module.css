@@ -111,6 +111,7 @@
   padding-top: 18px;
   margin-top: 4px;
   border-top: 1px solid var(--hairline);
+  min-width: 0;
 }
 .groupTitle {
   margin: 0;
@@ -132,9 +133,50 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 13px;
+}
+.itemNum {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--fill-strong);
+  font-size: 12px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--paper-dim);
+}
+.itemRemove {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.itemRemove:hover {
+  background: var(--fill-strong);
+  color: var(--paper);
+}
+.itemRemove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* vizuálne 28 px, dotyková plocha 44 px */
+.itemRemove::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+/* „Pridať“ pod zoznamom položiek — šírka podľa obsahu, nie na celú kartu */
+.addBtn {
+  align-self: flex-start;
 }
 .gallery {
   display: grid;
@@ -182,4 +224,11 @@
 .thumbRemove:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 1px;
+}
+
+/* odstránenie miniatúry: vizuálne 28 px, dotyková plocha 44 px */
+.thumbRemove::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
 }

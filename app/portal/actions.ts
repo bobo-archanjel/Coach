@@ -594,8 +594,9 @@ export async function addFoodLogAction(_prevState: ActionState, formData: FormDa
 
   // gamifikácia: séria dní so zápisom, týždeň s cieľom bielkovín — oslava (ak nejaká padla)
   // sa ukáže po obnovení layoutu portálu
-  const fresh = await syncGamification(supabase, { clientId }, "food");
-  if (fresh > 0) revalidatePath("/portal", "layout");
+  await syncGamification(supabase, { clientId }, "food");
+  // layout sa obnoví vždy: nový zápis môže zatvoriť posledný denný prstenec (oslava v RingsHost) aj odznak
+  revalidatePath("/portal", "layout");
   revalidatePath("/portal/dennik");
   return ok;
 }
@@ -624,7 +625,8 @@ export async function updateFoodLogAction(_prevState: ActionState, formData: For
 
   // zvýšená gramáž môže doplniť cieľ bielkovín dňa — odznak „týždeň bielkovín“
   const owner = await currentClientId(supabase);
-  if (owner && (await syncGamification(supabase, { clientId: owner }, "food")) > 0) revalidatePath("/portal", "layout");
+  if (owner) await syncGamification(supabase, { clientId: owner }, "food");
+  revalidatePath("/portal", "layout"); // vyššia gramáž môže doplniť cieľ bielkovín → posledný denný prstenec
   revalidatePath("/portal/dennik");
   return ok;
 }

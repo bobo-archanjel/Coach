@@ -99,9 +99,13 @@ export function drawBarChart(
   const top = Math.max(o.max ?? 0, o.refLine?.value ?? 0, ...bars.map((b) => b.value ?? 0), 1);
   const yOf = (v: number) => plotB + (v / top) * (plotT - plotB);
   const slot = (plotR - plotL) / bars.length;
-  const barW = Math.max(2, slot * 0.66);
+  // úzke stĺpce pri málo hodnotách — široké bloky by pôsobili ťažko; pri hustom grafe sa držia pri slote
+  const barW = Math.max(2, Math.min(slot * 0.62, 30));
   const labelEvery = bars.length <= 12 ? 1 : Math.ceil(bars.length / 10);
   const showValues = bars.length <= 14;
+  // popisok vodiacej čiary nesmie prekryť hodnotu stĺpca — takú hodnotu radšej vynecháme
+  const refW = o.refLine ? o.regular.widthOfTextAtSize(o.refLine.label, 7.5) : 0;
+  const refY = o.refLine ? yOf(o.refLine.value) : 0;
 
   page.drawLine({ start: { x: plotL, y: plotB }, end: { x: plotR, y: plotB }, thickness: 0.8, color: COLORS.line });
   bars.forEach((b, i) => {
@@ -109,7 +113,12 @@ export function drawBarChart(
     if (b.value != null && b.value > 0) {
       const h = Math.max(1.5, yOf(b.value) - plotB);
       page.drawRectangle({ x: cx - barW / 2, y: plotB, width: barW, height: h, color });
-      if (showValues) text(page, o.fmtValue(b.value), cx, plotB + h + 3, o.semibold, 7.5, COLORS.dim, "center");
+      if (showValues) {
+        const vw = o.semibold.widthOfTextAtSize(o.fmtValue(b.value), 7.5);
+        const vy = plotB + h + 3;
+        const hitsRef = o.refLine && cx + vw / 2 > plotR - refW - 4 && vy < refY + 12 && vy + 8 > refY;
+        if (!hitsRef) text(page, o.fmtValue(b.value), cx, vy, o.semibold, 7.5, COLORS.dim, "center");
+      }
     }
     if (i % labelEvery === 0) text(page, b.label, cx, box.yTop - box.height + 3, o.regular, 7.5, COLORS.faint, "center");
   });

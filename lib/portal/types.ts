@@ -135,6 +135,10 @@ export interface PortalNextAppointment {
 export interface TodayOtherWorkout {
   logId: string;
   title: string;
+  /** názov plánu, z ktorého tréning je (živý deň alebo snapshot); null = neznámy */
+  planName?: string | null;
+  /** tréning patrí do iného plánu než aktívny (iný trénerov / vlastný plán, zmazaný deň) */
+  fromOtherPlan?: boolean;
   completedAt: string | null;
   /** do kedy ho klient smie opraviť (24 h, 0049); null = už nie */
   editableUntil: string | null;
@@ -202,6 +206,9 @@ export interface PortalData {
   /** ďalší / dnešný tréning aktívneho plánu; null = klient plán nemá (alebo je prázdny) —
    *  Dnes vtedy ukáže prázdnu kartu plánu, prehľad a týždeň ostávajú */
   session: TodaySession | null;
+  /** dnes odcvičené tréningy mimo aktívneho plánu (najnovší prvý) — karty pod hlavnou kartou,
+   *  aj keď `session` je null; logy aktívneho plánu sú v `session.otherToday` */
+  todayWorkouts?: TodayOtherWorkout[];
   /** má priradeného trénera — prázdna karta plánu: „plán je na ceste“ vs. „vytvor si vlastný“ */
   hasTrainer: boolean;
   week: WeekView;

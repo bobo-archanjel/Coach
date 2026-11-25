@@ -183,7 +183,8 @@
     "tiles": {
       "sessions": "Tréninky",
       "plan": "Splnění plánu",
-      "nutrition": "Strava v pásmu ±10 %",
+      "nutrition": "Strava v cíli",
+      "planSub": "{met} z {counted} týdnů",
       "weight": "Změna váhy"
     },
     "noMeasurements": "V tomto období nejsou žádná měření.",

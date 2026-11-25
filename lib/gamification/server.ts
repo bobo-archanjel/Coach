@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
-import { addDaysIso, todayIso, weekStartOf } from "@/lib/reports/period";
+import { addDaysIso, todayIso } from "@/lib/reports/period";
 import {
   EMPTY_BADGE_STATS,
   buildBadgeViews,
@@ -19,7 +19,6 @@ import { detectPersonalRecords, summarizeRecords, type PrEvent, type RecordSumma
 import {
   buildGamificationHome,
   computeBadgeStats,
-  proteinByDay,
   ringTarget,
   type GamificationHome,
   type GamificationRaw,
@@ -28,6 +27,7 @@ import {
 import { challengeNameOf, levelFromOf, levelOf, type AchievementKind } from "./kinds";
 import { computeXp, levelDetail, levelFor, type LevelDetail, type LevelInfo, type XpBreakdown } from "./xp";
 import { syncChallenges } from "./challengesServer";
+import { loadRingsXp } from "./ringsServer";
 import { loadMissionXp, syncMissions, type MissionsResult } from "./missionsServer";
 import { grantFreezes, loadFreezes, type FreezeState } from "./freezesServer";
 import { freezeSourcesForLevel } from "./rewards";
@@ -142,11 +142,12 @@ export function emptyReport(): SyncReport {
 /** XP z databázy (rovnaké zložky ako karta Dnes); null = nedostupné. */
 export async function loadXpBreakdown(supabase: Sb, clientId: string): Promise<XpBreakdown | null> {
   try {
-    const [totals, badges, prs, missionXp] = await Promise.all([
+    const [totals, badges, prs, missionXp, ringXp] = await Promise.all([
       supabase.rpc("gamification_totals", { p_client_id: clientId }),
       supabase.from("client_achievements").select("badge_id").eq("client_id", clientId).eq("kind", "badge"),
       supabase.from("client_achievements").select("id", { count: "exact", head: true }).eq("client_id", clientId).eq("kind", "pr"),
       loadMissionXp(supabase, clientId),
+      loadRingsXp(supabase, clientId),
     ]);
     if (totals.error || badges.error || prs.error) return null;
     const t = (Array.isArray(totals.data) ? totals.data[0] : totals.data) as { workouts: number | string; food_days: number | string } | null;
@@ -156,6 +157,7 @@ export async function loadXpBreakdown(supabase: Sb, clientId: string): Promise<X
       prs: prs.count ?? 0,
       badgeIds: (badges.data ?? []).map((r) => r.badge_id as string),
       missionXp,
+      ringXp,
     });
   } catch {
     return null;
@@ -386,34 +388,26 @@ function prRow(clientId: string, e: PrEvent, silent: boolean, nowIso: string) {
 // ---------- karta Dnes ----------
 
 /**
- * Surové čísla pre kartu Dnes — jeden súbeh dopytov (stav, súčty, odznaky, počet rekordov,
- * cieľ bielkovín, jedlo tohto týždňa). `null` = gamifikácia nedostupná (migrácia nebeží).
- * Pri prvom zobrazení klienta s históriou najprv prebehne tichý backfill.
+ * Surové čísla pre kartu Dnes — jeden súbeh dopytov (stav, súčty, odznaky, počet rekordov, XP z misií a prstencov).
+ * Denné prstence sa načítajú zvlášť (lib/gamification/ringsServer.ts, loadTodayRings). `null` = gamifikácia
+ * nedostupná (migrácia nebeží). Pri prvom zobrazení klienta s históriou najprv prebehne tichý backfill.
  */
-export async function loadGamificationRaw(supabase: Sb, ctx: SyncContext, today: string): Promise<GamificationRaw | null> {
+export async function loadGamificationRaw(supabase: Sb, ctx: SyncContext, _today: string): Promise<GamificationRaw | null> {
   try {
-    const monday = weekStartOf(today);
-    const sunday = addDaysIso(monday, 6);
     const fetchAll = () =>
       Promise.all([
         supabase.from("client_gamification").select("client_id").eq("client_id", ctx.clientId).maybeSingle(),
         supabase.rpc("gamification_totals", { p_client_id: ctx.clientId }),
         supabase.from("client_achievements").select("badge_id").eq("client_id", ctx.clientId).eq("kind", "badge"),
         supabase.from("client_achievements").select("id", { count: "exact", head: true }).eq("client_id", ctx.clientId).eq("kind", "pr"),
-        supabase.from("nutrition_profiles").select("protein_g").eq("client_id", ctx.clientId).maybeSingle(),
-        supabase
-          .from("food_logs")
-          .select("eaten_on, grams, protein_100g")
-          .eq("client_id", ctx.clientId)
-          .gte("eaten_on", monday)
-          .lte("eaten_on", sunday),
         loadMissionXp(supabase, ctx.clientId),
+        loadRingsXp(supabase, ctx.clientId),
       ]);
-    let [state, totals, badges, prs, profile, week, missionXp] = await fetchAll();
+    let [state, totals, badges, prs, missionXp, ringXp] = await fetchAll();
     if (state.error || totals.error || badges.error || prs.error) return null;
     if (!state.data) {
       await syncGamification(supabase, ctx, "workout");
-      [state, totals, badges, prs, profile, week, missionXp] = await fetchAll();
+      [state, totals, badges, prs, missionXp, ringXp] = await fetchAll();
       if (state.error || totals.error || badges.error || prs.error) return null;
     }
     const t = (Array.isArray(totals.data) ? totals.data[0] : totals.data) as { workouts: number | string; food_days: number | string } | null;
@@ -422,9 +416,8 @@ export async function loadGamificationRaw(supabase: Sb, ctx: SyncContext, today:
       foodDays: Number(t?.food_days ?? 0),
       prCount: prs.count ?? 0,
       badgeIds: (badges.data ?? []).map((r) => r.badge_id as string),
-      proteinTarget: profile.data?.protein_g != null ? Number(profile.data.protein_g) : null,
-      weekFood: proteinByDay((week.data ?? []) as { eaten_on: string; grams: number; protein_100g: number }[]),
       missionXp,
+      ringXp,
     };
   } catch {
     return null;
@@ -588,7 +581,7 @@ export async function loadGalleryData(supabase: Sb, ctx: SyncContext, today: str
       achievedOn: r.achieved_on,
     })),
   );
-  const xp = computeXp({ workouts: raw.workouts, foodDays: raw.foodDays, prs: raw.prCount, badgeIds: raw.badgeIds, missionXp: raw.missionXp });
+  const xp = computeXp({ workouts: raw.workouts, foodDays: raw.foodDays, prs: raw.prCount, badgeIds: raw.badgeIds, missionXp: raw.missionXp, ringXp: raw.ringXp });
   return {
     badges: buildBadgeViews(earnedOn, stats ?? undefined).map((b) => ({ ...b, backfilled: backfilledBy.get(b.id) ?? false })),
     stats: stats ?? EMPTY_BADGE_STATS,

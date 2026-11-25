@@ -57,6 +57,19 @@ import {
   themeUnlocked,
   unlockedFrames,
   unlockedThemes,
+  ANIMATED_FRAMES,
+  CELEBRATION_IDS,
+  CELEBRATION_LEVEL,
+  FLAME_HOT_STREAK,
+  TITLE_MIN_LEVEL,
+  celebrationUnlocked,
+  effectiveCelebration,
+  effectiveTitle,
+  isCelebrationId,
+  normalizeTitleLevel,
+  titleUnlocked,
+  unlockedCelebrations,
+  unlockedTitles,
 } from "../lib/gamification/rewards";
 import {
   MEASUREMENT_STALE_DAYS,
@@ -272,7 +285,7 @@ test.describe("týždenné misie", () => {
       logs: [
         { performedOn: "2026-11-22", entries: sets("Drep", [100, 5]) }, // minulý týždeň — nepočíta sa
         { performedOn: "2026-11-23", entries: sets("Drep", [100, 5], [100, 5]) },
-        { performedOn: "2026-11-23", entries: sets("Bench", [60, 10]) }, // druhý tréning v ten istý deň = jeden deň
+        { performedOn: "2026-11-23", entries: sets("Bench", [60, 10]) }, // druhý tréning v ten istý deň sa rátá tiež
         { performedOn: "2026-11-25", entries: sets("Drep", [100, 5]) },
       ],
       foodDates: ["2026-11-22", "2026-11-23", "2026-11-24"],
@@ -280,8 +293,8 @@ test.describe("týždenné misie", () => {
       prEvents: [{ exerciseKey: "drep", achievedOn: "2026-11-24" }],
       bodyMetricDates: ["2026-11-20"],
     };
-    expect(missionProgress(row("workouts", 3), data)).toEqual({ value: 2, goal: 3, done: false });
-    expect(missionProgress(row("workouts", 2), data).done).toBe(true);
+    expect(missionProgress(row("workouts", 4), data)).toEqual({ value: 3, goal: 4, done: false });
+    expect(missionProgress(row("workouts", 3), data).done).toBe(true);
     expect(missionProgress(row("food_days", 3), data)).toEqual({ value: 2, goal: 3, done: false }); // 22. 11. je minulý týždeň
     expect(missionProgress(row("protein_days", 1), data).done).toBe(true);
     expect(missionProgress(row("pr_exercise", 1, { exerciseKey: "drep" }), data).done).toBe(true);
@@ -684,10 +697,10 @@ test.describe("úrovne a odmeny", () => {
     expect(FREEZE_LEVELS).toEqual([4, 8, 12, 16, 20]);
     expect(rewardsAt(4)).toMatchObject({ freezes: 1, frames: ["mint"] });
     expect(rewardsAt(3)).toMatchObject({ freezes: 0, themes: ["ocean"] });
-    expect(rewardsAt(2)).toEqual({ frames: ["ember"], themes: [], freezes: 0 });
+    expect(rewardsAt(2)).toEqual({ frames: ["ember"], themes: [], celebrations: [], titles: [], freezes: 0 });
     // preskočené úrovne: odmeny za všetky
     const jump = rewardsBetween(1, 9);
-    expect(jump.frames).toEqual(["ember", "mint", "steel", "gold"]);
+    expect(jump.frames).toEqual(["ember", "glow", "mint", "steel", "gold"]);
     expect(jump.freezes).toBe(2);
     expect(freezeSourcesForLevel(9)).toEqual(["level:4", "level:8"]);
     expect(nextReward(1)).toMatchObject({ level: 2 });
@@ -717,7 +730,8 @@ test.describe("úrovne a odmeny", () => {
     expect(layout).toContain("const themeActive = !branding && cosmetics.theme");
     expect(layout).toContain("data-fp-theme={themeActive ? cosmetics.theme : undefined}");
     // so značkou téma farbí len rámik avatara
-    expect(layout).toContain("const tinted = Boolean(branding)");
+    // klient so značkou témy nemá — ani tónovanie rámika témou (rámik má vlastné pevné farby)
+    expect(layout).not.toContain("const tinted");
     const css = readFileSync("app/components/clientThemes.module.css", "utf8");
     expect(css).toContain(".themed.themed:global([data-fp-theme");
   });
@@ -902,8 +916,8 @@ test.describe("celoappkový rebríček", () => {
       ]),
     );
     expect(board.top).toEqual([
-      { rank: 1, name: "Železná Jana", value: 5, isMe: false },
-      { rank: 2, name: "Peter K.", value: 3, isMe: true },
+      { rank: 1, name: "Železná Jana", value: 5, isMe: false, title: null },
+      { rank: 2, name: "Peter K.", value: 3, isMe: true, title: null },
     ]);
     const json = JSON.stringify(board);
     expect(json).not.toContain("id-a");
@@ -1026,10 +1040,12 @@ test.describe("migrácia 0084, súkromie a zápisy len cez server", () => {
     expect(lb).toContain("toPublicBoard(");
     expect(lb).not.toContain("leaderboard_enabled");
     const actions = readFileSync("app/portal/gamificationActions.ts", "utf8");
-    for (const fn of ["setNicknameAction", "setFrameAction", "setThemeAction"]) expect(actions).toContain(`export async function ${fn}`);
+    for (const fn of ["setNicknameAction", "setFrameAction", "setThemeAction", "setCelebrationAction", "setTitleAction"]) expect(actions).toContain(`export async function ${fn}`);
     expect(actions).toContain("validateNickname(raw)");
     expect(actions).toContain("frameUnlocked(frame, level)");
     expect(actions).toContain("themeUnlocked(theme, level)");
+    expect(actions).toContain("celebrationUnlocked(style, level)");
+    expect(actions).toContain("titleUnlocked(titleLevel, level)");
     expect(actions).toContain("tryCreateAdminClient()");
     const missions = readFileSync("lib/gamification/missionsServer.ts", "utf8");
     expect(missions).toContain('onConflict: "client_id,week_start,slot"');
@@ -1066,5 +1082,198 @@ test.describe("migrácia 0084, súkromie a zápisy len cez server", () => {
     }
     // nastavenie rebríčka u trénera už neexistuje
     expect(Object.keys(skMessages.leaderboard)).not.toContain("trainer");
+  });
+});
+
+
+// ================================================================ odmeny pre klientov so značkou trénera
+test.describe("odmeny: klient so značkou vs. bez značky", () => {
+  const THEME_LEVELS = Object.values(THEME_LEVEL).filter((l) => l > 1);
+
+  test("klient so značkou nedostane žiadnu tému (ani oznam), bez značky ich dostane všetky", () => {
+    for (let to = 1; to <= 20; to++) {
+      expect(rewardsBetween(0, to, true).themes, `značka, úroveň ${to}`).toEqual([]);
+    }
+    expect(rewardsBetween(0, 20, false).themes).toEqual(THEME_IDS.filter((t) => t !== "default"));
+    expect(rewardsAt(3, true).themes).toEqual([]);
+    expect(rewardsAt(3, false).themes).toEqual(["ocean"]);
+  });
+
+  test("na každej úrovni, kde sa odomyká téma, má klient so značkou aspoň jednu náhradnú odmenu", () => {
+    for (const lvl of THEME_LEVELS) {
+      const r = rewardsAt(lvl, true);
+      expect(r.themes).toEqual([]);
+      const alt = r.frames.filter((f) => ANIMATED_FRAMES.includes(f)).length + r.celebrations.length + r.titles.length;
+      expect(alt, `úroveň ${lvl}`).toBeGreaterThan(0);
+    }
+    expect(rewardsAt(3, true).frames).toEqual(["glow"]);
+    expect(rewardsAt(7, true).celebrations).toEqual(["stars"]);
+    expect(rewardsAt(10, true).titles).toEqual([10]);
+    expect(rewardsAt(13, true).frames).toEqual(["flame"]);
+    expect(rewardsAt(17, true).celebrations).toEqual(["fireworks"]);
+  });
+
+  test("náhradné odmeny dostávajú aj klienti bez značky (rovnaké + témy navyše)", () => {
+    for (let lvl = 1; lvl <= 20; lvl++) {
+      const b = rewardsAt(lvl, true);
+      const n = rewardsAt(lvl, false);
+      expect(n.frames).toEqual(b.frames);
+      expect(n.celebrations).toEqual(b.celebrations);
+      expect(n.titles).toEqual(b.titles);
+      expect(n.freezes).toBe(b.freezes);
+    }
+  });
+
+  test("nextReward pre klienta so značkou nikdy nehlási tému", () => {
+    for (let lvl = 1; lvl < 20; lvl++) {
+      const nr = nextReward(lvl, true);
+      if (nr) expect(nr.rewards.themes).toEqual([]);
+    }
+    // úroveň 2 → ďalšia odmena na 3: bez značky téma Oceán, so značkou rámik Žiara
+    expect(nextReward(2, false)!.rewards.themes).toEqual(["ocean"]);
+    expect(nextReward(2, true)!.rewards).toMatchObject({ frames: ["glow"], themes: [] });
+    expect(nextReward(20, true)).toBeNull();
+  });
+
+  test("animované rámiky: Žiara od 3, Plameň od 13; zvyšné rámiky ostávajú", () => {
+    expect(FRAME_LEVEL.glow).toBe(3);
+    expect(FRAME_LEVEL.flame).toBe(13);
+    expect(isFrameId("glow")).toBe(true);
+    expect(isFrameId("flame")).toBe(true);
+    expect(unlockedFrames(3)).toContain("glow");
+    expect(unlockedFrames(12)).not.toContain("flame");
+    expect(effectiveFrame("flame", 12)).toBe("none");
+    expect(effectiveFrame("flame", 13)).toBe("flame");
+    expect(FLAME_HOT_STREAK).toBe(8);
+  });
+
+  test("štýl osláv: konfety od začiatku, hviezdy od 7, ohňostroj od 17; neplatná/zamknutá voľba padá na konfety", () => {
+    expect(CELEBRATION_IDS).toEqual(["confetti", "stars", "fireworks"]);
+    expect(CELEBRATION_LEVEL).toEqual({ confetti: 1, stars: 7, fireworks: 17 });
+    expect(unlockedCelebrations(1)).toEqual(["confetti"]);
+    expect(unlockedCelebrations(7)).toEqual(["confetti", "stars"]);
+    expect(unlockedCelebrations(20)).toEqual([...CELEBRATION_IDS]);
+    expect(celebrationUnlocked("fireworks", 16)).toBe(false);
+    expect(isCelebrationId("stars")).toBe(true);
+    expect(isCelebrationId("<img>")).toBe(false);
+    expect(effectiveCelebration("fireworks", 10)).toBe("confetti");
+    expect(effectiveCelebration("stars", 10)).toBe("stars");
+    expect(effectiveCelebration(null, 20)).toBe("confetti");
+  });
+
+  test("titul: dostupný od úrovne 10, len titul dosiahnutej úrovne; server nepustí neodomknutý ani neplatný", () => {
+    expect(TITLE_MIN_LEVEL).toBe(10);
+    expect(unlockedTitles(9)).toEqual([]);
+    expect(unlockedTitles(12)).toEqual([10, 11, 12]);
+    expect(unlockedTitles(20)).toHaveLength(11);
+    expect(titleUnlocked(12, 12)).toBe(true);
+    expect(titleUnlocked(13, 12)).toBe(false);
+    expect(titleUnlocked(9, 20)).toBe(false); // nižšie tituly (Nováčik…) sa ako štítok nevyberajú
+    expect(titleUnlocked(21, 20)).toBe(false);
+    expect(normalizeTitleLevel(10.5)).toBeNull();
+    expect(normalizeTitleLevel("12")).toBeNull();
+    expect(normalizeTitleLevel(12)).toBe(12);
+    expect(effectiveTitle(14, 12)).toBeNull();
+    expect(effectiveTitle(12, 12)).toBe(12);
+    expect((skMessages.levelTitles as Record<string, string>)["12"]).toBe("Titan");
+  });
+
+  test("riadky rebríčka nesú len číslo titulu (nie text, id ani meno); neplatný titul sa zahodí", () => {
+    const ranking = {
+      top: [
+        { id: "c1", rank: 1, value: 5 },
+        { id: "c2", rank: 2, value: 4 },
+        { id: "c3", rank: 3, value: 3 },
+      ],
+      me: null,
+      total: 3,
+    };
+    const names = new Map([
+      ["c1", { nickname: "Lenka", fullName: "Lenka Nová", title: 12 }],
+      ["c2", { nickname: null, fullName: "Peter Starý", title: 4 }], // pod úrovňou 10 → neplatné
+      ["c3", { nickname: "Bez", fullName: null }],
+    ]);
+    const board = toPublicBoard("workoutsWeek", ranking, "c1", names);
+    expect(board.top[0]).toEqual({ rank: 1, name: "Lenka", value: 5, isMe: true, title: 12 });
+    expect(board.top[1].title).toBeNull();
+    expect(board.top[2].title).toBeNull();
+    expect(JSON.stringify(board)).not.toMatch(/c1|c2|Nová|Starý/);
+  });
+
+  test("texty odmien existujú v SK aj CS", () => {
+    for (const lang of [skMessages, csMessages]) {
+      for (const c of CELEBRATION_IDS) expect((lang.celebrations as Record<string, string>)[c], c).toBeTruthy();
+      expect(lang.frames.glow).toBeTruthy();
+      expect(lang.frames.flame).toBeTruthy();
+      for (const k of ["celebrationsTitle", "titlesTitle", "titlesHint", "titlesLocked", "titleNone"]) expect((lang.rewards as unknown as Record<string, string>)[k], k).toBeTruthy();
+      expect(lang.rewards.item.celebration).toBeTruthy();
+      expect(lang.rewards.item.title).toBeTruthy();
+    }
+  });
+
+  test("UI: sekcia Farba portálu sa pre klienta so značkou nevykreslí (bez poznámky aj zamknutých položiek)", () => {
+    const card = readFileSync("app/portal/RewardsCard.tsx", "utf8");
+    expect(card).toMatch(/\{!branded && \(\s*<div className=\{g2\.rewardGroup\}>\s*<h3 className=\{g2\.rewardGroupTitle\}>\{t\("rewards\.themesTitle"\)\}/);
+    expect(card).not.toContain("brandedNote");
+    expect(card).toContain("setCelebrationAction");
+    expect(card).toContain("setTitleAction");
+    const actions = readFileSync("app/portal/gamificationActions.ts", "utf8");
+    // server vynúti: klient so značkou tému neuloží
+    expect(actions).toContain('if (await isBrandedClient(clientId)) return { ok: false, error: "locked" };');
+  });
+
+  test("migrácia 0086: idempotentná, nové stĺpce s CHECK, rozšírené rámiky; kód funguje aj bez nej", () => {
+    const sql = readFileSync("supabase/migrations/0086_rewards_branded.sql", "utf8");
+    expect(sql).toContain("add column if not exists celebration_style");
+    expect(sql).toContain("add column if not exists leaderboard_title");
+    expect(sql).toContain("between 10 and 20");
+    expect(sql).toContain("drop constraint if exists gamification_settings_avatar_frame_check");
+    expect(sql).not.toMatch(/drop table|delete from|truncate/i);
+    for (const f of FRAME_IDS) expect(sql, f).toContain(`'${f}'`);
+    // odolnosť: čítanie spadne na pôvodné stĺpce, rebríček na dopyt bez titulu
+    expect(readFileSync("lib/gamification/cosmeticsServer.ts", "utf8")).toContain("full.error");
+    expect(readFileSync("lib/gamification/leaderboardServer.ts", "utf8")).toContain("st0.error");
+  });
+
+  test("CSS: animované rámiky a oslavy majú statickú náhradu pri prefers-reduced-motion, pohyb len transform/opacity", () => {
+    const css = readFileSync("app/components/gamificationV2.module.css", "utf8");
+    const animAt = css.search(/[.]frameGlow::after [{]\r?\n\s+animation/);
+    expect(animAt).toBeGreaterThan(-1);
+    // animácia rámikov je len v bloku prefers-reduced-motion: no-preference
+    expect(css.slice(css.lastIndexOf("@media", animAt), animAt)).toContain("prefers-reduced-motion: no-preference");
+    // statický vzhľad (bez animácie) existuje mimo médií
+    expect(css).toMatch(/\.frameGlow::after \{[^}]*opacity: 0\.6/);
+    expect(css).toMatch(/\.frameFlame::after \{[^}]*opacity: 0\.55/);
+    expect(css).toContain(".frameFlameHot");
+    // keyframes animovaných rámikov a osláv menia len transform a opacity
+    for (const name of ["g2GlowPulse", "g2Flicker", "g2CelebFall", "g2CelebTwinkle", "g2CelebBurst", "g2CelebFade"]) {
+      const start = css.indexOf(`@keyframes ${name}`);
+      expect(start, name).toBeGreaterThan(-1);
+      let depth = 0;
+      let end = css.indexOf("{", start);
+      for (let i = end; i < css.length; i++) {
+        if (css[i] === "{") depth++;
+        if (css[i] === "}" && --depth === 0) {
+          end = i;
+          break;
+        }
+      }
+      const props = [...css.slice(start, end).matchAll(/^\s+([a-z-]+):/gm)].map((m) => m[1]);
+      for (const p of props) expect(["opacity", "transform"], `${name}: ${p}`).toContain(p);
+    }
+    // oslava: častice sa zobrazia len pri povolenom pohybe, inak jednoduché zjavenie (opacity)
+    expect(css).toMatch(/\.celebP \{\s*display: none;/);
+    expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*\.celebFade \{\s*display: none;/);
+    expect(css).toMatch(/\.celebFade \{[^}]*animation: g2CelebFade/);
+    // žiadne hrubé jednostranné farebné pruhy
+    expect(css).not.toMatch(/\.(celeb|titlePill|frameGlow|frameFlame)[^{]*\{[^}]*border-(left|right|top|bottom): [2-9]px/);
+  });
+
+  test("oslavy sa používajú v UnlockModal, FinishSummaryModal a pri rekorde v sérii; layout nesie data-celebration", () => {
+    expect(readFileSync("app/portal/UnlockModal.tsx", "utf8")).toContain("<CelebrationBurst style={celebration} />");
+    expect(readFileSync("app/portal/FinishSummaryModal.tsx", "utf8")).toContain("<CelebrationBurst style={vm.celebration} />");
+    expect(readFileSync("app/portal/WorkoutSetsFields.tsx", "utf8")).toContain("g2.prSpark");
+    expect(readFileSync("app/portal/layout.tsx", "utf8")).toContain("data-celebration={cosmetics.celebration}");
+    expect(readFileSync("app/portal/LeaderboardCard.tsx", "utf8")).toContain("g2.titlePill");
   });
 });

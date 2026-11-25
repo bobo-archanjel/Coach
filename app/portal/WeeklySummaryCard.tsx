@@ -35,7 +35,7 @@ export function WeeklySummaryCard({ summary, dismissible = true }: { summary: We
         {dismissible && (
           <button
             type="button"
-            className="btn btn-ghost btn-sm"
+            className={g.wkClose}
             onClick={() => {
               setOpen(false);
               void markWeeklySummarySeenAction(summary.weekStart);

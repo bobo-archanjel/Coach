@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { CSSProperties } from "react";
 import { AppLink as Link } from "@/app/components/AppLink";
 import { createClient, getMyClient, getUser } from "@/lib/supabase/server";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
@@ -14,6 +15,9 @@ import g from "@/app/components/gamification.module.css";
 
 const dateShort = (iso: string, locale: Locale) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString(intlLocale(locale), { day: "numeric", month: "numeric", timeZone: "UTC" });
+
+const whenShort = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleString(intlLocale(locale), { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" });
 
 export async function ChallengesHost({ compact = false }: { compact?: boolean }) {
   const {
@@ -49,7 +53,7 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
                 aria-valuenow={percent}
                 aria-label={t("barAria", { name: c.name, percent })}
               >
-                <span className={g.barFill} style={{ width: `${percent}%` }} />
+                <span className={g.barFill} style={{ "--p": percent / 100 } as CSSProperties} />
               </div>
               <p className={g.chDesc}>
                 {(t as unknown as (k: string, v: { target: number }) => string)(`metric.${c.metric}`, { target: c.target })}
@@ -64,7 +68,10 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
                 ) : c.state === "upcoming" ? (
                   <span>{t("startsOn", { date: dateShort(c.startsOn, locale) })}</span>
                 ) : (
-                  <span>{t("endsOn", { date: dateShort(c.endsOn, locale) })}</span>
+                  <span>
+                    {t("endsOn", { date: dateShort(c.endsOn, locale) })}
+                    {compact ? null : ` · ${t("countsFrom", { when: whenShort(c.countsFrom, locale) })}`}
+                  </span>
                 )}
               </div>
             </li>
@@ -72,9 +79,11 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
         })}
       </ul>
       {compact ? (
-        <p className={g.chDesc}>
-          {total > items.length ? `${t("more", { count: total - items.length })} ` : ""}
-          <Link href="/portal/uspechy">{t("seeAll")}</Link>
+        <p className={g.chMore}>
+          <span>{total > items.length ? t("more", { count: total - items.length }) : null}</span>
+          <Link href="/portal/uspechy" className={`${g.moreLink} ${g.moreLinkChev}`}>
+            {t("seeAll")}
+          </Link>
         </p>
       ) : null}
     </section>

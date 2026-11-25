@@ -9,6 +9,7 @@ import { allowedLeaderboardMetrics } from "./limits";
 import { defaultNickname, displayNickname } from "./nickname";
 import { cachedStreakValid, streakSnapshot } from "./streakCache";
 import { GLOBAL_TOP_N, toPublicBoard, type GlobalRanking, type RankedRow } from "./leaderboardGlobal";
+import { normalizeTitleLevel } from "./rewards";
 import type { Board, LeaderboardMetric } from "./leaderboard";
 
 // FitPilot — CELOAPPKOVÝ rebríček klientov, serverová časť (gamifikácia v2, rozhodnutie vlastníka).
@@ -138,17 +139,22 @@ export async function loadLeaderboard(
 
     // mená len pre klientov, ktorí sa dostali do TOP N (najviac 4 × 10)
     const ids = [...new Set(rankings.flatMap((r) => r.top.map((t) => t.id)))];
-    const names = new Map<string, { nickname: string | null; fullName: string | null }>();
+    const names = new Map<string, { nickname: string | null; fullName: string | null; title: number | null }>();
     if (ids.length > 0) {
-      const [cl, st] = await Promise.all([
+      const [cl, st0] = await Promise.all([
         admin.from("clients").select("id, full_name").in("id", ids),
-        admin.from("gamification_settings").select("client_id, nickname").in("client_id", ids),
+        admin.from("gamification_settings").select("client_id, nickname, leaderboard_title").in("client_id", ids),
       ]);
+      // migrácia 0086 (stĺpec leaderboard_title) ešte nebeží → rebríček funguje bez titulov
+      const st = st0.error ? await admin.from("gamification_settings").select("client_id, nickname").in("client_id", ids) : st0;
       if (cl.error || st.error) return none;
-      for (const c of (cl.data ?? []) as { id: string; full_name: string | null }[]) names.set(c.id, { nickname: null, fullName: c.full_name });
-      for (const s of (st.data ?? []) as { client_id: string; nickname: string | null }[]) {
+      for (const c of (cl.data ?? []) as { id: string; full_name: string | null }[]) names.set(c.id, { nickname: null, fullName: c.full_name, title: null });
+      for (const s of (st.data ?? []) as { client_id: string; nickname: string | null; leaderboard_title?: number | null }[]) {
         const cur = names.get(s.client_id);
-        if (cur) cur.nickname = s.nickname;
+        if (cur) {
+          cur.nickname = s.nickname;
+          cur.title = normalizeTitleLevel(s.leaderboard_title);
+        }
       }
     }
     const boards: Partial<Record<LeaderboardMetric, Board>> = {};

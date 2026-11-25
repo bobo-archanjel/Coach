@@ -7,7 +7,7 @@ import { ClientMultiSelect, type PickerClient } from "../ClientMultiSelect";
 import { useBilling } from "../BillingContext";
 import { CHALLENGE_METRICS, targetBounds, type ChallengeMetric } from "@/lib/gamification/challenges";
 import { createChallengeAction } from "./actions";
-import g from "@/app/components/gamification.module.css";
+import v from "./vyzvy.module.css";
 
 /* Nová výzva: názov, typ z pevnej množiny, cieľ, obdobie, komu (všetci / vybraní). Server
    všetko znovu overí (tarifa, vlastníctvo klientov, rozsahy) — tu je len pohodlie a rýchla spätná väzba. */
@@ -71,13 +71,13 @@ export function ChallengeForm({
   }
 
   return (
-    <form className={g.tcForm} onSubmit={submit} data-testid="challenge-form">
-      <div className={g.tcFields}>
-        <label className={g.tcField}>
+    <form className={v.form} onSubmit={submit} data-testid="challenge-form">
+      <div className={v.fields}>
+        <label className={v.field}>
           {t("form.name")}
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required placeholder={t("form.namePlaceholder")} />
         </label>
-        <label className={g.tcField}>
+        <label className={v.field}>
           {t("form.metric")}
           <select value={metric} onChange={(e) => setMetric(e.target.value as ChallengeMetric)}>
             {CHALLENGE_METRICS.map((m) => (
@@ -88,7 +88,7 @@ export function ChallengeForm({
             ))}
           </select>
         </label>
-        <label className={g.tcField}>
+        <label className={v.field}>
           {t("form.target")}
           <input
             type="number"
@@ -100,28 +100,29 @@ export function ChallengeForm({
             onChange={(e) => setTarget(e.target.value)}
             required
           />
-          <span className={g.tcHint}>{bounds ? t("form.targetHint", { min: bounds.min, max: bounds.max }) : t(`metricHint.${metric}`)}</span>
+          <span className={v.hint}>{bounds ? t("form.targetHint", { min: bounds.min, max: bounds.max }) : t(`metricHint.${metric}`)}</span>
         </label>
-        <label className={g.tcField}>
+        <label className={v.field}>
           {t("form.startsOn")}
-          <input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} required />
+          <input type="date" value={startsOn} min={today} onChange={(e) => setStartsOn(e.target.value)} required />
+          <span className={v.hint}>{t("form.startsOnHint")}</span>
         </label>
-        <label className={g.tcField}>
+        <label className={v.field}>
           {t("form.endsOn")}
           <input type="date" value={endsOn} min={startsOn} onChange={(e) => setEndsOn(e.target.value)} required />
         </label>
       </div>
-      <p className={g.tcHint}>{t(`metricHint.${metric}`)}</p>
+      <p className={v.formHint}>{t(`metricHint.${metric}`)}</p>
 
-      <label className={g.tcField}>
+      <label className={v.field}>
         {t("form.description")}
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={300} rows={2} />
       </label>
 
       {canSelectClients && (
-        <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend className={g.tcHint}>{t("form.who")}</legend>
-          <div className={g.tcRadio}>
+        <fieldset className={v.who}>
+          <legend>{t("form.who")}</legend>
+          <div className={v.radio}>
             <label>
               <input type="radio" name="who" checked={everyone} onChange={() => setEveryone(true)} />
               {t("form.everyone")}
@@ -133,16 +134,16 @@ export function ChallengeForm({
           </div>
         </fieldset>
       )}
-      {!canSelectClients && <p className={g.tcHint}>{t("form.everyoneOnly")}</p>}
+      {!canSelectClients && <p className={v.formHint}>{t("form.everyoneOnly")}</p>}
       {canSelectClients && !everyone && <ClientMultiSelect clients={clients} selected={selected} onChange={setSelected} name="client_ids" />}
 
       {error && (
-        <p className={g.tcErr} role="alert">
+        <p className={v.err} role="alert">
           {error}
         </p>
       )}
       {done && (
-        <p className={g.tcOk} role="status">
+        <p className={v.ok} role="status">
           {t("form.created")}
         </p>
       )}

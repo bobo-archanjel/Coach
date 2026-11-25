@@ -652,6 +652,7 @@ export function WorkoutSetsFields({
                     </div>
                     {checkable && !timed && checked[exIdx]?.[rowIdx] === true && isNewPersonalRecord(hints?.[exerciseKeyOf(ex.name)], parseWeight(row.weight).value, parseReps(row.reps).value) && (
                       <p className={g2.prFlare} role="status" data-testid="pr-flare">
+                        <i className={g2.prSpark} aria-hidden="true" />
                         {th("newRecord")}
                       </p>
                     )}

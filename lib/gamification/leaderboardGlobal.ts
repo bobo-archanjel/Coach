@@ -12,6 +12,7 @@
 
 import type { Board, BoardRow, LeaderboardMetric } from "./leaderboard";
 import { displayNickname } from "./nickname";
+import { normalizeTitleLevel } from "./rewards";
 
 export const GLOBAL_TOP_N = 10;
 
@@ -58,12 +59,12 @@ export function toPublicBoard(
   metric: LeaderboardMetric,
   ranking: GlobalRanking,
   meClientId: string,
-  names: ReadonlyMap<string, { nickname: string | null; fullName: string | null }>,
+  names: ReadonlyMap<string, { nickname: string | null; fullName: string | null; title?: number | null }>,
   fallbackName = "—",
 ): Board {
   const top: BoardRow[] = ranking.top.map((r) => {
     const n = names.get(r.id);
-    return { rank: r.rank, name: displayNickname(n?.nickname, n?.fullName, fallbackName), value: r.value, isMe: r.id === meClientId };
+    return { rank: r.rank, name: displayNickname(n?.nickname, n?.fullName, fallbackName), value: r.value, isMe: r.id === meClientId, title: normalizeTitleLevel(n?.title) };
   });
   return { metric, top, me: ranking.me ? { rank: ranking.me.rank, value: ranking.me.value } : null, total: ranking.total };
 }

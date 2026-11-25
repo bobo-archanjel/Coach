@@ -8,7 +8,6 @@ import { LogoMark } from "../components/LogoMark";
 import { PasswordRequirements } from "../components/PasswordRequirements";
 import { useLoadingMessage } from "../components/useLoadingMessage";
 import { TurnstileScript, useTurnstile } from "../components/Turnstile";
-import { createClient } from "@/lib/supabase/client";
 import { checkPassword, type PasswordIssue } from "@/lib/passwordStrength";
 import { loginAction, registerAction, syncRecoveryLocaleAction, type LoginState, type RegisterState } from "./actions";
 import styles from "./auth.module.css";
@@ -132,6 +131,9 @@ function validate(form: HTMLFormElement, fieldNames: string[]) {
   return { invalid, hasInvalid };
 }
 
+/** Supabase prehliadačový klient sa sťahuje až pri prvom použití (Google / zabudnuté heslo) — nie v prvom načítaní prihlásenia (~60 kB gzip). */
+const loadSupabase = () => import("@/lib/supabase/client").then((m) => m.createClient());
+
 /**
  * Prihlásenie / registrácia / zabudnuté heslo na /prihlasenie (dizajn v6, koreň s témou
  * v layout.tsx — téma sa prepína na landing page); po prihlásení vždy /portal alebo /dashboard.
@@ -140,7 +142,6 @@ export function AuthView() {
   const t = useTranslations("auth");
   const tp = useTranslations("password");
   const router = useRouter();
-  const [supabase] = useState(() => createClient());
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
   // Gmail prihlásenie (feature/login) — presmerovanie na providera, návrat ide
@@ -154,6 +155,7 @@ export function AuthView() {
     // bez roly = záložka Prihlásenie → callback nový účet nezaloží (oauth_error=not_registered)
     if (role) redirectTo.searchParams.set("role", role);
     else redirectTo.searchParams.set("mode", "login");
+    const supabase = await loadSupabase();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: redirectTo.toString() },
@@ -291,6 +293,7 @@ export function AuthView() {
     // Supabase Auth má zapnutú CAPTCHA — čerstvý jednorazový token ide priamo do Supabase
     const captchaToken = forgotTurnstile.getToken();
     forgotTurnstile.reset();
+    const supabase = await loadSupabase();
     const { error } = await supabase.auth.resetPasswordForEmail(emailEl.value, {
       redirectTo: `${window.location.origin}/prihlasenie/nove-heslo`,
       ...(captchaToken ? { captchaToken } : {}),

@@ -117,10 +117,10 @@
     "removedTitle": "Trenér tě odebral ze svého portfolia",
     "removedText": "Tvoje tréninkové plány, jídelníčky, cíl maker i zápisy zůstaly v aplikaci a můžeš ji používat samostatně. S novým trenérem se propojíš kódem v Profilu."
   },
-  "otherTodayMeta": "Cviky {done}/{total} · série {sets}",
-  "otherTodayShow": "Zobrazit trénink {name}",
-  "otherTodayHide": "Skrýt trénink {name}",
   "otherTodayKicker": "Další dnešní trénink",
+  "otherPlanKicker": "Dnešní trénink z jiného plánu",
+  "todayWorkoutKicker": "Dnešní trénink",
+  "otherPlanName": "Plán {name}",
   "calendar": {
     "title": "Kalendář",
     "prev": "Předchozí 2 týdny",

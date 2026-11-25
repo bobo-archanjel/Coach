@@ -21,6 +21,8 @@ import { brandIconPath, brandObjectPath, isOwnBrandPath, isOwnIconPath, sniffIma
 import { extractPalette, meanOpaqueColor, pickIconBackground } from "../lib/branding/palette";
 import { ICON_LOGO_RATIO, paletteFromLogo, renderAppIcons } from "../lib/branding/appIcons";
 import { buildDefaultManifest, buildPortalManifest, shortBrandName, DEFAULT_ICONS } from "../lib/branding/manifest";
+import { dashboardBrand } from "../lib/branding/dashboard";
+import { brandStyle } from "../lib/branding/theme";
 import { pickLogoVariant } from "../lib/branding/logoVariant";
 import type { PublicBranding } from "../lib/branding/types";
 import { brandingAvailableForClients, type SubscriptionRow } from "../lib/billing/entitlements";
@@ -481,5 +483,45 @@ test.describe("splash portálu", () => {
     await expect(link).toHaveCount(1);
     await expect(link).toHaveAttribute("href", "/portal/manifest.webmanifest");
     await expect(link).toHaveAttribute("crossorigin", "use-credentials");
+  });
+});
+
+test.describe("značka trénera v jeho dashboarde", () => {
+  const full: PublicBranding = {
+    brandName: "Fit s Majom",
+    welcomeText: "",
+    logoUrl: "https://x.test/logo.webp",
+    logoDarkUrl: "https://x.test/logo-dark.webp",
+    photoUrl: null,
+    icons: null,
+    theme: deriveBrandTheme("#2f6fed"),
+  };
+
+  test("značku vidno len keď je k dispozícii (Business) — inak predvolený FitPilot", () => {
+    // loader vracia null bez Business (rovnaká brána ako portál) → v navigácii ostáva FitPilot
+    expect(brandingAvailableForClients(sub({ tier: "pro" }), NOW)).toBe(false);
+    expect(dashboardBrand(null)).toBeNull();
+    expect(dashboardBrand(undefined)).toBeNull();
+    expect(brandingAvailableForClients(sub({ tier: "business", status: "canceled", comped: true }), NOW)).toBe(true);
+    expect(dashboardBrand(full)).toEqual({ name: "Fit s Majom", logoUrl: "https://x.test/logo.webp", logoDarkUrl: "https://x.test/logo-dark.webp" });
+  });
+
+  test("len farba (bez názvu a loga) nemení logo; prázdna značka = FitPilot", () => {
+    const colorOnly: PublicBranding = { ...full, brandName: "", logoUrl: null, logoDarkUrl: null };
+    expect(dashboardBrand(colorOnly)).toBeNull();
+    expect(brandStyle(colorOnly.theme)).toBeTruthy();
+    expect(dashboardBrand({ ...full, logoUrl: null, logoDarkUrl: null })).toEqual({ name: "Fit s Majom", logoUrl: null, logoDarkUrl: null });
+    expect(dashboardBrand({ ...full, brandName: "" })?.logoUrl).toBe("https://x.test/logo.webp");
+  });
+
+  test("akcentové tokeny sú tie isté ako v portáli a čitateľné v oboch témach", () => {
+    const vars = brandStyle(full.theme) as Record<string, string>;
+    expect(vars).toEqual(brandStyle(deriveBrandTheme("#2f6fed")));
+    expect(Object.keys(vars).every((k) => k.startsWith("--brand-"))).toBe(true);
+    const t = full.theme!;
+    expect(contrastRatio(t.light.text, "#f2ece6")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(t.light.on, t.light.accent)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(t.dark.on, t.dark.accent)).toBeGreaterThanOrEqual(4.5);
+    expect(brandStyle(null)).toBeUndefined();
   });
 });

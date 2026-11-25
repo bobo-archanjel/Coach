@@ -20,6 +20,8 @@ export interface XpInput {
   badgeIds: Iterable<string>;
   /** súčet XP zo splnených týždenných misií vrátane bonusu (ukladá ho server pri splnení) */
   missionXp?: number;
+  /** XP za dni s uzavretými denými prstencami (počet riadkov client_ring_days × XP_RINGS_DAY; 0 bez migrácie 0087) */
+  ringXp?: number;
 }
 
 export interface XpBreakdown {
@@ -29,6 +31,8 @@ export interface XpBreakdown {
   prs: number;
   badges: number;
   missions: number;
+  /** dni so všetkými uzavretými prstencami */
+  rings: number;
 }
 
 // Staré ID odznakov z fázy A (workouts_25, streak_4w…) ostávajú v DB, preto sa XP za ne
@@ -49,7 +53,8 @@ export function computeXp(input: XpInput): XpBreakdown {
     if (rarity) badges += XP_BADGE[rarity];
   }
   const missions = Math.max(0, Math.floor(input.missionXp ?? 0));
-  return { total: workouts + food + prs + badges + missions, workouts, food, prs, badges, missions };
+  const rings = Math.max(0, Math.floor(input.ringXp ?? 0));
+  return { total: workouts + food + prs + badges + missions + rings, workouts, food, prs, badges, missions, rings };
 }
 
 export type LevelId = "bronze" | "silver" | "gold" | "platinum" | "diamond";

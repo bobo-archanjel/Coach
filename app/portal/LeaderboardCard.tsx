@@ -26,6 +26,7 @@ export function LeaderboardCard({
   me: { nickname: string | null; defaultName: string; shownName: string };
 }) {
   const t = useTranslations("gamification.leaderboard");
+  const tg = useTranslations("gamification");
   const router = useRouter();
   const [metric, setMetric] = useState<LeaderboardMetric>("workoutsWeek");
   const [pending, start] = useTransition();
@@ -86,6 +87,11 @@ export function LeaderboardCard({
               <span className={g.lbName}>
                 {r.name}
                 {r.isMe ? ` (${t("you")})` : ""}
+                {r.title != null && (
+                  <span className={g2.titlePill} data-testid="lb-title">
+                    {tg(`levelTitles.${r.title}` as never)}
+                  </span>
+                )}
               </span>
               <span className={g.lbVal}>{t(`unit.${active}`, { count: r.value })}</span>
             </li>

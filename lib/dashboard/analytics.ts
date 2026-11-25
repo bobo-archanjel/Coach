@@ -8,6 +8,22 @@ import { todayInTz, addDays, iso, ON_TRACK_MIN_PCT, ON_TRACK_MAX_PCT, sessionCom
 
 const WINDOW_DAYS = 90;
 
+// PostgREST vracia najviac 1000 riadkov na dopyt (Supabase predvolene) — a ticho. Zápisy jedla za 90 dní naprieč
+// klientmi to prekročia už pri pár klientoch (4 zápisy/deň × 90 dní = 360 riadkov na klienta), takže adherencia
+// stravy by sa počítala z náhodne orezanej vzorky. Preto sa veľké dopyty čítajú po stránkach so stabilným poradím (id).
+const PAGE = 1000;
+const MAX_PAGES = 40;
+async function fetchAllPages<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+  const out: T[] = [];
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const { data, error } = await build(page * PAGE, page * PAGE + PAGE - 1);
+    if (error) return { data: null, error };
+    out.push(...(data ?? []));
+    if (!data || data.length < PAGE) break;
+  }
+  return { data: out, error: null };
+}
+
 export interface ClientAnalyticsRow {
   nutritionPct30: number | null; // null = klient nemá makro cieľ
   nutritionPct90: number | null;
@@ -36,25 +52,37 @@ export async function getClientAnalyticsOverview(clientIds: string[]): Promise<M
     { data: metricRows, error: metricErr },
   ] = await Promise.all([
     supabase.from("nutrition_profiles").select("client_id, calories_target").in("client_id", clientIds),
-    supabase
-      .from("food_logs")
-      .select("client_id, eaten_on, grams, kcal_100g, protein_100g, carbs_100g, fat_100g")
-      .in("client_id", clientIds)
-      .gte("eaten_on", historyStart)
-      .lte("eaten_on", isoDate),
-    supabase
-      .from("workout_logs")
-      .select("client_id, performed_on, workout_day_id, entries, workout_days(exercises)")
-      .in("client_id", clientIds)
-      .gte("performed_on", historyStart)
-      .lte("performed_on", isoDate),
-    supabase
-      .from("body_metrics")
-      .select("client_id, measured_on, weight_kg")
-      .in("client_id", clientIds)
-      .gte("measured_on", historyStart)
-      .lte("measured_on", isoDate)
-      .order("measured_on", { ascending: true }),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("food_logs")
+        .select("client_id, eaten_on, grams, kcal_100g, protein_100g, carbs_100g, fat_100g")
+        .in("client_id", clientIds)
+        .gte("eaten_on", historyStart)
+        .lte("eaten_on", isoDate)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("workout_logs")
+        .select("client_id, performed_on, workout_day_id, entries, workout_days(exercises)")
+        .in("client_id", clientIds)
+        .gte("performed_on", historyStart)
+        .lte("performed_on", isoDate)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("body_metrics")
+        .select("client_id, measured_on, weight_kg")
+        .in("client_id", clientIds)
+        .gte("measured_on", historyStart)
+        .lte("measured_on", isoDate)
+        .order("measured_on", { ascending: true })
+        .order("id")
+        .range(from, to),
+    ),
   ]);
 
   if (profErr || foodErr || logErr || metricErr) return null;

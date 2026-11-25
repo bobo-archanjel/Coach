@@ -16,6 +16,39 @@ export function TierBadge({ feature }: { feature: Feature }) {
   return <span className={styles.tierBadge}>{t("lock.badge", { tier: t(`tiers.${tier}`) })}</span>;
 }
 
+/** Jemná zamknutá karta: ikona zámku, názov, voliteľný text a odkaz na Predplatné. */
+export function LockedNotice({
+  title,
+  text,
+  linkLabel,
+  testId,
+  feature,
+}: {
+  title: string;
+  text?: string;
+  linkLabel: string;
+  testId: string;
+  feature?: string;
+}) {
+  return (
+    <div className={styles.locked} role="note" data-testid={testId} data-feature={feature}>
+      <span className={styles.lockIcon} aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4" y="11" width="16" height="9" rx="2.5" />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+      </span>
+      <div className={styles.lockBody}>
+        <strong>{title}</strong>
+        {text && <p>{text}</p>}
+        <Link href="/dashboard/predplatne" className={styles.lockLink}>
+          {linkLabel}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Obal okolo funkcie: ak ju tarifa odomyká, vykreslí deti; inak kartu s vysvetlením a CTA.
  * Pri read-only účte (vypršaná skúška, nezaplatené, nad limitom) je text o obnove predplatného.
@@ -27,21 +60,13 @@ export function FeatureGate({ feature, children }: { feature: Feature; children:
 
   const tier = t(`tiers.${minTierFor(feature)}`);
   return (
-    <div className={styles.locked} role="note" data-testid="feature-locked" data-feature={feature}>
-      <span className={styles.lockIcon} aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="4" y="11" width="16" height="9" rx="2.5" />
-          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-        </svg>
-      </span>
-      <div className={styles.lockBody}>
-        <strong>{billing.readOnly ? t("lock.readOnly") : t("lock.aiTitle", { tier })}</strong>
-        {!billing.readOnly && <p>{t("lock.aiText", { tier })}</p>}
-        <Link href="/dashboard/predplatne" className={styles.lockLink}>
-          {t("lock.upgrade")}
-        </Link>
-      </div>
-    </div>
+    <LockedNotice
+      testId="feature-locked"
+      feature={feature}
+      title={billing.readOnly ? t("lock.readOnly") : t("lock.aiTitle", { tier })}
+      text={billing.readOnly ? undefined : t("lock.aiText", { tier })}
+      linkLabel={t("lock.upgrade")}
+    />
   );
 }
 
@@ -50,21 +75,10 @@ export function ClientLimitNotice() {
   const t = useTranslations("billing");
   const billing = useBilling();
   return (
-    <div className={styles.locked} role="note" data-testid="client-limit-locked">
-      <span className={styles.lockIcon} aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="4" y="11" width="16" height="9" rx="2.5" />
-          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-        </svg>
-      </span>
-      <div className={styles.lockBody}>
-        <strong>
-          {billing.readOnly ? t("lock.addClientReadOnly") : t("lock.clientLimit", { limit: billing.clientLimit ?? 0 })}
-        </strong>
-        <Link href="/dashboard/predplatne" className={styles.lockLink}>
-          {t("lock.upgrade")}
-        </Link>
-      </div>
-    </div>
+    <LockedNotice
+      testId="client-limit-locked"
+      title={billing.readOnly ? t("lock.addClientReadOnly") : t("lock.clientLimit", { limit: billing.clientLimit ?? 0 })}
+      linkLabel={t("lock.upgrade")}
+    />
   );
 }

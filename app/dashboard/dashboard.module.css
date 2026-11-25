@@ -3714,3 +3714,38 @@ select.addClientInputSm {
   flex-wrap: wrap;
   gap: 10px;
 }
+
+/* ---------- značka trénera (Business) v navigácii ---------- */
+.sidebarBrand {
+  gap: 9px;
+  min-width: 0;
+}
+.sidebarBrand .brandText {
+  margin-left: 0;
+}
+.brandTextBranded {
+  min-width: 0;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebarPowered {
+  margin: -14px 0 0;
+}
+.poweredMobile {
+  display: none;
+}
+@media (max-width: 880px) {
+  .brandTextBranded {
+    max-width: min(46vw, 220px);
+  }
+  /* „Beží na FitPilot“ je v bočnom paneli len na počítači; na mobile pod Nastaveniami */
+  .sidebarPowered {
+    display: none;
+  }
+  .poweredMobile {
+    display: block;
+    margin: 12px 0 0;
+  }
+}

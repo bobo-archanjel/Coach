@@ -204,6 +204,8 @@ export async function saveBrandingAction(_prev: BrandingState, formData: FormDat
 
   revalidatePath("/dashboard/nastavenia");
   revalidatePath("/portal", "layout");
+  // tréner vidí svoju značku aj v dashboarde (bočný panel, akcent) — hneď po uložení
+  revalidatePath("/dashboard", "layout");
   const palette = processed.logo ? await paletteFromLogo(processed.logo) : [];
   return { error: null, saved: true, palette };
 }

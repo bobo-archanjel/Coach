@@ -1,0 +1,229 @@
+/* /dashboard/vyzvy — formulár novej výzvy a zoznam výziev. Polia a karty v rovnakom jazyku ako
+   pridanie klienta a zoznam klientov (dashboard.module.css); tokeny v6. */
+.stack {
+  display: grid;
+  gap: 16px;
+}
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.cardHead h3 {
+  margin: 0;
+}
+.counter {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.notice {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  color: var(--paper-dim);
+}
+
+/* ---------- formulár ---------- */
+.form {
+  display: grid;
+  gap: 14px;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 10px;
+  align-items: start;
+}
+.field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.field input,
+.field select,
+.field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--hairline);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-1);
+  color: var(--paper);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+}
+.field textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--paper-faint);
+}
+.formHint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+}
+.who {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.who legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.radio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 13.5px;
+  color: var(--paper);
+}
+.radio label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.radio input {
+  accent-color: var(--accent);
+}
+.err {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+.ok {
+  margin: 0;
+  font-size: 13px;
+  color: var(--moss);
+}
+
+/* ---------- zoznam ---------- */
+.item {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--surface-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+.itemHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.itemName {
+  font-size: 15px;
+  font-weight: 720;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+.itemMeta {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.chip {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--fill-strong);
+  color: var(--paper-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.chipActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+.done {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--accent-text);
+}
+.summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.parts {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.part {
+  display: grid;
+  grid-template-columns: minmax(90px, 1.2fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--paper);
+}
+.partVal {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--paper-faint);
+  white-space: nowrap;
+}
+.btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .part {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .part > :nth-child(2) {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}

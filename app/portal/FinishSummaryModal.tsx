@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ShareButton } from "../components/ShareButton";
+import type { CelebrationId } from "@/lib/gamification/rewards";
+import { CelebrationBurst } from "./CelebrationBurst";
 import { clearFinishSummaryAction } from "./gamificationActions";
+import { useOverlayActive } from "./overlayGate";
 import g from "../components/gamification.module.css";
 import g2 from "../components/gamificationV2.module.css";
 
@@ -24,6 +27,9 @@ export interface FinishVM {
   freezeText: string | null;
   levelText: string | null;
   shareHref: string;
+  /** zvolený štýl osláv a či sa oslava vôbec ukáže (rekord / úroveň / splnená misia / bonus) */
+  celebration: CelebrationId;
+  celebrate: boolean;
 }
 
 function useCountUp(target: number, durationMs = 900): number {
@@ -70,6 +76,7 @@ export function FinishSummaryModal({
   const [open, setOpen] = useState(true);
   const closeBtn = useRef<HTMLButtonElement>(null);
   const xp = useCountUp(vm.xp);
+  useOverlayActive("finish", open);
 
   const close = () => {
     setOpen(false);
@@ -92,6 +99,7 @@ export function FinishSummaryModal({
   return (
     <div className={g.scrim} style={{ zIndex: 90 }} onClick={close} data-testid="finish-summary">
       <div className={`${g.dialog} ${g2.fsDialog}`} role="dialog" aria-modal="true" aria-label={labels.aria} onClick={(e) => e.stopPropagation()}>
+        {vm.celebrate && <CelebrationBurst style={vm.celebration} />}
         <h2 className={g2.fsTitle}>{labels.title}</h2>
         <p className={g2.fsSub}>{labels.sub}</p>
 
@@ -111,7 +119,7 @@ export function FinishSummaryModal({
             <span className={g2.fsLab}>{labels.sets}</span>
           </li>
           <li className={g2.fsTile}>
-            <span className={g2.fsNum}>{vm.prs > 0 ? `🔥 ${vm.prs}` : vm.prs}</span>
+            <span className={`${g2.fsNum} ${vm.prs > 0 ? g2.fsNumHot : ""}`}>{vm.prs}</span>
             <span className={g2.fsLab}>{labels.prs}</span>
           </li>
           <li className={`${g2.fsTile} ${g2.fsXpTile}`}>

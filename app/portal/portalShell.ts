@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { needsTermsConsent } from "@/lib/legal/terms";
 import { trainerAllowsCoach } from "@/lib/billing/server";
+import { loadBrandingForTrainer } from "@/lib/branding/server";
 import { createClient, getMyClient, getProfile, getUser } from "@/lib/supabase/server";
 
 /**
@@ -58,12 +59,15 @@ export async function loadPortalShell(): Promise<PortalShell> {
   if (profile && needsTermsConsent(profile.terms_version)) {
     redirect("/prihlasenie/suhlas");
   }
+  const trainerId = clientRow?.trainer_id ?? null;
+  // AI Kouč je funkcia tarify trénera (Pro/Business) — bez nej sa záložka skryje. Súbežne sa zahrieva značka trénera
+  // (layout ju hneď potom potrebuje; request-cache + zdieľaný riadok predplatného = žiadny ďalší round-trip v layoute).
+  const [aiKoucVisible] = await Promise.all([trainerId ? trainerAllowsCoach(trainerId) : false, loadBrandingForTrainer(trainerId)]);
   return {
     // bez trénera Chat neukazuje vlákno — bodka by svietila pre správy, ktoré sa nedajú otvoriť
-    chatUnread: Boolean(clientRow?.trainer_id) && (count ?? 0) > 0,
-    // AI Kouč je funkcia tarify trénera (Pro/Business) — bez nej sa záložka skryje
-    aiKoucVisible: Boolean(clientRow?.trainer_id) && (await trainerAllowsCoach(clientRow?.trainer_id)),
+    chatUnread: Boolean(trainerId) && (count ?? 0) > 0,
+    aiKoucVisible,
     displayName: profile?.full_name ?? clientRow?.full_name ?? null,
-    trainerId: clientRow?.trainer_id ?? null,
+    trainerId,
   };
 }
