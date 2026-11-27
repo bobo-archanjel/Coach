@@ -115,7 +115,7 @@ export function PublicPageForm({ initial, host, siteOrigin, subdomainBase, busin
               {t("preview")}
             </Link>
           )}
-          <Link href="/dashboard/zaujemcovia" className={`${pa.action} ${pa.small} ${pa.inline}`}>
+          <Link href="/dashboard/nastavenia?sekcia=zaujemcovia" className={`${pa.action} ${pa.small} ${pa.inline}`}>
             {t("leadsLink")}
           </Link>
         </span>

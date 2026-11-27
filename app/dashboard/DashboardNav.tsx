@@ -96,17 +96,8 @@ function ChallengesIcon() {
   );
 }
 
-function LeadsIcon() {
-  return (
-    <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 13.5l2-6.6A2 2 0 0 1 7.9 5.5h8.2a2 2 0 0 1 1.9 1.4l2 6.6V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17v-3.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M4 13.5h4.3l.9 2h5.6l.9-2H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 // Poradie v menu (aj v spodnej lište na mobile): Správy hneď za Jedálničkami (feature/builder-cleanup).
-const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages" | "challenges" | "leads"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean; desktopOnly?: boolean }[] = [
+const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "calendar" | "templates" | "messages" | "challenges"; Icon: () => React.ReactElement; tour: string | null; match: (p: string) => boolean; desktopOnly?: boolean }[] = [
   { href: "/dashboard", label: "clients", Icon: ClientsIcon, tour: "nav-clients", match: (p: string) => p === "/dashboard" || p.startsWith("/dashboard/klienti") },
   { href: "/dashboard/treningy", label: "plans", Icon: TrainingIcon, tour: "nav-treningy", match: (p: string) => p.startsWith("/dashboard/treningy") },
   { href: "/dashboard/jedalnicky", label: "mealPlans", Icon: NutritionIcon, tour: "nav-vyziva", match: (p: string) => p.startsWith("/dashboard/jedalnicky") },
@@ -116,8 +107,6 @@ const NAV_ITEMS: { href: string; label: "clients" | "plans" | "mealPlans" | "cal
   // Výzvy a rebríček (gamifikácia B) — len v bočnom paneli na počítači; spodná lišta na mobile by so 7
   // položkami bola pritesná, na mobile sa sem ide z karty „Tím tento týždeň“ na úvodnej stránke.
   { href: "/dashboard/vyzvy", label: "challenges", Icon: ChallengesIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/vyzvy"), desktopOnly: true },
-  // Záujemcovia z verejnej stránky (Business) — tiež len na počítači; na mobile vedie karta „Záujemcovia“ na úvodnej stránke.
-  { href: "/dashboard/zaujemcovia", label: "leads", Icon: LeadsIcon, tour: null, match: (p: string) => p.startsWith("/dashboard/zaujemcovia"), desktopOnly: true },
 ];
 
 /**
@@ -140,7 +129,8 @@ export function DashboardNav({
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const settingsActive = pathname.startsWith("/dashboard/nastavenia");
+  // Záujemcovia (zoznam aj detail) sú záložka Nastavení
+  const settingsActive = pathname.startsWith("/dashboard/nastavenia") || pathname.startsWith("/dashboard/zaujemcovia");
   // počet zo servera (layout), kým zvonček nenačíta novší — potom naživo (nová správa, prečítané)
   const unread = useLiveUnread(unreadCount)?.total ?? unreadCount;
 

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { SectionTabs, type SectionTabItem } from "@/app/components/SectionTabs";
 import { AppLink as Link } from "../../components/AppLink";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getTrainerAiUsageSummary } from "@/lib/ai/usageSummary";
@@ -24,11 +26,15 @@ import { siteUrl } from "@/lib/site";
 import { trainerSubdomainBase } from "@/lib/publicPage/subdomain";
 import { readSocials } from "@/lib/publicPage/socials";
 import { LockedNotice } from "../LockedFeature";
+import { LeadsPanel, type LeadRow } from "../zaujemcovia/LeadsPanel";
+import { isLeadStatus } from "@/lib/publicPage/leads";
 import brandingStyles from "./branding.module.css";
 
 const usdFormat = (v: number) => `$${v.toFixed(v < 1 ? 3 : 2)}`;
 
-export default async function NastaveniaPage() {
+export default async function NastaveniaPage({ searchParams }: { searchParams: Promise<{ sekcia?: string; stav?: string }> }) {
+  const { sekcia, stav } = await searchParams;
+  const leadsFilter = isLeadStatus(stav) ? stav : "all";
   const supabase = await createClient();
   const [
     {
@@ -88,6 +94,17 @@ export default async function NastaveniaPage() {
     return { brandingUnlocked, brandingRow, publicInitial };
   });
 
+  // záujemcovia z verejnej stránky (RLS: len vlastní) — súbežne s ostatnými; pred 0083 tabuľka chýba → error, nie pád
+  const leadsP = user
+    ? supabase
+        .from("trainer_leads")
+        .select("id, name, email, goal, status, created_at")
+        .eq("trainer_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(300)
+        .then(({ data, error }) => ({ rows: (error ? [] : (data ?? [])) as LeadRow[], error: !!error }))
+    : Promise.resolve({ rows: [] as LeadRow[], error: false });
+
   const siteHost = (() => {
     try {
       return new URL(mailSiteUrl()).host;
@@ -129,47 +146,26 @@ export default async function NastaveniaPage() {
       ])
     : Promise.resolve([null, null] as const);
 
-  const [tb, tp, tc, tn, { brandingUnlocked, brandingRow, publicInitial }, { welcomeRow, invitesLeft }, [aiUsage, deletionRequestedAt]] =
+  const [tb, tp, tc, { brandingUnlocked, brandingRow, publicInitial }, { welcomeRow, invitesLeft }, [aiUsage, deletionRequestedAt], leads, billing] =
     await Promise.all([
       getTranslations("branding"),
       getTranslations("publicPage.settings"),
       getTranslations("branding.comms"),
-      getTranslations("nav"),
       brandingBlockP,
       commsP,
       usageP,
+      leadsP,
+      billingP,
     ]);
 
-  return (
-    <div className={styles.settingsPage}>
-      <div className={styles.pageHead}>
-        <h1>{t("title")}</h1>
-        <p>{t("subtitle")}</p>
-      </div>
+  const grid = (children: ReactNode) => <div className={styles.settingsGrid}>{children}</div>;
 
-      <div className={styles.settingsGrid}>
-        {/* Na mobile nie sú Výzvy a Záujemcovia v spodnej lište (bola by pritesná) — odkazy sú tu */}
-        <div className={`${styles.card} ${styles.mobileOnly}`} data-testid="settings-more-sections">
-          <h3>{t("moreSections")}</h3>
-          <div className={styles.settingsMoreLinks}>
-            <Link href="/dashboard/vyzvy" className={`${pa.action} ${pa.small} ${pa.inline}`}>
-              {tn("challenges")}
-            </Link>
-            <Link href="/dashboard/zaujemcovia" className={`${pa.action} ${pa.small} ${pa.inline}`}>
-              {tn("leads")}
-            </Link>
-          </div>
-        </div>
-        <div className={styles.card}>
-          <h3>{t("appearance")}</h3>
-          <ThemeSwitch initial={await v6Theme()} />
-          <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>{t("appearanceHint")}</p>
-        </div>
-        <div className={styles.card}>
-          <h3>{tl("title")}</h3>
-          <LanguageSelect />
-          <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>{tl("hint")}</p>
-        </div>
+  const sections: SectionTabItem[] = [
+    {
+      id: "ucet",
+      label: t("tabs.account"),
+      content: grid(
+        <>
         <div className={styles.card}>
           <h3>{t("profile")}</h3>
           <div className={styles.infoRow}>
@@ -197,45 +193,16 @@ export default async function NastaveniaPage() {
           </div>
         )}
 
-        <div className={styles.card}>
-          <div className={styles.settingsRowHead}>
-            <h3 style={{ marginBottom: 0 }}>{t("notifications")}</h3>
-            <span className={styles.comingSoon}>{t("comingSoon")}</span>
-          </div>
-          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>{t("notificationsHint")}</p>
-        </div>
-
-        <div className={styles.card}>
-          <h3>{t("aiCosts")}</h3>
-          {aiUsage ? (
-            <>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>{t("today")}</span>
-                <span className={styles.infoValue}>
-                  {t("aiRequests", { count: aiUsage.todayCount })} · ~{usdFormat(aiUsage.todayCostUsd)}
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>{t("last7Days")}</span>
-                <span className={styles.infoValue}>
-                  {t("aiRequests", { count: aiUsage.weekCount })} · ~{usdFormat(aiUsage.weekCostUsd)}
-                </span>
-              </div>
-              <p style={{ color: "var(--paper-dim)", fontSize: 12.5, marginTop: 10 }}>{t("aiCostsHint")}</p>
-            </>
-          ) : (
-            <p style={{ color: "var(--paper-dim)", fontSize: 13.5 }}>{t("aiNone")}</p>
-          )}
-        </div>
-
-        <div className={styles.card}>
-          <h3>{t("billing")}</h3>
-          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginBottom: 14 }}>{t("billingHint")}</p>
-          <Link href="/dashboard/predplatne" className={`${pa.action} ${pa.small} ${pa.inline}`} data-testid="open-billing">
-            {t("billingOpen")}
-          </Link>
-        </div>
-
+          {/* úplne dole — ako „Zmazanie dát“ v Profile klienta */}
+          {user && <DeleteTrainerAccount requestedAt={deletionRequestedAt} />}
+        </>,
+      ),
+    },
+    {
+      id: "komunikacia",
+      label: t("tabs.comms"),
+      content: grid(
+        <>
         {user && (
           <div className={`${styles.card} ${brandingStyles.wide}`} data-testid="comms-card">
             <div className={brandingStyles.head}>
@@ -253,7 +220,14 @@ export default async function NastaveniaPage() {
             />
           </div>
         )}
-
+        </>,
+      ),
+    },
+    {
+      id: "znacka",
+      label: t("tabs.brand"),
+      content: grid(
+        <>
         {user && (
           <div className={`${styles.card} ${brandingStyles.wide}`} data-testid="branding-card">
             <div className={brandingStyles.head}>
@@ -281,7 +255,14 @@ export default async function NastaveniaPage() {
             )}
           </div>
         )}
-
+        </>,
+      ),
+    },
+    {
+      id: "stranka",
+      label: t("tabs.page"),
+      content: grid(
+        <>
         {user && (
           <div className={`${styles.card} ${brandingStyles.wide}`} data-testid="public-page-card">
             <div className={brandingStyles.head}>
@@ -298,6 +279,77 @@ export default async function NastaveniaPage() {
             )}
           </div>
         )}
+        </>,
+      ),
+    },
+    {
+      id: "zaujemcovia",
+      label: t("tabs.leads"),
+      content: grid(
+        user ? <LeadsPanel rows={leads.rows} error={leads.error} business={billing?.state.features.branding === true} filter={leadsFilter} /> : null,
+      ),
+    },
+    {
+      id: "predplatne",
+      label: t("tabs.billing"),
+      content: grid(
+        <>
+        <div className={styles.card}>
+          <h3>{t("billing")}</h3>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginBottom: 14 }}>{t("billingHint")}</p>
+          <Link href="/dashboard/predplatne" className={`${pa.action} ${pa.small} ${pa.inline}`} data-testid="open-billing">
+            {t("billingOpen")}
+          </Link>
+        </div>
+
+        <div className={styles.card}>
+          <h3>{t("aiCosts")}</h3>
+          {aiUsage ? (
+            <>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>{t("today")}</span>
+                <span className={styles.infoValue}>
+                  {t("aiRequests", { count: aiUsage.todayCount })} · ~{usdFormat(aiUsage.todayCostUsd)}
+                </span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>{t("last7Days")}</span>
+                <span className={styles.infoValue}>
+                  {t("aiRequests", { count: aiUsage.weekCount })} · ~{usdFormat(aiUsage.weekCostUsd)}
+                </span>
+              </div>
+              <p style={{ color: "var(--paper-dim)", fontSize: 12.5, marginTop: 10 }}>{t("aiCostsHint")}</p>
+            </>
+          ) : (
+            <p style={{ color: "var(--paper-dim)", fontSize: 13.5 }}>{t("aiNone")}</p>
+          )}
+        </div>
+        </>,
+      ),
+    },
+    {
+      id: "aplikacia",
+      label: t("tabs.app"),
+      content: grid(
+        <>
+        <div className={styles.card}>
+          <h3>{t("appearance")}</h3>
+          <ThemeSwitch initial={await v6Theme()} />
+          <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>{t("appearanceHint")}</p>
+        </div>
+        <div className={styles.card}>
+          <h3>{tl("title")}</h3>
+          <LanguageSelect />
+          <p style={{ color: "var(--paper-dim)", fontSize: 13, marginTop: 10 }}>{tl("hint")}</p>
+        </div>
+
+        <div className={styles.card}>
+          <div className={styles.settingsRowHead}>
+            <h3 style={{ marginBottom: 0 }}>{t("notifications")}</h3>
+            <span className={styles.comingSoon}>{t("comingSoon")}</span>
+          </div>
+          <p style={{ color: "var(--paper-dim)", fontSize: 13.5, marginTop: 10 }}>{t("notificationsHint")}</p>
+        </div>
 
         <div className={styles.card} data-tour="settings-guide">
           <h3>{t("tour")}</h3>
@@ -307,10 +359,19 @@ export default async function NastaveniaPage() {
             {t("tourRestart")}
           </Link>
         </div>
+        </>,
+      ),
+    },
+  ];
 
-        {/* úplne dole — ako „Zmazanie dát“ v Profile klienta */}
-        {user && <DeleteTrainerAccount requestedAt={deletionRequestedAt} />}
+  return (
+    <div className={styles.settingsPageWide}>
+      <div className={styles.pageHead}>
+        <h1>{t("title")}</h1>
+        <p>{t("subtitle")}</p>
       </div>
+
+      <SectionTabs sections={sections} initialId={sekcia} param="sekcia" ariaLabel={t("tabsAria")} layout="side" clearParams={["stav"]} />
     </div>
   );
 }

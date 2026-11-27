@@ -46,7 +46,7 @@ export default async function VyzvyPage() {
       <div className={v.stack}>
         {challenges === null && <p className={g.empty}>{t("trainer.unavailable")}</p>}
 
-        <section className={styles.card} aria-label={t("trainer.newTitle")}>
+        <section id="nova-vyzva" className={styles.card} aria-label={t("trainer.newTitle")} style={{ scrollMarginTop: 80 }}>
           <div className={v.cardHead}>
             <h3>{t("trainer.newTitle")}</h3>
             <span className={v.counter} data-testid="challenge-counter" data-active={activeCount} data-max={limits.maxActiveChallenges}>

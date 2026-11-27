@@ -1,0 +1,104 @@
+/* Záložky sekcií v bočnom rozložení (nastavenia trénera). Pod 900px rad hore ako .clientTabs
+   v dashboard.module.css, od 900px zvislé sticky menu vľavo. Farby len z v6 tokenov. */
+.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.sideTabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 20px;
+  background: var(--fill-strong);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sideTabs::-webkit-scrollbar {
+  display: none;
+}
+.sideTab {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--paper-dim);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.sideTab:hover {
+  color: var(--paper);
+}
+.sideTab:focus-visible {
+  outline: 2px solid var(--iron-red);
+  outline-offset: -2px;
+}
+.sideTabActive,
+.sideTabActive:hover {
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  box-shadow: var(--accent-glow);
+}
+.sideTabActive:focus-visible {
+  outline-color: var(--on-accent);
+}
+/* grid child s formulármi/dlhými kartami nesmie roztiahnuť stĺpec nad jeho šírku */
+.sideContent {
+  min-width: 0;
+}
+@media (min-width: 641px) {
+  .sideTab {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+}
+@media (min-width: 900px) {
+  .side {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 24px;
+  }
+  .sideTabs {
+    position: sticky;
+    top: 16px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .sideTab {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    min-height: 44px;
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 14.5px;
+  }
+  .sideTab:hover:not(.sideTabActive) {
+    background: var(--fill-strong);
+  }
+}
+
+/* skeleton menu (RouteSkeletons): rad hore, na počítači zvislý stĺpec */
+.skeletonMenu {
+  max-width: none;
+}
+@media (min-width: 900px) {
+  .skeletonMenu {
+    height: 270px;
+    border-radius: 20px;
+  }
+}

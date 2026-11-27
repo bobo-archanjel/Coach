@@ -541,6 +541,13 @@ a.bellItemMain:hover {
 .addClientForm {
   margin-bottom: 20px;
 }
+/* „+ Nový klient“ a „+ Nová výzva“ v jednom riadku; na 320 px sa zalomí pod seba */
+.addClientButtons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
 /* Rozbalený panel s dvomi cestami pridania klienta (feature/registracia-update). */
 .addClientPanel {
   background: var(--card-bg);
@@ -2261,8 +2268,13 @@ select.addClientInputSm {
   max-width: 864px;
   margin-inline: auto;
 }
+.settingsPageWide {
+  max-width: 1080px; /* zvislé menu záložiek (220px) + obsah ako širší settingsPage */
+  margin-inline: auto;
+}
 .settingsGrid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 .comingSoon {
@@ -3698,21 +3710,6 @@ select.addClientInputSm {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
-}
-
-/* Karta len pre mobil (Nastavenia → Ďalšie sekcie): na počítači sú tieto odkazy v bočnom menu. */
-.mobileOnly {
-  display: none;
-}
-@media (max-width: 880px) {
-  .mobileOnly {
-    display: block;
-  }
-}
-.settingsMoreLinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 /* ---------- značka trénera (Business) v navigácii ---------- */

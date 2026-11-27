@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ShareButton } from "../components/ShareButton";
 import type { CelebrationId } from "@/lib/gamification/rewards";
 import { CelebrationBurst } from "./CelebrationBurst";
 import { clearFinishSummaryAction } from "./gamificationActions";
@@ -26,7 +25,6 @@ export interface FinishVM {
   streakNote: string;
   freezeText: string | null;
   levelText: string | null;
-  shareHref: string;
   /** zvolený štýl osláv a či sa oslava vôbec ukáže (rekord / úroveň / splnená misia / bonus) */
   celebration: CelebrationId;
   celebrate: boolean;
@@ -155,7 +153,6 @@ export function FinishSummaryModal({
           <button ref={closeBtn} type="button" className="btn btn-primary" onClick={close}>
             {labels.close}
           </button>
-          <ShareButton href={vm.shareHref} fileName="fitpilot-tyzden.png" small />
         </div>
       </div>
     </div>

@@ -34,5 +34,14 @@
     "cancel": "Zrušit smazání"
   },
   "billingOpen": "Otevřít předplatné",
-  "moreSections": "Další sekce"
+  "tabs": {
+    "account": "Účet",
+    "comms": "Komunikace",
+    "brand": "Značka",
+    "page": "Veřejná stránka",
+    "leads": "Zájemci",
+    "billing": "Předplatné",
+    "app": "Aplikace"
+  },
+  "tabsAria": "Kategorie nastavení"
 }

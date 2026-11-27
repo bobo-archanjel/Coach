@@ -144,7 +144,7 @@ test.describe("Jazyk — účty (reálna DB)", () => {
     test.setTimeout(120_000);
     await setLocaleCookie(context, "sk");
     await login(page, env.trainerEmail!, env.trainerPassword!, "Prihlásiť sa", /\/dashboard/);
-    await page.goto("/dashboard/nastavenia");
+    await page.goto("/dashboard/nastavenia?sekcia=aplikacia");
     await page.getByRole("combobox", { name: "Jazyk appky" }).selectOption("cs");
 
     await expect(htmlLang(page)).toHaveAttribute("lang", "cs");
