@@ -59,6 +59,9 @@
     "noGoal": "Cíl maker zatím není nastavený — <link>vypočítat teď</link>. Bez cíle nejde počítat ani dodržování stravy."
   },
   "nutritionForm": {
+    "clientOwnBadge": "Klient používá vlastní makra",
+    "clientOwnHint": "Klient si nastavil vlastní makro cíl — podle něj se počítá jeho adherence, prstence i reporty. Makra níže jsou tvoje: uloží se, ale pro klienta platí, až když se vrátí k trenérovým.",
+    "clientOwnValues": "{kcal} kcal/den · {protein} g B · {carbs} g S · {fat} g T",
     "inputs": "Vstupní údaje",
     "sex": "Pohlaví",
     "age": "Věk (roky)",

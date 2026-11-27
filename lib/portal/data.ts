@@ -10,6 +10,7 @@ import { splitExerciseRefs } from "@/lib/ai/exerciseSwap";
 import { validDiaryDate } from "@/lib/portal/diaryDate";
 import { getBodyMetrics } from "@/lib/dashboard/bodyMetrics";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
+import { MACRO_COLS, isMissingMacroTable, loadMacroTarget, pickMacroTarget, type MacroRow, type OwnMacroRow } from "@/lib/macroTarget";
 import { bratislavaToUtcIso, dateKeyInTz, timeInTz } from "@/lib/calendar/month";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import {
@@ -19,6 +20,10 @@ import {
   TRAINING_WINDOW_WEEKS,
 } from "./streak";
 import type {
+  PortalMacroGoal,
+  PortalMacroInputs,
+  PortalMacroSetup,
+  PortalMacroValues,
   CoachNote,
   DayCellState,
   ExerciseOption,
@@ -715,6 +720,16 @@ export async function getPortalData(): Promise<PortalResult> {
   }
 }
 
+type MacroInputRow = { sex: PortalMacroInputs["sex"]; age: number | string; weight_kg: number | string; height_cm: number | string; activity_level: PortalMacroInputs["activityLevel"]; goal: PortalMacroInputs["goal"] };
+
+function toMacroValues(r: MacroRow): PortalMacroValues {
+  return { bmr: Number(r.bmr), tdee: Number(r.tdee), caloriesTarget: Number(r.calories_target), proteinG: Number(r.protein_g), carbsG: Number(r.carbs_g), fatG: Number(r.fat_g) };
+}
+
+function toMacroInputs(r: MacroInputRow): PortalMacroInputs {
+  return { sex: r.sex, age: Number(r.age), weightKg: Number(r.weight_kg), heightCm: Number(r.height_cm), activityLevel: r.activity_level, goal: r.goal };
+}
+
 /** Nájde klienta prepojeného s prihláseným používateľom (rovnaká logika ako v getPortalData). */
 async function getLinkedClient(userId: string) {
   // Nezávislé dopyty (profil a klient sa nepotrebujú navzájom) — paralelne, nie
@@ -974,8 +989,11 @@ function toEditableEntry(e: MealEntryRow, i: number): MealPlanEntryData {
   };
 }
 
+const EMPTY_MACRO_SETUP: PortalMacroSetup = { own: null, trainer: null, defaults: { age: null, weightKg: null, heightCm: null } };
+
 const EMPTY_NUTRITION: PortalNutritionData = {
   macroGoal: null,
+  macroSetup: EMPTY_MACRO_SETUP,
   mealPlanId: null,
   mealPlanName: null,
   mealDays: [],
@@ -1027,10 +1045,12 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
       { data: planRows, error: planErr },
       { data: activeRow, error: activeErr },
       { data: tplRows, error: tplErr },
+      ownRes,
+      { data: bodyRow },
     ] = await Promise.all([
       supabase
         .from("nutrition_profiles")
-        .select("bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
+        .select(`${MACRO_COLS}, sex, age, weight_kg, height_cm, activity_level, goal`)
         .eq("client_id", client.id)
         .maybeSingle(),
       // Dni jedálničkov embedom (predtým ďalší round-trip až po pláne). Koncept vidí len
@@ -1046,23 +1066,32 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
       // portál by inak padol; tu sa len vráti chyba a platí „najnovší“
       supabase.from("clients").select("active_meal_plan_id").eq("id", client.id).maybeSingle(),
       templatesQuery,
+      // vlastné makrá klienta (0089) — pred migráciou tabuľka chýba → žiadne vlastné makrá
+      supabase.from("client_macro_goals").select(`active, ${MACRO_COLS}, sex, age, weight_kg, height_cm, activity_level, goal`).eq("client_id", client.id).maybeSingle(),
+      supabase.from("clients").select("age, weight_kg, height_cm").eq("id", client.id).maybeSingle(),
     ]);
     if (profileErr) return { state: "error", message: await dbErr(profileErr, "data") };
+    if (ownRes.error && !isMissingMacroTable(ownRes.error)) console.error("getPortalNutrition own macros:", ownRes.error.message);
     if (planErr) return { state: "error", message: await dbErr(planErr, "data") };
     if (activeErr && !isMissingColumn(activeErr)) console.error("getPortalNutrition active:", activeErr.message);
     // Šablóny sú doplnok — ich chyba nezhodí sekciu Strava, len sa nezobrazia.
     if (tplErr) console.error("getPortalNutrition templates:", tplErr.message);
 
-    const macroGoal = profile
-      ? {
-          bmr: profile.bmr,
-          tdee: profile.tdee,
-          caloriesTarget: profile.calories_target,
-          proteinG: profile.protein_g,
-          carbsG: profile.carbs_g,
-          fatG: profile.fat_g,
-        }
+    const own = ownRes.error ? null : (ownRes.data as unknown as (OwnMacroRow & MacroInputRow) | null);
+    const trainerRow = profile as unknown as (MacroRow & Partial<MacroInputRow>) | null;
+    const picked = pickMacroTarget(own, trainerRow);
+    const macroGoal: PortalMacroGoal | null = picked
+      ? { source: picked.source, bmr: picked.bmr, tdee: picked.tdee, caloriesTarget: picked.caloriesTarget, proteinG: picked.proteinG, carbsG: picked.carbsG, fatG: picked.fatG }
       : null;
+    const macroSetup: PortalMacroSetup = {
+      own: own ? { ...toMacroValues(own), active: own.active, inputs: toMacroInputs(own) } : null,
+      trainer: trainerRow ? { ...toMacroValues(trainerRow), inputs: trainerRow.sex ? toMacroInputs(trainerRow as MacroInputRow) : null } : null,
+      defaults: {
+        age: bodyRow?.age != null ? Number(bodyRow.age) : null,
+        weightKg: bodyRow?.weight_kg != null ? Number(bodyRow.weight_kg) : null,
+        heightCm: bodyRow?.height_cm != null ? Number(bodyRow.height_cm) : null,
+      },
+    };
 
     const planList = (planRows ?? []) as { id: string; name: string; trainer_id: string | null; meal_days: MealDayRow[] | null }[];
     const activeChoice = activeErr ? null : ((activeRow as { active_meal_plan_id?: string | null } | null)?.active_meal_plan_id ?? null);
@@ -1125,6 +1154,7 @@ export async function getPortalNutrition(): Promise<PortalNutritionResult> {
 
     const data: PortalNutritionData = {
       macroGoal,
+      macroSetup,
       mealPlanId: plan?.id ?? null,
       mealPlanName: plan?.name ?? null,
       mealDays,
@@ -1195,27 +1225,15 @@ export async function getPortalFoodDiary(requestedDate?: string): Promise<Portal
       return res.error ? await query(cols) : res;
     };
     const [{ data: profile, error: profileErr }, { data: logRows, error: logErr }] = await Promise.all([
-      supabase
-        .from("nutrition_profiles")
-        .select("bmr, tdee, calories_target, protein_g, carbs_g, fat_g")
-        .eq("client_id", client.id)
-        .maybeSingle(),
+      loadMacroTarget(supabase, client.id).then((data) => ({ data, error: null })),
       loadLogs(),
     ]);
 
     if (profileErr) return { state: "error", message: await dbErr(profileErr, "data") };
     if (logErr) return { state: "error", message: await dbErr(logErr, "data") };
 
-    const goal = profile
-      ? {
-          bmr: profile.bmr,
-          tdee: profile.tdee,
-          caloriesTarget: profile.calories_target,
-          proteinG: profile.protein_g,
-          carbsG: profile.carbs_g,
-          fatG: profile.fat_g,
-        }
-      : null;
+    // efektívny cieľ: vlastné makrá klienta (ak sú aktívne), inak trénerove
+    const goal: PortalMacroGoal | null = profile;
 
     // ---------- dnešné záznamy → skupiny podľa jedla dňa + súčty ----------
     const scaled = ((logRows ?? []) as unknown as FoodLogRow[]).map((r) => ({

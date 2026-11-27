@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { loadMacroTargets } from "@/lib/macroTarget";
 import { CreateMealPlanForm } from "./CreateMealPlanForm";
 import { FeatureGate } from "../LockedFeature";
 import { AiMealGeneratorForm } from "./AiMealGeneratorForm";
@@ -27,16 +28,13 @@ export default async function JedalnickyPage() {
     redirect("/prihlasenie");
   }
 
-  const [{ data: clients }, { data: profiles }] = await Promise.all([
-    supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name"),
-    // makro cieľ klientov — AI generátor ho potrebuje (RLS: len klienti tohto trénera)
-    supabase.from("nutrition_profiles").select("client_id, calories_target, protein_g, carbs_g, fat_g").eq("trainer_id", user.id),
-  ]);
-
+  const { data: clients } = await supabase.from("clients").select("id, full_name").eq("trainer_id", user.id).order("full_name");
+  // efektívny makro cieľ klientov (vlastný, ak je aktívny, inak trénerov) — AI generátor ho potrebuje
+  const targets = await loadMacroTargets(supabase, (clients ?? []).map((c) => c.id as string));
   const targetByClient = new Map(
-    (profiles ?? []).map((pr) => [
-      pr.client_id as string,
-      { kcal: Math.round(Number(pr.calories_target)), protein: Math.round(Number(pr.protein_g)), carbs: Math.round(Number(pr.carbs_g)), fat: Math.round(Number(pr.fat_g)) },
+    [...targets].map(([id, pr]) => [
+      id,
+      { kcal: Math.round(pr.caloriesTarget), protein: Math.round(pr.proteinG), carbs: Math.round(pr.carbsG), fat: Math.round(pr.fatG) },
     ]),
   );
   const aiClients = (clients ?? []).map((c) => {

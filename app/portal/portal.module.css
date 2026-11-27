@@ -5509,3 +5509,175 @@ a.bellItemMain:hover {
     flex-shrink: 0;
   }
 }
+
+/* ---------- Strava: Makro cieľ — „Nastaviť makrá“ + okno (MacroGoalDialog) ---------- */
+.macroHeadMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.macroSource {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.macroSetBtn {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 38px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--paper);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.macroSetBtn:hover {
+  border-color: var(--fill-strong);
+}
+.macroSetBtn:active {
+  transform: translateY(1px);
+}
+.macroEmptyCta {
+  margin-top: 4px;
+}
+.macroDlgIntro {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+.macroChoice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.macroChoiceBtn {
+  display: grid;
+  gap: 3px;
+  padding: 11px 13px;
+  text-align: left;
+  font-family: inherit;
+  color: var(--paper);
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  cursor: pointer;
+}
+.macroChoiceBtn strong {
+  font-size: 14px;
+  font-weight: 750;
+}
+.macroChoiceBtn small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.macroChoiceOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.macroRow2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 10px;
+}
+.macroResult {
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--fill);
+}
+.macroResultHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.macroResultHead > :first-child {
+  margin-right: auto;
+}
+.macroManualTag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.macroLinkBtn {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+.macroLinkBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.macroResultMeta {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--paper-faint);
+}
+.macroResultKcal {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 780;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.macroResultKcal small {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--paper-faint);
+}
+.macroEditList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.macroEditRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  grid-template-areas: "label field" "hint field";
+  align-items: center;
+  column-gap: 10px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.macroEditRow > span:first-child {
+  grid-area: label;
+}
+.macroEditField {
+  grid-area: field;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.macroEditField input {
+  min-height: 40px;
+  padding: 8px 12px;
+  text-align: right;
+}
+.macroEditAuto {
+  grid-area: hint;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--paper-faint);
+}
+@media (max-width: 480px) {
+  .macroChoice {
+    grid-template-columns: 1fr;
+  }
+}

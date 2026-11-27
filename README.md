@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-27** — **High five u trénera, vlastné makrá klienta, Úspechy, Zopakovať s progresiou** (`feature/fixies`, **migrácia `0089_client_macro_goals.sql`**).
+  - Tréner: zvonček „Úspechy klientov bez high five“ (rekord, odznak, výzva); po high five zmizne natrvalo aj z detailu klienta.
+  - Klient: „Nastaviť makrá“ pri Makro cieli (okno ako u trénera, ručná úprava), prepnutie späť na makrá od trénera; všade sa ráta s platnými makrami; tréner vidí štítok „Klient používa vlastné makrá“. `leave_trainer` uvoľní makro profil od trénera.
+  - Úspechy / Dnes: bez Zdieľať pri výzvach a Tvoj týždeň; Posledné úspechy a Rekordy 3 viditeľné + posúvanie; Odznaky 4 + Zobraziť všetky; menšie farebné tlačidlo skrytého rebríčka.
+  - Karty plánov: „Zopakovať s progresiou“ pri celom odcvičenom pláne (klient len vlastné, tréner všetky).
 - **2026-11-25** — **Oslava úspechu bez Zdieľať** (`feature/oslava-bez-zdielania`, bez migrácie).
   - Okno nového rekordu / odznaku / výzvy / úrovne: bez tlačidla „Zdieľať“; odkaz „Zobraziť úspechy“ (predtým „Všetky odznaky“) otvorí Úspechy a oslavu zavrie.
 - **2026-11-25** — **Prstenec Strava: 10 potravín za deň** (priamo v `dev`, bez migrácie).

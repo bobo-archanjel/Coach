@@ -2,6 +2,7 @@ import { getUserLocale } from "@/lib/i18n/server";
 import { WEEKDAY_SHORT } from "@/lib/i18n/dates";
 import { createClient } from "@/lib/supabase/server";
 import { scaleFoodMacros, sumMacros } from "@/lib/meals";
+import { loadMacroTarget } from "@/lib/macroTarget";
 
 // Adherencia stravy pre trénera (`/dashboard/klienti/[id]`) — analogický follow-up
 // ku karte tréningovej aktivity, len na strane výživy. Číta food_logs (0007) +
@@ -120,7 +121,7 @@ export async function getNutritionAdherence(clientId: string): Promise<Nutrition
   const historyStart = iso(addDays(base, -(WINDOW_90_DAYS - 1)));
 
   const [{ data: profile, error: profileErr }, { data: logRows, error: logErr }] = await Promise.all([
-    supabase.from("nutrition_profiles").select("calories_target").eq("client_id", clientId).maybeSingle(),
+    loadMacroTarget(supabase, clientId).then((data) => ({ data, error: null })),
     supabase
       .from("food_logs")
       .select("eaten_on, grams, kcal_100g, protein_100g, carbs_100g, fat_100g")
@@ -131,7 +132,7 @@ export async function getNutritionAdherence(clientId: string): Promise<Nutrition
 
   if (profileErr || logErr) return null;
 
-  const kcalGoal = profile?.calories_target ?? null;
+  const kcalGoal = profile?.caloriesTarget ?? null;
   const rows = (logRows ?? []) as FoodLogRow[];
 
   const kcalByDate = new Map<string, number>();

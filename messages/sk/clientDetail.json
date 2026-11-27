@@ -59,6 +59,9 @@
     "noGoal": "Makro cieľ zatiaľ nenastavený — <link>vypočítať teraz</link>. Bez cieľa sa nedá počítať ani adherencia stravy."
   },
   "nutritionForm": {
+    "clientOwnBadge": "Klient používa vlastné makrá",
+    "clientOwnHint": "Klient si nastavil vlastný makro cieľ — podľa neho sa počíta jeho adherencia, prstence aj reporty. Makrá nižšie sú tvoje: uložia sa, ale pre klienta platia, až keď sa vráti k trénerovým.",
+    "clientOwnValues": "{kcal} kcal/deň · {protein} g B · {carbs} g S · {fat} g T",
     "inputs": "Vstupné údaje",
     "sex": "Pohlavie",
     "age": "Vek (roky)",

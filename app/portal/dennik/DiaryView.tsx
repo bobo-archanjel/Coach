@@ -263,7 +263,7 @@ export function DiaryView({ data, staples = [] }: { data: PortalDiaryData; stapl
         <MacroBar label={t("fat")} value={totals.fatG} goal={goal?.fatG ?? null} />
         {!goal && (
           <p className={styles.diaryMeta} style={{ marginTop: 10 }}>
-            {t("noGoal")}
+            {t.rich("noGoal", { link: (chunks) => <Link href="/portal/strava">{chunks}</Link> })}
           </p>
         )}
       </div>

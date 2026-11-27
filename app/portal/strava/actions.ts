@@ -7,6 +7,8 @@ import { tErr } from "@/lib/i18n/serverErrors";
 import { isLocale } from "@/lib/i18n/locales";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { dbErr } from "@/lib/dbError";
+import { isMissingMacroTable } from "@/lib/macroTarget";
+import { applyManualMacros, calculateNutrition, validateManualMacros, validateNutritionInput } from "@/lib/nutrition";
 import { loadStaples } from "@/lib/foodStaples";
 import { MEAL_SLOT_ORDER, type MealSlot } from "@/lib/meals";
 import { isPortionUnit, MAX_PORTION_GRAMS, portionGrams, type PortionUnit } from "@/lib/portions";
@@ -321,4 +323,98 @@ export async function deleteOwnMealTemplateAction(templateId: string): Promise<M
   if (res.error) return { error: res.error };
   revalidatePath("/portal/strava");
   return ok;
+}
+
+/* ---------- Vlastné makrá klienta (0089, client_macro_goals) ---------- */
+
+export interface MacroActionState {
+  error: string | null;
+}
+
+function revalidateMacroPages() {
+  for (const path of ["/portal", "/portal/strava", "/portal/dennik", "/portal/uspechy"]) revalidatePath(path);
+}
+
+/** Pred spustením 0089 tabuľka chýba (PGRST205 / 42P01) — zrozumiteľná hláška namiesto surovej chyby. */
+async function macroWriteErr(error: { code?: string; message?: string }): Promise<string> {
+  if (isMissingMacroTable(error)) return tErr("meals.ownMacrosNotReady");
+  return dbErr(error, "actions");
+}
+
+/**
+ * Klient si nastaví vlastný makro cieľ — rovnaký výpočet a validácia ako u trénera (lib/nutrition.ts).
+ * Hodnoty sa prepočítajú na serveri; `manual` = ručne upravené makrá (kcal = súčet makier). Uloží sa ako aktívne.
+ */
+export async function saveOwnMacrosAction(
+  input: { sex: unknown; age: unknown; weightKg: unknown; heightCm: unknown; activityLevel: unknown; goal: unknown },
+  manual: { proteinG: number; carbsG: number; fatG: number } | null,
+): Promise<MacroActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await getUser();
+  if (!user) return { error: await tErr("notSignedIn") };
+
+  const parsed = validateNutritionInput(input ?? {});
+  if (!parsed.ok) return { error: await tErr(parsed.error) };
+  let manualOk: ReturnType<typeof validateManualMacros> | null = null;
+  if (manual) {
+    manualOk = validateManualMacros(manual);
+    if (!manualOk.ok) return { error: await tErr(manualOk.error) };
+  }
+
+  const { clientId, error: cErr } = await ensureSelfClientId(supabase);
+  if (cErr || !clientId) return { error: cErr ?? (await tErr("client.profileMissing")) };
+
+  const { sex, age, weightKg, heightCm, activityLevel, goal } = parsed.value;
+  const result = applyManualMacros(calculateNutrition(parsed.value), manualOk && manualOk.ok ? manualOk.value : null);
+
+  const { error } = await supabase.from("client_macro_goals").upsert(
+    {
+      client_id: clientId,
+      sex,
+      age,
+      weight_kg: weightKg,
+      height_cm: heightCm,
+      activity_level: activityLevel,
+      goal,
+      bmr: result.bmr,
+      tdee: result.tdee,
+      calories_target: result.caloriesTarget,
+      protein_g: result.proteinG,
+      carbs_g: result.carbsG,
+      fat_g: result.fatG,
+      active: true,
+    },
+    { onConflict: "client_id" },
+  );
+  if (error) {
+    console.error("saveOwnMacrosAction:", error.message);
+    return { error: await macroWriteErr(error) };
+  }
+  revalidateMacroPages();
+  return { error: null };
+}
+
+/** Prepnutie zdroja cieľa: vlastné makrá (true) / makrá od trénera (false). Vlastné hodnoty ostávajú uložené. */
+export async function setMacroSourceAction(useOwn: boolean): Promise<MacroActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await getUser();
+  if (!user) return { error: await tErr("notSignedIn") };
+
+  const { clientId, error: cErr } = await ensureSelfClientId(supabase);
+  if (cErr || !clientId) return { error: cErr ?? (await tErr("client.profileMissing")) };
+
+  const { data, error } = await supabase
+    .from("client_macro_goals")
+    .update({ active: useOwn === true })
+    .eq("client_id", clientId)
+    .select("client_id");
+  if (error) return { error: await macroWriteErr(error) };
+  if (!data || data.length === 0) return { error: await tErr("meals.ownMacrosMissing") };
+
+  revalidateMacroPages();
+  return { error: null };
 }

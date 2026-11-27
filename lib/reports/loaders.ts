@@ -1,4 +1,5 @@
 import "server-only";
+import { loadMacroTarget } from "@/lib/macroTarget";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildExerciseNameResolver, type StrengthLogRow } from "@/lib/dashboard/bodyMetrics";
 import { getClientAnalyticsOverview } from "@/lib/dashboard/analytics";
@@ -156,7 +157,7 @@ export async function buildClientReport(
         .range(a, b) as unknown as PagedResult<{ eaten_on: string; grams: number; kcal_100g: number; protein_100g: number }>,
     ),
     supabase.from("food_logs").select("eaten_on").eq("client_id", clientId).order("eaten_on", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("nutrition_profiles").select("calories_target, protein_g").eq("client_id", clientId).maybeSingle(),
+    loadMacroTarget(supabase, clientId).then((data) => ({ data })),
     client.active_plan_id
       ? supabase.from("workout_days").select("id", { count: "exact", head: true }).eq("plan_id", client.active_plan_id)
       : Promise.resolve({ count: null as number | null }),
@@ -203,8 +204,8 @@ export async function buildClientReport(
 
   // ---------- strava ----------
   const daily = aggregateFoodDaily(foodRows);
-  const kcalTarget = profileRes.data?.calories_target != null ? Number(profileRes.data.calories_target) : null;
-  const proteinTarget = profileRes.data?.protein_g != null ? Number(profileRes.data.protein_g) : null;
+  const kcalTarget = profileRes.data?.caloriesTarget != null ? profileRes.data.caloriesTarget : null;
+  const proteinTarget = profileRes.data?.proteinG != null ? profileRes.data.proteinG : null;
   const nutrition = nutritionSummary(daily, range, { kcal: kcalTarget, protein: proteinTarget });
   const weekly = range.weeks.map((weekStart) => {
     let kcal = 0;

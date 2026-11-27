@@ -19,7 +19,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLink as Link } from "../components/AppLink";
 import { usePathname } from "next/navigation";
-import { applyDismissals, attentionTotal, buildAttentionItems, type AttentionData } from "@/lib/dashboard/attention";
+import { applyDismissals, attentionTotal, buildAttentionItems, HIGH_FIVE_SENT_EVENT, type AttentionData } from "@/lib/dashboard/attention";
 import { dismissNotificationsAction, markAllMessagesReadAction } from "./attention/actions";
 import styles from "./dashboard.module.css";
 
@@ -118,6 +118,8 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
     // chat práve označil správy ako prečítané (ChatThread) → upozornenie hneď preč
     const onChatSeen = () => void refresh(0);
     window.addEventListener(CHAT_SEEN_EVENT, onChatSeen);
+    // tréner poslal high five → úspech zmizne zo zvončeka hneď
+    window.addEventListener(HIGH_FIVE_SENT_EVENT, onChatSeen);
 
     // Len správy OD klientov — vlastné odoslané správy trénera upozornenia nemenia
     // (predtým každá odoslaná správa prepočítala celý zvonček vrátane meškania).
@@ -144,6 +146,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener(CHAT_SEEN_EVENT, onChatSeen);
+      window.removeEventListener(HIGH_FIVE_SENT_EVENT, onChatSeen);
       window.clearInterval(interval);
       window.clearTimeout(debounce);
       removeChannel?.();
@@ -328,7 +331,8 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
                           // Otvorením klienta tréner upozornenie "vybavil" — skryje sa rovnako
                           // ako cez ×, t. j. na pár dní a vráti sa, ak klient stále mešká.
                           onClick={() => {
-                            if (l.dismissKey) dismissOnOpen(l.href, [l.dismissKey], item.dismiss?.days ?? null);
+                            // úspech klienta ostane, kým tréner nedá high five (keepOnOpen)
+                            if (l.dismissKey && !l.keepOnOpen) dismissOnOpen(l.href, [l.dismissKey], item.dismiss?.days ?? null);
                             setOpenAt(null);
                           }}
                         >

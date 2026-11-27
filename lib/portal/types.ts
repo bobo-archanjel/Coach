@@ -330,13 +330,38 @@ export type PortalTrainingResult =
 
 // ---------- Strava (makro cieľ + jedálniček) ----------
 
-export interface PortalMacroGoal {
+export interface PortalMacroValues {
   bmr: number;
   tdee: number;
   caloriesTarget: number;
   proteinG: number;
   carbsG: number;
   fatG: number;
+}
+
+/** Efektívny makro cieľ klienta — vlastný (aktívny), inak trénerov (lib/macroTarget.ts). */
+export interface PortalMacroGoal extends PortalMacroValues {
+  source: "client" | "trainer";
+}
+
+/** Vstupy výpočtu makier (rovnaké ako u trénera: lib/nutrition.ts NutritionInput). */
+export interface PortalMacroInputs {
+  sex: "muz" | "zena";
+  age: number;
+  weightKg: number;
+  heightCm: number;
+  activityLevel: "sedavy" | "lahka" | "stredna" | "vysoka" | "velmi_vysoka";
+  goal: "chudnutie" | "udrzanie" | "naberanie";
+}
+
+/** Podklady pre dialóg „Nastaviť makrá“: vlastné uložené makrá, trénerove a predvyplnenie. */
+export interface PortalMacroSetup {
+  /** vlastné makrá klienta (client_macro_goals); `active` = podľa nich sa momentálne počíta */
+  own: (PortalMacroValues & { active: boolean; inputs: PortalMacroInputs }) | null;
+  /** makrá od trénera (nutrition_profiles) — vstupy len ak ich vieme prečítať */
+  trainer: (PortalMacroValues & { inputs: PortalMacroInputs | null }) | null;
+  /** z karty klienta (clients.age / weight_kg / height_cm) — posledné predvyplnenie */
+  defaults: { age: number | null; weightKg: number | null; heightCm: number | null };
 }
 
 export interface PortalMealEntry {
@@ -410,6 +435,7 @@ export interface PortalMealTemplate {
 
 export interface PortalNutritionData {
   macroGoal: PortalMacroGoal | null;
+  macroSetup: PortalMacroSetup;
   /** ID aktívneho jedálnička — pre odkaz na PDF export (api/export/meal-plan). */
   mealPlanId: string | null;
   mealPlanName: string | null;

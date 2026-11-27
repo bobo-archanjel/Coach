@@ -20,6 +20,7 @@ import type { MealSlot } from "@/lib/meals";
 import { ensureOffFood, type OffFoodRowData } from "@/lib/offFoodStore";
 import type { CompleteFood } from "@/lib/offProduct";
 import { saveMealPlanDaysAction, type MealDayDraft } from "./jedalnicek/actions";
+import { loadMacroTarget } from "@/lib/macroTarget";
 
 /**
  * AI generátor jedálnička (trénerov nástroj) — draft-then-approve ako AI generátor plánu cvikov
@@ -103,24 +104,22 @@ export async function generateMealPlanWithAiAction(_prev: MealAiState, formData:
   }
 
   // ---- klient patrí trénerovi + makro cieľ (bez neho nie je z čoho počítať)
-  const [{ data: client }, { data: profile }, { data: note }] = await Promise.all([
+  const [{ data: client }, { data: profile }, macro, { data: note }] = await Promise.all([
     supabase.from("clients").select("id").eq("id", clientId).eq("trainer_id", user.id).maybeSingle(),
-    supabase
-      .from("nutrition_profiles")
-      .select("calories_target, protein_g, carbs_g, fat_g, sex, bmr")
-      .eq("client_id", clientId)
-      .maybeSingle(),
+    supabase.from("nutrition_profiles").select("sex").eq("client_id", clientId).maybeSingle(),
+    // efektívny cieľ: vlastné makrá klienta (ak sú aktívne), inak trénerove
+    loadMacroTarget(supabase, clientId),
     // poznámka trénera k strave (alergie, preferencie) — klient ju nevidí
     supabase.from("trainer_private_notes").select("notes").eq("client_id", clientId).eq("scope", "nutrition").maybeSingle(),
   ]);
   if (!client) return { error: await tErr("plans.clientNotFound") };
   const targets = {
-    kcal: num(profile?.calories_target),
-    proteinG: num(profile?.protein_g),
-    carbsG: num(profile?.carbs_g),
-    fatG: num(profile?.fat_g),
+    kcal: num(macro?.caloriesTarget),
+    proteinG: num(macro?.proteinG),
+    carbsG: num(macro?.carbsG),
+    fatG: num(macro?.fatG),
   };
-  if (!profile || !(targets.kcal > 0) || !(targets.proteinG > 0) || !Number.isFinite(targets.carbsG) || !Number.isFinite(targets.fatG)) {
+  if (!macro || !(targets.kcal > 0) || !(targets.proteinG > 0) || !Number.isFinite(targets.carbsG) || !Number.isFinite(targets.fatG)) {
     return { error: t("noProfile") };
   }
 
@@ -252,7 +251,7 @@ export async function generateMealPlanWithAiAction(_prev: MealAiState, formData:
   if (result.offFailed > 0) warnings.push(t("warnOff", { count: result.offFailed }));
   const softKey = { fiber: "warnFiber", fruitveg: "warnFruitVeg", protein_meal: "warnProteinMeal", macro_split: "warnMacroSplit", fat_share: "warnFatShare" } as const;
   for (const w of result.soft) warnings.push(t(softKey[w.code], { days: w.days.join(", ") }));
-  const lowMin = targetBelowSafeMin(targets.kcal, profile.sex, profile.bmr);
+  const lowMin = targetBelowSafeMin(targets.kcal, profile?.sex, macro.bmr);
   if (lowMin !== null) warnings.push(t("warnTargetLow", { kcal: Math.round(targets.kcal), min: lowMin }));
 
   revalidatePath("/dashboard/jedalnicky");
