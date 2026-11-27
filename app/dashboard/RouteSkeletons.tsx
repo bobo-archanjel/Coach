@@ -1,5 +1,6 @@
 import styles from "./dashboard.module.css";
 import builderStyles from "@/app/components/workoutBuilder.module.css";
+import sectionTabs from "@/app/components/sectionTabs.module.css";
 
 /**
  * Skeleton TVAROM podľa cieľovej stránky (pokračovanie feature/navod) — predtým
@@ -137,12 +138,16 @@ function SablonySkeleton() {
 /** /dashboard/nastavenia — mriežka menších kariet (profil, notifikácie, AI náklady, fakturácia, návod). */
 function NastaveniaSkeleton() {
   return (
-    <div className={`${styles.skeletonWrap} ${styles.settingsPage}`}>
+    <div className={`${styles.skeletonWrap} ${styles.settingsPageWide}`}>
       <Head />
-      <div className={styles.settingsGrid}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <CardSkeleton key={i} lines={2} />
-        ))}
+      {/* záložky: zvislé menu vľavo na počítači, rad hore na mobile (ako SectionTabs layout „side“) */}
+      <div className={sectionTabs.side}>
+        <B className={`${styles.skeletonTabs} ${sectionTabs.skeletonMenu}`} />
+        <div className={styles.settingsGrid}>
+          {[0, 1, 2].map((i) => (
+            <CardSkeleton key={i} lines={2} />
+          ))}
+        </div>
       </div>
     </div>
   );

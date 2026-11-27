@@ -33,6 +33,7 @@
   "hideForDays": "Skrýt na {days} dní",
   "add": {
     "newClient": "+ Nový klient",
+    "newChallenge": "+ Nová výzva pro klienty",
     "modes": "Jak přidat klienta",
     "hasAccount": "Má účet FitPilot",
     "noAccount": "Ještě nemá účet",

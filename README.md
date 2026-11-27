@@ -75,6 +75,11 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-27** — **Nastavenia trénera v záložkách, Záujemcovia v nastaveniach, Nová výzva na Klientoch** (`feature/settings-trainer`).
+  - Nastavenia: 7 kategórií — Účet · Komunikácia · Značka · Verejná stránka · Záujemcovia · Predplatné · Aplikácia; na mobile posuvný rad hore, na desktope bočné menu vľavo; `?sekcia=` v adrese (zdieľaný `SectionTabs`, používa ho aj detail klienta). Návod otvorí záložku Aplikácia.
+  - Záujemcovia: záložka v nastaveniach (z bočného menu preč), `/dashboard/zaujemcovia` presmeruje; opravené pretekanie na mobile (zoznam aj detail).
+  - Klienti: „+ Nová výzva pre klientov“ vedľa „+ Nový klient“ (otvorí formulár výzvy); riadok „Ďalšie sekcie“ v nastaveniach zrušený.
+  - Po odcvičení tréningu: okno „Tréning v číslach“ bez „Zdieľať“.
 - **2026-11-27** — **High five u trénera, vlastné makrá klienta, Úspechy, Zopakovať s progresiou** (`feature/fixies`, **migrácia `0089_client_macro_goals.sql`**).
   - Tréner: zvonček „Úspechy klientov bez high five“ (rekord, odznak, výzva); po high five zmizne natrvalo aj z detailu klienta.
   - Klient: „Nastaviť makrá“ pri Makro cieli (okno ako u trénera, ručná úprava), prepnutie späť na makrá od trénera; všade sa ráta s platnými makrami; tréner vidí štítok „Klient používa vlastné makrá“. `leave_trainer` uvoľní makro profil od trénera.
