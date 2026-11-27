@@ -4,16 +4,12 @@ import { trainerBlock } from "@/lib/billing/server";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { calculateNutrition, type ActivityLevel, type Goal, type Sex } from "@/lib/nutrition";
+import { applyManualMacros, calculateNutrition, validateManualMacros, validateNutritionInput, type ActivityLevel, type Goal, type Sex } from "@/lib/nutrition";
 
 export interface ActionState {
   error: string | null;
 }
 const ok: ActionState = { error: null };
-
-const SEX_VALUES: Sex[] = ["muz", "zena"];
-const ACTIVITY_VALUES: ActivityLevel[] = ["sedavy", "lahka", "stredna", "vysoka", "velmi_vysoka"];
-const GOAL_VALUES: Goal[] = ["chudnutie", "udrzanie", "naberanie"];
 
 export async function saveNutritionProfileAction(
   _prevState: ActionState,
@@ -30,24 +26,21 @@ export async function saveNutritionProfileAction(
   }
 
   const clientId = formData.get("client_id")?.toString();
-  const sex = formData.get("sex")?.toString() as Sex;
-  const age = Number(formData.get("age"));
-  const weightKg = Number(formData.get("weight_kg"));
-  const heightCm = Number(formData.get("height_cm"));
-  const activityLevel = formData.get("activity_level")?.toString() as ActivityLevel;
-  const goal = formData.get("goal")?.toString() as Goal;
   const notes = formData.get("notes")?.toString().trim() || null;
 
   if (!clientId) return { error: await tErr("missingClient") };
-  if (!SEX_VALUES.includes(sex)) return { error: "Vyber pohlavie." };
-  // hranice zhodné s DB (0004: vek < 120; 0070: váha <= 500, výška <= 300) a s UI
-  if (!Number.isInteger(age) || age < 10 || age > 119) return { error: await tErr("meals.invalidAge") };
-  if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 500) return { error: await tErr("meals.invalidWeight") };
-  if (!Number.isFinite(heightCm) || heightCm < 80 || heightCm > 300) return { error: await tErr("meals.invalidHeight") };
-  if (!ACTIVITY_VALUES.includes(activityLevel)) return { error: await tErr("meals.chooseActivity") };
-  if (!GOAL_VALUES.includes(goal)) return { error: await tErr("plans.chooseGoal") };
+  const parsed = validateNutritionInput({
+    sex: formData.get("sex")?.toString(),
+    age: formData.get("age"),
+    weightKg: formData.get("weight_kg"),
+    heightCm: formData.get("height_cm"),
+    activityLevel: formData.get("activity_level")?.toString(),
+    goal: formData.get("goal")?.toString(),
+  });
+  if (!parsed.ok) return { error: await tErr(parsed.error) };
+  const { sex, age, weightKg, heightCm, activityLevel, goal } = parsed.value;
 
-  const result = calculateNutrition({ sex, age, weightKg, heightCm, activityLevel, goal });
+  const result = calculateNutrition(parsed.value);
 
   const { error } = await supabase.from("nutrition_profiles").upsert(
     {
@@ -122,11 +115,8 @@ export async function saveManualMacrosAction(
   if (!user) return { error: await tErr("notSignedIn") };
   if (typeof clientId !== "string" || !clientId) return { error: await tErr("missingClient") };
 
-  const { proteinG, carbsG, fatG } = macros ?? ({} as typeof macros);
-  const okGram = (n: unknown, max: number) => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= max;
-  if (!okGram(proteinG, 500) || !okGram(carbsG, 1500) || !okGram(fatG, 400)) return { error: await tErr("meals.invalidMacros") };
-  const kcal = proteinG * 4 + carbsG * 4 + fatG * 9;
-  if (kcal < 800 || kcal > 8000) return { error: await tErr("meals.macroKcalRange") };
+  const manual = validateManualMacros(macros);
+  if (!manual.ok) return { error: await tErr(manual.error) };
 
   const inputs = await loadProfileInputs(supabase, clientId);
   if (!inputs) return { error: await tErr("meals.macroProfileMissing") };
@@ -138,17 +128,17 @@ export async function saveManualMacrosAction(
     activityLevel: inputs.activity_level,
     goal: inputs.goal,
   });
-  const same = auto.proteinG === proteinG && auto.carbsG === carbsG && auto.fatG === fatG;
+  const final = applyManualMacros(auto, manual.value);
 
   const { error } = await supabase
     .from("nutrition_profiles")
     .update({
-      bmr: auto.bmr,
-      tdee: auto.tdee,
-      calories_target: same ? auto.caloriesTarget : kcal,
-      protein_g: proteinG,
-      carbs_g: carbsG,
-      fat_g: fatG,
+      bmr: final.bmr,
+      tdee: final.tdee,
+      calories_target: final.caloriesTarget,
+      protein_g: final.proteinG,
+      carbs_g: final.carbsG,
+      fat_g: final.fatG,
     })
     .eq("client_id", clientId);
   if (error) {

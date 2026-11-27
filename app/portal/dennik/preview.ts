@@ -4,7 +4,7 @@ import type { PortalDiaryData, PortalDiaryResult } from "@/lib/portal/types";
 const PREVIEW: PortalDiaryData = {
   today: "2026-08-28",
   date: "2026-08-28",
-  goal: { bmr: 1780, tdee: 2560, caloriesTarget: 2350, proteinG: 175, carbsG: 240, fatG: 70 },
+  goal: { source: "trainer", bmr: 1780, tdee: 2560, caloriesTarget: 2350, proteinG: 175, carbsG: 240, fatG: 70 },
   totals: { kcal: 1420, proteinG: 118, carbsG: 132, fatG: 44 },
   groups: [
     {

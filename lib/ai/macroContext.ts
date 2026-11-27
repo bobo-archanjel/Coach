@@ -8,6 +8,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MEAL_SLOT_LABELS, scaleFoodMacros, sumMacros, type MealSlot } from "@/lib/meals";
 import { dbErr } from "@/lib/dbError";
+import { loadMacroTarget } from "@/lib/macroTarget";
 
 const TZ = "Europe/Bratislava";
 
@@ -83,11 +84,7 @@ export async function getMacroContext(
   const currentHour = currentHourInTz();
 
   const [{ data: profile, error: profileErr }, { data: logRows, error: logErr }] = await Promise.all([
-    supabase
-      .from("nutrition_profiles")
-      .select("calories_target, protein_g, carbs_g, fat_g")
-      .eq("client_id", clientId)
-      .maybeSingle(),
+    loadMacroTarget(supabase, clientId).then((data) => ({ data, error: null })),
     supabase
       .from("food_logs")
       .select("meal_slot, grams, kcal_100g, protein_100g, carbs_100g, fat_100g")
@@ -108,10 +105,10 @@ export async function getMacroContext(
 
   const goal: MacroTargets | null = profile
     ? {
-        caloriesTarget: profile.calories_target,
-        proteinG: profile.protein_g,
-        carbsG: profile.carbs_g,
-        fatG: profile.fat_g,
+        caloriesTarget: profile.caloriesTarget,
+        proteinG: profile.proteinG,
+        carbsG: profile.carbsG,
+        fatG: profile.fatG,
       }
     : null;
 

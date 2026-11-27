@@ -21,6 +21,7 @@ import { freezeSourceMissionWeek } from "./rewards";
 import { ringTarget } from "./stats";
 import { XP_MISSION_BONUS } from "./xp";
 import type { BadgeTrigger } from "./badges";
+import { loadProteinTargetRow } from "@/lib/macroTarget";
 
 // FitPilot — týždenné misie, serverová časť (gamifikácia v2).
 //
@@ -111,7 +112,7 @@ async function generateAndStore(supabase: Sb, ctx: MissionCtx, weekStart: string
       .order("performed_on", { ascending: false })
       .limit(300),
     supabase.rpc("gamification_food_daily", { p_client_id: ctx.clientId, p_since: since }),
-    supabase.from("nutrition_profiles").select("protein_g").eq("client_id", ctx.clientId).maybeSingle(),
+    loadProteinTargetRow(supabase, ctx.clientId),
     supabase.from("body_metrics").select("measured_on").eq("client_id", ctx.clientId).order("measured_on", { ascending: false }).limit(1),
     supabase
       .from("workout_plans")
@@ -166,7 +167,7 @@ async function loadProgressData(supabase: Sb, clientId: string, weekStart: strin
       ? supabase.from("workout_logs").select("performed_on, entries").eq("client_id", clientId).eq("status", "completed").gte("performed_on", weekStart).lte("performed_on", sunday).limit(60)
       : Promise.resolve({ data: [], error: null }),
     has("food_days", "protein_days") ? supabase.rpc("gamification_food_daily", { p_client_id: clientId, p_since: weekStart }) : Promise.resolve({ data: [], error: null }),
-    has("protein_days") ? supabase.from("nutrition_profiles").select("protein_g").eq("client_id", clientId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    has("protein_days") ? loadProteinTargetRow(supabase, clientId) : Promise.resolve({ data: null, error: null }),
     has("pr_exercise")
       ? supabase.from("client_achievements").select("exercise_key, achieved_on").eq("client_id", clientId).eq("kind", "pr").gte("achieved_on", weekStart).lte("achieved_on", sunday).limit(200)
       : Promise.resolve({ data: [], error: null }),

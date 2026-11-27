@@ -40,11 +40,14 @@ export function NutritionForm({
   clientId,
   profile,
   defaults,
+  clientOwnGoal,
 }: {
   clientId: string;
   profile: SavedProfile | null;
   /** bez uloženého profilu: vek/váha/výška z karty klienta (Pridať klienta, 0009) */
   defaults?: { age: number | null; weight_kg: number | null; height_cm: number | null };
+  /** aktívne vlastné makrá klienta (0089) — v nich sa počíta adherencia, prstence aj reporty */
+  clientOwnGoal?: { calories_target: number; protein_g: number; carbs_g: number; fat_g: number } | null;
 }) {
   const [state, formAction, pending] = useActionState(saveNutritionProfileAction, initialState);
   const t = useTranslations("clientDetail.nutritionForm");
@@ -154,6 +157,24 @@ export function NutritionForm({
 
   return (
     <div className={styles.detailGrid}>
+      {clientOwnGoal && (
+        <div className={styles.card} style={{ gridColumn: "1 / -1" }} data-testid="client-own-macros">
+          <span className={styles.macroHeadTitle}>
+            <h3>{t("clientOwnBadge")}</h3>
+            <span className={styles.macroManualBadge}>
+              {t("clientOwnValues", {
+                kcal: clientOwnGoal.calories_target,
+                protein: clientOwnGoal.protein_g,
+                carbs: clientOwnGoal.carbs_g,
+                fat: clientOwnGoal.fat_g,
+              })}
+            </span>
+          </span>
+          <p className={styles.macroManualHint} style={{ marginTop: 8 }}>
+            {t("clientOwnHint")}
+          </p>
+        </div>
+      )}
       <div className={styles.card}>
         <h3>{t("inputs")}</h3>
         <form action={formAction}>

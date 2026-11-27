@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { resolveActivePlanId } from "@/lib/portal/activePlan";
+import { loadProteinTargetRow } from "@/lib/macroTarget";
 import {
   DEFAULT_MEAL_TARGET,
   allRingsClosed,
@@ -63,7 +64,7 @@ export async function loadTodayRings(supabase: Sb, clientId: string, today: stri
   try {
     const [food, profile, workout, rest, celebrated, mealTarget] = await Promise.all([
       supabase.from("food_logs").select("meal_slot, grams, protein_100g").eq("client_id", clientId).eq("eaten_on", today).limit(500),
-      supabase.from("nutrition_profiles").select("protein_g").eq("client_id", clientId).maybeSingle(),
+      loadProteinTargetRow(supabase, clientId),
       // počet dnešných tréningov — Pohyb ukáže 2/1, 3/1 pri viacerých tréningoch za deň
       supabase.from("workout_logs").select("id").eq("client_id", clientId).eq("performed_on", today).eq("status", "completed").limit(20),
       supabase.from("client_rest_days").select("day").eq("client_id", clientId).eq("day", today).maybeSingle(),

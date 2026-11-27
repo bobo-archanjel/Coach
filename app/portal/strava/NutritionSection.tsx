@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { PlanSource, PortalFoodOption, PortalMealPlanOption, PortalMealTemplate, PortalNutritionData } from "@/lib/portal/types";
 import { usePortionLabel } from "@/app/components/food/usePortionLabel";
-import { FoodIcon } from "@/app/portal/icons";
 import { ActionDownloadIcon, ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 import { BuilderDialog } from "@/app/components/BuilderDialog";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros } from "@/lib/meals";
@@ -22,6 +21,7 @@ import {
   saveOwnMealTemplateAction,
 } from "./actions";
 import styles from "../portal.module.css";
+import { MacroGoalDialog } from "./MacroGoalDialog";
 import { clearMealDraft, loadMealDraft, type MealBuilderDraft } from "./mealDraft";
 
 /* /portal/strava — makro cieľ, aktívny jedálniček (od trénera alebo vlastný, prepínač
@@ -96,6 +96,7 @@ export function NutritionSection({
 
   const [mode, setMode] = useState<"list" | "build">("list");
   const [editing, setEditing] = useState(false);
+  const [macroOpen, setMacroOpen] = useState(false);
   const [fromTemplate, setFromTemplate] = useState<PortalMealTemplate | null>(null);
   // Rozpracovaný jedálniček v prehliadači (mealDraft.ts) — karta „Pokračovať“ v zozname;
   // `resumeDraft` = koncept, s ktorým sa builder práve otvoril.
@@ -231,10 +232,17 @@ export function NutritionSection({
       </header>
       <div className={styles.panel} data-tour="nutrition-goal">
         <div className={styles.panelHead}>
-          <p className={styles.panelLabel}>{t("macroGoal")}</p>
-          <span className={styles.panelIcon}>
-            <FoodIcon />
-          </span>
+          <div className={styles.macroHeadMain}>
+            <p className={styles.panelLabel}>{t("macroGoal")}</p>
+            {macroGoal && (
+              <span className={styles.macroSource} data-testid="macro-source">
+                {macroGoal.source === "client" ? t("sourceOwn") : t("sourceTrainer")}
+              </span>
+            )}
+          </div>
+          <button type="button" className={styles.macroSetBtn} onClick={() => setMacroOpen(true)} data-testid="macro-set-btn">
+            {t("setMacros")}
+          </button>
         </div>
         {macroGoal ? (
           <>
@@ -264,6 +272,8 @@ export function NutritionSection({
           </div>
         )}
       </div>
+
+      {macroOpen && <MacroGoalDialog setup={data.macroSetup} currentSource={macroGoal?.source ?? null} onClose={() => setMacroOpen(false)} />}
 
       <section aria-label={t("mealPlan")} className={styles.trWrap} data-tour="nutrition-plan">
         <div className={`${styles.trHead} ${styles.trHeadTabs}`}>

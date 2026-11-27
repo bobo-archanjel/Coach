@@ -8,6 +8,7 @@ import { challengeNameOf } from "./kinds";
 import { proteinMet } from "./rings";
 import { ringTarget } from "./stats";
 import { buildWeeklySummary, isSummaryDue, summaryWeekFor, type WeeklySummary } from "./weekly";
+import { loadProteinTargetRow } from "@/lib/macroTarget";
 
 // FitPilot — týždenný súhrn klienta, serverová časť (gamifikácia, fáza B). Jediná funkcia
 // `loadWeeklySummary` vyrobí celé dáta súhrnu — rovnaké sa dá neskôr poslať ako push/e-mail
@@ -47,7 +48,7 @@ export async function loadWeeklySummary(supabase: Sb, ctx: WeeklyCtx, weekStart:
         .lte("performed_on", weekEnd)
         .limit(1500),
       supabase.rpc("gamification_food_daily", { p_client_id: ctx.clientId, p_since: weekStart }),
-      supabase.from("nutrition_profiles").select("protein_g").eq("client_id", ctx.clientId).maybeSingle(),
+      loadProteinTargetRow(supabase, ctx.clientId),
       supabase
         .from("client_achievements")
         .select("kind, badge_id, exercise_name, value, reps, meta")

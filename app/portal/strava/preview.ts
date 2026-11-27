@@ -1,4 +1,5 @@
 import type { EditableMealDay, MealPlanEntryData, PortalFoodOption, PortalMealDay, PortalNutritionData, PortalNutritionResult } from "@/lib/portal/types";
+import { calculateNutrition } from "@/lib/nutrition";
 import { MEAL_SLOT_ORDER, scaleFoodMacros, sumMacros } from "@/lib/meals";
 
 /* DEV náhľady sekcie Strava bez session (?preview=ok|own|trainers|empty|error): jedálniček od trénera
@@ -73,8 +74,17 @@ function toDays(days: EditableMealDay[]): PortalMealDay[] {
   });
 }
 
+const TRAINER_MACROS = { bmr: 1750, tdee: 2600, caloriesTarget: 2300, proteinG: 150, carbsG: 260, fatG: 70 };
+const OWN_INPUTS = { sex: "zena", age: 31, weightKg: 64, heightCm: 168, activityLevel: "lahka", goal: "chudnutie" } as const;
+const OWN_MACROS = calculateNutrition(OWN_INPUTS);
+
 const BASE: PortalNutritionData = {
-  macroGoal: { bmr: 1750, tdee: 2600, caloriesTarget: 2300, proteinG: 150, carbsG: 260, fatG: 70 },
+  macroGoal: { source: "trainer", ...TRAINER_MACROS },
+  macroSetup: {
+    own: null,
+    trainer: { ...TRAINER_MACROS, inputs: { sex: "muz", age: 34, weightKg: 82, heightCm: 180, activityLevel: "stredna", goal: "udrzanie" } },
+    defaults: { age: 34, weightKg: 82, heightCm: 180 },
+  },
   mealPlanId: "meal-trainer",
   mealPlanName: "Rekompozícia — jeseň",
   mealDays: toDays(TRAINER_DAYS),
@@ -96,6 +106,26 @@ export function previewResult(kind: string): PortalNutritionResult | null {
       state: "ok",
       data: { ...BASE, mealPlanId: "meal-own", mealPlanName: "Môj týždeň", mealDays: toDays(OWN_DAYS), activeSource: "client", editableDays: OWN_DAYS },
     };
+  if (kind === "macros-own")
+    // trénerove makrá aj aktívne vlastné — karta ukáže „Vlastné makrá“, v okne je prepínač
+    return {
+      state: "ok",
+      data: {
+        ...BASE,
+        macroGoal: { source: "client", ...OWN_MACROS },
+        macroSetup: { ...BASE.macroSetup, own: { ...OWN_MACROS, active: true, inputs: OWN_INPUTS } },
+      },
+    };
+  if (kind === "macros-self")
+    // klient bez trénera s vlastnými makrami
+    return {
+      state: "ok",
+      data: {
+        ...BASE,
+        macroGoal: { source: "client", ...OWN_MACROS },
+        macroSetup: { own: { ...OWN_MACROS, active: true, inputs: OWN_INPUTS }, trainer: null, defaults: BASE.macroSetup.defaults },
+      },
+    };
   if (kind === "trainers")
     // dva jedálničky od trénera, žiadny vlastný — v okne „Jedálničky“ je skupina Vlastné prázdna
     return {
@@ -111,7 +141,7 @@ export function previewResult(kind: string): PortalNutritionResult | null {
   if (kind === "empty")
     return {
       state: "ok",
-      data: { ...BASE, macroGoal: null, mealPlanId: null, mealPlanName: null, mealDays: [], plans: [], activeSource: null, templates: [] },
+      data: { ...BASE, macroGoal: null, macroSetup: { own: null, trainer: null, defaults: { age: null, weightKg: null, heightCm: null } }, mealPlanId: null, mealPlanName: null, mealDays: [], plans: [], activeSource: null, templates: [] },
     };
   if (kind === "error") return { state: "error" };
   return null;
