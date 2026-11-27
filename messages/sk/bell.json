@@ -25,7 +25,7 @@
     "daysWithout": "{count, plural, one {# deň} few {# dni} other {# dní}} bez tréningu",
     "late": "{count, plural, one {# klient mešká} few {# klienti meškajú} other {# klientov mešká}} s tréningom",
     "digest": "{count, plural, one {# klient klesol} few {# klienti klesli} other {# klientov kleslo}} zo „{from}“ do „{to}“ tento týždeň",
-    "challengesDone": "{count, plural, one {# klient dokončil výzvu} few {# klienti dokončili výzvu} other {# klientov dokončilo výzvu}}",
+    "achievements": "{count, plural, one {# úspech klienta bez high five} few {# úspechy klientov bez high five} other {# úspechov klientov bez high five}}",
     "newLeads": "{count, plural, one {# nový záujemca} few {# noví záujemcovia} other {# nových záujemcov}} z verejnej stránky"
   },
   "client": {

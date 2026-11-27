@@ -32,7 +32,7 @@ import { ALL_CHALLENGE_TYPES, ALL_LEADERBOARD_METRICS, PLANS } from "../lib/bill
 import { allowedLeaderboardMetrics, checkChallengeAgainstLimits, gamificationLimits } from "../lib/gamification/limits";
 import { computeBilling, featureAvailableForClients, type SubscriptionRow } from "../lib/billing/entitlements";
 import { deriveBrandTheme } from "../lib/branding/colors";
-import { applyDismissals, attentionTotal, buildAttentionItems, challengeDismissKey, isValidDismissKey } from "../lib/dashboard/attention";
+import { applyDismissals, attentionTotal, buildAttentionItems, achievementDismissKey, isValidDismissKey } from "../lib/dashboard/attention";
 import skMessages from "../messages/sk/gamification.json";
 import csMessages from "../messages/cs/gamification.json";
 
@@ -609,26 +609,29 @@ test.describe("brány podľa tarify", () => {
 });
 
 // ---------------------------------------------------------------- zvonček trénera
-test.describe("zvonček trénera: dokončené výzvy", () => {
+test.describe("zvonček trénera: úspechy bez high five", () => {
   const done = [
-    { id: "a1", clientId: "c1", clientName: "Jana N.", challengeName: "Osmička", key: challengeDismissKey("a1") },
-    { id: "a2", clientId: "c2", clientName: "Peter K.", challengeName: "Osmička", key: challengeDismissKey("a2") },
+    { id: "a1", clientId: "c1", clientName: "Jana N.", text: "Výzva dokončená: Osmička", key: achievementDismissKey("a1") },
+    { id: "a2", clientId: "c2", clientName: "Peter K.", text: "Výzva dokončená: Osmička", key: achievementDismissKey("a2") },
   ];
 
   test("položka, počet na odznaku a skrytie", () => {
-    const data = { unread: 0, late: [], digest: null, challengesDone: done };
+    const data = { unread: 0, late: [], digest: null, achievements: done };
     expect(attentionTotal(data)).toBe(2);
     const items = buildAttentionItems(data);
-    const it = items.find((i) => i.id === "challenges")!;
+    const it = items.find((i) => i.id === "achievements")!;
     expect(it.links.map((l) => l.label)).toEqual(["Jana N.", "Peter K."]);
+    expect(it.links[0].href).toBe("/dashboard/klienti/c1");
     expect(it.dismiss?.keys).toEqual(done.map((d) => d.key));
     const after = applyDismissals(data, new Set([done[0].key]));
-    expect(after.challengesDone).toHaveLength(1);
+    expect(after.achievements).toHaveLength(1);
   });
 
   test("kľúč skrytia výzvy je platný, cudzí tvar nie", () => {
-    expect(isValidDismissKey(challengeDismissKey("0d3f2b7a-1111-4222-8333-444455556666"))).toBe(true);
+    expect(isValidDismissKey(achievementDismissKey("0d3f2b7a-1111-4222-8333-444455556666"))).toBe(true);
     expect(isValidDismissKey("chal:<script>")).toBe(false);
+    expect(isValidDismissKey("chal:0d3f2b7a-1111-4222-8333-444455556666")).toBe(true); // staré skrytia ostávajú platné
+    expect(isValidDismissKey("ach:<script>")).toBe(false);
   });
 });
 
