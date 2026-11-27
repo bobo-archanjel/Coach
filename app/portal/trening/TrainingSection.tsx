@@ -10,6 +10,7 @@ import {
   deleteClientPlanAction,
   deleteOwnTemplateAction,
   getExerciseLibraryAction,
+  getPlanReviewAction,
   saveOwnTemplateAction,
   setActivePlanAction,
 } from "./actions";
@@ -23,7 +24,9 @@ import { clearBuilderDraft, loadBuilderDraft, type PlanBuilderDraft } from "./bu
 import { clearWorkoutStarted, markWorkoutStarted } from "../workoutSession";
 import { LoggedWorkoutEditor } from "../LoggedWorkoutEditor";
 import { formatCompletedDate, formatEditDeadline, isStillEditable } from "@/lib/workouts/completed";
-import { ActionActivateIcon, ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
+import { ProgressionDialog } from "./PlanReviewView";
+import { progressedTemplate } from "./ClientPlanBuilder";
+import { ActionSparkIcon, ActionActivateIcon, ActionEditIcon, ActionPreviewIcon, ActionTemplateIcon, ActionTrashIcon, ActionUseIcon } from "@/app/components/ActionIcons";
 import pa from "@/app/components/planActions.module.css";
 import styles from "../portal.module.css";
 
@@ -89,6 +92,7 @@ const PencilIcon = () => (
 
 export function TrainingSection({ data }: { data: PortalTrainingData }) {
   const tr = useTranslations("training");
+  const tb = useTranslations("clientBuilder");
   const locale = useLocale();
   const { plans, templates } = data;
 
@@ -257,6 +261,23 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
     });
   };
 
+  // „Zopakovať s progresiou“ na karte hotového plánu — review sa načíta až po kliknutí
+  // (DEV náhľad: z data.previewReview), potom okno s voľbou % a builder nového plánu
+  const [repeatFor, setRepeatFor] = useState<{ plan: PortalPlan; ready: Record<string, number> } | null>(null);
+  const [repeatLoading, setRepeatLoading] = useState<string | null>(null);
+  const [repeatError, setRepeatError] = useState<{ planId: string; text: string } | null>(null);
+  const startRepeat = async (plan: PortalPlan) => {
+    setRepeatError(null);
+    const preview = data.previewReview?.[plan.id];
+    if (preview) return setRepeatFor({ plan, ready: preview.ready });
+    if (data.previewReview) return setRepeatFor({ plan, ready: {} });
+    setRepeatLoading(plan.id);
+    const res = await getPlanReviewAction(plan.id).catch(() => ({ error: tb("reviewError") }));
+    setRepeatLoading(null);
+    if ("error" in res) setRepeatError({ planId: plan.id, text: res.error });
+    else setRepeatFor({ plan, ready: res.review.ready });
+  };
+
   const saveTemplate = (planId: string) => {
     setError(null);
     setTemplateNote(null);
@@ -338,6 +359,19 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
   return (
     <>
     {pageHeader}
+    {repeatFor && (
+      <ProgressionDialog
+        days={repeatFor.plan.days}
+        ready={repeatFor.ready}
+        voice="client"
+        onCreate={(pct) => {
+          const { plan, ready } = repeatFor;
+          setRepeatFor(null);
+          openBuilder(null, progressedTemplate(plan, ready, pct, tb("repeatName", { name: plan.name })));
+        }}
+        onClose={() => setRepeatFor(null)}
+      />
+    )}
     <section aria-label={tr("plans")} className={styles.trWrap}>
       <div className={`${styles.trHead} ${styles.trHeadTabs}`}>
         <PlansTabs
@@ -709,6 +743,24 @@ export function TrainingSection({ data }: { data: PortalTrainingData }) {
                           <>
                           {/* hore tenký rad: vľavo „Nastaviť ako aktívny“ (len neaktívny, nedokončený plán s dňami),
                               vpravo „Uložiť ako šablónu“; dole dlaždice Report · Upraviť plán · Zmazať */}
+                          {planDone && plan.source === "client" && (
+                            <button
+                              type="button"
+                              className={`${pa.action} ${pa.wide} ${pa.primary} ${pa.fullRow}`}
+                              onClick={() => startRepeat(plan)}
+                              disabled={repeatLoading === plan.id}
+                              aria-busy={repeatLoading === plan.id || undefined}
+                              data-testid="plan-repeat"
+                            >
+                              <ActionSparkIcon />
+                              {tb("repeat")}
+                            </button>
+                          )}
+                          {repeatError?.planId === plan.id && (
+                            <p className={`${styles.trTplNote} ${styles.trTplNoteError}`} role="alert">
+                              {repeatError.text}
+                            </p>
+                          )}
                           <div className={pa.rowThin}>
                             {!plan.isActive && !planDone && plan.days.length > 0 && (
                               <button

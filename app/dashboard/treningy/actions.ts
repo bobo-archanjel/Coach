@@ -20,6 +20,8 @@ import { dbErr } from "@/lib/dbError";
 import { getDayForEdit, isPlanLocked } from "@/lib/dashboard/planCompletion";
 import { tErr } from "@/lib/i18n/serverErrors";
 import { getPlanReview } from "@/lib/portal/planReviewData";
+import { toProgressionDays } from "@/lib/dashboard/planDoneDays";
+import type { ProgressionDay } from "@/app/portal/trening/PlanReviewView";
 import { PROGRESSION_OPTIONS, progressLoad } from "@/lib/portal/planReview";
 import { getTranslations } from "next-intl/server";
 import { EXERCISE_NOTE_MAX } from "@/lib/workouts/exerciseNote";
@@ -104,6 +106,34 @@ export async function createPlanAction(_prevState: ActionState, formData: FormDa
 
   revalidatePath("/dashboard/treningy");
   redirect(`/dashboard/treningy/${data.id}`);
+}
+
+/**
+ * Dni plánu + návrh záťaže pre okno „Zopakovať s progresiou“ priamo z karty plánu
+ * (detail klienta → Tréningy). Načíta sa až po kliknutí; cudzí plán sa nenájde.
+ */
+export async function getPlanProgressionAction(
+  planId: string,
+): Promise<{ days: ProgressionDay[]; ready: Record<string, number> } | { error: string }> {
+  const blocked = await trainerBlock();
+  if (blocked) return { error: blocked };
+  if (typeof planId !== "string" || !planId) return { error: await tErr("planNotFound") };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: await tErr("notSignedIn") };
+  const { data: plan } = await supabase
+    .from("workout_plans")
+    .select("id, workout_days(id, name, day_number, exercises)")
+    .eq("id", planId)
+    .eq("trainer_id", user.id)
+    .order("day_number", { referencedTable: "workout_days", ascending: true })
+    .maybeSingle();
+  if (!plan) return { error: await tErr("planNotFound") };
+  const review = await getPlanReview(planId);
+  const days = (plan.workout_days ?? []) as unknown as { id: string; name: string; exercises: unknown }[];
+  return { days: toProgressionDays(days), ready: review?.ready ?? {} };
 }
 
 /**

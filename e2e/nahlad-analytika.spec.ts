@@ -105,6 +105,29 @@ test.describe("náhľad hotového plánu — náhľady", () => {
     await expect(view.getByRole("heading", { name: "Krátke zhrnutie" })).toBeVisible();
   });
 
+  test("karta hotového plánu: Zopakovať s progresiou nad Uložiť ako šablónu, rozpracovaný ho nemá", async ({ page }) => {
+    await page.goto("/portal/trening?preview=ok");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    // hotový vlastný plán má tlačidlo nad „Uložiť ako šablónu“
+    const card = planCard(page, "plan-own-done");
+    const repeat = card.getByRole("button", { name: "Zopakovať s progresiou" });
+    await expect(repeat).toBeVisible();
+    const [r, s] = await Promise.all([repeat.boundingBox(), card.getByRole("button", { name: "Uložiť ako šablónu" }).boundingBox()]);
+    expect(r!.y + r!.height).toBeLessThanOrEqual(s!.y);
+    // hotový plán od trénera ho nemá — nový plán klientovi zostaví tréner
+    await expect(planCard(page, "plan-done").getByRole("button", { name: "Zopakovať s progresiou" })).toHaveCount(0);
+    await expect(planCard(page, "plan-own").getByRole("button", { name: "Zopakovať s progresiou" })).toHaveCount(0);
+    await expect(planCard(page, "plan-trainer").getByRole("button", { name: "Zopakovať s progresiou" })).toHaveCount(0);
+
+    await repeat.click();
+    const dialog = page.getByRole("dialog", { name: "Zopakovať s progresiou" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Vyskladať plán" }).click();
+    const builder = page.getByRole("region", { name: "Nový vlastný tréning" });
+    await expect(builder.getByLabel("Názov tréningového plánu")).toHaveValue("Moja jesenná sila — pokračovanie");
+  });
+
   test("Zopakovať s progresiou: voľba %, náhľad zmien, nový plán s vyššou záťažou", async ({ page }) => {
     await page.goto("/portal/trening?preview=ok");
     await page.evaluate(() => localStorage.clear());

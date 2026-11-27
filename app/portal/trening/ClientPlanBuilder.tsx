@@ -165,7 +165,7 @@ function fromDraftDays(stored: DraftDay[], current: BDay[]): BDay[] {
 }
 
 /** Nový plán z hotového: rovnaké tréningy a cviky, záťaž +pct % pri cvikoch so splnenými sériami. */
-function progressedTemplate(plan: PortalPlan, ready: Record<string, number>, pct: number, name: string): PortalTemplate {
+export function progressedTemplate(plan: PortalPlan, ready: Record<string, number>, pct: number, name: string): PortalTemplate {
   return {
     id: `repeat-${plan.id}`,
     name: name.slice(0, 60),
