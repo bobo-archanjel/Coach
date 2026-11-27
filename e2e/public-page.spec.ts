@@ -462,7 +462,7 @@ test.describe("notifikácie a texty", () => {
     expect(attentionTotal(data)).toBe(3);
     const items = buildAttentionItems(data, "sk");
     const item = items.find((i) => i.id === "leads");
-    expect(item?.href).toBe("/dashboard/zaujemcovia");
+    expect(item?.href).toBe("/dashboard/nastavenia?sekcia=zaujemcovia");
     expect(item?.title).toContain("3");
     expect(buildAttentionItems({ unread: 0, late: [], digest: null, newLeads: 0 }, "sk")).toEqual([]);
     expect(attentionTotal({ unread: 0, late: [], digest: null })).toBe(0);

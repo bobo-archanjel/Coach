@@ -45,7 +45,13 @@ export function OnboardingTour({ steps, tourSeen, home }: { steps: TourStep[]; t
 
   const pushed = useRef<string | null>(null);
 
-  const hrefFor = useCallback((path: string) => (preview ? `${path}?preview=${encodeURIComponent(preview)}` : path), [preview]);
+  const hrefFor = useCallback(
+    (path: string, query?: string) => {
+      const qs = [query, preview ? `preview=${encodeURIComponent(preview)}` : ""].filter(Boolean).join("&");
+      return qs ? `${path}?${qs}` : path;
+    },
+    [preview],
+  );
 
   // `OnboardingTour` je súčasť TRVALÉHO layoutu (dashboard/portal) — pri bežnej
   // navigácii v appke sa nemountuje znova, takže "len raz pri mounte" by
@@ -112,7 +118,7 @@ export function OnboardingTour({ steps, tourSeen, home }: { steps: TourStep[]; t
       return;
     }
     if (pathname !== step.path) {
-      const href = hrefFor(step.path);
+      const href = hrefFor(step.path, step.query);
       if (pushed.current !== href) {
         pushed.current = href;
         router.push(href);

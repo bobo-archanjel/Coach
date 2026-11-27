@@ -18,6 +18,8 @@ export interface TourStep {
   body: string;
   /** adresa sekcie, na ktorej prvok je — sprievodca na ňu pred krokom prejde */
   path: string;
+  /** voliteľný query string pri prechode na sekciu (bez `?`), napr. záložka Nastavení s návodom */
+  query?: string;
   /** poradie sekcie (bodky postupu) */
   section: number;
   /** prvok menu / hlavičky (položka menu, zvonček) — je na každej stránke, takže nehovorí
@@ -29,6 +31,8 @@ export interface TourStep {
 
 interface SectionDef {
   path: string;
+  /** query string pri prechode na sekciu (napr. `sekcia=aplikacia` — prvok je v neprvej záložke) */
+  query?: string;
   /** [data-tour položky menu, kľúč textu] */
   nav: [string, string];
   /** sekcia sa preskočí, keď jej položka v menu nie je (AI Kouč bez trénera) */
@@ -91,6 +95,7 @@ const TRAINER_SECTIONS: SectionDef[] = [
   },
   {
     path: "/dashboard/nastavenia",
+    query: "sekcia=aplikacia", // karta s návodom je v záložke Aplikácia
     nav: ["nav-nastavenia", "trainer.navNastavenia"],
     steps: [["settings-guide", "guides.t-settings.guide"]],
   },
@@ -176,8 +181,8 @@ function flatten(sections: SectionDef[]): TourStepDef[] {
   return sections.flatMap((s, section) => {
     const gate = s.gated ? at(s.nav[0]) : null;
     return [
-      { target: at(s.nav[0]), text: s.nav[1], path: s.path, section, nav: true, gate },
-      ...s.steps.map(([name, text]) => ({ target: at(name), text, path: s.path, section, nav: LAYOUT_TARGETS.has(name), gate })),
+      { target: at(s.nav[0]), text: s.nav[1], path: s.path, ...(s.query ? { query: s.query } : {}), section, nav: true, gate },
+      ...s.steps.map(([name, text]) => ({ target: at(name), text, path: s.path, ...(s.query ? { query: s.query } : {}), section, nav: LAYOUT_TARGETS.has(name), gate })),
     ];
   });
 }

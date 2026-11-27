@@ -41,6 +41,7 @@ async function requireTrainer(allowReadOnly = false): Promise<{ userId: string; 
 }
 
 function refresh(id?: string) {
+  revalidatePath("/dashboard/nastavenia");
   revalidatePath("/dashboard/zaujemcovia");
   if (id) revalidatePath(`/dashboard/zaujemcovia/${id}`);
   revalidatePath("/dashboard");
@@ -144,5 +145,5 @@ export async function deleteLeadAction(id: string): Promise<LeadActionResult> {
   const { error } = await supabase.from("trainer_leads").delete().eq("id", id).eq("trainer_id", guard.userId);
   if (error) return { error: await dbErr(error, "actions") };
   refresh();
-  redirect("/dashboard/zaujemcovia");
+  redirect("/dashboard/nastavenia?sekcia=zaujemcovia");
 }

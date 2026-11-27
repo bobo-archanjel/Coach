@@ -61,7 +61,7 @@ export default async function ZaujemcaDetailPage({ params }: { params: Promise<{
   return (
     <>
       <div className={styles.pageHead}>
-        <Link href="/dashboard/zaujemcovia" className={l.back}>
+        <Link href="/dashboard/nastavenia?sekcia=zaujemcovia" className={l.back}>
           {t("back")}
         </Link>
         <h1 style={{ overflowWrap: "anywhere" }}>{lead.name}</h1>

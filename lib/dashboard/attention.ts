@@ -204,7 +204,7 @@ export function buildAttentionItems(data: AttentionData, locale: Locale = "sk"):
       id: "leads",
       tone: "alert",
       title: t("trainer.newLeads", { count: data.newLeads ?? 0 }),
-      href: "/dashboard/zaujemcovia",
+      href: "/dashboard/nastavenia?sekcia=zaujemcovia",
       links: [],
       markRead: false,
       dismiss: null,

@@ -35,7 +35,6 @@ export async function FinishSummaryHost() {
     streakNote: summary.needThisWeek > 0 ? t("streakNeed", { count: summary.needThisWeek }) : t("streakDone"),
     freezeText: summary.freezeUsed ? t("freezeUsed") : null,
     levelText: summary.levelUp != null ? t("levelUp", { n: summary.levelUp }) : null,
-    shareHref: `/api/gamification/share?w=${summary.weekStart}`,
     celebration: cosmetics.celebration,
     celebrate: summary.prs > 0 || summary.levelUp != null || summary.bonus || summary.missions.some((m) => m.justDone),
   };

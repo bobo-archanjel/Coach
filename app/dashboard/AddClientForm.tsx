@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { addClientAction, addClientByCodeAction, type AddClientState, type AddByCodeState } from "./actions";
 import type { RosterItem } from "./ClientRoster";
+import { AppLink as Link } from "@/app/components/AppLink";
 import { InfoTip } from "@/app/components/InfoTip";
 import { useBilling } from "./BillingContext";
 import { ClientLimitNotice } from "./LockedFeature";
@@ -73,10 +74,14 @@ export function AddClientForm({ onOptimisticAdd }: { onOptimisticAdd?: (item: Ro
 
   if (!open) {
     return (
-      <div id="add-client" className={styles.addClientForm}>
+      <div id="add-client" className={`${styles.addClientForm} ${styles.addClientButtons}`}>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)} data-tour="clients-add">
           {t("newClient")}
         </button>
+        {/* druhé tlačidlo vedie priamo na formulár novej výzvy (sekcia Výzvy je na mobile bez položky v menu) */}
+        <Link href="/dashboard/vyzvy#nova-vyzva" className="btn btn-ghost btn-sm" data-testid="new-challenge-link">
+          {t("newChallenge")}
+        </Link>
       </div>
     );
   }

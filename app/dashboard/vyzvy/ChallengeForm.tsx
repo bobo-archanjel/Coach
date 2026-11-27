@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ClientMultiSelect, type PickerClient } from "../ClientMultiSelect";
@@ -31,6 +31,13 @@ export function ChallengeForm({
   const router = useRouter();
   const readOnly = useBilling().readOnly;
   const [name, setName] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+  // skok z tlačidla „+ Nová výzva pre klientov“ (#nova-vyzva): doskroluje na formulár a dá kurzor do názvu
+  useEffect(() => {
+    if (window.location.hash !== "#nova-vyzva") return;
+    nameRef.current?.focus({ preventScroll: true });
+    document.getElementById("nova-vyzva")?.scrollIntoView({ block: "start" });
+  }, []);
   const [description, setDescription] = useState("");
   const [metric, setMetric] = useState<ChallengeMetric>(allowedTypes[0] ?? "workouts");
   const [target, setTarget] = useState("8");
@@ -75,7 +82,7 @@ export function ChallengeForm({
       <div className={v.fields}>
         <label className={v.field}>
           {t("form.name")}
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required placeholder={t("form.namePlaceholder")} />
+          <input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required placeholder={t("form.namePlaceholder")} />
         </label>
         <label className={v.field}>
           {t("form.metric")}

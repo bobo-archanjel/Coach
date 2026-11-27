@@ -628,6 +628,10 @@
   align-items: center;
   margin-top: 16px;
 }
+/* bez „Zdieľať“ — Pokračovať na celú šírku */
+.fsActions > :global(.btn) {
+  flex: 1;
+}
 @media (prefers-reduced-motion: no-preference) {
   .fsTile {
     animation: g2Rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
