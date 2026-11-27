@@ -45,9 +45,11 @@ export function LeaderboardCard({
       <section className={g.card} aria-label={t("title")} data-testid="leaderboard-hidden">
         <h2 className={g.cardTitle}>{t("title")}</h2>
         <p className={g.empty}>{t("hiddenText")}</p>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => toggle(true)} disabled={pending}>
-          {t("show")}
-        </button>
+        <div className={g.lbShow}>
+          <button type="button" className={g.lbShowBtn} onClick={() => toggle(true)} disabled={pending} data-testid="leaderboard-show">
+            {t("show")}
+          </button>
+        </div>
         {failed && <p className={g.fiveError}>{t("failed")}</p>}
       </section>
     );

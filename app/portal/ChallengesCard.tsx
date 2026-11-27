@@ -6,7 +6,6 @@ import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import { getUserLocale } from "@/lib/i18n/server";
 import { loadClientChallenges, type ClientChallenge } from "@/lib/gamification/challengesServer";
 import { todayIso } from "@/lib/reports/period";
-import { ShareButton } from "@/app/components/ShareButton";
 import g from "@/app/components/gamification.module.css";
 
 /* Výzvy od trénera (Pro/Business) — progres sa počíta na serveri z tréningov, jedla a rekordov
@@ -61,10 +60,7 @@ export async function ChallengesCard({ items, total, compact }: { items: ClientC
               {c.description && !compact ? <p className={g.chDesc}>{c.description}</p> : null}
               <div className={g.chFoot}>
                 {c.state === "done" ? (
-                  <>
-                    <span className={g.chDone}>{t("done")}</span>
-                    {c.achievementId ? <ShareButton href={`/api/gamification/share?a=${c.achievementId}`} fileName="fitpilot-vyzva.png" /> : null}
-                  </>
+                  <span className={g.chDone}>{t("done")}</span>
                 ) : c.state === "upcoming" ? (
                   <span>{t("startsOn", { date: dateShort(c.startsOn, locale) })}</span>
                 ) : (
