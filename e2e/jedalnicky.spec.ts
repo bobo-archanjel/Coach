@@ -162,7 +162,7 @@ test.describe("detail klienta: sekcia Jedálničky (reálna DB, dizajn v6)", () 
     // záložky hore v poradí: „Makro cieľ“ (predtým Jedálničky) hneď za Tréningami, prvá otvorená sú Tréningy;
     // obsah sekcie je pod radom záložiek
     const tablist = page.getByRole("tablist", { name: "Sekcie klienta" });
-    expect(await tablist.getByRole("tab").allTextContents()).toEqual(["Tréningy", "Makro cieľ", "Analytika", "Info"]);
+    expect(await tablist.getByRole("tab").allTextContents()).toEqual(["Tréningy", "Makro cieľ", "Analytika", "Reporty", "Info"]);
     await expect(tablist.getByRole("tab", { name: "Tréningy" })).toHaveAttribute("aria-selected", "true");
     const tabsBox = await tablist.boundingBox();
     const panelBox = await page.getByRole("tabpanel").boundingBox();
