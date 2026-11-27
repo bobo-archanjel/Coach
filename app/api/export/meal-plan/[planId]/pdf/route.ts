@@ -12,6 +12,7 @@ import { tErr } from "@/lib/i18n/serverErrors";
 import { getUserLocale } from "@/lib/i18n/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { loadMacroTarget } from "@/lib/macroTarget";
 import { generateMealPlanPdf, type MealPlanReportEntry } from "@/lib/pdf/mealPlanReport";
 import { loadPdfBrand } from "@/lib/branding/pdf";
 
@@ -32,11 +33,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
 
   const [{ data: days }, { data: profile }] = await Promise.all([
     supabase.from("meal_days").select("day_number, name, meals").eq("plan_id", planId).order("day_number"),
-    supabase
-      .from("nutrition_profiles")
-      .select("calories_target, protein_g, carbs_g, fat_g")
-      .eq("client_id", plan.client_id)
-      .maybeSingle(),
+    loadMacroTarget(supabase, plan.client_id as string).then((data) => ({ data })),
   ]);
 
   const clientName = (plan.clients as unknown as { full_name: string } | null)?.full_name ?? "?";
@@ -49,10 +46,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pla
     clientName,
     goal: profile
       ? {
-          caloriesTarget: profile.calories_target,
-          proteinG: profile.protein_g,
-          carbsG: profile.carbs_g,
-          fatG: profile.fat_g,
+          caloriesTarget: profile.caloriesTarget,
+          proteinG: profile.proteinG,
+          carbsG: profile.carbsG,
+          fatG: profile.fatG,
         }
       : null,
     days: (days ?? []).map((d) => ({

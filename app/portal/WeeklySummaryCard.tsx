@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ShareButton } from "@/app/components/ShareButton";
 import { intlLocale, type Locale } from "@/lib/i18n/locales";
 import type { WeeklySummary } from "@/lib/gamification/weekly";
 import { markWeeklySummarySeenAction } from "./gamificationActions";
@@ -104,10 +103,6 @@ export function WeeklySummaryCard({ summary, dismissible = true }: { summary: We
       {summary.prs.top.length > 0 && (
         <p className={g.wkNote}>{t("topPrs", { list: summary.prs.top.map((p) => `${p.exerciseName} ${p.weightKg} kg`).join(", ") })}</p>
       )}
-
-      <div className={g.wkActions}>
-        <ShareButton href={`/api/gamification/share?w=${summary.weekStart}`} fileName="fitpilot-tyzden.png" />
-      </div>
     </section>
   );
 }

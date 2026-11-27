@@ -89,6 +89,8 @@
     "fromHistory": "Z tvé dosavadní historie",
     "locked": "Zatím zamčeno",
     "howTo": "Jak získat: {text}",
+    "showAll": "Zobrazit všechny",
+    "hideAll": "Skrýt",
     "progress": "Postup: {value} z {goal}"
   },
   "hidden": {
@@ -266,7 +268,7 @@
     "sendAria": "Poslat high five klientovi {client}: {what}",
     "sentAria": "High five klientovi {client} už byl odeslán",
     "clientTitle": "Úspěchy",
-    "clientEmpty": "Klient zatím nemá nové úspěchy.",
+    "clientEmpty": "Žádné úspěchy čekající na high five.",
     "readOnly": "Při pozastaveném předplatném se high five neodesílá.",
     "challenge": "Dokončil/a výzvu: {name}"
   },

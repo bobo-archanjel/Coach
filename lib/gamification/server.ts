@@ -33,6 +33,7 @@ import { grantFreezes, loadFreezes, type FreezeState } from "./freezesServer";
 import { freezeSourcesForLevel } from "./rewards";
 import { streakSnapshot } from "./streakCache";
 import { TRAINING_WEEK_TARGET } from "@/lib/portal/streak";
+import { loadProteinTargetRow } from "@/lib/macroTarget";
 
 // FitPilot — gamifikácia, serverová časť (fáza A).
 //
@@ -244,7 +245,7 @@ async function run(supabase: Sb, ctx: SyncContext, trigger: BadgeTrigger, logId:
     needFood
       ? supabase.rpc("gamification_food_daily", { p_client_id: clientId, p_since: addDaysIso(today, -FOOD_DAYS_BACK) })
       : Promise.resolve({ data: [], error: null }),
-    needFood ? supabase.from("nutrition_profiles").select("protein_g").eq("client_id", clientId).maybeSingle() : Promise.resolve({ data: null }),
+    needFood ? loadProteinTargetRow(supabase, clientId) : Promise.resolve({ data: null }),
     needBody
       ? supabase.from("body_metrics").select("id", { count: "exact", head: true }).eq("client_id", clientId)
       : Promise.resolve({ count: 0, error: null }),
@@ -474,7 +475,7 @@ async function loadBadgeStats(supabase: Sb, ctx: SyncContext, today: string, prC
     const [history, foodRes, profileRes, bodyRes, plansRes] = await Promise.all([
       loadHistory(supabase, ctx.clientId),
       supabase.rpc("gamification_food_daily", { p_client_id: ctx.clientId, p_since: addDaysIso(today, -FOOD_DAYS_BACK) }),
-      supabase.from("nutrition_profiles").select("protein_g").eq("client_id", ctx.clientId).maybeSingle(),
+      loadProteinTargetRow(supabase, ctx.clientId),
       supabase.from("body_metrics").select("id", { count: "exact", head: true }).eq("client_id", ctx.clientId),
       supabase
         .from("workout_plans")

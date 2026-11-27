@@ -80,3 +80,80 @@ export function calculateNutrition(input: NutritionInput): NutritionResult {
     fatG: Math.round(fatG),
   };
 }
+
+// ---------- Zdieľaná validácia (tréner aj klient) ----------
+// Hranice zhodné s DB (0004: vek < 120; 0070: váha <= 500, výška <= 300; 0089 rovnako) a s UI.
+
+export const SEX_VALUES: readonly Sex[] = ["muz", "zena"];
+export const ACTIVITY_VALUES: readonly ActivityLevel[] = ["sedavy", "lahka", "stredna", "vysoka", "velmi_vysoka"];
+export const GOAL_VALUES: readonly Goal[] = ["chudnutie", "udrzanie", "naberanie"];
+
+/** Kľúče z messages/<jazyk>/errors.json (pre tErr). */
+export type NutritionErrorKey =
+  | "meals.chooseSex"
+  | "meals.invalidAge"
+  | "meals.invalidWeight"
+  | "meals.invalidHeight"
+  | "meals.chooseActivity"
+  | "plans.chooseGoal"
+  | "meals.invalidMacros"
+  | "meals.macroKcalRange";
+
+export type Validated<T> = { ok: true; value: T } | { ok: false; error: NutritionErrorKey };
+
+/** Vstupy z formulára/JSON (surové, nedôveryhodné) → overené NutritionInput. */
+export function validateNutritionInput(raw: {
+  sex?: unknown;
+  age?: unknown;
+  weightKg?: unknown;
+  heightCm?: unknown;
+  activityLevel?: unknown;
+  goal?: unknown;
+}): Validated<NutritionInput> {
+  const sex = raw.sex as Sex;
+  const age = Number(raw.age);
+  const weightKg = Number(raw.weightKg);
+  const heightCm = Number(raw.heightCm);
+  const activityLevel = raw.activityLevel as ActivityLevel;
+  const goal = raw.goal as Goal;
+  if (!SEX_VALUES.includes(sex)) return { ok: false, error: "meals.chooseSex" };
+  if (!Number.isInteger(age) || age < 10 || age > 119) return { ok: false, error: "meals.invalidAge" };
+  if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 500) return { ok: false, error: "meals.invalidWeight" };
+  if (!Number.isFinite(heightCm) || heightCm < 80 || heightCm > 300) return { ok: false, error: "meals.invalidHeight" };
+  if (!ACTIVITY_VALUES.includes(activityLevel)) return { ok: false, error: "meals.chooseActivity" };
+  if (!GOAL_VALUES.includes(goal)) return { ok: false, error: "plans.chooseGoal" };
+  return { ok: true, value: { sex, age, weightKg, heightCm, activityLevel, goal } };
+}
+
+export interface ManualMacros {
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+/** Kalorický cieľ z makier (4/4/9 kcal na gram). */
+export function caloriesFromMacros(m: ManualMacros): number {
+  return m.proteinG * 4 + m.carbsG * 4 + m.fatG * 9;
+}
+
+/** Ručne zadané makrá: celé gramy v rozsahu a súčet 800–8000 kcal. */
+export function validateManualMacros(raw: unknown): Validated<{ macros: ManualMacros; kcal: number }> {
+  const r = (raw ?? {}) as Partial<Record<keyof ManualMacros, unknown>>;
+  const okGram = (n: unknown, max: number): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= max;
+  if (!okGram(r.proteinG, 500) || !okGram(r.carbsG, 1500) || !okGram(r.fatG, 400)) return { ok: false, error: "meals.invalidMacros" };
+  const macros = { proteinG: r.proteinG, carbsG: r.carbsG, fatG: r.fatG };
+  const kcal = caloriesFromMacros(macros);
+  if (kcal < 800 || kcal > 8000) return { ok: false, error: "meals.macroKcalRange" };
+  return { ok: true, value: { macros, kcal } };
+}
+
+/**
+ * Výsledok na uloženie: automatický výpočet, alebo ručne upravené makrá (kalorický cieľ = súčet makier;
+ * BMR/TDEE ostávajú z výpočtu). Rovnaké hodnoty ako výpočet = uloží presne výpočet (aj jeho kcal).
+ */
+export function applyManualMacros(auto: NutritionResult, manual: { macros: ManualMacros; kcal: number } | null): NutritionResult {
+  if (!manual) return auto;
+  const { macros, kcal } = manual;
+  const same = auto.proteinG === macros.proteinG && auto.carbsG === macros.carbsG && auto.fatG === macros.fatG;
+  return { bmr: auto.bmr, tdee: auto.tdee, caloriesTarget: same ? auto.caloriesTarget : kcal, ...macros };
+}

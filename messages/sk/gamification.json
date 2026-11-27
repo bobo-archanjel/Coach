@@ -89,6 +89,8 @@
     "fromHistory": "Z tvojej doterajšej histórie",
     "locked": "Zatiaľ zamknuté",
     "howTo": "Ako získať: {text}",
+    "showAll": "Zobraziť všetky",
+    "hideAll": "Skryť",
     "progress": "Postup: {value} z {goal}"
   },
   "hidden": {
@@ -266,7 +268,7 @@
     "sendAria": "Poslať high five klientovi {client}: {what}",
     "sentAria": "High five klientovi {client} už bol odoslaný",
     "clientTitle": "Úspechy",
-    "clientEmpty": "Klient zatiaľ nemá nové úspechy.",
+    "clientEmpty": "Žiadne úspechy čakajúce na high five.",
     "readOnly": "Pri pozastavenom predplatnom sa high five neodosiela.",
     "challenge": "Dokončil/a výzvu: {name}"
   },

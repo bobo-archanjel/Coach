@@ -16,6 +16,8 @@ import { ChallengesHost } from "../ChallengesCard";
 import { LeaderboardHost } from "../LeaderboardHost";
 import { MissionsHost } from "../MissionsHost";
 import { RewardsCard } from "../RewardsCard";
+import { ScrollShowN } from "@/app/components/ScrollShowN";
+import { BadgeGallery } from "./BadgeGallery";
 import { WeeklySummaryHost } from "../WeeklySummaryHost";
 import g from "@/app/components/gamification.module.css";
 import g2 from "@/app/components/gamificationV2.module.css";
@@ -103,6 +105,12 @@ async function Gallery({
   const earnedCount = data.badges.filter((b) => b.earned).length;
   const byCategory = (cat: string) => data.badges.filter((b) => b.category === cat);
   const title = t(`levelTitles.${detail.n}` as never);
+  // zbalená galéria: 4 odznaky — získané (najnovšie prvé), potom zamknuté najbližšie k odomknutiu, inak poradie katalógu
+  const frac = (b: GalleryData["badges"][number]) => (b.progress ? b.progress.value / Math.max(1, b.progress.goal) : -1);
+  const preview = [
+    ...data.badges.filter((b) => b.earned).sort((x, y) => (y.earnedOn ?? "").localeCompare(x.earnedOn ?? "")),
+    ...data.badges.filter((b) => !b.earned).sort((x, y) => frac(y) - frac(x)),
+  ].slice(0, 4);
 
   // text najbližšej odmeny: „rámik Žeravý, zmrazenie série 🧊“
   const nr = nextReward(detail.n, branded);
@@ -219,10 +227,10 @@ async function Gallery({
       {data.recent.length > 0 && (
         <section className={g.card}>
           <h2 className={g.cardTitle}>{t("recent.title")}</h2>
-          <ul className={g.recentList}>
+          <ScrollShowN className={g.recentList} data-testid="recent-list">
             {data.recent.map((r) => (
               <li key={r.id} className={g.recentRow}>
-                <span>
+                <span className={g.recentLabel}>
                   {r.kind === "pr" && r.exerciseName && r.value != null
                     ? t("recent.pr", { exercise: r.exerciseName, weight: r.value })
                     : r.kind === "level" && r.level != null
@@ -233,12 +241,10 @@ async function Gallery({
                           ? t("recent.badge", { name: t(`badges.${canonicalBadgeId(r.badgeId)}.name` as never) })
                           : null}
                 </span>
-                <span className={g.shareRow}>
-                  {r.highFived && <span className={g.hf}>🙌 {t("recent.highFive")}</span>}
-                </span>
+                {r.highFived && <span className={g.hf}>🙌 {t("recent.highFive")}</span>}
               </li>
             ))}
-          </ul>
+          </ScrollShowN>
         </section>
       )}
 
@@ -247,7 +253,7 @@ async function Gallery({
         {data.records.length === 0 ? (
           <p className={g.empty}>{t("records.empty")}</p>
         ) : (
-          <ul className={g.recordList}>
+          <ScrollShowN className={g.recordList} data-testid="record-list">
             {data.records.map((r) => (
               <li key={r.exerciseKey} className={g.recordRow}>
                 <span className={g.recordName}>{r.exerciseName}</span>
@@ -258,7 +264,7 @@ async function Gallery({
                 </span>
               </li>
             ))}
-          </ul>
+          </ScrollShowN>
         )}
       </section>
 
@@ -266,27 +272,38 @@ async function Gallery({
         <h2 className={g.cardTitle}>
           {t("gallery.title")} · {t("gallery.count", { count: earnedCount, total: data.badges.length })}
         </h2>
-        <div className={g.stack}>
-          {BADGE_CATEGORIES.map((cat) => {
-            const list = byCategory(cat);
-            if (list.length === 0) return null;
-            return (
-              <div key={cat}>
-                <h3 className={g.catTitle}>
-                  <span>{t(`categories.${cat}`)}</span>
-                  <span className={g.catCount}>
-                    {list.filter((b) => b.earned).length}/{list.length}
-                  </span>
-                </h3>
-                <ul className={g.badgeGrid}>
-                  {list.map((b) => (
-                    <BadgeCard key={b.id} badge={b} locale={locale} />
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+        <BadgeGallery
+          collapsed={
+            <ul className={g.badgeGrid} data-testid="badges-collapsed">
+              {preview.map((b) => (
+                <BadgeCard key={b.id} badge={b} locale={locale} />
+              ))}
+            </ul>
+          }
+          full={
+            <div className={g.stack}>
+              {BADGE_CATEGORIES.map((cat) => {
+                const list = byCategory(cat);
+                if (list.length === 0) return null;
+                return (
+                  <div key={cat}>
+                    <h3 className={g.catTitle}>
+                      <span>{t(`categories.${cat}`)}</span>
+                      <span className={g.catCount}>
+                        {list.filter((b) => b.earned).length}/{list.length}
+                      </span>
+                    </h3>
+                    <ul className={g.badgeGrid}>
+                      {list.map((b) => (
+                        <BadgeCard key={b.id} badge={b} locale={locale} />
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          }
+        />
       </section>
     </div>
   );

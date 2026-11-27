@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { badgeById, canonicalBadgeId } from "./badges";
 import { challengeNameOf, type AchievementKind } from "./kinds";
 
 // FitPilot — feed úspechov klientov pre trénera (dashboard + detail klienta).
@@ -41,13 +42,13 @@ export const FEED_DAYS = 14;
 export async function loadAchievementsFeed(
   supabase: SupabaseClient,
   trainerId: string,
-  opts: { clientId?: string; limit?: number; days?: number } = {},
+  opts: { clientId?: string; limit?: number; days?: number; onlyPending?: boolean } = {},
 ): Promise<FeedItem[]> {
   const since = new Date(Date.now() - (opts.days ?? FEED_DAYS) * 86_400_000).toISOString();
   let q = supabase
     .from("client_achievements")
     .select(
-      "id, client_id, kind, meta, badge_id, exercise_name, value, reps, achieved_at, clients!inner(full_name, trainer_id, ended_at, deletion_requested_at), high_fives(id)",
+      "id, client_id, kind, meta, badge_id, exercise_name, value, reps, achieved_at, clients!inner(full_name, trainer_id, ended_at, deletion_requested_at), high_fives!left(id)",
     )
     .eq("backfilled", false)
     // oslavy postupu na vyššiu úroveň (kind 'level') sú len pre klienta; tréner ich vo feede nemá
@@ -57,6 +58,8 @@ export async function loadAchievementsFeed(
     .order("achieved_at", { ascending: false })
     .limit(opts.limit ?? 12);
   if (opts.clientId) q = q.eq("client_id", opts.clientId);
+  // len úspechy bez high five — filter v dopyte (anti-join), aby limit nezaberali vybavené
+  if (opts.onlyPending) q = q.is("high_fives", null);
   const { data, error } = await q;
   if (error) return [];
   return ((data ?? []) as unknown as FeedRow[])
@@ -76,3 +79,19 @@ export async function loadAchievementsFeed(
     }));
 }
 
+
+/** Krátky text úspechu pre trénera („Nový rekord: …“); prázdny, ak sa nedá zostaviť. `t` = getTranslations("gamification"). */
+export function describeAchievement(
+  i: Pick<FeedItem, "kind" | "exerciseName" | "value" | "reps" | "challengeName" | "badgeId">,
+  t: (key: never, values?: Record<string, string | number>) => string,
+): string {
+  const tr = t as (key: string, values?: Record<string, string | number>) => string;
+  if (i.kind === "pr" && i.exerciseName && i.value != null) {
+    return i.reps
+      ? tr("trainer.prReps", { exercise: i.exerciseName, weight: i.value, reps: i.reps })
+      : tr("trainer.pr", { exercise: i.exerciseName, weight: i.value });
+  }
+  if (i.kind === "challenge") return i.challengeName ? tr("trainer.challenge", { name: i.challengeName }) : "";
+  const def = i.badgeId ? badgeById(canonicalBadgeId(i.badgeId)) : undefined;
+  return def ? tr("trainer.badge", { badge: tr(`badges.${def.id}.name`) }) : "";
+}

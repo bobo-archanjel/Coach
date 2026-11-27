@@ -71,6 +71,47 @@ test.describe("tréner — náhľad a zmazanie plánu (reálna DB)", () => {
     if (admin && templateIds.length) await admin.from("plan_templates").delete().in("id", templateIds);
   });
 
+  test("hotový plán: Zopakovať s progresiou nad Uložiť ako šablónu → nový koncept", async ({ page, baseURL }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
+    test.setTimeout(150_000);
+    admin = createClient(env.url!, env.serviceRole!, AUTH);
+    const trainerId = await userIdByEmail(env.trainerEmail!);
+    const clientUserId = await userIdByEmail(env.clientEmail!);
+    const { data: client } = await admin.from("clients").select("id, active_plan_id, active_day_id").eq("user_id", clientUserId).eq("trainer_id", trainerId).single();
+    const clientId = client!.id as string;
+    const name = `E2E zopakovať ${Date.now()}`;
+    const { data: plan } = await admin.from("workout_plans").insert({ client_id: clientId, trainer_id: trainerId, name, published: true }).select("id").single();
+    plans.push(plan!.id);
+    const { data: day } = await admin
+      .from("workout_days")
+      .insert({ plan_id: plan!.id, day_number: 1, name: "E2E Deň A", exercises: [{ entry_id: "a", exercise_id: null, exercise_name: "E2E Drep", sets: 2, reps: "10", load_kg: 30, tempo: null, rest_seconds: 60 }] })
+      .select("id")
+      .single();
+    await admin.from("workout_logs").insert({
+      client_id: clientId,
+      workout_day_id: day!.id,
+      status: "completed",
+      entries: [{ entryId: "a", name: "E2E Drep", sets: [{ reps: 10, weight: 30 }, { reps: 10, weight: 30 }] }],
+    });
+    await admin.from("clients").update({ active_plan_id: client!.active_plan_id, active_day_id: client!.active_day_id }).eq("id", clientId);
+
+    await sessionLogin(page, env.trainerEmail!, baseURL!);
+    await page.goto(`/dashboard/klienti/${clientId}`);
+    const doneCard = card(page, plan!.id);
+    const repeat = doneCard.getByRole("button", { name: "Zopakovať s progresiou" });
+    const [r, s] = await Promise.all([repeat.boundingBox(), doneCard.getByRole("button", { name: "Uložiť ako šablónu" }).boundingBox()]);
+    expect(r!.y + r!.height).toBeLessThanOrEqual(s!.y);
+    await repeat.click();
+    const dialog = page.getByRole("dialog", { name: "Zopakovať s progresiou" });
+    await expect(dialog.getByTestId("progression-changes")).toContainText("E2E Drep");
+    await dialog.getByRole("button", { name: "Vytvoriť koncept" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/treningy\/(?!.*report)[0-9a-f-]{36}$/, { timeout: 30_000 });
+    const { data: created } = await admin.from("workout_plans").select("id, published").eq("client_id", clientId).eq("name", `${name} — pokračovanie`);
+    expect(created).toHaveLength(1);
+    expect(created![0].published).toBe(false);
+    plans.push(created![0].id as string);
+  });
+
   test("rozpracovaný plán: Report (1 z 2) → Zmazať; hotový plán sa zmaže tiež", async ({ page, baseURL }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "zápis do DB len raz (desktop)");
     test.setTimeout(150_000);

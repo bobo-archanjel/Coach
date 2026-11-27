@@ -15,6 +15,7 @@ import { ClientDetailTabs, type ClientDetailSection } from "./ClientDetailTabs";
 import { ActivePlanButton } from "./ActivePlanButton";
 import { PlanCardDelete } from "./PlanCardDelete";
 import { PlanTemplateButton } from "./PlanTemplateButton";
+import { PlanRepeatButton } from "./PlanRepeatButton";
 import { PlanBand } from "@/app/components/PlanBand";
 import { PlanProgress } from "@/app/components/PlanProgress";
 import { buildDoneDays } from "@/lib/dashboard/planDoneDays";
@@ -192,6 +193,7 @@ export default async function ClientDetailPage({
     { data: privateNote },
     { data: mealPlans },
     { data: nutritionNote },
+    { data: ownGoalRow },
   ] = await Promise.all([
       supabase
         .from("clients")
@@ -219,7 +221,18 @@ export default async function ClientDetailPage({
         .order("created_at", { ascending: false }),
       // Poznámka trénera k strave (alergie, intolerancie, preferencie) — klient ju nevidí; v NutritionForm.
       supabase.from("trainer_private_notes").select("notes").eq("client_id", id).eq("scope", "nutrition").maybeSingle(),
+      // Vlastné makrá klienta (client_macro_goals, 0089) — pred migráciou tabuľka chýba → data null, stránka funguje.
+      supabase.from("client_macro_goals").select("active, calories_target, protein_g, carbs_g, fat_g").eq("client_id", id).maybeSingle(),
     ]);
+  // Efektívny cieľ klienta: aktívne vlastné makrá majú prednosť pred trénerovými (lib/macroTarget.ts).
+  const clientOwnGoal = ownGoalRow?.active
+    ? {
+        calories_target: Number(ownGoalRow.calories_target),
+        protein_g: Number(ownGoalRow.protein_g),
+        carbs_g: Number(ownGoalRow.carbs_g),
+        fat_g: Number(ownGoalRow.fat_g),
+      }
+    : null;
 
   if (!client) {
     notFound();
@@ -335,6 +348,7 @@ export default async function ClientDetailPage({
                         <div className={styles.cpFoot}>
                           {/* hore tenký rad (ako u klienta): vľavo „Nastaviť ako aktívny“ (aktívny = riadi klientovu
                               kartu Dnes, 0056; koncept klient nevidí; hotový sa nedá), vpravo „Uložiť ako šablónu“ */}
+                          {done?.allDone && <PlanRepeatButton planId={plan.id} />}
                           <div className={pa.rowThin}>
                             {plan.published && !isActive && !done?.allDone && (
                               <ActivePlanButton clientId={id} planId={plan.id} planName={plan.name} wide />
@@ -385,6 +399,7 @@ export default async function ClientDetailPage({
             clientId={id}
             profile={nutrition ? { ...nutrition, notes: nutritionNote?.notes ?? null } : null}
             defaults={{ age: client.age, weight_kg: client.weight_kg, height_cm: client.height_cm }}
+            clientOwnGoal={clientOwnGoal}
           />
           <div className={`${styles.card} ${styles.cardBare}`}>
             {cardHead(
@@ -436,7 +451,7 @@ export default async function ClientDetailPage({
       label: t("tabAnalytics"),
       content: (
         <Suspense fallback={<AnalyticsSkeleton />}>
-          <ClientAnalytics clientId={id} nutrition={nutrition} data={analyticsData} />
+          <ClientAnalytics clientId={id} nutrition={clientOwnGoal ?? nutrition} data={analyticsData} />
         </Suspense>
       ),
     },

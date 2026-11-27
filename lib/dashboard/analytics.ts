@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { scaleFoodMacros, sumMacros } from "@/lib/meals";
+import { loadMacroTargets } from "@/lib/macroTarget";
 import { todayInTz, addDays, iso, ON_TRACK_MIN_PCT, ON_TRACK_MAX_PCT, sessionCompletionScore } from "./adherence";
 
 // Agregovaný prehľad naprieč klientmi pre `/dashboard/analytika` (feature/progress-analyst).
@@ -51,7 +52,7 @@ export async function getClientAnalyticsOverview(clientIds: string[]): Promise<M
     { data: logRows, error: logErr },
     { data: metricRows, error: metricErr },
   ] = await Promise.all([
-    supabase.from("nutrition_profiles").select("client_id, calories_target").in("client_id", clientIds),
+    loadMacroTargets(supabase, clientIds).then((data) => ({ data, error: null })),
     fetchAllPages((from, to) =>
       supabase
         .from("food_logs")
@@ -88,7 +89,7 @@ export async function getClientAnalyticsOverview(clientIds: string[]): Promise<M
   if (profErr || foodErr || logErr || metricErr) return null;
 
   const goalByClient = new Map<string, number>();
-  for (const p of profiles ?? []) if (p.calories_target) goalByClient.set(p.client_id, p.calories_target);
+  for (const [id, p] of profiles ?? []) if (p.caloriesTarget) goalByClient.set(id, p.caloriesTarget);
 
   const kcalByClientDate = new Map<string, Map<string, number>>();
   for (const r of foodRows ?? []) {
