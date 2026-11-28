@@ -15,103 +15,141 @@ import tp from "./templatePicker.module.css";
 
 const initialState: TemplateState = { error: null, saved: false };
 
-/** Schematický náhľad webu šablóny (lišta, hrdina, ceny) v jej farbách — čisté SVG, bez obrázkov. */
+/** Farebná škvrna za sklom (radiálny prechod) — rovnaký princíp ako pozadie webu. */
+function Blob({ id, cx, cy, r, color, opacity }: { id: string; cx: number; cy: number; r: number; color: string; opacity: number }) {
+  return (
+    <>
+      <defs>
+        <radialGradient id={id}>
+          <stop offset="0" stopColor={color} stopOpacity={opacity} />
+          <stop offset="1" stopColor={color} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx={cx} cy={cy} r={r} fill={`url(#${id})`} />
+    </>
+  );
+}
+
+/** Sklenený panel: priesvitná výplň + svetlá hrana (v miniatúre bez rozostrenia). */
+function Pane(p: { x: number; y: number; w: number; h: number; r: number; fill: string; op: number; edge: string; edgeOp: number }) {
+  return (
+    <>
+      <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={p.r} fill={p.fill} fillOpacity={p.op} />
+      <rect x={p.x + 0.4} y={p.y + 0.4} width={p.w - 0.8} height={p.h - 0.8} rx={p.r} fill="none" stroke={p.edge} strokeOpacity={p.edgeOp} strokeWidth="0.8" />
+    </>
+  );
+}
+
+/** Schematický náhľad webu šablóny (plávajúca lišta, hrdina, ceny — sklo nad farebnými škvrnami) — čisté SVG, bez obrázkov. */
 function Thumb({ id }: { id: TemplateId }) {
   const common = { viewBox: "0 0 120 84", width: "100%", height: "100%", "aria-hidden": true, focusable: false } as const;
   if (id === "sport") {
     return (
       <svg {...common}>
-        <rect width="120" height="84" fill="#0b0b0c" />
-        <rect width="120" height="8" fill="#0b0b0c" />
-        <rect x="6" y="3" width="22" height="2.4" fill="#fff" />
-        <rect x="92" y="2" width="22" height="4.4" fill="#c8f031" />
-        <rect y="8" width="120" height="40" fill="#34343a" />
-        <rect x="58" y="8" width="62" height="40" fill="#4a4a52" />
-        <rect y="8" width="120" height="40" fill="url(#sg)" />
-        <defs>
-          <linearGradient id="sg" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#0b0b0c" stopOpacity="0.95" />
-            <stop offset="1" stopColor="#0b0b0c" stopOpacity="0.15" />
-          </linearGradient>
-        </defs>
-        <rect x="8" y="22" width="12" height="2.6" fill="#c8f031" />
-        <rect x="8" y="27" width="62" height="9" fill="#fff" />
-        <rect x="8" y="39" width="22" height="5" fill="#c8f031" />
-        <rect x="8" y="54" width="34" height="22" fill="#19191c" stroke="#2a2a30" strokeWidth="0.6" />
-        <rect x="8" y="54" width="34" height="1.8" fill="#c8f031" />
-        <rect x="45" y="54" width="34" height="22" fill="#19191c" stroke="#2a2a30" strokeWidth="0.6" />
-        <rect x="45" y="54" width="34" height="1.8" fill="#c8f031" />
-        <rect x="82" y="54" width="30" height="22" fill="#19191c" stroke="#2a2a30" strokeWidth="0.6" />
-        <rect x="82" y="54" width="30" height="1.8" fill="#c8f031" />
-        <rect x="12" y="60" width="14" height="5" fill="none" stroke="#c8f031" strokeWidth="0.7" />
+        <rect width="120" height="84" fill="#07070d" />
+        <Blob id="tsa" cx={20} cy={8} r={46} color="#702ae1" opacity={0.75} />
+        <Blob id="tsb" cx={112} cy={30} r={34} color="#22d3ee" opacity={0.4} />
+        <Blob id="tsc" cx={104} cy={80} r={30} color="#c8f031" opacity={0.3} />
+        <Blob id="tsd" cx={10} cy={74} r={32} color="#c026d3" opacity={0.4} />
+        <Pane x={6} y={4} w={108} h={10} r={5} fill="#18162a" op={0.7} edge="#fff" edgeOp={0.3} />
+        <rect x={12} y={8} width={20} height={2.4} rx={1.2} fill="#fff" />
+        <rect x={88} y={6.4} width={22} height={5.2} rx={2.6} fill="#c8f031" />
+        <rect x={50} y={8.4} width={7} height={1.6} rx={0.8} fill="#a9a9c2" />
+        <rect x={60} y={8.4} width={7} height={1.6} rx={0.8} fill="#a9a9c2" />
+        <rect x={6} y={18} width="108" height="32" rx="8" fill="#2c2a46" />
+        <Pane x={10} y={26} w={64} h={20} r={7} fill="#18162a" op={0.7} edge="#fff" edgeOp={0.35} />
+        <rect x={15} y={30} width={10} height={1.8} rx={0.9} fill="#c8f031" />
+        <rect x={15} y={34} width={46} height={6} rx={1.5} fill="#fff" />
+        <rect x={15} y={42} width={16} height={2.6} rx={1.3} fill="#c8f031" />
+        <Pane x={6} y={56} w={34} h={22} r={7} fill="#18162a" op={0.7} edge="#fff" edgeOp={0.28} />
+        <Pane x={43} y={56} w={34} h={22} r={7} fill="#18162a" op={0.7} edge="#fff" edgeOp={0.28} />
+        <Pane x={80} y={56} w={34} h={22} r={7} fill="#18162a" op={0.7} edge="#fff" edgeOp={0.28} />
+        <rect x={14} y={56.4} width={18} height={1.2} rx={0.6} fill="#c8f031" />
+        <rect x={51} y={56.4} width={18} height={1.2} rx={0.6} fill="#c8f031" />
+        <rect x={88} y={56.4} width={18} height={1.2} rx={0.6} fill="#c8f031" />
+        <rect x={11} y={62} width={14} height={4.6} rx={1} fill="none" stroke="#c8f031" strokeWidth="0.7" />
+        <rect x={48} y={62} width={14} height={4.6} rx={1} fill="none" stroke="#c8f031" strokeWidth="0.7" />
+        <rect x={85} y={62} width={14} height={4.6} rx={1} fill="none" stroke="#c8f031" strokeWidth="0.7" />
       </svg>
     );
   }
   if (id === "minimal") {
     return (
       <svg {...common}>
-        <rect width="120" height="84" fill="#faf8f4" />
-        <rect x="8" y="5" width="22" height="3" fill="#151515" />
-        <rect x="76" y="5" width="8" height="2" fill="#6b675f" />
-        <rect x="88" y="5" width="8" height="2" fill="#6b675f" />
-        <rect x="0" y="12" width="120" height="0.6" fill="#ddd7cb" />
-        <rect x="8" y="20" width="22" height="1.6" fill="#6b675f" />
-        <rect x="8" y="26" width="60" height="7" fill="#151515" />
-        <rect x="8" y="36" width="40" height="7" fill="#151515" />
-        <rect x="8" y="47" width="30" height="2.4" fill="#6b675f" />
-        <rect x="8" y="54" width="16" height="5" fill="#1d4a3c" />
-        <rect x="80" y="18" width="32" height="42" fill="#d9d1c3" />
-        <rect x="83" y="21" width="32" height="42" fill="none" stroke="#bfb8a9" strokeWidth="0.6" />
-        <rect x="8" y="66" width="104" height="0.6" fill="#151515" />
-        <rect x="8" y="70" width="36" height="2.6" fill="#151515" />
-        <rect x="96" y="70" width="16" height="2.6" fill="#151515" />
-        <rect x="8" y="76" width="104" height="0.6" fill="#bfb8a9" />
+        <rect width="120" height="84" fill="#f4f0e8" />
+        <Blob id="tma" cx={18} cy={6} r={44} color="#e8d6b6" opacity={0.95} />
+        <Blob id="tmb" cx={110} cy={36} r={32} color="#c2d0b8" opacity={0.7} />
+        <Blob id="tmc" cx={14} cy={80} r={34} color="#eed0c0" opacity={0.7} />
+        <Pane x={8} y={4} w={104} h={10} r={5} fill="#fffcf5" op={0.7} edge="#fff" edgeOp={0.9} />
+        <rect x={14} y={7.6} width={20} height={2.6} rx={1} fill="#15140f" />
+        <rect x={64} y={8} width={8} height={1.6} rx={0.8} fill="#686356" />
+        <rect x={76} y={8} width={8} height={1.6} rx={0.8} fill="#686356" />
+        <rect x={92} y={6} width={16} height={5.4} rx={2.7} fill="#1f4a3a" />
+        <Pane x={8} y={20} w={22} h={5} r={2.5} fill="#fffcf5" op={0.7} edge="#fff" edgeOp={0.9} />
+        <rect x={8} y={29} width={58} height={6.4} rx={1} fill="#15140f" />
+        <rect x={8} y={38} width={40} height={6.4} rx={1} fill="#15140f" />
+        <rect x={8} y={48} width={32} height={2.2} rx={1.1} fill="#686356" />
+        <rect x={8} y={54} width={20} height={5.4} rx={2.7} fill="#1f4a3a" />
+        <Pane x={80} y={18} w={32} h={42} r={7} fill="#fffcf5" op={0.65} edge="#fff" edgeOp={0.95} />
+        <rect x={83} y={21} width={26} height={36} rx={4.5} fill="#d4c9b6" />
+        <Pane x={8} y={65} w={104} h={15} r={6} fill="#fffcf5" op={0.7} edge="#fff" edgeOp={0.95} />
+        <rect x={14} y={68} width={34} height={2.4} rx={1.2} fill="#15140f" />
+        <rect x={92} y={68} width={14} height={2.4} rx={1.2} fill="#15140f" />
+        <rect x={14} y={73.4} width={92} height={0.5} fill="#3c3219" fillOpacity="0.3" />
       </svg>
     );
   }
   if (id === "wellness") {
     return (
       <svg {...common}>
-        <rect width="120" height="84" fill="#fbf6ee" />
-        <circle cx="108" cy="12" r="22" fill="#f8e4dc" />
-        <circle cx="6" cy="50" r="18" fill="#e2ebdc" />
-        <rect x="8" y="5" width="24" height="3.4" rx="1.7" fill="#2b3a31" />
-        <rect x="84" y="3.5" width="28" height="7" rx="3.5" fill="#4a7a5d" />
-        <rect x="8" y="20" width="52" height="6" rx="3" fill="#2b3a31" />
-        <rect x="8" y="30" width="38" height="6" rx="3" fill="#2b3a31" />
-        <rect x="8" y="41" width="44" height="2.6" rx="1.3" fill="#66726a" />
-        <rect x="8" y="48" width="22" height="7" rx="3.5" fill="#4a7a5d" />
-        <path d="M70 52V30a15 15 0 0 1 30 0v22a3 3 0 0 1-3 3H73a3 3 0 0 1-3-3Z" fill="#dcb9a5" />
-        <rect x="8" y="62" width="32" height="16" rx="6" fill="#fff" />
-        <rect x="44" y="62" width="32" height="16" rx="6" fill="#e2ebdc" />
-        <rect x="80" y="62" width="32" height="16" rx="6" fill="#f8e4dc" />
-        <rect x="12" y="66" width="12" height="4" rx="2" fill="#4a7a5d" />
-        <rect x="48" y="66" width="12" height="4" rx="2" fill="#4a7a5d" />
-        <rect x="84" y="66" width="12" height="4" rx="2" fill="#4a7a5d" />
+        <rect width="120" height="84" fill="#fdf3ec" />
+        <Blob id="twa" cx={14} cy={6} r={42} color="#ffbe96" opacity={0.9} />
+        <Blob id="twb" cx={112} cy={22} r={32} color="#ffa5c8" opacity={0.65} />
+        <Blob id="twc" cx={20} cy={62} r={30} color="#c4afff" opacity={0.7} />
+        <Blob id="twd" cx={108} cy={74} r={32} color="#aadab6" opacity={0.8} />
+        <Pane x={8} y={4} w={104} h={10} r={5} fill="#fffaf6" op={0.7} edge="#fff" edgeOp={0.95} />
+        <rect x={14} y={7.8} width={22} height={2.6} rx={1.3} fill="#3a2a31" />
+        <rect x={86} y={6} width={22} height={5.4} rx={2.7} fill="#3f7a5c" />
+        <rect x={8} y={21} width={50} height={6.4} rx={3.2} fill="#3a2a31" />
+        <rect x={8} y={30} width={36} height={6.4} rx={3.2} fill="#3a2a31" />
+        <rect x={8} y={40} width={42} height={2.4} rx={1.2} fill="#735e68" />
+        <rect x={8} y={47} width={22} height={6.4} rx={3.2} fill="#3f7a5c" />
+        <path d="M70 53V30a15 15 0 0 1 30 0v23a3 3 0 0 1-3 3H73a3 3 0 0 1-3-3Z" fill="#e4b9a4" />
+        <path d="M70 53V30a15 15 0 0 1 30 0v23a3 3 0 0 1-3 3H73a3 3 0 0 1-3-3Z" fill="none" stroke="#fff" strokeOpacity="0.8" strokeWidth="1.6" />
+        <Pane x={8} y={60} w={32} h={18} r={8} fill="#fffaf6" op={0.7} edge="#fff" edgeOp={0.95} />
+        <Pane x={44} y={60} w={32} h={18} r={8} fill="#e0f0e4" op={0.75} edge="#fff" edgeOp={0.95} />
+        <Pane x={80} y={60} w={32} h={18} r={8} fill="#e8dcff" op={0.75} edge="#fff" edgeOp={0.95} />
+        <rect x={12} y={64} width={13} height={4} rx={2} fill="#3f7a5c" />
+        <rect x={48} y={64} width={13} height={4} rx={2} fill="#3f7a5c" />
+        <rect x={84} y={64} width={13} height={4} rx={2} fill="#3f7a5c" />
       </svg>
     );
   }
   return (
     <svg {...common}>
-      <rect width="120" height="84" fill="#fff" />
-      <rect x="8" y="5" width="22" height="3.4" rx="1" fill="#0f1b33" />
-      <rect x="60" y="5.4" width="8" height="2" rx="1" fill="#62708a" />
-      <rect x="72" y="5.4" width="8" height="2" rx="1" fill="#62708a" />
-      <rect x="88" y="3" width="24" height="7.4" rx="2.5" fill="#2f5bea" />
-      <rect y="12.4" width="120" height="0.6" fill="#e3e8f1" />
-      <rect y="13" width="120" height="40" fill="#f3f6fb" />
-      <rect x="8" y="22" width="50" height="5.6" rx="1.5" fill="#0f1b33" />
-      <rect x="8" y="30" width="36" height="5.6" rx="1.5" fill="#0f1b33" />
-      <rect x="8" y="39" width="44" height="2.4" rx="1.2" fill="#62708a" />
-      <rect x="8" y="45" width="18" height="6" rx="2.5" fill="#2f5bea" />
-      <rect x="78" y="20" width="34" height="30" rx="5" fill="#2f5bea" opacity="0.14" />
-      <rect x="74" y="17" width="34" height="30" rx="5" fill="#cbd5e8" />
-      <rect x="8" y="58" width="32" height="20" rx="4" fill="#fff" stroke="#e3e8f1" />
-      <rect x="44" y="58" width="32" height="20" rx="4" fill="#fff" stroke="#2f5bea" />
-      <rect x="80" y="58" width="32" height="20" rx="4" fill="#fff" stroke="#e3e8f1" />
-      <rect x="12" y="62" width="14" height="4" rx="1.5" fill="#2f5bea" />
-      <rect x="48" y="62" width="14" height="4" rx="1.5" fill="#2f5bea" />
-      <rect x="84" y="62" width="14" height="4" rx="1.5" fill="#2f5bea" />
+      <rect width="120" height="84" fill="#e9f0fb" />
+      <Blob id="tka" cx={14} cy={8} r={46} color="#6ebeff" opacity={0.85} />
+      <Blob id="tkb" cx={112} cy={22} r={36} color="#8c87ff" opacity={0.7} />
+      <Blob id="tkc" cx={18} cy={66} r={30} color="#6ee8dc" opacity={0.55} />
+      <Blob id="tkd" cx={108} cy={74} r={30} color="#beaaff" opacity={0.6} />
+      <Pane x={8} y={4} w={104} h={10} r={5} fill="#fff" op={0.7} edge="#fff" edgeOp={1} />
+      <rect x={14} y={7.8} width={20} height={2.6} rx={1.3} fill="#0c1a3a" />
+      <rect x={58} y={8.2} width={8} height={1.8} rx={0.9} fill="#4f628b" />
+      <rect x={70} y={8.2} width={8} height={1.8} rx={0.9} fill="#4f628b" />
+      <rect x={88} y={6} width={20} height={5.4} rx={2.7} fill="#4258f0" />
+      <Pane x={8} y={20} w={20} h={5} r={2.5} fill="#fff" op={0.7} edge="#fff" edgeOp={1} />
+      <rect x={8} y={29} width={50} height={5.8} rx={2} fill="#0c1a3a" />
+      <rect x={8} y={37} width={36} height={5.8} rx={2} fill="#0c1a3a" />
+      <rect x={8} y={46} width={44} height={2.4} rx={1.2} fill="#4f628b" />
+      <rect x={8} y={52} width={20} height={5.8} rx={2.9} fill="#4258f0" />
+      <Pane x={74} y={18} w={38} h={40} r={10} fill="#fff" op={0.6} edge="#fff" edgeOp={1} />
+      <rect x={77} y={21} width={32} height={34} rx={7} fill="#b9c8e6" />
+      <Pane x={8} y={63} w={32} h={16} r={7} fill="#fff" op={0.6} edge="#fff" edgeOp={1} />
+      <Pane x={44} y={63} w={32} h={16} r={7} fill="#fff" op={0.6} edge="#fff" edgeOp={1} />
+      <Pane x={80} y={63} w={32} h={16} r={7} fill="#fff" op={0.6} edge="#fff" edgeOp={1} />
+      <rect x={13} y={67} width={14} height={4} rx={1.5} fill="#4258f0" />
+      <rect x={49} y={67} width={14} height={4} rx={1.5} fill="#4258f0" />
+      <rect x={85} y={67} width={14} height={4} rx={1.5} fill="#4258f0" />
     </svg>
   );
 }

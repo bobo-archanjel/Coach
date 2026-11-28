@@ -10,7 +10,7 @@ export async function Footer({ page, preview }: { page: PublicPageData; preview:
   const socials = SOCIAL_KINDS.filter((k) => page.socials[k]);
   return (
     <footer className={styles.footer}>
-      <div className={styles.container}>
+      <div className={styles.footerCard}>
         <div className={styles.footerTop}>
           <p className={styles.footerName}>{page.displayName}</p>
           {socials.length > 0 && (

@@ -12,8 +12,8 @@ import { Services } from "./sections/Services";
 import { Testimonials } from "./sections/Testimonials";
 import styles from "./site.module.css";
 
-/* Vykreslenie verejnej stránky trénera (Business) ako samostatného webu: lišta s navigáciou, hrdina, sekcie ako pásy
-   na celú šírku, kontakt a päta. Zdieľa ho /t/<handle> aj náhľad v dashboarde.
+/* Vykreslenie verejnej stránky trénera (Business) ako samostatného webu v štýle „liquid glass“: plávajúca sklenená lišta
+   s navigáciou, hrdina, sekcie nad spoločným farebným pozadím (.bg), kontakt a päta. Zdieľa ho /t/<handle> aj náhľad v dashboarde.
    Šablóna (page.template) je „recept“ (lib/publicPage/templates.ts): poradie sekcií, variant každej a pevný tón;
    farby, písma a tvary sú v site.module.css podľa data-template. Obsah je vždy ten istý. Vzhľad NIE JE dizajn appky
    (v6) — je to web trénera; FitPilot sa objaví len v päte. Akcent = farba trénera (--brand-*), inak vlastná farba šablóny.
@@ -58,6 +58,15 @@ export function TrainerPublicPage({ page, preview = false, previewBanner }: { pa
             {previewBanner}
           </p>
         )}
+        {/* farebné škvrny za sklom (čisto dekoratívne, orezané) */}
+        <div className={styles.bg} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
         <Nav page={page} sections={sections} />
         <main>
           {/* pozadia sa striedajú medzi vykreslenými sekciami (hrdina = základ) */}
