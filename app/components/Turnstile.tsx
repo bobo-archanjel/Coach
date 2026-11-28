@@ -7,7 +7,7 @@
 // explicitný `render()`/`remove()` viazaný na kontajner formulára (callback ref).
 
 import Script from "next/script";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -66,6 +66,8 @@ export function useTurnstile(opts: { invisible?: boolean } = {}) {
   const widgetIdRef = useRef<string | null>(null);
   const tokenRef = useRef("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** true = widget vydal platný token (CAPTCHA overená) — formulár podľa toho povolí odoslanie */
+  const [ready, setReady] = useState(false);
 
   const stopPoll = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -83,6 +85,7 @@ export function useTurnstile(opts: { invisible?: boolean } = {}) {
     }
     widgetIdRef.current = null;
     tokenRef.current = "";
+    setReady(false);
   }, [stopPoll]);
 
   /** true = hotovo (vykreslené alebo niet kam), false = skript sa ešte načítava. */
@@ -97,14 +100,17 @@ export function useTurnstile(opts: { invisible?: boolean } = {}) {
       ...(invisible ? { appearance: "interaction-only" as const } : {}),
       callback: (token) => {
         tokenRef.current = token;
+        setReady(!!token);
       },
       // token po 300 s vyprší (widget sa sám obnoví) — starý sa už nesmie odoslať
       "expired-callback": () => {
         tokenRef.current = "";
+        setReady(false);
       },
       // interaktívna výzva vypršala bez odpovede — nový widget namiesto „mŕtveho“
       "timeout-callback": () => {
         tokenRef.current = "";
+        setReady(false);
         if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
       },
     });
@@ -149,7 +155,8 @@ export function useTurnstile(opts: { invisible?: boolean } = {}) {
   function reset() {
     if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
     tokenRef.current = "";
+    setReady(false);
   }
 
-  return { containerRef, getToken, waitForToken, reset };
+  return { containerRef, getToken, waitForToken, reset, ready };
 }
