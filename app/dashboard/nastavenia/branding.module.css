@@ -306,6 +306,15 @@
   color: var(--paper-dim);
   text-align: center;
 }
+/* náhľad verejnej stránky: web trénera na celú šírku obsahu v jednoduchom rámčeku (rozloženie sa riadi šírkou
+   rámčeka, nie okna, lišta sa tu nelepí hore) */
+.pvSite {
+  width: 100%;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  overflow: clip;
+  background: #ffffff;
+}
 .pvBack {
   align-self: flex-start;
   font-size: 13.5px;

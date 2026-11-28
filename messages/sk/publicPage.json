@@ -5,7 +5,9 @@
   "hero": {
     "cta": "Chcem trénovať s tebou",
     "online": "Online tréning",
-    "locationLabel": "Miesto"
+    "locationLabel": "Miesto",
+    "secondaryServices": "Pozri služby",
+    "secondaryAbout": "Spoznaj ma"
   },
   "sections": {
     "about": "O mne",
@@ -273,15 +275,42 @@
       "wellness": "Wellness"
     },
     "descriptions": {
-      "klasik": "Svetlé karty, vyvážené a prehľadné.",
-      "sport": "Tmavá, veľká fotka a výrazné písmo.",
-      "minimal": "Text na prvom mieste, veľa vzduchu.",
-      "wellness": "Jemná a zaoblená, fotka vedľa textu."
+      "klasik": "Čistý, dôveryhodný web s cenníkom v kartách.",
+      "sport": "Tmavý, drzý gym web s veľkou fotkou a výrazným písmom.",
+      "minimal": "Elegantný časopisecký web: serif, vzduch, cenník.",
+      "wellness": "Jemný, teplý web so zaoblenými tvarmi a oblúkovou fotkou."
     },
     "disabled": {
       "locked": "Šablóny sú súčasťou tarify Business.",
       "needPage": "Najprv ulož stránku (adresu a texty), potom si vyberieš šablónu.",
       "notReady": "Šablóny budú dostupné po aktualizácii databázy."
     }
+  },
+  "nav": {
+    "label": "Hlavná navigácia",
+    "about": "O mne",
+    "services": "Služby",
+    "testimonials": "Referencie",
+    "gallery": "Galéria",
+    "contact": "Kontakt",
+    "menu": "Menu",
+    "ctaShort": "Chcem trénovať"
+  },
+  "eyebrow": {
+    "about": "Spoznaj ma",
+    "services": "Spolupráca",
+    "testimonials": "Čo hovoria klienti",
+    "gallery": "Z tréningov",
+    "contact": "Ozvi sa mi"
+  },
+  "serviceCta": "Mám záujem",
+  "contact": {
+    "lead": "Vyplň krátky formulár — ozvem sa ti a dohodneme ďalší krok.",
+    "where": "Kde ma nájdeš",
+    "follow": "Sleduj ma"
+  },
+  "footer": {
+    "copy": "© {year} {name}",
+    "links": "Odkazy v pätičke"
   }
 }

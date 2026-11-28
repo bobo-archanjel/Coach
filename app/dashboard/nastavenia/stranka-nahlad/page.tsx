@@ -33,7 +33,7 @@ export default async function PublicPagePreview({ searchParams }: { searchParams
       <Link href="/dashboard/nastavenia?sekcia=stranka" className={styles.pvBack}>
         {t("back")}
       </Link>
-      <div style={{ width: "100%", borderRadius: 28, overflow: "clip" }}>
+      <div className={styles.pvSite} data-testid="public-page-preview-frame">
         <TrainerPublicPage page={shown} preview previewBanner={banner} />
       </div>
     </div>

@@ -10,7 +10,7 @@ import { TurnstileScript, useTurnstile } from "@/app/components/Turnstile";
 import { LEAD_EXPERIENCE, LEAD_GOALS, LEAD_LIMITS_TEXT } from "@/lib/publicPage/leads";
 import { charLength } from "@/lib/branding/validation";
 import { submitLeadAction, type LeadFormState } from "./[handle]/actions";
-import styles from "./publicPage.module.css";
+import styles from "./leadForm.module.css";
 
 const initial: LeadFormState = { error: null, sent: false };
 
@@ -43,7 +43,7 @@ export function LeadForm({ handle, disabled = false, privacyHref }: { handle: st
   return (
     <>
       <p className={styles.formIntro}>{t("intro")}</p>
-      {disabled && <p className={styles.honest}>{t("previewNote")}</p>}
+      {disabled && <p className={styles.note}>{t("previewNote")}</p>}
       {!disabled && <TurnstileScript />}
       <form action={submit} className={`${styles.form} ${disabled ? styles.formDisabled : ""}`} data-testid="lead-form" noValidate={false}>
         <input type="hidden" name="handle" value={handle} />
@@ -147,7 +147,7 @@ export function LeadForm({ handle, disabled = false, privacyHref }: { handle: st
         )}
 
         <div className={styles.span2}>
-          <button type="submit" className={styles.cta} disabled={pending || disabled} data-testid="lead-submit">
+          <button type="submit" className={styles.submit} disabled={pending || disabled} data-testid="lead-submit">
             {pending ? t("sending") : t("submit")}
           </button>
         </div>

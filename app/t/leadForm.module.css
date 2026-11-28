@@ -1,0 +1,227 @@
+/* Formulár záujemcu na verejnej stránke trénera. Farby, polia a tlačidlo preberá z premenných šablóny
+   (--ink, --line, --field-bg, --a …, nastavuje ich site.module.css na koreni), takže vyzerá ako súčasť webu,
+   nie ako appka. Dotykové ciele ≥ 44 px, písmo polí 16 px (iOS pri focuse nezoomuje). */
+
+.formIntro {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.note {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: var(--r-field);
+  background: var(--a-soft);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.opt {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 14px;
+  border-radius: var(--r-field);
+  border: 1px solid var(--line-strong);
+  background: var(--field-bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  caret-color: var(--a-ink);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.select {
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-3);
+}
+.input:hover:not(:disabled),
+.select:hover:not(:disabled),
+.textarea:hover:not(:disabled) {
+  border-color: var(--ink-3);
+}
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.55;
+}
+/* globals.css nastavuje pri focuse polí terakotový okraj (!important) — tu ho prebíja farba šablóny */
+:global([data-template]) .input:focus,
+:global([data-template]) .select:focus,
+:global([data-template]) .textarea:focus {
+  outline: none !important;
+  border-color: var(--a) !important;
+  box-shadow: 0 0 0 3px var(--a-soft);
+}
+.count {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.consent input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--a);
+}
+.privacy {
+  color: var(--a-ink);
+  font-weight: 650;
+  text-underline-offset: 3px;
+}
+.privacy:focus-visible,
+.submit:focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 3px;
+}
+.captcha {
+  min-height: 0;
+}
+.captcha:empty {
+  display: none;
+}
+/* honeypot: mimo obrazovky, nie display:none (niektoré boty také polia preskočia) */
+.trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.error {
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: var(--r-field);
+  background: var(--err-soft);
+  color: var(--err);
+  font-size: 14px;
+  font-weight: 600;
+}
+.success {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 18px 20px;
+  border-radius: var(--r-field);
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+.successIcon {
+  flex: none;
+  margin-top: 1px;
+}
+.formDisabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: var(--a);
+  color: var(--a-on);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: var(--btn-ls);
+  text-transform: var(--btn-tt);
+  cursor: pointer;
+  transition: filter 0.16s ease, transform 0.16s ease;
+}
+.submit:hover:not(:disabled) {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@container (min-width: 640px) {
+  .form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+  }
+  .span2 {
+    grid-column: 1 / -1;
+  }
+  .submit {
+    width: auto;
+    min-width: 220px;
+  }
+}
+
+/* minimal: polia len s podčiarknutím, ako formulár v časopise */
+:global([data-template="minimal"]) .input,
+:global([data-template="minimal"]) .select,
+:global([data-template="minimal"]) .textarea {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  padding-left: 0;
+  background-color: transparent;
+}
+:global([data-template="minimal"]) .select {
+  background-position: right 0 center;
+}
+:global([data-template="minimal"]) .input:focus,
+:global([data-template="minimal"]) .select:focus,
+:global([data-template="minimal"]) .textarea:focus {
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submit {
+    transition: none;
+  }
+  .submit:hover:not(:disabled) {
+    transform: none;
+  }
+}

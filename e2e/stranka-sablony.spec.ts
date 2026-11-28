@@ -1,7 +1,8 @@
 // i18n-ignore-file: testy šablón verejnej stránky trénera — texty z UI a vymyslené dáta
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { DEFAULT_TEMPLATE, TEMPLATES, TEMPLATE_IDS, coerceTemplate, isTemplateId, recipeFor } from "../lib/publicPage/templates";
+import { DEFAULT_TEMPLATE, SECTION_ANCHOR, TEMPLATES, TEMPLATE_IDS, coerceTemplate, isTemplateId, recipeFor, visibleSections } from "../lib/publicPage/templates";
+import type { PublicPageData } from "../lib/publicPage/types";
 import skPublic from "../messages/sk/publicPage.json";
 import csPublic from "../messages/cs/publicPage.json";
 import { sessionLogin } from "./helpers/sessionLogin";
@@ -35,25 +36,30 @@ test.describe("šablóny — recepty", () => {
     expect(coerceTemplate(undefined)).toBe("klasik");
   });
 
-  test("každý recept má hrdinu na začiatku, kontakt práve raz a pätu na konci", () => {
+  test("každý recept má hrdinu na začiatku a kontakt práve raz na konci (lišta a päta sú pevné)", () => {
     for (const id of TEMPLATE_IDS) {
       const r = recipeFor(id);
       expect(r.id).toBe(id);
       const kinds = r.sections.map((s) => s.kind);
       expect(kinds[0], id).toBe("hero");
       expect(kinds.filter((k) => k === "contact"), id).toHaveLength(1);
-      expect(kinds[kinds.length - 1], id).toBe("powered");
+      expect(kinds[kinds.length - 1], id).toBe("contact");
       expect(new Set(kinds).size, `${id}: sekcie sa neopakujú`).toBe(kinds.length);
       for (const s of r.sections) expect(s.variant.length, `${id}/${s.kind}`).toBeGreaterThan(0);
     }
     expect(Object.keys(TEMPLATES).sort()).toEqual([...TEMPLATE_IDS].sort());
   });
 
-  test("tón: šport vždy tmavý, minimal vždy svetlý, klasik a wellness podľa telefónu", () => {
+  test("tón je pevný: šport tmavý, ostatné svetlé (stránka nezávisí od témy appky ani telefónu)", () => {
     expect(recipeFor("sport").tone).toBe("dark");
-    expect(recipeFor("minimal").tone).toBe("light");
-    expect(recipeFor("klasik").tone).toBe("auto");
-    expect(recipeFor("wellness").tone).toBe("auto");
+    for (const id of ["klasik", "minimal", "wellness"] as const) expect(recipeFor(id).tone, id).toBe("light");
+  });
+
+  test("sekcie bez dát sa nevykreslia (ani v navigácii) a kotvy majú svoje id", () => {
+    const empty = { bio: "", specializations: [], services: [], testimonials: [], galleryUrls: [] } as unknown as PublicPageData;
+    for (const id of TEMPLATE_IDS) expect(visibleSections(recipeFor(id), empty).map((s) => s.kind), id).toEqual(["hero", "contact"]);
+    const full = { ...empty, bio: "x", services: [{}], testimonials: [{}], galleryUrls: ["u"] } as unknown as PublicPageData;
+    expect(visibleSections(recipeFor("klasik"), full).map((s) => SECTION_ANCHOR[s.kind])).toEqual(["top", "o-mne", "sluzby", "referencie", "galeria", "kontakt"]);
   });
 
   test("preklady: názov a popis každej šablóny v sk aj cs", () => {
@@ -109,8 +115,8 @@ test.describe.serial("šablóny — náhľad, výber a verejná stránka (DB)", 
   }
 
   for (const id of TEMPLATE_IDS) {
-    test(`náhľad ?sablona=${id}: koreň, formulár, bez pretečenia pri 320 a 390`, async ({ page }) => {
-      for (const width of [320, 390]) {
+    test(`náhľad ?sablona=${id}: web (lišta, päta), formulár, bez pretečenia pri 320, 390, 768 a 1440`, async ({ page }) => {
+      for (const width of [320, 390, 768, 1440]) {
         await page.setViewportSize({ width, height: 800 });
         await page.goto(`${PREVIEW}?sablona=${id}`);
         const root = page.getByTestId("public-trainer-page");
@@ -118,6 +124,16 @@ test.describe.serial("šablóny — náhľad, výber a verejná stránka (DB)", 
         await expect(root).toHaveAttribute("data-theme", recipeFor(id).tone);
         await expect(root.getByRole("heading", { level: 1 })).toHaveText("Maja Fitová");
         await expect(root.getByRole("note")).toContainText("zatiaľ nie je uložená");
+        // web: lišta s odkazom na #kontakt, päta s „Stránka beží na FitPilot“ (v náhľade bez odkazu)
+        await expect(root.locator("header").getByRole("link", { name: /^Chcem trénovať/ })).toHaveAttribute("href", "#kontakt");
+        await expect(root.locator("footer")).toContainText("Stránka beží na FitPilot");
+        await expect(root.getByTestId("powered-by-link")).toHaveCount(0);
+        await expect(root.locator("main")).toBeVisible();
+        if (width >= 900) {
+          // na šírke sú odkazy sekcií v lište (len na existujúce sekcie)
+          const nav = root.getByRole("navigation", { name: "Hlavná navigácia" });
+          for (const l of ["O mne", "Služby", "Referencie", "Galéria", "Kontakt"]) await expect(nav.getByRole("link", { name: l, exact: true })).toBeVisible();
+        }
         // formulár záujemcu je v náhľade, ale vypnutý
         await expect(root.locator("#kontakt")).toBeVisible();
         await expect(root.locator("#kontakt").getByRole("button", { name: "Odoslať" })).toBeDisabled();
@@ -176,6 +192,10 @@ test.describe.serial("šablóny — náhľad, výber a verejná stránka (DB)", 
     // (/t/<handle> presmeruje na poddoménu, preto rovno poddoména — *.localhost smeruje na loopback)
     const res = await page.request.get(`http://${seeded!.handle}.localhost:${new URL(baseURL!).port}/`);
     expect(res.status()).toBe(200);
-    expect(await res.text()).toContain('data-template="wellness"');
+    const html = await res.text();
+    expect(html).toContain('data-template="wellness"');
+    // na verejnej stránke je päta s odkazom na FitPilot a odkaz v lište na formulár
+    expect(html).toContain('data-testid="powered-by-link"');
+    expect(html).toContain('href="#kontakt"');
   });
 });

@@ -1,150 +1,74 @@
 import { getTranslations } from "next-intl/server";
-import { LogoMark } from "@/app/components/LogoMark";
-import { BrandLogo } from "@/app/components/BrandLogo";
+import { SECTION_ANCHOR, type SectionSpec } from "@/lib/publicPage/templates";
 import type { PublicPageData } from "@/lib/publicPage/types";
-import type { SectionSpec } from "@/lib/publicPage/templates";
-import styles from "../publicPage.module.css";
-import tpl from "../templates.module.css";
-import { GlobeIcon, PinIcon } from "./shared";
+import styles from "../site.module.css";
+import { ArrowIcon, GlobeIcon, PinIcon } from "./shared";
 
-/* Hrdina stránky: meno (h1), nadpis, miesto, online a tlačidlo na #kontakt.
-   Varianty: card (klasik), cover (fotka na celú šírku s tmavým prelivom — šport), text (textový, malá fotka — minimal),
-   split (veľká zaoblená fotka vedľa textu — wellness). Bez fotky každý variant elegantne padne na text / farebný podklad. */
-export async function Hero({ page, spec }: { page: PublicPageData; spec: SectionSpec }) {
+/* Hrdina webu: meno (h1), nadpis, miesto / online, hlavné tlačidlo na #kontakt a druhý odkaz na služby (alebo „O mne“).
+   Jedno značkovanie pre všetky šablóny — vzhľad podľa variantu rieši CSS: split (klasik, text vľavo + fotka vpravo),
+   cover (šport, fotka na celú šírku s tmavým prelivom), editorial (minimal, veľký serif + vysoká fotka),
+   arch (wellness, oblúková fotka). Bez fotky sa hrdina zjednoduší na text na farebnom podklade. */
+export async function Hero({ page, spec, hasServices, hasAbout }: { page: PublicPageData; spec: SectionSpec; hasServices: boolean; hasAbout: boolean }) {
   const t = await getTranslations("publicPage");
-  const hasLogo = !!(page.logoUrl || page.logoDarkUrl);
+  // „štatistické“ štítky (šport): prvé špecializácie vedľa miesta a online
+  const tags = spec.variant === "cover" ? page.specializations.slice(0, 3) : [];
+  const secondary = hasServices
+    ? { href: `#${SECTION_ANCHOR.services}`, label: t("hero.secondaryServices") }
+    : hasAbout
+      ? { href: `#${SECTION_ANCHOR.about}`, label: t("hero.secondaryAbout") }
+      : null;
 
-  const meta =
-    page.location || page.online ? (
-      <ul className={tpl.meta}>
-        {page.location && (
-          <li className={tpl.chip}>
-            <PinIcon />
-            <span className={styles.srOnly}>{t("hero.locationLabel")}: </span>
-            {page.location}
-          </li>
-        )}
-        {page.online && (
-          <li className={tpl.chip}>
-            <GlobeIcon />
-            {t("hero.online")}
-          </li>
-        )}
-      </ul>
-    ) : null;
+  const cover = spec.variant === "cover";
+  const media = (
+    <div className={styles.heroMedia}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={page.photoUrl ?? ""} alt={page.displayName} width={800} height={1000} fetchPriority="high" />
+    </div>
+  );
 
-  if (spec.variant === "cover") {
-    return (
-      <header className={`${tpl.cover} ${page.photoUrl ? "" : tpl.coverPlain}`}>
-        {page.photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={page.photoUrl} alt={page.displayName} width={800} height={800} className={tpl.coverImg} fetchPriority="high" />
-        )}
-        <div className={tpl.coverShade} aria-hidden="true" />
-        <div className={tpl.coverBody}>
-          {hasLogo && (
-            <div className={tpl.coverLogo}>
-              <BrandLogo src={page.logoUrl} darkSrc={page.logoDarkUrl} />
-            </div>
-          )}
-          <h1 className={tpl.coverName}>{page.displayName}</h1>
-          {page.headline && <p className={tpl.coverHeadline}>{page.headline}</p>}
-          {meta}
-          <a href="#kontakt" className={tpl.cta}>
-            {t("hero.cta")}
-          </a>
-        </div>
-      </header>
-    );
-  }
-
-  if (spec.variant === "split") {
-    return (
-      <header className={`${tpl.split} ${page.photoUrl ? "" : tpl.splitNoPhoto}`}>
-        {page.photoUrl && (
-          <div className={tpl.splitMedia}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={page.photoUrl} alt={page.displayName} width={800} height={800} className={tpl.splitPhoto} fetchPriority="high" />
-          </div>
-        )}
-        <div className={tpl.splitText}>
-          {hasLogo && (
-            <div className={tpl.splitLogo}>
-              <BrandLogo src={page.logoUrl} darkSrc={page.logoDarkUrl} />
-            </div>
-          )}
-          {!hasLogo && !page.photoUrl && <LogoMark className={tpl.splitLogoMark} />}
-          <h1 className={tpl.splitName}>{page.displayName}</h1>
-          {page.headline && <p className={tpl.splitHeadline}>{page.headline}</p>}
-          {meta}
-          <a href="#kontakt" className={tpl.cta}>
-            {t("hero.cta")}
-          </a>
-        </div>
-      </header>
-    );
-  }
-
-  if (spec.variant === "text") {
-    return (
-      <header className={tpl.plain}>
-        <div className={tpl.plainTop}>
-          {page.photoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={page.photoUrl} alt={page.displayName} width={160} height={160} className={tpl.plainPhoto} />
-          )}
-          {hasLogo ? (
-            <div className={tpl.plainLogo}>
-              <BrandLogo src={page.logoUrl} darkSrc={page.logoDarkUrl} />
-            </div>
-          ) : (
-            !page.photoUrl && <LogoMark className={tpl.plainLogoMark} />
-          )}
-        </div>
-        <h1 className={tpl.plainName}>{page.displayName}</h1>
-        {page.headline && <p className={tpl.plainHeadline}>{page.headline}</p>}
-        {meta}
-        <a href="#kontakt" className={tpl.cta}>
-          {t("hero.cta")}
-        </a>
-      </header>
-    );
-  }
-
-  // card — dnešný vzhľad (klasik), bez zmeny značky aj tried
   return (
-    <header className={`${styles.card} ${styles.hero}`}>
-      <div className={styles.identity}>
-        {page.photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={page.photoUrl} alt={page.displayName} width={160} height={160} className={styles.photo} />
-        )}
-        {hasLogo ? <BrandLogo src={page.logoUrl} darkSrc={page.logoDarkUrl} /> : !page.photoUrl && <LogoMark className={styles.logo} />}
-      </div>
-      <div className={styles.heroText}>
-        <h1 className={styles.name}>{page.displayName}</h1>
-        {page.headline && <p className={styles.headline}>{page.headline}</p>}
-        {(page.location || page.online) && (
-          <ul className={styles.meta}>
-            {page.location && (
-              <li className={styles.chip}>
-                <PinIcon />
-                <span className={styles.srOnly}>{t("hero.locationLabel")}: </span>
-                {page.location}
-              </li>
+    <section id="top" className={styles.hero} aria-labelledby="hero-title" data-kind="hero" data-variant={spec.variant} data-band="base" data-photo={page.photoUrl ? "yes" : "no"}>
+      {page.photoUrl && cover && media}
+      <div className={`${styles.container} ${styles.heroInner}`}>
+        <div className={styles.heroText}>
+          <h1 id="hero-title" className={styles.h1}>
+            {page.displayName}
+          </h1>
+          {page.headline && <p className={styles.headline}>{page.headline}</p>}
+          {(page.location || page.online || tags.length > 0) && (
+            <ul className={styles.meta}>
+              {page.location && (
+                <li>
+                  <PinIcon />
+                  <span className={styles.srOnly}>{t("hero.locationLabel")}: </span>
+                  {page.location}
+                </li>
+              )}
+              {page.online && (
+                <li>
+                  <GlobeIcon />
+                  {t("hero.online")}
+                </li>
+              )}
+              {tags.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
+          )}
+          <div className={styles.actions}>
+            <a href={`#${SECTION_ANCHOR.contact}`} className={`${styles.btn} ${styles.btnPrimary}`}>
+              {t("hero.cta")}
+              <ArrowIcon />
+            </a>
+            {secondary && (
+              <a href={secondary.href} className={`${styles.btn} ${styles.btnGhost}`}>
+                {secondary.label}
+              </a>
             )}
-            {page.online && (
-              <li className={styles.chip}>
-                <GlobeIcon />
-                {t("hero.online")}
-              </li>
-            )}
-          </ul>
-        )}
-        <a href="#kontakt" className={styles.cta}>
-          {t("hero.cta")}
-        </a>
+          </div>
+        </div>
+        {page.photoUrl && !cover && media}
       </div>
-    </header>
+    </section>
   );
 }
