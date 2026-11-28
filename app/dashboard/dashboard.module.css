@@ -354,12 +354,6 @@ a.bellItemMain:hover {
   font-variant-numeric: tabular-nums;
   flex: none;
 }
-/* Položka len pre bočný panel na počítači (Výzvy) — v spodnej lište na mobile sa nezobrazí. */
-@media (max-width: 880px) {
-  .navLinkDesktopOnly {
-    display: none;
-  }
-}
 /* Bottom tab bar položky: ikona nad labelom, min. 44px výška na dotyk (palec). */
 @media (max-width: 880px) {
   .navLink {
