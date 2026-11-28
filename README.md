@@ -79,6 +79,8 @@ _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
   - Nastavenia → Verejná stránka: výber zo 4 šablón (Klasik, Šport, Minimal, Wellness) s náhľadom na vlastných údajoch pred uložením (`?sablona=`); obsah ostáva rovnaký, mení sa len vzhľad.
   - Šablóny vyzerajú ako samostatný web trénera (nie dizajn appky): horné menu s kotvami + CTA, plnošírkové sekcie, kontakt s formulárom, pätička; vlastné písma (next/font) a farby, farba značky trénera ako akcent. Klasik (predvolená) sa zmenil aj pre existujúce stránky.
   - Technicky: knižnica sekcií `app/t/sections/*` + recepty `lib/publicPage/templates.ts`; `trainer_public_profiles.template` + `get_public_trainer_page` vracia šablónu.
+  - Dizajn liquid glass: sklenené panely nad farebným pozadím, plávajúce sklenené menu; palety Ocean light (Klasik), Night neon (Šport), Stone & ink (Minimal), Sunset pastel (Wellness); fallback bez `backdrop-filter`.
+  - „Tvoja fotka“ sa nahráva vo Verejnej stránke (zo Značky odstránená, uloženie značky ju nemení); ostáva v `trainer_branding.photo_path`, takže ju ukazuje aj pozvánka.
 - **2026-11-28** — **Prihlásenie čaká na CAPTCHA, Výzvy z bočného menu preč** (`feature/login-captcha`).
   - Prihlásenie: „Prihlásiť sa“ je neaktívne, kým Turnstile nevydá token (po autofille hesla už nekončí chybou CAPTCHA); pod tlačidlom vysvetlenie „Čakám na overenie, že nie si robot…“. Po vypršaní tokenu sa znova zablokuje.
   - Tréner: Výzvy už nie sú v bočnom menu na desktope — idú z Klientov („+ Nová výzva pre klientov“), na /dashboard/vyzvy svieti Klienti.
