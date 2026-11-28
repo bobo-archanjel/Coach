@@ -75,6 +75,9 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-28** — **Prihlásenie čaká na CAPTCHA, Výzvy z bočného menu preč** (`feature/login-captcha`).
+  - Prihlásenie: „Prihlásiť sa“ je neaktívne, kým Turnstile nevydá token (po autofille hesla už nekončí chybou CAPTCHA); pod tlačidlom vysvetlenie „Čakám na overenie, že nie si robot…“. Po vypršaní tokenu sa znova zablokuje.
+  - Tréner: Výzvy už nie sú v bočnom menu na desktope — idú z Klientov („+ Nová výzva pre klientov“), na /dashboard/vyzvy svieti Klienti.
 - **2026-11-27** — **Nastavenia trénera v záložkách, Záujemcovia v nastaveniach, Nová výzva na Klientoch** (`feature/settings-trainer`).
   - Nastavenia: 7 kategórií — Účet · Komunikácia · Značka · Verejná stránka · Záujemcovia · Predplatné · Aplikácia; na mobile posuvný rad hore, na desktope bočné menu vľavo; `?sekcia=` v adrese (zdieľaný `SectionTabs`, používa ho aj detail klienta). Návod otvorí záložku Aplikácia.
   - Záujemcovia: záložka v nastaveniach (z bočného menu preč), `/dashboard/zaujemcovia` presmeruje; opravené pretekanie na mobile (zoznam aj detail).
