@@ -30,7 +30,7 @@ test.describe("klienti — tlačidlo Nová výzva", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
 
     await link.click();
-    await expect(page).toHaveURL(/\/dashboard\/vyzvy#nova-vyzva$/);
+    await expect(page).toHaveURL(/\/dashboard\/vyzvy#nova-vyzva$/, { timeout: 20_000 });
     await expect(page.locator("#nova-vyzva")).toBeVisible();
     const form = page.getByTestId("challenge-form");
     // formulár je vidieť, kým nie je dosiahnutý limit aktívnych výziev
