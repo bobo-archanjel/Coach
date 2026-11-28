@@ -2,6 +2,7 @@
 
 import type { BrandTheme } from "@/lib/branding/colors";
 import type { Socials } from "./socials";
+import type { TemplateId } from "./templates";
 
 export interface PublicService {
   name: string;
@@ -32,5 +33,7 @@ export interface PublicPageData {
   logoDarkUrl: string | null;
   photoUrl: string | null;
   theme: BrandTheme | null;
+  /** vzhľad stránky (mení len prezentáciu, nie obsah) */
+  template: TemplateId;
   updatedAt: string | null;
 }

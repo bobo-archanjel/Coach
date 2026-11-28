@@ -173,7 +173,10 @@
       "galleryFull": "Galéria je plná (max. 6 fotiek).",
       "tooLarge": "Súbor je príliš veľký.",
       "badType": "Povolené sú len obrázky PNG, JPG alebo WebP.",
-      "decodeFailed": "Obrázok sa nepodarilo spracovať."
+      "decodeFailed": "Obrázok sa nepodarilo spracovať.",
+      "templateInvalid": "Táto šablóna neexistuje.",
+      "templateNeedPage": "Najprv ulož stránku.",
+      "templateUnavailable": "Šablóny budú dostupné po aktualizácii databázy."
     }
   },
   "dash": {
@@ -252,5 +255,33 @@
     "back": "Späť do nastavení",
     "banner": "Náhľad tvojej verejnej stránky — tak ju uvidia návštevníci.",
     "bannerDraft": "Stránka zatiaľ nie je zverejnená — vidíš ju len ty."
+  },
+  "templates": {
+    "title": "Šablóna stránky",
+    "subtitle": "Vyber si, ako stránka vyzerá. Texty, služby, fotky aj farba ostávajú rovnaké, takže prepnutie o nič nepríde.",
+    "legend": "Šablóna verejnej stránky",
+    "active": "Aktívna",
+    "preview": "Náhľad",
+    "save": "Uložiť šablónu",
+    "saving": "Ukladám…",
+    "saved": "Šablóna je uložená.",
+    "previewBanner": "Náhľad šablóny „{name}“ s tvojimi údajmi — zatiaľ nie je uložená.",
+    "names": {
+      "klasik": "Klasik",
+      "sport": "Šport",
+      "minimal": "Minimal",
+      "wellness": "Wellness"
+    },
+    "descriptions": {
+      "klasik": "Svetlé karty, vyvážené a prehľadné.",
+      "sport": "Tmavá, veľká fotka a výrazné písmo.",
+      "minimal": "Text na prvom mieste, veľa vzduchu.",
+      "wellness": "Jemná a zaoblená, fotka vedľa textu."
+    },
+    "disabled": {
+      "locked": "Šablóny sú súčasťou tarify Business.",
+      "needPage": "Najprv ulož stránku (adresu a texty), potom si vyberieš šablónu.",
+      "notReady": "Šablóny budú dostupné po aktualizácii databázy."
+    }
   }
 }

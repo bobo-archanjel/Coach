@@ -21,6 +21,8 @@ import { loadInviteQuota } from "@/lib/mail/invite";
 import { getMyTrainerBilling } from "@/lib/billing/server";
 import { brandingPublicUrl } from "@/lib/branding/server";
 import { PublicPageForm, type PublicPageInitial } from "./PublicPageForm";
+import { TemplatePicker } from "./TemplatePicker";
+import { coerceTemplate } from "@/lib/publicPage/templates";
 import { mailSiteUrl } from "@/lib/mail/config";
 import { siteUrl } from "@/lib/site";
 import { trainerSubdomainBase } from "@/lib/publicPage/subdomain";
@@ -66,14 +68,21 @@ export default async function NastaveniaPage({ searchParams }: { searchParams: P
         return full.error ? await supabase.from("trainer_branding").select(base).eq("trainer_id", user.id).maybeSingle() : full;
       })(),
       Promise.all([
-        supabase.from("trainer_public_profiles").select("handle, published, headline, bio, location, online, specializations, socials").eq("trainer_id", user.id).maybeSingle(),
+        (async () => {
+          // `template` pridáva až 0090 — bez nej sa dopyt zopakuje bez stĺpca a šablóny sú vypnuté
+          const cols = "handle, published, headline, bio, location, online, specializations, socials";
+          const full = await supabase.from("trainer_public_profiles").select(`${cols}, template`).eq("trainer_id", user.id).maybeSingle();
+          if (!full.error) return { ...full, templateReady: true };
+          const bare = await supabase.from("trainer_public_profiles").select(cols).eq("trainer_id", user.id).maybeSingle();
+          return { ...bare, templateReady: false };
+        })(),
         supabase.from("trainer_services").select("name, description, price_text").eq("trainer_id", user.id).order("position"),
         supabase.from("trainer_gallery").select("id, path").eq("trainer_id", user.id).order("position"),
         supabase.from("trainer_testimonials").select("author, body").eq("trainer_id", user.id).order("position"),
       ]),
     ]);
     brandingRow = (res.data as Record<string, string | null> | null) ?? null;
-    const pr = (prof.error ? null : prof.data) as { handle: string; published: boolean; headline: string; bio: string; location: string; online: boolean; specializations: string[]; socials: unknown } | null;
+    const pr = (prof.error ? null : prof.data) as { handle: string; published: boolean; headline: string; bio: string; location: string; online: boolean; specializations: string[]; socials: unknown; template?: string } | null;
     publicInitial = {
       handle: pr?.handle ?? "",
       published: pr?.published ?? false,
@@ -90,6 +99,8 @@ export default async function NastaveniaPage({ searchParams }: { searchParams: P
         return url ? [{ id: g.id as string, url }] : [];
       }),
       saved: !!pr,
+      template: coerceTemplate(pr?.template),
+      templateReady: prof.templateReady,
     };
     return { brandingUnlocked, brandingRow, publicInitial };
   });
@@ -275,7 +286,10 @@ export default async function NastaveniaPage({ searchParams }: { searchParams: P
                 <PublicPageForm initial={publicInitial} host={siteHost} siteOrigin={siteUrl()} subdomainBase={trainerSubdomainBase()} businessReady={brandingUnlocked} />
               </>
             ) : (
-              <LockedNotice testId="public-page-locked" feature="publicPage" title={tp("locked.title")} text={tp("locked.text")} linkLabel={tp("locked.upgrade")} />
+              <>
+                <LockedNotice testId="public-page-locked" feature="publicPage" title={tp("locked.title")} text={tp("locked.text")} linkLabel={tp("locked.upgrade")} />
+                <TemplatePicker initial="klasik" ready={false} hasPage={false} disabledReason="locked" />
+              </>
             )}
           </div>
         )}

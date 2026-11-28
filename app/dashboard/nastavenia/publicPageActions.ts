@@ -18,12 +18,20 @@ import { processBrandImage, removeBrandImage, storeBrandImage } from "@/lib/bran
 import { validateHandle } from "@/lib/publicPage/handle";
 import { LIMITS, validateProfile } from "@/lib/publicPage/profile";
 import { PUBLIC_PAGE_TAG } from "@/lib/publicPage/server";
+import { isTemplateId, type TemplateId } from "@/lib/publicPage/templates";
 
 export interface PublicPageState {
   error: string | null;
   saved: boolean;
   /** uložená adresa (po úspechu) */
   handle?: string;
+}
+
+export interface TemplateState {
+  error: string | null;
+  saved: boolean;
+  /** uložená šablóna (po úspechu) */
+  template?: TemplateId;
 }
 
 export interface HandleCheckState {
@@ -61,6 +69,34 @@ function refreshPublic(...handles: (string | null | undefined)[]) {
   for (const h of new Set(handles.filter(Boolean))) revalidatePath(`/t/${h}`);
   revalidatePath("/sitemap.xml");
   revalidatePath("/dashboard/nastavenia");
+}
+
+/** Uloží šablónu vzhľadu (mení len prezentáciu). Stránka musí už existovať; pred migráciou 0090 stĺpec chýba → vľúdna hláška. */
+export async function saveTemplateAction(_prev: TemplateState, formData: FormData): Promise<TemplateState> {
+  const t = await getTranslations("publicPage.settings.errors");
+  const guard = await requirePageTrainer();
+  if ("error" in guard) return { error: guard.error, saved: false };
+  const trainerId = guard.userId;
+  if (!allowWithinWindow(`public-page-template:${trainerId}`, 30, 10 * 60_000)) return { error: t("tooFast"), saved: false };
+
+  const template = formData.get("template");
+  if (!isTemplateId(template)) return { error: t("templateInvalid"), saved: false };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainer_public_profiles")
+    .update({ template, updated_at: new Date().toISOString() })
+    .eq("trainer_id", trainerId)
+    .select("handle");
+  if (error) {
+    // stĺpec ešte neexistuje (0090 nebehla)
+    if (error.code === "42703" || error.code === "PGRST204" || /template/i.test(error.message ?? "")) return { error: t("templateUnavailable"), saved: false };
+    return { error: await dbErr(error, "actions"), saved: false };
+  }
+  const row = data?.[0] as { handle?: string } | undefined;
+  if (!row) return { error: t("templateNeedPage"), saved: false };
+  refreshPublic(row.handle);
+  return { error: null, saved: true, template };
 }
 
 /** Uloží celú stránku: adresa, zverejnenie, texty, odkazy, služby a referencie (jeden payload JSON). */

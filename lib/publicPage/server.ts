@@ -9,6 +9,7 @@ import { cleanLine, cleanMultiline } from "@/lib/branding/validation";
 import { isOwnBrandPath } from "@/lib/branding/image";
 import { isHandleShape } from "./handle";
 import { readSocials } from "./socials";
+import { coerceTemplate } from "./templates";
 import type { PublicPageData } from "./types";
 
 // FitPilot — načítanie verejnej stránky trénera. Verejné čítanie ide VÝHRADNE cez SECURITY DEFINER RPC
@@ -34,6 +35,7 @@ interface RpcPage {
   services?: unknown;
   gallery?: unknown;
   testimonials?: unknown;
+  template?: unknown;
 }
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
@@ -84,6 +86,7 @@ export function toPublicPage(row: RpcPage): PublicPageData | null {
     logoDarkUrl: brandingPublicUrl(pathOk(row.logo_dark_path, "logodark")),
     photoUrl: brandingPublicUrl(pathOk(row.photo_path, "photo")),
     theme: deriveBrandTheme(accent),
+    template: coerceTemplate(row.template),
     updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
   };
 }
@@ -134,10 +137,20 @@ export async function listPublicPages(): Promise<{ handle: string; updatedAt: st
     .filter((r) => isHandleShape(r.handle));
 }
 
+const PROFILE_COLS = "handle, published, headline, bio, location, online, specializations, socials, updated_at";
+
+/** Riadok stránky vrátane `template`; pred migráciou 0090 stĺpec chýba → dopyt sa zopakuje bez neho. */
+async function loadOwnProfile(supabase: SupabaseClient, trainerId: string) {
+  const full = await supabase.from("trainer_public_profiles").select(`${PROFILE_COLS}, template`).eq("trainer_id", trainerId).maybeSingle();
+  if (!full.error) return full;
+  if (!/template/i.test(full.error.message)) return full;
+  return supabase.from("trainer_public_profiles").select(PROFILE_COLS).eq("trainer_id", trainerId).maybeSingle();
+}
+
 /** Vlastná stránka trénera (aj nepublikovaná) cez bežný klient a RLS — pre nastavenia a náhľad. */
 export async function loadOwnPage(supabase: SupabaseClient, trainerId: string): Promise<{ page: PublicPageData | null; published: boolean; row: OwnRow | null }> {
   const [profile, services, gallery, testimonials, branding, trainerProfile] = await Promise.all([
-    supabase.from("trainer_public_profiles").select("handle, published, headline, bio, location, online, specializations, socials, updated_at").eq("trainer_id", trainerId).maybeSingle(),
+    loadOwnProfile(supabase, trainerId),
     supabase.from("trainer_services").select("name, description, price_text").eq("trainer_id", trainerId).order("position"),
     supabase.from("trainer_gallery").select("id, path").eq("trainer_id", trainerId).order("position"),
     supabase.from("trainer_testimonials").select("author, body").eq("trainer_id", trainerId).order("position"),

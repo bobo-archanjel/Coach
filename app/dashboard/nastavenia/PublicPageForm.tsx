@@ -12,6 +12,8 @@ import { LIMITS } from "@/lib/publicPage/profile";
 import { buildTrainerPublicUrl } from "@/lib/publicPage/subdomain";
 import { HANDLE_MAX, normalizeHandle } from "@/lib/publicPage/handle";
 import { SOCIAL_KINDS, type SocialKind } from "@/lib/publicPage/socials";
+import type { TemplateId } from "@/lib/publicPage/templates";
+import { TemplatePicker } from "./TemplatePicker";
 import {
   checkHandleAction,
   removeGalleryPhotoAction,
@@ -38,6 +40,10 @@ export interface PublicPageInitial {
   gallery: { id: string; url: string }[];
   /** adresa stránky sa už uložila (stránka existuje v DB) */
   saved: boolean;
+  /** uložená šablóna vzhľadu */
+  template: TemplateId;
+  /** stĺpec `template` existuje (migrácia 0090 prebehla) */
+  templateReady: boolean;
 }
 
 const initialState: PublicPageState = { error: null, saved: false };
@@ -120,6 +126,8 @@ export function PublicPageForm({ initial, host, siteOrigin, subdomainBase, busin
           </Link>
         </span>
       </div>
+
+      <TemplatePicker initial={initial.template} ready={initial.templateReady} hasPage={state.saved || initial.saved} disabledReason={null} />
 
       <form action={formAction} className={b.form}>
         <input type="hidden" name="payload" value={payload} />

@@ -1,6 +1,6 @@
 // i18n-ignore-file: testy verejnej stránky trénera a záujemcov — čisté testy bez siete a bez DB (vymyslené mená a texty)
 import { test, expect } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { HANDLE_MAX, HANDLE_MIN, RESERVED_HANDLES, isHandleShape, isReservedHandle, normalizeHandle, validateHandle } from "../lib/publicPage/handle";
 import { EXTERNAL_REL, SOCIAL_KINDS, readSocials, validateSocialUrl, validateSocials } from "../lib/publicPage/socials";
 import { LIMITS, parseTags, validateProfile } from "../lib/publicPage/profile";
@@ -156,7 +156,8 @@ test.describe("obsah stránky", () => {
     const r = validateProfile({ ...base, bio: "<img src=x onerror=alert(1)> **tučné**" });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value.bio).toBe("<img src=x onerror=alert(1)> **tučné**");
-    const src = readFileSync("app/t/TrainerPublicPage.tsx", "utf8");
+    // vykreslenie je rozdelené na sekcie (app/t/sections/*) — kontrola platí pre celú stránku
+    const src = ["TrainerPublicPage.tsx", ...readdirSync("app/t/sections").map((f) => `sections/${f}`)].map((f) => readFileSync(`app/t/${f}`, "utf8")).join("\n");
     expect(src.replace(/\/\*[\s\S]*?\*\//g, "")).not.toContain("dangerouslySetInnerHTML");
     expect(src).toContain("rel={EXTERNAL_REL}");
     expect(EXTERNAL_REL).toBe("nofollow noopener noreferrer");
