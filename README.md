@@ -75,6 +75,10 @@ Neplatná hodnota pre danú stránku sa ticho ignoruje (padá sa na reálne dát
 
 _Najnovšie hore. Formát: `YYYY-MM-DD — čo sa zmenilo`._
 
+- **2026-11-28** — **Šablóny verejnej stránky trénera** (`feature/stranka-sablony`, **migrácia `0090_public_page_template.sql`**).
+  - Nastavenia → Verejná stránka: výber zo 4 šablón (Klasik, Šport, Minimal, Wellness) s náhľadom na vlastných údajoch pred uložením (`?sablona=`); obsah ostáva rovnaký, mení sa len vzhľad.
+  - Šablóny vyzerajú ako samostatný web trénera (nie dizajn appky): horné menu s kotvami + CTA, plnošírkové sekcie, kontakt s formulárom, pätička; vlastné písma (next/font) a farby, farba značky trénera ako akcent. Klasik (predvolená) sa zmenil aj pre existujúce stránky.
+  - Technicky: knižnica sekcií `app/t/sections/*` + recepty `lib/publicPage/templates.ts`; `trainer_public_profiles.template` + `get_public_trainer_page` vracia šablónu.
 - **2026-11-28** — **Prihlásenie čaká na CAPTCHA, Výzvy z bočného menu preč** (`feature/login-captcha`).
   - Prihlásenie: „Prihlásiť sa“ je neaktívne, kým Turnstile nevydá token (po autofille hesla už nekončí chybou CAPTCHA); pod tlačidlom vysvetlenie „Čakám na overenie, že nie si robot…“. Po vypršaní tokenu sa znova zablokuje.
   - Tréner: Výzvy už nie sú v bočnom menu na desktope — idú z Klientov („+ Nová výzva pre klientov“), na /dashboard/vyzvy svieti Klienti.
