@@ -6,6 +6,7 @@
 // magic bytes a sharp re-encode (rovnaká cesta ako logo/fotka v brandingu). Zápis do DB ide cez RLS
 // vlastného trénera (0083), do úložiska výhradne cez service role.
 
+import { randomBytes } from "crypto";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -260,6 +261,70 @@ export async function removeGalleryPhotoAction(id: string): Promise<GalleryState
   const admin = tryCreateAdminClient();
   if (admin) await removeBrandImage(admin, guard.userId, "gallery", row.path as string);
   refreshPublic(await ownHandle(supabase, guard.userId));
+  return { error: null };
+}
+
+/**
+ * Nahrá hlavnú fotku trénera (hrdina verejnej stránky + pozvánka). Ukladá sa do trainer_branding.photo_path
+ * (rovnaký stĺpec ako dovtedy v Značke, takže pozvánka funguje bez zmeny). Ak riadok značky ešte nie je,
+ * vloží sa minimálny (predvolené hodnoty + tajný odkaz pozvánky ako v brandingActions).
+ */
+export async function uploadPublicPhotoAction(formData: FormData): Promise<GalleryState> {
+  const t = await getTranslations("publicPage.settings.errors");
+  const guard = await requirePageTrainer();
+  if ("error" in guard) return { error: guard.error };
+  const trainerId = guard.userId;
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { error: t("badType") };
+  if (file.size > MAX_UPLOAD_BYTES) return { error: t("tooLarge") };
+  if (!allowWithinWindow(`public-page-photo:${trainerId}`, 12, 10 * 60_000)) return { error: t("tooFast") };
+
+  const admin = tryCreateAdminClient();
+  if (!admin) return { error: t("unavailable") };
+  const supabase = await createClient();
+  const { data: existing, error: readErr } = await supabase.from("trainer_branding").select("photo_path, invite_slug").eq("trainer_id", trainerId).maybeSingle();
+  if (readErr) return { error: await dbErr(readErr, "actions") };
+
+  const processed = await processBrandImage(new Uint8Array(await file.arrayBuffer()), "photo");
+  if (!processed.ok) return { error: t(processed.error) };
+  const stored = await storeBrandImage(admin, trainerId, "photo", processed.webp, null);
+  if ("error" in stored) {
+    console.error("publicPage.photo upload:", stored.error);
+    return { error: t("unavailable") };
+  }
+  const now = new Date().toISOString();
+  const slug = (existing?.invite_slug as string | null | undefined) ?? null;
+  const { error } = existing
+    ? await supabase.from("trainer_branding").update({ photo_path: stored.path, updated_at: now }).eq("trainer_id", trainerId)
+    : await supabase.from("trainer_branding").insert({ trainer_id: trainerId, photo_path: stored.path, invite_slug: randomBytes(10).toString("hex"), updated_at: now });
+  if (error) {
+    await removeBrandImage(admin, trainerId, "photo", stored.path);
+    return { error: await dbErr(error, "actions") };
+  }
+  const old = (existing?.photo_path as string | null | undefined) ?? null;
+  if (old && old !== stored.path) await removeBrandImage(admin, trainerId, "photo", old);
+  refreshPublic(await ownHandle(supabase, trainerId));
+  if (slug) revalidatePath(`/pozvanka/${slug}`);
+  return { error: null };
+}
+
+/** Odstráni hlavnú fotku (stĺpec aj súbor). Ostatné polia značky sa nemenia. */
+export async function removePublicPhotoAction(): Promise<GalleryState> {
+  const guard = await requirePageTrainer();
+  if ("error" in guard) return { error: guard.error };
+  const trainerId = guard.userId;
+  const supabase = await createClient();
+  const { data: row, error: readErr } = await supabase.from("trainer_branding").select("photo_path, invite_slug").eq("trainer_id", trainerId).maybeSingle();
+  if (readErr) return { error: await dbErr(readErr, "actions") };
+  const old = (row?.photo_path as string | null | undefined) ?? null;
+  if (!old) return { error: null };
+  const { error } = await supabase.from("trainer_branding").update({ photo_path: null, updated_at: new Date().toISOString() }).eq("trainer_id", trainerId);
+  if (error) return { error: await dbErr(error, "actions") };
+  const admin = tryCreateAdminClient();
+  if (admin) await removeBrandImage(admin, trainerId, "photo", old);
+  refreshPublic(await ownHandle(supabase, trainerId));
+  const slug = row?.invite_slug as string | null | undefined;
+  if (slug) revalidatePath(`/pozvanka/${slug}`);
   return { error: null };
 }
 

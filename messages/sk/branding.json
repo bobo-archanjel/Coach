@@ -9,8 +9,6 @@
   "logoHint": "PNG, JPG alebo WebP do 1 MB. Najlepšie štvorcové s priehľadným pozadím.",
   "logoDark": "Logo na tmavé pozadie (nepovinné)",
   "logoDarkHint": "Zobrazí sa v tmavej téme namiesto bežného loga. Hodí sa, ak je tvoje logo tmavé alebo čierne.",
-  "photo": "Tvoja fotka (nepovinné)",
-  "photoHint": "Ukáže sa na pozvánke pre nových klientov.",
   "choose": "Vybrať súbor",
   "change": "Zmeniť",
   "remove": "Odstrániť",

@@ -232,3 +232,11 @@
   position: absolute;
   inset: -8px;
 }
+
+/* hlavná fotka trénera — portrétový výrez (na výšku) */
+.photoThumb[class] {
+  width: 56px;
+  height: 72px;
+  border-radius: 12px;
+  object-fit: cover;
+}

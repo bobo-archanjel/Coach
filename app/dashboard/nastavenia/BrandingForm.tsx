@@ -28,7 +28,6 @@ export interface BrandingInitial {
   logoDarkUrl: string | null;
   /** vygenerovaná ikona appky (apple 180) — null, kým tréner neuloží logo */
   iconUrl: string | null;
-  photoUrl: string | null;
   /** cesta pozvánky (/pozvanka/<odkaz>) alebo null pred prvým uložením */
   invitePath: string | null;
 }
@@ -44,30 +43,25 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
   const [accent, setAccent] = useState<string | null>(initial.accent);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoDarkPreview, setLogoDarkPreview] = useState<string | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [removeLogoDark, setRemoveLogoDark] = useState(false);
-  const [removePhoto, setRemovePhoto] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   // „Farby z tvojho loga“ — návrhy akcentu zo servera (po výbere súboru alebo po uložení)
   const [palette, setPalette] = useState<string[]>([]);
   const logoRef = useRef<HTMLInputElement>(null);
   const logoDarkRef = useRef<HTMLInputElement>(null);
-  const photoRef = useRef<HTMLInputElement>(null);
 
   const theme = useMemo(() => deriveBrandTheme(accent), [accent]);
   const shownLogo = removeLogo ? null : (logoPreview ?? initial.logoUrl);
   const shownLogoDark = removeLogoDark ? null : (logoDarkPreview ?? initial.logoDarkUrl);
-  const shownPhoto = removePhoto ? null : (photoPreview ?? initial.photoUrl);
   // po uložení nového loga prišli farby priamo zo servera; inak platia tie z výberu súboru
   const suggested = (state.palette && state.palette.length > 0 ? state.palette : palette).filter((c) => normalizeHex(c));
 
   // uvoľnenie object URL pri zmene/odchode
   useEffect(() => () => { if (logoPreview) URL.revokeObjectURL(logoPreview); }, [logoPreview]);
   useEffect(() => () => { if (logoDarkPreview) URL.revokeObjectURL(logoDarkPreview); }, [logoDarkPreview]);
-  useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
-  function onPick(kind: "logo" | "logoDark" | "photo", input: HTMLInputElement) {
+  function onPick(kind: "logo" | "logoDark", input: HTMLInputElement) {
     const file = input.files?.[0];
     setFileError(null);
     if (!file) return;
@@ -99,13 +93,10 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
     } else if (kind === "logoDark") {
       setLogoDarkPreview(url);
       setRemoveLogoDark(false);
-    } else {
-      setPhotoPreview(url);
-      setRemovePhoto(false);
     }
   }
 
-  function clearFile(kind: "logo" | "logoDark" | "photo") {
+  function clearFile(kind: "logo" | "logoDark") {
     if (kind === "logo") {
       if (logoRef.current) logoRef.current.value = "";
       setLogoPreview(null);
@@ -115,10 +106,6 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
       if (logoDarkRef.current) logoDarkRef.current.value = "";
       setLogoDarkPreview(null);
       setRemoveLogoDark(true);
-    } else {
-      if (photoRef.current) photoRef.current.value = "";
-      setPhotoPreview(null);
-      setRemovePhoto(true);
     }
   }
 
@@ -210,39 +197,6 @@ export function BrandingForm({ initial }: { initial: BrandingInitial }) {
           </div>
           {removeLogoDark && <input type="hidden" name="remove_logo_dark" value="1" />}
           <p className={styles.hint}>{t("logoDarkHint")}</p>
-        </div>
-
-        <div className={styles.field}>
-          <span className={styles.label}>{t("photo")}</span>
-          <div className={styles.fileRow}>
-            {shownPhoto ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={shownPhoto} alt="" className={`${styles.fileThumb} ${styles.filePhoto}`} />
-            ) : (
-              <span className={`${styles.fileThumb} ${styles.filePhoto} ${styles.thumbEmpty}`} aria-hidden="true">
-                {displayName.charAt(0).toUpperCase()}
-              </span>
-            )}
-            <input
-              ref={photoRef}
-              id="photo"
-              name="photo"
-              type="file"
-              accept={ACCEPT}
-              className={styles.fileInput}
-              onChange={(e) => onPick("photo", e.currentTarget)}
-            />
-            <label htmlFor="photo" className={`${pa.action} ${pa.small} ${pa.inline}`}>
-              {shownPhoto ? t("change") : t("choose")}
-            </label>
-            {shownPhoto && (
-              <button type="button" className={styles.linkBtn} onClick={() => clearFile("photo")}>
-                {t("remove")}
-              </button>
-            )}
-          </div>
-          {removePhoto && <input type="hidden" name="remove_photo" value="1" />}
-          <p className={styles.hint}>{t("photoHint")}</p>
         </div>
 
         <div className={styles.field}>

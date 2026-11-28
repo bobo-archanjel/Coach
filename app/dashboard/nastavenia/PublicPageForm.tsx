@@ -17,8 +17,10 @@ import { TemplatePicker } from "./TemplatePicker";
 import {
   checkHandleAction,
   removeGalleryPhotoAction,
+  removePublicPhotoAction,
   savePublicPageAction,
   uploadGalleryPhotoAction,
+  uploadPublicPhotoAction,
   type HandleCheckState,
   type PublicPageState,
 } from "./publicPageActions";
@@ -38,6 +40,8 @@ export interface PublicPageInitial {
   services: { name: string; description: string; priceText: string }[];
   testimonials: { author: string; body: string }[];
   gallery: { id: string; url: string }[];
+  /** hlavná fotka trénera (trainer_branding.photo_path) */
+  photoUrl: string | null;
   /** adresa stránky sa už uložila (stránka existuje v DB) */
   saved: boolean;
   /** uložená šablóna vzhľadu */
@@ -177,6 +181,8 @@ export function PublicPageForm({ initial, host, siteOrigin, subdomainBase, busin
             <span className={b.hint}>{t("publishHint")}</span>
           </span>
         </label>
+
+        <PhotoManager photoUrl={initial.photoUrl} />
 
         <div className={b.field}>
           <label className={b.label} htmlFor="pp-headline">
@@ -380,6 +386,65 @@ function CloseIcon() {
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
       <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
+  );
+}
+
+/** Hlavná fotka: nahrá sa hneď (server action), nie cez „Uložiť stránku“. */
+function PhotoManager({ photoUrl }: { photoUrl: string | null }) {
+  const t = useTranslations("publicPage.settings");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, startTransition] = useTransition();
+  const input = useRef<HTMLInputElement>(null);
+
+  function onPick(file: File | undefined) {
+    if (!file) return;
+    startTransition(async () => {
+      const small = await shrinkPhoto(file);
+      const fd = new FormData();
+      fd.set("photo", small);
+      const res = await uploadPublicPhotoAction(fd);
+      setError(res.error);
+      if (input.current) input.current.value = "";
+    });
+  }
+
+  return (
+    <div className={b.field} data-testid="public-photo">
+      <span className={b.label}>{t("photoTitle")}</span>
+      <div className={b.fileRow}>
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photoUrl} alt="" className={`${b.fileThumb} ${p.photoThumb}`} data-testid="public-photo-img" />
+        ) : (
+          <span className={`${b.fileThumb} ${p.photoThumb} ${b.thumbEmpty}`} aria-hidden="true" />
+        )}
+        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" className={b.fileInput} id="pp-photo-file" onChange={(e) => onPick(e.target.files?.[0])} disabled={busy} />
+        <label htmlFor="pp-photo-file" className={`${pa.action} ${pa.small} ${pa.inline}`} aria-disabled={busy}>
+          {busy ? t("photoUploading") : photoUrl ? t("photoChange") : t("photoAdd")}
+        </label>
+        {photoUrl && (
+          <button
+            type="button"
+            className={b.linkBtn}
+            disabled={busy}
+            onClick={() =>
+              startTransition(async () => {
+                const res = await removePublicPhotoAction();
+                setError(res.error);
+              })
+            }
+          >
+            {t("photoRemove")}
+          </button>
+        )}
+        {error && (
+          <span className={b.err} role="alert">
+            {error}
+          </span>
+        )}
+      </div>
+      <p className={b.hint}>{t("photoHint")}</p>
+    </div>
   );
 }
 

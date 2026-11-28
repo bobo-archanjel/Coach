@@ -79,33 +79,31 @@ export async function saveBrandingAction(_prev: BrandingState, formData: FormDat
 
   const logo = fileOf(formData, "logo");
   const logoDark = fileOf(formData, "logo_dark");
-  const photo = fileOf(formData, "photo");
   const removeLogo = formData.get("remove_logo") === "1";
   const removeLogoDark = formData.get("remove_logo_dark") === "1";
-  const removePhoto = formData.get("remove_photo") === "1";
 
   // nahrávanie je drahé (dekódovanie obrázka, generovanie ikon) — limit na trénera
-  if ((logo || logoDark || photo) && !allowWithinWindow(`branding-upload:${trainerId}`, 12, 10 * 60_000)) {
+  if ((logo || logoDark) && !allowWithinWindow(`branding-upload:${trainerId}`, 12, 10 * 60_000)) {
     return { error: t("tooManyUploads"), saved: false };
   }
-  for (const f of [logo, logoDark, photo]) {
+  for (const f of [logo, logoDark]) {
     if (f && f.size > MAX_UPLOAD_BYTES) return { error: t("tooLarge"), saved: false };
   }
 
   const supabase = await createClient();
   const { data: existing, error: readErr } = await supabase
     .from("trainer_branding")
-    .select("trainer_id, accent_color, logo_path, logo_dark_path, photo_path, invite_slug, icon_192_path, icon_512_path, icon_maskable_path, icon_apple_path")
+    .select("trainer_id, accent_color, logo_path, logo_dark_path, invite_slug, icon_192_path, icon_512_path, icon_maskable_path, icon_apple_path")
     .eq("trainer_id", trainerId)
     .maybeSingle();
   if (readErr) return { error: await dbErr(readErr, "actions"), saved: false };
 
   const admin = tryCreateAdminClient();
-  if (!admin && (logo || logoDark || photo || removeLogo || removeLogoDark || removePhoto)) return { error: t("storageUnavailable"), saved: false };
+  if (!admin && (logo || logoDark || removeLogo || removeLogoDark)) return { error: t("storageUnavailable"), saved: false };
 
   // obrázky: najprv overiť a znovu zakódovať OBA (nech zlý druhý súbor nenechá po prvom sirotu v úložisku)
   const processed: Partial<Record<BrandImageKind, Buffer>> = {};
-  for (const [kind, file] of [["logo", logo], ["logodark", logoDark], ["photo", photo]] as const) {
+  for (const [kind, file] of [["logo", logo], ["logodark", logoDark]] as const) {
     if (!file) continue;
     const res = await processBrandImage(new Uint8Array(await file.arrayBuffer()), kind);
     if (!res.ok) return { error: t(res.error), saved: false };
@@ -114,16 +112,14 @@ export async function saveBrandingAction(_prev: BrandingState, formData: FormDat
 
   let logoPath = (existing?.logo_path as string | null | undefined) ?? null;
   let logoDarkPath = (existing?.logo_dark_path as string | null | undefined) ?? null;
-  let photoPath = (existing?.photo_path as string | null | undefined) ?? null;
   const oldLogo = logoPath;
   const oldLogoDark = logoDarkPath;
-  const oldPhoto = photoPath;
   const oldIcons: Partial<Record<IconVariant, string | null>> = {};
   for (const v of ICON_VARIANTS) oldIcons[v] = (existing?.[ICON_COLUMNS[v]] as string | null | undefined) ?? null;
   const uploaded: { kind: BrandImageKind; path: string }[] = [];
 
   if (admin) {
-    for (const kind of ["logo", "logodark", "photo"] as const) {
+    for (const kind of ["logo", "logodark"] as const) {
       const webp = processed[kind];
       if (!webp) continue;
       const stored = await storeBrandImage(admin, trainerId, kind, webp, null);
@@ -135,13 +131,11 @@ export async function saveBrandingAction(_prev: BrandingState, formData: FormDat
       }
       uploaded.push({ kind, path: stored.path });
       if (kind === "logo") logoPath = stored.path;
-      else if (kind === "logodark") logoDarkPath = stored.path;
-      else photoPath = stored.path;
+      else logoDarkPath = stored.path;
     }
   }
   if (removeLogo && !processed.logo) logoPath = null;
   if (removeLogoDark && !processed.logodark) logoDarkPath = null;
-  if (removePhoto && !processed.photo) photoPath = null;
 
   // Ikony appky (manifest, apple-touch-icon): znova sa generujú pri novom logu, zmene farby
   // alebo keď ešte neexistujú; bez loga sa zmažú (manifest potom použije ikony FitPilot).
@@ -165,6 +159,8 @@ export async function saveBrandingAction(_prev: BrandingState, formData: FormDat
       }
     }
   }
+  // photo_path sa tu NIKDY nemení (fotka sa spravuje vo Verejnej stránke) — pri update sa stĺpec do payloadu nedostane,
+  // pri prvom vložení ostáva null
   const payload = {
     trainer_id: trainerId,
     brand_name: parsed.value.brandName,
@@ -172,7 +168,6 @@ export async function saveBrandingAction(_prev: BrandingState, formData: FormDat
     accent_color: parsed.value.accent,
     logo_path: logoPath,
     logo_dark_path: logoDarkPath,
-    photo_path: photoPath,
     icon_192_path: iconPaths["192"] ?? null,
     icon_512_path: iconPaths["512"] ?? null,
     icon_maskable_path: iconPaths.maskable ?? null,
@@ -195,7 +190,6 @@ export async function saveBrandingAction(_prev: BrandingState, formData: FormDat
   if (admin) {
     if (oldLogo && oldLogo !== logoPath) await removeBrandImage(admin, trainerId, "logo", oldLogo);
     if (oldLogoDark && oldLogoDark !== logoDarkPath) await removeBrandImage(admin, trainerId, "logodark", oldLogoDark);
-    if (oldPhoto && oldPhoto !== photoPath) await removeBrandImage(admin, trainerId, "photo", oldPhoto);
     // nahradené/odstránené ikony (po úspešnom zápise; nezmenené sa nemažú)
     const stale: Partial<Record<IconVariant, string | null>> = {};
     for (const v of ICON_VARIANTS) if (oldIcons[v] && oldIcons[v] !== iconPaths[v]) stale[v] = oldIcons[v];

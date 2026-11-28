@@ -98,6 +98,7 @@ export default async function NastaveniaPage({ searchParams }: { searchParams: P
         const url = brandingPublicUrl(g.path as string);
         return url ? [{ id: g.id as string, url }] : [];
       }),
+      photoUrl: brandingPublicUrl(brandingRow?.photo_path),
       saved: !!pr,
       template: coerceTemplate(pr?.template),
       templateReady: prof.templateReady,
@@ -256,7 +257,6 @@ export default async function NastaveniaPage({ searchParams }: { searchParams: P
                     logoUrl: brandingPublicUrl(brandingRow?.logo_path),
                     logoDarkUrl: brandingPublicUrl(brandingRow?.logo_dark_path),
                     iconUrl: brandingPublicUrl(brandingRow?.icon_apple_path),
-                    photoUrl: brandingPublicUrl(brandingRow?.photo_path),
                     invitePath: brandingRow?.invite_slug ? `/pozvanka/${brandingRow.invite_slug}` : null,
                   }}
                 />
