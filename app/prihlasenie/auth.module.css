@@ -464,6 +464,14 @@
   margin-bottom: 14px;
 }
 
+/* pod „Prihlásiť sa“, kým CAPTCHA nevydá token (tlačidlo je dovtedy neaktívne) */
+.captchaWait {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--paper-dim);
+  text-align: center;
+}
+
 /* ---------- súhlas s obchodnými podmienkami (/prihlasenie/suhlas) ---------- */
 .consentChanges {
   margin-bottom: 18px;

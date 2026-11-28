@@ -680,11 +680,20 @@ export function AuthView() {
                   <button
                     type="submit"
                     className={`${styles.btnSubmit} ${loginStatus === "success" ? styles.success : ""}`}
-                    disabled={loginStatus === "loading" || !loginCanSubmit}
+                    // kým CAPTCHA nevydá token, prihlásenie nejde odoslať (po autofille by inak
+                    // skončilo chybou CAPTCHA) — pod tlačidlom je vysvetlenie
+                    disabled={loginStatus === "loading" || !loginCanSubmit || (!loginTurnstile.ready && loginStatus === "idle")}
+                    aria-describedby={!loginTurnstile.ready && loginStatus === "idle" ? "login-captcha-wait" : undefined}
                   >
                     {loginStatus === "loading" && <span className={styles.spinner} aria-hidden="true" />}
                     <span>{loginStatus === "loading" ? (loginLoadingText ?? t("loggingIn")) : t("loginSubmit")}</span>
                   </button>
+
+                  {!loginTurnstile.ready && loginStatus === "idle" && (
+                    <p id="login-captcha-wait" className={styles.captchaWait} role="status" data-testid="login-captcha-wait">
+                      {t("captchaWait")}
+                    </p>
+                  )}
 
                   {loginStatus === "success" && (
                     <div className={styles.formStatus} role="status">

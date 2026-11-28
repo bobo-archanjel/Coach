@@ -112,11 +112,11 @@ test.describe("nastavenia — záložky kategórií", () => {
     await expect(page).toHaveURL(/sekcia=zaujemcovia&stav=new$/);
   });
 
-  test("bočné menu na počítači: bez Záujemcov, s Výzvami; Nastavenia aktívne na záložke", async ({ page }) => {
+  test("bočné menu na počítači: bez Záujemcov aj Výziev; Nastavenia aktívne na záložke", async ({ page }) => {
     test.skip((page.viewportSize()?.width ?? 0) < 900, "bočný panel je len na počítači");
     await page.goto("/dashboard/nastavenia?sekcia=zaujemcovia");
     const nav = page.getByRole("navigation", { name: "Trénerský dashboard" });
-    await expect(nav.getByRole("link", { name: "Výzvy" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Výzvy" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Záujemcovia" })).toHaveCount(0);
   });
 

@@ -109,7 +109,16 @@ test.describe("Prihlásenie /prihlasenie", () => {
     await page.goto("/prihlasenie");
     await page.locator("#login-email").fill("neexistuje@test.sk");
     await page.locator("#login-password").fill("nespravneheslo");
-    await page.getByRole("button", { name: "Prihlásiť sa" }).click();
+    // kým CAPTCHA nevydá token, „Prihlásiť sa“ je neaktívne a pod ním je vysvetlenie
+    // (lokálne/headless Cloudflare chce zaškrtnúť políčko → token nepríde)
+    const submit = page.getByRole("button", { name: "Prihlásiť sa" });
+    const wait = page.getByTestId("login-captcha-wait");
+    if (await wait.isVisible()) {
+      await expect(wait).toHaveText(/nie si robot/);
+      await expect(submit).toBeDisabled();
+      return;
+    }
+    await submit.click();
     // buď chybová hláška, alebo sa nič nestane — v žiadnom prípade nesmie spadnúť stránka
     await page.waitForTimeout(2500);
     await expect(page.getByRole("tab", { name: "Prihlásenie" })).toBeVisible();
